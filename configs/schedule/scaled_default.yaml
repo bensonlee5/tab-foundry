@@ -1,0 +1,10 @@
+stages:
+  - name: stage1
+    steps: 30000
+    lr_max: 8.0e-4
+  - name: stage2
+    steps: 4000
+    lr_max: 1.0e-4
+  - name: stage3
+    steps: 1000
+    lr_max: 2.0e-5

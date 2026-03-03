@@ -1,0 +1,5 @@
+manifest_path: data/manifests/default.parquet
+roots:
+  - ${oc.env:CAUCHY_DATA_ROOT,${oc.env:HOME}/dev/cauchy-generator/data}
+train_row_cap: null
+test_row_cap: null

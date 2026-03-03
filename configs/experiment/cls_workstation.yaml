@@ -1,0 +1,7 @@
+# @package _global_
+
+task: classification
+runtime:
+  output_dir: outputs/cls_workstation
+logging:
+  run_name: cls-workstation

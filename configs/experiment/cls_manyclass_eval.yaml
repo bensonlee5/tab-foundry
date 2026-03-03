@@ -1,0 +1,13 @@
+# @package _global_
+
+task: classification
+runtime:
+  output_dir: outputs/cls_manyclass_eval
+data:
+  train_row_cap: 512
+  test_row_cap: 256
+eval:
+  split: test
+  max_batches: 128
+logging:
+  run_name: cls-manyclass-eval

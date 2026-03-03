@@ -1,0 +1,9 @@
+seed: 1
+output_dir: outputs/workstation
+device: auto
+mixed_precision: bf16
+num_workers: 0
+grad_clip: 10.0
+grad_accum_steps: 64
+eval_every: 200
+val_batches: 32

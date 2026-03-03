@@ -1,0 +1,3 @@
+use_wandb: true
+project: tab-foundry
+run_name: tab-foundry-run

@@ -1,0 +1,16 @@
+defaults:
+  - data: default
+  - model: default
+  - optimizer: muon_default
+  - schedule: scaled_default
+  - runtime: workstation
+  - logging: wandb
+  - _self_
+  - experiment: cls_workstation
+
+task: classification
+
+eval:
+  checkpoint: null
+  split: val
+  max_batches: 128

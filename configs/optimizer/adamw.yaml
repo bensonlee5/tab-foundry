@@ -1,0 +1,8 @@
+name: adamw
+require_requested: false
+weight_decay: 0.01
+betas: [0.9, 0.95]
+min_lr: 1.0e-6
+muon_per_parameter_lr: true
+muon_lr_scale_base: 0.2
+muon_partition_non2d: true
