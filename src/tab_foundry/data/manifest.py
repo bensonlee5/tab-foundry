@@ -1,9 +1,10 @@
-"""Manifest builder for cauchy-generator packed parquet shard outputs."""
+"""Manifest builder for packed parquet shard outputs."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from hashlib import md5, sha1
+from collections import Counter
+from dataclasses import dataclass, field
+from hashlib import md5, sha1, sha256
 import json
 import os
 from pathlib import Path
@@ -18,10 +19,18 @@ class ManifestSummary:
     """Build summary."""
 
     out_path: Path
+    filter_policy: str
+    discovered_records: int
+    excluded_records: int
     total_records: int
     train_records: int
     val_records: int
     test_records: int
+    filter_status_counts: dict[str, int] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
+
+
+SUPPORTED_FILTER_POLICIES = ("include_all", "accepted_only")
 
 
 def _stable_split(key: str, train_ratio: float, val_ratio: float) -> str:
@@ -44,28 +53,23 @@ def _root_id(root: Path) -> str:
 def _dataset_id(
     *,
     root_id: str,
-    shard_id: int,
+    shard_relpath: str,
     dataset_index: int,
-    meta: dict[str, Any],
 ) -> str:
     """Stable dataset ID with root-level uniqueness."""
 
-    if shard_id >= 0 and dataset_index >= 0:
-        return f"root_{root_id}/shard_{shard_id:05d}/dataset_{dataset_index:06d}"
-
-    # Fallback for non-standard directory names.
-    stable_payload = {
-        "seed": int(meta.get("seed", -1)),
-        "n_features": int(meta.get("n_features", -1)),
-        "n_classes": int(meta["n_classes"]) if meta.get("n_classes") is not None else -1,
-        "curriculum_stage": (
-            int(meta.get("curriculum", {}).get("stage"))
-            if meta.get("curriculum", {}).get("stage") is not None
-            else -1
-        ),
-    }
-    token = json.dumps(stable_payload, sort_keys=True, separators=(",", ":"))
-    return f"root_{root_id}/dataset_{md5(token.encode('utf-8')).hexdigest()[:16]}"
+    normalized_relpath = shard_relpath.strip("/").replace(os.sep, "/")
+    token = json.dumps(
+        {
+            "root_id": root_id,
+            "shard_relpath": normalized_relpath,
+            "dataset_index": int(dataset_index),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    digest = md5(token.encode("utf-8")).hexdigest()[:12]
+    return f"root_{root_id}/{normalized_relpath}/dataset_{dataset_index:06d}_{digest}"
 
 
 def _manifest_relative_path(path: Path, *, manifest_dir: Path) -> str:
@@ -91,6 +95,76 @@ def _infer_task(meta: dict[str, Any]) -> str:
     return "classification" if n_classes is not None else "regression"
 
 
+def _shard_relpath(root: Path, shard_dir: Path) -> str:
+    try:
+        relpath = shard_dir.relative_to(root)
+    except ValueError:
+        return os.path.relpath(shard_dir, start=root)
+    return relpath.as_posix()
+
+
+def _parse_filter_metadata(meta: dict[str, Any]) -> tuple[str | None, str | None, bool | None]:
+    filter_raw = meta.get("filter")
+    if not isinstance(filter_raw, dict):
+        return None, None, None
+
+    mode_raw = filter_raw.get("mode")
+    status_raw = filter_raw.get("status")
+    accepted_raw = filter_raw.get("accepted")
+
+    mode = str(mode_raw) if isinstance(mode_raw, str) and mode_raw.strip() else None
+    status = str(status_raw) if isinstance(status_raw, str) and status_raw.strip() else None
+    accepted = accepted_raw if isinstance(accepted_raw, bool) else None
+    return mode, status, accepted
+
+
+def _status_bucket(status: str | None) -> str:
+    return status if status is not None else "missing"
+
+
+def _is_record_selected(
+    *,
+    filter_policy: str,
+    filter_status: str | None,
+    filter_accepted: bool | None,
+) -> bool:
+    if filter_policy == "include_all":
+        return True
+    if filter_policy == "accepted_only":
+        return filter_status == "accepted" or filter_accepted is True
+    raise ValueError(f"Unsupported filter_policy: {filter_policy!r}")
+
+
+def _build_manifest_warnings(
+    *,
+    filter_policy: str,
+    selected_records: int,
+    excluded_records: int,
+    filter_status_counts: Counter[str],
+) -> list[str]:
+    warnings: list[str] = []
+    if filter_policy == "include_all":
+        included_unaccepted = sum(
+            count
+            for status, count in filter_status_counts.items()
+            if status in {"missing", "not_run", "rejected"}
+        )
+        if included_unaccepted > 0:
+            warnings.append(
+                "Included datasets without accepted filter status "
+                f"(count={included_unaccepted}). Run `dagzoo filter --curated-out ...` and "
+                "rebuild with --filter-policy accepted_only for accepted-only training."
+            )
+    elif excluded_records > 0:
+        warnings.append(
+            f"Excluded {excluded_records} dataset(s) under filter_policy={filter_policy}."
+        )
+
+    if selected_records <= 0:
+        warnings.append("No records were selected into the output manifest.")
+    return warnings
+
+
 def _extract_shard_id(shard_dir: Path) -> int:
     name = shard_dir.name
     if not name.startswith("shard_"):
@@ -112,10 +186,10 @@ def _iter_shard_dirs(root: Path) -> list[Path]:
     return shard_dirs
 
 
-def _read_metadata_records(metadata_path: Path) -> list[tuple[int, int, dict[str, Any]]]:
+def _read_metadata_records(metadata_path: Path) -> list[tuple[int, int, str, dict[str, Any]]]:
     """Read metadata.ndjson records and include byte offsets for random access."""
 
-    records: list[tuple[int, int, dict[str, Any]]] = []
+    records: list[tuple[int, int, str, dict[str, Any]]] = []
     with metadata_path.open("rb") as handle:
         while True:
             offset = int(handle.tell())
@@ -138,8 +212,17 @@ def _read_metadata_records(metadata_path: Path) -> list[tuple[int, int, dict[str
                 raise RuntimeError(
                     f"metadata record must be a JSON object: path={metadata_path}, offset={offset}"
                 )
-            records.append((offset, size, payload))
+            records.append((offset, size, sha256(line).hexdigest(), payload))
     return records
+
+
+def _coerce_optional_int(value: Any, *, default: int, context: str) -> int:
+    if value is None:
+        return int(default)
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"{context} must be int-compatible or null, got {value!r}") from exc
 
 
 def build_manifest(
@@ -148,6 +231,7 @@ def build_manifest(
     *,
     train_ratio: float = 0.90,
     val_ratio: float = 0.05,
+    filter_policy: str = "include_all",
 ) -> ManifestSummary:
     """Scan parquet roots and persist manifest parquet."""
 
@@ -155,12 +239,18 @@ def build_manifest(
         raise ValueError("data_roots must not be empty")
     if train_ratio <= 0 or val_ratio < 0 or train_ratio + val_ratio >= 1:
         raise ValueError("invalid split ratios")
+    if filter_policy not in SUPPORTED_FILTER_POLICIES:
+        raise ValueError(
+            f"filter_policy must be one of {SUPPORTED_FILTER_POLICIES}, got {filter_policy!r}"
+        )
 
     out_path = out_path.expanduser().resolve()
     manifest_dir = out_path.parent
     roots = sorted({root.expanduser().resolve() for root in data_roots})
 
     records: list[dict[str, Any]] = []
+    discovered_records = 0
+    status_counts: Counter[str] = Counter()
     for root in roots:
         if not root.exists():
             continue
@@ -173,7 +263,7 @@ def build_manifest(
                 continue
 
             shard_id = _extract_shard_id(shard_dir)
-            for offset, size, record in _read_metadata_records(metadata_path):
+            for offset, size, record_sha256, record in _read_metadata_records(metadata_path):
                 if "dataset_index" not in record:
                     raise RuntimeError(
                         f"metadata record missing dataset_index: path={metadata_path}, offset={offset}"
@@ -186,12 +276,22 @@ def build_manifest(
                         f"path={metadata_path}, dataset_index={dataset_index}"
                     )
                 meta = meta_raw
+                discovered_records += 1
+
+                source_shard_relpath = _shard_relpath(root, shard_dir)
+                filter_mode, filter_status, filter_accepted = _parse_filter_metadata(meta)
+                status_counts[_status_bucket(filter_status)] += 1
+                if not _is_record_selected(
+                    filter_policy=filter_policy,
+                    filter_status=filter_status,
+                    filter_accepted=filter_accepted,
+                ):
+                    continue
 
                 dsid = _dataset_id(
                     root_id=source_root_id,
-                    shard_id=shard_id,
+                    shard_relpath=source_shard_relpath,
                     dataset_index=dataset_index,
-                    meta=meta,
                 )
                 split = _stable_split(dsid, train_ratio, val_ratio)
 
@@ -199,6 +299,7 @@ def build_manifest(
                     {
                         "dataset_id": dsid,
                         "source_root_id": source_root_id,
+                        "source_shard_relpath": source_shard_relpath,
                         "split": split,
                         "task": _infer_task(meta),
                         "shard_id": shard_id,
@@ -208,28 +309,38 @@ def build_manifest(
                         "metadata_path": _manifest_relative_path(metadata_path, manifest_dir=manifest_dir),
                         "metadata_offset_bytes": offset,
                         "metadata_size_bytes": size,
+                        "metadata_sha256": record_sha256,
                         "n_train": int(record.get("n_train", -1)),
                         "n_test": int(record.get("n_test", -1)),
-                        "n_features": int(record.get("n_features", meta.get("n_features", -1))),
+                        "n_features": _coerce_optional_int(
+                            record.get("n_features", meta.get("n_features", -1)),
+                            default=-1,
+                            context=(
+                                f"metadata.n_features path={metadata_path} "
+                                f"dataset_index={dataset_index}"
+                            ),
+                        ),
                         "n_classes": (
                             int(meta["n_classes"]) if meta.get("n_classes") is not None else None
                         ),
                         "seed": int(meta.get("seed", -1)),
-                        "curriculum_stage": (
-                            int(meta.get("curriculum", {}).get("stage"))
-                            if meta.get("curriculum", {}).get("stage") is not None
-                            else None
-                        ),
+                        "filter_mode": filter_mode,
+                        "filter_status": filter_status,
+                        "filter_accepted": filter_accepted,
                     }
                 )
 
-    if not records:
+    if discovered_records <= 0:
         raise RuntimeError("no datasets discovered while building manifest")
+    if not records:
+        raise RuntimeError(
+            f"no datasets matched filter_policy={filter_policy!r} while building manifest"
+        )
 
     records.sort(
         key=lambda record: (
             str(record["source_root_id"]),
-            int(record["shard_id"]),
+            str(record["source_shard_relpath"]),
             int(record["dataset_index"]),
             str(record["dataset_id"]),
         )
@@ -243,10 +354,21 @@ def build_manifest(
     train_records = sum(1 for record in records if record["split"] == "train")
     val_records = sum(1 for record in records if record["split"] == "val")
     test_records = sum(1 for record in records if record["split"] == "test")
+    excluded_records = discovered_records - len(records)
     return ManifestSummary(
         out_path=out_path,
+        filter_policy=filter_policy,
+        discovered_records=discovered_records,
+        excluded_records=excluded_records,
         total_records=len(records),
         train_records=train_records,
         val_records=val_records,
         test_records=test_records,
+        filter_status_counts=dict(sorted(status_counts.items())),
+        warnings=_build_manifest_warnings(
+            filter_policy=filter_policy,
+            selected_records=len(records),
+            excluded_records=excluded_records,
+            filter_status_counts=status_counts,
+        ),
     )

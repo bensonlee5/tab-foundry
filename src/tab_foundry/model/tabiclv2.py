@@ -23,6 +23,11 @@ from .many_class import (
 )
 
 
+DEFAULT_MANY_CLASS_BASE = 10
+DEFAULT_HEAD_HIDDEN_DIM = 1024
+DEFAULT_REGRESSION_QUANTILES = 999
+
+
 @dataclass(slots=True)
 class ClassificationOutput:
     """Classifier forward output."""
@@ -52,8 +57,16 @@ class _TabICLv2Backbone(nn.Module):
         *,
         d_col: int = 128,
         d_icl: int = 512,
-        cls_tokens: int = 4,
         feature_group_size: int = 32,
+        tfcol_n_heads: int = 8,
+        tfcol_n_layers: int = 3,
+        tfcol_n_inducing: int = 128,
+        tfrow_n_heads: int = 8,
+        tfrow_n_layers: int = 3,
+        tfrow_cls_tokens: int = 4,
+        tficl_n_heads: int = 8,
+        tficl_n_layers: int = 12,
+        tficl_ff_expansion: int = 2,
     ) -> None:
         super().__init__()
         self.d_col = d_col
@@ -62,22 +75,49 @@ class _TabICLv2Backbone(nn.Module):
         self.feature_group_size = int(feature_group_size)
         if self.feature_group_size <= 0:
             raise ValueError(f"feature_group_size must be positive, got {self.feature_group_size}")
+        self.tfcol_n_heads = int(tfcol_n_heads)
+        self.tfcol_n_layers = int(tfcol_n_layers)
+        self.tfcol_n_inducing = int(tfcol_n_inducing)
+        self.tfrow_n_heads = int(tfrow_n_heads)
+        self.tfrow_n_layers = int(tfrow_n_layers)
+        self.tfrow_cls_tokens = int(tfrow_cls_tokens)
+        self.tficl_n_heads = int(tficl_n_heads)
+        self.tficl_n_layers = int(tficl_n_layers)
+        self.tficl_ff_expansion = int(tficl_ff_expansion)
+        for name, value in (
+            ("tfcol_n_heads", self.tfcol_n_heads),
+            ("tfcol_n_layers", self.tfcol_n_layers),
+            ("tfcol_n_inducing", self.tfcol_n_inducing),
+            ("tfrow_n_heads", self.tfrow_n_heads),
+            ("tfrow_n_layers", self.tfrow_n_layers),
+            ("tfrow_cls_tokens", self.tfrow_cls_tokens),
+            ("tficl_n_heads", self.tficl_n_heads),
+            ("tficl_n_layers", self.tficl_n_layers),
+            ("tficl_ff_expansion", self.tficl_ff_expansion),
+        ):
+            if value <= 0:
+                raise ValueError(f"{name} must be positive, got {value}")
 
         group_in_dim = len(self.group_shifts) * self.feature_group_size
         self.group_linear = nn.Linear(group_in_dim, d_col)
-        self.tfcol = TFColEncoder(d_model=d_col, n_heads=8, n_layers=3, n_inducing=128)
+        self.tfcol = TFColEncoder(
+            d_model=d_col,
+            n_heads=self.tfcol_n_heads,
+            n_layers=self.tfcol_n_layers,
+            n_inducing=self.tfcol_n_inducing,
+        )
         self.tfrow = TFRowEncoder(
             d_model=d_col,
-            n_heads=8,
-            n_layers=3,
-            cls_tokens=cls_tokens,
+            n_heads=self.tfrow_n_heads,
+            n_layers=self.tfrow_n_layers,
+            cls_tokens=self.tfrow_cls_tokens,
             d_out=d_icl,
         )
         self.tficl = QASSTransformerEncoder(
             d_model=d_icl,
-            n_heads=8,
-            n_layers=12,
-            ff_expansion=2,
+            n_heads=self.tficl_n_heads,
+            n_layers=self.tficl_n_layers,
+            ff_expansion=self.tficl_ff_expansion,
             use_qass=True,
         )
 
@@ -175,8 +215,33 @@ class TabICLv2Classifier(_TabICLv2Backbone):
         feature_group_size: int = 32,
         many_class_train_mode: str = "path_nll",
         max_mixed_radix_digits: int = 64,
+        tfcol_n_heads: int = 8,
+        tfcol_n_layers: int = 3,
+        tfcol_n_inducing: int = 128,
+        tfrow_n_heads: int = 8,
+        tfrow_n_layers: int = 3,
+        tfrow_cls_tokens: int = 4,
+        tficl_n_heads: int = 8,
+        tficl_n_layers: int = 12,
+        tficl_ff_expansion: int = 2,
+        many_class_base: int = DEFAULT_MANY_CLASS_BASE,
+        head_hidden_dim: int = DEFAULT_HEAD_HIDDEN_DIM,
+        use_digit_position_embed: bool = True,
     ) -> None:
-        super().__init__(d_col=d_col, d_icl=d_icl, feature_group_size=feature_group_size)
+        super().__init__(
+            d_col=d_col,
+            d_icl=d_icl,
+            feature_group_size=feature_group_size,
+            tfcol_n_heads=tfcol_n_heads,
+            tfcol_n_layers=tfcol_n_layers,
+            tfcol_n_inducing=tfcol_n_inducing,
+            tfrow_n_heads=tfrow_n_heads,
+            tfrow_n_layers=tfrow_n_layers,
+            tfrow_cls_tokens=tfrow_cls_tokens,
+            tficl_n_heads=tficl_n_heads,
+            tficl_n_layers=tficl_n_layers,
+            tficl_ff_expansion=tficl_ff_expansion,
+        )
         mode = many_class_train_mode.strip().lower()
         if mode not in {"path_nll", "full_probs"}:
             raise ValueError(
@@ -188,13 +253,24 @@ class TabICLv2Classifier(_TabICLv2Backbone):
             raise ValueError(
                 f"max_mixed_radix_digits must be positive, got {self.max_mixed_radix_digits}"
             )
-        self.embed_tae = nn.Embedding(10, d_col)
-        self.embed_icl = nn.Embedding(10, d_icl)
-        self.digit_position_embed = nn.Embedding(self.max_mixed_radix_digits, d_col)
+        self.many_class_base = int(many_class_base)
+        if self.many_class_base <= 1:
+            raise ValueError(f"many_class_base must be >= 2, got {self.many_class_base}")
+        self.head_hidden_dim = int(head_hidden_dim)
+        if self.head_hidden_dim <= 0:
+            raise ValueError(f"head_hidden_dim must be positive, got {self.head_hidden_dim}")
+        self.use_digit_position_embed = bool(use_digit_position_embed)
+        self.embed_tae = nn.Embedding(self.many_class_base, d_col)
+        self.embed_icl = nn.Embedding(self.many_class_base, d_icl)
+        self.digit_position_embed: nn.Embedding | None
+        if self.use_digit_position_embed:
+            self.digit_position_embed = nn.Embedding(self.max_mixed_radix_digits, d_col)
+        else:
+            self.digit_position_embed = None
         self.head = nn.Sequential(
-            nn.Linear(d_icl, 1024),
+            nn.Linear(d_icl, self.head_hidden_dim),
             nn.GELU(),
-            nn.Linear(1024, 10),
+            nn.Linear(self.head_hidden_dim, self.many_class_base),
         )
 
     def _node_train_indices(
@@ -240,7 +316,9 @@ class TabICLv2Classifier(_TabICLv2Backbone):
 
             node_train_embed = row_embeddings[idx]
             node_train_labels = y_train[idx]
-            mapped = map_labels_to_child_groups(node_train_labels, node).clamp(max=9).to(torch.int64)
+            mapped = map_labels_to_child_groups(node_train_labels, node).clamp(
+                max=self.many_class_base - 1
+            ).to(torch.int64)
 
             seq = torch.cat([node_train_embed, test_embeddings], dim=0)
             node_train_target_embed = self.embed_icl(mapped)
@@ -310,7 +388,9 @@ class TabICLv2Classifier(_TabICLv2Backbone):
             else:
                 node_train_embed = row_embeddings[idx]
                 node_train_labels = y_train[idx]
-                mapped = map_labels_to_child_groups(node_train_labels, node).clamp(max=9).to(torch.int64)
+                mapped = map_labels_to_child_groups(node_train_labels, node).clamp(
+                    max=self.many_class_base - 1
+                ).to(torch.int64)
                 local_test_embed = test_embeddings[sample_idx]
                 seq = torch.cat([node_train_embed, local_test_embed], dim=0)
                 node_train_target_embed = self.embed_icl(mapped)
@@ -352,7 +432,7 @@ class TabICLv2Classifier(_TabICLv2Backbone):
         n_train: int,
         token_padding_mask: torch.Tensor | None,
     ) -> ClassificationOutput:
-        bases = balanced_bases(num_classes=num_classes, max_base=10)
+        bases = balanced_bases(num_classes=num_classes, max_base=self.many_class_base)
         digits = encode_mixed_radix(y_train, bases=bases)
         if int(digits.shape[0]) > self.max_mixed_radix_digits:
             raise RuntimeError(
@@ -361,18 +441,22 @@ class TabICLv2Classifier(_TabICLv2Backbone):
             )
 
         col_accum: torch.Tensor | None = None
-        digit_positions = torch.arange(digits.shape[0], device=e1.device, dtype=torch.int64)
-        digit_pos_embed = self.digit_position_embed(digit_positions)
+        digit_pos_embed: torch.Tensor | None = None
+        if self.use_digit_position_embed:
+            digit_positions = torch.arange(digits.shape[0], device=e1.device, dtype=torch.int64)
+            assert self.digit_position_embed is not None
+            digit_pos_embed = self.digit_position_embed(digit_positions)
         for view in range(digits.shape[0]):
-            tae_embed = self.embed_tae(digits[view].clamp(max=9).to(torch.int64))
-            tae_embed = tae_embed + digit_pos_embed[view][None, :]
+            tae_embed = self.embed_tae(digits[view].clamp(max=self.many_class_base - 1).to(torch.int64))
+            if digit_pos_embed is not None:
+                tae_embed = tae_embed + digit_pos_embed[view][None, :]
             col_out = self._column_encode_from_e1(e1, tae_embed, n_train=n_train)
             col_accum = col_out if col_accum is None else col_accum + col_out
         assert col_accum is not None
         col_mean = col_accum / float(digits.shape[0])
 
         row_embed = self._row_encode(col_mean, token_padding_mask=token_padding_mask)
-        tree = cached_build_balanced_class_tree(num_classes, max_branch=10)
+        tree = cached_build_balanced_class_tree(num_classes, max_branch=self.many_class_base)
         if self.training and self.many_class_train_mode == "path_nll":
             path_logits, path_targets, path_sample_counts, path_metrics = self._hierarchical_path_terms(
                 row_embed,
@@ -439,16 +523,44 @@ class TabICLv2Regressor(_TabICLv2Backbone):
         d_col: int = 128,
         d_icl: int = 512,
         feature_group_size: int = 32,
+        tfcol_n_heads: int = 8,
+        tfcol_n_layers: int = 3,
+        tfcol_n_inducing: int = 128,
+        tfrow_n_heads: int = 8,
+        tfrow_n_layers: int = 3,
+        tfrow_cls_tokens: int = 4,
+        tficl_n_heads: int = 8,
+        tficl_n_layers: int = 12,
+        tficl_ff_expansion: int = 2,
+        head_hidden_dim: int = DEFAULT_HEAD_HIDDEN_DIM,
     ) -> None:
-        super().__init__(d_col=d_col, d_icl=d_icl, feature_group_size=feature_group_size)
+        super().__init__(
+            d_col=d_col,
+            d_icl=d_icl,
+            feature_group_size=feature_group_size,
+            tfcol_n_heads=tfcol_n_heads,
+            tfcol_n_layers=tfcol_n_layers,
+            tfcol_n_inducing=tfcol_n_inducing,
+            tfrow_n_heads=tfrow_n_heads,
+            tfrow_n_layers=tfrow_n_layers,
+            tfrow_cls_tokens=tfrow_cls_tokens,
+            tficl_n_heads=tficl_n_heads,
+            tficl_n_layers=tficl_n_layers,
+            tficl_ff_expansion=tficl_ff_expansion,
+        )
+        self.head_hidden_dim = int(head_hidden_dim)
+        if self.head_hidden_dim <= 0:
+            raise ValueError(f"head_hidden_dim must be positive, got {self.head_hidden_dim}")
         self.embed_tae = nn.Linear(1, d_col)
         self.embed_icl = nn.Linear(1, d_icl)
         self.head = nn.Sequential(
-            nn.Linear(d_icl, 1024),
+            nn.Linear(d_icl, self.head_hidden_dim),
             nn.GELU(),
-            nn.Linear(1024, 999),
+            nn.Linear(self.head_hidden_dim, DEFAULT_REGRESSION_QUANTILES),
         )
-        q = torch.arange(1, 1000, dtype=torch.float32) / 1000.0
+        q = torch.arange(1, DEFAULT_REGRESSION_QUANTILES + 1, dtype=torch.float32) / float(
+            DEFAULT_REGRESSION_QUANTILES + 1
+        )
         self.register_buffer("quantile_levels", q, persistent=False)
 
     def forward(self, batch: TaskBatch) -> RegressionOutput:

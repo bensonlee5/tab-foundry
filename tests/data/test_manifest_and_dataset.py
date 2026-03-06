@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -11,18 +12,33 @@ import pyarrow.parquet as pq
 import pytest
 import torch
 
-from tab_foundry.data.dataset import CauchyParquetTaskDataset, _remap_labels
+from tab_foundry.data.dataset import PackedParquetTaskDataset, _remap_labels
 from tab_foundry.data.manifest import build_manifest
 
 
-def _classification_metadata(*, n_features: int, n_classes: int = 3, seed: int = 7) -> dict[str, Any]:
-    return {
+def _classification_metadata(
+    *,
+    n_features: int,
+    n_classes: int = 3,
+    seed: int = 7,
+    filter_status: str | None = "not_run",
+    filter_accepted: bool | None = None,
+    include_filter: bool = True,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "n_features": n_features,
         "n_classes": n_classes,
         "seed": seed,
-        "curriculum": {"stage": 1},
         "config": {"dataset": {"task": "classification"}},
     }
+    if include_filter:
+        filter_payload: dict[str, Any] = {"mode": "deferred"}
+        if filter_status is not None:
+            filter_payload["status"] = filter_status
+        if filter_accepted is not None:
+            filter_payload["accepted"] = filter_accepted
+        payload["filter"] = filter_payload
+    return payload
 
 
 def _classification_arrays(
@@ -43,9 +59,7 @@ def _classification_arrays(
     return x_train, y_train, x_test, y_test
 
 
-def _build_split_table(
-    rows: list[tuple[int, np.ndarray, np.ndarray]],
-) -> pa.Table:
+def _build_split_table(rows: list[tuple[int, np.ndarray, np.ndarray]]) -> pa.Table:
     dataset_indices: list[int] = []
     row_indices: list[int] = []
     x_rows: list[list[float]] = []
@@ -71,7 +85,7 @@ def _write_packed_shard(
     shard_dir: Path,
     *,
     datasets: list[dict[str, Any]],
-) -> dict[int, tuple[int, int]]:
+) -> dict[int, tuple[int, int, str]]:
     shard_dir.mkdir(parents=True, exist_ok=True)
 
     train_rows = [
@@ -93,7 +107,7 @@ def _write_packed_shard(
     pq.write_table(_build_split_table(train_rows), shard_dir / "train.parquet")
     pq.write_table(_build_split_table(test_rows), shard_dir / "test.parquet")
 
-    offsets: dict[int, tuple[int, int]] = {}
+    offsets: dict[int, tuple[int, int, str]] = {}
     with (shard_dir / "metadata.ndjson").open("wb") as handle:
         for dataset in datasets:
             payload = {
@@ -107,7 +121,7 @@ def _write_packed_shard(
             raw = (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
             offset = int(handle.tell())
             handle.write(raw)
-            offsets[int(dataset["dataset_index"])] = (offset, len(raw))
+            offsets[int(dataset["dataset_index"])] = (offset, len(raw), sha256(raw).hexdigest())
 
     return offsets
 
@@ -120,14 +134,23 @@ def _write_dataset(
     n_test: int = 8,
     n_features: int = 4,
     seed: int = 7,
-) -> dict[int, tuple[int, int]]:
+    filter_status: str | None = "not_run",
+    filter_accepted: bool | None = None,
+    include_filter: bool = True,
+) -> dict[int, tuple[int, int, str]]:
     x_train, y_train, x_test, y_test = _classification_arrays(
         n_train=n_train,
         n_test=n_test,
         n_features=n_features,
         seed=seed,
     )
-    metadata = _classification_metadata(n_features=n_features, seed=seed)
+    metadata = _classification_metadata(
+        n_features=n_features,
+        seed=seed,
+        filter_status=filter_status,
+        filter_accepted=filter_accepted,
+        include_filter=include_filter,
+    )
     dataset = {
         "dataset_index": dataset_index,
         "x_train": x_train,
@@ -147,14 +170,66 @@ def test_manifest_and_dataset_loading(tmp_path: Path) -> None:
     manifest_path = tmp_path / "manifest.parquet"
     summary = build_manifest([tmp_path / "run"], manifest_path)
     assert summary.total_records == 1
+    assert summary.discovered_records == 1
+    assert summary.excluded_records == 0
+    assert summary.filter_status_counts == {"not_run": 1}
+    assert summary.warnings
 
     table = pq.read_table(manifest_path)
-    split = table["split"][0].as_py()
-    ds = CauchyParquetTaskDataset(manifest_path, split=split, task="classification")
+    row = table.to_pylist()[0]
+    split = row["split"]
+    assert row["source_shard_relpath"] == "shard_00000"
+    assert row["filter_mode"] == "deferred"
+    assert row["filter_status"] == "not_run"
+    assert row["filter_accepted"] is None
+
+    ds = PackedParquetTaskDataset(manifest_path, split=split, task="classification")
     sample = ds[0]
     assert sample.x_train.ndim == 2
     assert sample.y_test.ndim == 1
     assert sample.metadata["config"]["dataset"]["task"] == "classification"
+
+
+def test_manifest_include_all_tracks_missing_filter_metadata(tmp_path: Path) -> None:
+    accepted_dir = tmp_path / "run" / "accepted" / "shard_00000"
+    missing_dir = tmp_path / "run" / "missing" / "shard_00000"
+    _ = _write_dataset(accepted_dir, dataset_index=0, filter_status="accepted", filter_accepted=True)
+    _ = _write_dataset(missing_dir, dataset_index=1, include_filter=False)
+
+    manifest_path = tmp_path / "manifest.parquet"
+    summary = build_manifest([tmp_path / "run"], manifest_path, filter_policy="include_all")
+
+    assert summary.total_records == 2
+    assert summary.filter_status_counts == {"accepted": 1, "missing": 1}
+    assert any("accepted-only training" in warning for warning in summary.warnings)
+
+
+def test_manifest_accepted_only_excludes_unaccepted_records(tmp_path: Path) -> None:
+    root = tmp_path / "run"
+    _ = _write_dataset(root / "accepted" / "shard_00000", dataset_index=0, filter_status="accepted", filter_accepted=True)
+    _ = _write_dataset(root / "rejected" / "shard_00000", dataset_index=1, filter_status="rejected", filter_accepted=False)
+    _ = _write_dataset(root / "pending" / "shard_00000", dataset_index=2, filter_status="not_run")
+
+    manifest_path = tmp_path / "manifest.parquet"
+    summary = build_manifest([root], manifest_path, filter_policy="accepted_only")
+    rows = pq.read_table(manifest_path).to_pylist()
+
+    assert summary.discovered_records == 3
+    assert summary.total_records == 1
+    assert summary.excluded_records == 2
+    assert summary.filter_status_counts == {"accepted": 1, "not_run": 1, "rejected": 1}
+    assert len(rows) == 1
+    assert rows[0]["dataset_index"] == 0
+    assert rows[0]["filter_status"] == "accepted"
+
+
+def test_manifest_accepted_only_requires_at_least_one_record(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    _ = _write_dataset(shard_dir, filter_status="not_run")
+
+    manifest_path = tmp_path / "manifest.parquet"
+    with pytest.raises(RuntimeError, match="no datasets matched filter_policy"):
+        _ = build_manifest([tmp_path / "run"], manifest_path, filter_policy="accepted_only")
 
 
 def test_remap_labels_uses_train_only() -> None:
@@ -185,14 +260,20 @@ def test_dataset_raises_when_unseen_filter_removes_all_test_rows(tmp_path: Path)
         "x_test": np.array([[4.0, 6.0], [5.0, 7.0]], dtype=np.float32),
         "y_test": np.array([1, 1], dtype=np.int64),
         "feature_types": ["num", "num"],
-        "metadata": _classification_metadata(n_features=2, n_classes=2, seed=7),
+        "metadata": _classification_metadata(
+            n_features=2,
+            n_classes=2,
+            seed=7,
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
     }
     _ = _write_packed_shard(shard_dir, datasets=[dataset])
 
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
     row = pq.read_table(manifest_path).to_pylist()[0]
-    ds = CauchyParquetTaskDataset(
+    ds = PackedParquetTaskDataset(
         manifest_path=manifest_path,
         split=str(row["split"]),
         task="classification",
@@ -220,17 +301,34 @@ def test_manifest_dataset_id_and_split_are_stable_across_root_paths(tmp_path: Pa
     assert row_b["dataset_id"].startswith("root_")
 
 
+def test_manifest_dataset_id_is_unique_across_nested_runs_with_same_root(tmp_path: Path) -> None:
+    root = tmp_path / "root"
+    _ = _write_dataset(root / "run_a" / "shard_00000", dataset_index=0)
+    _ = _write_dataset(root / "run_b" / "shard_00000", dataset_index=0)
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([root], manifest_path)
+    rows = pq.read_table(manifest_path).to_pylist()
+    dataset_ids = [str(row["dataset_id"]) for row in rows]
+    shard_relpaths = {str(row["source_shard_relpath"]) for row in rows}
+
+    assert len(dataset_ids) == 2
+    assert len(set(dataset_ids)) == 2
+    assert shard_relpaths == {"run_a/shard_00000", "run_b/shard_00000"}
+
+
 def test_dataset_resolves_relative_paths_from_manifest_location(tmp_path: Path) -> None:
     shard_dir = tmp_path / "run" / "shard_00000"
-    offsets = _write_dataset(shard_dir)
-    metadata_offset, metadata_size = offsets[0]
+    offsets = _write_dataset(shard_dir, filter_status="accepted", filter_accepted=True)
+    metadata_offset, metadata_size, metadata_sha256 = offsets[0]
 
     manifest_dir = tmp_path / "manifests"
     manifest_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = manifest_dir / "relative_manifest.parquet"
     record = {
-        "dataset_id": "root_deadbeef0000/shard_00000/dataset_000000",
+        "dataset_id": "root_deadbeef0000/shard_00000/dataset_000000_deadbeef0000",
         "source_root_id": "deadbeef0000",
+        "source_shard_relpath": "shard_00000",
         "split": "train",
         "task": "classification",
         "shard_id": 0,
@@ -240,12 +338,15 @@ def test_dataset_resolves_relative_paths_from_manifest_location(tmp_path: Path) 
         "metadata_path": os.path.relpath(shard_dir / "metadata.ndjson", manifest_dir),
         "metadata_offset_bytes": metadata_offset,
         "metadata_size_bytes": metadata_size,
+        "metadata_sha256": metadata_sha256,
         "n_train": 16,
         "n_test": 8,
         "n_features": 4,
         "n_classes": 3,
         "seed": 7,
-        "curriculum_stage": 1,
+        "filter_mode": "deferred",
+        "filter_status": "accepted",
+        "filter_accepted": True,
     }
     pq.write_table(pa.Table.from_pylist([record]), manifest_path)
 
@@ -254,7 +355,7 @@ def test_dataset_resolves_relative_paths_from_manifest_location(tmp_path: Path) 
     current = Path.cwd()
     try:
         os.chdir(run_dir)
-        ds = CauchyParquetTaskDataset(manifest_path, split="train", task="classification")
+        ds = PackedParquetTaskDataset(manifest_path, split="train", task="classification")
         sample = ds[0]
     finally:
         os.chdir(current)
@@ -276,6 +377,7 @@ def test_manifest_paths_are_relative_to_manifest_dir(tmp_path: Path) -> None:
     assert not Path(str(row["metadata_path"])).is_absolute()
     assert int(row["metadata_offset_bytes"]) >= 0
     assert int(row["metadata_size_bytes"]) > 0
+    assert len(str(row["metadata_sha256"])) == 64
 
 
 def test_manifest_multi_root_order_is_deterministic(tmp_path: Path) -> None:
@@ -292,3 +394,58 @@ def test_manifest_multi_root_order_is_deterministic(tmp_path: Path) -> None:
     rows_ab = pq.read_table(manifest_ab).to_pylist()
     rows_ba = pq.read_table(manifest_ba).to_pylist()
     assert rows_ab == rows_ba
+
+
+def test_manifest_handles_null_n_features_in_metadata(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    shard_dir.mkdir(parents=True, exist_ok=True)
+
+    x_train = np.array([[0.0, 1.0]], dtype=np.float32)
+    y_train = np.array([0], dtype=np.int64)
+    x_test = np.array([[2.0, 3.0]], dtype=np.float32)
+    y_test = np.array([0], dtype=np.int64)
+    pq.write_table(_build_split_table([(0, x_train, y_train)]), shard_dir / "train.parquet")
+    pq.write_table(_build_split_table([(0, x_test, y_test)]), shard_dir / "test.parquet")
+
+    payload = {
+        "dataset_index": 0,
+        "n_train": 1,
+        "n_test": 1,
+        "n_features": None,
+        "feature_types": ["num", "num"],
+        "metadata": {
+            "n_features": None,
+            "n_classes": 1,
+            "seed": 3,
+            "filter": {"mode": "deferred", "status": "not_run"},
+            "config": {"dataset": {"task": "classification"}},
+        },
+    }
+    with (shard_dir / "metadata.ndjson").open("w", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload) + "\n")
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    row = pq.read_table(manifest_path).to_pylist()[0]
+    assert int(row["n_features"]) == -1
+
+
+def test_dataset_rejects_metadata_checksum_mismatch(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    _ = _write_dataset(shard_dir)
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    row = pq.read_table(manifest_path).to_pylist()[0]
+    metadata_path = shard_dir / "metadata.ndjson"
+
+    offset = int(row["metadata_offset_bytes"])
+    with metadata_path.open("r+b") as handle:
+        handle.seek(offset + 1)
+        original = handle.read(1)
+        handle.seek(offset + 1)
+        handle.write(b"{" if original != b"{" else b"}")
+
+    ds = PackedParquetTaskDataset(manifest_path, split=str(row["split"]), task="classification")
+    with pytest.raises(RuntimeError, match="checksum mismatch"):
+        _ = ds[0]

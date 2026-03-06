@@ -13,8 +13,8 @@ import torch
 from torch.utils.data import DataLoader
 from omegaconf import DictConfig, OmegaConf
 
-from tab_foundry.data.dataset import CauchyParquetTaskDataset
-from tab_foundry.model.factory import build_model
+from tab_foundry.data.dataset import PackedParquetTaskDataset
+from tab_foundry.model.factory import build_model_from_spec, model_build_spec_from_mappings
 from tab_foundry.model.tabiclv2 import ClassificationOutput, RegressionOutput
 from tab_foundry.types import TaskBatch, TrainResult
 
@@ -243,7 +243,7 @@ def train(cfg: DictConfig) -> TrainResult:
         grad_accum_steps_override=grad_accum_steps,
     )
 
-    train_ds = CauchyParquetTaskDataset(
+    train_ds = PackedParquetTaskDataset(
         manifest_path=Path(str(cfg.data.manifest_path)),
         split="train",
         task=task,
@@ -251,7 +251,7 @@ def train(cfg: DictConfig) -> TrainResult:
         test_row_cap=(int(cfg.data.test_row_cap) if cfg.data.test_row_cap is not None else None),
         seed=seed,
     )
-    val_ds = CauchyParquetTaskDataset(
+    val_ds = PackedParquetTaskDataset(
         manifest_path=Path(str(cfg.data.manifest_path)),
         split="val",
         task=task,
@@ -275,14 +275,12 @@ def train(cfg: DictConfig) -> TrainResult:
         collate_fn=collate_task_batch,
     )
 
-    model = build_model(
-        task=task,
-        d_col=int(cfg.model.d_col),
-        d_icl=int(cfg.model.d_icl),
-        feature_group_size=int(cfg.model.feature_group_size),
-        many_class_train_mode=str(cfg.model.many_class_train_mode),
-        max_mixed_radix_digits=int(cfg.model.max_mixed_radix_digits),
-    )
+    raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
+    model_cfg: dict[str, Any] = {}
+    if isinstance(raw_model_cfg, dict):
+        model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
+    model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
+    model = build_model_from_spec(model_spec)
     model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
 
     output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()

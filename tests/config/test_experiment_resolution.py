@@ -33,6 +33,8 @@ def test_reg_smoke_task_and_runtime_resolution() -> None:
     assert int(cfg.runtime.grad_accum_steps) == 1
     assert int(cfg.model.feature_group_size) == 32
     assert str(cfg.model.many_class_train_mode) == "path_nll"
+    assert int(cfg.model.many_class_base) == 10
+    assert bool(cfg.model.use_digit_position_embed) is True
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
 

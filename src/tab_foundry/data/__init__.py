@@ -1,6 +1,6 @@
 """Data loading utilities."""
 
-from .dataset import CauchyParquetTaskDataset
+from .dataset import PackedParquetTaskDataset
 from .manifest import build_manifest
 
-__all__ = ["CauchyParquetTaskDataset", "build_manifest"]
+__all__ = ["PackedParquetTaskDataset", "build_manifest"]

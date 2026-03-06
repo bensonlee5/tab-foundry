@@ -13,6 +13,8 @@ from typing import Any
 from safetensors.torch import save_file
 import torch
 
+from tab_foundry.model.factory import ModelBuildSpec, model_build_spec_from_mappings
+
 from .checksums import sha256_file
 from .contracts import (
     SCHEMA_VERSION_V1,
@@ -75,16 +77,36 @@ def _require_mapping(payload: Any, *, context: str) -> dict[str, Any]:
     return payload
 
 
-def _checkpoint_model_spec(cfg: dict[str, Any]) -> dict[str, Any]:
+def _checkpoint_model_spec(cfg: dict[str, Any], *, task: str) -> dict[str, Any]:
     model_cfg = cfg.get("model")
     model_cfg = model_cfg if isinstance(model_cfg, dict) else {}
+    model_spec = model_build_spec_from_mappings(
+        task=task,
+        primary=model_cfg,
+    )
+    return _manifest_model_spec(model_spec)
+
+
+def _manifest_model_spec(model_spec: ModelBuildSpec) -> dict[str, Any]:
     return {
         "arch": "tabiclv2",
-        "d_col": int(model_cfg.get("d_col", 128)),
-        "d_icl": int(model_cfg.get("d_icl", 512)),
-        "feature_group_size": int(model_cfg.get("feature_group_size", 32)),
-        "many_class_train_mode": str(model_cfg.get("many_class_train_mode", "path_nll")),
-        "max_mixed_radix_digits": int(model_cfg.get("max_mixed_radix_digits", 64)),
+        "d_col": int(model_spec.d_col),
+        "d_icl": int(model_spec.d_icl),
+        "feature_group_size": int(model_spec.feature_group_size),
+        "many_class_train_mode": str(model_spec.many_class_train_mode),
+        "max_mixed_radix_digits": int(model_spec.max_mixed_radix_digits),
+        "tfcol_n_heads": int(model_spec.tfcol_n_heads),
+        "tfcol_n_layers": int(model_spec.tfcol_n_layers),
+        "tfcol_n_inducing": int(model_spec.tfcol_n_inducing),
+        "tfrow_n_heads": int(model_spec.tfrow_n_heads),
+        "tfrow_n_layers": int(model_spec.tfrow_n_layers),
+        "tfrow_cls_tokens": int(model_spec.tfrow_cls_tokens),
+        "tficl_n_heads": int(model_spec.tficl_n_heads),
+        "tficl_n_layers": int(model_spec.tficl_n_layers),
+        "tficl_ff_expansion": int(model_spec.tficl_ff_expansion),
+        "many_class_base": int(model_spec.many_class_base),
+        "head_hidden_dim": int(model_spec.head_hidden_dim),
+        "use_digit_position_embed": bool(model_spec.use_digit_position_embed),
     }
 
 
@@ -109,7 +131,7 @@ def _preprocessor_state() -> dict[str, Any]:
         "missing_value_policy": {"strategy": "train_mean", "all_nan_fill": 0.0},
         "classification_label_policy": {
             "mapping": "train_only_remap",
-            "unseen_test_label": "error",
+            "unseen_test_label": "filter",
         },
         "dtype_policy": {
             "features": "float32",
@@ -154,7 +176,7 @@ def export_checkpoint(
     if task not in ("classification", "regression"):
         raise RuntimeError(f"Unsupported checkpoint task value: {task!r}")
 
-    model_spec = _checkpoint_model_spec(cfg)
+    model_spec = _checkpoint_model_spec(cfg, task=task)
     state_dict = _normalize_state_dict(payload["model"])
 
     bundle_dir = out_dir.expanduser().resolve()

@@ -33,15 +33,26 @@ def _cmd_build_manifest(args: argparse.Namespace) -> int:
         out_path=Path(args.out_manifest),
         train_ratio=args.train_ratio,
         val_ratio=args.val_ratio,
+        filter_policy=str(args.filter_policy),
     )
     print(
         "Manifest built:",
         f"path={summary.out_path}",
+        f"filter_policy={summary.filter_policy}",
+        f"discovered={summary.discovered_records}",
+        f"excluded={summary.excluded_records}",
         f"total={summary.total_records}",
         f"train={summary.train_records}",
         f"val={summary.val_records}",
         f"test={summary.test_records}",
     )
+    if summary.filter_status_counts:
+        counts = ", ".join(
+            f"{status}={count}" for status, count in summary.filter_status_counts.items()
+        )
+        print("Filter status counts:", counts)
+    for warning in summary.warnings:
+        print("Warning:", warning)
     return 0
 
 
@@ -102,11 +113,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="tab-foundry tooling")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_manifest = sub.add_parser("build-manifest", help="Build manifest parquet from cauchy outputs")
-    p_manifest.add_argument("--data-root", action="append", required=True, help="Input data root")
+    p_manifest = sub.add_parser(
+        "build-manifest",
+        help="Build manifest parquet from dagzoo packed shard outputs",
+    )
+    p_manifest.add_argument(
+        "--data-root",
+        action="append",
+        required=True,
+        help="Input dagzoo data root",
+    )
     p_manifest.add_argument("--out-manifest", required=True, help="Output manifest parquet path")
     p_manifest.add_argument("--train-ratio", type=float, default=0.90)
     p_manifest.add_argument("--val-ratio", type=float, default=0.05)
+    p_manifest.add_argument(
+        "--filter-policy",
+        choices=("include_all", "accepted_only"),
+        default="include_all",
+        help="Dataset selection policy based on dagzoo filter metadata",
+    )
     p_manifest.set_defaults(func=_cmd_build_manifest)
 
     p_train = sub.add_parser("train", help="Train from Hydra config")

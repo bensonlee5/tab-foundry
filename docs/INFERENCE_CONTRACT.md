@@ -25,6 +25,9 @@ Required keys:
 - `producer`: `{name, version, git_sha}` (`git_sha` may be `null`)
 - `task`: `classification | regression`
 - `model`: `{arch, d_col, d_icl, feature_group_size, many_class_train_mode, max_mixed_radix_digits}`
+  - Exporter also emits architecture reconstruction fields:
+    `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed}`.
+  - Validators accept older manifests that omit these extra fields and apply v1 defaults.
 - `files`: `{weights, inference_config, preprocessor_state}`
 - `checksums`: sha256 for `weights`, `inference_config`, `preprocessor_state`
 - `created_at_utc`: ISO8601 UTC timestamp
@@ -50,8 +53,13 @@ Required keys:
 
 - `feature_order_policy` (`lexicographic_f_columns`)
 - `missing_value_policy` (`strategy=train_mean`, `all_nan_fill=0.0`)
-- `classification_label_policy` (`mapping=train_only_remap`, `unseen_test_label=error`)
+- `classification_label_policy` (`mapping=train_only_remap`, `unseen_test_label=filter`)
 - `dtype_policy` (`features=float32`, `classification_labels=int64`, `regression_targets=float32`)
+
+## Many-Class Modes
+
+- `manifest.model.many_class_train_mode` configures the training-time branch behavior (`path_nll` vs `full_probs`) and is used when reconstructing the model from an export bundle.
+- `inference_config.many_class_inference_mode` is an inference-runtime contract field and is currently fixed to `full_probs`.
 
 ## Producer Commands
 

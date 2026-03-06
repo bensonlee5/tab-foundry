@@ -103,6 +103,38 @@ def test_classifier_manyclass_train_path_handles_sparse_train_labels() -> None:
     assert out.aux_metrics["many_class_empty_nodes"] >= 1.0
 
 
+def test_classifier_manyclass_without_digit_position_embedding() -> None:
+    model = TabICLv2Classifier(use_digit_position_embed=False)
+    model.eval()
+    batch = TaskBatch(
+        x_train=torch.randn(32, 12),
+        y_train=torch.randint(0, 24, (32,)),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 24, (8,)),
+        metadata={},
+        num_classes=24,
+    )
+    out = model(batch)
+    assert model.digit_position_embed is None
+    assert out.class_probs is not None
+    assert out.class_probs.shape == (8, 24)
+
+
+def test_classifier_respects_configured_many_class_base_for_logits_width() -> None:
+    model = TabICLv2Classifier(many_class_base=12)
+    batch = TaskBatch(
+        x_train=torch.randn(32, 12),
+        y_train=torch.randint(0, 5, (32,)),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 5, (8,)),
+        metadata={},
+        num_classes=5,
+    )
+    out = model(batch)
+    assert out.logits is not None
+    assert out.logits.shape == (8, 12)
+
+
 def test_feature_grouping_reduces_token_count() -> None:
     model = TabICLv2Classifier(feature_group_size=32)
     x = torch.randn(5, 70)

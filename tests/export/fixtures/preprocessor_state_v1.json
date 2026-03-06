@@ -6,7 +6,7 @@
   },
   "classification_label_policy": {
     "mapping": "train_only_remap",
-    "unseen_test_label": "error"
+    "unseen_test_label": "filter"
   },
   "dtype_policy": {
     "features": "float32",

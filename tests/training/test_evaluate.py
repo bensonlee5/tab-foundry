@@ -30,11 +30,11 @@ def test_evaluate_checkpoint_uses_explicit_weights_only_false(
             },
         }
 
-    def _stop_after_load(**_kwargs: object) -> None:
+    def _stop_after_load(*_args: object, **_kwargs: object) -> None:
         raise RuntimeError("stop_after_load")
 
     monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
-    monkeypatch.setattr(evaluate_module, "build_model", _stop_after_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", _stop_after_load)
 
     cfg = OmegaConf.create(
         {
@@ -80,12 +80,16 @@ def test_evaluate_checkpoint_uses_checkpoint_model_config(
             },
         }
 
-    def _capture_build_model(**kwargs: object) -> None:
-        captured.update(kwargs)
+    def _capture_build_model(spec: object) -> None:
+        to_dict = getattr(spec, "to_dict", None)
+        if callable(to_dict):
+            payload = to_dict()
+            if isinstance(payload, dict):
+                captured.update(payload)
         raise RuntimeError("stop_after_build")
 
     monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
-    monkeypatch.setattr(evaluate_module, "build_model", _capture_build_model)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", _capture_build_model)
 
     cfg = OmegaConf.create(
         {

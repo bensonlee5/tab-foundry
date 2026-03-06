@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from hashlib import sha256
 import json
 from pathlib import Path
 from typing import Any
@@ -120,11 +121,17 @@ def _read_ndjson_record_by_offset(
     *,
     offset_bytes: int,
     size_bytes: int,
+    expected_sha256: str,
 ) -> dict[str, Any]:
     if offset_bytes < 0 or size_bytes <= 0:
         raise RuntimeError(
             "metadata byte offset/size must be non-negative and non-zero: "
             f"path={metadata_path}, offset={offset_bytes}, size={size_bytes}"
+        )
+    if len(expected_sha256) != 64:
+        raise RuntimeError(
+            "metadata SHA-256 must be a 64-char hex digest: "
+            f"path={metadata_path}, offset={offset_bytes}, digest={expected_sha256!r}"
         )
 
     with metadata_path.open("rb") as handle:
@@ -134,6 +141,13 @@ def _read_ndjson_record_by_offset(
         raise RuntimeError(
             "failed to read full metadata slice from NDJSON: "
             f"path={metadata_path}, offset={offset_bytes}, size={size_bytes}, got={len(raw)}"
+        )
+    actual_sha256 = sha256(raw).hexdigest()
+    if actual_sha256 != expected_sha256:
+        raise RuntimeError(
+            "metadata NDJSON checksum mismatch: "
+            f"path={metadata_path}, offset={offset_bytes}, size={size_bytes}, "
+            f"expected={expected_sha256}, actual={actual_sha256}"
         )
 
     try:
@@ -164,7 +178,7 @@ def _subsample_rows(
     return x[idx], y[idx]
 
 
-class CauchyParquetTaskDataset(Dataset[TaskBatch]):
+class PackedParquetTaskDataset(Dataset[TaskBatch]):
     """Lazily load one dataset-task at a time from manifest records."""
 
     def __init__(
@@ -208,6 +222,7 @@ class CauchyParquetTaskDataset(Dataset[TaskBatch]):
             "metadata_path",
             "metadata_offset_bytes",
             "metadata_size_bytes",
+            "metadata_sha256",
         }
         missing = sorted(required_keys - set(record))
         if missing:
@@ -221,6 +236,7 @@ class CauchyParquetTaskDataset(Dataset[TaskBatch]):
         metadata_path = _resolve_record_path(self.manifest_path, str(record["metadata_path"]))
         metadata_offset_bytes = int(record["metadata_offset_bytes"])
         metadata_size_bytes = int(record["metadata_size_bytes"])
+        metadata_sha256 = str(record["metadata_sha256"])
 
         x_train, y_train = _read_packed_split(train_path, dataset_index=dataset_index)
         x_test, y_test = _read_packed_split(test_path, dataset_index=dataset_index)
@@ -228,6 +244,7 @@ class CauchyParquetTaskDataset(Dataset[TaskBatch]):
             metadata_path,
             offset_bytes=metadata_offset_bytes,
             size_bytes=metadata_size_bytes,
+            expected_sha256=metadata_sha256,
         )
         metadata_dataset_index = int(metadata_record.get("dataset_index", -1))
         if metadata_dataset_index != dataset_index:
