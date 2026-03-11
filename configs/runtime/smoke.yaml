@@ -6,4 +6,5 @@ num_workers: 0
 grad_clip: 1.0
 grad_accum_steps: 1
 eval_every: 5
+checkpoint_every: null
 val_batches: 4

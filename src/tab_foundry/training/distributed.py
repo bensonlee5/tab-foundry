@@ -6,8 +6,12 @@ import torch
 from accelerate import Accelerator
 
 
+def _reduction_float_dtype(device: torch.device) -> torch.dtype:
+    return torch.float32 if device.type == "mps" else torch.float64
+
+
 def _reduce_sum_scalar(accelerator: Accelerator, value: float, *, device: torch.device) -> float:
-    tensor = torch.tensor(value, device=device, dtype=torch.float64)
+    tensor = torch.tensor(value, device=device, dtype=_reduction_float_dtype(device))
     reduced = accelerator.reduce(tensor, reduction="sum")
     return reduced.item()
 

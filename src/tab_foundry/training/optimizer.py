@@ -94,6 +94,36 @@ def build_optimizer(
             fallback_reason=None,
         )
 
+    if requested == "schedulefree_adamw":
+        try:
+            import schedulefree  # type: ignore
+        except (ImportError, ModuleNotFoundError) as exc:
+            if require_requested:
+                raise RuntimeError(
+                    "Requested optimizer 'schedulefree_adamw' is unavailable and "
+                    "optimizer.require_requested=true."
+                ) from exc
+            fallback_reason = "schedulefree_unavailable"
+            opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
+            return OptimizerSelection(
+                optimizers=[("adamw", opt)],
+                requested_name=requested,
+                resolved_name="adamw",
+                fallback_reason=fallback_reason,
+            )
+
+        optimizer_cls = schedulefree.AdamWScheduleFree
+        optimizer_sig = inspect.signature(optimizer_cls)
+        allowed_keys = set(optimizer_sig.parameters.keys())
+        allowed_kwargs = {key: value for key, value in extra_kwargs.items() if key in allowed_keys}
+        opt = optimizer_cls(params, lr=lr, weight_decay=weight_decay, **allowed_kwargs)
+        return OptimizerSelection(
+            optimizers=[("schedulefree_adamw", opt)],
+            requested_name=requested,
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        )
+
     if requested == "muon":
         try:
             from muon import Muon  # type: ignore

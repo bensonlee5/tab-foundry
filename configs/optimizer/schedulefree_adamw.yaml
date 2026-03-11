@@ -1,0 +1,8 @@
+name: schedulefree_adamw
+require_requested: true
+weight_decay: 0.0
+betas: [0.9, 0.95]
+min_lr: 4.0e-3
+muon_per_parameter_lr: false
+muon_lr_scale_base: 0.2
+muon_partition_non2d: true

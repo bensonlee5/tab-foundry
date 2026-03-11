@@ -1,5 +1,6 @@
 d_col: 128
 d_icl: 512
+input_normalization: none
 # Default favors scalable row-encoder token counts; set to 1 to recover paper-faithful per-feature tokens.
 feature_group_size: 32
 many_class_train_mode: path_nll

@@ -7,9 +7,8 @@ from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 import torch
-from torch.utils.data import DataLoader
 
-from tab_foundry.data.dataset import PackedParquetTaskDataset
+from tab_foundry.data.factory import build_task_dataset, build_task_loader
 from tab_foundry.model.factory import (
     ModelBuildSpec,
     build_model_from_spec,
@@ -17,7 +16,7 @@ from tab_foundry.model.factory import (
 )
 from tab_foundry.types import EvalResult
 
-from .batching import collate_task_batch, move_batch
+from .batching import move_batch
 from .distributed import _global_mean_from_local
 from .runtime import build_accelerator_from_runtime
 from .trainer import _compute_loss_and_metrics
@@ -63,20 +62,17 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     model.load_state_dict(payload["model"])
 
     split = str(cfg.eval.split)
-    ds = PackedParquetTaskDataset(
-        manifest_path=Path(str(cfg.data.manifest_path)),
+    ds = build_task_dataset(
+        cfg.data,
         split=split,
         task=task,
-        train_row_cap=(int(cfg.data.train_row_cap) if cfg.data.train_row_cap is not None else None),
-        test_row_cap=(int(cfg.data.test_row_cap) if cfg.data.test_row_cap is not None else None),
         seed=int(cfg.runtime.seed),
     )
-    loader = DataLoader(
+    loader = build_task_loader(
         ds,
-        batch_size=1,
         shuffle=False,
         num_workers=int(cfg.runtime.num_workers),
-        collate_fn=collate_task_batch,
+        seed=int(cfg.runtime.seed),
     )
 
     accelerator = build_accelerator_from_runtime(cfg.runtime)

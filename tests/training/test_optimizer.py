@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 import math
+import sys
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -126,3 +128,33 @@ def test_partition_muon_params_excludes_embeddings_and_non_2d() -> None:
     assert set(id(p) for p in muon_params).union(set(id(p) for p in adamw_params)) == set(
         id(p) for p in params
     )
+
+
+def test_schedulefree_optimizer_selection(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _FakeScheduleFreeAdamW:
+        def __init__(self, params, lr: float, weight_decay: float, betas: tuple[float, float]) -> None:
+            self.params = list(params)
+            self.lr = lr
+            self.weight_decay = weight_decay
+            self.betas = betas
+            self.param_groups = [{"lr": lr}]
+
+    monkeypatch.setitem(
+        sys.modules,
+        "schedulefree",
+        SimpleNamespace(AdamWScheduleFree=_FakeScheduleFreeAdamW),
+    )
+
+    model = nn.Linear(4, 2)
+    sel = build_optimizer(
+        model,
+        name="schedulefree_adamw",
+        lr=4.0e-3,
+        weight_decay=0.0,
+        extra_kwargs={"betas": (0.9, 0.95)},
+        require_requested=True,
+    )
+
+    assert sel.resolved_name == "schedulefree_adamw"
+    assert sel.fallback_reason is None
+    assert sel.optimizers[0][0] == "schedulefree_adamw"

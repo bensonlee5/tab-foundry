@@ -74,6 +74,91 @@ optimizer:
 uv run tab-foundry train experiment=cls_smoke optimizer=adamw
 ```
 
+## dagzoo Smoke Harness
+
+Run a repo-local end-to-end smoke harness against a sibling `dagzoo` checkout:
+
+```bash
+uv run python scripts/dagzoo_smoke.py
+```
+
+Default profile:
+
+- `128` generated datasets
+- `1024` rows per dataset
+- classification on `cpu`
+- `250` training steps with evaluation every step
+- checkpoint snapshots every `25` steps
+
+Artifacts are written under a timestamped `/tmp/tab_foundry_dagzoo_smoke_*` directory:
+
+- `generated/`
+- `manifest.parquet`
+- `train_outputs/checkpoints/*.pt`
+- `train_outputs/train_history.jsonl`
+- `train_outputs/loss_curve.png`
+- `telemetry.json`
+
+## Benchmark Env Bootstrap
+
+Create or refresh sibling repo envs before running the notebook-style comparison:
+
+```bash
+uv run python scripts/bootstrap_benchmark_envs.py
+```
+
+This bootstraps:
+
+- `~/dev/nanoTabPFN/.venv` using a local `pyproject.toml`
+- `~/dev/TabPFN/.venv`
+- `~/dev/tabicl/.venv`
+
+## nanoTabPFN-Aligned Fast Training
+
+Train tab-foundry directly on the same nanoTabPFN prior dump instead of on `dagzoo`:
+
+```bash
+uv run python scripts/train_nanoprior_tab_foundry.py \
+  --out-root /tmp/tab_foundry_nanoprior_run
+```
+
+Default profile:
+
+- prior dump `~/dev/nanoTabPFN/300k_150x5_2.h5`
+- classification on `auto` device selection
+- schedule-free AdamW at `4e-3`
+- `2500` max steps
+- `330s` train-only time budget
+- evaluation and checkpoint snapshots every `25` steps
+
+Artifacts are written under a timestamped `/tmp/tab_foundry_nanoprior_*` directory:
+
+- `train_outputs/checkpoints/*.pt`
+- `train_outputs/train_history.jsonl`
+- `train_outputs/loss_curve.png`
+- `telemetry.json`
+
+## nanoTabPFN Comparison
+
+Run either the smoke harness or the nano-prior fast training path first, then compare its
+checkpoint snapshots against a sibling `nanoTabPFN` checkout:
+
+```bash
+uv run python scripts/train_nanoprior_tab_foundry.py --out-root /tmp/tab_foundry_nanoprior_bench
+uv run python scripts/benchmark_nanotabpfn.py \
+  --tab-foundry-run-dir /tmp/tab_foundry_nanoprior_bench \
+  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+```
+
+Comparison artifacts are written under a timestamped `/tmp/tab_foundry_nanotabpfn_benchmark_*`
+directory:
+
+- `benchmark_tasks.json`
+- `tab_foundry_curve.jsonl`
+- `nanotabpfn_curve.jsonl`
+- `comparison_summary.json`
+- `comparison_curve.png`
+
 ## Evaluate
 
 ```bash

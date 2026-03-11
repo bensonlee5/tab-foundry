@@ -10,6 +10,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from tab_foundry.input_normalization import normalize_train_test_tensors
 from tab_foundry.types import TaskBatch
 
 from .blocks import TFColEncoder, TFRowEncoder
@@ -57,6 +58,7 @@ class _TabICLv2Backbone(nn.Module):
         *,
         d_col: int = 128,
         d_icl: int = 512,
+        input_normalization: str = "none",
         feature_group_size: int = 32,
         tfcol_n_heads: int = 8,
         tfcol_n_layers: int = 3,
@@ -71,6 +73,12 @@ class _TabICLv2Backbone(nn.Module):
         super().__init__()
         self.d_col = d_col
         self.d_icl = d_icl
+        self.input_normalization = str(input_normalization).strip().lower()
+        if self.input_normalization not in {"none", "train_zscore", "train_zscore_clip"}:
+            raise ValueError(
+                "input_normalization must be 'none', 'train_zscore', or 'train_zscore_clip', "
+                f"got {input_normalization!r}"
+            )
         self.group_shifts = (0, 1, 3)
         self.feature_group_size = int(feature_group_size)
         if self.feature_group_size <= 0:
@@ -186,7 +194,12 @@ class _TabICLv2Backbone(nn.Module):
 
     def _prepare_inputs(self, batch: TaskBatch) -> tuple[torch.Tensor, torch.Tensor, int]:
         n_train = batch.x_train.shape[0]
-        x_all = torch.cat([batch.x_train, batch.x_test], dim=0)
+        x_train, x_test = normalize_train_test_tensors(
+            batch.x_train,
+            batch.x_test,
+            mode=self.input_normalization,
+        )
+        x_all = torch.cat([x_train, x_test], dim=0)
         e1, token_padding_mask = self._build_e1(x_all)
         return e1, token_padding_mask, n_train
 
@@ -212,6 +225,7 @@ class TabICLv2Classifier(_TabICLv2Backbone):
         *,
         d_col: int = 128,
         d_icl: int = 512,
+        input_normalization: str = "none",
         feature_group_size: int = 32,
         many_class_train_mode: str = "path_nll",
         max_mixed_radix_digits: int = 64,
@@ -231,6 +245,7 @@ class TabICLv2Classifier(_TabICLv2Backbone):
         super().__init__(
             d_col=d_col,
             d_icl=d_icl,
+            input_normalization=input_normalization,
             feature_group_size=feature_group_size,
             tfcol_n_heads=tfcol_n_heads,
             tfcol_n_layers=tfcol_n_layers,
@@ -522,6 +537,7 @@ class TabICLv2Regressor(_TabICLv2Backbone):
         *,
         d_col: int = 128,
         d_icl: int = 512,
+        input_normalization: str = "none",
         feature_group_size: int = 32,
         tfcol_n_heads: int = 8,
         tfcol_n_layers: int = 3,
@@ -537,6 +553,7 @@ class TabICLv2Regressor(_TabICLv2Backbone):
         super().__init__(
             d_col=d_col,
             d_icl=d_icl,
+            input_normalization=input_normalization,
             feature_group_size=feature_group_size,
             tfcol_n_heads=tfcol_n_heads,
             tfcol_n_layers=tfcol_n_layers,

@@ -3,27 +3,14 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 from typing import Sequence
+from pathlib import Path
 
-from hydra import compose, initialize_config_dir
-from omegaconf import DictConfig
-
+from tab_foundry.config import compose_config
 from tab_foundry.data.manifest import build_manifest
 from tab_foundry.export.exporter import export_checkpoint, validate_export_bundle
 from tab_foundry.training.evaluate import evaluate_checkpoint
 from tab_foundry.training.trainer import train
-
-
-def _config_dir() -> Path:
-    return Path(__file__).resolve().parents[2] / "configs"
-
-
-def _compose_config(overrides: list[str]) -> DictConfig:
-    cfg_dir = _config_dir()
-    with initialize_config_dir(config_dir=str(cfg_dir), version_base=None):
-        cfg = compose(config_name="config", overrides=overrides)
-    return cfg
 
 
 def _cmd_build_manifest(args: argparse.Namespace) -> int:
@@ -57,7 +44,7 @@ def _cmd_build_manifest(args: argparse.Namespace) -> int:
 
 
 def _cmd_train(args: argparse.Namespace) -> int:
-    cfg = _compose_config(args.overrides)
+    cfg = compose_config(args.overrides)
     result = train(cfg)
     print(
         "Training complete:",
@@ -77,7 +64,7 @@ def _cmd_eval(args: argparse.Namespace) -> int:
     if args.split is not None:
         overrides.append(f"eval.split={args.split}")
 
-    cfg = _compose_config(overrides)
+    cfg = compose_config(overrides)
     result = evaluate_checkpoint(cfg)
     print("Evaluation complete:", f"checkpoint={result.checkpoint}", f"metrics={result.metrics}")
     return 0

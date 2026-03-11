@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+import json
 import math
 import os
 from pathlib import Path
+import time
 from typing import Any, Literal, cast
 
 from accelerate import Accelerator
@@ -13,13 +15,13 @@ import torch
 from torch.utils.data import DataLoader
 from omegaconf import DictConfig, OmegaConf
 
-from tab_foundry.data.dataset import PackedParquetTaskDataset
+from tab_foundry.data.factory import build_task_dataset, build_task_loader
 from tab_foundry.model.factory import build_model_from_spec, model_build_spec_from_mappings
 from tab_foundry.model.tabiclv2 import ClassificationOutput, RegressionOutput
 from tab_foundry.types import TaskBatch, TrainResult
 
-from .batching import collate_task_batch, move_batch
-from .distributed import _global_mean_from_local
+from .batching import move_batch
+from .distributed import _global_mean_from_local, _reduction_float_dtype
 from .losses import classification_loss, hierarchical_nll_loss, quantile_pinball_loss
 from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
@@ -163,6 +165,59 @@ def _wandb_init(cfg: DictConfig, *, enabled: bool) -> Any | None:
     )
 
 
+def _history_path(cfg: DictConfig) -> Path | None:
+    raw_path = getattr(cfg.logging, "history_jsonl_path", None)
+    if raw_path is None:
+        return None
+    value = str(raw_path).strip()
+    if not value:
+        return None
+    return Path(value).expanduser().resolve()
+
+
+def _history_value(metrics: dict[str, float], key: str) -> float | None:
+    value = metrics.get(key)
+    if value is None:
+        return None
+    value_f = float(value)
+    return value_f if math.isfinite(value_f) else None
+
+
+def _history_record(
+    *,
+    global_step: int,
+    stage_name: str,
+    train_loss: float,
+    train_metrics: dict[str, float],
+    lr: float,
+    elapsed_seconds: float,
+    train_elapsed_seconds: float,
+    val_metrics: dict[str, float] | None,
+) -> dict[str, float | int | str | None]:
+    record: dict[str, float | int | str | None] = {
+        "step": int(global_step),
+        "stage": stage_name,
+        "train_loss": float(train_loss),
+        "train_acc": _history_value(train_metrics, "acc"),
+        "lr": float(lr),
+        "elapsed_seconds": max(0.0, float(elapsed_seconds)),
+        "train_elapsed_seconds": max(0.0, float(train_elapsed_seconds)),
+        "val_loss": None,
+        "val_acc": None,
+    }
+    if val_metrics is not None:
+        record["val_loss"] = _history_value(val_metrics, "val_loss")
+        record["val_acc"] = _history_value(val_metrics, "acc")
+    return record
+
+
+def _append_history_record(path: Path, payload: dict[str, float | int | str | None]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        json.dump(payload, handle, sort_keys=True)
+        handle.write("\n")
+
+
 def _save_checkpoint(
     path: Path,
     *,
@@ -186,6 +241,36 @@ def _resolve_grad_accum_steps(cfg: DictConfig) -> int:
     value = int(getattr(cfg, "grad_accum_steps", 1))
     if value <= 0:
         raise ValueError(f"runtime.grad_accum_steps must be >= 1, got {value}")
+    return value
+
+
+def _checkpoint_every(cfg: DictConfig) -> int | None:
+    raw_value = getattr(cfg, "checkpoint_every", None)
+    if raw_value is None:
+        return None
+    value = int(raw_value)
+    if value <= 0:
+        raise ValueError(f"runtime.checkpoint_every must be >= 1, got {value}")
+    return value
+
+
+def _resolve_max_steps(runtime_cfg: DictConfig) -> int | None:
+    raw_value = getattr(runtime_cfg, "max_steps", None)
+    if raw_value is None:
+        return None
+    value = int(raw_value)
+    if value <= 0:
+        raise ValueError(f"runtime.max_steps must be >= 1, got {value}")
+    return value
+
+
+def _resolve_target_train_seconds(runtime_cfg: DictConfig) -> float | None:
+    raw_value = getattr(runtime_cfg, "target_train_seconds", None)
+    if raw_value is None:
+        return None
+    value = float(raw_value)
+    if value <= 0:
+        raise ValueError(f"runtime.target_train_seconds must be > 0, got {value}")
     return value
 
 
@@ -219,6 +304,18 @@ def _cosine_base_lr(*, step: int, total_steps: int, lr_max: float, lr_min: float
     return float(lr_min) + (float(lr_max) - float(lr_min)) * cosine
 
 
+def _set_optimizer_training_mode(
+    prepared_opts: list[tuple[str, torch.optim.Optimizer]],
+    *,
+    training: bool,
+) -> None:
+    method_name = "train" if training else "eval"
+    for _name, optimizer in prepared_opts:
+        method = getattr(optimizer, method_name, None)
+        if callable(method):
+            method()
+
+
 def _expected_metric_keys(task: str) -> set[str]:
     if task == "classification":
         return {
@@ -237,42 +334,39 @@ def train(cfg: DictConfig) -> TrainResult:
     seed = int(cfg.runtime.seed)
     torch.manual_seed(seed)
     grad_accum_steps = _resolve_grad_accum_steps(cfg.runtime)
+    checkpoint_every = _checkpoint_every(cfg.runtime)
+    max_steps = _resolve_max_steps(cfg.runtime)
+    target_train_seconds = _resolve_target_train_seconds(cfg.runtime)
 
     accelerator = build_accelerator_from_runtime(
         cfg.runtime,
         grad_accum_steps_override=grad_accum_steps,
     )
 
-    train_ds = PackedParquetTaskDataset(
-        manifest_path=Path(str(cfg.data.manifest_path)),
+    train_ds = build_task_dataset(
+        cfg.data,
         split="train",
         task=task,
-        train_row_cap=(int(cfg.data.train_row_cap) if cfg.data.train_row_cap is not None else None),
-        test_row_cap=(int(cfg.data.test_row_cap) if cfg.data.test_row_cap is not None else None),
         seed=seed,
     )
-    val_ds = PackedParquetTaskDataset(
-        manifest_path=Path(str(cfg.data.manifest_path)),
+    val_ds = build_task_dataset(
+        cfg.data,
         split="val",
         task=task,
-        train_row_cap=(int(cfg.data.train_row_cap) if cfg.data.train_row_cap is not None else None),
-        test_row_cap=(int(cfg.data.test_row_cap) if cfg.data.test_row_cap is not None else None),
         seed=seed + 1,
     )
 
-    train_loader = DataLoader(
+    train_loader = build_task_loader(
         train_ds,
-        batch_size=1,
         shuffle=True,
         num_workers=int(cfg.runtime.num_workers),
-        collate_fn=collate_task_batch,
+        seed=seed,
     )
-    val_loader = DataLoader(
+    val_loader = build_task_loader(
         val_ds,
-        batch_size=1,
         shuffle=False,
         num_workers=int(cfg.runtime.num_workers),
-        collate_fn=collate_task_batch,
+        seed=seed + 1,
     )
 
     raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
@@ -285,6 +379,7 @@ def train(cfg: DictConfig) -> TrainResult:
 
     output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    history_path = _history_path(cfg)
 
     run = _wandb_init(cfg, enabled=bool(cfg.logging.use_wandb and accelerator.is_main_process))
 
@@ -332,6 +427,9 @@ def train(cfg: DictConfig) -> TrainResult:
     best_checkpoint: Path | None = None
     latest_checkpoint: Path | None = None
     best_val = float("inf")
+    train_start = time.perf_counter()
+    train_elapsed_seconds = 0.0
+    stop_requested = False
 
     for stage in stage_configs:
         for opt_name, opt in prepared_opts:
@@ -340,6 +438,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 base_lr=stage.lr_max,
                 scales=lr_scales[opt_name],
             )
+        _set_optimizer_training_mode(prepared_opts, training=True)
 
         for stage_step in range(1, stage.steps + 1):
             model.train()
@@ -349,6 +448,7 @@ def train(cfg: DictConfig) -> TrainResult:
             train_loss_count = 0
             train_metric_sums: dict[str, float] = {}
             train_metric_counts: dict[str, int] = {}
+            step_train_start = time.perf_counter()
             for _micro_step in range(grad_accum_steps):
                 batch = move_batch(next(train_iter), accelerator.device)
                 with accelerator.accumulate(model):
@@ -380,12 +480,17 @@ def train(cfg: DictConfig) -> TrainResult:
                     scales=lr_scales[opt_name],
                 )
 
+            train_elapsed_seconds += time.perf_counter() - step_train_start
             global_step += 1
             metric_keys = sorted(set(train_metric_sums) | expected_keys)
             # Pack loss + metric sums/counts into one tensor for a single all-reduce.
             # Layout: [loss_sum, loss_count, key0_sum, key0_count, ...]
             n_metrics = len(metric_keys)
-            packed = torch.zeros(2 + 2 * n_metrics, device=accelerator.device, dtype=torch.float64)
+            packed = torch.zeros(
+                2 + 2 * n_metrics,
+                device=accelerator.device,
+                dtype=_reduction_float_dtype(accelerator.device),
+            )
             packed[0] = train_loss_sum
             packed[1] = train_loss_count
             for i, key in enumerate(metric_keys):
@@ -417,7 +522,9 @@ def train(cfg: DictConfig) -> TrainResult:
             if run is not None and accelerator.is_main_process:
                 run.log(train_log, step=global_step)
 
+            history_val_metrics: dict[str, float] | None = None
             if global_step % int(cfg.runtime.eval_every) == 0:
+                _set_optimizer_training_mode(prepared_opts, training=False)
                 val_metrics = _evaluate_loader(
                     model,
                     val_loader,
@@ -427,6 +534,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 )
                 if run is not None and accelerator.is_main_process:
                     run.log({f"val/{k}": v for k, v in val_metrics.items()}, step=global_step)
+                history_val_metrics = val_metrics
 
                 if val_metrics["val_loss"] < best_val:
                     best_val = val_metrics["val_loss"]
@@ -438,6 +546,47 @@ def train(cfg: DictConfig) -> TrainResult:
                         global_step=global_step,
                         cfg=cfg,
                     )
+                _set_optimizer_training_mode(prepared_opts, training=True)
+
+            if checkpoint_every is not None and global_step % checkpoint_every == 0:
+                snapshot_checkpoint = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
+                _save_checkpoint(
+                    snapshot_checkpoint,
+                    accelerator=accelerator,
+                    model=model,
+                    global_step=global_step,
+                    cfg=cfg,
+                )
+
+            if history_path is not None and accelerator.is_main_process:
+                train_metrics_for_history = {
+                    key.removeprefix("train/"): float(value)
+                    for key, value in train_log.items()
+                    if key.startswith("train/")
+                    and isinstance(value, (int, float))
+                    and key != "train/lr"
+                    and math.isfinite(float(value))
+                }
+                _append_history_record(
+                    history_path,
+                    _history_record(
+                        global_step=global_step,
+                        stage_name=stage.name,
+                        train_loss=float(train_loss),
+                        train_metrics=train_metrics_for_history,
+                        lr=float(first_lr),
+                        elapsed_seconds=time.perf_counter() - train_start,
+                        train_elapsed_seconds=train_elapsed_seconds,
+                        val_metrics=history_val_metrics,
+                    ),
+                )
+
+            if max_steps is not None and global_step >= max_steps:
+                stop_requested = True
+            if target_train_seconds is not None and train_elapsed_seconds >= target_train_seconds:
+                stop_requested = True
+            if stop_requested:
+                break
 
         latest_checkpoint = output_dir / "checkpoints" / f"latest_{stage.name}.pt"
         _save_checkpoint(
@@ -447,15 +596,32 @@ def train(cfg: DictConfig) -> TrainResult:
             global_step=global_step,
             cfg=cfg,
         )
+        if stop_requested:
+            break
 
     accelerator.wait_for_everyone()
     if run is not None and accelerator.is_main_process:
         run.finish()
+
+    wall_elapsed_seconds = time.perf_counter() - train_start
+    if best_checkpoint is None and latest_checkpoint is not None:
+        best_checkpoint = output_dir / "checkpoints" / "best.pt"
+        _save_checkpoint(
+            best_checkpoint,
+            accelerator=accelerator,
+            model=model,
+            global_step=global_step,
+            cfg=cfg,
+        )
 
     return TrainResult(
         output_dir=output_dir,
         best_checkpoint=best_checkpoint,
         latest_checkpoint=latest_checkpoint,
         global_step=global_step,
-        metrics={"best_val_loss": float(best_val)},
+        metrics={
+            "best_val_loss": float(best_val),
+            "train_elapsed_seconds": float(train_elapsed_seconds),
+            "wall_elapsed_seconds": float(wall_elapsed_seconds),
+        },
     )

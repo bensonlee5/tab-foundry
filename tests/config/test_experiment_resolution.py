@@ -43,14 +43,27 @@ def test_cls_smoke_optimizer_resolution() -> None:
     cfg = _compose("experiment=cls_smoke")
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
+    assert cfg.logging.history_jsonl_path is None
 
 
 def test_runtime_smoke_override_resolution() -> None:
     cfg = _compose("runtime=smoke")
     assert str(cfg.runtime.mixed_precision) == "no"
+    assert cfg.runtime.checkpoint_every is None
 
 
 def test_cls_smoke_adamw_override_resolution() -> None:
     cfg = _compose("experiment=cls_smoke", "optimizer=adamw")
     assert str(cfg.optimizer.name) == "adamw"
     assert bool(cfg.optimizer.require_requested) is False
+
+
+def test_cls_nano_aligned_resolution() -> None:
+    cfg = _compose("experiment=cls_nano_aligned")
+    assert str(cfg.task) == "classification"
+    assert str(cfg.data.source) == "nanoprior"
+    assert str(cfg.optimizer.name) == "schedulefree_adamw"
+    assert str(cfg.model.input_normalization) == "train_zscore_clip"
+    assert int(cfg.runtime.grad_accum_steps) == 16
+    assert int(cfg.runtime.max_steps) == 2500
+    assert float(cfg.runtime.target_train_seconds) == 330.0

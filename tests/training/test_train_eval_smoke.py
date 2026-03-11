@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import nullcontext
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -107,6 +108,7 @@ def _classification_cfg(tmp_path: Path) -> object:
                 "grad_clip": 1.0,
                 "grad_accum_steps": 1,
                 "eval_every": 1,
+                "checkpoint_every": None,
                 "val_batches": 1,
             },
             "schedule": {"stages": [{"name": "stage1", "steps": 1, "lr_max": 1.0e-3}]},
@@ -128,8 +130,8 @@ def _classification_cfg(tmp_path: Path) -> object:
 
 def _install_classification_fakes(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_spec = SimpleNamespace(task="classification")
-    monkeypatch.setattr(trainer_module, "PackedParquetTaskDataset", _FakeTaskDataset)
-    monkeypatch.setattr(evaluate_module, "PackedParquetTaskDataset", _FakeTaskDataset)
+    monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: _FakeTaskDataset())
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: _FakeTaskDataset())
     monkeypatch.setattr(
         trainer_module,
         "build_accelerator_from_runtime",
@@ -161,6 +163,20 @@ def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     assert result.metrics["best_val_loss"] >= 0.0
 
 
+def test_train_smoke_writes_step_snapshots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    cfg.schedule.stages = [{"name": "stage1", "steps": 2, "lr_max": 1.0e-3}]
+    cfg.runtime.checkpoint_every = 1
+
+    result = trainer_module.train(cfg)
+
+    checkpoint_dir = result.output_dir / "checkpoints"
+    snapshots = sorted(checkpoint_dir.glob("step_*.pt"))
+    assert [path.name for path in snapshots] == ["step_000001.pt", "step_000002.pt"]
+    assert all(path.exists() for path in snapshots)
+
+
 def test_evaluate_checkpoint_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     _install_classification_fakes(monkeypatch)
     cfg = _classification_cfg(tmp_path)
@@ -174,6 +190,31 @@ def test_evaluate_checkpoint_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     assert result.checkpoint == checkpoint.resolve()
     assert "loss" in result.metrics
     assert "acc" in result.metrics
+
+
+def test_train_smoke_writes_history_jsonl(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    history_path = tmp_path / "outputs" / "train_history.jsonl"
+    cfg.logging.history_jsonl_path = str(history_path)
+
+    _ = trainer_module.train(cfg)
+
+    records = [
+        json.loads(line)
+        for line in history_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(records) == 1
+    assert records[0]["step"] == 1
+    assert records[0]["stage"] == "stage1"
+    assert records[0]["train_loss"] >= 0.0
+    assert 0.0 <= records[0]["train_acc"] <= 1.0
+    assert records[0]["val_loss"] >= 0.0
+    assert 0.0 <= records[0]["val_acc"] <= 1.0
+    assert records[0]["lr"] > 0.0
+    assert records[0]["elapsed_seconds"] >= 0.0
+    assert records[0]["train_elapsed_seconds"] >= 0.0
 
 
 def test_build_stage_configs_validates_payloads() -> None:
