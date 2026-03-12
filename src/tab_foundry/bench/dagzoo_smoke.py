@@ -5,8 +5,6 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from datetime import datetime
-import json
-import math
 from pathlib import Path
 import subprocess
 import time
@@ -14,6 +12,12 @@ from typing import Any, Sequence
 
 from omegaconf import DictConfig
 
+from tab_foundry.bench.artifacts import (
+    checkpoint_snapshots_from_history,
+    ensure_finite_metrics,
+    plot_loss_curve,
+    write_json,
+)
 from tab_foundry.config import compose_config
 from tab_foundry.data.manifest import ManifestSummary, build_manifest
 from tab_foundry.training.evaluate import evaluate_checkpoint
@@ -52,20 +56,6 @@ class SmokeConfig:
 def _default_out_root() -> Path:
     stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
     return Path("/tmp") / f"tab_foundry_dagzoo_smoke_{stamp}"
-
-
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, sort_keys=True)
-        handle.write("\n")
-
-
-def _ensure_finite_metrics(metrics: dict[str, float], *, context: str) -> None:
-    for key, value in metrics.items():
-        value_f = float(value)
-        if not math.isfinite(value_f):
-            raise RuntimeError(f"{context} metric must be finite: key={key}, value={value_f!r}")
 
 
 def _dagzoo_generate_command(config: SmokeConfig, *, generated_dir: Path) -> list[str]:
@@ -123,67 +113,6 @@ def _build_eval_config(
     cfg.eval.split = "test"
     return cfg
 
-
-def _load_history(path: Path) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            stripped = line.strip()
-            if not stripped:
-                continue
-            payload = json.loads(stripped)
-            if not isinstance(payload, dict):
-                raise RuntimeError(f"history record must be an object: path={path}")
-            records.append(payload)
-    if not records:
-        raise RuntimeError(f"history file contains no records: path={path}")
-    return records
-
-
-def plot_loss_curve(
-    history_path: Path,
-    out_path: Path,
-    *,
-    title: str = "tab-foundry loss curve",
-) -> Path:
-    """Render a train/validation loss curve from JSONL history."""
-
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    records = _load_history(history_path)
-    steps = [int(record["step"]) for record in records]
-    train_losses = [float(record["train_loss"]) for record in records]
-    val_points = [
-        (int(record["step"]), float(record["val_loss"]))
-        for record in records
-        if record.get("val_loss") is not None
-    ]
-
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(steps, train_losses, label="train_loss", color="#1f77b4", linewidth=2.0)
-    if val_points:
-        ax.plot(
-            [step for step, _ in val_points],
-            [value for _, value in val_points],
-            label="val_loss",
-            color="#d62728",
-            linewidth=2.0,
-        )
-    ax.set_title(title)
-    ax.set_xlabel("step")
-    ax.set_ylabel("loss")
-    ax.grid(True, alpha=0.3)
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=144)
-    plt.close(fig)
-    return out_path
-
-
 def _manifest_payload(summary: ManifestSummary) -> dict[str, Any]:
     return {
         "discovered_records": int(summary.discovered_records),
@@ -195,29 +124,6 @@ def _manifest_payload(summary: ManifestSummary) -> dict[str, Any]:
         "filter_policy": str(summary.filter_policy),
         "warnings": list(summary.warnings),
     }
-
-
-def _checkpoint_snapshots(history_path: Path, checkpoint_dir: Path) -> list[dict[str, Any]]:
-    history_records = _load_history(history_path)
-    step_times = {
-        int(record["step"]): float(record.get("train_elapsed_seconds", record["elapsed_seconds"]))
-        for record in history_records
-    }
-    snapshots: list[dict[str, Any]] = []
-    for checkpoint in sorted(checkpoint_dir.glob("step_*.pt")):
-        step = int(checkpoint.stem.removeprefix("step_"))
-        elapsed_seconds = step_times.get(step)
-        if elapsed_seconds is None:
-            raise RuntimeError(f"missing history entry for snapshot checkpoint step={step}")
-        snapshots.append(
-            {
-                "step": step,
-                "path": str(checkpoint.resolve()),
-                "elapsed_seconds": max(0.0, float(elapsed_seconds)),
-            }
-        )
-    return snapshots
-
 
 def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
     """Execute the end-to-end dagzoo-backed smoke harness."""
@@ -311,11 +217,14 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
             )
         )
         timings_seconds["eval"] = time.perf_counter() - stage_start
-        _ensure_finite_metrics(train_result.metrics, context="train")
-        _ensure_finite_metrics(eval_result.metrics, context="eval")
+        ensure_finite_metrics(train_result.metrics, context="train")
+        ensure_finite_metrics(eval_result.metrics, context="eval")
 
         plot_loss_curve(history_path, loss_curve_path)
-        checkpoint_snapshots = _checkpoint_snapshots(history_path, train_output_dir / "checkpoints")
+        checkpoint_snapshots = checkpoint_snapshots_from_history(
+            history_path,
+            train_output_dir / "checkpoints",
+        )
 
         telemetry["success"] = True
         telemetry["manifest"] = _manifest_payload(manifest_summary)
@@ -339,7 +248,7 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
         raise
     finally:
         timings_seconds["total"] = time.perf_counter() - total_start
-        _write_json(telemetry_path, telemetry)
+        write_json(telemetry_path, telemetry)
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -1,6 +1,12 @@
-# Inference Export Contract
+# Inference Contract
 
 This repository is the training-side producer of inference artifacts. Runtime inference is expected to live in a separate repository.
+
+Related docs:
+
+- quickstart: `README.md`
+- workflow runbooks: `docs/workflows.md`
+- roadmap: `docs/roadmap.md`
 
 ## Schema Version
 

@@ -1,4 +1,4 @@
-from tab_foundry.nanotabpfn_compare import main
+from tab_foundry.bench.compare import main
 
 
 if __name__ == "__main__":

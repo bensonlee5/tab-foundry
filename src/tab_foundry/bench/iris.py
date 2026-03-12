@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 
-from tab_foundry.checkpoint_classifier import TabFoundryClassifier
+from tab_foundry.bench.checkpoint import TabFoundryClassifier
 
 
 @dataclass(slots=True)

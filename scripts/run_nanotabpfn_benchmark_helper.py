@@ -30,7 +30,7 @@ def main() -> int:
         sys.path.insert(0, str(src_root))
 
     from model import NanoTabPFNModel
-    from tab_foundry.nanotabpfn_benchmark import evaluate_classifier, load_dataset_cache, write_jsonl
+    from tab_foundry.bench.nanotabpfn import evaluate_classifier, load_dataset_cache, write_jsonl
     from train import PriorDumpDataLoader, get_default_device, set_randomness_seed, train
 
     device = get_default_device() if str(args.device).strip().lower() == "auto" else str(args.device)

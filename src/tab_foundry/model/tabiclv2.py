@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from tab_foundry.input_normalization import normalize_train_test_tensors
+from tab_foundry.input_normalization import InputNormalizationMode, normalize_train_test_tensors
 from tab_foundry.types import TaskBatch
 
 from .blocks import TFColEncoder, TFRowEncoder
@@ -74,7 +74,11 @@ class _TabICLv2Backbone(nn.Module):
         self.d_col = d_col
         self.d_icl = d_icl
         self.input_normalization = str(input_normalization).strip().lower()
-        if self.input_normalization not in {"none", "train_zscore", "train_zscore_clip"}:
+        if self.input_normalization not in {
+            "none",
+            "train_zscore",
+            "train_zscore_clip",
+        }:
             raise ValueError(
                 "input_normalization must be 'none', 'train_zscore', or 'train_zscore_clip', "
                 f"got {input_normalization!r}"
@@ -82,7 +86,9 @@ class _TabICLv2Backbone(nn.Module):
         self.group_shifts = (0, 1, 3)
         self.feature_group_size = int(feature_group_size)
         if self.feature_group_size <= 0:
-            raise ValueError(f"feature_group_size must be positive, got {self.feature_group_size}")
+            raise ValueError(
+                f"feature_group_size must be positive, got {self.feature_group_size}"
+            )
         self.tfcol_n_heads = int(tfcol_n_heads)
         self.tfcol_n_layers = int(tfcol_n_layers)
         self.tfcol_n_inducing = int(tfcol_n_inducing)
@@ -187,17 +193,22 @@ class _TabICLv2Backbone(nn.Module):
         seq[:n_train] = seq[:n_train] + train_target_embed
         seq = seq.unsqueeze(0)
         n_tokens = seq.shape[1]
-        allowed_keys = torch.zeros((1, 1, n_tokens, n_tokens), dtype=torch.bool, device=seq.device)
+        allowed_keys = torch.zeros(
+            (1, 1, n_tokens, n_tokens), dtype=torch.bool, device=seq.device
+        )
         allowed_keys[:, :, :, :n_train] = True
         encoded = self.tficl(seq, allowed_mask=allowed_keys, n_context=n_train)
         return encoded[0]
 
-    def _prepare_inputs(self, batch: TaskBatch) -> tuple[torch.Tensor, torch.Tensor, int]:
+    def _prepare_inputs(
+        self, batch: TaskBatch
+    ) -> tuple[torch.Tensor, torch.Tensor, int]:
         n_train = batch.x_train.shape[0]
+        normalization_mode = cast(InputNormalizationMode, self.input_normalization)
         x_train, x_test = normalize_train_test_tensors(
             batch.x_train,
             batch.x_test,
-            mode=self.input_normalization,
+            mode=normalization_mode,
         )
         x_all = torch.cat([x_train, x_test], dim=0)
         e1, token_padding_mask = self._build_e1(x_all)
@@ -270,10 +281,14 @@ class TabICLv2Classifier(_TabICLv2Backbone):
             )
         self.many_class_base = int(many_class_base)
         if self.many_class_base <= 1:
-            raise ValueError(f"many_class_base must be >= 2, got {self.many_class_base}")
+            raise ValueError(
+                f"many_class_base must be >= 2, got {self.many_class_base}"
+            )
         self.head_hidden_dim = int(head_hidden_dim)
         if self.head_hidden_dim <= 0:
-            raise ValueError(f"head_hidden_dim must be positive, got {self.head_hidden_dim}")
+            raise ValueError(
+                f"head_hidden_dim must be positive, got {self.head_hidden_dim}"
+            )
         self.use_digit_position_embed = bool(use_digit_position_embed)
         self.embed_tae = nn.Embedding(self.many_class_base, d_col)
         self.embed_icl = nn.Embedding(self.many_class_base, d_icl)
@@ -331,9 +346,11 @@ class TabICLv2Classifier(_TabICLv2Backbone):
 
             node_train_embed = row_embeddings[idx]
             node_train_labels = y_train[idx]
-            mapped = map_labels_to_child_groups(node_train_labels, node).clamp(
-                max=self.many_class_base - 1
-            ).to(torch.int64)
+            mapped = (
+                map_labels_to_child_groups(node_train_labels, node)
+                .clamp(max=self.many_class_base - 1)
+                .to(torch.int64)
+            )
 
             seq = torch.cat([node_train_embed, test_embeddings], dim=0)
             node_train_target_embed = self.embed_icl(mapped)
@@ -348,7 +365,9 @@ class TabICLv2Classifier(_TabICLv2Backbone):
                 logits = self.head(test_out)[:, : len(node.classes)]
                 probs = torch.softmax(logits, dim=-1)
                 for local_idx, cls in enumerate(node.classes):
-                    class_probs[:, cls] = class_probs[:, cls] + parent_prob * probs[:, local_idx]
+                    class_probs[:, cls] = (
+                        class_probs[:, cls] + parent_prob * probs[:, local_idx]
+                    )
                 return
 
             logits = self.head(test_out)[:, : len(node.children)]
@@ -390,7 +409,11 @@ class TabICLv2Classifier(_TabICLv2Backbone):
             total_path_steps += int(sample_idx.numel())
 
             target_classes = y_test[sample_idx].to(torch.int64)
-            mapped_test = map_labels_to_child_groups(target_classes, node).clamp(max=9).to(torch.int64)
+            mapped_test = (
+                map_labels_to_child_groups(target_classes, node)
+                .clamp(max=9)
+                .to(torch.int64)
+            )
             n_choices = len(node.classes) if node.is_leaf else len(node.children)
             idx = self._node_train_indices(node=node, y_train=y_train)
             if idx.numel() == 0:
@@ -403,9 +426,11 @@ class TabICLv2Classifier(_TabICLv2Backbone):
             else:
                 node_train_embed = row_embeddings[idx]
                 node_train_labels = y_train[idx]
-                mapped = map_labels_to_child_groups(node_train_labels, node).clamp(
-                    max=self.many_class_base - 1
-                ).to(torch.int64)
+                mapped = (
+                    map_labels_to_child_groups(node_train_labels, node)
+                    .clamp(max=self.many_class_base - 1)
+                    .to(torch.int64)
+                )
                 local_test_embed = test_embeddings[sample_idx]
                 seq = torch.cat([node_train_embed, local_test_embed], dim=0)
                 node_train_target_embed = self.embed_icl(mapped)
@@ -458,11 +483,15 @@ class TabICLv2Classifier(_TabICLv2Backbone):
         col_accum: torch.Tensor | None = None
         digit_pos_embed: torch.Tensor | None = None
         if self.use_digit_position_embed:
-            digit_positions = torch.arange(digits.shape[0], device=e1.device, dtype=torch.int64)
+            digit_positions = torch.arange(
+                digits.shape[0], device=e1.device, dtype=torch.int64
+            )
             assert self.digit_position_embed is not None
             digit_pos_embed = self.digit_position_embed(digit_positions)
         for view in range(digits.shape[0]):
-            tae_embed = self.embed_tae(digits[view].clamp(max=self.many_class_base - 1).to(torch.int64))
+            tae_embed = self.embed_tae(
+                digits[view].clamp(max=self.many_class_base - 1).to(torch.int64)
+            )
             if digit_pos_embed is not None:
                 tae_embed = tae_embed + digit_pos_embed[view][None, :]
             col_out = self._column_encode_from_e1(e1, tae_embed, n_train=n_train)
@@ -471,14 +500,18 @@ class TabICLv2Classifier(_TabICLv2Backbone):
         col_mean = col_accum / float(digits.shape[0])
 
         row_embed = self._row_encode(col_mean, token_padding_mask=token_padding_mask)
-        tree = cached_build_balanced_class_tree(num_classes, max_branch=self.many_class_base)
+        tree = cached_build_balanced_class_tree(
+            num_classes, max_branch=self.many_class_base
+        )
         if self.training and self.many_class_train_mode == "path_nll":
-            path_logits, path_targets, path_sample_counts, path_metrics = self._hierarchical_path_terms(
-                row_embed,
-                y_train,
-                y_test.to(torch.int64),
-                tree,
-                n_train=n_train,
+            path_logits, path_targets, path_sample_counts, path_metrics = (
+                self._hierarchical_path_terms(
+                    row_embed,
+                    y_train,
+                    y_test.to(torch.int64),
+                    tree,
+                    n_train=n_train,
+                )
             )
             return ClassificationOutput(
                 logits=None,
@@ -524,9 +557,13 @@ class TabICLv2Classifier(_TabICLv2Backbone):
 
         train_tae = self.embed_tae(y_train.clamp(max=9))
         train_icl = self.embed_icl(y_train.clamp(max=9))
-        test_out = self._encode_from_e1(e1, token_padding_mask, train_tae, train_icl, n_train)
+        test_out = self._encode_from_e1(
+            e1, token_padding_mask, train_tae, train_icl, n_train
+        )
         logits = self.head(test_out)
-        return ClassificationOutput(logits=logits, num_classes=num_classes, class_probs=None)
+        return ClassificationOutput(
+            logits=logits, num_classes=num_classes, class_probs=None
+        )
 
 
 class TabICLv2Regressor(_TabICLv2Backbone):
@@ -567,7 +604,9 @@ class TabICLv2Regressor(_TabICLv2Backbone):
         )
         self.head_hidden_dim = int(head_hidden_dim)
         if self.head_hidden_dim <= 0:
-            raise ValueError(f"head_hidden_dim must be positive, got {self.head_hidden_dim}")
+            raise ValueError(
+                f"head_hidden_dim must be positive, got {self.head_hidden_dim}"
+            )
         self.embed_tae = nn.Linear(1, d_col)
         self.embed_icl = nn.Linear(1, d_icl)
         self.head = nn.Sequential(
@@ -575,9 +614,9 @@ class TabICLv2Regressor(_TabICLv2Backbone):
             nn.GELU(),
             nn.Linear(self.head_hidden_dim, DEFAULT_REGRESSION_QUANTILES),
         )
-        q = torch.arange(1, DEFAULT_REGRESSION_QUANTILES + 1, dtype=torch.float32) / float(
-            DEFAULT_REGRESSION_QUANTILES + 1
-        )
+        q = torch.arange(
+            1, DEFAULT_REGRESSION_QUANTILES + 1, dtype=torch.float32
+        ) / float(DEFAULT_REGRESSION_QUANTILES + 1)
         self.register_buffer("quantile_levels", q, persistent=False)
 
     def forward(self, batch: TaskBatch) -> RegressionOutput:
@@ -589,4 +628,7 @@ class TabICLv2Regressor(_TabICLv2Backbone):
         test_out = self._encode_from_e1(e1, token_padding_mask, tae, icl, n_train)
         quantiles = self.head(test_out)
 
-        return RegressionOutput(quantiles=quantiles, quantile_levels=cast(torch.Tensor, self.quantile_levels))
+        return RegressionOutput(
+            quantiles=quantiles,
+            quantile_levels=cast(torch.Tensor, self.quantile_levels),
+        )

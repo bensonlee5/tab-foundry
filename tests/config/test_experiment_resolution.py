@@ -58,12 +58,15 @@ def test_cls_smoke_adamw_override_resolution() -> None:
     assert bool(cfg.optimizer.require_requested) is False
 
 
-def test_cls_nano_aligned_resolution() -> None:
-    cfg = _compose("experiment=cls_nano_aligned")
+def test_cls_benchmark_linear_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_linear")
     assert str(cfg.task) == "classification"
-    assert str(cfg.data.source) == "nanoprior"
-    assert str(cfg.optimizer.name) == "schedulefree_adamw"
-    assert str(cfg.model.input_normalization) == "train_zscore_clip"
-    assert int(cfg.runtime.grad_accum_steps) == 16
-    assert int(cfg.runtime.max_steps) == 2500
+    assert str(cfg.optimizer.name) == "adamw"
+    assert bool(cfg.optimizer.require_requested) is False
+    assert int(cfg.runtime.eval_every) == 25
+    assert int(cfg.runtime.checkpoint_every) == 25
+    assert int(cfg.runtime.max_steps) == 400
     assert float(cfg.runtime.target_train_seconds) == 330.0
+    stage = cfg.schedule.stages[0]
+    assert str(stage["lr_schedule"]) == "linear"
+    assert float(stage["warmup_ratio"]) == 0.05

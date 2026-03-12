@@ -1,0 +1,27 @@
+# @package _global_
+
+task: classification
+runtime:
+  output_dir: outputs/cls_benchmark_linear
+  device: auto
+  mixed_precision: "no"
+  num_workers: 0
+  grad_clip: 1.0
+  grad_accum_steps: 1
+  eval_every: 25
+  checkpoint_every: 25
+  val_batches: 16
+  max_steps: 400
+  target_train_seconds: 330
+optimizer:
+  name: adamw
+  require_requested: false
+logging:
+  run_name: cls-benchmark-linear
+schedule:
+  stages:
+    - name: stage1
+      steps: 400
+      lr_max: 8.0e-4
+      lr_schedule: linear
+      warmup_ratio: 0.05

@@ -3,14 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import subprocess
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
 import pandas as pd
 import pytest
 
-import tab_foundry.nanotabpfn_benchmark as benchmark_module
-import tab_foundry.nanotabpfn_compare as compare_module
+import tab_foundry.bench.compare as compare_module
+import tab_foundry.bench.nanotabpfn as benchmark_module
 
 
 class _FakeDataset:
@@ -131,7 +132,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         )
         return subprocess.CompletedProcess(cmd, 0)
 
-    monkeypatch.setattr(compare_module.subprocess, "run", _fake_run)
+    monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
 
     summary = compare_module.run_nanotabpfn_benchmark(
         compare_module.NanoTabPFNBenchmarkConfig(
@@ -146,6 +147,10 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert captured["check"] is True
     assert Path(captured["cmd"][0]) == nanotab_python.resolve()
     assert summary["dataset_count"] == 1
+    assert summary["tab_foundry"]["best_step"] == pytest.approx(25.0)
+    assert summary["tab_foundry"]["best_roc_auc"] == pytest.approx(0.81)
+    assert summary["nanotabpfn"]["best_step"] == pytest.approx(25.0)
+    assert summary["nanotabpfn"]["final_roc_auc"] == pytest.approx(0.78)
     assert (out_root / "comparison_summary.json").exists()
     assert (out_root / "comparison_curve.png").exists()
 

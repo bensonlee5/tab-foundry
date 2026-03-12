@@ -9,15 +9,13 @@ from pathlib import Path
 import subprocess
 from typing import Any, Sequence
 
-from tab_foundry.nanotabpfn_benchmark import (
+from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
+from tab_foundry.bench.nanotabpfn import (
     build_comparison_summary,
     evaluate_tab_foundry_run,
-    load_jsonl,
     load_openml_benchmark_datasets,
     plot_comparison_curve,
     save_dataset_cache,
-    write_json,
-    write_jsonl,
 )
 
 
@@ -58,11 +56,11 @@ def _nanotabpfn_prior_dump(root: Path, override: Path | None) -> Path:
 
 
 def _helper_script_path() -> Path:
-    return Path(__file__).resolve().parents[2] / "scripts" / "run_nanotabpfn_benchmark_helper.py"
+    return Path(__file__).resolve().parents[3] / "scripts" / "run_nanotabpfn_benchmark_helper.py"
 
 
 def _src_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def _nanotabpfn_helper_command(
