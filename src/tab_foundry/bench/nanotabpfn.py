@@ -6,7 +6,7 @@ from collections.abc import Mapping
 import json
 import math
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import openml
@@ -17,6 +17,8 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, LabelEncoder, OrdinalEncoder
+
+from tab_foundry.bench.artifacts import checkpoint_snapshots_from_history
 
 
 NANOTABPFN_TASK_IDS: tuple[int, ...] = (
@@ -76,31 +78,6 @@ NANOTABPFN_TASK_IDS: tuple[int, ...] = (
 _SKF = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
 
 
-def write_json(path: Path, payload: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, sort_keys=True)
-        handle.write("\n")
-
-
-def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        for record in records:
-            json.dump(record, handle, sort_keys=True)
-            handle.write("\n")
-
-
-def load_jsonl(path: Path) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            stripped = line.strip()
-            if stripped:
-                records.append(json.loads(stripped))
-    return records
-
-
 def get_feature_preprocessor(x: np.ndarray | pd.DataFrame) -> ColumnTransformer:
     """Replicate the nanoTabPFN notebook preprocessing logic."""
 
@@ -157,21 +134,41 @@ def load_openml_benchmark_datasets(
         task = openml.tasks.get_task(task_id, download_splits=False)
         if task.task_type_id != TaskType.SUPERVISED_CLASSIFICATION:
             continue
-        dataset = task.get_dataset(download_data=False)
-        qualities = dataset.qualities
+        task_any: Any = task
+        dataset = task_any.get_dataset(download_data=False)
+        dataset_any: Any = dataset
+        raw_qualities = dataset_any.qualities
+        if not isinstance(raw_qualities, dict):
+            continue
+        number_of_features_raw = raw_qualities.get("NumberOfFeatures")
+        number_of_classes_raw = raw_qualities.get("NumberOfClasses")
+        missing_pct_raw = raw_qualities.get("PercentageOfInstancesWithMissingValues")
+        minority_pct_raw = raw_qualities.get("MinorityClassPercentage")
+        if not isinstance(number_of_features_raw, (int, float)):
+            continue
+        if not isinstance(number_of_classes_raw, (int, float)):
+            continue
+        if not isinstance(missing_pct_raw, (int, float)):
+            continue
+        if not isinstance(minority_pct_raw, (int, float)):
+            continue
+        number_of_features = float(number_of_features_raw)
+        number_of_classes = float(number_of_classes_raw)
+        missing_pct = float(missing_pct_raw)
+        minority_pct = float(minority_pct_raw)
         if (
-            qualities["NumberOfFeatures"] > max_features
-            or qualities["NumberOfClasses"] > target_classes_filter
-            or qualities["PercentageOfInstancesWithMissingValues"] > 0
-            or qualities["MinorityClassPercentage"] < 2.5
+            number_of_features > max_features
+            or number_of_classes > target_classes_filter
+            or missing_pct > 0
+            or minority_pct < 2.5
         ):
             continue
 
-        x_frame, y_raw, _categorical_indicator, _attribute_names = dataset.get_data(
-            target=task.target_name,
+        x_frame, y_raw, _categorical_indicator, _attribute_names = dataset_any.get_data(
+            target=str(task_any.target_name),
             dataset_format="dataframe",
         )
-        if new_instances < len(y_raw):
+        if new_instances < int(len(cast(Any, y_raw))):
             _x_unused, x_sub, _y_unused, y_sub = train_test_split(
                 x_frame,
                 y_raw,
@@ -281,14 +278,6 @@ def resolve_device(device: str) -> str:
     return "cpu"
 
 
-def _step_time_map_from_history(history_path: Path) -> dict[int, float]:
-    step_times: dict[int, float] = {}
-    for record in load_jsonl(history_path):
-        raw_time = record.get("train_elapsed_seconds", record.get("elapsed_seconds", 0.0))
-        step_times[int(record["step"])] = max(0.0, float(raw_time))
-    return step_times
-
-
 def collect_checkpoint_snapshots(run_dir: Path) -> list[dict[str, Any]]:
     """Resolve step checkpoints and their elapsed training times."""
 
@@ -319,25 +308,15 @@ def collect_checkpoint_snapshots(run_dir: Path) -> list[dict[str, Any]]:
     if not checkpoint_dir.exists():
         raise RuntimeError(f"missing smoke checkpoint directory: {checkpoint_dir}")
 
-    step_times = _step_time_map_from_history(history_path)
-    snapshots: list[dict[str, Any]] = []
-    for checkpoint in sorted(checkpoint_dir.glob("step_*.pt")):
-        try:
-            step = int(checkpoint.stem.removeprefix("step_"))
-        except ValueError as exc:
-            raise RuntimeError(f"invalid step checkpoint name: {checkpoint.name}") from exc
-        if step not in step_times:
-            raise RuntimeError(f"missing elapsed time for checkpoint step={step}")
-        snapshots.append(
-            {
-                "step": step,
-                "path": str(checkpoint.resolve()),
-                "elapsed_seconds": float(step_times[step]),
-            }
-        )
-    if not snapshots:
-        raise RuntimeError(f"no step checkpoints found under {checkpoint_dir}")
-    return snapshots
+    snapshots = checkpoint_snapshots_from_history(history_path, checkpoint_dir)
+    return [
+        {
+            "step": int(snapshot["step"]),
+            "path": str(snapshot["path"]),
+            "elapsed_seconds": float(snapshot["train_elapsed_seconds"]),
+        }
+        for snapshot in snapshots
+    ]
 
 
 def evaluate_tab_foundry_run(
@@ -515,8 +494,10 @@ def build_comparison_summary(
             "num_seeds": int(len({int(record["seed"]) for record in nanotabpfn_records})),
         },
     }
-    if math.isnan(float(summary["tab_foundry"]["final_roc_auc"])):
+    tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
+    nanotabpfn_summary = cast(dict[str, Any], summary["nanotabpfn"])
+    if math.isnan(float(tab_foundry_summary["final_roc_auc"])):
         raise RuntimeError("tab-foundry benchmark produced no ROC AUC values")
-    if math.isnan(float(summary["nanotabpfn"]["final_roc_auc"])):
+    if math.isnan(float(nanotabpfn_summary["final_roc_auc"])):
         raise RuntimeError("nanoTabPFN benchmark produced no ROC AUC values")
     return summary

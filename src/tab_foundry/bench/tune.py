@@ -10,7 +10,7 @@ from itertools import product
 import json
 import math
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 from omegaconf import OmegaConf
 
@@ -171,9 +171,10 @@ def _summarize_trial(
 ) -> dict[str, Any]:
     history_path = trial_root / "train_outputs" / "train_history.jsonl"
     history = _load_history(history_path)
-    stage_configs = build_stage_configs(
-        list(OmegaConf.to_container(cfg.schedule.stages, resolve=True) or [])
-    )
+    raw_stage_payload = OmegaConf.to_container(cfg.schedule.stages, resolve=True)
+    if raw_stage_payload is None:
+        raw_stage_payload = []
+    stage_configs = build_stage_configs(cast(list[dict[str, object]], raw_stage_payload))
     warmup_steps = warmup_steps_for_stage(stage_configs[0]) if stage_configs else 0
     val_losses = _finite_history_values(history, "val_loss")
     if not val_losses:

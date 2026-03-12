@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 import json
 import math
+from numbers import Real
 import os
 from pathlib import Path
 import time
@@ -345,11 +346,10 @@ def _normalize_grad_norm_value(value: object, *, fallback: float) -> float:
     if isinstance(value, torch.Tensor):
         value_f = float(value.detach().item())
         return value_f if math.isfinite(value_f) else float(fallback)
-    try:
+    if isinstance(value, Real):
         value_f = float(value)
-    except (TypeError, ValueError):
-        return float(fallback)
-    return value_f if math.isfinite(value_f) else float(fallback)
+        return value_f if math.isfinite(value_f) else float(fallback)
+    return float(fallback)
 
 
 def train(cfg: DictConfig) -> TrainResult:

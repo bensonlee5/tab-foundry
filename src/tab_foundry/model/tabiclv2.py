@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from tab_foundry.input_normalization import normalize_train_test_tensors
+from tab_foundry.input_normalization import InputNormalizationMode, normalize_train_test_tensors
 from tab_foundry.types import TaskBatch
 
 from .blocks import TFColEncoder, TFRowEncoder
@@ -204,10 +204,11 @@ class _TabICLv2Backbone(nn.Module):
         self, batch: TaskBatch
     ) -> tuple[torch.Tensor, torch.Tensor, int]:
         n_train = batch.x_train.shape[0]
+        normalization_mode = cast(InputNormalizationMode, self.input_normalization)
         x_train, x_test = normalize_train_test_tensors(
             batch.x_train,
             batch.x_test,
-            mode=self.input_normalization,
+            mode=normalization_mode,
         )
         x_all = torch.cat([x_train, x_test], dim=0)
         e1, token_padding_mask = self._build_e1(x_all)

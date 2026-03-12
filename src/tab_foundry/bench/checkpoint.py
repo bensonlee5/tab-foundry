@@ -123,4 +123,7 @@ class TabFoundryClassifier:
 
     def predict(self, x_test: np.ndarray) -> np.ndarray:
         probabilities = self.predict_proba(x_test)
-        return self._classes[np.asarray(probabilities.argmax(axis=1), dtype=np.int64)]
+        classes = self._classes
+        if classes is None:
+            raise RuntimeError("fit() must be called before predict()")
+        return classes[np.asarray(probabilities.argmax(axis=1), dtype=np.int64)]

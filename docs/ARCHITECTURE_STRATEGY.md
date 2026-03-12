@@ -73,6 +73,12 @@ Important sources of inspiration include:
 
 The practical goal is to turn these into named baseline configurations or modular blocks that can be compared directly.
 
+Default transfer rule:
+
+- the repo should resemble `nanochat` in compact-transformer recipe, FFN choice, residual/pre-norm hygiene, optimizer partitioning, and sizing discipline where those ideas do not depend on sequence order
+- the repo should not inherit language-sequence assumptions by default
+- row and column structure should preferentially draw from set- and permutation-aware references rather than from positional language-model machinery such as RoPE
+
 ### 4. Dagzoo-style repo organization
 
 The repo should move toward the same kind of neutral role-based structure used in `dagzoo`.
@@ -124,6 +130,6 @@ Only after that foundation is in place should the repo lean heavily into archite
 Prediction-mode expansion should follow after the scaling-oriented architecture platform is stable:
 
 1. classification as the anchor mode
-2. regression
-3. missing-data prediction
-4. tertiary modalities later
+1. regression
+1. missing-data prediction
+1. tertiary modalities later

@@ -9,15 +9,13 @@ from pathlib import Path
 import subprocess
 from typing import Any, Sequence
 
+from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
 from tab_foundry.bench.nanotabpfn import (
     build_comparison_summary,
     evaluate_tab_foundry_run,
-    load_jsonl,
     load_openml_benchmark_datasets,
     plot_comparison_curve,
     save_dataset_cache,
-    write_json,
-    write_jsonl,
 )
 
 

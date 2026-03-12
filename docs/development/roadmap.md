@@ -21,8 +21,8 @@ That means:
 After the scaling-oriented foundation is stable, the next goal is broader core prediction coverage in this order:
 
 1. classification remains the anchor mode
-2. regression is the next mode to flesh out
-3. missing-data prediction follows regression
+1. regression is the next mode to flesh out
+1. missing-data prediction follows regression
 
 ### Goal 3: Extended Tasks And Modalities
 
@@ -59,10 +59,10 @@ The near-term roadmap is dominated by work that improves the repo's ability to r
 The sequence is:
 
 1. trustworthy experiment infrastructure
-2. repo/package foundation
-3. modular architecture platform
-4. tuning for more predictable behavior
-5. focused ablations in service of scaling predictability
+1. repo/package foundation
+1. modular architecture platform
+1. tuning for more predictable behavior
+1. focused ablations in service of scaling predictability
 
 ### Epic 1: Trustworthy Experiment Platform
 

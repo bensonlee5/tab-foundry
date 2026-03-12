@@ -7,8 +7,8 @@ This document explains how to run the current short-run research loop.
 There are three separate workflows:
 
 1. `dagzoo` smoke: end-to-end pipeline validation
-2. internal tuning: tab-foundry-only sweeps on fixed manifests
-3. confirmatory benchmarking: compare completed tab-foundry runs against `nanoTabPFN`
+1. internal tuning: tab-foundry-only sweeps on fixed manifests
+1. confirmatory benchmarking: compare completed tab-foundry runs against `nanoTabPFN`
 
 Keep these separate. The sweep loop should not call the OpenML benchmark.
 
@@ -55,8 +55,8 @@ Current default sweep dimensions:
 The sweep ranks runs by internal metrics only:
 
 1. lowest `best_val_loss`
-2. lowest `final_val_loss`
-3. lowest post-warmup train-loss variance
+1. lowest `final_val_loss`
+1. lowest post-warmup train-loss variance
 
 Gradient norm is logged as a stability diagnostic, not as the primary ranking target.
 
@@ -86,11 +86,11 @@ If best internal validation and best external benchmark diverge materially, trea
 Recommended order for each research cycle:
 
 1. run or reuse the current control baseline
-2. run an internal sweep against the same manifest and budget class
-3. shortlist the best internal candidates
-4. run confirmatory nanoTabPFN comparisons on the shortlist
-5. append the results to the shared leaderboard
-6. write a one-line conclusion for each candidate: keep, reject, or defer
+1. run an internal sweep against the same manifest and budget class
+1. shortlist the best internal candidates
+1. run confirmatory nanoTabPFN comparisons on the shortlist
+1. append the results to the shared leaderboard
+1. write a one-line conclusion for each candidate: keep, reject, or defer
 
 ## Scope Boundaries
 

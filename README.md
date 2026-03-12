@@ -13,6 +13,26 @@ Modular tabular prior-data fitted network training on `dagzoo` packed shard outp
 uv sync
 ```
 
+## Development
+
+Install the repo-local hook set once:
+
+```bash
+uv run pre-commit install
+```
+
+Run the full local quality gate:
+
+```bash
+uv run pre-commit run --all-files
+```
+
+Run markdown formatting directly:
+
+```bash
+uv run mdformat AGENTS.md README.md docs reference CHANGELOG.md
+```
+
 ## Build Manifest
 
 Set `DAGZOO_DATA_ROOT` once (optional, but recommended for portability):
@@ -80,6 +100,44 @@ optimizer:
 
 ```bash
 uv run tab-foundry train experiment=cls_smoke optimizer=adamw
+```
+
+## Iris Smoke Harness
+
+Run the repo-local Iris-backed smoke harness:
+
+```bash
+uv run python scripts/iris_smoke.py
+```
+
+This generates manifest-compatible packed Iris tasks, trains a small
+classification checkpoint on CPU by default, evaluates it on the manifest test
+split, then runs the existing binary-Iris checkpoint benchmark.
+
+Artifacts are written under a timestamped `/tmp/tab_foundry_iris_smoke_*`
+directory:
+
+- `generated/`
+- `manifest.parquet`
+- `train_outputs/checkpoints/*.pt`
+- `train_outputs/train_history.jsonl`
+- `train_outputs/loss_curve.png`
+- `telemetry.json`
+- `summary.md`
+
+## CI
+
+GitHub Actions workflow `test` runs two required jobs on pull requests and
+`main`:
+
+- `quality-and-unit`: `mdformat --check`, `ruff`, `mypy`, `pytest -q`
+- `iris-smoke`: the Iris-backed smoke harness with uploaded artifacts and
+  markdown timing summary
+
+Apply the matching `main` branch protection with:
+
+```bash
+./scripts/configure_repo_protection.sh
 ```
 
 ## dagzoo Smoke Harness

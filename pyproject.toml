@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tab-foundry"
-version = "0.1.0"
+version = "0.1.1"
 description = "TabICLv2-style tabular foundation model training on dagzoo packed shard outputs"
 readme = "README.md"
 license = "MIT"
@@ -27,9 +27,11 @@ tab-foundry = "tab_foundry.cli:main"
 [dependency-groups]
 dev = [
   "matplotlib>=3.10",
+  "mdformat>=0.7",
   "mypy>=1.11",
   "openml>=0.15",
   "pandas>=2.2",
+  "pre-commit>=3.8",
   "pytest>=8.0",
   "pytest-cov>=6.0",
   "ruff>=0.6",
