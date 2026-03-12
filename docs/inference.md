@@ -6,7 +6,12 @@ Related docs:
 
 - quickstart: `README.md`
 - workflow runbooks: `docs/workflows.md`
-- roadmap: `docs/roadmap.md`
+- design decisions and repo structure: `docs/development/design-decisions.md`
+- canonical roadmap: `docs/development/roadmap.md`
+
+Planning and architecture rationale live under `docs/development/`.
+This file stays top-level because it is the stable export and validation
+contract.
 
 ## Schema Version
 

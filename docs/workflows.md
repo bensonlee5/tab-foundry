@@ -5,9 +5,13 @@ This document is the operational runbook for `tab-foundry`: setup, local quality
 Related docs:
 
 - quickstart: `README.md`
-- architecture and repo structure: `docs/architecture.md`
+- design decisions and repo structure: `docs/development/design-decisions.md`
+- codebase navigation: `docs/development/codebase-navigation.md`
 - inference/export contract: `docs/inference.md`
-- roadmap: `docs/roadmap.md`
+- canonical roadmap: `docs/development/roadmap.md`
+
+Planning and repo-shape docs now live under `docs/development/`.
+This file stays top-level because it is the stable operational runbook.
 
 ## Environment And Quality Gate
 
