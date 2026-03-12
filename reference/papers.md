@@ -6,23 +6,29 @@ It intentionally mirrors the role of `~/dev/dagzoo/reference`, but reads the sha
 
 Related docs:
 
-- Architecture strategy: `docs/ARCHITECTURE_STRATEGY.md`
-- Roadmap: `docs/development/roadmap.md`
-- Evidence mapping: `reference/literature_evidence.md`
-- External repos: `reference/external_repos.md`
+- Architecture and repo structure: `docs/architecture.md`
+- Roadmap: `docs/roadmap.md`
+- Workflow runbooks: `docs/workflows.md`
+- Evidence mapping: `reference/evidence.md`
 
 ## Adoption Tiers For This Repo
 
 Use this directory to make explicit judgments, not just collect papers.
 
 - `Likely adopt`
+  - numerical embeddings, including ordinal-as-numeric handling unless monotonicity is the central requirement
+  - categorical entity embeddings as the default baseline before heavier contextualization
   - compact-transformer recipe ideas from `nanochat` when they do not depend on sequence order
-  - set- and permutation-aware modeling for row and column structure
-  - feature and value embedding work that improves scalar tabular tokenization
+  - typed column encoders that preserve set- and permutation-aware structure
 - `Benchmark first`
+  - TabTransformer contextual categorical embeddings
+  - SAINT row/column attention and Perceiver-style latent bottlenecks
   - ColBERT-like late interaction or other factorized interaction patterns
+  - table-aware text models
   - expensive optimizers beyond current defaults, especially because the intended transformer family is small
   - retrieval-heavy or interaction-heavy mechanisms that materially change the inductive bias
+- `Later / BL-192`
+  - text-conditioned column handling via external text embeddings and table-aware text encoders
 - `Probably low relevance`
   - RoPE and similar positional schemes whose main value comes from token order in language
   - causal-LM-specific sequence machinery that does not cleanly transfer to unordered rows or columns
@@ -54,14 +60,56 @@ These references matter because rows and columns in tabular models are closer to
 | 1703.06114 | Deep Sets | Canonical permutation-invariant baseline. Useful as the default mental model when deciding whether a row/column mechanism should care about order at all. | https://arxiv.org/abs/1703.06114 |
 | 1810.00825 | Set Transformer: A Framework for Attention-based Permutation-Invariant Neural Networks | Attention over unordered sets with inducing-point scaling. Especially relevant because the repo already uses ISAB-like components in the column path. | https://proceedings.mlr.press/v97/lee19d.html |
 
-### Feature And Value Embeddings
+### Typed Column Encoders
 
-These are likely higher-leverage than sequence positional tricks for a small tabular transformer.
+Treat tokenization here as typed column encoding, not just as a generic feature projection step. The question is how numerical, categorical, ordinal, and later text-conditioned columns should enter a small set-structured backbone.
+
+Default typed-column policy:
+
+- numerical and ordinal columns should default to numeric-style encoders
+- categorical columns should default to learned embeddings before more complex contextualization
+- text columns should default to external text embeddings first, not raw subword tokenization inside the main table backbone
+- set/permutation-aware structure remains the governing constraint for how typed tokens enter the shared model
 
 | arXiv ID | Title | Why it matters for tab-foundry | Source |
 |----------|-------|-------------------------------|--------|
-| 2106.11959 | Revisiting Deep Learning Models for Tabular Data (FT-Transformer) | Per-feature linear embedding baseline for the tokenization ablation. Keep as the simple reference point, not the final architecture identity. | https://arxiv.org/abs/2106.11959 |
+| 2106.11959 | Revisiting Deep Learning Models for Tabular Data (FT-Transformer) | Baseline per-feature tokenization reference. Useful as the simple typed-column baseline before heavier encoder choices are justified. | https://arxiv.org/abs/2106.11959 |
+
+### Numerical And Ordinal Columns
+
+These are likely higher-leverage than sequence positional tricks for a small tabular transformer. Default repo stance: ordinals should usually be treated as numeric unless monotonicity is a central modeling requirement.
+
+| arXiv ID | Title | Why it matters for tab-foundry | Source |
+|----------|-------|-------------------------------|--------|
 | 2203.05556 | On Embeddings for Numerical Features in Tabular Deep Learning | Direct reference for scalar-to-vector value embeddings. High-priority source for feature/value tokenization ideas that fit unordered tabular structure. | https://arxiv.org/abs/2203.05556 |
+
+### Categorical Columns
+
+Categorical columns should default to learned embeddings before more expensive contextualization is introduced.
+
+| arXiv ID | Title | Why it matters for tab-foundry | Source |
+|----------|-------|-------------------------------|--------|
+| 1604.06737 | Entity Embeddings of Categorical Variables | Likely-adopt baseline for categorical columns, especially when cardinality is high enough that one-hot handling is a poor fit. | https://arxiv.org/abs/1604.06737 |
+| 2012.06678 | TabTransformer: Tabular Data Modeling Using Contextual Embeddings | Benchmark-first contextualization reference for categorical columns. Useful when plain learned embeddings are not enough. | https://arxiv.org/abs/2012.06678 |
+
+### Text-Conditioned Columns (Later / BL-192)
+
+These references belong to the later text-conditioned-input lane. The default direction is to use external text embeddings first, not raw subword tokenization inside the small tabular backbone.
+
+| arXiv ID | Title | Why it matters for tab-foundry | Source |
+|----------|-------|-------------------------------|--------|
+| D19-1410 | Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks | Practical baseline for turning free-text cells or column values into fixed embeddings before they enter the tabular model. | https://aclanthology.org/D19-1410/ |
+| 2020.acl-main.745 | TaBERT: Pretraining for Joint Understanding of Textual and Tabular Data | Benchmark-first table-aware text model. Relevant if later work needs richer joint text-table reasoning rather than external text embeddings alone. | https://aclanthology.org/2020.acl-main.745/ |
+| 2006.14806 | TURL: Table Understanding through Representation Learning | Later benchmark reference for structure-aware table/text representations. Useful when text-conditioned columns become a first-class roadmap item. | https://arxiv.org/abs/2006.14806 |
+
+### Scaling Row/Column Token Counts
+
+These are benchmark-first references for scaling row/column interaction costs. They are architecture references, not default tokenization choices.
+
+| arXiv ID | Title | Why it matters for tab-foundry | Source |
+|----------|-------|-------------------------------|--------|
+| 2106.01342 | SAINT: Improved Neural Networks for Tabular Data via Row Attention and Contrastive Pre-Training | Benchmark-first row/column attention reference. Useful if typed encoders become good enough that inter-row attention is the next bottleneck. | https://arxiv.org/abs/2106.01342 |
+| 2103.03206 | Perceiver: General Perception with Iterative Attention | Latent-bottleneck reference for scaling to very large token counts. Relevant if row/column counts make full attention too expensive. | https://proceedings.mlr.press/v139/jaegle21a.html |
 
 ### Late Interaction And Factorized Matching
 
@@ -105,7 +153,7 @@ Dedicated section since scaling predictability is the repo's primary goal.
 
 ## External Repo References
 
-Notes on adjacent implementations. See `reference/external_repos.md` for detailed notes on what to borrow and why.
+Adjacent repo references that inform architecture and training decisions. Detailed borrowing rules live below.
 
 | Repo | Link | Why it matters |
 |------|------|---------------|
@@ -113,10 +161,126 @@ Notes on adjacent implementations. See `reference/external_repos.md` for detaile
 | nanochat | https://github.com/karpathy/nanochat | Optimizer, LR schedule, model sizing, and clean training loop patterns. Reference for compact transformer training infrastructure. |
 | Muon optimizer | https://github.com/KellerJordan/Muon | Modern optimizer treating weights as orthogonal matrices. Relevant to optimizer sweep work (BL-161). |
 
+## External Baseline Borrowing Rules
+
+Default transfer rule for repo references:
+
+- borrow compact-transformer recipe ideas when they do not depend on sequence order
+- prefer set- and permutation-aware references for row and column structure
+- treat language-sequence positional machinery as low priority by default
+
+### nanoTabPFN
+
+- **URL:** https://github.com/automl/nanoTabPFN
+- **Roadmap relevance:** BL-173 (external baseline configs), BL-155 (control baseline)
+
+What it does well:
+
+- clean, minimal TabPFN training implementation with good defaults
+- establishes a concrete performance baseline for short-run tabular PFN training
+- model sizing choices provide a known-good starting point
+
+What to absorb:
+
+- training recipe as a named baseline config
+- depth/width/head sizing conventions as a reference point for model size sweeps
+- evaluation protocol for direct comparison
+
+Success signal:
+
+- `tab-foundry` reaches parity with `nanoTabPFN` on the same benchmark suite and training budget
+- at least one `tab-foundry` config is directly derived from `nanoTabPFN`'s recipe and runs through the benchmark pipeline
+
+### nanochat
+
+- **URL:** https://github.com/karpathy/nanochat
+- **Roadmap relevance:** BL-173 (external baseline configs), BL-160 (schedule sweep), BL-161 (optimizer sweep), BL-169 (QASS and encoder simplification)
+
+What it does well:
+
+- minimalist, high-quality reference for modern transformer training pipelines
+- clean integration of Muon with a standard training loop
+- strong compact-transformer backbone hygiene: pre-norm residual layout, simple block structure, and small-model sizing discipline
+- readable model definition and training loop that separates concerns well
+- good LR schedule implementation with warmup and cosine decay
+
+What to absorb:
+
+- `ReLU^2` as a concrete compact-transformer FFN candidate instead of defaulting automatically to GELU
+- pre-norm residual simplicity and readable block structure where it fits tabular modeling
+- Muon plus AdamW parameter-group partitioning
+- warmup and cosine schedule patterns
+- depth/width/head scaling conventions
+- value/token encoding ideas only where they translate cleanly to tabular value tokenization
+
+What not to copy by default:
+
+- causal-LM assumptions
+- sequence-order positional encodings such as RoPE
+- autoregressive masking or next-token machinery whose value depends on token order
+- mechanisms whose main benefit is language-style sequence structure rather than unordered row/column interactions
+
+Success signal:
+
+- the `tab-foundry` training loop reaches comparable clarity and separation of concerns
+- Muon integration works correctly for tabular parameter groups
+- schedule patterns from `nanochat` are available as named options in sweep infrastructure
+- a compact tabular baseline can resemble `nanochat`'s recipe choices while still using set-structured inductive biases
+
+### Set / Permutation-Aware Priority Note
+
+- **Type:** paper-backed priority rule rather than a single external repo
+- **Roadmap relevance:** BL-165 (feature tokenization ablation), BL-167 (row-attention ablation), BL-169 (QASS and encoder simplification)
+
+Why it matters:
+
+- rows and columns in tabular models are much closer to sets than to text sequences
+- when repo references and paper references disagree, set- and permutation-aware work should usually win for row/column structure
+- this is the main reason to elevate `Deep Sets` and `Set Transformer` ahead of generic LLM positional tricks
+
+What to absorb:
+
+- permutation invariance as the default test for row/column mechanisms
+- set-style attention patterns before language-style positional patterns
+- factorized or late interaction ideas only as benchmark-first hypotheses, not as default structure
+
+Success signal:
+
+- architecture ablations are framed in terms of set structure and interaction patterns rather than porting LLM sequence machinery
+- new row/column blocks justify any positional assumptions explicitly instead of inheriting them by default
+
+### Muon Optimizer
+
+- **URL:** https://github.com/KellerJordan/Muon
+- **Roadmap relevance:** BL-161 (optimizer sweep)
+
+What it does well:
+
+- treats weight matrices as elements of the orthogonal group
+- has shown faster convergence and lower post-warmup variance than AdamW in compact transformer settings
+
+What to absorb:
+
+- apply Muon to weight matrices only, with embeddings and biases staying on AdamW
+- use Muon's default learning rate and momentum as sweep starting points
+
+Success signal:
+
+- Muon runs correctly on `tab-foundry` with proper parameter-group assignment
+- optimizer sweeps compare Muon and AdamW under matched budgets
+
+### Optimizer Watchlist
+
+These are intentionally not yet curated as primary-source references:
+
+- `Polar Express`: keep as a watchlist item until a primary paper or official technical source is available
+- general rule: expensive optimizers are more viable here than in frontier-scale LLM settings because the target transformer family is small
+- watchlist items should graduate into the curated reference list only after a primary source is available
+
 ## Usage Contract
 
 - Major architecture tickets should cite the relevant references from this directory.
 - Each reference note should say why it matters and what signal would count as success or failure.
 - New papers should be added here before they inform architecture changes (literature-first construction).
 - New entries should say whether they are `likely adopt`, `benchmark first`, or `probably low relevance`.
-- Cross-reference with `reference/literature_evidence.md` for roadmap item mappings.
+- Cross-reference with `reference/evidence.md` for roadmap item mappings.

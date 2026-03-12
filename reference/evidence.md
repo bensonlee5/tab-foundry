@@ -1,12 +1,12 @@
 # Literature Evidence Mapping
 
-This document links roadmap items in `docs/development/roadmap.md` to primary sources and current repo gaps.
+This document links roadmap items in `docs/roadmap.md` to primary sources and current repo gaps.
 
 Related docs:
 
-- Canonical roadmap: `docs/development/roadmap.md`
-- Architecture strategy: `docs/ARCHITECTURE_STRATEGY.md`
-- Paper index: `reference/PAPERS.md`
+- Canonical roadmap: `docs/roadmap.md`
+- Architecture and repo structure: `docs/architecture.md`
+- Paper index: `reference/papers.md`
 
 Conventions:
 
@@ -29,6 +29,8 @@ Conventions:
 | Set Transformer (1810.00825) | Attention over unordered sets with inducing points is a stronger architectural default for row/column modeling than generic LLM positional machinery | BL-165, BL-167, BL-169 | Now | high |
 | FT-Transformer (2106.11959) | Per-feature linear embedding is the baseline tokenization approach for tabular transformers | BL-165 | Now | high |
 | On Embeddings for Numerical Features in Tabular Deep Learning (2203.05556) | Numerical/value embeddings are a high-leverage tokenization choice for tabular models | BL-165 | Now | high |
+| Entity Embeddings of Categorical Variables (1604.06737) | Learned categorical embeddings are the baseline categorical-column encoder before more complex contextualization | BL-165 | Now | high |
+| TabTransformer (2012.06678) | Contextual categorical embeddings are a benchmark-first extension of the typed-column-encoder story | BL-165 | Now | medium-high |
 | muP (2203.03466) | Width-independent hyperparameter transfer enables tuning at small scale and transferring to larger models | BL-164 | Now | high |
 | SGDR (1608.03983) | Cosine annealing with warm restarts is the standard schedule for short-run training | BL-160 | Now | high |
 | A Closer Look at TabPFN v2 (2502.17361) | Meta-feature sensitivity analysis reveals architecture robustness gaps | BL-165, BL-169 | Now | medium-high |
@@ -37,8 +39,13 @@ Conventions:
 | TabDPT (2410.18164) | Real-data pretraining shows alternative scaling paths beyond synthetic-only training | BL-174 | Next | medium |
 | EquiTabPFN (2502.06684) | Target-permutation equivariance improves robustness in label-space handling | BL-166 | Next | medium |
 | ColBERT (2004.12832) | Late interaction is a benchmark-first factorized interaction pattern for order-light structures, not a default backbone choice | BL-167 | Next | medium |
+| SAINT (2106.01342) | Row attention and typed embedding choices are a benchmark-first reference when row/column interaction cost becomes central | BL-165, BL-167 | Next | medium |
 | Drift-Resilient TabPFN (2411.10634) | Architectural choices for temporal shift robustness inform backbone design | BL-167 | Later | medium |
 | DeepSeek-V3 (2412.19437) | Multi-token prediction improves cross-feature dependency handling in compact transformers | BL-167 | Later | medium |
+| Perceiver (2103.03206) | Latent bottlenecks offer a benchmark-first reference for scaling very large row/column token counts | BL-167 | Later | medium |
+| Sentence-BERT (D19-1410) | Practical baseline for text-conditioned columns via external text embeddings rather than raw text tokenization inside the main table backbone | BL-192 | Later | high |
+| TaBERT (2020.acl-main.745) | Table-aware text model for later text-conditioned tabular inputs | BL-192 | Later | medium |
+| TURL (2006.14806) | Structure-aware table/text representation learning for later text-conditioned tabular inputs | BL-192 | Later | medium |
 | nanoTabPFN (repo) | Training recipe and model sizing provide the direct baseline for tab-foundry benchmarking | BL-173, BL-155 | Now | high |
 | nanochat (repo) | Compact-transformer recipe donor for optimizer partitioning, FFN/residual choices, model sizing, and training-loop structure when ideas do not depend on sequence order | BL-173, BL-160, BL-161, BL-169 | Now | high |
 
@@ -48,14 +55,14 @@ Conventions:
 
 #### BL-170 — Literature search and architecture references
 
-- This document and `reference/PAPERS.md` are the primary deliverables.
+- This document and `reference/papers.md` are the primary deliverables.
 - Confidence: high (this is the deliverable itself).
 
 #### BL-171 — Neutral architecture naming and registry
 
 - TabICLv2 (2602.11139) defines the current architecture family.
-- Architecture strategy calls for treating `tabiclv2` as a compatibility identifier, not the long-term taxonomy.
-- No single paper drives this; it is a repo-organization decision informed by the multi-family direction in the architecture strategy.
+- The architecture doc calls for treating `tabiclv2` as a compatibility identifier, not the long-term taxonomy.
+- No single paper drives this; it is a repo-organization decision informed by the multi-family direction in `docs/architecture.md`.
 
 #### BL-181 — Split reusable model components
 
@@ -66,7 +73,7 @@ Conventions:
 #### BL-172 — Modular QASS and non-QASS backbone
 
 - TabICLv2 (2602.11139): defines the QASS mechanism and its role in the architecture.
-- Architecture strategy: QASS remains optional rather than structurally mandatory.
+- The architecture doc: QASS remains optional rather than structurally mandatory.
 - Success signal: a non-QASS variant trains and evaluates through the same pipeline.
 
 #### BL-173 — External baseline configs
@@ -115,9 +122,11 @@ Conventions:
 #### BL-165 — Feature tokenization ablation
 
 - FT-Transformer (2106.11959): per-feature linear embedding baseline.
-- On Embeddings for Numerical Features in Tabular Deep Learning (2203.05556): value embedding and scalar encoding choices are likely high leverage.
+- On Embeddings for Numerical Features in Tabular Deep Learning (2203.05556): numerical and ordinal columns should usually start from numeric-style encoders.
+- Entity Embeddings of Categorical Variables (1604.06737): learned categorical embeddings are part of the core tokenization reference set.
+- TabTransformer (2012.06678): benchmark-first contextualization for categorical columns.
 - TabICLv2 (2602.11139): current tokenization approach.
-- Deep Sets (1703.06114) and Set Transformer (1810.00825): tokenization changes should preserve the repo's set-structured view of rows and columns.
+- Deep Sets (1703.06114) and Set Transformer (1810.00825): typed-column-encoder changes should preserve the repo's set-structured view of rows and columns.
 - A Closer Look at TabPFN v2 (2502.17361): meta-feature sensitivity.
 - Success signal: tokenization variant produces measurable difference in scaling behavior.
 
@@ -132,6 +141,8 @@ Conventions:
 - Deep Sets (1703.06114): row and column interactions should justify any departure from permutation-aware structure.
 - Set Transformer (1810.00825): attention over unordered sets is the default comparison point.
 - ColBERT (2004.12832): benchmark-first late interaction candidate if factorized row/column matching becomes the target hypothesis.
+- SAINT (2106.01342): benchmark-first reference for row/column attention once typed encoders are strong enough that interaction design is the next question.
+- Perceiver (2103.03206): benchmark-first latent-bottleneck reference when row/column token counts become the scaling bottleneck.
 - Drift-Resilient TabPFN (2411.10634): attention patterns for robustness.
 - DeepSeek-V3 (2412.19437): multi-token prediction as alternative dependency mechanism.
 - Success signal: attention variant produces measurable difference in cross-feature dependency handling.
@@ -143,6 +154,14 @@ Conventions:
 - Deep Sets (1703.06114) and Set Transformer (1810.00825): simplification should preserve set structure rather than importing language-sequence assumptions.
 - A Closer Look at TabPFN v2 (2502.17361): analysis of architectural strengths/limitations.
 - Success signal: QASS removal or simplification produces interpretable scaling trade-off.
+
+### Epic 7: Extended Prediction Modes And Modalities
+
+#### BL-192 — Text-embedding-conditioned tabular inputs
+
+- Sentence-BERT (D19-1410): practical baseline for text-conditioned inputs via external text embeddings.
+- TaBERT (2020.acl-main.745) and TURL (2006.14806): later, table-aware benchmark references once the repo needs richer joint text/table modeling.
+- Success signal: a text-conditioned path exists without displacing the scaling-first architecture agenda or forcing raw subword tokenization into the small tabular backbone.
 
 ## Evidence Limits and Assumptions
 
