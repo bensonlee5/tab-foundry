@@ -4,8 +4,3 @@ roots:
   - ${oc.env:DAGZOO_DATA_ROOT,${oc.env:HOME}/dev/dagzoo/data}
 train_row_cap: null
 test_row_cap: null
-prior_dump_path: null
-prior_train_offset: 0
-prior_train_size: null
-prior_val_offset: null
-prior_val_size: null

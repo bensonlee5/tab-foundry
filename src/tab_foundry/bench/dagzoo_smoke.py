@@ -214,6 +214,7 @@ def _checkpoint_snapshots(history_path: Path, checkpoint_dir: Path) -> list[dict
                 "step": step,
                 "path": str(checkpoint.resolve()),
                 "elapsed_seconds": max(0.0, float(elapsed_seconds)),
+                "train_elapsed_seconds": max(0.0, float(elapsed_seconds)),
             }
         )
     return snapshots

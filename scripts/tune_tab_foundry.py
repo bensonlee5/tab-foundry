@@ -1,4 +1,4 @@
-from tab_foundry.bench.envs import main
+from tab_foundry.bench.tune import main
 
 
 if __name__ == "__main__":

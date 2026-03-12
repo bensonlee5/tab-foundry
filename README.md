@@ -1,6 +1,6 @@
 # tab-foundry
 
-TabICLv2-style tabular prior-data fitted network training on `dagzoo` packed shard outputs.
+Modular tabular prior-data fitted network training on `dagzoo` packed shard outputs.
 
 ## Environment
 
@@ -67,6 +67,14 @@ uv run tab-foundry train experiment=cls_workstation
 uv run tab-foundry train experiment=reg_workstation
 ```
 
+Benchmark-oriented linear-decay profile:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_benchmark_linear \
+  data.manifest_path=data/manifests/default.parquet
+```
+
 Default training requires Muon to be installed. To run without Muon, explicitly override the
 optimizer:
 
@@ -113,40 +121,15 @@ This bootstraps:
 - `~/dev/TabPFN/.venv`
 - `~/dev/tabicl/.venv`
 
-## nanoTabPFN-Aligned Fast Training
-
-Train tab-foundry directly on the same nanoTabPFN prior dump instead of on `dagzoo`:
-
-```bash
-uv run python scripts/train_nanoprior_tab_foundry.py \
-  --out-root /tmp/tab_foundry_nanoprior_run
-```
-
-Default profile:
-
-- prior dump `~/dev/nanoTabPFN/300k_150x5_2.h5`
-- classification on `auto` device selection
-- schedule-free AdamW at `4e-3`
-- `2500` max steps
-- `330s` train-only time budget
-- evaluation and checkpoint snapshots every `25` steps
-
-Artifacts are written under a timestamped `/tmp/tab_foundry_nanoprior_*` directory:
-
-- `train_outputs/checkpoints/*.pt`
-- `train_outputs/train_history.jsonl`
-- `train_outputs/loss_curve.png`
-- `telemetry.json`
-
 ## nanoTabPFN Comparison
 
-Run either the smoke harness or the nano-prior fast training path first, then compare its
-checkpoint snapshots against a sibling `nanoTabPFN` checkout:
+Run a completed tab-foundry training flow first, then compare its checkpoint snapshots against a
+sibling `nanoTabPFN` checkout. One simple option is to use the `dagzoo` smoke harness:
 
 ```bash
-uv run python scripts/train_nanoprior_tab_foundry.py --out-root /tmp/tab_foundry_nanoprior_bench
+uv run python scripts/dagzoo_smoke.py --out-root /tmp/tab_foundry_dagzoo_smoke_bench
 uv run python scripts/benchmark_nanotabpfn.py \
-  --tab-foundry-run-dir /tmp/tab_foundry_nanoprior_bench \
+  --tab-foundry-run-dir /tmp/tab_foundry_dagzoo_smoke_bench \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
 
@@ -158,6 +141,23 @@ directory:
 - `nanotabpfn_curve.jsonl`
 - `comparison_summary.json`
 - `comparison_curve.png`
+
+The comparison summary includes both `best_*` and `final_*` metrics for `tab-foundry` and
+`nanoTabPFN`.
+
+## Tune tab-foundry
+
+Run an internal-only sweep on a fixed manifest without invoking the OpenML benchmark:
+
+```bash
+uv run python scripts/tune_tab_foundry.py \
+  --manifest-path data/manifests/default.parquet
+```
+
+This writes ranked internal-validation results under `/tmp/tab_foundry_tune_*`:
+
+- `sweep_summary.json`
+- `sweep_results.csv`
 
 ## Evaluate
 
@@ -184,6 +184,13 @@ uv run tab-foundry validate-export --bundle-dir outputs/exports/cls_smoke_v1
 Contract details:
 
 - `docs/INFERENCE_CONTRACT.md`
+- `docs/RESEARCH_WORKFLOW.md`
+- `docs/development/roadmap.md`
+- `docs/development/codebase-navigation.md`
+- `docs/development/design-decisions.md`
+- `docs/development/module-dependency-map.md`
+- `docs/ARCHITECTURE_STRATEGY.md`
+- `reference/PAPERS.md`
 
 ## Notes
 

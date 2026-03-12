@@ -148,13 +148,16 @@ class TFRowEncoder(nn.Module):
             if token_padding_mask.ndim != 1:
                 raise ValueError("token_padding_mask must be 1D with shape [M]")
             if int(token_padding_mask.shape[0]) != int(per_row_features.shape[1]):
-                raise ValueError("token_padding_mask shape mismatch with per_row_features")
-            cls_mask = torch.zeros((n_rows, self.cls_tokens), dtype=torch.bool, device=tokens.device)
-            feat_mask = token_padding_mask.to(device=tokens.device, dtype=torch.bool).expand(n_rows, -1)
+                raise ValueError(
+                    "token_padding_mask shape mismatch with per_row_features"
+                )
+            cls_mask = torch.zeros(
+                (n_rows, self.cls_tokens), dtype=torch.bool, device=tokens.device
+            )
+            feat_mask = token_padding_mask.to(
+                device=tokens.device, dtype=torch.bool
+            ).expand(n_rows, -1)
             src_key_padding_mask = torch.cat([cls_mask, feat_mask], dim=1)
         h = self.encoder(tokens, src_key_padding_mask=src_key_padding_mask)
         cls_out = h[:, : self.cls_tokens, :].reshape(n_rows, -1)
         return self.out(cls_out)
-
-
-

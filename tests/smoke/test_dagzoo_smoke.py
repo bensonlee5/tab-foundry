@@ -7,7 +7,7 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
-import tab_foundry.smoke as smoke_module
+import tab_foundry.bench.dagzoo_smoke as smoke_module
 from tab_foundry.data.manifest import ManifestSummary
 from tab_foundry.types import EvalResult, TrainResult
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from tab_foundry.iris_eval import evaluate_iris_checkpoint
+from tab_foundry.bench.iris import evaluate_iris_checkpoint
 
 
 def build_parser() -> argparse.ArgumentParser:

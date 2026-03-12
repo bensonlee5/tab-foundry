@@ -40,8 +40,8 @@ class _FakeAccelerator:
     def backward(self, loss: torch.Tensor) -> None:
         loss.backward()
 
-    def clip_grad_norm_(self, params, max_norm: float) -> None:
-        torch.nn.utils.clip_grad_norm_(list(params), max_norm)
+    def clip_grad_norm_(self, params, max_norm: float) -> torch.Tensor:
+        return torch.nn.utils.clip_grad_norm_(list(params), max_norm)
 
     def reduce(self, tensor: torch.Tensor, reduction: str = "sum") -> torch.Tensor:
         if reduction != "sum":
@@ -161,6 +161,8 @@ def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     assert result.best_checkpoint.exists()
     assert result.latest_checkpoint.exists()
     assert result.metrics["best_val_loss"] >= 0.0
+    assert result.metrics["final_val_loss"] >= 0.0
+    assert result.metrics["max_grad_norm"] >= 0.0
 
 
 def test_train_smoke_writes_step_snapshots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -213,6 +215,7 @@ def test_train_smoke_writes_history_jsonl(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert records[0]["val_loss"] >= 0.0
     assert 0.0 <= records[0]["val_acc"] <= 1.0
     assert records[0]["lr"] > 0.0
+    assert records[0]["grad_norm"] >= 0.0
     assert records[0]["elapsed_seconds"] >= 0.0
     assert records[0]["train_elapsed_seconds"] >= 0.0
 
@@ -233,3 +236,32 @@ def test_build_stage_configs_rejects_non_int_steps() -> None:
 def test_build_stage_configs_rejects_non_numeric_lr() -> None:
     with pytest.raises(ValueError, match="stage lr_max must be float"):
         _ = build_stage_configs([{"name": "bad", "steps": 1, "lr_max": "fast"}])
+
+
+def test_train_history_uses_linear_schedule_values(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    history_path = tmp_path / "outputs" / "linear_history.jsonl"
+    cfg.logging.history_jsonl_path = str(history_path)
+    cfg.runtime.eval_every = 10
+    cfg.schedule.stages = [
+        {
+            "name": "stage1",
+            "steps": 4,
+            "lr_max": 1.0e-3,
+            "lr_schedule": "linear",
+            "warmup_ratio": 0.0,
+        }
+    ]
+
+    _ = trainer_module.train(cfg)
+
+    records = [
+        json.loads(line)
+        for line in history_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert [record["lr"] for record in records] == pytest.approx([1.0e-3, 7.0e-4, 4.0e-4, 1.0e-4])

@@ -8,7 +8,7 @@ import pytest
 import torch
 from torch import nn
 
-import tab_foundry.checkpoint_classifier as checkpoint_classifier
+import tab_foundry.bench.checkpoint as checkpoint_classifier
 from tab_foundry.model.tabiclv2 import ClassificationOutput
 from tab_foundry.types import TaskBatch
 

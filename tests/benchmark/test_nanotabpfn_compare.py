@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import tab_foundry.nanotabpfn_benchmark as benchmark_module
-import tab_foundry.nanotabpfn_compare as compare_module
+import tab_foundry.bench.compare as compare_module
+import tab_foundry.bench.nanotabpfn as benchmark_module
 
 
 class _FakeDataset:
@@ -146,6 +146,10 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert captured["check"] is True
     assert Path(captured["cmd"][0]) == nanotab_python.resolve()
     assert summary["dataset_count"] == 1
+    assert summary["tab_foundry"]["best_step"] == pytest.approx(25.0)
+    assert summary["tab_foundry"]["best_roc_auc"] == pytest.approx(0.81)
+    assert summary["nanotabpfn"]["best_step"] == pytest.approx(25.0)
+    assert summary["nanotabpfn"]["final_roc_auc"] == pytest.approx(0.78)
     assert (out_root / "comparison_summary.json").exists()
     assert (out_root / "comparison_curve.png").exists()
 

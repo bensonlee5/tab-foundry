@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-import tab_foundry.benchmark_envs as env_module
+import tab_foundry.bench.envs as env_module
 
 
 def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(

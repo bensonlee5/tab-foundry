@@ -348,7 +348,7 @@ def evaluate_tab_foundry_run(
 ) -> list[dict[str, Any]]:
     """Evaluate smoke-run checkpoints on the notebook benchmark suite."""
 
-    from tab_foundry.checkpoint_classifier import TabFoundryClassifier
+    from tab_foundry.bench.checkpoint import TabFoundryClassifier
 
     resolved_device = resolve_device(device)
     curve_records: list[dict[str, Any]] = []
@@ -443,23 +443,73 @@ def build_comparison_summary(
 ) -> dict[str, Any]:
     """Build a compact JSON summary for the benchmark comparison."""
 
-    def _final_metrics(records: list[dict[str, Any]]) -> dict[str, float]:
-        times, mean, _std = aggregate_curve(records)
-        if times.size == 0 or mean.size == 0:
-            return {"final_training_time": 0.0, "final_roc_auc": float("nan")}
+    def _summary_metrics(records: list[dict[str, Any]]) -> dict[str, float]:
+        if not records:
+            return {
+                "best_step": 0.0,
+                "best_training_time": 0.0,
+                "best_roc_auc": float("nan"),
+                "final_step": 0.0,
+                "final_training_time": 0.0,
+                "final_roc_auc": float("nan"),
+            }
+        frame = pd.DataFrame(records)
+        if "step" not in frame.columns:
+            times, mean, _std = aggregate_curve(records)
+            if times.size == 0 or mean.size == 0:
+                return {
+                    "best_step": 0.0,
+                    "best_training_time": 0.0,
+                    "best_roc_auc": float("nan"),
+                    "final_step": 0.0,
+                    "final_training_time": 0.0,
+                    "final_roc_auc": float("nan"),
+                }
+            best_idx = int(np.nanargmax(mean))
+            return {
+                "best_step": 0.0,
+                "best_training_time": float(times[best_idx]),
+                "best_roc_auc": float(mean[best_idx]),
+                "final_step": 0.0,
+                "final_training_time": float(times[-1]),
+                "final_roc_auc": float(mean[-1]),
+            }
+
+        grouped = (
+            frame.groupby("step", sort=True)[["training_time", "roc_auc"]]
+            .mean(numeric_only=True)
+            .reset_index()
+            .sort_values("step")
+        )
+        if grouped.empty:
+            return {
+                "best_step": 0.0,
+                "best_training_time": 0.0,
+                "best_roc_auc": float("nan"),
+                "final_step": 0.0,
+                "final_training_time": 0.0,
+                "final_roc_auc": float("nan"),
+            }
+        best_index = int(grouped["roc_auc"].astype(float).idxmax())
+        best_row = grouped.loc[best_index]
+        final_row = grouped.iloc[-1]
         return {
-            "final_training_time": float(times[-1]),
-            "final_roc_auc": float(mean[-1]),
+            "best_step": float(best_row["step"]),
+            "best_training_time": float(best_row["training_time"]),
+            "best_roc_auc": float(best_row["roc_auc"]),
+            "final_step": float(final_row["step"]),
+            "final_training_time": float(final_row["training_time"]),
+            "final_roc_auc": float(final_row["roc_auc"]),
         }
 
     summary = {
         "dataset_count": int(len(benchmark_tasks)),
         "tab_foundry": {
-            **_final_metrics(tab_foundry_records),
+            **_summary_metrics(tab_foundry_records),
             "run_dir": str(tab_foundry_run_dir.expanduser().resolve()),
         },
         "nanotabpfn": {
-            **_final_metrics(nanotabpfn_records),
+            **_summary_metrics(nanotabpfn_records),
             "root": str(nanotabpfn_root.expanduser().resolve()),
             "python": str(nanotabpfn_python.expanduser().resolve()),
             "num_seeds": int(len({int(record["seed"]) for record in nanotabpfn_records})),

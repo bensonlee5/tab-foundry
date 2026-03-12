@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 import json
 import math
 import os
@@ -25,7 +25,7 @@ from .distributed import _global_mean_from_local, _reduction_float_dtype
 from .losses import classification_loss, hierarchical_nll_loss, quantile_pinball_loss
 from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
-from .schedule import build_stage_configs
+from .schedule import build_stage_configs, stage_base_lr
 
 
 def _cycle(loader: DataLoader[TaskBatch]) -> Iterator[TaskBatch]:
@@ -190,6 +190,7 @@ def _history_record(
     train_loss: float,
     train_metrics: dict[str, float],
     lr: float,
+    grad_norm: float | None,
     elapsed_seconds: float,
     train_elapsed_seconds: float,
     val_metrics: dict[str, float] | None,
@@ -200,6 +201,7 @@ def _history_record(
         "train_loss": float(train_loss),
         "train_acc": _history_value(train_metrics, "acc"),
         "lr": float(lr),
+        "grad_norm": None if grad_norm is None or not math.isfinite(float(grad_norm)) else float(grad_norm),
         "elapsed_seconds": max(0.0, float(elapsed_seconds)),
         "train_elapsed_seconds": max(0.0, float(train_elapsed_seconds)),
         "val_loss": None,
@@ -296,14 +298,6 @@ def _set_optimizer_base_lr(
         group["lr"] = float(base_lr) * float(scale)
 
 
-def _cosine_base_lr(*, step: int, total_steps: int, lr_max: float, lr_min: float) -> float:
-    if total_steps <= 1:
-        return float(lr_min)
-    progress = min(max(float(step) / float(total_steps), 0.0), 1.0)
-    cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
-    return float(lr_min) + (float(lr_max) - float(lr_min)) * cosine
-
-
 def _set_optimizer_training_mode(
     prepared_opts: list[tuple[str, torch.optim.Optimizer]],
     *,
@@ -320,11 +314,42 @@ def _expected_metric_keys(task: str) -> set[str]:
     if task == "classification":
         return {
             "acc",
+            "grad_norm",
             "many_class_nodes_visited",
             "many_class_avg_path_depth",
             "many_class_empty_nodes",
         }
-    return {"rmse"}
+    return {"rmse", "grad_norm"}
+
+
+def _total_grad_norm(parameters: Iterable[torch.nn.Parameter]) -> float:
+    total_sq = 0.0
+    found_grad = False
+    for parameter in parameters:
+        if parameter.grad is None:
+            continue
+        grad = parameter.grad.detach()
+        if grad.is_sparse:
+            grad = grad.coalesce().values()
+        norm = float(torch.linalg.vector_norm(grad).item())
+        total_sq += norm * norm
+        found_grad = True
+    if not found_grad:
+        return 0.0
+    return math.sqrt(total_sq)
+
+
+def _normalize_grad_norm_value(value: object, *, fallback: float) -> float:
+    if value is None:
+        return float(fallback)
+    if isinstance(value, torch.Tensor):
+        value_f = float(value.detach().item())
+        return value_f if math.isfinite(value_f) else float(fallback)
+    try:
+        value_f = float(value)
+    except (TypeError, ValueError):
+        return float(fallback)
+    return value_f if math.isfinite(value_f) else float(fallback)
 
 
 def train(cfg: DictConfig) -> TrainResult:
@@ -427,21 +452,32 @@ def train(cfg: DictConfig) -> TrainResult:
     best_checkpoint: Path | None = None
     latest_checkpoint: Path | None = None
     best_val = float("inf")
+    best_val_step = 0.0
+    last_val_metrics: dict[str, float] | None = None
     train_start = time.perf_counter()
     train_elapsed_seconds = 0.0
     stop_requested = False
+    grad_norm_sum = 0.0
+    grad_norm_count = 0
+    max_grad_norm = 0.0
+    final_grad_norm = 0.0
 
     for stage in stage_configs:
-        for opt_name, opt in prepared_opts:
-            _set_optimizer_base_lr(
-                opt,
-                base_lr=stage.lr_max,
-                scales=lr_scales[opt_name],
-            )
         _set_optimizer_training_mode(prepared_opts, training=True)
 
         for stage_step in range(1, stage.steps + 1):
             model.train()
+            current_base_lr = stage_base_lr(
+                stage,
+                step=stage_step,
+                lr_min=float(cfg.optimizer.min_lr),
+            )
+            for opt_name, opt in prepared_opts:
+                _set_optimizer_base_lr(
+                    opt,
+                    base_lr=current_base_lr,
+                    scales=lr_scales[opt_name],
+                )
             for _opt_name, opt in prepared_opts:
                 opt.zero_grad(set_to_none=True)
             train_loss_sum = 0.0
@@ -462,23 +498,15 @@ def train(cfg: DictConfig) -> TrainResult:
                     train_metric_sums[key] = train_metric_sums.get(key, 0.0) + float(value)
                     train_metric_counts[key] = train_metric_counts.get(key, 0) + 1
 
+            local_grad_norm = _total_grad_norm(model.parameters())
             if float(cfg.runtime.grad_clip) > 0:
-                accelerator.clip_grad_norm_(model.parameters(), float(cfg.runtime.grad_clip))
+                clipped = accelerator.clip_grad_norm_(model.parameters(), float(cfg.runtime.grad_clip))
+                local_grad_norm = _normalize_grad_norm_value(clipped, fallback=local_grad_norm)
+            train_metric_sums["grad_norm"] = train_metric_sums.get("grad_norm", 0.0) + float(local_grad_norm)
+            train_metric_counts["grad_norm"] = train_metric_counts.get("grad_norm", 0) + 1
 
             for _opt_name, opt in prepared_opts:
                 opt.step()
-            stage_base_lr = _cosine_base_lr(
-                step=stage_step,
-                total_steps=stage.steps,
-                lr_max=stage.lr_max,
-                lr_min=float(cfg.optimizer.min_lr),
-            )
-            for opt_name, opt in prepared_opts:
-                _set_optimizer_base_lr(
-                    opt,
-                    base_lr=stage_base_lr,
-                    scales=lr_scales[opt_name],
-                )
 
             train_elapsed_seconds += time.perf_counter() - step_train_start
             global_step += 1
@@ -504,6 +532,7 @@ def train(cfg: DictConfig) -> TrainResult:
 
             lr_values = {name: float(opt.param_groups[0]["lr"]) for name, opt in prepared_opts}
             first_lr = next(iter(lr_values.values()))
+            grad_norm_value = float("nan")
             train_log: dict[str, float | str] = {
                 "train/loss": train_loss,
                 "train/lr": first_lr,
@@ -518,6 +547,12 @@ def train(cfg: DictConfig) -> TrainResult:
                 metric_mean = g_sum / g_count if g_count > 0 else float("nan")
                 if math.isfinite(metric_mean):
                     train_log[f"train/{key}"] = metric_mean
+                    if key == "grad_norm":
+                        grad_norm_value = float(metric_mean)
+                        grad_norm_sum += grad_norm_value
+                        grad_norm_count += 1
+                        max_grad_norm = max(max_grad_norm, grad_norm_value)
+                        final_grad_norm = grad_norm_value
 
             if run is not None and accelerator.is_main_process:
                 run.log(train_log, step=global_step)
@@ -535,9 +570,11 @@ def train(cfg: DictConfig) -> TrainResult:
                 if run is not None and accelerator.is_main_process:
                     run.log({f"val/{k}": v for k, v in val_metrics.items()}, step=global_step)
                 history_val_metrics = val_metrics
+                last_val_metrics = val_metrics
 
                 if val_metrics["val_loss"] < best_val:
                     best_val = val_metrics["val_loss"]
+                    best_val_step = float(global_step)
                     best_checkpoint = output_dir / "checkpoints" / "best.pt"
                     _save_checkpoint(
                         best_checkpoint,
@@ -575,6 +612,7 @@ def train(cfg: DictConfig) -> TrainResult:
                         train_loss=float(train_loss),
                         train_metrics=train_metrics_for_history,
                         lr=float(first_lr),
+                        grad_norm=None if not math.isfinite(grad_norm_value) else float(grad_norm_value),
                         elapsed_seconds=time.perf_counter() - train_start,
                         train_elapsed_seconds=train_elapsed_seconds,
                         val_metrics=history_val_metrics,
@@ -621,6 +659,11 @@ def train(cfg: DictConfig) -> TrainResult:
         global_step=global_step,
         metrics={
             "best_val_loss": float(best_val),
+            "best_val_step": float(best_val_step),
+            "final_val_loss": float(last_val_metrics["val_loss"]) if last_val_metrics is not None else float(best_val),
+            "final_grad_norm": float(final_grad_norm),
+            "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
+            "max_grad_norm": float(max_grad_norm),
             "train_elapsed_seconds": float(train_elapsed_seconds),
             "wall_elapsed_seconds": float(wall_elapsed_seconds),
         },
