@@ -56,7 +56,7 @@ def _nanotabpfn_prior_dump(root: Path, override: Path | None) -> Path:
 
 
 def _helper_script_path() -> Path:
-    return Path(__file__).resolve().parents[3] / "scripts" / "run_nanotabpfn_benchmark_helper.py"
+    return Path(__file__).resolve().with_name("nanotabpfn_helper.py")
 
 
 def _src_root() -> Path:

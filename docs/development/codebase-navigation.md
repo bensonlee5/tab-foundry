@@ -14,8 +14,8 @@ manifest-backed training and benchmark workflows.
 - `src/tab_foundry/cli/commands/`: manifest build, train, eval, export, and
   validate-export command registration.
 - `scripts/`: thin repo-local wrappers for smoke, tuning, benchmark, and env
-  bootstrap workflows. These should stay thin and delegate into library or
-  `bench/` modules rather than accumulating business logic.
+  bootstrap workflows. Python wrappers here should stay import-only shims into
+  library or `bench/` modules rather than accumulating business logic.
 
 ## 2. Canonical Library Areas
 
@@ -49,9 +49,12 @@ Current wrapper-to-library mapping:
 
 - `scripts/iris_smoke.py` -> `tab_foundry.bench.iris_smoke`
 - `scripts/dagzoo_smoke.py` -> `tab_foundry.bench.dagzoo_smoke`
+- `scripts/eval_iris_checkpoint.py` -> `tab_foundry.bench.iris`
 - `scripts/tune_tab_foundry.py` -> `tab_foundry.bench.tune`
 - `scripts/benchmark_nanotabpfn.py` -> `tab_foundry.bench.compare`
 - `scripts/bootstrap_benchmark_envs.py` -> `tab_foundry.bench.envs`
+- `scripts/run_nanotabpfn_benchmark_helper.py` ->
+  `tab_foundry.bench.nanotabpfn_helper`
 
 Shell helpers such as `scripts/build_manifest.sh`, `scripts/train_smoke.sh`,
 and `scripts/eval_smoke.sh` are repo-local convenience entrypoints and should
@@ -68,7 +71,8 @@ not absorb new orchestration logic.
   navigation, and dependency docs.
 - `docs/workflows.md` and `docs/inference.md` stay top-level because they are
   operational surfaces and stable links for users and downstream repos.
-- `reference/` remains the landing zone for literature and evidence notes.
+- `reference/README.md` indexes the `reference/` area for literature and
+  evidence notes.
 
 ## 5. Tests And Docs
 

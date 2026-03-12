@@ -146,6 +146,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert captured["cwd"] == nanotab_root.resolve()
     assert captured["check"] is True
     assert Path(captured["cmd"][0]) == nanotab_python.resolve()
+    assert Path(captured["cmd"][1]) == Path(compare_module.__file__).resolve().with_name("nanotabpfn_helper.py")
     assert summary["dataset_count"] == 1
     assert summary["tab_foundry"]["best_step"] == pytest.approx(25.0)
     assert summary["tab_foundry"]["best_roc_auc"] == pytest.approx(0.81)
