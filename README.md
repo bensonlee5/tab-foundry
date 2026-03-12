@@ -71,8 +71,10 @@ uv run tab-foundry train experiment=cls_smoke optimizer=adamw
 ## Docs
 
 - `docs/workflows.md`: setup, manifest build, train/eval/export, smoke flows, tuning, benchmarking, and CI
-- `docs/architecture.md`: architecture direction, repo layout, dependency direction, and compatibility guidance
 - `docs/inference.md`: export bundle schema and validation contract
-- `docs/roadmap.md`: canonical planning state and ranked roadmap
+- `docs/development/roadmap.md`: canonical planning state and ranked roadmap
+- `docs/development/design-decisions.md`: architecture direction, repo-structure policy, and compatibility guidance
+- `docs/development/codebase-navigation.md`: current package layout and workflow entry surfaces
+- `docs/development/module-dependency-map.md`: maintained baseline dependency view for repo evolution
 - `reference/papers.md`: curated papers, typed-column-encoder references, and external baseline borrowing rules
 - `reference/evidence.md`: roadmap-to-reference mapping and evidence notes

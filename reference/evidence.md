@@ -1,11 +1,12 @@
 # Literature Evidence Mapping
 
-This document links roadmap items in `docs/roadmap.md` to primary sources and current repo gaps.
+This document links roadmap items in `docs/development/roadmap.md` to primary
+sources and current repo gaps.
 
 Related docs:
 
-- Canonical roadmap: `docs/roadmap.md`
-- Architecture and repo structure: `docs/architecture.md`
+- Canonical roadmap: `docs/development/roadmap.md`
+- Design decisions and repo structure: `docs/development/design-decisions.md`
 - Paper index: `reference/papers.md`
 
 Conventions:
@@ -62,7 +63,8 @@ Conventions:
 
 - TabICLv2 (2602.11139) defines the current architecture family.
 - The architecture doc calls for treating `tabiclv2` as a compatibility identifier, not the long-term taxonomy.
-- No single paper drives this; it is a repo-organization decision informed by the multi-family direction in `docs/architecture.md`.
+- No single paper drives this; it is a repo-organization decision informed by
+  the multi-family direction in `docs/development/design-decisions.md`.
 
 #### BL-181 — Split reusable model components
 
@@ -73,7 +75,8 @@ Conventions:
 #### BL-172 — Modular QASS and non-QASS backbone
 
 - TabICLv2 (2602.11139): defines the QASS mechanism and its role in the architecture.
-- The architecture doc: QASS remains optional rather than structurally mandatory.
+- The design decisions doc: QASS remains optional rather than structurally
+  mandatory.
 - Success signal: a non-QASS variant trains and evaluates through the same pipeline.
 
 #### BL-173 — External baseline configs

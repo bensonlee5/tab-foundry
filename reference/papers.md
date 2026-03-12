@@ -6,8 +6,8 @@ It intentionally mirrors the role of `~/dev/dagzoo/reference`, but reads the sha
 
 Related docs:
 
-- Architecture and repo structure: `docs/architecture.md`
-- Roadmap: `docs/roadmap.md`
+- Design decisions and repo structure: `docs/development/design-decisions.md`
+- Roadmap: `docs/development/roadmap.md`
 - Workflow runbooks: `docs/workflows.md`
 - Evidence mapping: `reference/evidence.md`
 
