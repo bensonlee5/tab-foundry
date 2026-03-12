@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from tab_foundry.model.blocks import ISABBlock, TFColEncoder, TFRowEncoder
+from tab_foundry.model.components.blocks import ISABBlock, TFColEncoder, TFRowEncoder
 
 
 def test_isab_block_keeps_raw_residual_stream() -> None:

@@ -18,6 +18,9 @@ area becomes part of the canonical architecture.
 - `tab_foundry.training` depends on `tab_foundry.data` and
   `tab_foundry.model`.
 - `tab_foundry.export` depends on `tab_foundry.model`.
+- `tab_foundry.model.factory` depends on `tab_foundry.model.architectures`.
+- `tab_foundry.model.architectures` depends on
+  `tab_foundry.model.components`.
 - `tab_foundry.data.sources` depends on `tab_foundry.data`.
 - `tab_foundry.model` currently depends on small root helpers such as
   `tab_foundry.input_normalization` and `tab_foundry.types`, but it should
@@ -59,8 +62,9 @@ area becomes part of the canonical architecture.
 
 ## Current Gaps Versus Target Layout
 
-- The `model/components` / `model/architectures` split described in
-  `docs/development/design-decisions.md` is not implemented yet.
+- The `model/components` / `model/architectures` split is now implemented, but
+  the repo still lacks a neutral multi-family registry above the current
+  `TabICLv2` path.
 - `scripts/` remain thin wrapper entrypoints over `bench/`; this is deliberate
   for now and not a sign that workflow logic should move back out of `bench/`.
 - This file is descriptive, not generated. Tooling-backed dependency docs can

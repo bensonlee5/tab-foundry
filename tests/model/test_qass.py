@@ -3,7 +3,11 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from tab_foundry.model.qass import QASSScaler, QASSTransformerEncoder, QASSTransformerLayer
+from tab_foundry.model.components.qass import (
+    QASSScaler,
+    QASSTransformerEncoder,
+    QASSTransformerLayer,
+)
 
 
 def test_qass_gate_identity_at_init() -> None:

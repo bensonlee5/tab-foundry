@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tab_foundry.model.many_class import (
+from tab_foundry.model.components.many_class import (
     balanced_bases,
     build_balanced_class_tree,
     decode_mixed_radix,

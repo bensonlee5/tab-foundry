@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tab_foundry.model.tabiclv2 import TabICLv2Classifier, TabICLv2Regressor
+from tab_foundry.model.architectures.tabiclv2 import TabICLv2Classifier, TabICLv2Regressor
 from tab_foundry.types import TaskBatch
 
 

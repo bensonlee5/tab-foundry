@@ -7,7 +7,7 @@ from typing import Any, Mapping
 
 from torch import nn
 
-from .tabiclv2 import TabICLv2Classifier, TabICLv2Regressor
+from .architectures.tabiclv2 import TabICLv2Classifier, TabICLv2Regressor
 
 
 @dataclass(slots=True, frozen=True)

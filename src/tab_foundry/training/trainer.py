@@ -18,7 +18,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
 from tab_foundry.model.factory import build_model_from_spec, model_build_spec_from_mappings
-from tab_foundry.model.tabiclv2 import ClassificationOutput, RegressionOutput
+from tab_foundry.model.architectures.tabiclv2 import ClassificationOutput, RegressionOutput
 from tab_foundry.types import TaskBatch, TrainResult
 
 from .batching import move_batch
