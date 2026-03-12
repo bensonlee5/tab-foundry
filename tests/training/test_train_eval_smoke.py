@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 
 import tab_foundry.training.evaluate as evaluate_module
 import tab_foundry.training.trainer as trainer_module
-from tab_foundry.model.tabiclv2 import ClassificationOutput
+from tab_foundry.model.architectures.tabiclv2 import ClassificationOutput
 from tab_foundry.training.schedule import build_stage_configs
 from tab_foundry.types import TaskBatch
 

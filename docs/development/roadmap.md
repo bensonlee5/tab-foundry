@@ -183,11 +183,17 @@ surface. Use the canonical docs instead:
   - `src/tab_foundry/cli/commands/`
   - `src/tab_foundry/bench/`
   - `src/tab_foundry/data/sources/`
+  - `src/tab_foundry/model/`
+  - `src/tab_foundry/model/components/`
+  - `src/tab_foundry/model/architectures/`
   - `docs/development/`
   - `docs/workflows.md`
   - `reference/`
 - Current state:
   - Neutral `bench/` and `cli/commands/` homes now exist.
+  - Reusable model components now live separately from family-specific
+    assemblies under `src/tab_foundry/model/components/` and
+    `src/tab_foundry/model/architectures/`.
   - Canonical planning and repo-structure docs now live under
     `docs/development/`, with top-level compatibility entrypoints retained for
     older links.
@@ -244,11 +250,12 @@ surface. Use the canonical docs instead:
   - `src/tab_foundry/export/contracts.py`
   - `docs/development/design-decisions.md`
 - Current state:
-  - Shared factories and role-based packages exist, but the repo still centers
-    much of the implementation around `tabiclv2`.
+  - Shared factories and role-based packages exist, and reusable model
+    components now live separately from family-specific assembly code.
+  - The repo still centers much of the implementation around `tabiclv2`.
   - The manifest path is canonical, and source modularity is still mostly a
     roadmap direction.
-  - Reusable components exist, but family-neutral registration is incomplete.
+  - Family-neutral registration and naming are still incomplete.
 - Exit criteria:
   - Internal architecture naming is neutral rather than tied to `tabiclv2`.
   - Reusable components are cleanly separated from family-specific assembly.
@@ -265,9 +272,9 @@ surface. Use the canonical docs instead:
   non-QASS alternatives in the same workflow stack.
 - Linear tracking: `BL-154 -> BL-172`
 - Repo touchpoints:
-  - `src/tab_foundry/model/qass.py`
-  - `src/tab_foundry/model/blocks.py`
-  - `src/tab_foundry/model/tabiclv2.py`
+  - `src/tab_foundry/model/components/qass.py`
+  - `src/tab_foundry/model/components/blocks.py`
+  - `src/tab_foundry/model/architectures/tabiclv2.py`
   - `src/tab_foundry/model/factory.py`
   - `src/tab_foundry/training/evaluate.py`
 - Current state:
@@ -344,10 +351,10 @@ surface. Use the canonical docs instead:
   path is stable enough to serve as a comparison baseline.
 - Linear tracking: `BL-165 -> BL-166 -> BL-167 -> BL-169 -> BL-168`
 - Repo touchpoints:
-  - `src/tab_foundry/model/blocks.py`
-  - `src/tab_foundry/model/qass.py`
-  - `src/tab_foundry/model/tabiclv2.py`
-  - `src/tab_foundry/model/many_class.py`
+  - `src/tab_foundry/model/components/blocks.py`
+  - `src/tab_foundry/model/components/qass.py`
+  - `src/tab_foundry/model/architectures/tabiclv2.py`
+  - `src/tab_foundry/model/components/many_class.py`
   - `reference/papers.md`
 - Current state:
   - Tokenization, target conditioning, row-attention, and simplification
@@ -399,7 +406,7 @@ surface. Use the canonical docs instead:
   scaling agenda.
 - Linear tracking: `BL-184 -> BL-191 -> BL-190 -> BL-192 -> BL-193`
 - Repo touchpoints:
-  - `src/tab_foundry/model/many_class.py`
+  - `src/tab_foundry/model/components/many_class.py`
   - `docs/development/design-decisions.md`
   - `reference/papers.md`
   - `reference/evidence.md`

@@ -23,8 +23,12 @@ manifest-backed training and benchmark workflows.
   discovery.
 - `src/tab_foundry/data/` and `src/tab_foundry/data/sources/`: manifest-backed
   dataset abstractions, source selection, and data construction helpers.
-- `src/tab_foundry/model/`: current flat home for reusable blocks, many-class
-  helpers, QASS, the `TabICLv2` family, and the shared model factory.
+- `src/tab_foundry/model/`: stable root model surface for shared builders and
+  lightweight exports.
+- `src/tab_foundry/model/components/`: reusable blocks, QASS primitives, and
+  many-class helpers shared across families.
+- `src/tab_foundry/model/architectures/`: family-specific assemblies such as
+  `TabICLv2`.
 - `src/tab_foundry/training/`: family-agnostic training loops, batching,
   schedules, optimizers, runtime policy, and evaluation helpers.
 - `src/tab_foundry/export/`: bundle schema, exporter, checksums, and
@@ -55,9 +59,9 @@ not absorb new orchestration logic.
 
 ## 4. Current Structural Watchpoints
 
-- `src/tab_foundry/model/` is still flat. The later
-  `model/components` / `model/architectures` split is deferred to the remaining
-  TF-RD-002 and TF-RD-004 work.
+- `src/tab_foundry/model/` now separates reusable components from
+  family-specific assemblies, but the repo still has only one named family and
+  no neutral architecture registry yet.
 - `src/tab_foundry/bench/` is the canonical home for benchmark and harness
   logic. Core packages should not start depending on it.
 - `docs/development/` is now the canonical home for planning, rationale,

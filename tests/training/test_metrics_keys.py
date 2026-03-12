@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tab_foundry.model.tabiclv2 import ClassificationOutput, RegressionOutput, TabICLv2Classifier
+from tab_foundry.model.architectures.tabiclv2 import (
+    ClassificationOutput,
+    RegressionOutput,
+    TabICLv2Classifier,
+)
 from tab_foundry.training.trainer import _compute_loss_and_metrics
 from tab_foundry.types import TaskBatch
 

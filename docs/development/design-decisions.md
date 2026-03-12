@@ -118,9 +118,9 @@ The end state should support:
 | `src/tab_foundry/cli/` and `src/tab_foundry/cli/commands/` | User-facing command surfaces and argument parsing. |
 | `src/tab_foundry/bench/` | Smoke harnesses, benchmark utilities, comparison flows, plotting helpers, env bootstrap, and internal research harnesses. |
 | `src/tab_foundry/data/` and `src/tab_foundry/data/sources/` | Reusable dataset abstractions, loaders, and registered task sources. |
-| `src/tab_foundry/model/` | Current flat home for reusable blocks, QASS helpers, many-class helpers, the `TabICLv2` family, and the shared model factory while TF-RD-002 and TF-RD-004 remain incomplete. |
-| `src/tab_foundry/model/components/` | Intended future home for reusable architectural pieces such as tokenization blocks, attention blocks, heads, and neutral model outputs. |
-| `src/tab_foundry/model/architectures/` | Intended future home for full model-family implementations assembled from reusable components. |
+| `src/tab_foundry/model/` | Stable model-facing root surface for shared builders and small cross-cutting exports such as `tab_foundry.model` and `tab_foundry.model.factory`. |
+| `src/tab_foundry/model/components/` | Reusable architectural pieces such as tokenization blocks, attention blocks, many-class helpers, and QASS primitives. |
+| `src/tab_foundry/model/architectures/` | Full model-family implementations assembled from reusable components. |
 | `src/tab_foundry/training/` | Family-agnostic training infrastructure such as schedules, optimizers, trainer loops, checkpointing, and history logging. |
 | `src/tab_foundry/export/` | Bundle/export contracts and compatibility handling. |
 | `docs/development/` | Canonical planning, architecture rationale, codebase navigation, and dependency mapping for internal repo evolution. |
@@ -147,9 +147,8 @@ Notes:
 - `bench/` may depend on core library packages, but core library packages
   should not depend on `bench/`.
 - `cli/commands/` may orchestrate both `bench/` and core packages.
-- The current `src/tab_foundry/model/` package is still flat; the
-  `model/components` and `model/architectures` split is the target direction,
-  not a fully landed reality yet.
+- `src/tab_foundry/model/` now provides the stable root surface while
+  `model/components` and `model/architectures` carry the internal split.
 - Current export compatibility constraints around `tabiclv2` are tolerated at
   the boundary, but should not re-anchor internal architecture structure.
 

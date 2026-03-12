@@ -13,15 +13,15 @@ from torch import nn
 from tab_foundry.input_normalization import InputNormalizationMode, normalize_train_test_tensors
 from tab_foundry.types import TaskBatch
 
-from .blocks import TFColEncoder, TFRowEncoder
-from .qass import QASSTransformerEncoder
-from .many_class import (
+from ..components.blocks import TFColEncoder, TFRowEncoder
+from ..components.many_class import (
     HierNode,
     balanced_bases,
     cached_build_balanced_class_tree,
     encode_mixed_radix,
     map_labels_to_child_groups,
 )
+from ..components.qass import QASSTransformerEncoder
 
 
 DEFAULT_MANY_CLASS_BASE = 10
