@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import subprocess
+from types import SimpleNamespace
 from typing import Any
 
 import numpy as np
@@ -131,7 +132,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         )
         return subprocess.CompletedProcess(cmd, 0)
 
-    monkeypatch.setattr(compare_module.subprocess, "run", _fake_run)
+    monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
 
     summary = compare_module.run_nanotabpfn_benchmark(
         compare_module.NanoTabPFNBenchmarkConfig(
