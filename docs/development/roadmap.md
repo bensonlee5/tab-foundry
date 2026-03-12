@@ -20,7 +20,7 @@ Related docs:
 - maintained dependency map: `docs/development/module-dependency-map.md`
 - workflow runbooks: `docs/workflows.md`
 - inference/export contract: `docs/inference.md`
-- reference index: `reference/papers.md`
+- reference index: `reference/README.md`
 - evidence appendix: `reference/evidence.md`
 
 ## Status Labels
@@ -107,7 +107,7 @@ surface. Use the canonical docs instead:
 - maintained dependency map: `docs/development/module-dependency-map.md`
 - workflow runbooks: `docs/workflows.md`
 - reference set and evidence mapping: `reference/papers.md`,
-  `reference/evidence.md`
+  `reference/evidence.md`, and `reference/README.md`
 
 ### Current Control and Compatibility
 

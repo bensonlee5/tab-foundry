@@ -10,6 +10,7 @@ Related docs:
 - canonical roadmap: `docs/development/roadmap.md`
 - codebase navigation: `docs/development/codebase-navigation.md`
 - maintained dependency map: `docs/development/module-dependency-map.md`
+- reference index: `reference/README.md`
 - curated references: `reference/papers.md`
 - evidence mapping: `reference/evidence.md`
 
@@ -75,12 +76,15 @@ forking the repo. Core swap points include:
 The repo should keep the same role-based direction already started in code:
 
 - workflow tooling in `bench/`
+- Python files in `scripts/` should stay as thin wrappers into `bench/` or the
+  CLI rather than becoming a second home for benchmark logic
 - user-facing command surfaces in `cli/`
 - reusable data, model, training, and export packages separated by role
 - canonical planning and repo-shape docs under `docs/development/`
 - stable operational docs such as `docs/workflows.md` and `docs/inference.md`
   at the top level
-- literature and evidence notes under `reference/`
+- literature and evidence notes under `reference/`, indexed from
+  `reference/README.md`
 
 ### External Baseline Borrowing And Literature-First Construction
 

@@ -76,5 +76,6 @@ uv run tab-foundry train experiment=cls_smoke optimizer=adamw
 - `docs/development/design-decisions.md`: architecture direction, repo-structure policy, and compatibility guidance
 - `docs/development/codebase-navigation.md`: current package layout and workflow entry surfaces
 - `docs/development/module-dependency-map.md`: maintained baseline dependency view for repo evolution
+- `reference/README.md`: index for literature notes, evidence maps, and future adjacent-repo summaries
 - `reference/papers.md`: curated papers, typed-column-encoder references, and external baseline borrowing rules
 - `reference/evidence.md`: roadmap-to-reference mapping and evidence notes
