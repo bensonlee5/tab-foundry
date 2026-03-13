@@ -14,8 +14,8 @@ from tab_foundry.model.spec import (
 )
 
 
-SCHEMA_VERSION_V1 = "tab-foundry-export-v1"
-SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V1,)
+SCHEMA_VERSION_V2 = "tab-foundry-export-v2"
+SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V2,)
 SUPPORTED_TASKS = ("classification", "regression")
 SUPPORTED_MANY_CLASS_INFERENCE_MODES = ("full_probs",)
 SUPPORTED_UNSEEN_TEST_LABEL_POLICIES = ("filter",)
@@ -64,7 +64,7 @@ class ExportModelSpec:
         cls,
         spec: ModelBuildSpec,
         *,
-        arch: str = "tabiclv2",
+        arch: str = "tabfoundry",
     ) -> "ExportModelSpec":
         return cls(
             arch=str(arch),
@@ -315,7 +315,7 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
         },
     )
     arch = _as_str(model_raw["arch"], context="manifest.model.arch")
-    if arch != "tabiclv2":
+    if arch != "tabfoundry":
         raise ValueError(f"Unsupported model arch: {arch!r}")
     model_spec = model_build_spec_from_mappings(
         task=task,
@@ -395,7 +395,7 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
     _require_keys(payload, keys=keys, context="inference_config")
 
     model_arch = _as_str(payload["model_arch"], context="inference_config.model_arch")
-    if model_arch != "tabiclv2":
+    if model_arch != "tabfoundry":
         raise ValueError(f"Unsupported inference model_arch: {model_arch!r}")
 
     group_shifts_raw = payload["group_shifts"]

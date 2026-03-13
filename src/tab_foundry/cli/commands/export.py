@@ -40,7 +40,7 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     export_parser.add_argument("--out-dir", required=True, help="Output bundle directory")
     export_parser.add_argument(
         "--artifact-version",
-        default="tab-foundry-export-v1",
+        default="tab-foundry-export-v2",
         help="Inference artifact schema version",
     )
     export_parser.set_defaults(func=_run_export)
@@ -51,4 +51,3 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     validate_parser.add_argument("--bundle-dir", required=True, help="Bundle directory path")
     validate_parser.set_defaults(func=_run_validate_export)
-

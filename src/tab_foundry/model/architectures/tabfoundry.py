@@ -1,4 +1,4 @@
-"""TabICLv2-style classifier and regressor."""
+"""Tabfoundry classifier and regressor."""
 
 from __future__ import annotations
 
@@ -50,8 +50,8 @@ class RegressionOutput:
     quantile_levels: torch.Tensor | None = None
 
 
-class _TabICLv2Backbone(nn.Module):
-    """Shared TabICLv2 backbone."""
+class _TabFoundryBackbone(nn.Module):
+    """Shared Tabfoundry backbone."""
 
     def __init__(
         self,
@@ -228,8 +228,8 @@ class _TabICLv2Backbone(nn.Module):
         return icl_out[n_train:]
 
 
-class TabICLv2Classifier(_TabICLv2Backbone):
-    """TabICLv2-like classification model."""
+class TabFoundryClassifier(_TabFoundryBackbone):
+    """Tabfoundry classification model."""
 
     def __init__(
         self,
@@ -566,8 +566,8 @@ class TabICLv2Classifier(_TabICLv2Backbone):
         )
 
 
-class TabICLv2Regressor(_TabICLv2Backbone):
-    """TabICLv2-like regression model with 999 quantile outputs."""
+class TabFoundryRegressor(_TabFoundryBackbone):
+    """Tabfoundry regression model with 999 quantile outputs."""
 
     def __init__(
         self,

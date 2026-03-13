@@ -1,5 +1,5 @@
 """Architecture family implementations."""
 
-from .tabiclv2 import TabICLv2Classifier, TabICLv2Regressor
+from .tabfoundry import TabFoundryClassifier, TabFoundryRegressor
 
-__all__ = ["TabICLv2Classifier", "TabICLv2Regressor"]
+__all__ = ["TabFoundryClassifier", "TabFoundryRegressor"]

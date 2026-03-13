@@ -39,7 +39,7 @@ These are the core domain papers. Many overlap with dagzoo's collection but are 
 
 | arXiv ID | Title | Why it matters for tab-foundry | Source |
 |----------|-------|-------------------------------|--------|
-| 2602.11139 | TabICLv2: A better, faster, scalable, and open tabular foundation model | Primary architecture reference — the model this repo implements. Defines QASS attention, feature tokenization, and the staged training recipe. | https://arxiv.org/abs/2602.11139 |
+| 2602.11139 | TabICLv2: A better, faster, scalable, and open tabular foundation model | Primary external architecture reference for the starting tabfoundry family. Defines QASS attention, feature tokenization, and the staged training recipe that informed the initial implementation. | https://arxiv.org/abs/2602.11139 |
 | 2502.05564 | TabICL: A Tabular Foundation Model for In-Context Learning on Large Data | Predecessor architecture; curriculum and staged complexity training details that inform the training loop design. | https://arxiv.org/abs/2502.05564 |
 | — | Accurate predictions on small data with a tabular foundation model (TabPFN v2, Nature 2024) | Core PFN architecture and synthetic prior design; attention patterns and in-context learning mechanics that underpin the model family. | https://doi.org/10.1038/s41586-024-08328-6 |
 | 2502.17361 | A Closer Look at TabPFN v2: Understanding Its Strengths and Extending Its Capabilities | Strengths/limitations analysis; meta-feature sensitivity insights relevant to architecture robustness. | https://arxiv.org/abs/2502.17361 |

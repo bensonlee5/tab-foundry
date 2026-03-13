@@ -18,7 +18,7 @@ from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mapping
 from .checksums import sha256_file
 from .contracts import (
     ExportModelSpec,
-    SCHEMA_VERSION_V1,
+    SCHEMA_VERSION_V2,
     ExportManifest,
     InferenceConfig,
     PreprocessorState,
@@ -90,7 +90,7 @@ def _checkpoint_model_spec(cfg: dict[str, Any], *, task: str) -> ModelBuildSpec:
 def _inference_config(task: str, model_spec: ExportModelSpec) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "task": task,
-        "model_arch": "tabiclv2",
+        "model_arch": "tabfoundry",
         "group_shifts": list(DEFAULT_GROUP_SHIFTS),
         "feature_group_size": int(model_spec.feature_group_size),
         "many_class_threshold": DEFAULT_MANY_CLASS_THRESHOLD,
@@ -135,12 +135,12 @@ def export_checkpoint(
     checkpoint_path: Path,
     out_dir: Path,
     *,
-    artifact_version: str = SCHEMA_VERSION_V1,
+    artifact_version: str = SCHEMA_VERSION_V2,
 ) -> ExportResult:
     """Export one training checkpoint as an inference bundle."""
 
     checkpoint = checkpoint_path.expanduser().resolve()
-    if artifact_version != SCHEMA_VERSION_V1:
+    if artifact_version != SCHEMA_VERSION_V2:
         raise ValueError(f"Unsupported artifact_version: {artifact_version!r}")
 
     payload = torch.load(checkpoint, map_location="cpu", weights_only=False)

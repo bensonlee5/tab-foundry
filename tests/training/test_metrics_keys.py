@@ -3,10 +3,10 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tab_foundry.model.architectures.tabiclv2 import (
+from tab_foundry.model.architectures.tabfoundry import (
     ClassificationOutput,
     RegressionOutput,
-    TabICLv2Classifier,
+    TabFoundryClassifier,
 )
 from tab_foundry.training.trainer import _compute_loss_and_metrics
 from tab_foundry.types import TaskBatch
@@ -73,7 +73,7 @@ def test_manyclass_path_metrics_do_not_require_acc() -> None:
 
 
 def test_manyclass_path_loss_is_finite_with_sparse_train_labels() -> None:
-    model = TabICLv2Classifier()
+    model = TabFoundryClassifier()
     model.train()
     batch = TaskBatch(
         x_train=torch.randn(24, 12),

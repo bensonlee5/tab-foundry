@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from tab_foundry.export.contracts import (
     ExportModelSpec,
     validate_inference_config_dict,
@@ -20,9 +22,9 @@ def _load_fixture(name: str) -> dict[str, object]:
 
 
 def test_manifest_fixture_validates() -> None:
-    payload = _load_fixture("manifest_v1.json")
+    payload = _load_fixture("manifest_v2.json")
     manifest = validate_manifest_dict(payload)
-    assert manifest.schema_version == "tab-foundry-export-v1"
+    assert manifest.schema_version == "tab-foundry-export-v2"
     assert manifest.task == "classification"
     assert manifest.model.tfcol_n_heads == 8
     assert manifest.model.tficl_n_layers == 12
@@ -32,7 +34,7 @@ def test_manifest_fixture_validates() -> None:
 
 
 def test_manifest_fixture_model_roundtrips_through_canonical_build_spec() -> None:
-    payload = _load_fixture("manifest_v1.json")
+    payload = _load_fixture("manifest_v2.json")
     manifest = validate_manifest_dict(payload)
 
     build_spec = manifest.model.to_build_spec(task=manifest.task)
@@ -44,7 +46,7 @@ def test_manifest_fixture_model_roundtrips_through_canonical_build_spec() -> Non
 
 
 def test_manifest_validation_applies_model_defaults_via_canonical_spec() -> None:
-    payload = _load_fixture("manifest_v1.json")
+    payload = _load_fixture("manifest_v2.json")
     model_raw = payload["model"]
     assert isinstance(model_raw, dict)
     model_payload = dict(model_raw)
@@ -82,15 +84,16 @@ def test_manifest_validation_applies_model_defaults_via_canonical_spec() -> None
 
 
 def test_inference_fixture_validates() -> None:
-    payload = _load_fixture("inference_config_classification_v1.json")
+    payload = _load_fixture("inference_config_classification_v2.json")
     inference_cfg = validate_inference_config_dict(payload)
+    assert inference_cfg.model_arch == "tabfoundry"
     assert inference_cfg.group_shifts == [0, 1, 3]
     assert inference_cfg.many_class_threshold == 10
     assert inference_cfg.many_class_inference_mode == "full_probs"
 
 
 def test_preprocessor_fixture_validates() -> None:
-    payload = _load_fixture("preprocessor_state_v1.json")
+    payload = _load_fixture("preprocessor_state_v2.json")
     state = validate_preprocessor_state_dict(payload)
     assert state.feature_order_policy == "lexicographic_f_columns"
     assert state.missing_value_policy["strategy"] == "train_mean"
@@ -98,3 +101,21 @@ def test_preprocessor_fixture_validates() -> None:
     assert state.classification_label_policy["mapping"] == "train_only_remap"
     assert state.classification_label_policy["unseen_test_label"] == "filter"
     assert state.dtype_policy["features"] == "float32"
+
+
+def test_manifest_validation_rejects_old_model_arch() -> None:
+    payload = _load_fixture("manifest_v2.json")
+    model_payload = dict(payload["model"])
+    model_payload["arch"] = "tabiclv2"
+    payload["model"] = model_payload
+
+    with pytest.raises(ValueError, match="Unsupported model arch"):
+        validate_manifest_dict(payload)
+
+
+def test_inference_validation_rejects_old_model_arch() -> None:
+    payload = _load_fixture("inference_config_classification_v2.json")
+    payload["model_arch"] = "tabiclv2"
+
+    with pytest.raises(ValueError, match="Unsupported inference model_arch"):
+        validate_inference_config_dict(payload)

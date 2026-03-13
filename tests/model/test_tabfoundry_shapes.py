@@ -3,12 +3,15 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tab_foundry.model.architectures.tabiclv2 import TabICLv2Classifier, TabICLv2Regressor
+from tab_foundry.model.architectures.tabfoundry import (
+    TabFoundryClassifier,
+    TabFoundryRegressor,
+)
 from tab_foundry.types import TaskBatch
 
 
 def test_classifier_forward_shapes() -> None:
-    model = TabICLv2Classifier()
+    model = TabFoundryClassifier()
     batch = TaskBatch(
         x_train=torch.randn(32, 12),
         y_train=torch.randint(0, 5, (32,)),
@@ -23,7 +26,7 @@ def test_classifier_forward_shapes() -> None:
 
 
 def test_classifier_manyclass_forward_shapes() -> None:
-    model = TabICLv2Classifier()
+    model = TabFoundryClassifier()
     model.eval()
     # num_classes=32 should trigger _forward_many_class
     batch = TaskBatch(
@@ -43,7 +46,7 @@ def test_classifier_manyclass_forward_shapes() -> None:
 
 
 def test_classifier_manyclass_train_path_outputs() -> None:
-    model = TabICLv2Classifier()
+    model = TabFoundryClassifier()
     model.train()
     batch = TaskBatch(
         x_train=torch.randn(32, 12),
@@ -65,7 +68,7 @@ def test_classifier_manyclass_train_path_outputs() -> None:
 
 
 def test_classifier_manyclass_eval_handles_sparse_train_labels() -> None:
-    model = TabICLv2Classifier()
+    model = TabFoundryClassifier()
     model.eval()
     batch = TaskBatch(
         x_train=torch.randn(24, 12),
@@ -84,7 +87,7 @@ def test_classifier_manyclass_eval_handles_sparse_train_labels() -> None:
 
 
 def test_classifier_manyclass_train_path_handles_sparse_train_labels() -> None:
-    model = TabICLv2Classifier()
+    model = TabFoundryClassifier()
     model.train()
     batch = TaskBatch(
         x_train=torch.randn(24, 12),
@@ -104,7 +107,7 @@ def test_classifier_manyclass_train_path_handles_sparse_train_labels() -> None:
 
 
 def test_classifier_manyclass_without_digit_position_embedding() -> None:
-    model = TabICLv2Classifier(use_digit_position_embed=False)
+    model = TabFoundryClassifier(use_digit_position_embed=False)
     model.eval()
     batch = TaskBatch(
         x_train=torch.randn(32, 12),
@@ -121,7 +124,7 @@ def test_classifier_manyclass_without_digit_position_embedding() -> None:
 
 
 def test_classifier_respects_configured_many_class_base_for_logits_width() -> None:
-    model = TabICLv2Classifier(many_class_base=12)
+    model = TabFoundryClassifier(many_class_base=12)
     batch = TaskBatch(
         x_train=torch.randn(32, 12),
         y_train=torch.randint(0, 5, (32,)),
@@ -136,7 +139,7 @@ def test_classifier_respects_configured_many_class_base_for_logits_width() -> No
 
 
 def test_feature_grouping_reduces_token_count() -> None:
-    model = TabICLv2Classifier(feature_group_size=32)
+    model = TabFoundryClassifier(feature_group_size=32)
     x = torch.randn(5, 70)
     grouped, token_padding_mask = model._group_features(x)
     assert grouped.shape[:2] == (5, 3)
@@ -145,7 +148,7 @@ def test_feature_grouping_reduces_token_count() -> None:
 
 
 def test_feature_grouping_size_one_matches_feature_count() -> None:
-    model = TabICLv2Classifier(feature_group_size=1)
+    model = TabFoundryClassifier(feature_group_size=1)
     x = torch.randn(4, 13)
     grouped, token_padding_mask = model._group_features(x)
     assert grouped.shape[:2] == (4, 13)
@@ -154,7 +157,7 @@ def test_feature_grouping_size_one_matches_feature_count() -> None:
 
 
 def test_manyclass_mixed_radix_digit_limit() -> None:
-    model = TabICLv2Classifier(max_mixed_radix_digits=1)
+    model = TabFoundryClassifier(max_mixed_radix_digits=1)
     batch = TaskBatch(
         x_train=torch.randn(32, 12),
         y_train=torch.randint(0, 100, (32,)),
@@ -168,7 +171,7 @@ def test_manyclass_mixed_radix_digit_limit() -> None:
 
 
 def test_regressor_forward_shapes() -> None:
-    model = TabICLv2Regressor()
+    model = TabFoundryRegressor()
     batch = TaskBatch(
         x_train=torch.randn(32, 12),
         y_train=torch.randn(32),

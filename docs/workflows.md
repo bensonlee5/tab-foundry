@@ -126,10 +126,10 @@ Export and validate an inference bundle:
 ```bash
 uv run tab-foundry export \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
-  --out-dir outputs/exports/cls_smoke_v1
+  --out-dir outputs/exports/cls_smoke_v2
 
 uv run tab-foundry validate-export \
-  --bundle-dir outputs/exports/cls_smoke_v1
+  --bundle-dir outputs/exports/cls_smoke_v2
 ```
 
 ## Standard Workflow Artifacts
@@ -225,6 +225,12 @@ uv run python scripts/benchmark_nanotabpfn.py \
   --tab-foundry-run-dir <run_dir> \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
+
+The comparison writes a pinned benchmark bundle containing
+`benchmark_inputs.json` and `benchmark_dataset_cache.npz` under the selected
+`--out-root`. Add `--benchmark-bundle-dir /tmp/tab_foundry_benchmark_bundle`
+only when you want to reuse the same pinned inputs and drift checks across
+repeated confirmatory runs.
 
 One simple preparation path is:
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from torch import nn
 
-from .architectures.tabiclv2 import TabICLv2Classifier, TabICLv2Regressor
+from .architectures.tabfoundry import TabFoundryClassifier, TabFoundryRegressor
 from .spec import ModelBuildSpec
 
 
@@ -39,7 +39,7 @@ def build_model(
     """Instantiate model for task."""
 
     if task == "classification":
-        return TabICLv2Classifier(
+        return TabFoundryClassifier(
             d_col=d_col,
             d_icl=d_icl,
             input_normalization=input_normalization,
@@ -60,7 +60,7 @@ def build_model(
             use_digit_position_embed=use_digit_position_embed,
         )
     if task == "regression":
-        return TabICLv2Regressor(
+        return TabFoundryRegressor(
             d_col=d_col,
             d_icl=d_icl,
             input_normalization=input_normalization,

@@ -1,4 +1,4 @@
-"""Reusable model blocks for TabICLv2."""
+"""Reusable model blocks for the tabfoundry family."""
 
 from __future__ import annotations
 

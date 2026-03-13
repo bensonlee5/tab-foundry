@@ -67,7 +67,7 @@ area becomes part of the canonical architecture.
 
 - The `model/components` / `model/architectures` split is now implemented, but
   the repo still lacks a neutral multi-family registry above the current
-  `TabICLv2` path.
+  `tabfoundry` path.
 - `scripts/` remain thin wrapper entrypoints over `bench/`; this is deliberate
   for now and not a sign that workflow logic should move back out of `bench/`.
 - This file is descriptive, not generated. Tooling-backed dependency docs can

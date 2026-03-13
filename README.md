@@ -50,10 +50,10 @@ Export and validate an inference bundle:
 ```bash
 uv run tab-foundry export \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
-  --out-dir outputs/exports/cls_smoke_v1
+  --out-dir outputs/exports/cls_smoke_v2
 
 uv run tab-foundry validate-export \
-  --bundle-dir outputs/exports/cls_smoke_v1
+  --bundle-dir outputs/exports/cls_smoke_v2
 ```
 
 Run the Iris smoke harness:
@@ -74,6 +74,7 @@ uv run tab-foundry train experiment=cls_smoke optimizer=adamw
 - `docs/inference.md`: export bundle schema and validation contract
 - `docs/development/roadmap.md`: canonical planning state and ranked roadmap
 - `docs/development/design-decisions.md`: architecture direction, repo-structure policy, and compatibility guidance
+- `docs/development/tabfoundry-transformer-architecture.md`: detailed architecture reference for the current tabfoundry transformer family
 - `docs/development/codebase-navigation.md`: current package layout and workflow entry surfaces
 - `docs/development/module-dependency-map.md`: maintained baseline dependency view for repo evolution
 - `reference/README.md`: index for literature notes, evidence maps, and future adjacent-repo summaries
