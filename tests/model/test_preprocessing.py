@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from tab_foundry.preprocessing import apply_fitted_preprocessor, fit_fitted_preprocessor
 
@@ -114,3 +115,39 @@ def test_classification_preprocessing_can_skip_imputation_and_still_remap_labels
     assert processed.y_test is not None
     assert processed.y_test.tolist() == [1]
     assert processed.num_classes == 2
+
+
+def test_classification_preprocessing_rejects_misaligned_train_rows() -> None:
+    with pytest.raises(RuntimeError, match="x_train row count must match y_train"):
+        _ = fit_fitted_preprocessor(
+            task="classification",
+            x_train=np.asarray([[1.0], [2.0], [3.0]], dtype=np.float32),
+            y_train=np.asarray([10, 20], dtype=np.int64),
+        )
+
+
+def test_classification_preprocessing_rejects_misaligned_test_rows() -> None:
+    state = fit_fitted_preprocessor(
+        task="classification",
+        x_train=np.asarray([[1.0], [2.0]], dtype=np.float32),
+        y_train=np.asarray([10, 20], dtype=np.int64),
+    )
+
+    with pytest.raises(RuntimeError, match="x_test row count must match y_test"):
+        _ = apply_fitted_preprocessor(
+            task="classification",
+            state=state,
+            x_train=np.asarray([[1.0], [2.0]], dtype=np.float32),
+            y_train=np.asarray([10, 20], dtype=np.int64),
+            x_test=np.asarray([[3.0], [4.0]], dtype=np.float32),
+            y_test=np.asarray([10], dtype=np.int64),
+        )
+
+
+def test_regression_preprocessing_rejects_misaligned_train_rows() -> None:
+    with pytest.raises(RuntimeError, match="x_train row count must match y_train"):
+        _ = fit_fitted_preprocessor(
+            task="regression",
+            x_train=np.asarray([[1.0], [2.0], [3.0]], dtype=np.float32),
+            y_train=np.asarray([0.25, 0.75], dtype=np.float32),
+        )

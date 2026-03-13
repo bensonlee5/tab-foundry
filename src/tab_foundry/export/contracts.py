@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from hashlib import sha256
 import json
 from pathlib import Path
 from typing import Any
@@ -208,6 +209,7 @@ class ExportManifest:
     task: str
     model: ExportModelSpec
     created_at_utc: str
+    manifest_sha256: str | None = None
     inference: InferenceConfig | None = None
     preprocessor: LegacyPreprocessorState | ExportPreprocessorState | None = None
     weights: ExportWeights | None = None
@@ -228,6 +230,8 @@ class ExportManifest:
             payload["inference"] = self.inference.to_dict()
             payload["preprocessor"] = self.preprocessor.to_dict()
             payload["weights"] = self.weights.to_dict()
+            if self.manifest_sha256 is not None:
+                payload["manifest_sha256"] = self.manifest_sha256
             return payload
         if self.files is None or self.checksums is None:
             raise RuntimeError("v2 manifest requires files and checksums")
@@ -249,6 +253,30 @@ def read_json_dict(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"JSON payload at {path} must be an object")
     return payload
+
+
+def canonicalize_v3_manifest_payload(payload: dict[str, Any]) -> bytes:
+    schema_version = _as_str(payload.get("schema_version"), context="manifest.schema_version")
+    if schema_version != SCHEMA_VERSION_V3:
+        raise ValueError(
+            "canonicalize_v3_manifest_payload requires a tab-foundry-export-v3 payload, "
+            f"got {schema_version!r}"
+        )
+    canonical_payload = dict(payload)
+    canonical_payload.pop("manifest_sha256", None)
+    try:
+        return json.dumps(
+            canonical_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    except ValueError as exc:
+        raise ValueError("v3 manifest contains non-canonical JSON values") from exc
+
+
+def compute_v3_manifest_sha256(payload: dict[str, Any]) -> str:
+    return sha256(canonicalize_v3_manifest_payload(payload)).hexdigest()
 
 
 def _require_keys(
@@ -452,9 +480,14 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
 
     common_keys = {"schema_version", "producer", "task", "model", "created_at_utc"}
     if schema_version == SCHEMA_VERSION_V3:
+        if "manifest_sha256" not in payload:
+            raise ValueError(
+                "manifest.manifest_sha256 is required for tab-foundry-export-v3 bundles; "
+                "older v3 bundles must be regenerated"
+            )
         _require_keys(
             payload,
-            keys=common_keys | {"inference", "preprocessor", "weights"},
+            keys=common_keys | {"manifest_sha256", "inference", "preprocessor", "weights"},
             context="manifest",
         )
     else:
@@ -470,8 +503,13 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
         raise ValueError(f"Unsupported manifest task: {task!r}")
     model = _validate_model_spec(payload["model"], task=task, schema_version=schema_version)
     created_at_utc = _validate_created_at_utc(payload["created_at_utc"])
+    manifest_sha256: str | None = None
 
     if schema_version == SCHEMA_VERSION_V3:
+        manifest_sha256 = _validate_hex_digest(
+            payload["manifest_sha256"],
+            context="manifest.manifest_sha256",
+        )
         inference_raw = payload["inference"]
         if not isinstance(inference_raw, dict):
             raise ValueError("manifest.inference must be object")
@@ -508,6 +546,7 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
             task=task,
             model=model,
             created_at_utc=created_at_utc,
+            manifest_sha256=manifest_sha256,
             inference=inference,
             preprocessor=preprocessor,
             weights=weights,

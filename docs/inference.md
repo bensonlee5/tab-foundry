@@ -22,7 +22,8 @@ Current version: `tab-foundry-export-v3`
 
 The current v3 contract uses a single-manifest layout. Earlier v3 bundles that
 used `inference_config.json` and `preprocessor_state.json` sidecars are
-obsolete and must be regenerated.
+obsolete and must be regenerated. Earlier single-manifest v3 bundles that do
+not include `manifest_sha256` are also obsolete and must be regenerated.
 
 ## Bundle Layout
 
@@ -38,6 +39,9 @@ Required keys:
 - `schema_version`
 - `producer`: `{name, version, git_sha}` (`git_sha` may be `null`)
 - `task`: `classification | regression`
+- `manifest_sha256`: SHA-256 of the canonical UTF-8 JSON encoding of the full
+  manifest with `manifest_sha256` omitted; validators reject stale or missing
+  values
 - `model`: `{arch, d_col, d_icl, input_normalization, feature_group_size, many_class_train_mode, max_mixed_radix_digits}`
   - Exporter also emits architecture reconstruction fields:
     `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed}`.
@@ -71,6 +75,9 @@ Required keys:
   (`x_train`, `y_train`) before applying the model.
 - The bundled `preprocessor` section is used for invariant contract checks and
   conformance, not as a cache of export-time train statistics.
+- `manifest_sha256` protects the embedded `model`, `inference`,
+  `preprocessor`, `weights`, and other top-level v3 manifest metadata against
+  post-export edits.
 
 ## Many-Class Modes
 
@@ -126,6 +133,9 @@ Out of scope here:
   reference-consumer contract in this repo.
 - Existing v3 bundles produced with sidecar metadata are intentionally obsolete
   after the single-manifest redesign and must be regenerated.
+- Existing single-manifest v3 bundles without `manifest_sha256` are
+  intentionally obsolete after the metadata-integrity fix and must be
+  regenerated.
 - `tab-foundry-export-v2` bundles remain validator-readable during migration.
 - `tab-foundry-export-v1` bundles are intentionally unsupported after the
   `tabfoundry` family rename and must be regenerated.

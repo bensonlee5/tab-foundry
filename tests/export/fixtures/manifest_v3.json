@@ -6,6 +6,7 @@
     "git_sha": null
   },
   "task": "classification",
+  "manifest_sha256": "5afd96523f55878f7930fc2ebd9964c03600429ad9295978a946f375c59542fd",
   "model": {
     "arch": "tabfoundry",
     "d_col": 128,

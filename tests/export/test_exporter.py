@@ -152,6 +152,8 @@ def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path)
     assert manifest["schema_version"] == SCHEMA_VERSION_V3
     assert manifest["model"]["arch"] == "tabfoundry"
     assert manifest["model"]["input_normalization"] == "train_zscore"
+    assert isinstance(manifest["manifest_sha256"], str)
+    assert len(manifest["manifest_sha256"]) == 64
     assert manifest["inference"]["model_arch"] == "tabfoundry"
     assert manifest["inference"]["many_class_inference_mode"] == "full_probs"
     assert manifest["preprocessor"]["feature_order_policy"] == "positional_feature_ids"
@@ -347,6 +349,26 @@ def test_validate_export_rejects_invalid_input_normalization(tmp_path: Path) -> 
         _ = validate_export_bundle(out_dir)
 
 
+def test_validate_export_rejects_manifest_model_tamper_with_stale_manifest_sha256(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="train_zscore")
+    out_dir = tmp_path / "export_cls"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    manifest["model"]["input_normalization"] = "none"
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    with pytest.raises(ValueError, match="manifest.manifest_sha256 mismatch"):
+        _ = validate_export_bundle(out_dir)
+
+
 def test_validate_export_requires_quantile_levels_for_regression(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="regression")
@@ -362,6 +384,28 @@ def test_validate_export_requires_quantile_levels_for_regression(tmp_path: Path)
         handle.write("\n")
 
     with pytest.raises(ValueError, match="quantile_levels"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_rejects_manifest_inference_tamper_with_stale_manifest_sha256(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt.pt"
+    _ = _write_checkpoint(checkpoint, task="regression")
+    out_dir = tmp_path / "export_reg"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    quantile_levels = manifest["inference"]["quantile_levels"]
+    assert isinstance(quantile_levels, list)
+    manifest["inference"]["quantile_levels"] = list(reversed(quantile_levels))
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    with pytest.raises(ValueError, match="manifest.manifest_sha256 mismatch"):
         _ = validate_export_bundle(out_dir)
 
 
@@ -439,6 +483,62 @@ def test_validate_export_rejects_fixed_preprocessor_contract_drift(tmp_path: Pat
         handle.write("\n")
 
     with pytest.raises(ValueError, match="feature_order_policy"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_rejects_manifest_preprocessor_tamper_with_stale_manifest_sha256(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt.pt"
+    _ = _write_checkpoint(checkpoint, task="classification")
+    out_dir = tmp_path / "export_cls"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    manifest["preprocessor"]["missing_value_policy"]["all_nan_fill"] = 0
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    with pytest.raises(ValueError, match="manifest.manifest_sha256 mismatch"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_requires_manifest_sha256_for_v3(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt.pt"
+    _ = _write_checkpoint(checkpoint, task="classification")
+    out_dir = tmp_path / "export_cls"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    manifest.pop("manifest_sha256", None)
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    with pytest.raises(ValueError, match="older v3 bundles must be regenerated"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_rejects_malformed_manifest_sha256_for_v3(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt.pt"
+    _ = _write_checkpoint(checkpoint, task="classification")
+    out_dir = tmp_path / "export_cls"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    manifest["manifest_sha256"] = "bad"
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    with pytest.raises(ValueError, match="manifest.manifest_sha256"):
         _ = validate_export_bundle(out_dir)
 
 

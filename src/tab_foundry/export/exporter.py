@@ -17,6 +17,7 @@ from tab_foundry.model.spec import ModelBuildSpec, checkpoint_model_build_spec_f
 
 from .checksums import sha256_file
 from .contracts import (
+    compute_v3_manifest_sha256,
     ExportClassificationLabelPolicy,
     ExportFiles,
     ExportManifest,
@@ -217,6 +218,7 @@ def export_checkpoint(
                 sha256=sha256_file(weights_path),
             ),
         )
+        manifest.manifest_sha256 = compute_v3_manifest_sha256(manifest.to_dict())
     else:
         inference_name = "inference_config.json"
         preproc_name = "preprocessor_state.json"
@@ -266,6 +268,14 @@ def validate_export_bundle(bundle_dir: Path) -> ValidatedBundle:
     if manifest.schema_version == SCHEMA_VERSION_V3:
         if manifest.inference is None or manifest.preprocessor is None or manifest.weights is None:
             raise RuntimeError("v3 bundle validation requires embedded inference, preprocessor, and weights")
+        if manifest.manifest_sha256 is None:
+            raise RuntimeError("v3 bundle validation requires manifest.manifest_sha256")
+        expected_manifest_sha256 = compute_v3_manifest_sha256(manifest_dict)
+        if expected_manifest_sha256 != manifest.manifest_sha256:
+            raise ValueError(
+                "manifest.manifest_sha256 mismatch: bundle metadata was modified after export; "
+                "regenerate the bundle"
+            )
         weights_path = root / manifest.weights.file
         if not weights_path.exists():
             raise ValueError(f"bundle file not found: {weights_path}")

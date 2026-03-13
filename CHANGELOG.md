@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Redefined `tab-foundry-export-v3` as a single-manifest bundle containing
   `manifest.json` plus `weights.safetensors`. The prior v3 sidecar-based bundle
-  layout is obsolete and existing v3 artifacts must be regenerated.
+  layout is obsolete, and both those older sidecar bundles and earlier
+  single-manifest v3 bundles without `manifest_sha256` must be regenerated.
 - Embedded inference and preprocessing policy metadata directly into
   `manifest.json`; `inference_config.json` and `preprocessor_state.json` are no
   longer emitted for v3 bundles.
@@ -36,20 +37,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tab_foundry.export.loader_ref` plus pinned conformance fixtures for one
   classification bundle and one regression bundle.
 - Export bundles now default to the new `tab-foundry-export-v3` schema. This is
-  a user-facing artifact-contract change.
+  a user-facing artifact-contract change, and v3 manifests now require
+  `manifest_sha256` to protect embedded metadata against post-export edits.
 - `manifest.model` now persists `input_normalization`, and the model
   reconstruction path round-trips that field across export and load.
-- `preprocessor_state.json` now supports a fitted-state v3 contract with
-  persisted `feature_ids`, per-feature `fill_values`, and classification
-  `label_values`.
+- `manifest.json` now embeds the v3 inference and preprocessing policy sections
+  directly instead of emitting `inference_config.json` and
+  `preprocessor_state.json` sidecars.
 - `tab-foundry-export-v2` remains validator-readable during migration, but the
   executable reference consumer in this repo is intentionally v3-only.
-- `tab-foundry export --artifact-version tab-foundry-export-v3` now requires an
-  explicit `--preprocessor-state` JSON built for the target manifest dataset.
-  This is a user-facing CLI and workflow change.
 - Training checkpoints no longer persist fitted preprocessing state. Checkpoints
   remain resume/eval artifacts, while v3 export consumes an explicit external
-  preprocessing-state JSON.
+  runtime-derived preprocessing contract encoded in `manifest.json`.
 - Classification label remapping and unseen-test-label filtering now still run
   when `PackedParquetTaskDataset(..., impute_missing=False)` leaves feature
   values unimputed.

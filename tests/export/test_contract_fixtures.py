@@ -39,6 +39,7 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     manifest = validate_manifest_dict(payload)
     assert manifest.schema_version == SCHEMA_VERSION_V3
     assert manifest.model.input_normalization == "train_zscore"
+    assert manifest.manifest_sha256 is not None
     assert manifest.inference is not None
     assert manifest.preprocessor is not None
     assert manifest.weights is not None
@@ -105,6 +106,22 @@ def test_manifest_v3_validation_requires_input_normalization() -> None:
     payload["model"] = model_payload
 
     with pytest.raises(ValueError, match="manifest.model keys mismatch"):
+        validate_manifest_dict(payload)
+
+
+def test_manifest_v3_validation_requires_manifest_sha256() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    payload.pop("manifest_sha256", None)
+
+    with pytest.raises(ValueError, match="manifest.manifest_sha256"):
+        validate_manifest_dict(payload)
+
+
+def test_manifest_v3_validation_rejects_malformed_manifest_sha256() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    payload["manifest_sha256"] = "bad"
+
+    with pytest.raises(ValueError, match="manifest.manifest_sha256"):
         validate_manifest_dict(payload)
 
 

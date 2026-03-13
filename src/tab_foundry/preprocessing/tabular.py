@@ -48,6 +48,27 @@ def _require_matrix(x: Any, *, context: str) -> np.ndarray:
     return array
 
 
+def _require_vector(y: Any, *, dtype: Any, context: str) -> np.ndarray:
+    array = np.asarray(y, dtype=dtype)
+    if array.ndim != 1:
+        raise RuntimeError(f"{context} must be rank-1, got shape={array.shape!r}")
+    return array
+
+
+def _require_matching_rows(
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    x_context: str,
+    y_context: str,
+) -> None:
+    if int(x.shape[0]) != int(y.shape[0]):
+        raise RuntimeError(
+            f"{x_context} row count must match {y_context}: "
+            f"{x_context}_rows={x.shape[0]}, {y_context}_rows={y.shape[0]}"
+        )
+
+
 def _fit_fill_values(
     x_train: np.ndarray,
     *,
@@ -78,9 +99,8 @@ def fit_fitted_preprocessor(
 
     classification_label_policy: ClassificationLabelPolicyState | None = None
     if normalized_task == "classification":
-        labels = np.asarray(y_train, dtype=np.int64)
-        if labels.ndim != 1:
-            raise RuntimeError(f"y_train must be rank-1 for classification, got shape={labels.shape!r}")
+        labels = _require_vector(y_train, dtype=np.int64, context="y_train")
+        _require_matching_rows(x_train_matrix, labels, x_context="x_train", y_context="y_train")
         label_values = np.unique(labels)
         if label_values.size <= 0:
             raise RuntimeError("classification train split has no labels")
@@ -89,6 +109,9 @@ def fit_fitted_preprocessor(
             unseen_test_label=UNSEEN_TEST_LABEL_POLICY_FILTER,
             label_values=[int(value) for value in label_values.tolist()],
         )
+    else:
+        targets = _require_vector(y_train, dtype=np.float32, context="y_train")
+        _require_matching_rows(x_train_matrix, targets, x_context="x_train", y_context="y_train")
 
     return FittedPreprocessorState(
         feature_order_policy=FEATURE_ORDER_POLICY_POSITIONAL,
@@ -143,9 +166,7 @@ def _map_classification_targets(
         raise RuntimeError("classification preprocessing state is missing label policy")
 
     label_values = np.asarray(label_policy.label_values, dtype=np.int64)
-    train_raw = np.asarray(y_train, dtype=np.int64)
-    if train_raw.ndim != 1:
-        raise RuntimeError(f"y_train must be rank-1 for classification, got shape={train_raw.shape!r}")
+    train_raw = _require_vector(y_train, dtype=np.int64, context="y_train")
 
     train_pos = np.searchsorted(label_values, train_raw)
     train_in_bounds = train_pos < label_values.shape[0]
@@ -157,9 +178,7 @@ def _map_classification_targets(
     remapped_test: np.ndarray | None = None
     valid_mask: np.ndarray | None = None
     if y_test is not None:
-        test_raw = np.asarray(y_test, dtype=np.int64)
-        if test_raw.ndim != 1:
-            raise RuntimeError(f"y_test must be rank-1 for classification, got shape={test_raw.shape!r}")
+        test_raw = _require_vector(y_test, dtype=np.int64, context="y_test")
         test_pos = np.searchsorted(label_values, test_raw)
         test_in_bounds = test_pos < label_values.shape[0]
         test_valid = test_in_bounds & (label_values[np.clip(test_pos, 0, label_values.shape[0] - 1)] == test_raw)
@@ -194,10 +213,15 @@ def apply_fitted_preprocessor(
         impute_missing=bool(impute_missing),
     )
     if normalized_task == "classification":
+        train_targets = _require_vector(y_train, dtype=np.int64, context="y_train")
+        _require_matching_rows(train_x, train_targets, x_context="x_train", y_context="y_train")
+        if y_test is not None:
+            test_targets = _require_vector(y_test, dtype=np.int64, context="y_test")
+            _require_matching_rows(test_x, test_targets, x_context="x_test", y_context="y_test")
         train_y, test_y, num_classes, valid_mask = _map_classification_targets(
             state,
-            y_train=y_train,
-            y_test=y_test,
+            y_train=train_targets,
+            y_test=y_test if y_test is None else test_targets,
         )
         if valid_mask is not None:
             test_x = test_x[valid_mask]
@@ -210,14 +234,12 @@ def apply_fitted_preprocessor(
             valid_test_mask=valid_mask,
         )
 
-    train_y = np.asarray(y_train, dtype=np.float32)
-    if train_y.ndim != 1:
-        raise RuntimeError(f"y_train must be rank-1 for regression, got shape={train_y.shape!r}")
+    train_y = _require_vector(y_train, dtype=np.float32, context="y_train")
+    _require_matching_rows(train_x, train_y, x_context="x_train", y_context="y_train")
     test_y_array: np.ndarray | None = None
     if y_test is not None:
-        test_y_array = np.asarray(y_test, dtype=np.float32)
-        if test_y_array.ndim != 1:
-            raise RuntimeError(f"y_test must be rank-1 for regression, got shape={test_y_array.shape!r}")
+        test_y_array = _require_vector(y_test, dtype=np.float32, context="y_test")
+        _require_matching_rows(test_x, test_y_array, x_context="x_test", y_context="y_test")
     return PreprocessedTaskArrays(
         x_train=train_x,
         y_train=train_y.astype(np.float32, copy=False),
