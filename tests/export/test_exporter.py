@@ -11,7 +11,7 @@ import torch
 import tab_foundry.export.exporter as exporter_module
 import tab_foundry.training.evaluate as evaluate_module
 from tab_foundry.export.checksums import sha256_file
-from tab_foundry.export.contracts import SCHEMA_VERSION_V1
+from tab_foundry.export.contracts import SCHEMA_VERSION_V2
 from tab_foundry.export.exporter import export_checkpoint, validate_export_bundle
 from tab_foundry.export.loader_ref import load_export_bundle
 from tab_foundry.model.factory import build_model
@@ -24,7 +24,7 @@ def _make_config(task: str) -> dict[str, object]:
         "model": {
             "d_col": 128,
             "d_icl": 512,
-            "feature_group_size": 32,
+            "feature_group_size": 1,
             "many_class_train_mode": "path_nll",
             "max_mixed_radix_digits": 64,
             "tfcol_n_heads": 8,
@@ -66,7 +66,7 @@ def test_export_bundle_writes_expected_files_and_schema(tmp_path: Path) -> None:
     out_dir = tmp_path / "export_cls"
 
     result = export_checkpoint(checkpoint, out_dir)
-    assert result.schema_version == SCHEMA_VERSION_V1
+    assert result.schema_version == SCHEMA_VERSION_V2
 
     manifest_path = out_dir / "manifest.json"
     assert manifest_path.exists()
@@ -76,14 +76,109 @@ def test_export_bundle_writes_expected_files_and_schema(tmp_path: Path) -> None:
 
     with manifest_path.open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    assert manifest["schema_version"] == SCHEMA_VERSION_V1
+    assert manifest["schema_version"] == SCHEMA_VERSION_V2
     assert manifest["task"] == "classification"
-    assert manifest["model"]["arch"] == "tabiclv2"
+    assert manifest["model"]["arch"] == "tabfoundry"
     assert manifest["model"]["tfcol_n_heads"] == 8
     assert manifest["model"]["tficl_n_layers"] == 12
     assert manifest["model"]["many_class_base"] == 10
     assert manifest["model"]["head_hidden_dim"] == 1024
     assert manifest["model"]["use_digit_position_embed"] is True
+    assert manifest["model"]["feature_group_size"] == 1
+
+    with (out_dir / "inference_config.json").open("r", encoding="utf-8") as handle:
+        inference_cfg = json.load(handle)
+    assert inference_cfg["model_arch"] == "tabfoundry"
+    assert inference_cfg["feature_group_size"] == 1
+
+
+def test_export_bundle_defaults_omitted_feature_group_size_to_one_when_weights_match(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_default_group.pt"
+    cfg = _make_config("classification")
+    model_cfg = cfg["model"]
+    assert isinstance(model_cfg, dict)
+    default_model_cfg = dict(model_cfg)
+    model_cfg.pop("feature_group_size", None)
+    default_model_cfg.pop("feature_group_size", None)
+    model = build_model(task="classification", feature_group_size=1, **default_model_cfg)
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "global_step": 1,
+            "config": cfg,
+        },
+        checkpoint,
+    )
+
+    out_dir = tmp_path / "export_default_group"
+    _ = export_checkpoint(checkpoint, out_dir)
+
+    with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    with (out_dir / "inference_config.json").open("r", encoding="utf-8") as handle:
+        inference_cfg = json.load(handle)
+
+    loaded = load_export_bundle(out_dir)
+
+    assert manifest["model"]["feature_group_size"] == 1
+    assert inference_cfg["feature_group_size"] == 1
+    assert loaded.validated.manifest.model.feature_group_size == 1
+
+
+def test_export_bundle_rejects_legacy_grouped_weights_when_feature_group_size_is_omitted(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_legacy_group.pt"
+    cfg = _make_config("classification")
+    model_cfg = cfg["model"]
+    assert isinstance(model_cfg, dict)
+    legacy_model_cfg = dict(model_cfg)
+    model_cfg.pop("feature_group_size", None)
+    legacy_model_cfg.pop("feature_group_size", None)
+    model = build_model(task="classification", feature_group_size=32, **legacy_model_cfg)
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "global_step": 1,
+            "config": cfg,
+        },
+        checkpoint,
+    )
+
+    with pytest.raises(ValueError, match="omitted feature_group_size"):
+        _ = export_checkpoint(checkpoint, tmp_path / "export_legacy_group")
+
+
+def test_export_bundle_supports_explicit_nondefault_feature_group_size(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_group_32.pt"
+    cfg = _make_config("classification")
+    model_cfg = cfg["model"]
+    assert isinstance(model_cfg, dict)
+    model_cfg["feature_group_size"] = 32
+    model = build_model(task="classification", **model_cfg)
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "global_step": 1,
+            "config": cfg,
+        },
+        checkpoint,
+    )
+
+    out_dir = tmp_path / "export_group_32"
+    _ = export_checkpoint(checkpoint, out_dir)
+
+    with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    with (out_dir / "inference_config.json").open("r", encoding="utf-8") as handle:
+        inference_cfg = json.load(handle)
+
+    assert manifest["model"]["feature_group_size"] == 32
+    assert inference_cfg["feature_group_size"] == 32
 
 
 def test_validate_export_detects_checksum_tamper(tmp_path: Path) -> None:
@@ -109,11 +204,55 @@ def test_validate_export_rejects_unsupported_schema(tmp_path: Path) -> None:
     manifest_path = out_dir / "manifest.json"
     with manifest_path.open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    manifest["schema_version"] = "tab-foundry-export-v2"
+    manifest["schema_version"] = "tab-foundry-export-v1"
     with manifest_path.open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle)
 
     with pytest.raises(ValueError, match="Unsupported schema version"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_rejects_old_manifest_arch(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt.pt"
+    _ = _write_checkpoint(checkpoint, task="classification")
+    out_dir = tmp_path / "export_cls"
+    _ = export_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    manifest["model"]["arch"] = "tabiclv2"
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    with pytest.raises(ValueError, match="Unsupported model arch"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_rejects_old_inference_model_arch(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt.pt"
+    _ = _write_checkpoint(checkpoint, task="classification")
+    out_dir = tmp_path / "export_cls"
+    _ = export_checkpoint(checkpoint, out_dir)
+
+    inference_path = out_dir / "inference_config.json"
+    with inference_path.open("r", encoding="utf-8") as handle:
+        inference_cfg = json.load(handle)
+    inference_cfg["model_arch"] = "tabiclv2"
+    with inference_path.open("w", encoding="utf-8") as handle:
+        json.dump(inference_cfg, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    manifest_path = out_dir / "manifest.json"
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    manifest["checksums"]["inference_config"] = sha256_file(inference_path)
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    with pytest.raises(ValueError, match="Unsupported inference model_arch"):
         _ = validate_export_bundle(out_dir)
 
 
@@ -355,7 +494,7 @@ def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -
             "model": {
                 "d_col": 128,
                 "d_icl": 512,
-                "feature_group_size": 32,
+                "feature_group_size": 1,
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
                 "tfcol_n_layers": 3,

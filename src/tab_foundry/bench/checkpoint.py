@@ -12,7 +12,10 @@ import torch.nn.functional as F
 
 from tab_foundry.input_normalization import normalize_train_test_arrays
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
+from tab_foundry.model.spec import (
+    ModelBuildSpec,
+    checkpoint_model_build_spec_from_mappings,
+)
 from tab_foundry.types import TaskBatch
 
 
@@ -36,7 +39,14 @@ def _checkpoint_model_spec(
     primary_cfg: dict[str, Any] = {}
     if isinstance(model_cfg, dict):
         primary_cfg = {str(key): value for key, value in model_cfg.items()}
-    return model_build_spec_from_mappings(task=task, primary=primary_cfg, fallback=fallback_cfg)
+    model_state = payload.get("model")
+    state_dict = model_state if isinstance(model_state, dict) else None
+    return checkpoint_model_build_spec_from_mappings(
+        task=task,
+        primary=primary_cfg,
+        fallback=fallback_cfg,
+        state_dict=state_dict,
+    )
 
 
 def load_checkpoint_classifier_model(

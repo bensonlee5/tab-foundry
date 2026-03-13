@@ -4,6 +4,7 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 import pytest
+import torch
 
 import tab_foundry.training.evaluate as evaluate_module
 
@@ -23,7 +24,7 @@ def test_evaluate_checkpoint_uses_explicit_weights_only_false(
                 "model": {
                     "d_col": 128,
                     "d_icl": 512,
-                    "feature_group_size": 32,
+                    "feature_group_size": 1,
                     "many_class_train_mode": "path_nll",
                     "max_mixed_radix_digits": 64,
                 },
@@ -43,7 +44,7 @@ def test_evaluate_checkpoint_uses_explicit_weights_only_false(
             "model": {
                 "d_col": 128,
                 "d_icl": 512,
-                "feature_group_size": 32,
+                "feature_group_size": 1,
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
             },
@@ -98,7 +99,7 @@ def test_evaluate_checkpoint_uses_checkpoint_model_config(
             "model": {
                 "d_col": 128,
                 "d_icl": 512,
-                "feature_group_size": 32,
+                "feature_group_size": 1,
                 "many_class_train_mode": "full_probs",
                 "max_mixed_radix_digits": 64,
             },
@@ -114,3 +115,68 @@ def test_evaluate_checkpoint_uses_checkpoint_model_config(
     assert captured["d_col"] == 64
     assert captured["d_icl"] == 256
     assert captured["feature_group_size"] == 1
+
+
+def test_checkpoint_model_settings_rejects_legacy_grouped_weights_without_override() -> None:
+    payload = {
+        "model": {
+            "group_linear.weight": torch.zeros((128, 96)),
+        },
+        "config": {
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+        }
+    }
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+        }
+    )
+
+    with pytest.raises(ValueError, match="Resolved feature_group_size=1 is incompatible"):
+        _ = evaluate_module._checkpoint_model_settings(payload, cfg)
+
+
+def test_checkpoint_model_settings_supports_explicit_override_for_legacy_weights() -> None:
+    payload = {
+        "model": {
+            "group_linear.weight": torch.zeros((128, 96)),
+        },
+        "config": {
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+        },
+    }
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "feature_group_size": 32,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+        }
+    )
+
+    spec = evaluate_module._checkpoint_model_settings(payload, cfg)
+
+    assert spec.feature_group_size == 32

@@ -50,6 +50,7 @@ def test_build_cls_smoke_train_config_preserves_cls_smoke_row_caps_by_default(tm
     assert int(cfg.data.test_row_cap) == 48
     assert str(cfg.runtime.device) == "cpu"
     assert int(cfg.runtime.checkpoint_every) == 25
+    assert int(cfg.model.feature_group_size) == 1
     assert int(cfg.schedule.stages[0]["steps"]) == 250
 
 
@@ -77,6 +78,8 @@ def test_build_cls_smoke_configs_can_clear_row_caps_for_iris(tmp_path: Path) -> 
     assert train_cfg.data.test_row_cap is None
     assert eval_cfg.data.train_row_cap is None
     assert eval_cfg.data.test_row_cap is None
+    assert int(train_cfg.model.feature_group_size) == 1
+    assert int(eval_cfg.model.feature_group_size) == 1
     assert [str(stage["name"]) for stage in train_cfg.schedule.stages] == ["stage1", "stage2"]
     assert [int(stage["steps"]) for stage in train_cfg.schedule.stages] == [4, 2]
     assert str(eval_cfg.eval.split) == "test"

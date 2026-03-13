@@ -1,4 +1,4 @@
-"""TabICLv2-style classifier and regressor."""
+"""Tabfoundry classifier and regressor."""
 
 from __future__ import annotations
 
@@ -50,8 +50,8 @@ class RegressionOutput:
     quantile_levels: torch.Tensor | None = None
 
 
-class _TabICLv2Backbone(nn.Module):
-    """Shared TabICLv2 backbone."""
+class _TabFoundryBackbone(nn.Module):
+    """Shared Tabfoundry backbone."""
 
     def __init__(
         self,
@@ -59,7 +59,7 @@ class _TabICLv2Backbone(nn.Module):
         d_col: int = 128,
         d_icl: int = 512,
         input_normalization: str = "none",
-        feature_group_size: int = 32,
+        feature_group_size: int = 1,
         tfcol_n_heads: int = 8,
         tfcol_n_layers: int = 3,
         tfcol_n_inducing: int = 128,
@@ -228,8 +228,8 @@ class _TabICLv2Backbone(nn.Module):
         return icl_out[n_train:]
 
 
-class TabICLv2Classifier(_TabICLv2Backbone):
-    """TabICLv2-like classification model."""
+class TabFoundryClassifier(_TabFoundryBackbone):
+    """Tabfoundry classification model."""
 
     def __init__(
         self,
@@ -237,7 +237,7 @@ class TabICLv2Classifier(_TabICLv2Backbone):
         d_col: int = 128,
         d_icl: int = 512,
         input_normalization: str = "none",
-        feature_group_size: int = 32,
+        feature_group_size: int = 1,
         many_class_train_mode: str = "path_nll",
         max_mixed_radix_digits: int = 64,
         tfcol_n_heads: int = 8,
@@ -566,8 +566,8 @@ class TabICLv2Classifier(_TabICLv2Backbone):
         )
 
 
-class TabICLv2Regressor(_TabICLv2Backbone):
-    """TabICLv2-like regression model with 999 quantile outputs."""
+class TabFoundryRegressor(_TabFoundryBackbone):
+    """Tabfoundry regression model with 999 quantile outputs."""
 
     def __init__(
         self,
@@ -575,7 +575,7 @@ class TabICLv2Regressor(_TabICLv2Backbone):
         d_col: int = 128,
         d_icl: int = 512,
         input_normalization: str = "none",
-        feature_group_size: int = 32,
+        feature_group_size: int = 1,
         tfcol_n_heads: int = 8,
         tfcol_n_layers: int = 3,
         tfcol_n_inducing: int = 128,

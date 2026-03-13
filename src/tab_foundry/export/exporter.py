@@ -13,12 +13,15 @@ from typing import Any
 from safetensors.torch import save_file
 import torch
 
-from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
+from tab_foundry.model.spec import (
+    ModelBuildSpec,
+    checkpoint_model_build_spec_from_mappings,
+)
 
 from .checksums import sha256_file
 from .contracts import (
     ExportModelSpec,
-    SCHEMA_VERSION_V1,
+    SCHEMA_VERSION_V2,
     ExportManifest,
     InferenceConfig,
     PreprocessorState,
@@ -78,19 +81,25 @@ def _require_mapping(payload: Any, *, context: str) -> dict[str, Any]:
     return payload
 
 
-def _checkpoint_model_spec(cfg: dict[str, Any], *, task: str) -> ModelBuildSpec:
+def _checkpoint_model_spec(
+    cfg: dict[str, Any],
+    *,
+    task: str,
+    state_dict: dict[str, torch.Tensor] | None = None,
+) -> ModelBuildSpec:
     model_cfg = cfg.get("model")
     model_cfg = model_cfg if isinstance(model_cfg, dict) else {}
-    return model_build_spec_from_mappings(
+    return checkpoint_model_build_spec_from_mappings(
         task=task,
         primary=model_cfg,
+        state_dict=state_dict,
     )
 
 
 def _inference_config(task: str, model_spec: ExportModelSpec) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "task": task,
-        "model_arch": "tabiclv2",
+        "model_arch": "tabfoundry",
         "group_shifts": list(DEFAULT_GROUP_SHIFTS),
         "feature_group_size": int(model_spec.feature_group_size),
         "many_class_threshold": DEFAULT_MANY_CLASS_THRESHOLD,
@@ -135,12 +144,12 @@ def export_checkpoint(
     checkpoint_path: Path,
     out_dir: Path,
     *,
-    artifact_version: str = SCHEMA_VERSION_V1,
+    artifact_version: str = SCHEMA_VERSION_V2,
 ) -> ExportResult:
     """Export one training checkpoint as an inference bundle."""
 
     checkpoint = checkpoint_path.expanduser().resolve()
-    if artifact_version != SCHEMA_VERSION_V1:
+    if artifact_version != SCHEMA_VERSION_V2:
         raise ValueError(f"Unsupported artifact_version: {artifact_version!r}")
 
     payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
@@ -153,9 +162,9 @@ def export_checkpoint(
     if task not in ("classification", "regression"):
         raise RuntimeError(f"Unsupported checkpoint task value: {task!r}")
 
-    model_build_spec = _checkpoint_model_spec(cfg, task=task)
-    model_spec = ExportModelSpec.from_build_spec(model_build_spec)
     state_dict = _normalize_state_dict(payload["model"])
+    model_build_spec = _checkpoint_model_spec(cfg, task=task, state_dict=state_dict)
+    model_spec = ExportModelSpec.from_build_spec(model_build_spec)
 
     bundle_dir = out_dir.expanduser().resolve()
     bundle_dir.mkdir(parents=True, exist_ok=True)

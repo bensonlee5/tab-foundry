@@ -31,7 +31,7 @@ manifest-backed training and benchmark workflows.
 - `src/tab_foundry/model/components/`: reusable blocks, QASS primitives, and
   many-class helpers shared across families.
 - `src/tab_foundry/model/architectures/`: family-specific assemblies such as
-  `TabICLv2`.
+  `TabFoundry`.
 - `src/tab_foundry/training/`: family-agnostic training loops, batching,
   schedules, optimizers, runtime policy, and evaluation helpers.
 - `src/tab_foundry/export/`: export namespace package. Direct imports should

@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 
 import tab_foundry.training.evaluate as evaluate_module
 import tab_foundry.training.trainer as trainer_module
-from tab_foundry.model.architectures.tabiclv2 import ClassificationOutput
+from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
 from tab_foundry.training.schedule import build_stage_configs
 from tab_foundry.types import TaskBatch
 
@@ -144,7 +144,11 @@ def _install_classification_fakes(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(trainer_module, "_wandb_init", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(trainer_module, "model_build_spec_from_mappings", lambda **_kwargs: fake_spec)
-    monkeypatch.setattr(evaluate_module, "model_build_spec_from_mappings", lambda **_kwargs: fake_spec)
+    monkeypatch.setattr(
+        evaluate_module,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
     monkeypatch.setattr(trainer_module, "build_model_from_spec", lambda _spec: _TinyClassifier())
     monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _TinyClassifier())
 

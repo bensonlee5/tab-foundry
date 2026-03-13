@@ -113,8 +113,7 @@ surface. Use the canonical docs instead:
 - The benchmark-facing control remains `experiment=cls_benchmark_linear` until a
   later ticket explicitly promotes a replacement.
 - The manifest-backed data path is the canonical training/evaluation baseline.
-- Export and inference compatibility still anchor on the `tabiclv2` contract,
-  even though the internal architecture direction is broader.
+- Export and inference compatibility now use the `tabfoundry` contract.
 - Benchmark-facing work remains in the short-run class rather than drifting into
   long-training infrastructure by default.
 
@@ -254,15 +253,17 @@ surface. Use the canonical docs instead:
 - Current state:
   - Shared factories and role-based packages exist, and reusable model
     components now live separately from family-specific assembly code.
-  - The repo still centers much of the implementation around `tabiclv2`.
+  - The repo still centers much of the implementation around the `tabfoundry`
+    family.
   - The manifest path is canonical, and source modularity is still mostly a
     roadmap direction.
   - Family-neutral registration and naming are still incomplete.
 - Exit criteria:
-  - Internal architecture naming is neutral rather than tied to `tabiclv2`.
+  - Internal architecture naming is neutral rather than tied to a
+    paper-derived id.
   - Reusable components are cleanly separated from family-specific assembly.
   - A source/prior interface exists without forking the training/eval stack.
-  - Export compatibility can remain stable while internal taxonomy broadens.
+  - Export compatibility broadens only through explicit schema migrations.
 
 ### TF-RD-005: Modular QASS and Non-QASS Backbone Infrastructure
 
@@ -276,7 +277,7 @@ surface. Use the canonical docs instead:
 - Repo touchpoints:
   - `src/tab_foundry/model/components/qass.py`
   - `src/tab_foundry/model/components/blocks.py`
-  - `src/tab_foundry/model/architectures/tabiclv2.py`
+  - `src/tab_foundry/model/architectures/tabfoundry.py`
   - `src/tab_foundry/model/factory.py`
   - `src/tab_foundry/training/evaluate.py`
 - Current state:
@@ -355,7 +356,7 @@ surface. Use the canonical docs instead:
 - Repo touchpoints:
   - `src/tab_foundry/model/components/blocks.py`
   - `src/tab_foundry/model/components/qass.py`
-  - `src/tab_foundry/model/architectures/tabiclv2.py`
+  - `src/tab_foundry/model/architectures/tabfoundry.py`
   - `src/tab_foundry/model/components/many_class.py`
   - `reference/papers.md`
 - Current state:

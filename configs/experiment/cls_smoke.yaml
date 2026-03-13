@@ -1,6 +1,8 @@
 # @package _global_
 
 task: classification
+model:
+  feature_group_size: 1
 runtime:
   output_dir: outputs/cls_smoke
   device: cpu

@@ -8,6 +8,7 @@ Related docs:
 - quickstart: `README.md`
 - workflow runbooks: `docs/workflows.md`
 - canonical roadmap: `docs/development/roadmap.md`
+- architecture reference: `docs/development/model-architecture.md`
 - codebase navigation: `docs/development/codebase-navigation.md`
 - maintained dependency map: `docs/development/module-dependency-map.md`
 - reference index: `reference/README.md`
@@ -16,10 +17,11 @@ Related docs:
 
 ## Direction
 
-`tab-foundry` should not ossify around `TabICLv2` as the final architecture
-identity.
+`tab-foundry` should not ossify around the current `tabfoundry` family as the
+final architecture identity.
 
-`TabICLv2` is the current starting point, but the repo should evolve through:
+The current `tabfoundry` family started from the TabICLv2 paper and adjacent
+references, but the repo should evolve through:
 
 - modular building blocks
 - explicit baseline comparisons against adjacent repos
@@ -45,11 +47,11 @@ intentionally deferred further still.
 
 ### Neutral Architecture Naming
 
-- Internal code should not assume `TabICLv2` is the long-term architecture
+- Internal code should not assume `tabfoundry` is the long-term architecture
   name.
 - Multiple model families should be able to coexist behind a shared builder or
   factory surface.
-- The current `tabiclv2` export contract is a compatibility constraint, not the
+- The current `tabfoundry` export contract is a user-facing boundary, not the
   final internal taxonomy.
 
 ### Modular Model Construction
@@ -154,15 +156,15 @@ Notes:
 - `src/tab_foundry/model/` is a namespace package. Direct imports should target
   stable submodules like `model.factory` and `model.spec`, while
   `model/components` and `model/architectures` carry the internal split.
-- Current export compatibility constraints around `tabiclv2` are tolerated at
-  the boundary, but should not re-anchor internal architecture structure.
+- Current export compatibility constraints around `tabfoundry` are part of the
+  boundary, but should not re-anchor internal architecture structure.
 
 ## Naming And Compatibility Guidance
 
 - Prefer neutral family ids over architecture names that assume permanence.
-- Treat `tabiclv2` as a compatibility alias, not the preferred internal
-  organizing term.
-- Keep export and inference compatibility stable until a dedicated migration is
-  planned.
+- Use `tabfoundry` for the current family rather than a paper-derived,
+  versioned name.
+- Export and inference compatibility now follow the current family id; any
+  future rename must be planned as an explicit schema migration.
 - Optimize naming for future coexistence of multiple model families, data
   sources, and baseline-inspired variants.

@@ -1,8 +1,8 @@
 {
   "task": "classification",
-  "model_arch": "tabiclv2",
+  "model_arch": "tabfoundry",
   "group_shifts": [0, 1, 3],
-  "feature_group_size": 32,
+  "feature_group_size": 1,
   "many_class_threshold": 10,
   "many_class_inference_mode": "full_probs"
 }

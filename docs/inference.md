@@ -7,6 +7,8 @@ Related docs:
 - quickstart: `README.md`
 - workflow runbooks: `docs/workflows.md`
 - design decisions and repo structure: `docs/development/design-decisions.md`
+- architecture reference: `docs/development/model-architecture.md`
+- model config reference: `docs/development/model-config.md`
 - canonical roadmap: `docs/development/roadmap.md`
 
 Planning and architecture rationale live under `docs/development/`.
@@ -15,7 +17,7 @@ contract.
 
 ## Schema Version
 
-Current version: `tab-foundry-export-v1`
+Current version: `tab-foundry-export-v2`
 
 Any breaking change must increment the schema version.
 
@@ -38,7 +40,8 @@ Required keys:
 - `model`: `{arch, d_col, d_icl, feature_group_size, many_class_train_mode, max_mixed_radix_digits}`
   - Exporter also emits architecture reconstruction fields:
     `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed}`.
-  - Validators accept older manifests that omit these extra fields and apply v1 defaults.
+  - Validators accept manifests that omit these extra fields and apply the current model defaults.
+  - See `docs/development/model-config.md` for the meaning of each model field and the current canonical defaults.
 - `files`: `{weights, inference_config, preprocessor_state}`
 - `checksums`: sha256 for `weights`, `inference_config`, `preprocessor_state`
 - `created_at_utc`: ISO8601 UTC timestamp
@@ -48,7 +51,7 @@ Required keys:
 Required keys:
 
 - `task`
-- `model_arch` (`tabiclv2`)
+- `model_arch` (`tabfoundry`)
 - `group_shifts` (`[0, 1, 3]`)
 - `feature_group_size`
 - `many_class_threshold` (`10`)
@@ -79,17 +82,22 @@ Export from checkpoint:
 ```bash
 uv run tab-foundry export \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
-  --out-dir outputs/exports/cls_smoke_v1
+  --out-dir outputs/exports/cls_smoke_v2
 ```
 
 Validate bundle:
 
 ```bash
-uv run tab-foundry validate-export --bundle-dir outputs/exports/cls_smoke_v1
+uv run tab-foundry validate-export --bundle-dir outputs/exports/cls_smoke_v2
 ```
 
 ## Compatibility Policy
 
 - Training checkpoints remain unchanged and are still used for resume/training workflows.
-- Export bundles are additive and are the cross-repo inference handoff contract.
+- Export bundles are the cross-repo inference handoff contract.
+- `tab-foundry-export-v1` bundles are intentionally unsupported after the `tabfoundry` family rename and must be regenerated as `tab-foundry-export-v2`.
+- Checkpoint export/load now treats omitted `feature_group_size` as `1`. Legacy
+  grouped-token checkpoints that omitted that field are intentionally rejected
+  and must be regenerated or loaded with an explicit `feature_group_size`
+  override before export.
 - If a future version changes schema in a non-backward-compatible way, it must use a new `schema_version`.

@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-03-13
+
+### Added
+
+- Added an internal architecture reference at
+  `docs/development/model-architecture.md` that documents the
+  current tabfoundry transformer stack and its task heads.
+- Added `docs/development/model-config.md` as the dedicated reference for model
+  settings, defaults, and resolution precedence across train/eval/export/load.
+
+### Changed
+
+- Renamed the primary model family from `tabiclv2` to `tabfoundry`. Python
+  imports now use `tab_foundry.model.architectures.tabfoundry` with
+  `TabFoundryClassifier` and `TabFoundryRegressor`; the old module path and
+  class names were removed.
+- Export bundles now use `manifest.model.arch="tabfoundry"` and
+  `inference_config.model_arch="tabfoundry"` under the new
+  `tab-foundry-export-v2` schema. Existing `tab-foundry-export-v1` bundles are
+  intentionally unsupported and must be regenerated.
+- Reconciled `feature_group_size` defaults so omitted model settings now resolve
+  to the canonical per-feature default of `1` across Hydra config composition,
+  model spec fallback resolution, model construction, and repo-owned
+  benchmark/smoke workflows.
+- Checkpoint-backed eval/export/load no longer infer omitted
+  `feature_group_size` values from legacy grouped-token weights. Legacy
+  checkpoints without an explicit `feature_group_size` must now be regenerated
+  or loaded with an explicit override that matches the saved weights.
+- Updated internal planning, navigation, and contract docs to describe the
+  current family as `tabfoundry` and treat `TabICLv2` as an external reference
+  rather than the repo's persistent model identity.
+
 ## [0.1.3] - 2026-03-13
 
 ### Changed

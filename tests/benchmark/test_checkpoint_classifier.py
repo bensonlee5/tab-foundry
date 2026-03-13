@@ -4,12 +4,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
+from omegaconf import OmegaConf
 import pytest
 import torch
 from torch import nn
 
 import tab_foundry.bench.checkpoint as checkpoint_classifier
-from tab_foundry.model.architectures.tabiclv2 import ClassificationOutput
+from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
+from tab_foundry.model.factory import build_model
 from tab_foundry.types import TaskBatch
 
 
@@ -27,7 +29,11 @@ def test_tab_foundry_classifier_predicts_probabilities(
     tmp_path: Path,
 ) -> None:
     fake_spec = SimpleNamespace(task="classification")
-    monkeypatch.setattr(checkpoint_classifier, "model_build_spec_from_mappings", lambda **_kwargs: fake_spec)
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
     monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: _TinyClassifier())
 
     checkpoint = tmp_path / "tiny.pt"
@@ -40,3 +46,47 @@ def test_tab_foundry_classifier_predicts_probabilities(
 
     assert probabilities.shape == (3, 2)
     assert np.allclose(probabilities.sum(axis=1), 1.0, atol=1.0e-6)
+
+
+def test_load_checkpoint_classifier_model_rejects_legacy_grouped_weights_without_override(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "legacy.pt"
+    model = build_model(task="classification", feature_group_size=32)
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "config": {"task": "classification", "model": {}},
+        },
+        checkpoint,
+    )
+
+    with pytest.raises(ValueError, match="omitted feature_group_size"):
+        _ = checkpoint_classifier.load_checkpoint_classifier_model(
+            checkpoint,
+            device=torch.device("cpu"),
+        )
+
+
+def test_load_checkpoint_classifier_model_supports_explicit_override_for_legacy_weights(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "legacy.pt"
+    model = build_model(task="classification", feature_group_size=32)
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "config": {"task": "classification", "model": {}},
+        },
+        checkpoint,
+    )
+    cfg = OmegaConf.create({"model": {"feature_group_size": 32}})
+
+    loaded_model, spec = checkpoint_classifier.load_checkpoint_classifier_model(
+        checkpoint,
+        device=torch.device("cpu"),
+        cfg=cfg,
+    )
+
+    assert spec.feature_group_size == 32
+    assert getattr(loaded_model, "feature_group_size") == 32

@@ -23,7 +23,7 @@ Conventions:
 | Power Lines (2505.13738) | Refined scaling law fitting methodology improves prediction accuracy at small scales | BL-174 | Now | medium-high |
 | Broken Neural Scaling Laws (2210.14891) | Scaling curves have knees and plateaus that simple power laws miss; diagnostic methodology needed | BL-174 | Now | medium |
 | Scaling Data-Constrained LMs (2305.16264) | Data repetition and mixing strategies matter when synthetic data budget is fixed | BL-174 | Next | medium |
-| TabICLv2 (2602.11139) | QASS attention, feature tokenization, and staged training define the current architecture | BL-181, BL-172, BL-165 | Now | high |
+| TabICLv2 (2602.11139) | QASS attention, feature tokenization, and staged training informed the starting tabfoundry family | BL-181, BL-172, BL-165 | Now | high |
 | TabICL (2502.05564) | Curriculum and staged complexity training improves optimization behavior | BL-160 | Now | high |
 | TabPFN v2 (Nature, 2024) | Core PFN architecture patterns; attention mechanisms for in-context tabular learning | BL-181, BL-172 | Now | high |
 | Deep Sets (1703.06114) | Permutation invariance is the right default lens for row and column structure; sequence order should be justified, not assumed | BL-165, BL-167, BL-169 | Now | high |
@@ -61,20 +61,24 @@ Conventions:
 
 #### BL-171 — Neutral architecture naming and registry
 
-- TabICLv2 (2602.11139) defines the current architecture family.
-- The architecture doc calls for treating `tabiclv2` as a compatibility identifier, not the long-term taxonomy.
+- TabICLv2 (2602.11139) is the main external reference for the starting
+  tabfoundry family.
+- The architecture doc names the current family `tabfoundry` and treats the
+  TabICLv2 paper as an input, not the repo's long-term taxonomy.
 - No single paper drives this; it is a repo-organization decision informed by
   the multi-family direction in `docs/development/design-decisions.md`.
 
 #### BL-181 — Split reusable model components
 
-- TabICLv2 (2602.11139): defines QASS attention, feature tokenization, and target conditioning as separable components.
+- TabICLv2 (2602.11139): external reference defining QASS attention, feature
+  tokenization, and target conditioning as separable components.
 - TabPFN v2 (Nature): core attention patterns that should be reusable across families.
 - Success signal: components can be composed independently without architecture-specific coupling.
 
 #### BL-172 — Modular QASS and non-QASS backbone
 
-- TabICLv2 (2602.11139): defines the QASS mechanism and its role in the architecture.
+- TabICLv2 (2602.11139): external reference defining the QASS mechanism and
+  its role in the architecture.
 - The design decisions doc: QASS remains optional rather than structurally
   mandatory.
 - Success signal: a non-QASS variant trains and evaluates through the same pipeline.
@@ -128,7 +132,8 @@ Conventions:
 - On Embeddings for Numerical Features in Tabular Deep Learning (2203.05556): numerical and ordinal columns should usually start from numeric-style encoders.
 - Entity Embeddings of Categorical Variables (1604.06737): learned categorical embeddings are part of the core tokenization reference set.
 - TabTransformer (2012.06678): benchmark-first contextualization for categorical columns.
-- TabICLv2 (2602.11139): current tokenization approach.
+- TabICLv2 (2602.11139): starting tokenization reference for the current
+  tabfoundry family.
 - Deep Sets (1703.06114) and Set Transformer (1810.00825): typed-column-encoder changes should preserve the repo's set-structured view of rows and columns.
 - A Closer Look at TabPFN v2 (2502.17361): meta-feature sensitivity.
 - Success signal: tokenization variant produces measurable difference in scaling behavior.
@@ -136,7 +141,8 @@ Conventions:
 #### BL-166 — Target conditioning ablation
 
 - EquiTabPFN (2502.06684): target-permutation equivariance.
-- TabICLv2 (2602.11139): current target conditioning approach.
+- TabICLv2 (2602.11139): starting target conditioning reference for the current
+  tabfoundry family.
 - Success signal: conditioning variant produces measurable difference in label-space robustness.
 
 #### BL-167 — Repeated asymmetric row attention ablation
@@ -152,7 +158,7 @@ Conventions:
 
 #### BL-169 — QASS and encoder simplification ablation
 
-- TabICLv2 (2602.11139): defines the QASS mechanism.
+- TabICLv2 (2602.11139): external reference defining the QASS mechanism.
 - nanochat: `ReLU^2`, pre-norm residual simplicity, and compact-transformer recipe choices are strong simplification candidates when they do not rely on sequence order.
 - Deep Sets (1703.06114) and Set Transformer (1810.00825): simplification should preserve set structure rather than importing language-sequence assumptions.
 - A Closer Look at TabPFN v2 (2502.17361): analysis of architectural strengths/limitations.
