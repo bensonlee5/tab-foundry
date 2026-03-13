@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from tab_foundry.export.contracts import (
+    ExportModelSpec,
     validate_inference_config_dict,
     validate_manifest_dict,
     validate_preprocessor_state_dict,
@@ -25,6 +26,56 @@ def test_manifest_fixture_validates() -> None:
     assert manifest.task == "classification"
     assert manifest.model.tfcol_n_heads == 8
     assert manifest.model.tficl_n_layers == 12
+    assert manifest.model.many_class_base == 10
+    assert manifest.model.head_hidden_dim == 1024
+    assert manifest.model.use_digit_position_embed is True
+
+
+def test_manifest_fixture_model_roundtrips_through_canonical_build_spec() -> None:
+    payload = _load_fixture("manifest_v1.json")
+    manifest = validate_manifest_dict(payload)
+
+    build_spec = manifest.model.to_build_spec(task=manifest.task)
+    roundtrip = ExportModelSpec.from_build_spec(build_spec)
+
+    assert roundtrip.to_dict() == manifest.model.to_dict()
+    assert build_spec.task == "classification"
+    assert build_spec.input_normalization == "none"
+
+
+def test_manifest_validation_applies_model_defaults_via_canonical_spec() -> None:
+    payload = _load_fixture("manifest_v1.json")
+    model_raw = payload["model"]
+    assert isinstance(model_raw, dict)
+    model_payload = dict(model_raw)
+    for key in (
+        "tfcol_n_heads",
+        "tfcol_n_layers",
+        "tfcol_n_inducing",
+        "tfrow_n_heads",
+        "tfrow_n_layers",
+        "tfrow_cls_tokens",
+        "tficl_n_heads",
+        "tficl_n_layers",
+        "tficl_ff_expansion",
+        "many_class_base",
+        "head_hidden_dim",
+        "use_digit_position_embed",
+    ):
+        model_payload.pop(key, None)
+    payload["model"] = model_payload
+
+    manifest = validate_manifest_dict(payload)
+
+    assert manifest.model.tfcol_n_heads == 8
+    assert manifest.model.tfcol_n_layers == 3
+    assert manifest.model.tfcol_n_inducing == 128
+    assert manifest.model.tfrow_n_heads == 8
+    assert manifest.model.tfrow_n_layers == 3
+    assert manifest.model.tfrow_cls_tokens == 4
+    assert manifest.model.tficl_n_heads == 8
+    assert manifest.model.tficl_n_layers == 12
+    assert manifest.model.tficl_ff_expansion == 2
     assert manifest.model.many_class_base == 10
     assert manifest.model.head_hidden_dim == 1024
     assert manifest.model.use_digit_position_embed is True

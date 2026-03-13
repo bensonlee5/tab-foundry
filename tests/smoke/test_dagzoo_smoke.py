@@ -5,51 +5,9 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
-from omegaconf import OmegaConf
-
 import tab_foundry.bench.dagzoo_smoke as smoke_module
 from tab_foundry.data.manifest import ManifestSummary
 from tab_foundry.types import EvalResult, TrainResult
-
-
-def _base_cfg() -> Any:
-    return OmegaConf.create(
-        {
-            "task": "classification",
-            "model": {},
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
-            "runtime": {
-                "seed": 1,
-                "num_workers": 0,
-                "output_dir": "unused",
-                "device": "cpu",
-                "mixed_precision": "no",
-                "grad_clip": 1.0,
-                "grad_accum_steps": 1,
-                "eval_every": 1,
-                "checkpoint_every": None,
-                "val_batches": 1,
-            },
-            "schedule": {"stages": [{"name": "stage1", "steps": 10, "lr_max": 1.0e-3}]},
-            "optimizer": {
-                "name": "adamw",
-                "weight_decay": 0.0,
-                "betas": [0.9, 0.95],
-                "require_requested": False,
-                "muon_per_parameter_lr": False,
-                "muon_lr_scale_base": 0.2,
-                "muon_partition_non2d": True,
-                "min_lr": 1.0e-4,
-            },
-            "logging": {
-                "use_wandb": False,
-                "project": "test",
-                "run_name": "test",
-                "history_jsonl_path": None,
-            },
-            "eval": {"checkpoint": None, "split": "val", "max_batches": 128},
-        }
-    )
 
 
 def test_build_parser_defaults_match_indicative_profile() -> None:
@@ -118,9 +76,6 @@ def test_run_dagzoo_smoke_writes_expected_telemetry(
         captured["dagzoo_cwd"] = cwd
         captured["dagzoo_check"] = check
         return subprocess.CompletedProcess(cmd, 0)
-
-    def _fake_compose_config(_overrides: list[str]) -> Any:
-        return _base_cfg()
 
     def _fake_build_manifest(**_kwargs: Any) -> ManifestSummary:
         return ManifestSummary(
@@ -193,7 +148,6 @@ def test_run_dagzoo_smoke_writes_expected_telemetry(
         return EvalResult(checkpoint=Path(str(cfg.eval.checkpoint)), metrics={"loss": 0.7, "acc": 0.8})
 
     monkeypatch.setattr(smoke_module.subprocess, "run", _fake_run)
-    monkeypatch.setattr(smoke_module, "compose_config", _fake_compose_config)
     monkeypatch.setattr(smoke_module, "build_manifest", _fake_build_manifest)
     monkeypatch.setattr(smoke_module, "train", _fake_train)
     monkeypatch.setattr(smoke_module, "evaluate_checkpoint", _fake_eval)
@@ -215,8 +169,12 @@ def test_run_dagzoo_smoke_writes_expected_telemetry(
 
     train_stage = captured["train_cfg"].schedule.stages[0]
     assert int(train_stage["steps"]) == 250
+    assert int(captured["train_cfg"].data.train_row_cap) == 96
+    assert int(captured["train_cfg"].data.test_row_cap) == 48
     assert str(captured["train_cfg"].runtime.device) == "cpu"
     assert int(captured["train_cfg"].runtime.checkpoint_every) == 25
+    assert int(captured["eval_cfg"].data.train_row_cap) == 96
+    assert int(captured["eval_cfg"].data.test_row_cap) == 48
     assert str(captured["eval_cfg"].eval.split) == "test"
 
     telemetry_path = out_root / "telemetry.json"

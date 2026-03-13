@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 import json
 
+from tab_foundry.model.spec import (
+    ModelBuildSpec,
+    model_build_spec_from_mappings,
+)
+
 
 SCHEMA_VERSION_V1 = "tab-foundry-export-v1"
 SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V1,)
 SUPPORTED_TASKS = ("classification", "regression")
-SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
 SUPPORTED_MANY_CLASS_INFERENCE_MODES = ("full_probs",)
 SUPPORTED_UNSEEN_TEST_LABEL_POLICIES = ("filter",)
 EXPECTED_GROUP_SHIFTS = [0, 1, 3]
@@ -25,18 +29,6 @@ EXPECTED_DTYPE_POLICY = {
     "classification_labels": "int64",
     "regression_targets": "float32",
 }
-DEFAULT_TFCOL_N_HEADS = 8
-DEFAULT_TFCOL_N_LAYERS = 3
-DEFAULT_TFCOL_N_INDUCING = 128
-DEFAULT_TFROW_N_HEADS = 8
-DEFAULT_TFROW_N_LAYERS = 3
-DEFAULT_TFROW_CLS_TOKENS = 4
-DEFAULT_TFICL_N_HEADS = 8
-DEFAULT_TFICL_N_LAYERS = 12
-DEFAULT_TFICL_FF_EXPANSION = 2
-DEFAULT_MANY_CLASS_BASE = 10
-DEFAULT_HEAD_HIDDEN_DIM = 1024
-DEFAULT_USE_DIGIT_POSITION_EMBED = True
 
 
 @dataclass(slots=True)
@@ -66,6 +58,61 @@ class ExportModelSpec:
     many_class_base: int
     head_hidden_dim: int
     use_digit_position_embed: bool
+
+    @classmethod
+    def from_build_spec(
+        cls,
+        spec: ModelBuildSpec,
+        *,
+        arch: str = "tabiclv2",
+    ) -> "ExportModelSpec":
+        return cls(
+            arch=str(arch),
+            d_col=int(spec.d_col),
+            d_icl=int(spec.d_icl),
+            feature_group_size=int(spec.feature_group_size),
+            many_class_train_mode=str(spec.many_class_train_mode),
+            max_mixed_radix_digits=int(spec.max_mixed_radix_digits),
+            tfcol_n_heads=int(spec.tfcol_n_heads),
+            tfcol_n_layers=int(spec.tfcol_n_layers),
+            tfcol_n_inducing=int(spec.tfcol_n_inducing),
+            tfrow_n_heads=int(spec.tfrow_n_heads),
+            tfrow_n_layers=int(spec.tfrow_n_layers),
+            tfrow_cls_tokens=int(spec.tfrow_cls_tokens),
+            tficl_n_heads=int(spec.tficl_n_heads),
+            tficl_n_layers=int(spec.tficl_n_layers),
+            tficl_ff_expansion=int(spec.tficl_ff_expansion),
+            many_class_base=int(spec.many_class_base),
+            head_hidden_dim=int(spec.head_hidden_dim),
+            use_digit_position_embed=bool(spec.use_digit_position_embed),
+        )
+
+    def to_build_spec(self, task: str) -> ModelBuildSpec:
+        return model_build_spec_from_mappings(
+            task=task,
+            primary={
+                "d_col": self.d_col,
+                "d_icl": self.d_icl,
+                "feature_group_size": self.feature_group_size,
+                "many_class_train_mode": self.many_class_train_mode,
+                "max_mixed_radix_digits": self.max_mixed_radix_digits,
+                "tfcol_n_heads": self.tfcol_n_heads,
+                "tfcol_n_layers": self.tfcol_n_layers,
+                "tfcol_n_inducing": self.tfcol_n_inducing,
+                "tfrow_n_heads": self.tfrow_n_heads,
+                "tfrow_n_layers": self.tfrow_n_layers,
+                "tfrow_cls_tokens": self.tfrow_cls_tokens,
+                "tficl_n_heads": self.tficl_n_heads,
+                "tficl_n_layers": self.tficl_n_layers,
+                "tficl_ff_expansion": self.tficl_ff_expansion,
+                "many_class_base": self.many_class_base,
+                "head_hidden_dim": self.head_hidden_dim,
+                "use_digit_position_embed": self.use_digit_position_embed,
+            },
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(asdict(self))
 
 
 @dataclass(slots=True)
@@ -165,6 +212,47 @@ def _as_float(value: Any, *, context: str) -> float:
     return float(value)
 
 
+def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
+    primary: dict[str, Any] = {
+        "d_col": _as_int(model_raw["d_col"], context="manifest.model.d_col"),
+        "d_icl": _as_int(model_raw["d_icl"], context="manifest.model.d_icl"),
+        "feature_group_size": _as_int(
+            model_raw["feature_group_size"],
+            context="manifest.model.feature_group_size",
+        ),
+        "many_class_train_mode": _as_str(
+            model_raw["many_class_train_mode"],
+            context="manifest.model.many_class_train_mode",
+        ),
+        "max_mixed_radix_digits": _as_int(
+            model_raw["max_mixed_radix_digits"],
+            context="manifest.model.max_mixed_radix_digits",
+        ),
+    }
+    optional_fields: tuple[tuple[str, str], ...] = (
+        ("tfcol_n_heads", "manifest.model.tfcol_n_heads"),
+        ("tfcol_n_layers", "manifest.model.tfcol_n_layers"),
+        ("tfcol_n_inducing", "manifest.model.tfcol_n_inducing"),
+        ("tfrow_n_heads", "manifest.model.tfrow_n_heads"),
+        ("tfrow_n_layers", "manifest.model.tfrow_n_layers"),
+        ("tfrow_cls_tokens", "manifest.model.tfrow_cls_tokens"),
+        ("tficl_n_heads", "manifest.model.tficl_n_heads"),
+        ("tficl_n_layers", "manifest.model.tficl_n_layers"),
+        ("tficl_ff_expansion", "manifest.model.tficl_ff_expansion"),
+        ("many_class_base", "manifest.model.many_class_base"),
+        ("head_hidden_dim", "manifest.model.head_hidden_dim"),
+    )
+    for field_name, context in optional_fields:
+        if field_name in model_raw:
+            primary[field_name] = _as_int(model_raw[field_name], context=context)
+    if "use_digit_position_embed" in model_raw:
+        primary["use_digit_position_embed"] = _as_bool(
+            model_raw["use_digit_position_embed"],
+            context="manifest.model.use_digit_position_embed",
+        )
+    return primary
+
+
 def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
     _require_keys(
         payload,
@@ -229,96 +317,11 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
     arch = _as_str(model_raw["arch"], context="manifest.model.arch")
     if arch != "tabiclv2":
         raise ValueError(f"Unsupported model arch: {arch!r}")
-    many_class_train_mode = _as_str(
-        model_raw["many_class_train_mode"],
-        context="manifest.model.many_class_train_mode",
+    model_spec = model_build_spec_from_mappings(
+        task=task,
+        primary=_manifest_model_primary_dict(model_raw),
     )
-    if many_class_train_mode not in SUPPORTED_MANY_CLASS_TRAIN_MODES:
-        raise ValueError(f"Unsupported many_class_train_mode: {many_class_train_mode!r}")
-
-    model = ExportModelSpec(
-        arch=arch,
-        d_col=_as_int(model_raw["d_col"], context="manifest.model.d_col"),
-        d_icl=_as_int(model_raw["d_icl"], context="manifest.model.d_icl"),
-        feature_group_size=_as_int(
-            model_raw["feature_group_size"],
-            context="manifest.model.feature_group_size",
-        ),
-        many_class_train_mode=many_class_train_mode,
-        max_mixed_radix_digits=_as_int(
-            model_raw["max_mixed_radix_digits"],
-            context="manifest.model.max_mixed_radix_digits",
-        ),
-        tfcol_n_heads=_as_int(
-            model_raw.get("tfcol_n_heads", DEFAULT_TFCOL_N_HEADS),
-            context="manifest.model.tfcol_n_heads",
-        ),
-        tfcol_n_layers=_as_int(
-            model_raw.get("tfcol_n_layers", DEFAULT_TFCOL_N_LAYERS),
-            context="manifest.model.tfcol_n_layers",
-        ),
-        tfcol_n_inducing=_as_int(
-            model_raw.get("tfcol_n_inducing", DEFAULT_TFCOL_N_INDUCING),
-            context="manifest.model.tfcol_n_inducing",
-        ),
-        tfrow_n_heads=_as_int(
-            model_raw.get("tfrow_n_heads", DEFAULT_TFROW_N_HEADS),
-            context="manifest.model.tfrow_n_heads",
-        ),
-        tfrow_n_layers=_as_int(
-            model_raw.get("tfrow_n_layers", DEFAULT_TFROW_N_LAYERS),
-            context="manifest.model.tfrow_n_layers",
-        ),
-        tfrow_cls_tokens=_as_int(
-            model_raw.get("tfrow_cls_tokens", DEFAULT_TFROW_CLS_TOKENS),
-            context="manifest.model.tfrow_cls_tokens",
-        ),
-        tficl_n_heads=_as_int(
-            model_raw.get("tficl_n_heads", DEFAULT_TFICL_N_HEADS),
-            context="manifest.model.tficl_n_heads",
-        ),
-        tficl_n_layers=_as_int(
-            model_raw.get("tficl_n_layers", DEFAULT_TFICL_N_LAYERS),
-            context="manifest.model.tficl_n_layers",
-        ),
-        tficl_ff_expansion=_as_int(
-            model_raw.get("tficl_ff_expansion", DEFAULT_TFICL_FF_EXPANSION),
-            context="manifest.model.tficl_ff_expansion",
-        ),
-        many_class_base=_as_int(
-            model_raw.get("many_class_base", DEFAULT_MANY_CLASS_BASE),
-            context="manifest.model.many_class_base",
-        ),
-        head_hidden_dim=_as_int(
-            model_raw.get("head_hidden_dim", DEFAULT_HEAD_HIDDEN_DIM),
-            context="manifest.model.head_hidden_dim",
-        ),
-        use_digit_position_embed=_as_bool(
-            model_raw.get("use_digit_position_embed", DEFAULT_USE_DIGIT_POSITION_EMBED),
-            context="manifest.model.use_digit_position_embed",
-        ),
-    )
-    if model.d_col <= 0 or model.d_icl <= 0:
-        raise ValueError("manifest model dimensions must be positive")
-    if model.feature_group_size <= 0 or model.max_mixed_radix_digits <= 0:
-        raise ValueError("manifest model grouping/mixed-radix parameters must be positive")
-    for name, value in (
-        ("tfcol_n_heads", model.tfcol_n_heads),
-        ("tfcol_n_layers", model.tfcol_n_layers),
-        ("tfcol_n_inducing", model.tfcol_n_inducing),
-        ("tfrow_n_heads", model.tfrow_n_heads),
-        ("tfrow_n_layers", model.tfrow_n_layers),
-        ("tfrow_cls_tokens", model.tfrow_cls_tokens),
-        ("tficl_n_heads", model.tficl_n_heads),
-        ("tficl_n_layers", model.tficl_n_layers),
-        ("tficl_ff_expansion", model.tficl_ff_expansion),
-        ("many_class_base", model.many_class_base),
-        ("head_hidden_dim", model.head_hidden_dim),
-    ):
-        if value <= 0:
-            raise ValueError(f"manifest.model.{name} must be positive")
-    if model.many_class_base <= 1:
-        raise ValueError("manifest.model.many_class_base must be >= 2")
+    model = ExportModelSpec.from_build_spec(model_spec, arch=arch)
 
     files_raw = payload["files"]
     if not isinstance(files_raw, dict):

@@ -71,6 +71,7 @@ def test_run_iris_smoke_expands_task_count_until_test_split_exists(
     tmp_path: Path,
 ) -> None:
     captured_task_counts: list[int] = []
+    captured_cfg: dict[str, Any] = {}
     build_calls = {"count": 0}
 
     def _fake_write_iris_tasks(
@@ -112,6 +113,7 @@ def test_run_iris_smoke_expands_task_count_until_test_split_exists(
         )
 
     def _fake_train(cfg: Any) -> TrainResult:
+        captured_cfg["train_cfg"] = cfg
         history_path = Path(str(cfg.logging.history_jsonl_path))
         history_path.parent.mkdir(parents=True, exist_ok=True)
         history_path.write_text(
@@ -149,13 +151,18 @@ def test_run_iris_smoke_expands_task_count_until_test_split_exists(
     monkeypatch.setattr(iris_smoke_module, "_write_iris_tasks", _fake_write_iris_tasks)
     monkeypatch.setattr(iris_smoke_module, "build_manifest", _fake_build_manifest)
     monkeypatch.setattr(iris_smoke_module, "train", _fake_train)
+
+    def _fake_evaluate_checkpoint(cfg: Any, *_args: Any, **_kwargs: Any) -> EvalResult:
+        captured_cfg["eval_cfg"] = cfg
+        return EvalResult(
+            checkpoint=tmp_path / "best.pt",
+            metrics={"loss": 0.5, "acc": 0.8},
+        )
+
     monkeypatch.setattr(
         iris_smoke_module,
         "evaluate_checkpoint",
-        lambda *_args, **_kwargs: EvalResult(
-            checkpoint=tmp_path / "best.pt",
-            metrics={"loss": 0.5, "acc": 0.8},
-        ),
+        _fake_evaluate_checkpoint,
     )
     monkeypatch.setattr(
         iris_smoke_module,
@@ -172,6 +179,11 @@ def test_run_iris_smoke_expands_task_count_until_test_split_exists(
 
     assert telemetry["success"] is True
     assert captured_task_counts == [64, 128]
+    assert captured_cfg["train_cfg"].data.train_row_cap is None
+    assert captured_cfg["train_cfg"].data.test_row_cap is None
+    assert [int(stage["steps"]) for stage in captured_cfg["train_cfg"].schedule.stages] == [4, 2]
+    assert captured_cfg["eval_cfg"].data.train_row_cap is None
+    assert captured_cfg["eval_cfg"].data.test_row_cap is None
     assert telemetry["config"]["final_num_tasks"] == 128
     assert telemetry["manifest"]["test_records"] == 8
     assert (tmp_path / "run" / "summary.md").exists()
