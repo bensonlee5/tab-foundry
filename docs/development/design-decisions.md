@@ -8,7 +8,7 @@ Related docs:
 - quickstart: `README.md`
 - workflow runbooks: `docs/workflows.md`
 - canonical roadmap: `docs/development/roadmap.md`
-- architecture reference: `docs/development/tabfoundry-transformer-architecture.md`
+- architecture reference: `docs/development/model-architecture.md`
 - codebase navigation: `docs/development/codebase-navigation.md`
 - maintained dependency map: `docs/development/module-dependency-map.md`
 - reference index: `reference/README.md`

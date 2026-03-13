@@ -7,7 +7,7 @@ Related docs:
 - quickstart: `README.md`
 - workflow runbooks: `docs/workflows.md`
 - design decisions and repo structure: `docs/development/design-decisions.md`
-- architecture reference: `docs/development/tabfoundry-transformer-architecture.md`
+- architecture reference: `docs/development/model-architecture.md`
 - canonical roadmap: `docs/development/roadmap.md`
 
 Planning and architecture rationale live under `docs/development/`.

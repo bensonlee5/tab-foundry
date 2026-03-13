@@ -11,11 +11,13 @@ from typing import Any, Sequence
 
 from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
 from tab_foundry.bench.nanotabpfn import (
+    default_benchmark_bundle_path,
     build_comparison_summary,
     evaluate_tab_foundry_run,
-    materialize_benchmark_bundle,
+    load_benchmark_bundle,
+    load_openml_benchmark_datasets,
     plot_comparison_curve,
-    prepare_benchmark_bundle,
+    save_dataset_cache,
 )
 
 
@@ -32,7 +34,6 @@ class NanoTabPFNBenchmarkConfig:
 
     tab_foundry_run_dir: Path
     out_root: Path
-    benchmark_bundle_dir: Path | None = None
     nanotabpfn_root: Path = Path("~/dev/nanoTabPFN")
     nanotab_prior_dump: Path | None = None
     device: str = "auto"
@@ -124,20 +125,23 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     out_root.mkdir(parents=True, exist_ok=True)
 
     benchmark_tasks_path = out_root / "benchmark_tasks.json"
+    dataset_cache_path = out_root / "benchmark_dataset_cache.npz"
     tab_foundry_curve_path = out_root / "tab_foundry_curve.jsonl"
     nanotabpfn_curve_path = out_root / "nanotabpfn_curve.jsonl"
     comparison_curve_path = out_root / "comparison_curve.png"
     comparison_summary_path = out_root / "comparison_summary.json"
+    benchmark_bundle_path = default_benchmark_bundle_path()
+    benchmark_bundle = load_benchmark_bundle(benchmark_bundle_path)
 
-    if config.benchmark_bundle_dir is None:
-        benchmark_bundle = materialize_benchmark_bundle(out_root)
-    else:
-        benchmark_bundle = prepare_benchmark_bundle(config.benchmark_bundle_dir)
-    write_json(benchmark_tasks_path, benchmark_bundle.benchmark_inputs["benchmark_tasks"])
+    datasets, benchmark_tasks = load_openml_benchmark_datasets(
+        benchmark_bundle_path=benchmark_bundle_path,
+    )
+    write_json(benchmark_tasks_path, benchmark_bundle)
+    save_dataset_cache(dataset_cache_path, datasets)
 
     tab_foundry_records = evaluate_tab_foundry_run(
         tab_foundry_run_dir,
-        datasets=benchmark_bundle.datasets,
+        datasets=datasets,
         device=config.device,
     )
     write_jsonl(tab_foundry_curve_path, tab_foundry_records)
@@ -145,7 +149,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     subprocess.run(
         _nanotabpfn_helper_command(
             config=config,
-            dataset_cache=benchmark_bundle.dataset_cache_path,
+            dataset_cache=dataset_cache_path,
             out_path=nanotabpfn_curve_path,
         ),
         cwd=nanotabpfn_root,
@@ -163,23 +167,19 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     summary = build_comparison_summary(
         tab_foundry_records=tab_foundry_records,
         nanotabpfn_records=nanotabpfn_records,
-        benchmark_inputs={
-            **benchmark_bundle.benchmark_inputs,
-            "bundle_dir": str(benchmark_bundle.bundle_dir),
-            "cache_path": str(benchmark_bundle.dataset_cache_path),
-            "source": benchmark_bundle.source,
-        },
+        benchmark_tasks=benchmark_tasks,
+        benchmark_bundle=benchmark_bundle,
+        benchmark_bundle_path=benchmark_bundle_path,
         tab_foundry_run_dir=tab_foundry_run_dir,
         nanotabpfn_root=nanotabpfn_root,
         nanotabpfn_python=_nanotabpfn_python(nanotabpfn_root),
     )
     summary["artifacts"] = {
-        "benchmark_inputs_json": str(benchmark_bundle.benchmark_inputs_path),
         "benchmark_tasks_json": str(benchmark_tasks_path),
         "tab_foundry_curve_jsonl": str(tab_foundry_curve_path),
         "nanotabpfn_curve_jsonl": str(nanotabpfn_curve_path),
         "comparison_curve_png": str(comparison_curve_path),
-        "benchmark_dataset_cache": str(benchmark_bundle.dataset_cache_path),
+        "benchmark_dataset_cache": str(dataset_cache_path),
     }
     write_json(comparison_summary_path, summary)
     return summary
@@ -195,11 +195,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--nanotabpfn-root", default="~/dev/nanoTabPFN", help="Local nanoTabPFN checkout")
     parser.add_argument("--nanotab-prior-dump", default=None, help="Path to nanoTabPFN prior dump (.h5)")
     parser.add_argument("--out-root", default=None, help="Output directory root")
-    parser.add_argument(
-        "--benchmark-bundle-dir",
-        default=None,
-        help="Optional benchmark bundle directory for reusing pinned benchmark inputs across runs",
-    )
     parser.add_argument(
         "--device",
         default="auto",
@@ -228,7 +223,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         NanoTabPFNBenchmarkConfig(
             tab_foundry_run_dir=Path(str(args.tab_foundry_run_dir)),
             out_root=_default_out_root() if args.out_root is None else Path(str(args.out_root)),
-            benchmark_bundle_dir=(Path(str(args.benchmark_bundle_dir)) if args.benchmark_bundle_dir else None),
             nanotabpfn_root=Path(str(args.nanotabpfn_root)),
             nanotab_prior_dump=(Path(str(args.nanotab_prior_dump)) if args.nanotab_prior_dump else None),
             device=str(args.device),

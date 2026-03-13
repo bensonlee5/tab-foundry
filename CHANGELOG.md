@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added an internal architecture reference at
-  `docs/development/tabfoundry-transformer-architecture.md` that documents the
+  `docs/development/model-architecture.md` that documents the
   current tabfoundry transformer stack and its task heads.
 
 ### Changed
@@ -29,22 +29,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.3] - 2026-03-13
 
-### Added
-
-- Added a pinned benchmark bundle contract for the `nanoTabPFN` comparison
-  flow. Comparison runs now materialize `benchmark_inputs.json` plus
-  `benchmark_dataset_cache.npz` in the benchmark output directory, and
-  `--benchmark-bundle-dir` opts into reusing a pinned bundle across repeated
-  confirmatory runs.
-
 ### Changed
 
-- Benchmark comparisons now fail fast on benchmark task-id drift, task-count or
-  task-order drift, dataset-cache checksum mismatches, and cache-vs-metadata
-  name mismatches before checkpoint evaluation starts.
-- `comparison_summary.json` now includes a `benchmark_inputs` block and the
-  artifact set now records the pinned `benchmark_inputs.json` path alongside
-  the benchmark dataset cache path.
+- Pinned the canonical nanoTabPFN/OpenML benchmark bundle in
+  `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json` and made the
+  benchmark load path fail fast on selection-threshold, task-list, and
+  task-metadata drift.
+- Updated benchmark comparison runs so `benchmark_tasks.json` now persists the
+  exact pinned benchmark bundle used for the run, and
+  `comparison_summary.json` now includes additive `benchmark_bundle` metadata
+  with name, version, source path, task count, and task IDs.
+- Tightened the benchmark bundle schema so `selection` now requires the raw
+  OpenML thresholds for row count, task type, feature count, class count,
+  missingness, and minority-class percentage; older ad hoc bundle files
+  without those fields now fail to load.
+- Normalized `TF-RD-002` to implemented in the canonical roadmap and marked the
+  TF-RD-001 kickoff on the tracker around pinned benchmark-input discipline.
 
 ## [0.1.2] - 2026-03-13
 

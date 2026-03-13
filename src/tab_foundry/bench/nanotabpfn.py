@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 import json
 import math
 from pathlib import Path
@@ -19,83 +18,13 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, LabelEncoder, OrdinalEncoder
 
-from tab_foundry.bench.artifacts import checkpoint_snapshots_from_history, write_json
-from tab_foundry.export.checksums import sha256_file
+from tab_foundry.bench.artifacts import checkpoint_snapshots_from_history
 
 
-NANOTABPFN_TASK_IDS: tuple[int, ...] = (
-    363612,
-    363613,
-    363614,
-    363615,
-    363616,
-    363618,
-    363619,
-    363620,
-    363621,
-    363623,
-    363624,
-    363625,
-    363626,
-    363627,
-    363628,
-    363629,
-    363630,
-    363631,
-    363632,
-    363671,
-    363672,
-    363673,
-    363674,
-    363675,
-    363676,
-    363677,
-    363678,
-    363679,
-    363681,
-    363682,
-    363683,
-    363684,
-    363685,
-    363686,
-    363689,
-    363691,
-    363693,
-    363694,
-    363696,
-    363697,
-    363698,
-    363699,
-    363700,
-    363702,
-    363704,
-    363705,
-    363706,
-    363707,
-    363708,
-    363711,
-    363712,
-)
-
-BENCHMARK_INPUTS_FILENAME = "benchmark_inputs.json"
-BENCHMARK_DATASET_CACHE_FILENAME = "benchmark_dataset_cache.npz"
-DEFAULT_BENCHMARK_MAX_FEATURES = 10
-DEFAULT_BENCHMARK_NEW_INSTANCES = 200
-DEFAULT_BENCHMARK_TARGET_CLASSES_FILTER = 2
+BENCHMARK_BUNDLE_FILENAME = "nanotabpfn_openml_benchmark_v1.json"
+_BUNDLE_SELECTION_TASK_TYPE = "supervised_classification"
 
 _SKF = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
-
-
-@dataclass(frozen=True, slots=True)
-class BenchmarkBundle:
-    """Pinned benchmark bundle metadata and resolved dataset cache."""
-
-    bundle_dir: Path
-    benchmark_inputs_path: Path
-    dataset_cache_path: Path
-    datasets: dict[str, tuple[np.ndarray, np.ndarray]]
-    benchmark_inputs: dict[str, Any]
-    source: str
 
 
 def get_feature_preprocessor(x: np.ndarray | pd.DataFrame) -> ColumnTransformer:
@@ -140,66 +69,238 @@ def get_feature_preprocessor(x: np.ndarray | pd.DataFrame) -> ColumnTransformer:
     )
 
 
-def _canonical_task_ids() -> list[int]:
-    return [int(task_id) for task_id in NANOTABPFN_TASK_IDS]
+def default_benchmark_bundle_path() -> Path:
+    """Return the repo-tracked canonical benchmark bundle path."""
+
+    return Path(__file__).resolve().with_name(BENCHMARK_BUNDLE_FILENAME)
 
 
-def _benchmark_loader_config(
-    *,
-    max_features: int = DEFAULT_BENCHMARK_MAX_FEATURES,
-    new_instances: int = DEFAULT_BENCHMARK_NEW_INSTANCES,
-    target_classes_filter: int = DEFAULT_BENCHMARK_TARGET_CLASSES_FILTER,
-) -> dict[str, int]:
+def _normalize_selection(payload: Any) -> dict[str, Any]:
+    """Validate and normalize benchmark bundle selection metadata."""
+
+    if not isinstance(payload, dict):
+        raise RuntimeError("benchmark bundle selection must be an object")
+    expected_keys = {
+        "new_instances",
+        "task_type",
+        "max_features",
+        "max_classes",
+        "max_missing_pct",
+        "min_minority_class_pct",
+    }
+    actual_keys = set(payload.keys())
+    if actual_keys != expected_keys:
+        raise RuntimeError(
+            "benchmark bundle selection keys mismatch: "
+            f"missing={sorted(expected_keys - actual_keys)}, "
+            f"extra={sorted(actual_keys - expected_keys)}"
+        )
+
+    new_instances = payload["new_instances"]
+    task_type = payload["task_type"]
+    max_features = payload["max_features"]
+    max_classes = payload["max_classes"]
+    max_missing_pct = payload["max_missing_pct"]
+    min_minority_class_pct = payload["min_minority_class_pct"]
+
+    if not isinstance(new_instances, int) or isinstance(new_instances, bool) or new_instances <= 0:
+        raise RuntimeError("benchmark bundle selection.new_instances must be a positive int")
+    if task_type != _BUNDLE_SELECTION_TASK_TYPE:
+        raise RuntimeError(
+            "benchmark bundle selection.task_type must be "
+            f"{_BUNDLE_SELECTION_TASK_TYPE!r}"
+        )
+    if not isinstance(max_features, int) or isinstance(max_features, bool) or max_features <= 0:
+        raise RuntimeError("benchmark bundle selection.max_features must be a positive int")
+    if not isinstance(max_classes, int) or isinstance(max_classes, bool) or max_classes <= 0:
+        raise RuntimeError("benchmark bundle selection.max_classes must be a positive int")
+    if not isinstance(max_missing_pct, (int, float)) or not 0 <= float(max_missing_pct) <= 100:
+        raise RuntimeError("benchmark bundle selection.max_missing_pct must be a percentage between 0 and 100")
+    if not isinstance(min_minority_class_pct, (int, float)) or not 0 <= float(min_minority_class_pct) <= 100:
+        raise RuntimeError(
+            "benchmark bundle selection.min_minority_class_pct must be a percentage between 0 and 100"
+        )
     return {
-        "max_features": int(max_features),
         "new_instances": int(new_instances),
-        "target_classes_filter": int(target_classes_filter),
+        "task_type": str(task_type),
+        "max_features": int(max_features),
+        "max_classes": int(max_classes),
+        "max_missing_pct": float(max_missing_pct),
+        "min_minority_class_pct": float(min_minority_class_pct),
+    }
+
+
+def _read_required_quality(raw_qualities: Any, *, task_id: int, quality_name: str) -> float:
+    """Read a numeric OpenML quality and raise a drift error if it is missing."""
+
+    if not isinstance(raw_qualities, dict):
+        raise RuntimeError(f"benchmark bundle drift: task {task_id} dataset qualities are missing")
+    value = raw_qualities.get(quality_name)
+    if not isinstance(value, (int, float)):
+        raise RuntimeError(
+            f"benchmark bundle drift: task {task_id} missing numeric quality {quality_name!r}"
+        )
+    return float(value)
+
+
+def load_benchmark_bundle(path: Path | None = None) -> dict[str, Any]:
+    """Load and validate the canonical benchmark bundle metadata."""
+
+    bundle_path = (path or default_benchmark_bundle_path()).expanduser().resolve()
+    with bundle_path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"benchmark bundle must be a JSON object: {bundle_path}")
+    expected_keys = {"name", "version", "selection", "task_ids", "tasks"}
+    actual_keys = set(payload.keys())
+    if actual_keys != expected_keys:
+        raise RuntimeError(
+            "benchmark bundle keys mismatch: "
+            f"missing={sorted(expected_keys - actual_keys)}, "
+            f"extra={sorted(actual_keys - expected_keys)}"
+        )
+
+    name = payload["name"]
+    version = payload["version"]
+    selection = payload["selection"]
+    task_ids = payload["task_ids"]
+    tasks = payload["tasks"]
+    if not isinstance(name, str) or not name.strip():
+        raise RuntimeError("benchmark bundle name must be a non-empty string")
+    if not isinstance(version, int) or version <= 0:
+        raise RuntimeError("benchmark bundle version must be a positive int")
+    if not isinstance(task_ids, list) or not task_ids:
+        raise RuntimeError("benchmark bundle task_ids must be a non-empty list")
+    if not isinstance(tasks, list) or not tasks:
+        raise RuntimeError("benchmark bundle tasks must be a non-empty list")
+
+    normalized_task_ids = [int(task_id) for task_id in task_ids]
+    normalized_tasks: list[dict[str, Any]] = []
+    for index, task_payload in enumerate(tasks):
+        if not isinstance(task_payload, dict):
+            raise RuntimeError(f"benchmark bundle task {index} must be an object")
+        task_keys = {"task_id", "dataset_name", "n_rows", "n_features", "n_classes"}
+        actual_task_keys = set(task_payload.keys())
+        if actual_task_keys != task_keys:
+            raise RuntimeError(
+                f"benchmark bundle task keys mismatch at index {index}: "
+                f"expected={sorted(task_keys)}, actual={sorted(actual_task_keys)}"
+            )
+        dataset_name = task_payload["dataset_name"]
+        if not isinstance(dataset_name, str) or not dataset_name.strip():
+            raise RuntimeError(f"benchmark bundle task dataset_name must be non-empty at index {index}")
+        normalized_tasks.append(
+            {
+                "task_id": int(task_payload["task_id"]),
+                "dataset_name": str(dataset_name),
+                "n_rows": int(task_payload["n_rows"]),
+                "n_features": int(task_payload["n_features"]),
+                "n_classes": int(task_payload["n_classes"]),
+            }
+        )
+
+    if normalized_task_ids != [int(task["task_id"]) for task in normalized_tasks]:
+        raise RuntimeError("benchmark bundle task_ids must match tasks[].task_id order exactly")
+
+    normalized_bundle: dict[str, Any] = {
+        "name": str(name),
+        "version": int(version),
+        "selection": _normalize_selection(selection),
+        "task_ids": normalized_task_ids,
+        "tasks": normalized_tasks,
+    }
+    return normalized_bundle
+
+
+def benchmark_bundle_summary(
+    bundle: Mapping[str, Any],
+    *,
+    source_path: Path,
+) -> dict[str, Any]:
+    """Build compact bundle metadata for run summaries."""
+
+    task_ids = [int(task_id) for task_id in cast(list[Any], bundle["task_ids"])]
+    return {
+        "name": str(bundle["name"]),
+        "version": int(bundle["version"]),
+        "source_path": str(source_path.expanduser().resolve()),
+        "task_count": int(len(task_ids)),
+        "task_ids": task_ids,
     }
 
 
 def load_openml_benchmark_datasets(
     *,
-    max_features: int = DEFAULT_BENCHMARK_MAX_FEATURES,
-    new_instances: int = DEFAULT_BENCHMARK_NEW_INSTANCES,
-    target_classes_filter: int = DEFAULT_BENCHMARK_TARGET_CLASSES_FILTER,
+    new_instances: int = 200,
+    benchmark_bundle_path: Path | None = None,
 ) -> tuple[dict[str, tuple[np.ndarray, np.ndarray]], list[dict[str, Any]]]:
     """Load the nanoTabPFN OpenML benchmark suite."""
 
+    bundle = load_benchmark_bundle(benchmark_bundle_path)
+    selection = cast(dict[str, Any], bundle["selection"])
+    expected_new_instances = int(selection["new_instances"])
+    if new_instances != expected_new_instances:
+        raise RuntimeError(
+            "benchmark bundle selection mismatch: "
+            f"expected new_instances={expected_new_instances}, got {new_instances}"
+        )
+    expected_tasks = cast(list[dict[str, Any]], bundle["tasks"])
+    expected_by_task_id = {int(task["task_id"]): task for task in expected_tasks}
     datasets: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     benchmark_tasks: list[dict[str, Any]] = []
-    for task_id in NANOTABPFN_TASK_IDS:
+    for task_id in cast(list[int], bundle["task_ids"]):
         task = openml.tasks.get_task(task_id, download_splits=False)
         if task.task_type_id != TaskType.SUPERVISED_CLASSIFICATION:
-            continue
+            raise RuntimeError(
+                "benchmark bundle drift: "
+                f"task {task_id} is no longer supervised classification"
+            )
         task_any: Any = task
         dataset = task_any.get_dataset(download_data=False)
         dataset_any: Any = dataset
         raw_qualities = dataset_any.qualities
-        if not isinstance(raw_qualities, dict):
-            continue
-        number_of_features_raw = raw_qualities.get("NumberOfFeatures")
-        number_of_classes_raw = raw_qualities.get("NumberOfClasses")
-        missing_pct_raw = raw_qualities.get("PercentageOfInstancesWithMissingValues")
-        minority_pct_raw = raw_qualities.get("MinorityClassPercentage")
-        if not isinstance(number_of_features_raw, (int, float)):
-            continue
-        if not isinstance(number_of_classes_raw, (int, float)):
-            continue
-        if not isinstance(missing_pct_raw, (int, float)):
-            continue
-        if not isinstance(minority_pct_raw, (int, float)):
-            continue
-        number_of_features = float(number_of_features_raw)
-        number_of_classes = float(number_of_classes_raw)
-        missing_pct = float(missing_pct_raw)
-        minority_pct = float(minority_pct_raw)
-        if (
-            number_of_features > max_features
-            or number_of_classes > target_classes_filter
-            or missing_pct > 0
-            or minority_pct < 2.5
-        ):
-            continue
+        number_of_features = _read_required_quality(
+            raw_qualities,
+            task_id=int(task_id),
+            quality_name="NumberOfFeatures",
+        )
+        number_of_classes = _read_required_quality(
+            raw_qualities,
+            task_id=int(task_id),
+            quality_name="NumberOfClasses",
+        )
+        missing_pct = _read_required_quality(
+            raw_qualities,
+            task_id=int(task_id),
+            quality_name="PercentageOfInstancesWithMissingValues",
+        )
+        minority_class_pct = _read_required_quality(
+            raw_qualities,
+            task_id=int(task_id),
+            quality_name="MinorityClassPercentage",
+        )
+        if number_of_features > int(selection["max_features"]):
+            raise RuntimeError(
+                "benchmark bundle drift: "
+                f"task {task_id} exceeds max_features expected<={selection['max_features']}, actual={number_of_features}"
+            )
+        if number_of_classes > int(selection["max_classes"]):
+            raise RuntimeError(
+                "benchmark bundle drift: "
+                f"task {task_id} exceeds max_classes expected<={selection['max_classes']}, actual={number_of_classes}"
+            )
+        if missing_pct > float(selection["max_missing_pct"]):
+            raise RuntimeError(
+                "benchmark bundle drift: "
+                f"task {task_id} exceeds max_missing_pct expected<={selection['max_missing_pct']}, actual={missing_pct}"
+            )
+        if minority_class_pct < float(selection["min_minority_class_pct"]):
+            raise RuntimeError(
+                "benchmark bundle drift: "
+                "task "
+                f"{task_id} violates min_minority_class_pct expected>={selection['min_minority_class_pct']}, "
+                f"actual={minority_class_pct}"
+            )
 
         x_frame, y_raw, _categorical_indicator, _attribute_names = dataset_any.get_data(
             target=str(task_any.target_name),
@@ -222,200 +323,30 @@ def load_openml_benchmark_datasets(
         preprocessor = get_feature_preprocessor(x_sub)
         x = np.asarray(preprocessor.fit_transform(x_sub), dtype=np.float32)
 
+        observed_task = {
+            "task_id": int(task_id),
+            "dataset_name": str(dataset.name),
+            "n_rows": int(x.shape[0]),
+            "n_features": int(x.shape[1]),
+            "n_classes": int(np.unique(y).size),
+        }
+        expected_task = expected_by_task_id[int(task_id)]
+        if observed_task != expected_task:
+            raise RuntimeError(
+                "benchmark bundle drift: "
+                f"task {task_id} metadata mismatch expected={expected_task}, actual={observed_task}"
+            )
+
         datasets[str(dataset.name)] = (x, y.astype(np.int64, copy=False))
-        benchmark_tasks.append(
-            {
-                "task_id": int(task_id),
-                "dataset_name": str(dataset.name),
-                "n_rows": int(x.shape[0]),
-                "n_features": int(x.shape[1]),
-                "n_classes": int(np.unique(y).size),
-            }
-        )
+        benchmark_tasks.append(observed_task)
     if not datasets:
         raise RuntimeError("OpenML benchmark produced no datasets after filtering")
-    return datasets, benchmark_tasks
-
-
-def benchmark_bundle_paths(bundle_dir: Path) -> tuple[Path, Path]:
-    """Return canonical metadata and cache paths for a benchmark bundle."""
-
-    resolved_bundle_dir = bundle_dir.expanduser().resolve()
-    return (
-        resolved_bundle_dir / BENCHMARK_INPUTS_FILENAME,
-        resolved_bundle_dir / BENCHMARK_DATASET_CACHE_FILENAME,
-    )
-
-
-def _load_benchmark_inputs(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"benchmark inputs payload must be a JSON object: {path}")
-    return dict(payload)
-
-
-def _validate_benchmark_inputs_payload(
-    payload: Mapping[str, Any],
-    *,
-    benchmark_inputs_path: Path,
-) -> dict[str, Any]:
-    task_ids_raw = payload.get("task_ids")
-    if not isinstance(task_ids_raw, list) or any(not isinstance(task_id, int) for task_id in task_ids_raw):
-        raise RuntimeError(f"benchmark inputs missing canonical task ids: {benchmark_inputs_path}")
-    task_ids = [int(task_id) for task_id in task_ids_raw]
-    canonical_task_ids = _canonical_task_ids()
-    if task_ids != canonical_task_ids:
-        raise RuntimeError(f"benchmark task-id drift detected: {benchmark_inputs_path}")
-
-    loader_raw = payload.get("loader")
-    if not isinstance(loader_raw, dict):
-        raise RuntimeError(f"benchmark inputs missing loader metadata: {benchmark_inputs_path}")
-    expected_loader = _benchmark_loader_config()
-    loader: dict[str, int] = {}
-    for key, expected_value in expected_loader.items():
-        value = loader_raw.get(key)
-        if not isinstance(value, int):
-            raise RuntimeError(f"benchmark inputs missing loader field {key!r}: {benchmark_inputs_path}")
-        loader[key] = int(value)
-    if loader != expected_loader:
-        raise RuntimeError(f"benchmark loader drift detected: {benchmark_inputs_path}")
-
-    benchmark_tasks_raw = payload.get("benchmark_tasks")
-    if not isinstance(benchmark_tasks_raw, list) or any(not isinstance(task, dict) for task in benchmark_tasks_raw):
-        raise RuntimeError(f"benchmark inputs missing task metadata: {benchmark_inputs_path}")
-    benchmark_tasks = [dict(task) for task in benchmark_tasks_raw]
-
-    benchmark_task_ids: list[int] = []
-    dataset_names_from_tasks: list[str] = []
-    for task in benchmark_tasks:
-        task_id = task.get("task_id")
-        dataset_name = task.get("dataset_name")
-        if not isinstance(task_id, int) or not isinstance(dataset_name, str):
-            raise RuntimeError(f"benchmark task metadata is invalid: {benchmark_inputs_path}")
-        benchmark_task_ids.append(int(task_id))
-        dataset_names_from_tasks.append(str(dataset_name))
-
-    benchmark_task_id_set = set(benchmark_task_ids)
-    expected_task_list = [task_id for task_id in canonical_task_ids if task_id in benchmark_task_id_set]
-    if benchmark_task_ids != expected_task_list:
-        raise RuntimeError(f"benchmark task-list drift detected: {benchmark_inputs_path}")
-
-    task_count = payload.get("task_count")
-    if not isinstance(task_count, int) or int(task_count) != len(benchmark_tasks):
-        raise RuntimeError(f"benchmark task-count drift detected: {benchmark_inputs_path}")
-
-    dataset_names_raw = payload.get("dataset_names")
-    if not isinstance(dataset_names_raw, list) or any(not isinstance(name, str) for name in dataset_names_raw):
-        raise RuntimeError(f"benchmark inputs missing dataset names: {benchmark_inputs_path}")
-    dataset_names = [str(name) for name in dataset_names_raw]
-    if dataset_names != dataset_names_from_tasks:
-        raise RuntimeError(f"benchmark task-list drift detected: {benchmark_inputs_path}")
-
-    dataset_cache_sha256 = payload.get("dataset_cache_sha256")
-    if not isinstance(dataset_cache_sha256, str) or len(dataset_cache_sha256) != 64:
-        raise RuntimeError(f"benchmark inputs missing dataset cache checksum: {benchmark_inputs_path}")
-
-    return {
-        "task_ids": task_ids,
-        "loader": loader,
-        "task_count": int(task_count),
-        "benchmark_tasks": benchmark_tasks,
-        "dataset_names": dataset_names,
-        "dataset_cache_sha256": dataset_cache_sha256,
-    }
-
-
-def _build_benchmark_inputs_payload(
-    *,
-    benchmark_tasks: list[dict[str, Any]],
-    dataset_names: list[str],
-    dataset_cache_path: Path,
-) -> dict[str, Any]:
-    return {
-        "task_ids": _canonical_task_ids(),
-        "loader": _benchmark_loader_config(),
-        "task_count": int(len(benchmark_tasks)),
-        "benchmark_tasks": [dict(task) for task in benchmark_tasks],
-        "dataset_names": [str(name) for name in dataset_names],
-        "dataset_cache_sha256": sha256_file(dataset_cache_path),
-    }
-
-
-def _write_benchmark_bundle(
-    *,
-    bundle_dir: Path,
-    datasets: dict[str, tuple[np.ndarray, np.ndarray]],
-    benchmark_tasks: list[dict[str, Any]],
-    source: str,
-) -> BenchmarkBundle:
-    resolved_bundle_dir = bundle_dir.expanduser().resolve()
-    benchmark_inputs_path, dataset_cache_path = benchmark_bundle_paths(resolved_bundle_dir)
-    save_dataset_cache(dataset_cache_path, datasets)
-    benchmark_inputs = _validate_benchmark_inputs_payload(
-        _build_benchmark_inputs_payload(
-            benchmark_tasks=benchmark_tasks,
-            dataset_names=list(datasets),
-            dataset_cache_path=dataset_cache_path,
-        ),
-        benchmark_inputs_path=benchmark_inputs_path,
-    )
-    write_json(benchmark_inputs_path, benchmark_inputs)
-    return BenchmarkBundle(
-        bundle_dir=resolved_bundle_dir,
-        benchmark_inputs_path=benchmark_inputs_path,
-        dataset_cache_path=dataset_cache_path,
-        datasets=datasets,
-        benchmark_inputs=benchmark_inputs,
-        source=source,
-    )
-
-
-def materialize_benchmark_bundle(bundle_dir: Path) -> BenchmarkBundle:
-    """Always regenerate the benchmark bundle under the target directory."""
-
-    datasets, benchmark_tasks = load_openml_benchmark_datasets(**_benchmark_loader_config())
-    return _write_benchmark_bundle(
-        bundle_dir=bundle_dir,
-        datasets=datasets,
-        benchmark_tasks=benchmark_tasks,
-        source="created",
-    )
-
-
-def prepare_benchmark_bundle(bundle_dir: Path) -> BenchmarkBundle:
-    """Create or reuse a pinned benchmark bundle with drift validation."""
-
-    resolved_bundle_dir = bundle_dir.expanduser().resolve()
-    benchmark_inputs_path, dataset_cache_path = benchmark_bundle_paths(resolved_bundle_dir)
-    has_inputs = benchmark_inputs_path.exists()
-    has_cache = dataset_cache_path.exists()
-    if has_inputs != has_cache:
+    if len(benchmark_tasks) != len(expected_tasks):
         raise RuntimeError(
-            f"incomplete benchmark bundle at {resolved_bundle_dir}: expected both {benchmark_inputs_path.name} "
-            f"and {dataset_cache_path.name}"
+            "benchmark bundle drift: "
+            f"task count mismatch expected={len(expected_tasks)}, actual={len(benchmark_tasks)}"
         )
-
-    if has_inputs and has_cache:
-        benchmark_inputs = _validate_benchmark_inputs_payload(
-            _load_benchmark_inputs(benchmark_inputs_path),
-            benchmark_inputs_path=benchmark_inputs_path,
-        )
-        actual_cache_sha256 = sha256_file(dataset_cache_path)
-        if actual_cache_sha256 != benchmark_inputs["dataset_cache_sha256"]:
-            raise RuntimeError(f"benchmark dataset cache checksum mismatch: {dataset_cache_path}")
-        datasets = load_dataset_cache(dataset_cache_path)
-        if list(datasets) != benchmark_inputs["dataset_names"]:
-            raise RuntimeError(f"benchmark dataset cache metadata mismatch: {dataset_cache_path}")
-        return BenchmarkBundle(
-            bundle_dir=resolved_bundle_dir,
-            benchmark_inputs_path=benchmark_inputs_path,
-            dataset_cache_path=dataset_cache_path,
-            datasets=datasets,
-            benchmark_inputs=benchmark_inputs,
-            source="reused",
-        )
-
-    return materialize_benchmark_bundle(resolved_bundle_dir)
+    return datasets, benchmark_tasks
 
 
 def save_dataset_cache(path: Path, datasets: Mapping[str, tuple[np.ndarray, np.ndarray]]) -> Path:
@@ -633,7 +564,9 @@ def build_comparison_summary(
     *,
     tab_foundry_records: list[dict[str, Any]],
     nanotabpfn_records: list[dict[str, Any]],
-    benchmark_inputs: Mapping[str, Any],
+    benchmark_tasks: list[dict[str, Any]],
+    benchmark_bundle: Mapping[str, Any],
+    benchmark_bundle_path: Path,
     tab_foundry_run_dir: Path,
     nanotabpfn_root: Path,
     nanotabpfn_python: Path,
@@ -700,18 +633,11 @@ def build_comparison_summary(
         }
 
     summary = {
-        "dataset_count": int(benchmark_inputs["task_count"]),
-        "benchmark_inputs": {
-            "task_ids": [int(task_id) for task_id in cast(list[int], benchmark_inputs["task_ids"])],
-            "loader": dict(cast(dict[str, int], benchmark_inputs["loader"])),
-            "task_count": int(benchmark_inputs["task_count"]),
-            "benchmark_tasks": [dict(task) for task in cast(list[dict[str, Any]], benchmark_inputs["benchmark_tasks"])],
-            "dataset_names": [str(name) for name in cast(list[str], benchmark_inputs["dataset_names"])],
-            "bundle_dir": str(benchmark_inputs["bundle_dir"]),
-            "cache_path": str(benchmark_inputs["cache_path"]),
-            "dataset_cache_sha256": str(benchmark_inputs["dataset_cache_sha256"]),
-            "source": str(benchmark_inputs["source"]),
-        },
+        "dataset_count": int(len(benchmark_tasks)),
+        "benchmark_bundle": benchmark_bundle_summary(
+            benchmark_bundle,
+            source_path=benchmark_bundle_path,
+        ),
         "tab_foundry": {
             **_summary_metrics(tab_foundry_records),
             "run_dir": str(tab_foundry_run_dir.expanduser().resolve()),
