@@ -90,6 +90,36 @@ def test_export_bundle_writes_expected_files_and_schema(tmp_path: Path) -> None:
     assert inference_cfg["model_arch"] == "tabfoundry"
 
 
+def test_export_bundle_defaults_feature_group_size_to_one_when_omitted(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_default_group.pt"
+    cfg = _make_config("classification")
+    model_cfg = cfg["model"]
+    assert isinstance(model_cfg, dict)
+    model_cfg.pop("feature_group_size", None)
+    model = build_model(task="classification", **model_cfg)
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "global_step": 1,
+            "config": cfg,
+        },
+        checkpoint,
+    )
+
+    out_dir = tmp_path / "export_default_group"
+    _ = export_checkpoint(checkpoint, out_dir)
+
+    with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    with (out_dir / "inference_config.json").open("r", encoding="utf-8") as handle:
+        inference_cfg = json.load(handle)
+
+    assert manifest["model"]["feature_group_size"] == 1
+    assert inference_cfg["feature_group_size"] == 1
+
+
 def test_validate_export_detects_checksum_tamper(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
@@ -403,7 +433,7 @@ def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -
             "model": {
                 "d_col": 128,
                 "d_icl": 512,
-                "feature_group_size": 32,
+                "feature_group_size": 1,
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
                 "tfcol_n_layers": 3,

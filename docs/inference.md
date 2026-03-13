@@ -8,6 +8,7 @@ Related docs:
 - workflow runbooks: `docs/workflows.md`
 - design decisions and repo structure: `docs/development/design-decisions.md`
 - architecture reference: `docs/development/model-architecture.md`
+- model config reference: `docs/development/model-config.md`
 - canonical roadmap: `docs/development/roadmap.md`
 
 Planning and architecture rationale live under `docs/development/`.
@@ -40,6 +41,7 @@ Required keys:
   - Exporter also emits architecture reconstruction fields:
     `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed}`.
   - Validators accept manifests that omit these extra fields and apply the current model defaults.
+  - See `docs/development/model-config.md` for the meaning of each model field and the current canonical defaults.
 - `files`: `{weights, inference_config, preprocessor_state}`
 - `checksums`: sha256 for `weights`, `inference_config`, `preprocessor_state`
 - `created_at_utc`: ISO8601 UTC timestamp

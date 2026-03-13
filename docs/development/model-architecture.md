@@ -4,6 +4,10 @@ This document describes the current `tabfoundry` transformer family as it is
 implemented in the repo today. It is an implementation reference for
 maintainers, not a paper summary.
 
+Related docs:
+
+- `docs/development/model-config.md`
+
 Related code paths:
 
 - `src/tab_foundry/model/architectures/tabfoundry.py`
@@ -107,7 +111,7 @@ Default dimensions from `configs/model/default.yaml`:
 
 - `d_col = 128`
 - `d_icl = 512`
-- `feature_group_size = 32`
+- `feature_group_size = 1`
 - `tfcol_n_layers = 3`
 - `tfrow_n_layers = 3`
 - `tficl_n_layers = 12`
@@ -147,9 +151,10 @@ Default dimensions from `configs/model/default.yaml`:
   of shifted feature neighborhoods.
 - `token_padding_mask` marks feature groups that are fully padded.
 
-This is one of the main implementation choices that diverges from a pure
-per-feature-token baseline. The default configuration favors fewer tokens over
-paper-faithful one-token-per-feature behavior.
+This is one of the main implementation choices that controls compute and
+inductive bias. The current default is paper-faithful one-token-per-feature
+tokenization, while larger `feature_group_size` values enable grouped-token
+experiments with fewer tokens.
 
 ### 3. Column Encoder
 
@@ -317,10 +322,11 @@ High-signal parameters:
   - `max_mixed_radix_digits`
   - `many_class_base`
   - `head_hidden_dim`
-  - `use_digit_position_embed`
+- `use_digit_position_embed`
 
 `configs/model/default.yaml` is the best single place to inspect the current
-default architecture.
+default architecture, and `docs/development/model-config.md` is the canonical
+reference for field meanings and config-resolution rules.
 
 ## Implementation Deltas To Keep In Mind
 
@@ -329,8 +335,8 @@ expectations:
 
 - The family name is `tabfoundry`; `TabICLv2` is now only an external paper
   reference.
-- Default tokenization is grouped (`feature_group_size = 32`), not one token
-  per raw feature.
+- Default tokenization is per-feature (`feature_group_size = 1`); grouped-token
+  mode is a non-default scaling/throughput knob.
 - The backbone has three distinct transformer stages with different roles:
   column set encoding, row aggregation, and final ICL encoding.
 - QASS is real but localized. It is not used uniformly in every attention path.

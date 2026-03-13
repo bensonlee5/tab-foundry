@@ -114,3 +114,32 @@ def test_evaluate_checkpoint_uses_checkpoint_model_config(
     assert captured["d_col"] == 64
     assert captured["d_icl"] == 256
     assert captured["feature_group_size"] == 1
+
+
+def test_checkpoint_model_settings_defaults_feature_group_size_to_one() -> None:
+    payload = {
+        "config": {
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+        }
+    }
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+        }
+    )
+
+    spec = evaluate_module._checkpoint_model_settings(payload, cfg)
+
+    assert spec.feature_group_size == 1

@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added an internal architecture reference at
   `docs/development/model-architecture.md` that documents the
   current tabfoundry transformer stack and its task heads.
+- Added `docs/development/model-config.md` as the dedicated reference for model
+  settings, defaults, and resolution precedence across train/eval/export/load.
 
 ### Changed
 
@@ -23,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `inference_config.model_arch="tabfoundry"` under the new
   `tab-foundry-export-v2` schema. Existing `tab-foundry-export-v1` bundles are
   intentionally unsupported and must be regenerated.
+- Reconciled `feature_group_size` defaults so omitted model settings now resolve
+  to the canonical per-feature default of `1` across Hydra config composition,
+  model spec fallback resolution, and model construction.
 - Updated internal planning, navigation, and contract docs to describe the
   current family as `tabfoundry` and treat `TabICLv2` as an external reference
   rather than the repo's persistent model identity.

@@ -33,7 +33,7 @@ class ModelBuildSpec:
     d_col: int = 128
     d_icl: int = 512
     input_normalization: str = "none"
-    feature_group_size: int = 32
+    feature_group_size: int = 1
     many_class_train_mode: str = "path_nll"
     max_mixed_radix_digits: int = 64
     tfcol_n_heads: int = 8
@@ -123,7 +123,7 @@ def model_build_spec_from_mappings(
         d_col=int(_pick("d_col", 128)),
         d_icl=int(_pick("d_icl", 512)),
         input_normalization=str(_pick("input_normalization", "none")),
-        feature_group_size=int(_pick("feature_group_size", 32)),
+        feature_group_size=int(_pick("feature_group_size", 1)),
         many_class_train_mode=str(_pick("many_class_train_mode", "path_nll")),
         max_mixed_radix_digits=int(_pick("max_mixed_radix_digits", 64)),
         tfcol_n_heads=int(_pick("tfcol_n_heads", 8)),

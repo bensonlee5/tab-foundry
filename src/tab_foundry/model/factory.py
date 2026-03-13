@@ -20,7 +20,7 @@ def build_model(
     d_col: int = 128,
     d_icl: int = 512,
     input_normalization: str = "none",
-    feature_group_size: int = 32,
+    feature_group_size: int = 1,
     many_class_train_mode: str = "path_nll",
     max_mixed_radix_digits: int = 64,
     tfcol_n_heads: int = 8,
