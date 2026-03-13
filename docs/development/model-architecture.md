@@ -344,7 +344,7 @@ expectations:
   classification because it routes through mixed-radix conditioning and a
   hierarchical class tree.
 - Exported bundles persist the family id as `tabfoundry` and the schema version
-  as `tab-foundry-export-v2`.
+  as `tab-foundry-export-v3`.
 
 ## Code Navigation Map
 

@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-13
+
+### Added
+
+- Added a shared preprocessing package under `src/tab_foundry/preprocessing/`
+  for fitted train-mean imputation and classification-label remapping.
+- Added a reference-only executable consumer in
+  `tab_foundry.export.loader_ref` plus pinned conformance fixtures for one
+  classification bundle and one regression bundle.
+- Added `tab-foundry build-preprocessor-state` to fit a task-scoped v3
+  `preprocessor_state.json` from one manifest dataset train split.
+
+### Changed
+
+- Export bundles now default to the new `tab-foundry-export-v3` schema. This is
+  a user-facing artifact-contract change.
+- `manifest.model` now persists `input_normalization`, and the model
+  reconstruction path round-trips that field across export and load.
+- `preprocessor_state.json` now supports a fitted-state v3 contract with
+  persisted `feature_ids`, per-feature `fill_values`, and classification
+  `label_values`.
+- `tab-foundry-export-v2` remains validator-readable during migration, but the
+  executable reference consumer in this repo is intentionally v3-only.
+- `tab-foundry export --artifact-version tab-foundry-export-v3` now requires an
+  explicit `--preprocessor-state` JSON built for the target manifest dataset.
+  This is a user-facing CLI and workflow change.
+- Training checkpoints no longer persist fitted preprocessing state. Checkpoints
+  remain resume/eval artifacts, while v3 export consumes an explicit external
+  preprocessing-state JSON.
+- Classification label remapping and unseen-test-label filtering now still run
+  when `PackedParquetTaskDataset(..., impute_missing=False)` leaves feature
+  values unimputed.
+
 ## [0.2.0] - 2026-03-13
 
 ### Added

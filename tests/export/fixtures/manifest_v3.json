@@ -1,0 +1,29 @@
+{
+  "schema_version": "tab-foundry-export-v3",
+  "producer": {
+    "name": "tab-foundry",
+    "version": "0.2.1",
+    "git_sha": null
+  },
+  "task": "classification",
+  "model": {
+    "arch": "tabfoundry",
+    "d_col": 128,
+    "d_icl": 512,
+    "input_normalization": "train_zscore",
+    "feature_group_size": 1,
+    "many_class_train_mode": "path_nll",
+    "max_mixed_radix_digits": 64
+  },
+  "files": {
+    "weights": "weights.safetensors",
+    "inference_config": "inference_config.json",
+    "preprocessor_state": "preprocessor_state.json"
+  },
+  "checksums": {
+    "weights": "0000000000000000000000000000000000000000000000000000000000000000",
+    "inference_config": "1111111111111111111111111111111111111111111111111111111111111111",
+    "preprocessor_state": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "created_at_utc": "2026-03-13T00:00:00Z"
+}

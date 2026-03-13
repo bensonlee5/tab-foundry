@@ -74,15 +74,17 @@ for traceability.
 | ---- | ---------- | ---- | ------ | --------- | ------------- |
 | 0 | TF-RD-002 | Repo foundation and dagzoo-style organization | implemented | Implemented | `BL-175 -> BL-177 -> BL-178 -> BL-179 -> BL-180` |
 | 1 | TF-RD-001 | Canonical control baseline and experiment trust | partial | Now | `BL-152 -> BL-155 -> BL-156 -> BL-157 -> BL-158 -> BL-159` |
-| 2 | TF-RD-003 | Literature-first references and external baseline borrowing | partial | Now | `BL-154 -> BL-170 -> BL-173` |
-| 3 | TF-RD-004 | Neutral architecture registry and shared component surfaces | planned | Now | `BL-154 -> BL-171 -> BL-181 -> BL-182` |
-| 4 | TF-RD-005 | Modular QASS and non-QASS backbone infrastructure | planned | Now | `BL-154 -> BL-172` |
-| 5 | TF-RD-006 | Scaling-law measurement and Chinchilla-style planning | planned | Now | `BL-154 -> BL-174` |
-| 6 | TF-RD-007 | Current-architecture tuning and control promotion | partial | Now | `BL-153 -> BL-160 -> BL-161 -> BL-162 -> BL-164 -> BL-163` |
-| 7 | TF-RD-008 | Architecture ablations against the control baseline | planned | Next | `BL-165 -> BL-166 -> BL-167 -> BL-169 -> BL-168` |
-| 8 | TF-RD-009 | Core prediction mode parity | partial | Next | `BL-183 -> BL-185 -> BL-186 -> BL-187 -> BL-188 -> BL-189` |
-| 9 | TF-RD-010 | Extended prediction modes and modalities | research | Later | `BL-184 -> BL-191 -> BL-190 -> BL-192 -> BL-193` |
-| 10 | TF-RD-011 | Conditional prior/data alignment when architecture is not the bottleneck | research | Later | `no active issue yet; gated follow-on after TF-RD-007 and TF-RD-008` |
+| 2 | TF-RD-012 | Shared preprocessing and export-contract fidelity | planned | Now | `no active issue yet; open BL preprocessing chain after TF-RD-001` |
+| 3 | TF-RD-003 | Literature-first references and external baseline borrowing | partial | Now | `BL-154 -> BL-170 -> BL-173` |
+| 4 | TF-RD-004 | Neutral architecture registry and shared component surfaces | planned | Now | `BL-154 -> BL-171 -> BL-181 -> BL-182` |
+| 5 | TF-RD-005 | Modular QASS and non-QASS backbone infrastructure | planned | Now | `BL-154 -> BL-172` |
+| 6 | TF-RD-006 | Scaling-law measurement and Chinchilla-style planning | planned | Now | `BL-154 -> BL-174` |
+| 7 | TF-RD-007 | Current-architecture tuning and control promotion | partial | Now | `BL-153 -> BL-160 -> BL-161 -> BL-162 -> BL-164 -> BL-163` |
+| 8 | TF-RD-008 | Architecture ablations against the control baseline | planned | Next | `BL-165 -> BL-166 -> BL-167 -> BL-169 -> BL-168` |
+| 9 | TF-RD-013 | Separate-repo inference handoff and conformance | planned | Next | `no active issue yet; open BL inference chain after TF-RD-012` |
+| 10 | TF-RD-009 | Core prediction mode parity | partial | Next | `BL-183 -> BL-185 -> BL-186 -> BL-187 -> BL-188 -> BL-189` |
+| 11 | TF-RD-010 | Extended prediction modes and modalities | research | Later | `BL-184 -> BL-191 -> BL-190 -> BL-192 -> BL-193` |
+| 12 | TF-RD-011 | Conditional prior/data alignment when architecture is not the bottleneck | research | Later | `no active issue yet; gated follow-on after TF-RD-007 and TF-RD-008` |
 
 ## Current Capability Matrix
 
@@ -92,6 +94,8 @@ for traceability.
 | Short-run reproducible experiment loop with smoke coverage | `partial` | GitHub Actions quality gate, Iris smoke, dagzoo smoke, persisted run artifacts, and pinned benchmark-bundle discipline are implemented | Repeated-run stability evaluation, checkpoint-selection diagnostics, and leaderboard output are incomplete | `TF-RD-001`, `TF-RD-007` |
 | Benchmark-facing comparison against `nanoTabPFN` | `partial` | Env bootstrap and comparison harnesses exist, and the benchmark remains the selection surface for shortlist validation | Canonical promoted external-baseline configs and benchmark-trust discipline are not complete | `TF-RD-001`, `TF-RD-003`, `TF-RD-007` |
 | Scaling-oriented architecture planning | `partial` | Architecture guidance, literature references, and evidence mapping are now first-class planning artifacts | Neutral registry, modular backbones, and canonical scaling-law measurement are not complete | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006` |
+| Export-grade preprocessing fidelity | `partial` | Shared preprocessing code now exists and v3 bundles persist fitted feature fill values, label values, and model `input_normalization` | The fitted preprocessing surface is not yet promoted as the settled producer contract across every downstream workflow and tracker lane | `TF-RD-012` |
+| Separate-runtime handoff readiness | `partial` | The repo now ships a v3 reference consumer plus golden bundle conformance fixtures while keeping runtime ownership out of this package | Separate-repo adoption, broader conformance reuse, and downstream stabilization are still unfinished | `TF-RD-013` |
 | Core prediction mode coverage | `partial` | Classification and regression flows exist in the common train/eval stack | Shared mode contracts, missing-data task support, and mode-specific reporting are incomplete | `TF-RD-009` |
 | Extended modality readiness | `partial` | Many-class support exists, and time-series plus text-conditioned inputs are explicitly deferred rather than ignored | No scoped time-series path, text-conditioned path, or readiness gates exist yet | `TF-RD-010` |
 | Prior/source extensibility beyond the current manifest path | `partial` | Neutral package structure now exists for future extension and the roadmap explicitly preserves space for source/prior work | No concrete non-manifest source/prior interface or alignment study path exists yet | `TF-RD-004`, `TF-RD-011` |
@@ -113,7 +117,11 @@ surface. Use the canonical docs instead:
 - The benchmark-facing control remains `experiment=cls_benchmark_linear` until a
   later ticket explicitly promotes a replacement.
 - The manifest-backed data path is the canonical training/evaluation baseline.
-- Export and inference compatibility now use the `tabfoundry` contract.
+- Export and inference compatibility now use the `tabfoundry` contract across
+  `tab-foundry-export-v2` and `tab-foundry-export-v3`.
+- Bundle validation exists, `preprocessor_state.json` now has a fitted-state v3
+  path in addition to the older policy-only v2 path, and executable inference
+  consumption remains reference-only in this repo.
 - Benchmark-facing work remains in the short-run class rather than drifting into
   long-training infrastructure by default.
 
@@ -168,6 +176,39 @@ surface. Use the canonical docs instead:
   - Checkpoint-selection diagnostics appear in benchmark summaries.
   - Research and confirmatory runs can land in one canonical leaderboard-style
     output.
+
+### TF-RD-012: Shared Preprocessing and Export-Contract Fidelity
+
+- Status: `planned`
+- Milestone: `Now`
+- Goal alignment: `Goal 2: Core Prediction Modes`
+- Pillar alignment: `export fidelity`
+- Goal: replace stubbed preprocessing metadata with one shared fitted
+  preprocessing surface used by dataset loading, evaluation, export, and
+  reference consumption.
+- Linear tracking:
+  `no active issue yet; open BL preprocessing chain after TF-RD-001`
+- Repo touchpoints:
+  - `src/tab_foundry/preprocessing/`
+  - `src/tab_foundry/data/dataset.py`
+  - `src/tab_foundry/training/trainer.py`
+  - `src/tab_foundry/export/contracts.py`
+  - `src/tab_foundry/export/exporter.py`
+- Current state:
+  - Shared preprocessing code now handles mean imputation and classification
+    label remapping in the packed-task data path.
+  - `tab-foundry-export-v3` now persists ordered feature ids, per-feature fill
+    values, classification label values when present, and model
+    `input_normalization`.
+  - The broader producer contract and downstream rollout are not yet stabilized
+    under one tracked BL chain.
+- Exit criteria:
+  - Train, eval, export, and reference consumption use one shared
+    preprocessing codepath.
+  - v3 bundles contain sufficient fitted state for downstream execution and
+    conformance testing.
+  - `input_normalization` round-trips through export and load.
+  - Classification and regression both have golden v3 fixtures.
 
 ### TF-RD-002: Repo Foundation and Dagzoo-Style Organization
 
@@ -372,6 +413,38 @@ surface. Use the canonical docs instead:
   - The work ends with explicit keep/reject/defer architecture decisions rather
     than open-ended experimentation.
 
+### TF-RD-013: Separate-Repo Inference Handoff and Conformance
+
+- Status: `planned`
+- Milestone: `Next`
+- Goal alignment: `Goal 2: Core Prediction Modes`
+- Pillar alignment: `runtime handoff`
+- Goal: make the bundle contract consumable by a separate inference repo
+  through a stable reference consumer and conformance suite, without turning
+  this repo into the production runtime.
+- Linear tracking:
+  `no active issue yet; open BL inference chain after TF-RD-012`
+- Repo touchpoints:
+  - `src/tab_foundry/export/loader_ref.py`
+  - `src/tab_foundry/export/contracts.py`
+  - `tests/export/test_exporter.py`
+  - `tests/export/fixtures/`
+  - `docs/inference.md`
+- Current state:
+  - A v3 reference consumer now loads bundles, applies persisted preprocessing,
+    constructs a model batch, and emits classification probabilities or
+    regression quantiles.
+  - Golden conformance fixtures now exist for one classification path and one
+    regression path.
+  - Downstream-repo stabilization, broader fixture reuse, and ownership
+    boundaries beyond the reference path remain unfinished.
+- Exit criteria:
+  - The reference consumer runs end to end on v3 bundles only.
+  - Downstream repos can reuse the golden fixtures and checksum validation
+    surface.
+  - Classification and regression both have stable expected outputs.
+  - Runtime ownership remains separate-repo by docs and package boundaries.
+
 ### TF-RD-009: Core Prediction Mode Parity
 
 - Status: `partial`
@@ -385,19 +458,20 @@ surface. Use the canonical docs instead:
   - `src/tab_foundry/training/evaluate.py`
   - `src/tab_foundry/training/losses.py`
   - `src/tab_foundry/data/dataset.py`
-  - `src/tab_foundry/export/contracts.py`
+  - `src/tab_foundry/bench/checkpoint.py`
   - `src/tab_foundry/cli/commands/`
 - Current state:
   - Classification and regression flows exist.
   - Classification remains the anchor workload.
-  - Shared mode contracts, missing-data task support, and mode-specific artifact
-    reporting are not yet complete.
+  - Missing-data task support and prediction-mode-specific summaries are not
+    yet complete.
 - Exit criteria:
   - A shared mode interface exists across at least classification and
     regression.
   - Regression reaches parity on the common experiment stack.
   - Missing-data tasks and evaluation summaries are implemented.
-  - Artifact reporting can break out metrics by prediction mode.
+  - Artifact reporting can break out metrics by prediction mode without
+    coupling mode parity work to bundle-schema or runtime-handoff changes.
 
 ### TF-RD-010: Extended Prediction Modes and Modalities
 
@@ -464,6 +538,7 @@ surface. Use the canonical docs instead:
 ### Now
 
 - `TF-RD-001` canonical control baseline and experiment trust
+- `TF-RD-012` shared preprocessing and export-contract fidelity
 - `TF-RD-003` literature-first references and external baseline borrowing
 - `TF-RD-004` neutral architecture registry and shared component surfaces
 - `TF-RD-005` modular QASS and non-QASS backbone infrastructure
@@ -473,6 +548,7 @@ surface. Use the canonical docs instead:
 ### Next
 
 - `TF-RD-008` architecture ablations against the control baseline
+- `TF-RD-013` separate-repo inference handoff and conformance
 - `TF-RD-009` core prediction mode parity
 
 ### Later
@@ -489,6 +565,8 @@ surface. Use the canonical docs instead:
   does not recreate historical package sprawl.
 - `TF-RD-003` should inform architecture work before the repo commits to deeper
   refactors or new named baselines.
+- `TF-RD-012` starts immediately after `TF-RD-001` and should land before
+  `TF-RD-006` relies on the export-facing preprocessing surface.
 - `TF-RD-004` and `TF-RD-005` define the platform on which later comparisons are
   supposed to run.
 - `TF-RD-006` depends on having a sufficiently stable architecture and workflow
@@ -497,6 +575,8 @@ surface. Use the canonical docs instead:
   before architectural ablations are used to explain benchmark gaps.
 - `TF-RD-008` and the later architecture decision should complete before Goal 2
   becomes the main driver.
+- `TF-RD-013` depends on `TF-RD-012` and should stabilize the separate-runtime
+  consumer boundary before `TF-RD-009` expands prediction-mode parity claims.
 - `TF-RD-009` begins only after Goal 1 has produced a stable scaling-oriented
   experiment stack.
 - `TF-RD-010` remains explicitly tertiary and should not compete with Goal 1 or

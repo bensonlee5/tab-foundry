@@ -124,12 +124,19 @@ uv run tab-foundry eval \
 Export and validate an inference bundle:
 
 ```bash
+uv run tab-foundry build-preprocessor-state \
+  --manifest-path outputs/manifests/cls_smoke.parquet \
+  --dataset-id root_deadbeef0000/shard_00000/dataset_000000_deadbeef0000 \
+  --task classification \
+  --out-path outputs/exports/cls_smoke_preprocessor_state.json
+
 uv run tab-foundry export \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
-  --out-dir outputs/exports/cls_smoke_v2
+  --preprocessor-state outputs/exports/cls_smoke_preprocessor_state.json \
+  --out-dir outputs/exports/cls_smoke_v3
 
 uv run tab-foundry validate-export \
-  --bundle-dir outputs/exports/cls_smoke_v2
+  --bundle-dir outputs/exports/cls_smoke_v3
 ```
 
 ## Standard Workflow Artifacts

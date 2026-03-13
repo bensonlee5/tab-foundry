@@ -4,31 +4,33 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
+import json
 from pathlib import Path
 from typing import Any
-import json
 
-from tab_foundry.model.spec import (
-    ModelBuildSpec,
-    model_build_spec_from_mappings,
+from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
+from tab_foundry.preprocessing import (
+    CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
+    DTYPE_POLICY,
+    FEATURE_ORDER_POLICY_POSITIONAL,
+    MISSING_VALUE_STRATEGY_TRAIN_MEAN,
+    UNSEEN_TEST_LABEL_POLICY_FILTER,
+    ClassificationLabelPolicyState,
+    FittedPreprocessorState,
+    MissingValuePolicyState,
 )
 
 
 SCHEMA_VERSION_V2 = "tab-foundry-export-v2"
-SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V2,)
+SCHEMA_VERSION_V3 = "tab-foundry-export-v3"
+SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V2, SCHEMA_VERSION_V3)
 SUPPORTED_TASKS = ("classification", "regression")
 SUPPORTED_MANY_CLASS_INFERENCE_MODES = ("full_probs",)
-SUPPORTED_UNSEEN_TEST_LABEL_POLICIES = ("filter",)
+SUPPORTED_UNSEEN_TEST_LABEL_POLICIES = (UNSEEN_TEST_LABEL_POLICY_FILTER,)
 EXPECTED_GROUP_SHIFTS = [0, 1, 3]
 EXPECTED_MANY_CLASS_THRESHOLD = 10
-EXPECTED_FEATURE_ORDER_POLICY = "lexicographic_f_columns"
-EXPECTED_MISSING_VALUE_STRATEGY = "train_mean"
+EXPECTED_V2_FEATURE_ORDER_POLICY = "lexicographic_f_columns"
 EXPECTED_MISSING_VALUE_ALL_NAN_FILL = 0.0
-EXPECTED_DTYPE_POLICY = {
-    "features": "float32",
-    "classification_labels": "int64",
-    "regression_targets": "float32",
-}
 
 
 @dataclass(slots=True)
@@ -43,6 +45,7 @@ class ExportModelSpec:
     arch: str
     d_col: int
     d_icl: int
+    input_normalization: str
     feature_group_size: int
     many_class_train_mode: str
     max_mixed_radix_digits: int
@@ -70,6 +73,7 @@ class ExportModelSpec:
             arch=str(arch),
             d_col=int(spec.d_col),
             d_icl=int(spec.d_icl),
+            input_normalization=str(spec.input_normalization),
             feature_group_size=int(spec.feature_group_size),
             many_class_train_mode=str(spec.many_class_train_mode),
             max_mixed_radix_digits=int(spec.max_mixed_radix_digits),
@@ -93,6 +97,7 @@ class ExportModelSpec:
             primary={
                 "d_col": self.d_col,
                 "d_icl": self.d_icl,
+                "input_normalization": self.input_normalization,
                 "feature_group_size": self.feature_group_size,
                 "many_class_train_mode": self.many_class_train_mode,
                 "max_mixed_radix_digits": self.max_mixed_radix_digits,
@@ -145,7 +150,7 @@ class InferenceConfig:
 
 
 @dataclass(slots=True)
-class PreprocessorState:
+class LegacyPreprocessorState:
     feature_order_policy: str
     missing_value_policy: dict[str, Any]
     classification_label_policy: dict[str, Any]
@@ -156,7 +161,7 @@ class PreprocessorState:
 class ValidatedBundle:
     manifest: ExportManifest
     inference_config: InferenceConfig
-    preprocessor_state: PreprocessorState
+    preprocessor_state: LegacyPreprocessorState | FittedPreprocessorState
 
 
 def read_json_dict(path: Path) -> dict[str, Any]:
@@ -179,7 +184,6 @@ def _require_keys(
     missing = sorted(keys - actual)
     extra = sorted(actual - (keys | optional))
     if missing or extra:
-        missing = sorted(keys - actual)
         details: list[str] = []
         if missing:
             details.append(f"missing={missing}")
@@ -230,6 +234,7 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
         ),
     }
     optional_fields: tuple[tuple[str, str], ...] = (
+        ("input_normalization", "manifest.model.input_normalization"),
         ("tfcol_n_heads", "manifest.model.tfcol_n_heads"),
         ("tfcol_n_layers", "manifest.model.tfcol_n_layers"),
         ("tfcol_n_inducing", "manifest.model.tfcol_n_inducing"),
@@ -243,7 +248,11 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
         ("head_hidden_dim", "manifest.model.head_hidden_dim"),
     )
     for field_name, context in optional_fields:
-        if field_name in model_raw:
+        if field_name not in model_raw:
+            continue
+        if field_name == "input_normalization":
+            primary[field_name] = _as_str(model_raw[field_name], context=context)
+        else:
             primary[field_name] = _as_int(model_raw[field_name], context=context)
     if "use_digit_position_embed" in model_raw:
         primary["use_digit_position_embed"] = _as_bool(
@@ -288,39 +297,42 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
     model_raw = payload["model"]
     if not isinstance(model_raw, dict):
         raise ValueError("manifest.model must be object")
+    required_model_keys = {
+        "arch",
+        "d_col",
+        "d_icl",
+        "feature_group_size",
+        "many_class_train_mode",
+        "max_mixed_radix_digits",
+    }
+    optional_model_keys = {
+        "tfcol_n_heads",
+        "tfcol_n_layers",
+        "tfcol_n_inducing",
+        "tfrow_n_heads",
+        "tfrow_n_layers",
+        "tfrow_cls_tokens",
+        "tficl_n_heads",
+        "tficl_n_layers",
+        "tficl_ff_expansion",
+        "many_class_base",
+        "head_hidden_dim",
+        "use_digit_position_embed",
+    }
+    if schema_version == SCHEMA_VERSION_V3:
+        required_model_keys.add("input_normalization")
+    else:
+        optional_model_keys.add("input_normalization")
     _require_keys(
         model_raw,
-        keys={
-            "arch",
-            "d_col",
-            "d_icl",
-            "feature_group_size",
-            "many_class_train_mode",
-            "max_mixed_radix_digits",
-        },
+        keys=required_model_keys,
         context="manifest.model",
-        optional_keys={
-            "tfcol_n_heads",
-            "tfcol_n_layers",
-            "tfcol_n_inducing",
-            "tfrow_n_heads",
-            "tfrow_n_layers",
-            "tfrow_cls_tokens",
-            "tficl_n_heads",
-            "tficl_n_layers",
-            "tficl_ff_expansion",
-            "many_class_base",
-            "head_hidden_dim",
-            "use_digit_position_embed",
-        },
+        optional_keys=optional_model_keys,
     )
     arch = _as_str(model_raw["arch"], context="manifest.model.arch")
     if arch != "tabfoundry":
         raise ValueError(f"Unsupported model arch: {arch!r}")
-    model_spec = model_build_spec_from_mappings(
-        task=task,
-        primary=_manifest_model_primary_dict(model_raw),
-    )
+    model_spec = model_build_spec_from_mappings(task=task, primary=_manifest_model_primary_dict(model_raw))
     model = ExportModelSpec.from_build_spec(model_spec, arch=arch)
 
     files_raw = payload["files"]
@@ -333,10 +345,7 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
     )
     files = ExportFiles(
         weights=_as_str(files_raw["weights"], context="manifest.files.weights"),
-        inference_config=_as_str(
-            files_raw["inference_config"],
-            context="manifest.files.inference_config",
-        ),
+        inference_config=_as_str(files_raw["inference_config"], context="manifest.files.inference_config"),
         preprocessor_state=_as_str(
             files_raw["preprocessor_state"],
             context="manifest.files.preprocessor_state",
@@ -455,7 +464,26 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
     )
 
 
-def validate_preprocessor_state_dict(payload: dict[str, Any]) -> PreprocessorState:
+def _validate_dtype_policy(dtype_policy: Any) -> dict[str, str]:
+    if not isinstance(dtype_policy, dict):
+        raise ValueError("preprocessor_state.dtype_policy must be object")
+    _require_keys(
+        dtype_policy,
+        keys=set(DTYPE_POLICY.keys()),
+        context="preprocessor_state.dtype_policy",
+    )
+    normalized: dict[str, str] = {}
+    for key, expected in DTYPE_POLICY.items():
+        actual = _as_str(dtype_policy[key], context=f"preprocessor_state.dtype_policy.{key}")
+        if actual != expected:
+            raise ValueError(
+                f"preprocessor_state.dtype_policy.{key} must equal {expected!r}, got {actual!r}"
+            )
+        normalized[key] = actual
+    return normalized
+
+
+def _validate_v2_preprocessor_state(payload: dict[str, Any]) -> LegacyPreprocessorState:
     _require_keys(
         payload,
         keys={
@@ -471,10 +499,10 @@ def validate_preprocessor_state_dict(payload: dict[str, Any]) -> PreprocessorSta
         payload["feature_order_policy"],
         context="preprocessor_state.feature_order_policy",
     )
-    if feature_order_policy != EXPECTED_FEATURE_ORDER_POLICY:
+    if feature_order_policy != EXPECTED_V2_FEATURE_ORDER_POLICY:
         raise ValueError(
             "preprocessor_state.feature_order_policy must equal "
-            f"{EXPECTED_FEATURE_ORDER_POLICY!r}"
+            f"{EXPECTED_V2_FEATURE_ORDER_POLICY!r}"
         )
 
     missing_value_policy = payload["missing_value_policy"]
@@ -489,10 +517,10 @@ def validate_preprocessor_state_dict(payload: dict[str, Any]) -> PreprocessorSta
         missing_value_policy["strategy"],
         context="preprocessor_state.missing_value_policy.strategy",
     )
-    if strategy != EXPECTED_MISSING_VALUE_STRATEGY:
+    if strategy != MISSING_VALUE_STRATEGY_TRAIN_MEAN:
         raise ValueError(
             "preprocessor_state.missing_value_policy.strategy must equal "
-            f"{EXPECTED_MISSING_VALUE_STRATEGY!r}"
+            f"{MISSING_VALUE_STRATEGY_TRAIN_MEAN!r}"
         )
     all_nan_fill = _as_float(
         missing_value_policy["all_nan_fill"],
@@ -516,37 +544,201 @@ def validate_preprocessor_state_dict(payload: dict[str, Any]) -> PreprocessorSta
         classification_label_policy["mapping"],
         context="preprocessor_state.classification_label_policy.mapping",
     )
-    if mapping != "train_only_remap":
-        raise ValueError("preprocessor_state.classification_label_policy.mapping must be train_only_remap")
+    if mapping != CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP:
+        raise ValueError(
+            "preprocessor_state.classification_label_policy.mapping must be "
+            f"{CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP}"
+        )
     unseen_test_label = _as_str(
         classification_label_policy["unseen_test_label"],
         context="preprocessor_state.classification_label_policy.unseen_test_label",
     )
     if unseen_test_label not in SUPPORTED_UNSEEN_TEST_LABEL_POLICIES:
-        allowed = ", ".join(SUPPORTED_UNSEEN_TEST_LABEL_POLICIES)
+        allowed = ", ".join(sorted(SUPPORTED_UNSEEN_TEST_LABEL_POLICIES))
         raise ValueError(
             "preprocessor_state.classification_label_policy.unseen_test_label must be one of: "
             f"{allowed}"
         )
 
-    dtype_policy = payload["dtype_policy"]
-    if not isinstance(dtype_policy, dict):
-        raise ValueError("preprocessor_state.dtype_policy must be object")
-    _require_keys(
-        dtype_policy,
-        keys={"features", "classification_labels", "regression_targets"},
-        context="preprocessor_state.dtype_policy",
-    )
-    for key, expected in EXPECTED_DTYPE_POLICY.items():
-        actual = _as_str(dtype_policy[key], context=f"preprocessor_state.dtype_policy.{key}")
-        if actual != expected:
-            raise ValueError(
-                f"preprocessor_state.dtype_policy.{key} must equal {expected!r}, got {actual!r}"
-            )
-
-    return PreprocessorState(
+    return LegacyPreprocessorState(
         feature_order_policy=feature_order_policy,
+        missing_value_policy={
+            "strategy": strategy,
+            "all_nan_fill": all_nan_fill,
+        },
+        classification_label_policy={
+            "mapping": mapping,
+            "unseen_test_label": unseen_test_label,
+        },
+        dtype_policy=_validate_dtype_policy(payload["dtype_policy"]),
+    )
+
+
+def _validate_feature_ids(feature_ids_raw: Any) -> list[int]:
+    if not isinstance(feature_ids_raw, list) or any(not isinstance(v, int) for v in feature_ids_raw):
+        raise ValueError("preprocessor_state.feature_ids must be list[int]")
+    feature_ids = [int(value) for value in feature_ids_raw]
+    expected = list(range(len(feature_ids)))
+    if feature_ids != expected:
+        raise ValueError(
+            "preprocessor_state.feature_ids must match positional feature ids "
+            f"{expected!r}, got {feature_ids!r}"
+        )
+    return feature_ids
+
+
+def _validate_v3_missing_value_policy(
+    payload: Any,
+    *,
+    feature_count: int,
+) -> MissingValuePolicyState:
+    if not isinstance(payload, dict):
+        raise ValueError("preprocessor_state.missing_value_policy must be object")
+    _require_keys(
+        payload,
+        keys={"strategy", "all_nan_fill", "fill_values"},
+        context="preprocessor_state.missing_value_policy",
+    )
+    strategy = _as_str(
+        payload["strategy"],
+        context="preprocessor_state.missing_value_policy.strategy",
+    )
+    if strategy != MISSING_VALUE_STRATEGY_TRAIN_MEAN:
+        raise ValueError(
+            "preprocessor_state.missing_value_policy.strategy must equal "
+            f"{MISSING_VALUE_STRATEGY_TRAIN_MEAN!r}"
+        )
+    all_nan_fill = _as_float(
+        payload["all_nan_fill"],
+        context="preprocessor_state.missing_value_policy.all_nan_fill",
+    )
+    if all_nan_fill != EXPECTED_MISSING_VALUE_ALL_NAN_FILL:
+        raise ValueError(
+            "preprocessor_state.missing_value_policy.all_nan_fill must equal "
+            f"{EXPECTED_MISSING_VALUE_ALL_NAN_FILL}"
+        )
+    fill_values_raw = payload["fill_values"]
+    if not isinstance(fill_values_raw, list):
+        raise ValueError("preprocessor_state.missing_value_policy.fill_values must be list[float]")
+    fill_values = [
+        _as_float(value, context=f"preprocessor_state.missing_value_policy.fill_values[{idx}]")
+        for idx, value in enumerate(fill_values_raw)
+    ]
+    if len(fill_values) != feature_count:
+        raise ValueError(
+            "preprocessor_state.missing_value_policy.fill_values length must equal feature count"
+        )
+    return MissingValuePolicyState(
+        strategy=strategy,
+        all_nan_fill=all_nan_fill,
+        fill_values=fill_values,
+    )
+
+
+def _validate_v3_classification_label_policy(
+    payload: Any,
+    *,
+    task: str,
+) -> ClassificationLabelPolicyState | None:
+    if task == "regression":
+        if payload is not None:
+            raise ValueError("preprocessor_state.classification_label_policy must be null for regression")
+        return None
+    if not isinstance(payload, dict):
+        raise ValueError("preprocessor_state.classification_label_policy must be object for classification")
+    _require_keys(
+        payload,
+        keys={"mapping", "unseen_test_label", "label_values"},
+        context="preprocessor_state.classification_label_policy",
+    )
+    mapping = _as_str(
+        payload["mapping"],
+        context="preprocessor_state.classification_label_policy.mapping",
+    )
+    if mapping != CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP:
+        raise ValueError(
+            "preprocessor_state.classification_label_policy.mapping must equal "
+            f"{CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP!r}"
+        )
+    unseen_test_label = _as_str(
+        payload["unseen_test_label"],
+        context="preprocessor_state.classification_label_policy.unseen_test_label",
+    )
+    if unseen_test_label != UNSEEN_TEST_LABEL_POLICY_FILTER:
+        raise ValueError(
+            "preprocessor_state.classification_label_policy.unseen_test_label must equal "
+            f"{UNSEEN_TEST_LABEL_POLICY_FILTER!r}"
+        )
+    label_values_raw = payload["label_values"]
+    if not isinstance(label_values_raw, list) or any(not isinstance(v, int) for v in label_values_raw):
+        raise ValueError("preprocessor_state.classification_label_policy.label_values must be list[int]")
+    label_values = [int(value) for value in label_values_raw]
+    if not label_values:
+        raise ValueError("preprocessor_state.classification_label_policy.label_values must be non-empty")
+    if label_values != sorted(set(label_values)):
+        raise ValueError(
+            "preprocessor_state.classification_label_policy.label_values must be sorted unique ints"
+        )
+    return ClassificationLabelPolicyState(
+        mapping=mapping,
+        unseen_test_label=unseen_test_label,
+        label_values=label_values,
+    )
+
+
+def _validate_v3_preprocessor_state(
+    payload: dict[str, Any],
+    *,
+    task: str,
+) -> FittedPreprocessorState:
+    _require_keys(
+        payload,
+        keys={
+            "feature_order_policy",
+            "feature_ids",
+            "missing_value_policy",
+            "classification_label_policy",
+            "dtype_policy",
+        },
+        context="preprocessor_state",
+    )
+
+    feature_order_policy = _as_str(
+        payload["feature_order_policy"],
+        context="preprocessor_state.feature_order_policy",
+    )
+    if feature_order_policy != FEATURE_ORDER_POLICY_POSITIONAL:
+        raise ValueError(
+            "preprocessor_state.feature_order_policy must equal "
+            f"{FEATURE_ORDER_POLICY_POSITIONAL!r}"
+        )
+    feature_ids = _validate_feature_ids(payload["feature_ids"])
+    missing_value_policy = _validate_v3_missing_value_policy(
+        payload["missing_value_policy"],
+        feature_count=len(feature_ids),
+    )
+    classification_label_policy = _validate_v3_classification_label_policy(
+        payload["classification_label_policy"],
+        task=task,
+    )
+    dtype_policy = _validate_dtype_policy(payload["dtype_policy"])
+    return FittedPreprocessorState(
+        feature_order_policy=feature_order_policy,
+        feature_ids=feature_ids,
         missing_value_policy=missing_value_policy,
         classification_label_policy=classification_label_policy,
         dtype_policy=dtype_policy,
     )
+
+
+def validate_preprocessor_state_dict(
+    payload: dict[str, Any],
+    *,
+    schema_version: str = SCHEMA_VERSION_V2,
+    task: str = "classification",
+) -> LegacyPreprocessorState | FittedPreprocessorState:
+    if schema_version == SCHEMA_VERSION_V2:
+        return _validate_v2_preprocessor_state(payload)
+    if schema_version == SCHEMA_VERSION_V3:
+        return _validate_v3_preprocessor_state(payload, task=task)
+    raise ValueError(f"Unsupported schema version: {schema_version!r}")

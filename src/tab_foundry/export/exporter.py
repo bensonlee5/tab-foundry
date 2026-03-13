@@ -13,18 +13,17 @@ from typing import Any
 from safetensors.torch import save_file
 import torch
 
-from tab_foundry.model.spec import (
-    ModelBuildSpec,
-    checkpoint_model_build_spec_from_mappings,
-)
+from tab_foundry.model.spec import ModelBuildSpec, checkpoint_model_build_spec_from_mappings
+from tab_foundry.preprocessing import FittedPreprocessorState
 
 from .checksums import sha256_file
 from .contracts import (
-    ExportModelSpec,
-    SCHEMA_VERSION_V2,
     ExportManifest,
+    ExportModelSpec,
     InferenceConfig,
-    PreprocessorState,
+    SCHEMA_VERSION_V2,
+    SCHEMA_VERSION_V3,
+    SUPPORTED_SCHEMA_VERSIONS,
     ValidatedBundle,
     read_json_dict,
     validate_inference_config_dict,
@@ -111,7 +110,7 @@ def _inference_config(task: str, model_spec: ExportModelSpec) -> dict[str, Any]:
     return payload
 
 
-def _preprocessor_state() -> dict[str, Any]:
+def _preprocessor_state_v2() -> dict[str, Any]:
     return {
         "feature_order_policy": "lexicographic_f_columns",
         "missing_value_policy": {"strategy": "train_mean", "all_nan_fill": 0.0},
@@ -125,6 +124,42 @@ def _preprocessor_state() -> dict[str, Any]:
             "regression_targets": "float32",
         },
     }
+
+
+def _preprocessor_state_v3(
+    preprocessor_state_path: Path | None,
+    *,
+    task: str,
+) -> dict[str, Any]:
+    if preprocessor_state_path is None:
+        raise RuntimeError(
+            "tab-foundry-export-v3 export requires preprocessor_state_path "
+            "with fitted preprocessing state JSON"
+        )
+    raw_state = read_json_dict(preprocessor_state_path.expanduser().resolve())
+    validated_state = validate_preprocessor_state_dict(
+        raw_state,
+        schema_version=SCHEMA_VERSION_V3,
+        task=task,
+    )
+    if not isinstance(validated_state, FittedPreprocessorState):
+        raise RuntimeError("tab-foundry-export-v3 requires fitted preprocessing state")
+    return validated_state.to_dict()
+
+
+def _preprocessor_state_payload(
+    *,
+    artifact_version: str,
+    task: str,
+    preprocessor_state_path: Path | None,
+) -> dict[str, Any]:
+    if artifact_version == SCHEMA_VERSION_V2:
+        if preprocessor_state_path is not None:
+            raise ValueError("preprocessor_state_path is only supported for tab-foundry-export-v3")
+        return _preprocessor_state_v2()
+    if artifact_version == SCHEMA_VERSION_V3:
+        return _preprocessor_state_v3(preprocessor_state_path, task=task)
+    raise ValueError(f"Unsupported artifact_version: {artifact_version!r}")
 
 
 def _normalize_state_dict(state_dict: Any) -> dict[str, torch.Tensor]:
@@ -144,12 +179,13 @@ def export_checkpoint(
     checkpoint_path: Path,
     out_dir: Path,
     *,
-    artifact_version: str = SCHEMA_VERSION_V2,
+    artifact_version: str = SCHEMA_VERSION_V3,
+    preprocessor_state_path: Path | None = None,
 ) -> ExportResult:
     """Export one training checkpoint as an inference bundle."""
 
     checkpoint = checkpoint_path.expanduser().resolve()
-    if artifact_version != SCHEMA_VERSION_V2:
+    if artifact_version not in SUPPORTED_SCHEMA_VERSIONS:
         raise ValueError(f"Unsupported artifact_version: {artifact_version!r}")
 
     payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
@@ -182,7 +218,11 @@ def export_checkpoint(
     save_file(state_dict, str(weights_path))
 
     inference_payload = _inference_config(task, model_spec)
-    preproc_payload = _preprocessor_state()
+    preproc_payload = _preprocessor_state_payload(
+        artifact_version=artifact_version,
+        task=task,
+        preprocessor_state_path=preprocessor_state_path,
+    )
     _write_json(inference_path, inference_payload)
     _write_json(preproc_path, preproc_payload)
 
@@ -205,7 +245,6 @@ def export_checkpoint(
     }
     _write_json(manifest_path, manifest_payload)
 
-    # Fail fast if any emitted JSON/schema/checksum contract is invalid.
     _ = validate_export_bundle(bundle_dir)
 
     return ExportResult(
@@ -236,7 +275,11 @@ def validate_export_bundle(bundle_dir: Path) -> ValidatedBundle:
     inference_dict = read_json_dict(inference_path)
     preproc_dict = read_json_dict(preproc_path)
     inference: InferenceConfig = validate_inference_config_dict(inference_dict)
-    preprocessor_state: PreprocessorState = validate_preprocessor_state_dict(preproc_dict)
+    preprocessor_state = validate_preprocessor_state_dict(
+        preproc_dict,
+        schema_version=manifest.schema_version,
+        task=manifest.task,
+    )
 
     if inference.task != manifest.task:
         raise ValueError("manifest.task and inference_config.task mismatch")
@@ -251,9 +294,7 @@ def validate_export_bundle(bundle_dir: Path) -> ValidatedBundle:
     for key, current in current_checksums.items():
         expected = manifest.checksums[key]
         if current != expected:
-            raise ValueError(
-                f"checksum mismatch for {key}: expected={expected}, actual={current}"
-            )
+            raise ValueError(f"checksum mismatch for {key}: expected={expected}, actual={current}")
 
     return ValidatedBundle(
         manifest=manifest,

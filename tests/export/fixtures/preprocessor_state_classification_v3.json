@@ -1,0 +1,19 @@
+{
+  "feature_order_policy": "positional_feature_ids",
+  "feature_ids": [0, 1, 2],
+  "missing_value_policy": {
+    "strategy": "train_mean",
+    "all_nan_fill": 0.0,
+    "fill_values": [1.5, 2.5, 0.0]
+  },
+  "classification_label_policy": {
+    "mapping": "train_only_remap",
+    "unseen_test_label": "filter",
+    "label_values": [3, 7]
+  },
+  "dtype_policy": {
+    "features": "float32",
+    "classification_labels": "int64",
+    "regression_targets": "float32"
+  }
+}
