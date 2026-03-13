@@ -20,6 +20,7 @@ optimizer:
   require_requested: false
 logging:
   run_name: cls-benchmark-linear
+  history_jsonl_path: ${runtime.output_dir}/train_history.jsonl
 schedule:
   stages:
     - name: stage1

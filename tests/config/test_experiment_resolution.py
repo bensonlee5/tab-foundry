@@ -71,6 +71,7 @@ def test_cls_benchmark_linear_resolution() -> None:
     assert int(cfg.runtime.checkpoint_every) == 25
     assert int(cfg.runtime.max_steps) == 400
     assert float(cfg.runtime.target_train_seconds) == 330.0
+    assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_linear/train_history.jsonl"
     stage = cfg.schedule.stages[0]
     assert str(stage["lr_schedule"]) == "linear"
     assert float(stage["warmup_ratio"]) == 0.05

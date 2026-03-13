@@ -1,0 +1,37 @@
+{
+  "baselines": {
+    "cls_benchmark_linear_v1": {
+      "baseline_id": "cls_benchmark_linear_v1",
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparison_summary_path": "outputs/control_baselines/cls_benchmark_linear_v1/benchmark/comparison_summary.json",
+      "config_profile": "cls_benchmark_linear",
+      "experiment": "cls_benchmark_linear",
+      "manifest_path": "data/manifests/default.parquet",
+      "run_dir": "outputs/control_baselines/cls_benchmark_linear_v1/train",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5766345164688179,
+        "best_step": 100.0,
+        "best_training_time": 28.62284566508606,
+        "final_roc_auc": 0.4196190868008127,
+        "final_step": 400.0,
+        "final_training_time": 109.52822166995611
+      }
+    }
+  },
+  "schema": "tab-foundry-control-baselines-v1",
+  "version": 1
+}

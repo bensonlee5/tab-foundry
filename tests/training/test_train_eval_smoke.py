@@ -228,6 +228,40 @@ def test_train_smoke_writes_history_jsonl(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert records[0]["train_elapsed_seconds"] >= 0.0
 
 
+def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = _classification_cfg(tmp_path)
+    history_path = tmp_path / "outputs" / "train_history.jsonl"
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    history_path.write_text(json.dumps({"step": 25}) + "\n", encoding="utf-8")
+    cfg.logging.history_jsonl_path = str(history_path)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: pytest.fail("dirty-output guard should fail before accelerator setup"),
+    )
+
+    with pytest.raises(RuntimeError, match="not resume-safe"):
+        _ = trainer_module.train(cfg)
+
+
+def test_train_rejects_existing_checkpoint_artifacts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cfg = _classification_cfg(tmp_path)
+    checkpoint_dir = tmp_path / "outputs" / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    (checkpoint_dir / "step_000025.pt").write_bytes(b"stale")
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: pytest.fail("dirty-output guard should fail before accelerator setup"),
+    )
+
+    with pytest.raises(RuntimeError, match="not resume-safe"):
+        _ = trainer_module.train(cfg)
+
+
 def test_build_stage_configs_validates_payloads() -> None:
     stages = build_stage_configs([{"name": "warmup", "steps": 2, "lr_max": 5.0e-4}])
     assert len(stages) == 1
