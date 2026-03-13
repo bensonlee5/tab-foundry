@@ -28,6 +28,9 @@ area becomes part of the canonical architecture.
 - `tab_foundry.config`, `tab_foundry.types`, and
   `tab_foundry.input_normalization` are shared helpers and should remain
   dependency-light.
+- Package roots such as `tab_foundry.model`, `tab_foundry.data`, and
+  `tab_foundry.export` are namespaces. New imports should target concrete
+  submodules rather than relying on package-root convenience exports.
 
 ## Change-Impact Hotspots
 

@@ -23,16 +23,20 @@ manifest-backed training and benchmark workflows.
   discovery.
 - `src/tab_foundry/data/` and `src/tab_foundry/data/sources/`: manifest-backed
   dataset abstractions, source selection, and data construction helpers.
-- `src/tab_foundry/model/`: stable root model surface for shared builders and
-  lightweight exports.
+  Direct imports should target modules such as `tab_foundry.data.manifest`,
+  `tab_foundry.data.dataset`, and `tab_foundry.data.factory`.
+- `src/tab_foundry/model/`: model namespace package. Direct imports should
+  target `tab_foundry.model.factory`, `tab_foundry.model.spec`, or family
+  modules under `tab_foundry.model.architectures`.
 - `src/tab_foundry/model/components/`: reusable blocks, QASS primitives, and
   many-class helpers shared across families.
 - `src/tab_foundry/model/architectures/`: family-specific assemblies such as
   `TabICLv2`.
 - `src/tab_foundry/training/`: family-agnostic training loops, batching,
   schedules, optimizers, runtime policy, and evaluation helpers.
-- `src/tab_foundry/export/`: bundle schema, exporter, checksums, and
-  inference-side reconstruction helpers.
+- `src/tab_foundry/export/`: export namespace package. Direct imports should
+  target `tab_foundry.export.exporter`, `tab_foundry.export.loader_ref`, and
+  `tab_foundry.export.contracts`.
 - `src/tab_foundry/bench/`: smoke harnesses, tuning, checkpoint benchmarking,
   comparison flows, benchmark env bootstrap, and shared artifact helpers.
 

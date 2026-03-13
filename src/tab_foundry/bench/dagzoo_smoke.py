@@ -10,16 +10,18 @@ import subprocess
 import time
 from typing import Any, Sequence
 
-from omegaconf import DictConfig
-
 from tab_foundry.bench.artifacts import (
     checkpoint_snapshots_from_history,
     ensure_finite_metrics,
     plot_loss_curve,
     write_json,
 )
-from tab_foundry.config import compose_config
-from tab_foundry.data.manifest import ManifestSummary, build_manifest
+from tab_foundry.bench.smoke_common import (
+    build_cls_smoke_eval_config,
+    build_cls_smoke_train_config,
+    build_manifest_payload,
+)
+from tab_foundry.data.manifest import build_manifest
 from tab_foundry.training.evaluate import evaluate_checkpoint
 from tab_foundry.training.trainer import train
 
@@ -78,52 +80,6 @@ def _dagzoo_generate_command(config: SmokeConfig, *, generated_dir: Path) -> lis
         str(generated_dir),
     ]
 
-
-def _build_train_config(
-    *,
-    manifest_path: Path,
-    output_dir: Path,
-    history_path: Path,
-    train_steps: int,
-    checkpoint_every: int,
-    device: str,
-) -> DictConfig:
-    cfg = compose_config(["experiment=cls_smoke", "optimizer=adamw", "logging.use_wandb=false"])
-    cfg.data.manifest_path = str(manifest_path)
-    cfg.runtime.output_dir = str(output_dir)
-    cfg.runtime.device = str(device)
-    cfg.runtime.eval_every = 1
-    cfg.runtime.checkpoint_every = int(checkpoint_every)
-    cfg.runtime.val_batches = 1
-    cfg.schedule.stages = [{"name": "stage1", "steps": int(train_steps), "lr_max": DEFAULT_STAGE_LR_MAX}]
-    cfg.logging.history_jsonl_path = str(history_path)
-    return cfg
-
-
-def _build_eval_config(
-    *,
-    manifest_path: Path,
-    checkpoint_path: Path,
-    device: str,
-) -> DictConfig:
-    cfg = compose_config(["experiment=cls_smoke", "optimizer=adamw", "logging.use_wandb=false"])
-    cfg.data.manifest_path = str(manifest_path)
-    cfg.runtime.device = str(device)
-    cfg.eval.checkpoint = str(checkpoint_path)
-    cfg.eval.split = "test"
-    return cfg
-
-def _manifest_payload(summary: ManifestSummary) -> dict[str, Any]:
-    return {
-        "discovered_records": int(summary.discovered_records),
-        "excluded_records": int(summary.excluded_records),
-        "total_records": int(summary.total_records),
-        "train_records": int(summary.train_records),
-        "val_records": int(summary.val_records),
-        "test_records": int(summary.test_records),
-        "filter_policy": str(summary.filter_policy),
-        "warnings": list(summary.warnings),
-    }
 
 def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
     """Execute the end-to-end dagzoo-backed smoke harness."""
@@ -195,13 +151,20 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
 
         stage_start = time.perf_counter()
         train_result = train(
-            _build_train_config(
+            build_cls_smoke_train_config(
                 manifest_path=manifest_path,
                 output_dir=train_output_dir,
                 history_path=history_path,
-                train_steps=config.train_steps,
+                schedule_stages=[
+                    {
+                        "name": "stage1",
+                        "steps": int(config.train_steps),
+                        "lr_max": DEFAULT_STAGE_LR_MAX,
+                    }
+                ],
                 checkpoint_every=config.checkpoint_every,
                 device=config.device,
+                clear_row_caps=False,
             )
         )
         timings_seconds["train"] = time.perf_counter() - stage_start
@@ -210,10 +173,11 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
 
         stage_start = time.perf_counter()
         eval_result = evaluate_checkpoint(
-            _build_eval_config(
+            build_cls_smoke_eval_config(
                 manifest_path=manifest_path,
                 checkpoint_path=train_result.best_checkpoint,
                 device=config.device,
+                clear_row_caps=False,
             )
         )
         timings_seconds["eval"] = time.perf_counter() - stage_start
@@ -227,7 +191,7 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
         )
 
         telemetry["success"] = True
-        telemetry["manifest"] = _manifest_payload(manifest_summary)
+        telemetry["manifest"] = build_manifest_payload(manifest_summary)
         telemetry["checkpoint_snapshots"] = checkpoint_snapshots
         telemetry["train_metrics"] = {
             "global_step": int(train_result.global_step),

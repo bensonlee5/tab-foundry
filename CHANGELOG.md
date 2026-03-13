@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-03-13
+
+### Changed
+
+- Centralized canonical model-build spec resolution in
+  `tab_foundry.model.spec` so training, evaluation, checkpoint loading, and
+  export manifest validation share one defaulting and coercion path.
+- Consolidated duplicated smoke-harness manifest/config helpers into
+  `tab_foundry.bench.smoke_common` while preserving the existing dagzoo and
+  Iris workflow behavior.
+- Removed package-root convenience re-exports from `tab_foundry.model`,
+  `tab_foundry.data`, and `tab_foundry.export`. Direct Python imports should
+  now target concrete submodules. This is a Python API cleanup only; CLI flags
+  and export bundle or dataset artifact contracts did not change.
+- Updated contributor and development docs to reflect the current role-based
+  package layout and the repo's actual local verification commands.
+
 ## [0.1.1] - 2026-03-12
 
 ### Added

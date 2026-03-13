@@ -11,11 +11,15 @@ import torch
 import torch.nn.functional as F
 
 from tab_foundry.input_normalization import normalize_train_test_arrays
-from tab_foundry.model.factory import build_model_from_spec, model_build_spec_from_mappings
+from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
 from tab_foundry.types import TaskBatch
 
 
-def _checkpoint_model_spec(payload: dict[str, Any], cfg: DictConfig | None = None):
+def _checkpoint_model_spec(
+    payload: dict[str, Any],
+    cfg: DictConfig | None = None,
+) -> ModelBuildSpec:
     cfg_payload = payload.get("config")
     checkpoint_cfg = cfg_payload if isinstance(cfg_payload, dict) else {}
     task_raw = checkpoint_cfg.get("task", "classification")

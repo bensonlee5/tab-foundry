@@ -118,15 +118,15 @@ The end state should support:
 
 | Path | Intended role |
 | ---- | ------------- |
-| `src/tab_foundry/` | Stable shared surfaces such as CLI entrypoints, shared config resolution, and small cross-cutting helpers. |
+| `src/tab_foundry/` | Stable top-level package namespace for CLI entrypoints, shared config resolution, and small cross-cutting helpers. |
 | `src/tab_foundry/cli/` and `src/tab_foundry/cli/commands/` | User-facing command surfaces and argument parsing. |
 | `src/tab_foundry/bench/` | Smoke harnesses, benchmark utilities, comparison flows, plotting helpers, env bootstrap, and internal research harnesses. |
-| `src/tab_foundry/data/` and `src/tab_foundry/data/sources/` | Reusable dataset abstractions, loaders, and registered task sources. |
-| `src/tab_foundry/model/` | Stable model-facing root surface for shared builders and small cross-cutting exports such as `tab_foundry.model` and `tab_foundry.model.factory`. |
+| `src/tab_foundry/data/` and `src/tab_foundry/data/sources/` | Data package namespaces for reusable dataset abstractions, loaders, and registered task sources. Direct imports should target modules such as `tab_foundry.data.manifest`, `tab_foundry.data.dataset`, and `tab_foundry.data.factory`. |
+| `src/tab_foundry/model/` | Model package namespace. Direct imports should target submodules such as `tab_foundry.model.factory`, `tab_foundry.model.spec`, or family modules under `tab_foundry.model.architectures`. |
 | `src/tab_foundry/model/components/` | Reusable architectural pieces such as tokenization blocks, attention blocks, many-class helpers, and QASS primitives. |
 | `src/tab_foundry/model/architectures/` | Full model-family implementations assembled from reusable components. |
 | `src/tab_foundry/training/` | Family-agnostic training infrastructure such as schedules, optimizers, trainer loops, checkpointing, and history logging. |
-| `src/tab_foundry/export/` | Bundle/export contracts and compatibility handling. |
+| `src/tab_foundry/export/` | Export package namespace for bundle contracts and compatibility handling. Direct imports should target modules such as `tab_foundry.export.contracts`, `tab_foundry.export.exporter`, and `tab_foundry.export.loader_ref`. |
 | `docs/development/` | Canonical planning, architecture rationale, codebase navigation, and dependency mapping for internal repo evolution. |
 | `docs/workflows.md` and `docs/inference.md` | Stable operational and contract docs that should remain easy to link for users and downstream repos. |
 | `tests/` | Coverage organized by role today across `tests/model/`, `tests/training/`, `tests/data/`, `tests/export/`, `tests/runtime/`, `tests/config/`, `tests/smoke/`, and `tests/benchmark/`. |
@@ -151,7 +151,8 @@ Notes:
 - `bench/` may depend on core library packages, but core library packages
   should not depend on `bench/`.
 - `cli/commands/` may orchestrate both `bench/` and core packages.
-- `src/tab_foundry/model/` now provides the stable root surface while
+- `src/tab_foundry/model/` is a namespace package. Direct imports should target
+  stable submodules like `model.factory` and `model.spec`, while
   `model/components` and `model/architectures` carry the internal split.
 - Current export compatibility constraints around `tabiclv2` are tolerated at
   the boundary, but should not re-anchor internal architecture structure.

@@ -1,5 +1,1 @@
-"""Model modules."""
-
-from .architectures import TabICLv2Classifier, TabICLv2Regressor
-
-__all__ = ["TabICLv2Classifier", "TabICLv2Regressor"]
+"""Model namespace. Import from submodules such as ``tab_foundry.model.factory``."""
