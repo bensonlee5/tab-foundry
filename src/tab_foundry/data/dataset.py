@@ -13,11 +13,7 @@ import pyarrow.parquet as pq
 import torch
 from torch.utils.data import Dataset
 
-from tab_foundry.preprocessing import (
-    FittedPreprocessorState,
-    apply_fitted_preprocessor,
-    fit_fitted_preprocessor,
-)
+from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
 
@@ -235,46 +231,6 @@ def _load_manifest_task_record(
     )
 
 
-def fit_manifest_preprocessor_state(
-    manifest_path: Path,
-    *,
-    dataset_id: str,
-    task: str,
-) -> FittedPreprocessorState:
-    """Fit one task-scoped preprocessing state from a manifest record's train split."""
-
-    manifest = manifest_path.expanduser().resolve()
-    task_normalized = str(task).strip().lower()
-    table = pq.read_table(manifest)
-    records: list[dict[str, Any]] = table.to_pylist()
-    matches = [
-        record
-        for record in records
-        if str(record.get("dataset_id", "")) == dataset_id and str(record.get("task", "")) == task_normalized
-    ]
-    if not matches:
-        raise RuntimeError(
-            f"no manifest record found for dataset_id={dataset_id!r}, task={task_normalized!r}"
-        )
-    if len(matches) != 1:
-        raise RuntimeError(
-            f"expected exactly one manifest record for dataset_id={dataset_id!r}, "
-            f"task={task_normalized!r}, got {len(matches)}"
-        )
-    record = matches[0]
-    loaded = _load_manifest_task_record(
-        manifest,
-        split=str(record.get("split", "<unknown>")),
-        task=task_normalized,
-        record=record,
-    )
-    return fit_fitted_preprocessor(
-        task=task_normalized,
-        x_train=loaded.x_train,
-        y_train=loaded.y_train,
-    )
-
-
 class PackedParquetTaskDataset(Dataset[TaskBatch]):
     """Lazily load one dataset-task at a time from manifest records."""
 
@@ -337,28 +293,19 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             seed=self.seed + index * 2 + 2,
         )
 
-        if self.impute_missing or self.task == "classification":
-            state = fit_fitted_preprocessor(
-                task=self.task,
-                x_train=x_train,
-                y_train=y_train,
-            )
-            processed = apply_fitted_preprocessor(
-                task=self.task,
-                state=state,
-                x_train=x_train,
-                y_train=y_train,
-                x_test=x_test,
-                y_test=y_test,
-                impute_missing=self.impute_missing,
-            )
-            x_train = processed.x_train
-            y_train = processed.y_train
-            x_test = processed.x_test
-            y_test = processed.y_test if processed.y_test is not None else y_test
-            num_classes = processed.num_classes
-        else:
-            num_classes = None
+        processed = preprocess_runtime_task_arrays(
+            task=self.task,
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            y_test=y_test,
+            impute_missing=self.impute_missing,
+        )
+        x_train = processed.x_train
+        y_train = processed.y_train
+        x_test = processed.x_test
+        y_test = processed.y_test if processed.y_test is not None else y_test
+        num_classes = processed.num_classes
 
         metadata_out = dict(metadata)
 

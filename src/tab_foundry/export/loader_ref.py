@@ -12,10 +12,10 @@ import torch
 from torch import nn
 
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.preprocessing import FittedPreprocessorState, apply_fitted_preprocessor
+from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
-from .contracts import SCHEMA_VERSION_V3, ValidatedBundle
+from .contracts import ExportPreprocessorState, SCHEMA_VERSION_V3, ValidatedBundle
 from .exporter import validate_export_bundle
 
 
@@ -42,7 +42,15 @@ def load_export_bundle(bundle_dir: Path) -> LoadedExportBundle:
 
     model_spec = manifest.model.to_build_spec(task=manifest.task)
     model = build_model_from_spec(model_spec)
-    weights_path = bundle_dir.expanduser().resolve() / manifest.files.weights
+    if manifest.schema_version == SCHEMA_VERSION_V3:
+        if manifest.weights is None:
+            raise RuntimeError("v3 bundle is missing embedded weights metadata")
+        weights_name = manifest.weights.file
+    else:
+        if manifest.files is None:
+            raise RuntimeError("v2 bundle is missing file metadata")
+        weights_name = manifest.files.weights
+    weights_path = bundle_dir.expanduser().resolve() / weights_name
     state_dict = load_file(str(weights_path))
     incompatible = model.load_state_dict(state_dict, strict=True)
     if incompatible.missing_keys or incompatible.unexpected_keys:
@@ -54,15 +62,15 @@ def load_export_bundle(bundle_dir: Path) -> LoadedExportBundle:
     return LoadedExportBundle(validated=validated, model=model)
 
 
-def _require_fitted_preprocessor_state(bundle: LoadedExportBundle) -> FittedPreprocessorState:
+def _require_preprocessor_policy(bundle: LoadedExportBundle) -> ExportPreprocessorState:
     validated_state = bundle.validated.preprocessor_state
     if bundle.validated.manifest.schema_version != SCHEMA_VERSION_V3:
         raise ValueError(
             "reference consumer only executes tab-foundry-export-v3 bundles; "
             f"got {bundle.validated.manifest.schema_version!r}"
         )
-    if not isinstance(validated_state, FittedPreprocessorState):
-        raise TypeError("reference consumer requires a fitted preprocessing state")
+    if not isinstance(validated_state, ExportPreprocessorState):
+        raise TypeError("reference consumer requires an embedded preprocessing policy")
     return validated_state
 
 
@@ -80,10 +88,9 @@ def _reference_batch(
     x_test: Any,
 ) -> TaskBatch:
     manifest = bundle.validated.manifest
-    state = _require_fitted_preprocessor_state(bundle)
-    processed = apply_fitted_preprocessor(
+    policy = _require_preprocessor_policy(bundle)
+    processed = preprocess_runtime_task_arrays(
         task=manifest.task,
-        state=state,
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
@@ -106,7 +113,7 @@ def _reference_batch(
         y_train=y_train_tensor,
         x_test=torch.from_numpy(np.asarray(processed.x_test, dtype=np.float32)),
         y_test=y_test_tensor,
-        metadata={"preprocessor_state": state.to_dict()},
+        metadata={"preprocessor_policy": policy.to_dict()},
         num_classes=num_classes,
     )
 

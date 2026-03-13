@@ -15,15 +15,33 @@
     "many_class_train_mode": "path_nll",
     "max_mixed_radix_digits": 64
   },
-  "files": {
-    "weights": "weights.safetensors",
-    "inference_config": "inference_config.json",
-    "preprocessor_state": "preprocessor_state.json"
+  "inference": {
+    "task": "classification",
+    "model_arch": "tabfoundry",
+    "group_shifts": [0, 1, 3],
+    "feature_group_size": 1,
+    "many_class_threshold": 10,
+    "many_class_inference_mode": "full_probs"
   },
-  "checksums": {
-    "weights": "0000000000000000000000000000000000000000000000000000000000000000",
-    "inference_config": "1111111111111111111111111111111111111111111111111111111111111111",
-    "preprocessor_state": "2222222222222222222222222222222222222222222222222222222222222222"
+  "preprocessor": {
+    "feature_order_policy": "positional_feature_ids",
+    "missing_value_policy": {
+      "strategy": "train_mean",
+      "all_nan_fill": 0.0
+    },
+    "classification_label_policy": {
+      "mapping": "train_only_remap",
+      "unseen_test_label": "filter"
+    },
+    "dtype_policy": {
+      "features": "float32",
+      "classification_labels": "int64",
+      "regression_targets": "float32"
+    }
+  },
+  "weights": {
+    "file": "weights.safetensors",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
   },
   "created_at_utc": "2026-03-13T00:00:00Z"
 }

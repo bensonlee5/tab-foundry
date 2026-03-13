@@ -11,12 +11,14 @@ import torch
 
 import tab_foundry.export.exporter as exporter_module
 import tab_foundry.training.evaluate as evaluate_module
-from tab_foundry.export.checksums import sha256_file
-from tab_foundry.export.contracts import SCHEMA_VERSION_V2, SCHEMA_VERSION_V3, FittedPreprocessorState
+from tab_foundry.export.contracts import (
+    ExportPreprocessorState,
+    SCHEMA_VERSION_V2,
+    SCHEMA_VERSION_V3,
+)
 from tab_foundry.export.exporter import export_checkpoint, validate_export_bundle
 from tab_foundry.export.loader_ref import load_export_bundle, run_reference_consumer
 from tab_foundry.model.factory import build_model
-from tab_foundry.preprocessing import fit_fitted_preprocessor
 from tab_foundry.types import TaskBatch
 
 
@@ -57,61 +59,8 @@ def _regression_reference_arrays() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     )
 
 
-def _preprocessor_state_payload(
-    task: str,
-    *,
-    x_train: np.ndarray | None = None,
-    y_train: np.ndarray | None = None,
-) -> dict[str, object]:
-    if x_train is None or y_train is None:
-        if task == "classification":
-            x_train, y_train, _x_test = _classification_reference_arrays()
-        else:
-            x_train, y_train, _x_test = _regression_reference_arrays()
-    return fit_fitted_preprocessor(
-        task=task,
-        x_train=x_train,
-        y_train=y_train,
-    ).to_dict()
-
-
-def _write_preprocessor_state_json(
-    path: Path,
-    *,
-    task: str,
-    x_train: np.ndarray | None = None,
-    y_train: np.ndarray | None = None,
-) -> Path:
-    payload = _preprocessor_state_payload(
-        task,
-        x_train=x_train,
-        y_train=y_train,
-    )
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, sort_keys=True)
-        handle.write("\n")
-    return path
-
-
-def _export_v3_checkpoint(
-    checkpoint: Path,
-    out_dir: Path,
-    *,
-    task: str,
-    x_train: np.ndarray | None = None,
-    y_train: np.ndarray | None = None,
-) -> object:
-    preprocessor_state_path = _write_preprocessor_state_json(
-        out_dir.parent / f"{out_dir.name}_preprocessor_state.json",
-        task=task,
-        x_train=x_train,
-        y_train=y_train,
-    )
-    return export_checkpoint(
-        checkpoint,
-        out_dir,
-        preprocessor_state_path=preprocessor_state_path,
-    )
+def _export_v3_checkpoint(checkpoint: Path, out_dir: Path) -> object:
+    return export_checkpoint(checkpoint, out_dir)
 
 
 def _make_config(
@@ -185,9 +134,7 @@ def _load_fixture(name: str) -> dict[str, object]:
     return payload
 
 
-def test_export_bundle_defaults_to_v3_and_serializes_fitted_preprocessor_and_input_normalization(
-    tmp_path: Path,
-) -> None:
+def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(
         checkpoint,
@@ -196,23 +143,26 @@ def test_export_bundle_defaults_to_v3_and_serializes_fitted_preprocessor_and_inp
     )
     out_dir = tmp_path / "export_cls"
 
-    result = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    result = _export_v3_checkpoint(checkpoint, out_dir)
     assert result.schema_version == SCHEMA_VERSION_V3
 
     with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
+
     assert manifest["schema_version"] == SCHEMA_VERSION_V3
     assert manifest["model"]["arch"] == "tabfoundry"
     assert manifest["model"]["input_normalization"] == "train_zscore"
-
-    with (out_dir / "preprocessor_state.json").open("r", encoding="utf-8") as handle:
-        preprocessor_state = json.load(handle)
-    assert preprocessor_state["feature_ids"] == [0, 1, 2]
-    assert preprocessor_state["missing_value_policy"]["fill_values"] == [4.0, 7.0, 3.0]
-    assert preprocessor_state["classification_label_policy"]["label_values"] == [10, 20]
+    assert manifest["inference"]["model_arch"] == "tabfoundry"
+    assert manifest["inference"]["many_class_inference_mode"] == "full_probs"
+    assert manifest["preprocessor"]["feature_order_policy"] == "positional_feature_ids"
+    assert manifest["preprocessor"]["classification_label_policy"]["mapping"] == "train_only_remap"
+    assert manifest["weights"]["file"] == "weights.safetensors"
+    assert (out_dir / "weights.safetensors").exists()
+    assert not (out_dir / "inference_config.json").exists()
+    assert not (out_dir / "preprocessor_state.json").exists()
 
     validated = validate_export_bundle(out_dir)
-    assert isinstance(validated.preprocessor_state, FittedPreprocessorState)
+    assert isinstance(validated.preprocessor_state, ExportPreprocessorState)
     assert validated.manifest.model.input_normalization == "train_zscore"
 
 
@@ -232,31 +182,6 @@ def test_export_bundle_supports_explicit_v2(tmp_path: Path) -> None:
     assert manifest["schema_version"] == SCHEMA_VERSION_V2
     assert "feature_ids" not in preprocessor_state
     assert preprocessor_state["classification_label_policy"]["mapping"] == "train_only_remap"
-
-
-def test_export_bundle_requires_explicit_preprocessor_state_path_for_v3(tmp_path: Path) -> None:
-    checkpoint = tmp_path / "ckpt_missing_preprocessor.pt"
-    _ = _write_checkpoint(checkpoint, task="classification")
-
-    with pytest.raises(RuntimeError, match="requires preprocessor_state_path"):
-        _ = export_checkpoint(checkpoint, tmp_path / "export_missing_preprocessor")
-
-
-def test_export_bundle_rejects_preprocessor_state_path_for_v2(tmp_path: Path) -> None:
-    checkpoint = tmp_path / "ckpt_v2.pt"
-    _ = _write_checkpoint(checkpoint, task="classification")
-    preprocessor_state_path = _write_preprocessor_state_json(
-        tmp_path / "preprocessor_state.json",
-        task="classification",
-    )
-
-    with pytest.raises(ValueError, match="only supported for tab-foundry-export-v3"):
-        _ = export_checkpoint(
-            checkpoint,
-            tmp_path / "export_v2",
-            artifact_version=SCHEMA_VERSION_V2,
-            preprocessor_state_path=preprocessor_state_path,
-        )
 
 
 def test_export_bundle_defaults_omitted_feature_group_size_to_one_when_weights_match(
@@ -281,17 +206,15 @@ def test_export_bundle_defaults_omitted_feature_group_size_to_one_when_weights_m
     )
 
     out_dir = tmp_path / "export_default_group"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    with (out_dir / "inference_config.json").open("r", encoding="utf-8") as handle:
-        inference_cfg = json.load(handle)
 
     loaded = load_export_bundle(out_dir)
 
     assert manifest["model"]["feature_group_size"] == 1
-    assert inference_cfg["feature_group_size"] == 1
+    assert manifest["inference"]["feature_group_size"] == 1
     assert loaded.validated.manifest.model.feature_group_size == 1
 
 
@@ -317,7 +240,7 @@ def test_export_bundle_rejects_legacy_grouped_weights_when_feature_group_size_is
     )
 
     with pytest.raises(ValueError, match="omitted feature_group_size"):
-        _ = _export_v3_checkpoint(checkpoint, tmp_path / "export_legacy_group", task="classification")
+        _ = _export_v3_checkpoint(checkpoint, tmp_path / "export_legacy_group")
 
 
 def test_export_bundle_supports_explicit_nondefault_feature_group_size(
@@ -331,28 +254,25 @@ def test_export_bundle_supports_explicit_nondefault_feature_group_size(
     )
 
     out_dir = tmp_path / "export_group_32"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    with (out_dir / "inference_config.json").open("r", encoding="utf-8") as handle:
-        inference_cfg = json.load(handle)
 
     assert manifest["model"]["feature_group_size"] == 32
-    assert inference_cfg["feature_group_size"] == 32
+    assert manifest["inference"]["feature_group_size"] == 32
 
 
-def test_validate_export_detects_checksum_tamper(tmp_path: Path) -> None:
+def test_validate_export_detects_weights_checksum_tamper(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
-    inference_cfg = out_dir / "inference_config.json"
-    with inference_cfg.open("a", encoding="utf-8") as handle:
-        handle.write("\n")
+    with (out_dir / "weights.safetensors").open("ab") as handle:
+        handle.write(b"tamper")
 
-    with pytest.raises(ValueError, match="checksum mismatch"):
+    with pytest.raises(ValueError, match="checksum mismatch for weights"):
         _ = validate_export_bundle(out_dir)
 
 
@@ -360,7 +280,7 @@ def test_validate_export_rejects_unsupported_schema(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     manifest_path = out_dir / "manifest.json"
     with manifest_path.open("r", encoding="utf-8") as handle:
@@ -377,7 +297,7 @@ def test_validate_export_rejects_old_manifest_arch(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     manifest_path = out_dir / "manifest.json"
     with manifest_path.open("r", encoding="utf-8") as handle:
@@ -395,20 +315,12 @@ def test_validate_export_rejects_old_inference_model_arch(tmp_path: Path) -> Non
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
-
-    inference_path = out_dir / "inference_config.json"
-    with inference_path.open("r", encoding="utf-8") as handle:
-        inference_cfg = json.load(handle)
-    inference_cfg["model_arch"] = "tabiclv2"
-    with inference_path.open("w", encoding="utf-8") as handle:
-        json.dump(inference_cfg, handle, indent=2, sort_keys=True)
-        handle.write("\n")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     manifest_path = out_dir / "manifest.json"
     with manifest_path.open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    manifest["checksums"]["inference_config"] = sha256_file(inference_path)
+    manifest["inference"]["model_arch"] = "tabiclv2"
     with manifest_path.open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
@@ -417,24 +329,34 @@ def test_validate_export_rejects_old_inference_model_arch(tmp_path: Path) -> Non
         _ = validate_export_bundle(out_dir)
 
 
-def test_validate_export_requires_quantile_levels_for_regression(tmp_path: Path) -> None:
+def test_validate_export_rejects_invalid_input_normalization(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
-    _ = _write_checkpoint(checkpoint, task="regression")
-    out_dir = tmp_path / "export_reg"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="regression")
-
-    inference_path = out_dir / "inference_config.json"
-    with inference_path.open("r", encoding="utf-8") as handle:
-        inference_cfg = json.load(handle)
-    inference_cfg.pop("quantile_levels", None)
-    with inference_path.open("w", encoding="utf-8") as handle:
-        json.dump(inference_cfg, handle, indent=2, sort_keys=True)
-        handle.write("\n")
+    _ = _write_checkpoint(checkpoint, task="classification")
+    out_dir = tmp_path / "export_cls"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     manifest_path = out_dir / "manifest.json"
     with manifest_path.open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    manifest["checksums"]["inference_config"] = sha256_file(inference_path)
+    manifest["model"]["input_normalization"] = "bogus"
+    with manifest_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+    with pytest.raises(ValueError, match="input_normalization"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_requires_quantile_levels_for_regression(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt.pt"
+    _ = _write_checkpoint(checkpoint, task="regression")
+    out_dir = tmp_path / "export_reg"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    with manifest_path.open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    manifest["inference"].pop("quantile_levels", None)
     with manifest_path.open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
@@ -447,20 +369,12 @@ def test_validate_export_rejects_quantile_levels_for_classification(tmp_path: Pa
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
-
-    inference_path = out_dir / "inference_config.json"
-    with inference_path.open("r", encoding="utf-8") as handle:
-        inference_cfg = json.load(handle)
-    inference_cfg["quantile_levels"] = [0.25, 0.5, 0.75]
-    with inference_path.open("w", encoding="utf-8") as handle:
-        json.dump(inference_cfg, handle, indent=2, sort_keys=True)
-        handle.write("\n")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     manifest_path = out_dir / "manifest.json"
     with manifest_path.open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    manifest["checksums"]["inference_config"] = sha256_file(inference_path)
+    manifest["inference"]["quantile_levels"] = [0.25, 0.5, 0.75]
     with manifest_path.open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
@@ -469,39 +383,34 @@ def test_validate_export_rejects_quantile_levels_for_classification(tmp_path: Pa
         _ = validate_export_bundle(out_dir)
 
 
-def test_export_preprocessor_payload_matches_fitted_runtime_state(tmp_path: Path) -> None:
+def test_export_manifest_embeds_policy_only_preprocessor(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
-    preproc_path = out_dir / "preprocessor_state.json"
-    with preproc_path.open("r", encoding="utf-8") as handle:
-        preproc = json.load(handle)
+    with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    preproc = manifest["preprocessor"]
+
     assert preproc["classification_label_policy"]["mapping"] == "train_only_remap"
     assert preproc["classification_label_policy"]["unseen_test_label"] == "filter"
-    assert preproc["classification_label_policy"]["label_values"] == [10, 20]
+    assert "feature_ids" not in preproc
+    assert "fill_values" not in preproc["missing_value_policy"]
+    assert "label_values" not in preproc["classification_label_policy"]
 
 
 def test_validate_export_rejects_fixed_inference_contract_drift(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
-
-    inference_path = out_dir / "inference_config.json"
-    with inference_path.open("r", encoding="utf-8") as handle:
-        inference_cfg = json.load(handle)
-    inference_cfg["group_shifts"] = [99]
-    inference_cfg["many_class_threshold"] = 123
-    with inference_path.open("w", encoding="utf-8") as handle:
-        json.dump(inference_cfg, handle, indent=2, sort_keys=True)
-        handle.write("\n")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     manifest_path = out_dir / "manifest.json"
     with manifest_path.open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    manifest["checksums"]["inference_config"] = sha256_file(inference_path)
+    manifest["inference"]["group_shifts"] = [99]
+    manifest["inference"]["many_class_threshold"] = 123
     with manifest_path.open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
@@ -514,26 +423,17 @@ def test_validate_export_rejects_fixed_preprocessor_contract_drift(tmp_path: Pat
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
-
-    preproc_path = out_dir / "preprocessor_state.json"
-    with preproc_path.open("r", encoding="utf-8") as handle:
-        preproc = json.load(handle)
-    preproc["feature_order_policy"] = "reverse_columns"
-    preproc["missing_value_policy"]["fill_values"] = [1.0]
-    preproc["dtype_policy"] = {
-        "features": "float64",
-        "classification_labels": "int32",
-        "regression_targets": "float16",
-    }
-    with preproc_path.open("w", encoding="utf-8") as handle:
-        json.dump(preproc, handle, indent=2, sort_keys=True)
-        handle.write("\n")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     manifest_path = out_dir / "manifest.json"
     with manifest_path.open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    manifest["checksums"]["preprocessor_state"] = sha256_file(preproc_path)
+    manifest["preprocessor"]["feature_order_policy"] = "reverse_columns"
+    manifest["preprocessor"]["dtype_policy"] = {
+        "features": "float64",
+        "classification_labels": "int32",
+        "regression_targets": "float16",
+    }
     with manifest_path.open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
@@ -558,7 +458,7 @@ def test_export_checkpoint_uses_explicit_weights_only_false(
         return orig_load(*args, **kwargs)
 
     monkeypatch.setattr(exporter_module.torch, "load", _recording_load)
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     assert captured
     assert captured[0]["map_location"] == "cpu"
@@ -570,7 +470,7 @@ def test_reference_loader_round_trip_classification_logits(tmp_path: Path) -> No
     source_model = _write_checkpoint(checkpoint, task="classification")
     source_model.eval()
     out_dir = tmp_path / "export_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     loaded = load_export_bundle(out_dir)
 
@@ -599,13 +499,11 @@ def test_reference_loader_round_trip_regression_quantiles(tmp_path: Path) -> Non
     source_model = _write_checkpoint(checkpoint, task="regression")
     source_model.eval()
     out_dir = tmp_path / "export_reg"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="regression")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     loaded = load_export_bundle(out_dir)
-    with (out_dir / "inference_config.json").open("r", encoding="utf-8") as handle:
-        inference_cfg = json.load(handle)
-    assert "quantile_levels" in inference_cfg
-    assert len(inference_cfg["quantile_levels"]) == 999
+    assert loaded.validated.inference_config.quantile_levels is not None
+    assert len(loaded.validated.inference_config.quantile_levels) == 999
 
     torch.manual_seed(456)
     batch = TaskBatch(
@@ -656,7 +554,7 @@ def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -
     )
 
     out_dir = tmp_path / "export_custom"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
     loaded = load_export_bundle(out_dir)
 
     payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
@@ -721,7 +619,7 @@ def test_reference_consumer_classification_matches_golden_fixture(tmp_path: Path
         seed=1234,
     )
     out_dir = tmp_path / "export_reference_cls"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="classification")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     fixture = _load_fixture("reference_consumer_classification_v3.json")
     output = run_reference_consumer(
@@ -763,7 +661,7 @@ def test_reference_consumer_regression_matches_golden_fixture(tmp_path: Path) ->
         seed=5678,
     )
     out_dir = tmp_path / "export_reference_reg"
-    _ = _export_v3_checkpoint(checkpoint, out_dir, task="regression")
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     fixture = _load_fixture("reference_consumer_regression_v3.json")
     output = run_reference_consumer(
@@ -798,3 +696,35 @@ def test_reference_consumer_rejects_v2_bundle(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="only executes tab-foundry-export-v3 bundles"):
         _ = run_reference_consumer(out_dir, x_train=x_train, y_train=y_train, x_test=x_test)
+
+
+def test_reference_consumer_derives_preprocessing_from_runtime_support_set(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_preproc.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=7)
+    out_dir = tmp_path / "export_runtime_preproc"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    output = run_reference_consumer(
+        out_dir,
+        x_train=np.asarray(
+            [
+                [1.0, np.nan],
+                [3.0, 5.0],
+                [5.0, 7.0],
+            ],
+            dtype=np.float32,
+        ),
+        y_train=np.asarray([100, 200, 100], dtype=np.int64),
+        x_test=np.asarray([[np.nan, 11.0]], dtype=np.float32),
+    )
+
+    assert output.batch.y_train.tolist() == [0, 1, 0]
+    assert output.batch.num_classes == 2
+    assert torch.allclose(
+        output.batch.x_train,
+        torch.tensor([[1.0, 6.0], [3.0, 5.0], [5.0, 7.0]], dtype=torch.float32),
+    )
+    assert torch.allclose(
+        output.batch.x_test,
+        torch.tensor([[3.0, 11.0]], dtype=torch.float32),
+    )

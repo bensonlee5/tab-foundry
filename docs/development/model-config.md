@@ -82,8 +82,8 @@ Resolution order:
 1. `checkpoint["config"]["model"]`
 1. `ModelBuildSpec` fallback defaults
 
-The resolved spec is then written into `manifest.json` and
-`inference_config.json`.
+The resolved spec is then written into `manifest.json`, including the embedded
+`manifest.inference` section for v3 bundles.
 As with checkpoint evaluation, omitted `feature_group_size` values now resolve
 to `1`, and incompatible grouped-token legacy checkpoints fail fast with a
 compatibility error.

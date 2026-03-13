@@ -226,3 +226,30 @@ def apply_fitted_preprocessor(
         num_classes=None,
         valid_test_mask=None,
     )
+
+
+def preprocess_runtime_task_arrays(
+    *,
+    task: str,
+    x_train: Any,
+    y_train: Any,
+    x_test: Any,
+    y_test: Any | None = None,
+    impute_missing: bool = True,
+) -> PreprocessedTaskArrays:
+    """Fit and apply preprocessing from the runtime support set."""
+
+    state = fit_fitted_preprocessor(
+        task=task,
+        x_train=x_train,
+        y_train=y_train,
+    )
+    return apply_fitted_preprocessor(
+        task=task,
+        state=state,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        y_test=y_test,
+        impute_missing=impute_missing,
+    )

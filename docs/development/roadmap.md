@@ -119,8 +119,8 @@ surface. Use the canonical docs instead:
 - The manifest-backed data path is the canonical training/evaluation baseline.
 - Export and inference compatibility now use the `tabfoundry` contract across
   `tab-foundry-export-v2` and `tab-foundry-export-v3`.
-- Bundle validation exists, `preprocessor_state.json` now has a fitted-state v3
-  path in addition to the older policy-only v2 path, and executable inference
+- Bundle validation exists, and the current v3 contract now uses one embedded
+  manifest plus a policy-only preprocessing section while executable inference
   consumption remains reference-only in this repo.
 - Benchmark-facing work remains in the short-run class rather than drifting into
   long-training infrastructure by default.
@@ -197,16 +197,16 @@ surface. Use the canonical docs instead:
 - Current state:
   - Shared preprocessing code now handles mean imputation and classification
     label remapping in the packed-task data path.
-  - `tab-foundry-export-v3` now persists ordered feature ids, per-feature fill
-    values, classification label values when present, and model
-    `input_normalization`.
+  - `tab-foundry-export-v3` now uses one embedded manifest, persists model
+    `input_normalization`, and keeps preprocessing metadata policy-only rather
+    than caching export-time fitted values.
   - The broader producer contract and downstream rollout are not yet stabilized
     under one tracked BL chain.
 - Exit criteria:
   - Train, eval, export, and reference consumption use one shared
     preprocessing codepath.
-  - v3 bundles contain sufficient fitted state for downstream execution and
-    conformance testing.
+  - v3 bundles contain sufficient policy metadata for downstream execution and
+    conformance testing without reusing export-time support-set statistics.
   - `input_normalization` round-trips through export and load.
   - Classification and regression both have golden v3 fixtures.
 

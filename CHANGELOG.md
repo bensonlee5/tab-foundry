@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Redefined `tab-foundry-export-v3` as a single-manifest bundle containing
+  `manifest.json` plus `weights.safetensors`. The prior v3 sidecar-based bundle
+  layout is obsolete and existing v3 artifacts must be regenerated.
+- Embedded inference and preprocessing policy metadata directly into
+  `manifest.json`; `inference_config.json` and `preprocessor_state.json` are no
+  longer emitted for v3 bundles.
+- Changed the v3 preprocessing contract from dataset-specific fitted state to
+  policy-only metadata. Bundled v3 exports no longer persist `feature_ids`,
+  per-feature `fill_values`, or classification `label_values`.
+- Removed `tab-foundry build-preprocessor-state` and dropped
+  `tab-foundry export --preprocessor-state` from the supported CLI surface.
+- Reference execution now derives preprocessing from the incoming runtime
+  support set, keeping export consumption aligned with dataset loading instead
+  of reusing export-time fitted values.
+- Export validation now rejects unsupported `manifest.model.input_normalization`
+  values before model construction.
+
 ## [0.3.0] - 2026-03-13
 
 ### Added
@@ -14,11 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a reference-only executable consumer in
   `tab_foundry.export.loader_ref` plus pinned conformance fixtures for one
   classification bundle and one regression bundle.
-- Added `tab-foundry build-preprocessor-state` to fit a task-scoped v3
-  `preprocessor_state.json` from one manifest dataset train split.
-
-### Changed
-
 - Export bundles now default to the new `tab-foundry-export-v3` schema. This is
   a user-facing artifact-contract change.
 - `manifest.model` now persists `input_normalization`, and the model

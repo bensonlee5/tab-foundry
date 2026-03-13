@@ -15,6 +15,9 @@ import torch
 from tab_foundry.cli import build_parser
 from tab_foundry.data.dataset import PackedParquetTaskDataset
 from tab_foundry.data.manifest import build_manifest
+from tab_foundry.export.exporter import export_checkpoint
+from tab_foundry.export.loader_ref import run_reference_consumer
+from tab_foundry.model.factory import build_model
 from tab_foundry.preprocessing import apply_fitted_preprocessor, fit_fitted_preprocessor
 
 
@@ -350,21 +353,41 @@ def test_dataset_keeps_nan_features_when_impute_missing_is_false_but_still_remap
     assert sample.num_classes == 2
 
 
-def test_build_preprocessor_state_cli_fits_manifest_train_split(tmp_path: Path) -> None:
+def test_cli_parser_rejects_removed_preprocessor_state_surface() -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["build-preprocessor-state"])
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "export",
+                "--checkpoint",
+                "checkpoint.pt",
+                "--out-dir",
+                "bundle",
+                "--preprocessor-state",
+                "state.json",
+            ]
+        )
+
+
+def test_dataset_and_reference_consumer_share_runtime_preprocessing_semantics(
+    tmp_path: Path,
+) -> None:
     shard_dir = tmp_path / "run" / "shard_00000"
-    x_train = np.array([[1.0, np.nan], [3.0, 4.0], [5.0, 6.0]], dtype=np.float32)
-    y_train = np.array([7, 3, 7], dtype=np.int64)
     dataset = {
         "dataset_index": 0,
-        "x_train": x_train,
-        "y_train": y_train,
-        "x_test": np.array([[7.0, 8.0]], dtype=np.float32),
-        "y_test": np.array([7], dtype=np.int64),
+        "x_train": np.array([[1.0, np.nan], [3.0, 5.0], [5.0, 7.0]], dtype=np.float32),
+        "y_train": np.array([100, 200, 100], dtype=np.int64),
+        "x_test": np.array([[np.nan, 11.0]], dtype=np.float32),
+        "y_test": np.array([200], dtype=np.int64),
         "feature_types": ["num", "num"],
         "metadata": _classification_metadata(
             n_features=2,
             n_classes=2,
-            seed=11,
+            seed=13,
             filter_status="accepted",
             filter_accepted=True,
         ),
@@ -374,33 +397,54 @@ def test_build_preprocessor_state_cli_fits_manifest_train_split(tmp_path: Path) 
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
     row = pq.read_table(manifest_path).to_pylist()[0]
-    out_path = tmp_path / "preprocessor_state.json"
+    ds = PackedParquetTaskDataset(
+        manifest_path=manifest_path,
+        split=str(row["split"]),
+        task="classification",
+    )
+    sample = ds[0]
 
-    parser = build_parser()
-    args = parser.parse_args(
-        [
-            "build-preprocessor-state",
-            "--manifest-path",
-            str(manifest_path),
-            "--dataset-id",
-            str(row["dataset_id"]),
-            "--task",
-            "classification",
-            "--out-path",
-            str(out_path),
-        ]
+    checkpoint = tmp_path / "ckpt.pt"
+    cfg = {
+        "task": "classification",
+        "model": {
+            "d_col": 16,
+            "d_icl": 32,
+            "input_normalization": "none",
+            "feature_group_size": 1,
+            "many_class_train_mode": "path_nll",
+            "max_mixed_radix_digits": 64,
+            "tfcol_n_heads": 4,
+            "tfcol_n_layers": 1,
+            "tfcol_n_inducing": 8,
+            "tfrow_n_heads": 4,
+            "tfrow_n_layers": 1,
+            "tfrow_cls_tokens": 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 2,
+            "tficl_ff_expansion": 2,
+            "many_class_base": 10,
+            "head_hidden_dim": 32,
+            "use_digit_position_embed": True,
+        },
+    }
+    torch.manual_seed(0)
+    model = build_model(task="classification", **cfg["model"])
+    torch.save({"model": model.state_dict(), "global_step": 1, "config": cfg}, checkpoint)
+
+    bundle_dir = tmp_path / "bundle"
+    _ = export_checkpoint(checkpoint, bundle_dir)
+    output = run_reference_consumer(
+        bundle_dir,
+        x_train=dataset["x_train"],
+        y_train=dataset["y_train"],
+        x_test=dataset["x_test"],
     )
 
-    assert int(args.func(args)) == 0
-    with out_path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-
-    expected = fit_fitted_preprocessor(
-        task="classification",
-        x_train=x_train,
-        y_train=y_train,
-    ).to_dict()
-    assert payload == expected
+    assert torch.equal(output.batch.y_train, sample.y_train)
+    assert output.batch.num_classes == sample.num_classes
+    assert torch.allclose(output.batch.x_train, sample.x_train)
+    assert torch.allclose(output.batch.x_test, sample.x_test)
 
 
 def test_manifest_dataset_id_and_split_are_stable_across_root_paths(tmp_path: Path) -> None:

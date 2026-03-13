@@ -13,11 +13,6 @@ def _run_export(args: argparse.Namespace) -> int:
         checkpoint_path=Path(str(args.checkpoint)),
         out_dir=Path(str(args.out_dir)),
         artifact_version=str(args.artifact_version),
-        preprocessor_state_path=(
-            None
-            if args.preprocessor_state is None
-            else Path(str(args.preprocessor_state))
-        ),
     )
     print(
         "Export complete:",
@@ -43,10 +38,6 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     export_parser = subparsers.add_parser("export", help="Export checkpoint to inference bundle")
     export_parser.add_argument("--checkpoint", required=True, help="Input training checkpoint path")
     export_parser.add_argument("--out-dir", required=True, help="Output bundle directory")
-    export_parser.add_argument(
-        "--preprocessor-state",
-        help="Task-scoped fitted preprocessing state JSON for tab-foundry-export-v3",
-    )
     export_parser.add_argument(
         "--artifact-version",
         default="tab-foundry-export-v3",

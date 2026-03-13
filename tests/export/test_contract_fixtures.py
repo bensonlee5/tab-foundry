@@ -7,10 +7,10 @@ import pytest
 
 from tab_foundry.export.contracts import (
     ExportModelSpec,
+    ExportPreprocessorState,
+    LegacyPreprocessorState,
     SCHEMA_VERSION_V2,
     SCHEMA_VERSION_V3,
-    FittedPreprocessorState,
-    LegacyPreprocessorState,
     validate_inference_config_dict,
     validate_manifest_dict,
     validate_preprocessor_state_dict,
@@ -34,11 +34,20 @@ def test_manifest_v2_fixture_validates() -> None:
     assert manifest.model.input_normalization == "none"
 
 
-def test_manifest_v3_fixture_validates_and_roundtrips_input_normalization() -> None:
+def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> None:
     payload = _load_fixture("manifest_v3.json")
     manifest = validate_manifest_dict(payload)
     assert manifest.schema_version == SCHEMA_VERSION_V3
     assert manifest.model.input_normalization == "train_zscore"
+    assert manifest.inference is not None
+    assert manifest.preprocessor is not None
+    assert manifest.weights is not None
+    assert manifest.inference.group_shifts == [0, 1, 3]
+    assert manifest.inference.many_class_inference_mode == "full_probs"
+    assert isinstance(manifest.preprocessor, ExportPreprocessorState)
+    assert manifest.preprocessor.classification_label_policy is not None
+    assert manifest.preprocessor.classification_label_policy.mapping == "train_only_remap"
+    assert manifest.weights.file == "weights.safetensors"
 
     build_spec = manifest.model.to_build_spec(task=manifest.task)
     roundtrip = ExportModelSpec.from_build_spec(build_spec)
@@ -99,49 +108,64 @@ def test_manifest_v3_validation_requires_input_normalization() -> None:
         validate_manifest_dict(payload)
 
 
-def test_inference_fixtures_validate() -> None:
-    v2_payload = _load_fixture("inference_config_classification_v2.json")
-    v3_payload = _load_fixture("inference_config_classification_v3.json")
+def test_manifest_v3_validation_rejects_invalid_input_normalization() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    model_raw = payload["model"]
+    assert isinstance(model_raw, dict)
+    model_payload = dict(model_raw)
+    model_payload["input_normalization"] = "bogus"
+    payload["model"] = model_payload
 
-    v2_cfg = validate_inference_config_dict(v2_payload)
-    v3_cfg = validate_inference_config_dict(v3_payload)
+    with pytest.raises(ValueError, match="input_normalization"):
+        validate_manifest_dict(payload)
+
+
+def test_v2_section_fixtures_validate() -> None:
+    v2_inference_payload = _load_fixture("inference_config_classification_v2.json")
+    v2_preproc_payload = _load_fixture("preprocessor_state_v2.json")
+
+    v2_cfg = validate_inference_config_dict(v2_inference_payload)
+    v2_state = validate_preprocessor_state_dict(v2_preproc_payload, schema_version=SCHEMA_VERSION_V2)
 
     assert v2_cfg.model_arch == "tabfoundry"
     assert v2_cfg.feature_group_size == 1
-    assert v3_cfg.group_shifts == [0, 1, 3]
-    assert v3_cfg.many_class_inference_mode == "full_probs"
-
-
-def test_preprocessor_fixtures_validate_for_v2_and_v3() -> None:
-    v2_payload = _load_fixture("preprocessor_state_v2.json")
-    v3_cls_payload = _load_fixture("preprocessor_state_classification_v3.json")
-    v3_reg_payload = _load_fixture("preprocessor_state_regression_v3.json")
-
-    v2_state = validate_preprocessor_state_dict(v2_payload, schema_version=SCHEMA_VERSION_V2)
-    v3_cls_state = validate_preprocessor_state_dict(
-        v3_cls_payload,
-        schema_version=SCHEMA_VERSION_V3,
-        task="classification",
-    )
-    v3_reg_state = validate_preprocessor_state_dict(
-        v3_reg_payload,
-        schema_version=SCHEMA_VERSION_V3,
-        task="regression",
-    )
-
     assert isinstance(v2_state, LegacyPreprocessorState)
     assert v2_state.feature_order_policy == "lexicographic_f_columns"
     assert v2_state.classification_label_policy["unseen_test_label"] == "filter"
 
-    assert isinstance(v3_cls_state, FittedPreprocessorState)
-    assert v3_cls_state.feature_ids == [0, 1, 2]
-    assert v3_cls_state.missing_value_policy.fill_values == [1.5, 2.5, 0.0]
-    assert v3_cls_state.classification_label_policy is not None
-    assert v3_cls_state.classification_label_policy.label_values == [3, 7]
 
-    assert isinstance(v3_reg_state, FittedPreprocessorState)
-    assert v3_reg_state.classification_label_policy is None
-    assert v3_reg_state.feature_ids == [0, 1]
+def test_v3_section_validation_supports_classification_and_regression_policies() -> None:
+    manifest_payload = _load_fixture("manifest_v3.json")
+    cls_inference = validate_inference_config_dict(manifest_payload["inference"])
+    cls_preprocessor = validate_preprocessor_state_dict(
+        manifest_payload["preprocessor"],
+        schema_version=SCHEMA_VERSION_V3,
+        task="classification",
+    )
+    reg_preprocessor = validate_preprocessor_state_dict(
+        {
+            "feature_order_policy": "positional_feature_ids",
+            "missing_value_policy": {
+                "strategy": "train_mean",
+                "all_nan_fill": 0.0,
+            },
+            "classification_label_policy": None,
+            "dtype_policy": {
+                "features": "float32",
+                "classification_labels": "int64",
+                "regression_targets": "float32",
+            },
+        },
+        schema_version=SCHEMA_VERSION_V3,
+        task="regression",
+    )
+
+    assert cls_inference.many_class_inference_mode == "full_probs"
+    assert isinstance(cls_preprocessor, ExportPreprocessorState)
+    assert cls_preprocessor.classification_label_policy is not None
+    assert cls_preprocessor.classification_label_policy.unseen_test_label == "filter"
+    assert isinstance(reg_preprocessor, ExportPreprocessorState)
+    assert reg_preprocessor.classification_label_policy is None
 
 
 def test_manifest_validation_rejects_old_model_arch() -> None:
@@ -154,9 +178,11 @@ def test_manifest_validation_rejects_old_model_arch() -> None:
         validate_manifest_dict(payload)
 
 
-def test_inference_validation_rejects_old_model_arch() -> None:
-    payload = _load_fixture("inference_config_classification_v3.json")
-    payload["model_arch"] = "tabiclv2"
+def test_v3_manifest_validation_rejects_old_inference_model_arch() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    inference_payload = dict(payload["inference"])
+    inference_payload["model_arch"] = "tabiclv2"
+    payload["inference"] = inference_payload
 
     with pytest.raises(ValueError, match="Unsupported inference model_arch"):
-        validate_inference_config_dict(payload)
+        validate_manifest_dict(payload)

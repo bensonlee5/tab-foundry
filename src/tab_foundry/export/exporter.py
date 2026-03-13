@@ -14,14 +14,19 @@ from safetensors.torch import save_file
 import torch
 
 from tab_foundry.model.spec import ModelBuildSpec, checkpoint_model_build_spec_from_mappings
-from tab_foundry.preprocessing import FittedPreprocessorState
 
 from .checksums import sha256_file
 from .contracts import (
+    ExportClassificationLabelPolicy,
+    ExportFiles,
     ExportManifest,
+    ExportMissingValuePolicy,
     ExportModelSpec,
+    ExportPreprocessorState,
+    ExportWeights,
     InferenceConfig,
-    SCHEMA_VERSION_V2,
+    LegacyPreprocessorState,
+    ProducerInfo,
     SCHEMA_VERSION_V3,
     SUPPORTED_SCHEMA_VERSIONS,
     ValidatedBundle,
@@ -56,16 +61,16 @@ def _git_sha() -> str | None:
     return value or None
 
 
-def _producer_info() -> dict[str, str | None]:
+def _producer_info() -> ProducerInfo:
     try:
         version = importlib.metadata.version("tab-foundry")
     except Exception:
         version = "0.0.0"
-    return {
-        "name": "tab-foundry",
-        "version": version,
-        "git_sha": _git_sha(),
-    }
+    return ProducerInfo(
+        name="tab-foundry",
+        version=version,
+        git_sha=_git_sha(),
+    )
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -95,71 +100,58 @@ def _checkpoint_model_spec(
     )
 
 
-def _inference_config(task: str, model_spec: ExportModelSpec) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "task": task,
-        "model_arch": "tabfoundry",
-        "group_shifts": list(DEFAULT_GROUP_SHIFTS),
-        "feature_group_size": int(model_spec.feature_group_size),
-        "many_class_threshold": DEFAULT_MANY_CLASS_THRESHOLD,
-        "many_class_inference_mode": "full_probs",
-    }
+def _inference_config(task: str, model_spec: ExportModelSpec) -> InferenceConfig:
+    quantile_levels: list[float] | None = None
     if task == "regression":
         levels = torch.arange(1, 1000, dtype=torch.float32) / 1000.0
-        payload["quantile_levels"] = [float(v) for v in levels.tolist()]
-    return payload
+        quantile_levels = [float(v) for v in levels.tolist()]
+    return InferenceConfig(
+        task=task,
+        model_arch="tabfoundry",
+        group_shifts=list(DEFAULT_GROUP_SHIFTS),
+        feature_group_size=int(model_spec.feature_group_size),
+        many_class_threshold=DEFAULT_MANY_CLASS_THRESHOLD,
+        many_class_inference_mode="full_probs",
+        quantile_levels=quantile_levels,
+    )
 
 
-def _preprocessor_state_v2() -> dict[str, Any]:
-    return {
-        "feature_order_policy": "lexicographic_f_columns",
-        "missing_value_policy": {"strategy": "train_mean", "all_nan_fill": 0.0},
-        "classification_label_policy": {
+def _preprocessor_state_v2() -> LegacyPreprocessorState:
+    return LegacyPreprocessorState(
+        feature_order_policy="lexicographic_f_columns",
+        missing_value_policy={"strategy": "train_mean", "all_nan_fill": 0.0},
+        classification_label_policy={
             "mapping": "train_only_remap",
             "unseen_test_label": "filter",
         },
-        "dtype_policy": {
+        dtype_policy={
             "features": "float32",
             "classification_labels": "int64",
             "regression_targets": "float32",
         },
-    }
-
-
-def _preprocessor_state_v3(
-    preprocessor_state_path: Path | None,
-    *,
-    task: str,
-) -> dict[str, Any]:
-    if preprocessor_state_path is None:
-        raise RuntimeError(
-            "tab-foundry-export-v3 export requires preprocessor_state_path "
-            "with fitted preprocessing state JSON"
-        )
-    raw_state = read_json_dict(preprocessor_state_path.expanduser().resolve())
-    validated_state = validate_preprocessor_state_dict(
-        raw_state,
-        schema_version=SCHEMA_VERSION_V3,
-        task=task,
     )
-    if not isinstance(validated_state, FittedPreprocessorState):
-        raise RuntimeError("tab-foundry-export-v3 requires fitted preprocessing state")
-    return validated_state.to_dict()
 
 
-def _preprocessor_state_payload(
-    *,
-    artifact_version: str,
-    task: str,
-    preprocessor_state_path: Path | None,
-) -> dict[str, Any]:
-    if artifact_version == SCHEMA_VERSION_V2:
-        if preprocessor_state_path is not None:
-            raise ValueError("preprocessor_state_path is only supported for tab-foundry-export-v3")
-        return _preprocessor_state_v2()
-    if artifact_version == SCHEMA_VERSION_V3:
-        return _preprocessor_state_v3(preprocessor_state_path, task=task)
-    raise ValueError(f"Unsupported artifact_version: {artifact_version!r}")
+def _preprocessor_state_v3(task: str) -> ExportPreprocessorState:
+    classification_label_policy: ExportClassificationLabelPolicy | None = None
+    if task == "classification":
+        classification_label_policy = ExportClassificationLabelPolicy(
+            mapping="train_only_remap",
+            unseen_test_label="filter",
+        )
+    return ExportPreprocessorState(
+        feature_order_policy="positional_feature_ids",
+        missing_value_policy=ExportMissingValuePolicy(
+            strategy="train_mean",
+            all_nan_fill=0.0,
+        ),
+        classification_label_policy=classification_label_policy,
+        dtype_policy={
+            "features": "float32",
+            "classification_labels": "int64",
+            "regression_targets": "float32",
+        },
+    )
 
 
 def _normalize_state_dict(state_dict: Any) -> dict[str, torch.Tensor]:
@@ -180,7 +172,6 @@ def export_checkpoint(
     out_dir: Path,
     *,
     artifact_version: str = SCHEMA_VERSION_V3,
-    preprocessor_state_path: Path | None = None,
 ) -> ExportResult:
     """Export one training checkpoint as an inference bundle."""
 
@@ -206,45 +197,52 @@ def export_checkpoint(
     bundle_dir.mkdir(parents=True, exist_ok=True)
 
     weights_name = "weights.safetensors"
-    inference_name = "inference_config.json"
-    preproc_name = "preprocessor_state.json"
     manifest_name = "manifest.json"
-
     weights_path = bundle_dir / weights_name
-    inference_path = bundle_dir / inference_name
-    preproc_path = bundle_dir / preproc_name
     manifest_path = bundle_dir / manifest_name
 
     save_file(state_dict, str(weights_path))
 
-    inference_payload = _inference_config(task, model_spec)
-    preproc_payload = _preprocessor_state_payload(
-        artifact_version=artifact_version,
-        task=task,
-        preprocessor_state_path=preprocessor_state_path,
-    )
-    _write_json(inference_path, inference_payload)
-    _write_json(preproc_path, preproc_payload)
+    if artifact_version == SCHEMA_VERSION_V3:
+        manifest = ExportManifest(
+            schema_version=artifact_version,
+            producer=_producer_info(),
+            task=task,
+            model=model_spec,
+            created_at_utc=datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z"),
+            inference=_inference_config(task, model_spec),
+            preprocessor=_preprocessor_state_v3(task),
+            weights=ExportWeights(
+                file=weights_name,
+                sha256=sha256_file(weights_path),
+            ),
+        )
+    else:
+        inference_name = "inference_config.json"
+        preproc_name = "preprocessor_state.json"
+        inference_path = bundle_dir / inference_name
+        preproc_path = bundle_dir / preproc_name
+        _write_json(inference_path, _inference_config(task, model_spec).to_dict())
+        _write_json(preproc_path, _preprocessor_state_v2().to_dict())
+        manifest = ExportManifest(
+            schema_version=artifact_version,
+            producer=_producer_info(),
+            task=task,
+            model=model_spec,
+            created_at_utc=datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z"),
+            files=ExportFiles(
+                weights=weights_name,
+                inference_config=inference_name,
+                preprocessor_state=preproc_name,
+            ),
+            checksums={
+                "weights": sha256_file(weights_path),
+                "inference_config": sha256_file(inference_path),
+                "preprocessor_state": sha256_file(preproc_path),
+            },
+        )
 
-    manifest_payload: dict[str, Any] = {
-        "schema_version": artifact_version,
-        "producer": _producer_info(),
-        "task": task,
-        "model": model_spec.to_dict(),
-        "files": {
-            "weights": weights_name,
-            "inference_config": inference_name,
-            "preprocessor_state": preproc_name,
-        },
-        "checksums": {
-            "weights": sha256_file(weights_path),
-            "inference_config": sha256_file(inference_path),
-            "preprocessor_state": sha256_file(preproc_path),
-        },
-        "created_at_utc": datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z"),
-    }
-    _write_json(manifest_path, manifest_payload)
-
+    _write_json(manifest_path, manifest.to_dict())
     _ = validate_export_bundle(bundle_dir)
 
     return ExportResult(
@@ -265,6 +263,30 @@ def validate_export_bundle(bundle_dir: Path) -> ValidatedBundle:
     manifest_dict = read_json_dict(manifest_path)
     manifest: ExportManifest = validate_manifest_dict(manifest_dict)
 
+    if manifest.schema_version == SCHEMA_VERSION_V3:
+        if manifest.inference is None or manifest.preprocessor is None or manifest.weights is None:
+            raise RuntimeError("v3 bundle validation requires embedded inference, preprocessor, and weights")
+        weights_path = root / manifest.weights.file
+        if not weights_path.exists():
+            raise ValueError(f"bundle file not found: {weights_path}")
+        current_checksum = sha256_file(weights_path)
+        if current_checksum != manifest.weights.sha256:
+            raise ValueError(
+                "checksum mismatch for weights: "
+                f"expected={manifest.weights.sha256}, actual={current_checksum}"
+            )
+        if manifest.inference.task != manifest.task:
+            raise ValueError("manifest.task and manifest.inference.task mismatch")
+        if manifest.inference.feature_group_size != manifest.model.feature_group_size:
+            raise ValueError("feature_group_size mismatch between manifest.model and manifest.inference")
+        return ValidatedBundle(
+            manifest=manifest,
+            inference_config=manifest.inference,
+            preprocessor_state=manifest.preprocessor,
+        )
+
+    if manifest.files is None or manifest.checksums is None:
+        raise RuntimeError("v2 bundle validation requires files and checksums")
     weights_path = root / manifest.files.weights
     inference_path = root / manifest.files.inference_config
     preproc_path = root / manifest.files.preprocessor_state
@@ -274,7 +296,7 @@ def validate_export_bundle(bundle_dir: Path) -> ValidatedBundle:
 
     inference_dict = read_json_dict(inference_path)
     preproc_dict = read_json_dict(preproc_path)
-    inference: InferenceConfig = validate_inference_config_dict(inference_dict)
+    inference = validate_inference_config_dict(inference_dict)
     preprocessor_state = validate_preprocessor_state_dict(
         preproc_dict,
         schema_version=manifest.schema_version,

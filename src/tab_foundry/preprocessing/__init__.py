@@ -10,7 +10,12 @@ from .state import (
     FittedPreprocessorState,
     MissingValuePolicyState,
 )
-from .tabular import PreprocessedTaskArrays, apply_fitted_preprocessor, fit_fitted_preprocessor
+from .tabular import (
+    PreprocessedTaskArrays,
+    apply_fitted_preprocessor,
+    fit_fitted_preprocessor,
+    preprocess_runtime_task_arrays,
+)
 
 __all__ = [
     "CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP",
@@ -24,4 +29,5 @@ __all__ = [
     "PreprocessedTaskArrays",
     "apply_fitted_preprocessor",
     "fit_fitted_preprocessor",
+    "preprocess_runtime_task_arrays",
 ]
