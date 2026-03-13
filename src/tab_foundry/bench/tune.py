@@ -147,6 +147,7 @@ def _build_trial_config(
 ) -> Any:
     cfg = compose_config([f"experiment={config.experiment}", "logging.use_wandb=false"])
     cfg.data.manifest_path = str(config.manifest_path.expanduser().resolve())
+    cfg.model.feature_group_size = 1
     cfg.runtime.output_dir = str((trial_root / "train_outputs").resolve())
     cfg.runtime.device = str(config.device)
     cfg.runtime.seed = int(config.seed)

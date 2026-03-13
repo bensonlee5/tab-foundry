@@ -27,7 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   intentionally unsupported and must be regenerated.
 - Reconciled `feature_group_size` defaults so omitted model settings now resolve
   to the canonical per-feature default of `1` across Hydra config composition,
-  model spec fallback resolution, and model construction.
+  model spec fallback resolution, model construction, and repo-owned
+  benchmark/smoke workflows.
+- Checkpoint-backed eval/export/load no longer infer omitted
+  `feature_group_size` values from legacy grouped-token weights. Legacy
+  checkpoints without an explicit `feature_group_size` must now be regenerated
+  or loaded with an explicit override that matches the saved weights.
 - Updated internal planning, navigation, and contract docs to describe the
   current family as `tabfoundry` and treat `TabICLv2` as an external reference
   rather than the repo's persistent model identity.

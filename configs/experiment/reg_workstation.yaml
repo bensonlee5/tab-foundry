@@ -1,6 +1,8 @@
 # @package _global_
 
 task: regression
+model:
+  feature_group_size: 1
 runtime:
   output_dir: outputs/reg_workstation
 logging:

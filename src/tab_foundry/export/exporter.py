@@ -13,7 +13,10 @@ from typing import Any
 from safetensors.torch import save_file
 import torch
 
-from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
+from tab_foundry.model.spec import (
+    ModelBuildSpec,
+    checkpoint_model_build_spec_from_mappings,
+)
 
 from .checksums import sha256_file
 from .contracts import (
@@ -78,12 +81,18 @@ def _require_mapping(payload: Any, *, context: str) -> dict[str, Any]:
     return payload
 
 
-def _checkpoint_model_spec(cfg: dict[str, Any], *, task: str) -> ModelBuildSpec:
+def _checkpoint_model_spec(
+    cfg: dict[str, Any],
+    *,
+    task: str,
+    state_dict: dict[str, torch.Tensor] | None = None,
+) -> ModelBuildSpec:
     model_cfg = cfg.get("model")
     model_cfg = model_cfg if isinstance(model_cfg, dict) else {}
-    return model_build_spec_from_mappings(
+    return checkpoint_model_build_spec_from_mappings(
         task=task,
         primary=model_cfg,
+        state_dict=state_dict,
     )
 
 
@@ -153,9 +162,9 @@ def export_checkpoint(
     if task not in ("classification", "regression"):
         raise RuntimeError(f"Unsupported checkpoint task value: {task!r}")
 
-    model_build_spec = _checkpoint_model_spec(cfg, task=task)
-    model_spec = ExportModelSpec.from_build_spec(model_build_spec)
     state_dict = _normalize_state_dict(payload["model"])
+    model_build_spec = _checkpoint_model_spec(cfg, task=task, state_dict=state_dict)
+    model_spec = ExportModelSpec.from_build_spec(model_build_spec)
 
     bundle_dir = out_dir.expanduser().resolve()
     bundle_dir.mkdir(parents=True, exist_ok=True)

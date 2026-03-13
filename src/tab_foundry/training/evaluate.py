@@ -10,7 +10,10 @@ import torch
 
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
+from tab_foundry.model.spec import (
+    ModelBuildSpec,
+    checkpoint_model_build_spec_from_mappings,
+)
 from tab_foundry.types import EvalResult
 
 from .batching import move_batch
@@ -38,10 +41,13 @@ def _checkpoint_model_settings(
     primary_model_cfg: dict[str, Any] = {}
     if isinstance(model_cfg, dict):
         primary_model_cfg = {str(key): value for key, value in model_cfg.items()}
-    return model_build_spec_from_mappings(
+    model_state = payload.get("model")
+    state_dict = model_state if isinstance(model_state, dict) else None
+    return checkpoint_model_build_spec_from_mappings(
         task=task,
         primary=primary_model_cfg,
         fallback=fallback_model_cfg,
+        state_dict=state_dict,
     )
 
 

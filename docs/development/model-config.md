@@ -66,6 +66,12 @@ Resolution order:
 
 This lets evaluation preserve the checkpoint's original architecture settings
 while still tolerating older checkpoints that omitted newer fields.
+When `feature_group_size` is omitted, checkpoint-backed reconstruction now
+resolves it to `1`. If the saved weights are incompatible with that per-feature
+default, loading fails with a compatibility error instead of silently
+reconstructing a grouped-token model. Legacy checkpoints that omitted
+`feature_group_size` and were trained with grouped tokens must be regenerated
+or loaded with an explicit `feature_group_size` override.
 
 ### Export Checkpoint
 
@@ -78,6 +84,9 @@ Resolution order:
 
 The resolved spec is then written into `manifest.json` and
 `inference_config.json`.
+As with checkpoint evaluation, omitted `feature_group_size` values now resolve
+to `1`, and incompatible grouped-token legacy checkpoints fail fast with a
+compatibility error.
 
 ### Load Export Bundle
 

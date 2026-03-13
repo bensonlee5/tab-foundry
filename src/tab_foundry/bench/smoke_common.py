@@ -47,6 +47,7 @@ def build_cls_smoke_train_config(
     if clear_row_caps:
         cfg.data.train_row_cap = None
         cfg.data.test_row_cap = None
+    cfg.model.feature_group_size = 1
     cfg.runtime.output_dir = str(output_dir)
     cfg.runtime.device = str(device)
     cfg.runtime.eval_every = 1
@@ -71,6 +72,7 @@ def build_cls_smoke_eval_config(
     if clear_row_caps:
         cfg.data.train_row_cap = None
         cfg.data.test_row_cap = None
+    cfg.model.feature_group_size = 1
     cfg.runtime.device = str(device)
     cfg.eval.checkpoint = str(checkpoint_path)
     cfg.eval.split = "test"

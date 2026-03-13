@@ -14,6 +14,7 @@ def _compose(*overrides: str):
 def test_cls_workstation_task_resolution() -> None:
     cfg = _compose("experiment=cls_workstation")
     assert str(cfg.task) == "classification"
+    assert int(cfg.model.feature_group_size) == 1
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
 
@@ -21,6 +22,7 @@ def test_cls_workstation_task_resolution() -> None:
 def test_reg_workstation_task_resolution() -> None:
     cfg = _compose("experiment=reg_workstation")
     assert str(cfg.task) == "regression"
+    assert int(cfg.model.feature_group_size) == 1
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
 
@@ -62,6 +64,7 @@ def test_cls_smoke_adamw_override_resolution() -> None:
 def test_cls_benchmark_linear_resolution() -> None:
     cfg = _compose("experiment=cls_benchmark_linear")
     assert str(cfg.task) == "classification"
+    assert int(cfg.model.feature_group_size) == 1
     assert str(cfg.optimizer.name) == "adamw"
     assert bool(cfg.optimizer.require_requested) is False
     assert int(cfg.runtime.eval_every) == 25

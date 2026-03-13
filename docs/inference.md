@@ -96,4 +96,8 @@ uv run tab-foundry validate-export --bundle-dir outputs/exports/cls_smoke_v2
 - Training checkpoints remain unchanged and are still used for resume/training workflows.
 - Export bundles are the cross-repo inference handoff contract.
 - `tab-foundry-export-v1` bundles are intentionally unsupported after the `tabfoundry` family rename and must be regenerated as `tab-foundry-export-v2`.
+- Checkpoint export/load now treats omitted `feature_group_size` as `1`. Legacy
+  grouped-token checkpoints that omitted that field are intentionally rejected
+  and must be regenerated or loaded with an explicit `feature_group_size`
+  override before export.
 - If a future version changes schema in a non-backward-compatible way, it must use a new `schema_version`.

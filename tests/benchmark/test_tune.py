@@ -70,6 +70,7 @@ def test_run_tuning_ranks_trials_from_internal_metrics(monkeypatch, tmp_path: Pa
     def _fake_train(cfg: object) -> TrainResult:
         history_path = Path(str(cfg.logging.history_jsonl_path))
         history_path.parent.mkdir(parents=True, exist_ok=True)
+        assert int(cfg.model.feature_group_size) == 1
         lr_max = float(cfg.schedule.stages[0].lr_max)
         base_val = 0.4 if lr_max < 5.0e-4 else 0.6
         history_path.write_text(
