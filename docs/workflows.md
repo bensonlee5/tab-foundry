@@ -126,10 +126,10 @@ Export and validate an inference bundle:
 ```bash
 uv run tab-foundry export \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
-  --out-dir outputs/exports/cls_smoke_v2
+  --out-dir outputs/exports/cls_smoke_v3
 
 uv run tab-foundry validate-export \
-  --bundle-dir outputs/exports/cls_smoke_v2
+  --bundle-dir outputs/exports/cls_smoke_v3
 ```
 
 ## Standard Workflow Artifacts

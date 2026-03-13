@@ -71,9 +71,11 @@ class _FakeTaskDataset(Dataset[TaskBatch]):
     def __getitem__(self, index: int) -> TaskBatch:
         seed = int(index) + 1
         torch.manual_seed(seed)
+        x_train = torch.randn(6, 4)
+        y_train = torch.tensor([0, 1, 2, 0, 1, 2], dtype=torch.int64)
         return TaskBatch(
-            x_train=torch.randn(6, 4),
-            y_train=torch.tensor([0, 1, 2, 0, 1, 2], dtype=torch.int64),
+            x_train=x_train,
+            y_train=y_train,
             x_test=torch.randn(3, 4),
             y_test=torch.tensor([0, 1, 2], dtype=torch.int64),
             metadata={"dataset_index": index},
@@ -167,6 +169,8 @@ def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     assert result.metrics["best_val_loss"] >= 0.0
     assert result.metrics["final_val_loss"] >= 0.0
     assert result.metrics["max_grad_norm"] >= 0.0
+    best_payload = torch.load(result.best_checkpoint, map_location="cpu", weights_only=False)
+    assert "preprocessor_state" not in best_payload
 
 
 def test_train_smoke_writes_step_snapshots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

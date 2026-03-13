@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
+from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
+
 
 SUPPORTED_MODEL_TASKS = ("classification", "regression")
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
@@ -58,6 +60,11 @@ class ModelBuildSpec:
         object.__setattr__(self, "task", task)
 
         input_normalization = str(self.input_normalization).strip().lower()
+        if input_normalization not in SUPPORTED_INPUT_NORMALIZATION_MODES:
+            raise ValueError(
+                "input_normalization must be "
+                f"{SUPPORTED_INPUT_NORMALIZATION_MODES}, got {input_normalization!r}"
+            )
         object.__setattr__(self, "input_normalization", input_normalization)
 
         many_class_train_mode = str(self.many_class_train_mode).strip().lower()

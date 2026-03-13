@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -12,6 +13,7 @@ import pyarrow.parquet as pq
 import torch
 from torch.utils.data import Dataset
 
+from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
 
@@ -67,46 +69,6 @@ def _read_packed_split(split_path: Path, *, dataset_index: int) -> tuple[np.ndar
             f"packed split row_index values must be unique: path={split_path}, dataset_index={dataset_index}"
         )
     return x, y
-
-
-def _impute_mean(x_train: np.ndarray, x_test: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    train = x_train.copy()
-    test = x_test.copy()
-    means = np.nanmean(train, axis=0)
-    means = np.where(np.isnan(means), 0.0, means)
-
-    train_nan = np.isnan(train)
-    if np.any(train_nan):
-        train[train_nan] = np.take(means, np.where(train_nan)[1])
-
-    test_nan = np.isnan(test)
-    if np.any(test_nan):
-        test[test_nan] = np.take(means, np.where(test_nan)[1])
-    return train, test
-
-
-def _remap_labels(
-    y_train: np.ndarray, y_test: np.ndarray
-) -> tuple[np.ndarray, np.ndarray, int, np.ndarray]:
-    """Remap labels to contiguous [0, num_classes) range.
-
-    Returns (remapped_train, remapped_test, num_classes, valid_mask) where
-    valid_mask is a boolean array over y_test indicating which test samples
-    had labels present in the train split.
-    """
-    train_i64 = y_train.astype(np.int64, copy=False)
-    test_i64 = y_test.astype(np.int64, copy=False)
-    values = np.unique(train_i64)
-    if values.size == 0:
-        raise RuntimeError("train split has no class labels")
-
-    remapped_train = np.searchsorted(values, train_i64).astype(np.int64, copy=False)
-    test_pos = np.searchsorted(values, test_i64)
-    clamped = np.clip(test_pos, 0, values.shape[0] - 1)
-    in_bounds = test_pos < values.shape[0]
-    valid_mask = in_bounds & (values[clamped] == test_i64)
-    remapped_test = test_pos[valid_mask].astype(np.int64, copy=False)
-    return remapped_train, remapped_test, int(values.shape[0]), valid_mask
 
 
 def _resolve_record_path(manifest_path: Path, raw_path: str) -> Path:
@@ -178,6 +140,97 @@ def _subsample_rows(
     return x[idx], y[idx]
 
 
+@dataclass(slots=True)
+class _LoadedManifestTaskRecord:
+    record: dict[str, Any]
+    metadata: dict[str, Any]
+    x_train: np.ndarray
+    y_train: np.ndarray
+    x_test: np.ndarray
+    y_test: np.ndarray
+
+
+def _load_manifest_task_record(
+    manifest_path: Path,
+    *,
+    split: str,
+    task: str,
+    record: dict[str, Any],
+) -> _LoadedManifestTaskRecord:
+    required_keys = {
+        "dataset_index",
+        "train_path",
+        "test_path",
+        "metadata_path",
+        "metadata_offset_bytes",
+        "metadata_size_bytes",
+        "metadata_sha256",
+    }
+    missing = sorted(required_keys - set(record))
+    if missing:
+        raise RuntimeError(
+            "manifest record is missing required packed-contract fields: "
+            f"missing={missing}, split={split}, task={task}"
+        )
+    dataset_index = int(record["dataset_index"])
+    train_path = _resolve_record_path(manifest_path, str(record["train_path"]))
+    test_path = _resolve_record_path(manifest_path, str(record["test_path"]))
+    metadata_path = _resolve_record_path(manifest_path, str(record["metadata_path"]))
+    metadata_offset_bytes = int(record["metadata_offset_bytes"])
+    metadata_size_bytes = int(record["metadata_size_bytes"])
+    metadata_sha256 = str(record["metadata_sha256"])
+
+    x_train, y_train = _read_packed_split(train_path, dataset_index=dataset_index)
+    x_test, y_test = _read_packed_split(test_path, dataset_index=dataset_index)
+    metadata_record = _read_ndjson_record_by_offset(
+        metadata_path,
+        offset_bytes=metadata_offset_bytes,
+        size_bytes=metadata_size_bytes,
+        expected_sha256=metadata_sha256,
+    )
+    metadata_dataset_index = int(metadata_record.get("dataset_index", -1))
+    if metadata_dataset_index != dataset_index:
+        raise RuntimeError(
+            "metadata dataset_index mismatch for manifest record: "
+            f"manifest={dataset_index}, metadata={metadata_dataset_index}, path={metadata_path}"
+        )
+    metadata = metadata_record.get("metadata")
+    if not isinstance(metadata, dict):
+        raise RuntimeError(
+            f"metadata record missing object payload at key 'metadata': path={metadata_path}"
+        )
+
+    expected_n_train = int(record.get("n_train", -1))
+    expected_n_test = int(record.get("n_test", -1))
+    if expected_n_train >= 0 and int(x_train.shape[0]) != expected_n_train:
+        raise RuntimeError(
+            "train row count mismatch for packed split: "
+            f"dataset_index={dataset_index}, expected={expected_n_train}, got={x_train.shape[0]}"
+        )
+    if expected_n_test >= 0 and int(x_test.shape[0]) != expected_n_test:
+        raise RuntimeError(
+            "test row count mismatch for packed split: "
+            f"dataset_index={dataset_index}, expected={expected_n_test}, got={x_test.shape[0]}"
+        )
+    expected_n_features = int(record.get("n_features", -1))
+    if expected_n_features >= 0:
+        if int(x_train.shape[1]) != expected_n_features or int(x_test.shape[1]) != expected_n_features:
+            raise RuntimeError(
+                "feature count mismatch for packed split: "
+                f"dataset_index={dataset_index}, expected={expected_n_features}, "
+                f"got_train={x_train.shape[1]}, got_test={x_test.shape[1]}"
+            )
+
+    return _LoadedManifestTaskRecord(
+        record=record,
+        metadata=metadata,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        y_test=y_test,
+    )
+
+
 class PackedParquetTaskDataset(Dataset[TaskBatch]):
     """Lazily load one dataset-task at a time from manifest records."""
 
@@ -215,69 +268,17 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
 
     def __getitem__(self, index: int) -> TaskBatch:
         record = self.records[index]
-        required_keys = {
-            "dataset_index",
-            "train_path",
-            "test_path",
-            "metadata_path",
-            "metadata_offset_bytes",
-            "metadata_size_bytes",
-            "metadata_sha256",
-        }
-        missing = sorted(required_keys - set(record))
-        if missing:
-            raise RuntimeError(
-                "manifest record is missing required packed-contract fields: "
-                f"missing={missing}, split={self.split}, task={self.task}"
-            )
-        dataset_index = int(record["dataset_index"])
-        train_path = _resolve_record_path(self.manifest_path, str(record["train_path"]))
-        test_path = _resolve_record_path(self.manifest_path, str(record["test_path"]))
-        metadata_path = _resolve_record_path(self.manifest_path, str(record["metadata_path"]))
-        metadata_offset_bytes = int(record["metadata_offset_bytes"])
-        metadata_size_bytes = int(record["metadata_size_bytes"])
-        metadata_sha256 = str(record["metadata_sha256"])
-
-        x_train, y_train = _read_packed_split(train_path, dataset_index=dataset_index)
-        x_test, y_test = _read_packed_split(test_path, dataset_index=dataset_index)
-        metadata_record = _read_ndjson_record_by_offset(
-            metadata_path,
-            offset_bytes=metadata_offset_bytes,
-            size_bytes=metadata_size_bytes,
-            expected_sha256=metadata_sha256,
+        loaded = _load_manifest_task_record(
+            self.manifest_path,
+            split=self.split,
+            task=self.task,
+            record=record,
         )
-        metadata_dataset_index = int(metadata_record.get("dataset_index", -1))
-        if metadata_dataset_index != dataset_index:
-            raise RuntimeError(
-                "metadata dataset_index mismatch for manifest record: "
-                f"manifest={dataset_index}, metadata={metadata_dataset_index}, path={metadata_path}"
-            )
-        metadata = metadata_record.get("metadata")
-        if not isinstance(metadata, dict):
-            raise RuntimeError(
-                f"metadata record missing object payload at key 'metadata': path={metadata_path}"
-            )
-
-        expected_n_train = int(record.get("n_train", -1))
-        expected_n_test = int(record.get("n_test", -1))
-        if expected_n_train >= 0 and int(x_train.shape[0]) != expected_n_train:
-            raise RuntimeError(
-                "train row count mismatch for packed split: "
-                f"dataset_index={dataset_index}, expected={expected_n_train}, got={x_train.shape[0]}"
-            )
-        if expected_n_test >= 0 and int(x_test.shape[0]) != expected_n_test:
-            raise RuntimeError(
-                "test row count mismatch for packed split: "
-                f"dataset_index={dataset_index}, expected={expected_n_test}, got={x_test.shape[0]}"
-            )
-        expected_n_features = int(record.get("n_features", -1))
-        if expected_n_features >= 0:
-            if int(x_train.shape[1]) != expected_n_features or int(x_test.shape[1]) != expected_n_features:
-                raise RuntimeError(
-                    "feature count mismatch for packed split: "
-                    f"dataset_index={dataset_index}, expected={expected_n_features}, "
-                    f"got_train={x_train.shape[1]}, got_test={x_test.shape[1]}"
-                )
+        x_train = loaded.x_train
+        y_train = loaded.y_train
+        x_test = loaded.x_test
+        y_test = loaded.y_test
+        metadata = loaded.metadata
 
         x_train, y_train = _subsample_rows(
             x_train,
@@ -292,34 +293,45 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             seed=self.seed + index * 2 + 2,
         )
 
-        if self.impute_missing:
-            x_train, x_test = _impute_mean(x_train, x_test)
+        processed = preprocess_runtime_task_arrays(
+            task=self.task,
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            y_test=y_test,
+            impute_missing=self.impute_missing,
+        )
+        x_train = processed.x_train
+        y_train = processed.y_train
+        x_test = processed.x_test
+        y_test = processed.y_test if processed.y_test is not None else y_test
+        num_classes = processed.num_classes
 
-        num_classes: int | None = None
+        metadata_out = dict(metadata)
+
         if self.task == "classification":
-            n_test_before = int(y_test.shape[0])
-            y_train, y_test, num_classes, valid_mask = _remap_labels(y_train, y_test)
-            if not bool(np.all(valid_mask)):
-                x_test = x_test[valid_mask]
+            if y_test is None:
+                raise RuntimeError("classification preprocessing must produce y_test")
             n_test_after = int(y_test.shape[0])
             if n_test_after <= 0:
                 dataset_id = str(record.get("dataset_id", "<unknown>"))
                 raise RuntimeError(
                     "classification test split has zero rows after filtering unseen labels; "
-                    f"dataset_id={dataset_id}, split={self.split}, n_test_before={n_test_before}, "
-                    f"n_test_after={n_test_after}"
+                    f"dataset_id={dataset_id}, split={self.split}, n_test_after={n_test_after}"
                 )
-            y_train_t = torch.from_numpy(y_train.astype(np.int64, copy=False))
-            y_test_t = torch.from_numpy(y_test.astype(np.int64, copy=False))
+            y_train_t = torch.from_numpy(np.asarray(y_train, dtype=np.int64))
+            y_test_t = torch.from_numpy(np.asarray(y_test, dtype=np.int64))
         else:
-            y_train_t = torch.from_numpy(y_train.astype(np.float32, copy=False))
-            y_test_t = torch.from_numpy(y_test.astype(np.float32, copy=False))
+            y_train_t = torch.from_numpy(np.asarray(y_train, dtype=np.float32))
+            if y_test is None:
+                raise RuntimeError("regression preprocessing must produce y_test")
+            y_test_t = torch.from_numpy(np.asarray(y_test, dtype=np.float32))
 
         return TaskBatch(
-            x_train=torch.from_numpy(x_train.astype(np.float32, copy=False)),
+            x_train=torch.from_numpy(np.asarray(x_train, dtype=np.float32)),
             y_train=y_train_t,
-            x_test=torch.from_numpy(x_test.astype(np.float32, copy=False)),
+            x_test=torch.from_numpy(np.asarray(x_test, dtype=np.float32)),
             y_test=y_test_t,
-            metadata=metadata,
+            metadata=metadata_out,
             num_classes=num_classes,
         )

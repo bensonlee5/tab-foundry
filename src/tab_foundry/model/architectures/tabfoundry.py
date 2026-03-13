@@ -10,7 +10,11 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from tab_foundry.input_normalization import InputNormalizationMode, normalize_train_test_tensors
+from tab_foundry.input_normalization import (
+    InputNormalizationMode,
+    SUPPORTED_INPUT_NORMALIZATION_MODES,
+    normalize_train_test_tensors,
+)
 from tab_foundry.types import TaskBatch
 
 from ..components.blocks import TFColEncoder, TFRowEncoder
@@ -74,13 +78,10 @@ class _TabFoundryBackbone(nn.Module):
         self.d_col = d_col
         self.d_icl = d_icl
         self.input_normalization = str(input_normalization).strip().lower()
-        if self.input_normalization not in {
-            "none",
-            "train_zscore",
-            "train_zscore_clip",
-        }:
+        if self.input_normalization not in SUPPORTED_INPUT_NORMALIZATION_MODES:
             raise ValueError(
-                "input_normalization must be 'none', 'train_zscore', or 'train_zscore_clip', "
+                "input_normalization must be "
+                f"{SUPPORTED_INPUT_NORMALIZATION_MODES}, "
                 f"got {input_normalization!r}"
             )
         self.group_shifts = (0, 1, 3)

@@ -1,6 +1,7 @@
 # Inference Contract
 
-This repository is the training-side producer of inference artifacts. Runtime inference is expected to live in a separate repository.
+This repository is the training-side producer of inference artifacts. Runtime
+inference is expected to live in a separate repository.
 
 Related docs:
 
@@ -17,9 +18,12 @@ contract.
 
 ## Schema Version
 
-Current version: `tab-foundry-export-v2`
+Current version: `tab-foundry-export-v3`
 
-Any breaking change must increment the schema version.
+The current v3 contract uses a single-manifest layout. Earlier v3 bundles that
+used `inference_config.json` and `preprocessor_state.json` sidecars are
+obsolete and must be regenerated. Earlier single-manifest v3 bundles that do
+not include `manifest_sha256` are also obsolete and must be regenerated.
 
 ## Bundle Layout
 
@@ -27,8 +31,6 @@ An export bundle is a directory containing:
 
 - `manifest.json`
 - `weights.safetensors`
-- `inference_config.json`
-- `preprocessor_state.json`
 
 ## manifest.json
 
@@ -37,43 +39,53 @@ Required keys:
 - `schema_version`
 - `producer`: `{name, version, git_sha}` (`git_sha` may be `null`)
 - `task`: `classification | regression`
-- `model`: `{arch, d_col, d_icl, feature_group_size, many_class_train_mode, max_mixed_radix_digits}`
+- `manifest_sha256`: SHA-256 of the canonical UTF-8 JSON encoding of the full
+  manifest with `manifest_sha256` omitted; validators reject stale or missing
+  values
+- `model`: `{arch, d_col, d_icl, input_normalization, feature_group_size, many_class_train_mode, max_mixed_radix_digits}`
   - Exporter also emits architecture reconstruction fields:
     `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed}`.
-  - Validators accept manifests that omit these extra fields and apply the current model defaults.
-  - See `docs/development/model-config.md` for the meaning of each model field and the current canonical defaults.
-- `files`: `{weights, inference_config, preprocessor_state}`
-- `checksums`: sha256 for `weights`, `inference_config`, `preprocessor_state`
+  - Validators accept manifests that omit the optional reconstruction fields and
+    apply the current model defaults.
+  - See `docs/development/model-config.md` for the meaning of each model field
+    and the current canonical defaults.
+- `inference`
+  - `task`
+  - `model_arch` (`tabfoundry`)
+  - `group_shifts` (`[0, 1, 3]`)
+  - `feature_group_size`
+  - `many_class_threshold` (`10`)
+  - `many_class_inference_mode` (`full_probs`)
+  - regression-only additional key: `quantile_levels` (length `999`)
+- `preprocessor`
+  - `feature_order_policy` (`positional_feature_ids`)
+  - `missing_value_policy` (`strategy=train_mean`, `all_nan_fill=0.0`)
+  - `classification_label_policy`
+    - classification bundles: `{mapping=train_only_remap, unseen_test_label=filter}`
+    - regression bundles: `null`
+  - `dtype_policy` (`features=float32`, `classification_labels=int64`, `regression_targets=float32`)
+- `weights`: `{file, sha256}`
 - `created_at_utc`: ISO8601 UTC timestamp
 
-## inference_config.json
+## Preprocessing Semantics
 
-Required keys:
-
-- `task`
-- `model_arch` (`tabfoundry`)
-- `group_shifts` (`[0, 1, 3]`)
-- `feature_group_size`
-- `many_class_threshold` (`10`)
-- `many_class_inference_mode` (`full_probs`)
-
-Regression-only additional key:
-
-- `quantile_levels` (length 999)
-
-## preprocessor_state.json
-
-Required keys:
-
-- `feature_order_policy` (`lexicographic_f_columns`)
-- `missing_value_policy` (`strategy=train_mean`, `all_nan_fill=0.0`)
-- `classification_label_policy` (`mapping=train_only_remap`, `unseen_test_label=filter`)
-- `dtype_policy` (`features=float32`, `classification_labels=int64`, `regression_targets=float32`)
+- Bundle metadata now records preprocessing policy only. v3 bundles do not
+  persist dataset-specific fitted preprocessing values.
+- Runtime preprocessing is always derived from the incoming support set
+  (`x_train`, `y_train`) before applying the model.
+- The bundled `preprocessor` section is used for invariant contract checks and
+  conformance, not as a cache of export-time train statistics.
+- `manifest_sha256` protects the embedded `model`, `inference`,
+  `preprocessor`, `weights`, and other top-level v3 manifest metadata against
+  post-export edits.
 
 ## Many-Class Modes
 
-- `manifest.model.many_class_train_mode` configures the training-time branch behavior (`path_nll` vs `full_probs`) and is used when reconstructing the model from an export bundle.
-- `inference_config.many_class_inference_mode` is an inference-runtime contract field and is currently fixed to `full_probs`.
+- `manifest.model.many_class_train_mode` configures the training-time branch
+  behavior (`path_nll` vs `full_probs`) and is used when reconstructing the
+  model from an export bundle.
+- `manifest.inference.many_class_inference_mode` is an inference-runtime
+  contract field and is currently fixed to `full_probs`.
 
 ## Producer Commands
 
@@ -82,22 +94,52 @@ Export from checkpoint:
 ```bash
 uv run tab-foundry export \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
-  --out-dir outputs/exports/cls_smoke_v2
+  --out-dir outputs/exports/cls_smoke_v3
 ```
 
 Validate bundle:
 
 ```bash
-uv run tab-foundry validate-export --bundle-dir outputs/exports/cls_smoke_v2
+uv run tab-foundry validate-export \
+  --bundle-dir outputs/exports/cls_smoke_v3
 ```
+
+## Reference Consumer
+
+This repo includes a reference-only executable consumer in
+`tab_foundry.export.loader_ref`.
+
+Scope:
+
+- dense numeric matrices in
+- persisted checksum and schema validation
+- runtime-derived preprocessing using the support set
+- model-native outputs out (`class_probs` for classification,
+  `quantiles` plus `quantile_levels` for regression)
+
+Out of scope here:
+
+- serving APIs
+- dataframe adapters
+- long-lived runtime ownership
+- generalized production inference policy beyond the separate-repo handoff
 
 ## Compatibility Policy
 
-- Training checkpoints remain unchanged and are still used for resume/training workflows.
+- Training checkpoints remain unchanged and are still used for resume/training
+  workflows.
 - Export bundles are the cross-repo inference handoff contract.
-- `tab-foundry-export-v1` bundles are intentionally unsupported after the `tabfoundry` family rename and must be regenerated as `tab-foundry-export-v2`.
+- `tab-foundry-export-v3` is the default export format and the only executable
+  reference-consumer contract in this repo.
+- Existing v3 bundles produced with sidecar metadata are intentionally obsolete
+  after the single-manifest redesign and must be regenerated.
+- Existing single-manifest v3 bundles without `manifest_sha256` are
+  intentionally obsolete after the metadata-integrity fix and must be
+  regenerated.
+- `tab-foundry-export-v2` bundles remain validator-readable during migration.
+- `tab-foundry-export-v1` bundles are intentionally unsupported after the
+  `tabfoundry` family rename and must be regenerated.
 - Checkpoint export/load now treats omitted `feature_group_size` as `1`. Legacy
   grouped-token checkpoints that omitted that field are intentionally rejected
   and must be regenerated or loaded with an explicit `feature_group_size`
   override before export.
-- If a future version changes schema in a non-backward-compatible way, it must use a new `schema_version`.

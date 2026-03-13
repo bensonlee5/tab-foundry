@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Redefined `tab-foundry-export-v3` as a single-manifest bundle containing
+  `manifest.json` plus `weights.safetensors`. The prior v3 sidecar-based bundle
+  layout is obsolete, and both those older sidecar bundles and earlier
+  single-manifest v3 bundles without `manifest_sha256` must be regenerated.
+- Embedded inference and preprocessing policy metadata directly into
+  `manifest.json`; `inference_config.json` and `preprocessor_state.json` are no
+  longer emitted for v3 bundles.
+- Changed the v3 preprocessing contract from dataset-specific fitted state to
+  policy-only metadata. Bundled v3 exports no longer persist `feature_ids`,
+  per-feature `fill_values`, or classification `label_values`.
+- Removed `tab-foundry build-preprocessor-state` and dropped
+  `tab-foundry export --preprocessor-state` from the supported CLI surface.
+- Reference execution now derives preprocessing from the incoming runtime
+  support set, keeping export consumption aligned with dataset loading instead
+  of reusing export-time fitted values.
+- Export validation now rejects unsupported `manifest.model.input_normalization`
+  values before model construction.
+
+## [0.3.0] - 2026-03-13
+
+### Added
+
+- Added a shared preprocessing package under `src/tab_foundry/preprocessing/`
+  for fitted train-mean imputation and classification-label remapping.
+- Added a reference-only executable consumer in
+  `tab_foundry.export.loader_ref` plus pinned conformance fixtures for one
+  classification bundle and one regression bundle.
+- Export bundles now default to the new `tab-foundry-export-v3` schema. This is
+  a user-facing artifact-contract change, and v3 manifests now require
+  `manifest_sha256` to protect embedded metadata against post-export edits.
+- `manifest.model` now persists `input_normalization`, and the model
+  reconstruction path round-trips that field across export and load.
+- `manifest.json` now embeds the v3 inference and preprocessing policy sections
+  directly instead of emitting `inference_config.json` and
+  `preprocessor_state.json` sidecars.
+- `tab-foundry-export-v2` remains validator-readable during migration, but the
+  executable reference consumer in this repo is intentionally v3-only.
+- Training checkpoints no longer persist fitted preprocessing state. Checkpoints
+  remain resume/eval artifacts, while v3 export consumes an explicit external
+  runtime-derived preprocessing contract encoded in `manifest.json`.
+- Classification label remapping and unseen-test-label filtering now still run
+  when `PackedParquetTaskDataset(..., impute_missing=False)` leaves feature
+  values unimputed.
+
 ## [0.2.0] - 2026-03-13
 
 ### Added

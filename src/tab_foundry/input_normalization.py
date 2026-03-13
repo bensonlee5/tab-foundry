@@ -9,6 +9,11 @@ import torch
 
 
 InputNormalizationMode = Literal["none", "train_zscore", "train_zscore_clip"]
+SUPPORTED_INPUT_NORMALIZATION_MODES: tuple[InputNormalizationMode, ...] = (
+    "none",
+    "train_zscore",
+    "train_zscore_clip",
+)
 
 _EPS = 1.0e-8
 _CLIP_VALUE = 100.0

@@ -12,8 +12,13 @@ import pyarrow.parquet as pq
 import pytest
 import torch
 
-from tab_foundry.data.dataset import PackedParquetTaskDataset, _remap_labels
+from tab_foundry.cli import build_parser
+from tab_foundry.data.dataset import PackedParquetTaskDataset
 from tab_foundry.data.manifest import build_manifest
+from tab_foundry.export.exporter import export_checkpoint
+from tab_foundry.export.loader_ref import run_reference_consumer
+from tab_foundry.model.factory import build_model
+from tab_foundry.preprocessing import apply_fitted_preprocessor, fit_fitted_preprocessor
 
 
 def _classification_metadata(
@@ -235,20 +240,47 @@ def test_manifest_accepted_only_requires_at_least_one_record(tmp_path: Path) -> 
 def test_remap_labels_uses_train_only() -> None:
     y_train = np.array([10, 20, 10], dtype=np.int64)
     y_test = np.array([20, 10], dtype=np.int64)
-    remapped_train, remapped_test, num_classes, _ = _remap_labels(y_train, y_test)
-    assert num_classes == 2
-    assert np.array_equal(remapped_train, np.array([0, 1, 0], dtype=np.int64))
-    assert np.array_equal(remapped_test, np.array([1, 0], dtype=np.int64))
+    state = fit_fitted_preprocessor(
+        task="classification",
+        x_train=np.array([[0.0], [1.0], [2.0]], dtype=np.float32),
+        y_train=y_train,
+    )
+    processed = apply_fitted_preprocessor(
+        task="classification",
+        state=state,
+        x_train=np.array([[0.0], [1.0], [2.0]], dtype=np.float32),
+        y_train=y_train,
+        x_test=np.array([[3.0], [4.0]], dtype=np.float32),
+        y_test=y_test,
+    )
+    assert processed.num_classes == 2
+    assert np.array_equal(processed.y_train, np.array([0, 1, 0], dtype=np.int64))
+    assert processed.y_test is not None
+    assert np.array_equal(processed.y_test, np.array([1, 0], dtype=np.int64))
 
 
 def test_remap_labels_filters_unseen_test_classes() -> None:
     y_train = np.array([0, 0, 1], dtype=np.int64)
     y_test = np.array([0, 2], dtype=np.int64)
     x_test = np.array([[1], [2]])
-    _, remapped_test, _, valid_mask = _remap_labels(y_train, y_test)
-    assert np.array_equal(remapped_test, np.array([0], dtype=np.int64))
-    assert np.array_equal(valid_mask, np.array([True, False]))
-    assert np.array_equal(x_test[valid_mask], np.array([[1]]))
+    state = fit_fitted_preprocessor(
+        task="classification",
+        x_train=np.array([[0.0], [1.0], [2.0]], dtype=np.float32),
+        y_train=y_train,
+    )
+    processed = apply_fitted_preprocessor(
+        task="classification",
+        state=state,
+        x_train=np.array([[0.0], [1.0], [2.0]], dtype=np.float32),
+        y_train=y_train,
+        x_test=x_test.astype(np.float32),
+        y_test=y_test,
+    )
+    assert processed.y_test is not None
+    assert np.array_equal(processed.y_test, np.array([0], dtype=np.int64))
+    assert processed.valid_test_mask is not None
+    assert np.array_equal(processed.valid_test_mask, np.array([True, False]))
+    assert np.array_equal(x_test[processed.valid_test_mask], np.array([[1]]))
 
 
 def test_dataset_raises_when_unseen_filter_removes_all_test_rows(tmp_path: Path) -> None:
@@ -280,6 +312,139 @@ def test_dataset_raises_when_unseen_filter_removes_all_test_rows(tmp_path: Path)
     )
     with pytest.raises(RuntimeError, match="zero rows after filtering unseen labels"):
         _ = ds[0]
+
+
+def test_dataset_keeps_nan_features_when_impute_missing_is_false_but_still_remaps_labels(
+    tmp_path: Path,
+) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    dataset = {
+        "dataset_index": 0,
+        "x_train": np.array([[1.0, np.nan], [2.0, 3.0], [3.0, 4.0]], dtype=np.float32),
+        "y_train": np.array([10, 20, 10], dtype=np.int64),
+        "x_test": np.array([[np.nan, 5.0], [6.0, np.nan]], dtype=np.float32),
+        "y_test": np.array([20, 999], dtype=np.int64),
+        "feature_types": ["num", "num"],
+        "metadata": _classification_metadata(
+            n_features=2,
+            n_classes=2,
+            seed=7,
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
+    }
+    _ = _write_packed_shard(shard_dir, datasets=[dataset])
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    row = pq.read_table(manifest_path).to_pylist()[0]
+    ds = PackedParquetTaskDataset(
+        manifest_path=manifest_path,
+        split=str(row["split"]),
+        task="classification",
+        impute_missing=False,
+    )
+    sample = ds[0]
+
+    assert torch.isnan(sample.x_train[0, 1])
+    assert torch.isnan(sample.x_test[0, 0])
+    assert sample.y_train.tolist() == [0, 1, 0]
+    assert sample.y_test.tolist() == [1]
+    assert sample.num_classes == 2
+
+
+def test_cli_parser_rejects_removed_preprocessor_state_surface() -> None:
+    parser = build_parser()
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["build-preprocessor-state"])
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "export",
+                "--checkpoint",
+                "checkpoint.pt",
+                "--out-dir",
+                "bundle",
+                "--preprocessor-state",
+                "state.json",
+            ]
+        )
+
+
+def test_dataset_and_reference_consumer_share_runtime_preprocessing_semantics(
+    tmp_path: Path,
+) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    dataset = {
+        "dataset_index": 0,
+        "x_train": np.array([[1.0, np.nan], [3.0, 5.0], [5.0, 7.0]], dtype=np.float32),
+        "y_train": np.array([100, 200, 100], dtype=np.int64),
+        "x_test": np.array([[np.nan, 11.0]], dtype=np.float32),
+        "y_test": np.array([200], dtype=np.int64),
+        "feature_types": ["num", "num"],
+        "metadata": _classification_metadata(
+            n_features=2,
+            n_classes=2,
+            seed=13,
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
+    }
+    _ = _write_packed_shard(shard_dir, datasets=[dataset])
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    row = pq.read_table(manifest_path).to_pylist()[0]
+    ds = PackedParquetTaskDataset(
+        manifest_path=manifest_path,
+        split=str(row["split"]),
+        task="classification",
+    )
+    sample = ds[0]
+
+    checkpoint = tmp_path / "ckpt.pt"
+    cfg = {
+        "task": "classification",
+        "model": {
+            "d_col": 16,
+            "d_icl": 32,
+            "input_normalization": "none",
+            "feature_group_size": 1,
+            "many_class_train_mode": "path_nll",
+            "max_mixed_radix_digits": 64,
+            "tfcol_n_heads": 4,
+            "tfcol_n_layers": 1,
+            "tfcol_n_inducing": 8,
+            "tfrow_n_heads": 4,
+            "tfrow_n_layers": 1,
+            "tfrow_cls_tokens": 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 2,
+            "tficl_ff_expansion": 2,
+            "many_class_base": 10,
+            "head_hidden_dim": 32,
+            "use_digit_position_embed": True,
+        },
+    }
+    torch.manual_seed(0)
+    model = build_model(task="classification", **cfg["model"])
+    torch.save({"model": model.state_dict(), "global_step": 1, "config": cfg}, checkpoint)
+
+    bundle_dir = tmp_path / "bundle"
+    _ = export_checkpoint(checkpoint, bundle_dir)
+    output = run_reference_consumer(
+        bundle_dir,
+        x_train=dataset["x_train"],
+        y_train=dataset["y_train"],
+        x_test=dataset["x_test"],
+    )
+
+    assert torch.equal(output.batch.y_train, sample.y_train)
+    assert output.batch.num_classes == sample.num_classes
+    assert torch.allclose(output.batch.x_train, sample.x_train)
+    assert torch.allclose(output.batch.x_test, sample.x_test)
 
 
 def test_manifest_dataset_id_and_split_are_stable_across_root_paths(tmp_path: Path) -> None:
