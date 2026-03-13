@@ -48,8 +48,7 @@ If any other document disagrees with this file, this file is authoritative.
 
 `tab-foundry` uses local roadmap IDs in the form `TF-RD-###`. BL-prefixed
 issues remain the canonical tracker links. Rank `0` is reserved for completed
-items retained for traceability, but this rewrite does not backfill completed
-claims into rank `0`.
+items retained for traceability.
 
 ## Scaling Predictability Prioritization Lens
 
@@ -68,29 +67,29 @@ training regime:
 
 ## Canonical Priority Queue
 
-Lower rank means higher priority. Rank `0` is reserved for completed items and
-is intentionally unused in this roadmap revision.
+Lower rank means higher priority. Rank `0` is reserved for completed items kept
+for traceability.
 
 | Rank | Roadmap ID | Item | Status | Milestone | Tracker Links |
 | ---- | ---------- | ---- | ------ | --------- | ------------- |
+| 0 | TF-RD-002 | Repo foundation and dagzoo-style organization | implemented | Implemented | `BL-175 -> BL-177 -> BL-178 -> BL-179 -> BL-180` |
 | 1 | TF-RD-001 | Canonical control baseline and experiment trust | partial | Now | `BL-152 -> BL-155 -> BL-156 -> BL-157 -> BL-158 -> BL-159` |
-| 2 | TF-RD-002 | Repo foundation and dagzoo-style organization | partial | Now | `BL-175 -> BL-177 -> BL-178 -> BL-179 -> BL-180` |
-| 3 | TF-RD-003 | Literature-first references and external baseline borrowing | partial | Now | `BL-154 -> BL-170 -> BL-173` |
-| 4 | TF-RD-004 | Neutral architecture registry and shared component surfaces | planned | Now | `BL-154 -> BL-171 -> BL-181 -> BL-182` |
-| 5 | TF-RD-005 | Modular QASS and non-QASS backbone infrastructure | planned | Now | `BL-154 -> BL-172` |
-| 6 | TF-RD-006 | Scaling-law measurement and Chinchilla-style planning | planned | Now | `BL-154 -> BL-174` |
-| 7 | TF-RD-007 | Current-architecture tuning and control promotion | partial | Now | `BL-153 -> BL-160 -> BL-161 -> BL-162 -> BL-164 -> BL-163` |
-| 8 | TF-RD-008 | Architecture ablations against the control baseline | planned | Next | `BL-165 -> BL-166 -> BL-167 -> BL-169 -> BL-168` |
-| 9 | TF-RD-009 | Core prediction mode parity | partial | Next | `BL-183 -> BL-185 -> BL-186 -> BL-187 -> BL-188 -> BL-189` |
-| 10 | TF-RD-010 | Extended prediction modes and modalities | research | Later | `BL-184 -> BL-191 -> BL-190 -> BL-192 -> BL-193` |
-| 11 | TF-RD-011 | Conditional prior/data alignment when architecture is not the bottleneck | research | Later | `no active issue yet; gated follow-on after TF-RD-007 and TF-RD-008` |
+| 2 | TF-RD-003 | Literature-first references and external baseline borrowing | partial | Now | `BL-154 -> BL-170 -> BL-173` |
+| 3 | TF-RD-004 | Neutral architecture registry and shared component surfaces | planned | Now | `BL-154 -> BL-171 -> BL-181 -> BL-182` |
+| 4 | TF-RD-005 | Modular QASS and non-QASS backbone infrastructure | planned | Now | `BL-154 -> BL-172` |
+| 5 | TF-RD-006 | Scaling-law measurement and Chinchilla-style planning | planned | Now | `BL-154 -> BL-174` |
+| 6 | TF-RD-007 | Current-architecture tuning and control promotion | partial | Now | `BL-153 -> BL-160 -> BL-161 -> BL-162 -> BL-164 -> BL-163` |
+| 7 | TF-RD-008 | Architecture ablations against the control baseline | planned | Next | `BL-165 -> BL-166 -> BL-167 -> BL-169 -> BL-168` |
+| 8 | TF-RD-009 | Core prediction mode parity | partial | Next | `BL-183 -> BL-185 -> BL-186 -> BL-187 -> BL-188 -> BL-189` |
+| 9 | TF-RD-010 | Extended prediction modes and modalities | research | Later | `BL-184 -> BL-191 -> BL-190 -> BL-192 -> BL-193` |
+| 10 | TF-RD-011 | Conditional prior/data alignment when architecture is not the bottleneck | research | Later | `no active issue yet; gated follow-on after TF-RD-007 and TF-RD-008` |
 
 ## Current Capability Matrix
 
 | Roadmap Objective / Pillar Claim | Current State | Evidence in Repo | Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Manifest-backed packed-shard training on `dagzoo` outputs | `implemented` | Manifest build flow, manifest-backed train/eval CLI, export/load contract, and packed-shard dataset handling are present in the canonical workflow | Source and prior modularity beyond the manifest path is not yet implemented | `TF-RD-004`, `TF-RD-011` |
-| Short-run reproducible experiment loop with smoke coverage | `partial` | GitHub Actions quality gate, Iris smoke, dagzoo smoke, and persisted run artifacts are implemented | Repeated-run stability evaluation, pinned benchmark bundle discipline, checkpoint-selection diagnostics, and leaderboard output are incomplete | `TF-RD-001`, `TF-RD-007` |
+| Short-run reproducible experiment loop with smoke coverage | `partial` | GitHub Actions quality gate, Iris smoke, dagzoo smoke, persisted run artifacts, and pinned benchmark-bundle discipline are implemented | Repeated-run stability evaluation, checkpoint-selection diagnostics, and leaderboard output are incomplete | `TF-RD-001`, `TF-RD-007` |
 | Benchmark-facing comparison against `nanoTabPFN` | `partial` | Env bootstrap and comparison harnesses exist, and the benchmark remains the selection surface for shortlist validation | Canonical promoted external-baseline configs and benchmark-trust discipline are not complete | `TF-RD-001`, `TF-RD-003`, `TF-RD-007` |
 | Scaling-oriented architecture planning | `partial` | Architecture guidance, literature references, and evidence mapping are now first-class planning artifacts | Neutral registry, modular backbones, and canonical scaling-law measurement are not complete | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006` |
 | Core prediction mode coverage | `partial` | Classification and regression flows exist in the common train/eval stack | Shared mode contracts, missing-data task support, and mode-specific reporting are incomplete | `TF-RD-009` |
@@ -159,8 +158,10 @@ surface. Use the canonical docs instead:
     `experiment=cls_benchmark_linear`.
   - CI quality gates and smoke workflows now exist and produce persisted
     artifacts.
-  - Benchmark-adjacent tooling exists, but repeated-run trust and benchmark
-    bundle discipline are not yet fully codified.
+  - The canonical benchmark bundle is now pinned in-repo, and the comparison
+    flow fails fast on benchmark-input drift.
+  - Repeated-run trust, checkpoint-selection diagnostics, and leaderboard
+    output are not yet fully codified.
 - Exit criteria:
   - One frozen canonical control run is documented and preserved.
   - Benchmark inputs are pinned and drift-checked.
@@ -171,8 +172,8 @@ surface. Use the canonical docs instead:
 
 ### TF-RD-002: Repo Foundation and Dagzoo-Style Organization
 
-- Status: `partial`
-- Milestone: `Now`
+- Status: `implemented`
+- Milestone: `Implemented`
 - Goal alignment: `Goal 1: Scaling Predictability`
 - Pillar alignment: `repo foundation`
 - Goal: reorganize the repository around durable roles and extension points
@@ -189,16 +190,17 @@ surface. Use the canonical docs instead:
   - `docs/development/`
   - `docs/workflows.md`
   - `reference/`
-- Current state:
-  - Neutral `bench/` and `cli/commands/` homes now exist.
+- Completion evidence (March 12, 2026):
+  - Neutral `bench/` and `cli/commands/` homes now exist and act as the
+    canonical destinations for workflow orchestration and harness logic.
   - Reusable model components now live separately from family-specific
     assemblies under `src/tab_foundry/model/components/` and
     `src/tab_foundry/model/architectures/`.
   - Canonical planning and repo-structure docs now live under
-    `docs/development/`, with top-level compatibility entrypoints retained for
-    older links.
-  - Some neutral package boundaries are in place, but the organization is not
-    yet complete enough to be treated as finished.
+    `docs/development/`, and `reference/` is the stable literature and
+    evidence surface.
+  - The repo is now organized around durable role-based package boundaries,
+    and future extensions can land without another large package reorg.
 - Exit criteria:
   - The package root is role-based rather than historical.
   - Workflow helpers converge into neutral homes instead of one-off modules.
@@ -455,14 +457,12 @@ surface. Use the canonical docs instead:
 
 ### Implemented
 
-- No `TF-RD` items are marked `implemented` yet in this normalized roadmap.
-  Rank `0` remains reserved for future completed items with explicit completion
-  evidence.
+- `TF-RD-002` repo foundation and dagzoo-style organization
+  - Completed March 12, 2026 via `BL-175 -> BL-177 -> BL-178 -> BL-179 -> BL-180`
 
 ### Now
 
 - `TF-RD-001` canonical control baseline and experiment trust
-- `TF-RD-002` repo foundation and dagzoo-style organization
 - `TF-RD-003` literature-first references and external baseline borrowing
 - `TF-RD-004` neutral architecture registry and shared component surfaces
 - `TF-RD-005` modular QASS and non-QASS backbone infrastructure

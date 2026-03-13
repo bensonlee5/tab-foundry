@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-03-13
+
+### Changed
+
+- Pinned the canonical nanoTabPFN/OpenML benchmark bundle in
+  `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json` and made the
+  benchmark load path fail fast on selection-threshold, task-list, and
+  task-metadata drift.
+- Updated benchmark comparison runs so `benchmark_tasks.json` now persists the
+  exact pinned benchmark bundle used for the run, and
+  `comparison_summary.json` now includes additive `benchmark_bundle` metadata
+  with name, version, source path, task count, and task IDs.
+- Tightened the benchmark bundle schema so `selection` now requires the raw
+  OpenML thresholds for row count, task type, feature count, class count,
+  missingness, and minority-class percentage; older ad hoc bundle files
+  without those fields now fail to load.
+- Normalized `TF-RD-002` to implemented in the canonical roadmap and marked the
+  TF-RD-001 kickoff on the tracker around pinned benchmark-input discipline.
+
 ## [0.1.2] - 2026-03-13
 
 ### Changed
