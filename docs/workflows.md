@@ -226,6 +226,12 @@ uv run python scripts/benchmark_nanotabpfn.py \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
 
+The comparison flow is pinned to the repo-tracked benchmark bundle at
+`src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`. Runs fail fast if
+the live OpenML-resolved selection thresholds or task metadata drift from that
+bundle. Older ad hoc bundle files without the full `selection` schema now fail
+to load.
+
 One simple preparation path is:
 
 ```bash
@@ -243,6 +249,9 @@ Review comparison summaries using:
 - `final_step`
 - `final_training_time`
 - `final_roc_auc`
+- `benchmark_bundle.name`
+- `benchmark_bundle.version`
+- `benchmark_bundle.task_ids`
 
 If best internal validation and best external benchmark diverge materially, treat that as a selection-quality problem rather than silently trusting internal validation.
 

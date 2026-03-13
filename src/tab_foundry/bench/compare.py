@@ -11,8 +11,10 @@ from typing import Any, Sequence
 
 from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
 from tab_foundry.bench.nanotabpfn import (
+    default_benchmark_bundle_path,
     build_comparison_summary,
     evaluate_tab_foundry_run,
+    load_benchmark_bundle,
     load_openml_benchmark_datasets,
     plot_comparison_curve,
     save_dataset_cache,
@@ -128,9 +130,13 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     nanotabpfn_curve_path = out_root / "nanotabpfn_curve.jsonl"
     comparison_curve_path = out_root / "comparison_curve.png"
     comparison_summary_path = out_root / "comparison_summary.json"
+    benchmark_bundle_path = default_benchmark_bundle_path()
+    benchmark_bundle = load_benchmark_bundle(benchmark_bundle_path)
 
-    datasets, benchmark_tasks = load_openml_benchmark_datasets()
-    write_json(benchmark_tasks_path, benchmark_tasks)
+    datasets, benchmark_tasks = load_openml_benchmark_datasets(
+        benchmark_bundle_path=benchmark_bundle_path,
+    )
+    write_json(benchmark_tasks_path, benchmark_bundle)
     save_dataset_cache(dataset_cache_path, datasets)
 
     tab_foundry_records = evaluate_tab_foundry_run(
@@ -162,6 +168,8 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         tab_foundry_records=tab_foundry_records,
         nanotabpfn_records=nanotabpfn_records,
         benchmark_tasks=benchmark_tasks,
+        benchmark_bundle=benchmark_bundle,
+        benchmark_bundle_path=benchmark_bundle_path,
         tab_foundry_run_dir=tab_foundry_run_dir,
         nanotabpfn_root=nanotabpfn_root,
         nanotabpfn_python=_nanotabpfn_python(nanotabpfn_root),
