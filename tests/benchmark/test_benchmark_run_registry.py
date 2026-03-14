@@ -15,12 +15,11 @@ def _write_checkpoint(
     *,
     manifest_path: str,
     seed: int = 1,
-    arch: str = "tabfoundry_staged",
+    arch: str | None = "tabfoundry_staged",
     stage: str | None = "nano_exact",
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     model_cfg: dict[str, object] = {
-        "arch": arch,
         "d_icl": 96,
         "input_normalization": "train_zscore_clip",
         "many_class_base": 2,
@@ -28,6 +27,8 @@ def _write_checkpoint(
         "tficl_n_layers": 3,
         "head_hidden_dim": 192,
     }
+    if arch is not None:
+        model_cfg["arch"] = arch
     if stage is not None:
         model_cfg["stage"] = stage
     torch.save(
@@ -328,6 +329,63 @@ def test_register_benchmark_run_rejects_unknown_parent(
         )
 
 
+def test_derive_benchmark_run_record_rejects_legacy_checkpoint_without_arch_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(repo_root, run_name="legacy_simple_anchor")
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    simple_model = build_model(
+        task="classification",
+        arch="tabfoundry_simple",
+        d_icl=96,
+        input_normalization="train_zscore_clip",
+        many_class_base=2,
+        tficl_n_heads=4,
+        tficl_n_layers=3,
+        head_hidden_dim=192,
+    )
+    torch.save(
+        {
+            "model": simple_model.state_dict(),
+            "config": {
+                "task": "classification",
+                "data": {"manifest_path": "data/manifests/default.parquet"},
+                "runtime": {"seed": 1},
+                "model": {
+                    "d_icl": 96,
+                    "input_normalization": "train_zscore_clip",
+                    "many_class_base": 2,
+                    "tficl_n_heads": 4,
+                    "tficl_n_layers": 3,
+                    "head_hidden_dim": 192,
+                },
+                "schedule": {
+                    "stages": [
+                        {
+                            "name": "stage1",
+                            "steps": 400,
+                            "lr_max": 8.0e-4,
+                            "lr_schedule": "linear",
+                            "warmup_ratio": 0.05,
+                        }
+                    ]
+                },
+            },
+        },
+        run_dir / "checkpoints" / "best.pt",
+    )
+
+    with pytest.raises(RuntimeError, match="persisted model.arch"):
+        registry_module.derive_benchmark_run_record(
+            run_dir=run_dir,
+            comparison_summary_path=summary_path,
+            benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+        )
+
+
 def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_feature_group_size(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -344,7 +402,7 @@ def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_f
                 "task": "classification",
                 "data": {"manifest_path": "data/manifests/default.parquet"},
                 "runtime": {"seed": 1},
-                "model": {},
+                "model": {"arch": "tabfoundry"},
                 "schedule": {
                     "stages": [
                         {

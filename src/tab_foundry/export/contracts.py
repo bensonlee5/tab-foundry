@@ -7,9 +7,20 @@ from datetime import datetime
 from hashlib import sha256
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    FiniteFloat,
+    StrictBool,
+    StrictInt,
+    StrictStr,
+    ValidationError,
+    field_validator,
+)
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
+from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import (
     ModelBuildSpec,
     STAGED_MODEL_ARCH,
@@ -35,6 +46,69 @@ EXPECTED_GROUP_SHIFTS = [0, 1, 3]
 EXPECTED_MANY_CLASS_THRESHOLD = 10
 EXPECTED_V2_FEATURE_ORDER_POLICY = "lexicographic_f_columns"
 EXPECTED_MISSING_VALUE_ALL_NAN_FILL = 0.0
+
+_ContractsPayloadT = TypeVar("_ContractsPayloadT", bound="_ContractsPayloadModel")
+
+
+class _ContractsPayloadModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    @field_validator("*")
+    @classmethod
+    def _normalize_string(cls, value: Any) -> Any:
+        if isinstance(value, str) and not value.strip():
+            raise ValueError("must be a non-empty string")
+        return value
+
+
+class _ManifestModelPayloadV2(_ContractsPayloadModel):
+    arch: StrictStr
+    stage: StrictStr | None = None
+    d_col: StrictInt
+    d_icl: StrictInt
+    input_normalization: StrictStr | None = None
+    feature_group_size: StrictInt
+    many_class_train_mode: StrictStr
+    max_mixed_radix_digits: StrictInt
+    tfcol_n_heads: StrictInt | None = None
+    tfcol_n_layers: StrictInt | None = None
+    tfcol_n_inducing: StrictInt | None = None
+    tfrow_n_heads: StrictInt | None = None
+    tfrow_n_layers: StrictInt | None = None
+    tfrow_cls_tokens: StrictInt | None = None
+    tficl_n_heads: StrictInt | None = None
+    tficl_n_layers: StrictInt | None = None
+    tficl_ff_expansion: StrictInt | None = None
+    many_class_base: StrictInt | None = None
+    head_hidden_dim: StrictInt | None = None
+    use_digit_position_embed: StrictBool | None = None
+
+
+class _ManifestModelPayloadV3(_ManifestModelPayloadV2):
+    input_normalization: StrictStr
+
+
+class _InferenceConfigPayload(_ContractsPayloadModel):
+    task: StrictStr
+    model_arch: StrictStr
+    model_stage: StrictStr | None = None
+    group_shifts: list[StrictInt]
+    feature_group_size: StrictInt
+    many_class_threshold: StrictInt
+    many_class_inference_mode: StrictStr
+    quantile_levels: list[FiniteFloat] | None = None
+
+
+def _validate_payload_model(
+    payload_model: type[_ContractsPayloadT],
+    payload: Any,
+    *,
+    context: str,
+) -> _ContractsPayloadT:
+    try:
+        return payload_model.model_validate(payload)
+    except ValidationError as exc:
+        raise ValueError(f"{context} is invalid: {exc}") from exc
 
 
 @dataclass(slots=True)
@@ -469,13 +543,28 @@ def _validate_model_spec(
         context="manifest.model",
         optional_keys=optional_model_keys,
     )
-    arch = _as_str(payload["arch"], context="manifest.model.arch")
+    payload_model = (
+        _ManifestModelPayloadV3
+        if schema_version == SCHEMA_VERSION_V3
+        else _ManifestModelPayloadV2
+    )
+    validated_payload = _validate_payload_model(
+        payload_model,
+        payload,
+        context="manifest.model",
+    )
+    payload_dict = validated_payload.model_dump(exclude_none=True)
+    arch = _as_str(payload_dict["arch"], context="manifest.model.arch")
     if arch not in SUPPORTED_MODEL_ARCHES:
         raise ValueError(f"Unsupported model arch: {arch!r}")
     model_spec = model_build_spec_from_mappings(
         task=task,
-        primary=_manifest_model_primary_dict(payload),
+        primary=_manifest_model_primary_dict(payload_dict),
     )
+    try:
+        _ = build_model_from_spec(model_spec)
+    except (RuntimeError, ValueError) as exc:
+        raise ValueError(str(exc)) from exc
     return ExportModelSpec.from_build_spec(model_spec, arch=arch)
 
 
@@ -631,10 +720,19 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
         keys.add("quantile_levels")
     _require_keys(payload, keys=keys, context="inference_config", optional_keys=optional_keys)
 
-    model_arch = _as_str(payload["model_arch"], context="inference_config.model_arch")
+    validated_payload = _validate_payload_model(
+        _InferenceConfigPayload,
+        payload,
+        context="inference_config",
+    )
+
+    model_arch = _as_str(
+        validated_payload.model_arch,
+        context="inference_config.model_arch",
+    )
     if model_arch not in SUPPORTED_MODEL_ARCHES:
         raise ValueError(f"Unsupported inference model_arch: {model_arch!r}")
-    model_stage_raw = payload.get("model_stage")
+    model_stage_raw = validated_payload.model_stage
     if model_stage_raw is not None and model_arch != STAGED_MODEL_ARCH:
         raise ValueError(
             "inference_config.model_stage is only valid when model_arch='tabfoundry_staged'"
@@ -647,26 +745,17 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
             primary={"arch": model_arch, "stage": model_stage},
         )
 
-    group_shifts_raw = payload["group_shifts"]
-    if not isinstance(group_shifts_raw, list) or any(not isinstance(v, int) for v in group_shifts_raw):
-        raise ValueError("inference_config.group_shifts must be list[int]")
-    group_shifts = [int(v) for v in group_shifts_raw]
+    group_shifts = [int(v) for v in validated_payload.group_shifts]
     if group_shifts != EXPECTED_GROUP_SHIFTS:
         raise ValueError(
             f"inference_config.group_shifts must equal {EXPECTED_GROUP_SHIFTS}, got {group_shifts!r}"
         )
 
-    feature_group_size = _as_int(
-        payload["feature_group_size"],
-        context="inference_config.feature_group_size",
-    )
+    feature_group_size = int(validated_payload.feature_group_size)
     if feature_group_size <= 0:
         raise ValueError("inference_config.feature_group_size must be positive")
 
-    many_class_threshold = _as_int(
-        payload["many_class_threshold"],
-        context="inference_config.many_class_threshold",
-    )
+    many_class_threshold = int(validated_payload.many_class_threshold)
     if many_class_threshold != EXPECTED_MANY_CLASS_THRESHOLD:
         raise ValueError(
             "inference_config.many_class_threshold must equal "
@@ -674,7 +763,7 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
         )
 
     many_class_inference_mode = _as_str(
-        payload["many_class_inference_mode"],
+        validated_payload.many_class_inference_mode,
         context="inference_config.many_class_inference_mode",
     )
     if many_class_inference_mode not in SUPPORTED_MANY_CLASS_INFERENCE_MODES:
@@ -683,13 +772,11 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
             f"{SUPPORTED_MANY_CLASS_INFERENCE_MODES}, got {many_class_inference_mode!r}"
         )
 
-    quantile_levels_raw = payload.get("quantile_levels")
+    quantile_levels_raw = validated_payload.quantile_levels
     quantile_levels: list[float] | None = None
     if quantile_levels_raw is not None:
         if task != "regression":
             raise ValueError("inference_config.quantile_levels is only valid for regression")
-        if not isinstance(quantile_levels_raw, list):
-            raise ValueError("inference_config.quantile_levels must be list[float]")
         quantile_levels = [float(v) for v in quantile_levels_raw]
         if len(quantile_levels) != 999:
             raise ValueError("inference_config.quantile_levels must contain 999 values")

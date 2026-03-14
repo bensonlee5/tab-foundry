@@ -7,8 +7,18 @@ from datetime import datetime, timezone
 import json
 import math
 from pathlib import Path
-from typing import Any, Mapping, Sequence, cast
+from typing import Any, Literal, Mapping, Sequence, TypeVar, cast
 
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    FiniteFloat,
+    StrictInt,
+    StrictStr,
+    ValidationError,
+    field_validator,
+)
 import torch
 
 from tab_foundry.bench.artifacts import load_history, write_json
@@ -19,7 +29,7 @@ from tab_foundry.bench.nanotabpfn import (
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import (
     checkpoint_model_build_spec_from_mappings,
-    model_build_spec_from_mappings,
+    ModelBuildSpec,
 )
 from tab_foundry.training.schedule import build_stage_configs, warmup_steps_for_stage
 
@@ -30,49 +40,6 @@ DEFAULT_BUDGET_CLASS = "short-run"
 ALLOWED_DECISIONS = ("keep", "reject", "defer")
 
 _TOP_LEVEL_KEYS = {"schema", "version", "runs"}
-_ENTRY_KEYS = {
-    "run_id",
-    "track",
-    "experiment",
-    "config_profile",
-    "budget_class",
-    "model",
-    "lineage",
-    "manifest_path",
-    "seed_set",
-    "benchmark_bundle",
-    "artifacts",
-    "tab_foundry_metrics",
-    "training_diagnostics",
-    "model_size",
-    "comparisons",
-    "decision",
-    "conclusion",
-    "registered_at_utc",
-}
-_MODEL_KEYS = {
-    "arch",
-    "stage",
-    "benchmark_profile",
-    "d_icl",
-    "tficl_n_heads",
-    "tficl_n_layers",
-    "head_hidden_dim",
-    "input_normalization",
-    "many_class_base",
-}
-_LINEAGE_KEYS = {"parent_run_id", "anchor_run_id", "control_baseline_id"}
-_BENCHMARK_BUNDLE_KEYS = {"name", "version", "source_path", "task_count", "task_ids"}
-_ARTIFACT_KEYS = {
-    "run_dir",
-    "benchmark_dir",
-    "prior_dir",
-    "history_path",
-    "best_checkpoint_path",
-    "comparison_summary_path",
-    "comparison_curve_path",
-    "benchmark_run_record_path",
-}
 _TAB_FOUNDRY_METRIC_KEYS = {
     "best_step",
     "best_training_time",
@@ -81,26 +48,140 @@ _TAB_FOUNDRY_METRIC_KEYS = {
     "final_training_time",
     "final_roc_auc",
 }
-_TRAINING_DIAGNOSTIC_KEYS = {
-    "best_val_loss",
-    "final_val_loss",
-    "best_val_step",
-    "post_warmup_train_loss_var",
-    "mean_grad_norm",
-    "max_grad_norm",
-    "final_grad_norm",
-    "train_elapsed_seconds",
-    "wall_elapsed_seconds",
-}
-_MODEL_SIZE_KEYS = {"total_params", "trainable_params"}
-_COMPARISON_KEYS = {
-    "reference_run_id",
-    "best_roc_auc_delta",
-    "final_roc_auc_delta",
-    "best_training_time_delta",
-    "final_training_time_delta",
-}
-_COMPARISONS_KEYS = {"vs_parent", "vs_anchor"}
+
+_RegistryPayloadT = TypeVar("_RegistryPayloadT", bound="_RegistryPayloadModel")
+
+
+class _RegistryPayloadModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    @field_validator("*")
+    @classmethod
+    def _normalize_string(cls, value: Any) -> Any:
+        if isinstance(value, str) and not value.strip():
+            raise ValueError("must be a non-empty string")
+        return value
+
+
+class _BenchmarkRunModelPayload(_RegistryPayloadModel):
+    arch: StrictStr
+    stage: StrictStr | None = None
+    benchmark_profile: StrictStr | None = None
+    d_icl: StrictInt
+    tficl_n_heads: StrictInt
+    tficl_n_layers: StrictInt
+    head_hidden_dim: StrictInt
+    input_normalization: StrictStr
+    many_class_base: StrictInt
+
+
+class _BenchmarkBundlePayload(_RegistryPayloadModel):
+    name: StrictStr
+    version: StrictInt
+    source_path: StrictStr
+    task_count: StrictInt
+    task_ids: list[StrictInt] = Field(min_length=1)
+
+
+class _BenchmarkArtifactsPayload(_RegistryPayloadModel):
+    run_dir: StrictStr
+    benchmark_dir: StrictStr
+    prior_dir: StrictStr | None = None
+    history_path: StrictStr
+    best_checkpoint_path: StrictStr
+    comparison_summary_path: StrictStr
+    comparison_curve_path: StrictStr
+    benchmark_run_record_path: StrictStr | None = None
+
+
+class _TabFoundryMetricsPayload(_RegistryPayloadModel):
+    best_step: FiniteFloat | None = None
+    best_training_time: FiniteFloat | None = None
+    best_roc_auc: FiniteFloat | None = None
+    final_step: FiniteFloat | None = None
+    final_training_time: FiniteFloat | None = None
+    final_roc_auc: FiniteFloat | None = None
+
+
+class _TrainingDiagnosticsPayload(_RegistryPayloadModel):
+    best_val_loss: FiniteFloat | None = None
+    final_val_loss: FiniteFloat | None = None
+    best_val_step: FiniteFloat | None = None
+    post_warmup_train_loss_var: FiniteFloat | None = None
+    mean_grad_norm: FiniteFloat | None = None
+    max_grad_norm: FiniteFloat | None = None
+    final_grad_norm: FiniteFloat | None = None
+    train_elapsed_seconds: FiniteFloat | None = None
+    wall_elapsed_seconds: FiniteFloat | None = None
+
+
+class _ModelSizePayload(_RegistryPayloadModel):
+    total_params: StrictInt
+    trainable_params: StrictInt
+
+
+class _ComparisonPayload(_RegistryPayloadModel):
+    reference_run_id: StrictStr
+    best_roc_auc_delta: FiniteFloat | None = None
+    final_roc_auc_delta: FiniteFloat | None = None
+    best_training_time_delta: FiniteFloat | None = None
+    final_training_time_delta: FiniteFloat | None = None
+
+
+class _ComparisonsPayload(_RegistryPayloadModel):
+    vs_parent: _ComparisonPayload | None = None
+    vs_anchor: _ComparisonPayload | None = None
+
+
+class _LineagePayload(_RegistryPayloadModel):
+    parent_run_id: StrictStr | None = None
+    anchor_run_id: StrictStr | None = None
+    control_baseline_id: StrictStr | None = None
+
+
+class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
+    manifest_path: StrictStr
+    seed_set: list[StrictInt] = Field(min_length=1)
+    model: _BenchmarkRunModelPayload
+    benchmark_bundle: _BenchmarkBundlePayload
+    artifacts: _BenchmarkArtifactsPayload
+    tab_foundry_metrics: _TabFoundryMetricsPayload
+    training_diagnostics: _TrainingDiagnosticsPayload
+    model_size: _ModelSizePayload
+    generated_at_utc: StrictStr
+
+
+class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
+    run_id: StrictStr
+    track: StrictStr
+    experiment: StrictStr
+    config_profile: StrictStr
+    budget_class: StrictStr
+    model: _BenchmarkRunModelPayload
+    lineage: _LineagePayload
+    manifest_path: StrictStr
+    seed_set: list[StrictInt] = Field(min_length=1)
+    benchmark_bundle: _BenchmarkBundlePayload
+    artifacts: _BenchmarkArtifactsPayload
+    tab_foundry_metrics: _TabFoundryMetricsPayload
+    training_diagnostics: _TrainingDiagnosticsPayload
+    model_size: _ModelSizePayload
+    comparisons: _ComparisonsPayload
+    decision: Literal["keep", "reject", "defer"]
+    conclusion: StrictStr
+    registered_at_utc: StrictStr
+
+
+def _validate_payload_model(
+    payload_model: type[_RegistryPayloadT],
+    payload: Any,
+    *,
+    context: str,
+) -> _RegistryPayloadT:
+    try:
+        return payload_model.model_validate(payload)
+    except ValidationError as exc:
+        raise RuntimeError(f"{context} is invalid: {exc}") from exc
 
 
 def project_root() -> Path:
@@ -349,21 +430,35 @@ def _training_diagnostics_from_history(
     }
 
 
-def _count_parameters_from_cfg(
+def _checkpoint_model_spec_from_cfg(
     raw_cfg: dict[str, Any],
     *,
     state_dict: dict[str, Any] | None,
-) -> dict[str, int]:
+) -> ModelBuildSpec:
     task = _ensure_non_empty_string(raw_cfg.get("task"), context="checkpoint config.task")
     raw_model_cfg = raw_cfg.get("model")
     if not isinstance(raw_model_cfg, dict):
         raise RuntimeError("checkpoint config must include a model mapping")
     model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
-    model_spec = checkpoint_model_build_spec_from_mappings(
+    arch = model_cfg.get("arch")
+    if not isinstance(arch, str) or not arch.strip():
+        raise RuntimeError(
+            "checkpoint config must include explicit model.arch metadata for benchmark registration; "
+            "legacy checkpoints without persisted model.arch cannot be registered"
+        )
+    return checkpoint_model_build_spec_from_mappings(
         task=task,
         primary=model_cfg,
         state_dict=state_dict,
     )
+
+
+def _count_parameters_from_cfg(
+    raw_cfg: dict[str, Any],
+    *,
+    state_dict: dict[str, Any] | None,
+) -> dict[str, int]:
+    model_spec = _checkpoint_model_spec_from_cfg(raw_cfg, state_dict=state_dict)
     model = build_model_from_spec(model_spec)
     total_params = sum(int(parameter.numel()) for parameter in model.parameters())
     trainable_params = sum(
@@ -378,14 +473,10 @@ def _count_parameters_from_cfg(
 def _model_payload_from_cfg(
     raw_cfg: dict[str, Any],
     *,
+    state_dict: dict[str, Any] | None,
     summary_tab_foundry: Mapping[str, Any],
 ) -> dict[str, Any]:
-    task = _ensure_non_empty_string(raw_cfg.get("task"), context="checkpoint config.task")
-    raw_model_cfg = raw_cfg.get("model")
-    if not isinstance(raw_model_cfg, dict):
-        raise RuntimeError("checkpoint config must include a model mapping")
-    model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
-    model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
+    model_spec = _checkpoint_model_spec_from_cfg(raw_cfg, state_dict=state_dict)
     benchmark_profile_raw = summary_tab_foundry.get("benchmark_profile")
     return {
         "arch": str(model_spec.arch),
@@ -505,7 +596,11 @@ def derive_benchmark_run_record(
     record = {
         "manifest_path": _normalize_path_value(manifest_path),
         "seed_set": [int(seed_raw)],
-        "model": _model_payload_from_cfg(raw_cfg, summary_tab_foundry=tab_foundry),
+        "model": _model_payload_from_cfg(
+            raw_cfg,
+            state_dict=raw_state_dict,
+            summary_tab_foundry=tab_foundry,
+        ),
         "benchmark_bundle": {
             "name": str(benchmark_bundle["name"]),
             "version": int(benchmark_bundle["version"]),
@@ -540,206 +635,24 @@ def derive_benchmark_run_record(
 
 
 def _validate_record_payload(payload: Any) -> None:
-    if not isinstance(payload, dict):
-        raise RuntimeError("benchmark run record must be an object")
-    required_keys = {
-        "manifest_path",
-        "seed_set",
-        "model",
-        "benchmark_bundle",
-        "artifacts",
-        "tab_foundry_metrics",
-        "training_diagnostics",
-        "model_size",
-        "generated_at_utc",
-    }
-    actual_keys = set(payload.keys())
-    if actual_keys != required_keys:
-        raise RuntimeError(
-            "benchmark run record keys mismatch: "
-            f"missing={sorted(required_keys - actual_keys)}, extra={sorted(actual_keys - required_keys)}"
-        )
-    if not isinstance(payload["seed_set"], list) or not payload["seed_set"]:
-        raise RuntimeError("benchmark run record seed_set must be a non-empty list")
-    _validate_model_payload(payload["model"])
-    _validate_benchmark_bundle_payload(payload["benchmark_bundle"])
-    _validate_artifacts_payload(payload["artifacts"])
-    _validate_tab_foundry_metrics_payload(payload["tab_foundry_metrics"])
-    _validate_training_diagnostics_payload(payload["training_diagnostics"])
-    _validate_model_size_payload(payload["model_size"])
-    _ensure_non_empty_string(payload["manifest_path"], context="benchmark run record manifest_path")
-    _ensure_non_empty_string(payload["generated_at_utc"], context="benchmark run record generated_at_utc")
-
-
-def _validate_model_payload(payload: Any) -> None:
-    mapping = _ensure_mapping(payload, context="benchmark run model")
-    actual_keys = set(mapping.keys())
-    if actual_keys != _MODEL_KEYS:
-        raise RuntimeError(
-            "benchmark run model keys mismatch: "
-            f"missing={sorted(_MODEL_KEYS - actual_keys)}, extra={sorted(actual_keys - _MODEL_KEYS)}"
-        )
-    _ensure_non_empty_string(mapping["arch"], context="benchmark run model.arch")
-    _ensure_optional_string(mapping["stage"], context="benchmark run model.stage")
-    _ensure_optional_string(mapping["benchmark_profile"], context="benchmark run model.benchmark_profile")
-    for key in ("d_icl", "tficl_n_heads", "tficl_n_layers", "head_hidden_dim", "many_class_base"):
-        if not isinstance(mapping[key], int) or isinstance(mapping[key], bool):
-            raise RuntimeError(f"benchmark run model.{key} must be an int")
-    _ensure_non_empty_string(mapping["input_normalization"], context="benchmark run model.input_normalization")
-
-
-def _validate_benchmark_bundle_payload(payload: Any) -> None:
-    mapping = _ensure_mapping(payload, context="benchmark run benchmark_bundle")
-    actual_keys = set(mapping.keys())
-    if actual_keys != _BENCHMARK_BUNDLE_KEYS:
-        raise RuntimeError(
-            "benchmark run benchmark_bundle keys mismatch: "
-            f"missing={sorted(_BENCHMARK_BUNDLE_KEYS - actual_keys)}, extra={sorted(actual_keys - _BENCHMARK_BUNDLE_KEYS)}"
-        )
-    _ensure_non_empty_string(mapping["name"], context="benchmark run benchmark_bundle.name")
-    _ensure_non_empty_string(mapping["source_path"], context="benchmark run benchmark_bundle.source_path")
-    for key in ("version", "task_count"):
-        if not isinstance(mapping[key], int) or isinstance(mapping[key], bool):
-            raise RuntimeError(f"benchmark run benchmark_bundle.{key} must be an int")
-    if not isinstance(mapping["task_ids"], list) or not mapping["task_ids"]:
-        raise RuntimeError("benchmark run benchmark_bundle.task_ids must be a non-empty list")
-
-
-def _validate_artifacts_payload(payload: Any) -> None:
-    mapping = _ensure_mapping(payload, context="benchmark run artifacts")
-    actual_keys = set(mapping.keys())
-    if actual_keys != _ARTIFACT_KEYS:
-        raise RuntimeError(
-            "benchmark run artifacts keys mismatch: "
-            f"missing={sorted(_ARTIFACT_KEYS - actual_keys)}, "
-            f"extra={sorted(actual_keys - _ARTIFACT_KEYS)}"
-        )
-    for key in (
-        "run_dir",
-        "benchmark_dir",
-        "history_path",
-        "best_checkpoint_path",
-        "comparison_summary_path",
-        "comparison_curve_path",
-    ):
-        _ensure_non_empty_string(mapping[key], context=f"benchmark run artifacts.{key}")
-    _ensure_optional_string(mapping["prior_dir"], context="benchmark run artifacts.prior_dir")
-    _ensure_optional_string(
-        mapping["benchmark_run_record_path"],
-        context="benchmark run artifacts.benchmark_run_record_path",
+    _ = _validate_payload_model(
+        _BenchmarkRunRecordPayload,
+        payload,
+        context="benchmark run record",
     )
 
 
-def _validate_tab_foundry_metrics_payload(payload: Any) -> None:
-    mapping = _ensure_mapping(payload, context="benchmark run tab_foundry_metrics")
-    actual_keys = set(mapping.keys())
-    if actual_keys != _TAB_FOUNDRY_METRIC_KEYS:
-        raise RuntimeError(
-            "benchmark run tab_foundry_metrics keys mismatch: "
-            f"missing={sorted(_TAB_FOUNDRY_METRIC_KEYS - actual_keys)}, extra={sorted(actual_keys - _TAB_FOUNDRY_METRIC_KEYS)}"
-        )
-    for key in _TAB_FOUNDRY_METRIC_KEYS:
-        _ensure_optional_finite_number(mapping[key], context=f"benchmark run tab_foundry_metrics.{key}")
-
-
-def _validate_training_diagnostics_payload(payload: Any) -> None:
-    mapping = _ensure_mapping(payload, context="benchmark run training_diagnostics")
-    actual_keys = set(mapping.keys())
-    if actual_keys != _TRAINING_DIAGNOSTIC_KEYS:
-        raise RuntimeError(
-            "benchmark run training_diagnostics keys mismatch: "
-            f"missing={sorted(_TRAINING_DIAGNOSTIC_KEYS - actual_keys)}, extra={sorted(actual_keys - _TRAINING_DIAGNOSTIC_KEYS)}"
-        )
-    for key in _TRAINING_DIAGNOSTIC_KEYS:
-        _ensure_optional_finite_number(mapping[key], context=f"benchmark run training_diagnostics.{key}")
-
-
-def _validate_model_size_payload(payload: Any) -> None:
-    mapping = _ensure_mapping(payload, context="benchmark run model_size")
-    actual_keys = set(mapping.keys())
-    if actual_keys != _MODEL_SIZE_KEYS:
-        raise RuntimeError(
-            "benchmark run model_size keys mismatch: "
-            f"missing={sorted(_MODEL_SIZE_KEYS - actual_keys)}, extra={sorted(_MODEL_SIZE_KEYS - actual_keys)}"
-        )
-    for key in _MODEL_SIZE_KEYS:
-        if not isinstance(mapping[key], int) or isinstance(mapping[key], bool):
-            raise RuntimeError(f"benchmark run model_size.{key} must be an int")
-
-
-def _validate_comparison_payload(payload: Any, *, context: str) -> None:
-    mapping = _ensure_mapping(payload, context=context)
-    actual_keys = set(mapping.keys())
-    if actual_keys != _COMPARISON_KEYS:
-        raise RuntimeError(
-            f"{context} keys mismatch: "
-            f"missing={sorted(_COMPARISON_KEYS - actual_keys)}, "
-            f"extra={sorted(actual_keys - _COMPARISON_KEYS)}"
-        )
-    _ensure_non_empty_string(mapping["reference_run_id"], context=f"{context}.reference_run_id")
-    for key in (
-        "best_roc_auc_delta",
-        "final_roc_auc_delta",
-        "best_training_time_delta",
-        "final_training_time_delta",
-    ):
-        _ensure_optional_finite_number(mapping[key], context=f"{context}.{key}")
-
-
 def _validate_run_entry(entry: Any, *, run_id: str) -> None:
-    mapping = _ensure_mapping(entry, context=f"benchmark run entry {run_id}")
-    actual_keys = set(mapping.keys())
-    if actual_keys != _ENTRY_KEYS:
-        raise RuntimeError(
-            f"benchmark run entry keys mismatch for {run_id}: "
-            f"missing={sorted(_ENTRY_KEYS - actual_keys)}, extra={sorted(actual_keys - _ENTRY_KEYS)}"
-        )
-    if _ensure_non_empty_string(mapping["run_id"], context="benchmark run entry run_id") != run_id:
+    validated = _validate_payload_model(
+        _BenchmarkRunEntryPayload,
+        entry,
+        context=f"benchmark run entry {run_id}",
+    )
+    if str(validated.run_id) != run_id:
         raise RuntimeError(
             "benchmark run entry run_id mismatch: "
-            f"expected={run_id!r}, actual={mapping['run_id']!r}"
+            f"expected={run_id!r}, actual={validated.run_id!r}"
         )
-    _ensure_non_empty_string(mapping["track"], context="benchmark run entry track")
-    _ensure_non_empty_string(mapping["experiment"], context="benchmark run entry experiment")
-    _ensure_non_empty_string(mapping["config_profile"], context="benchmark run entry config_profile")
-    _ensure_non_empty_string(mapping["budget_class"], context="benchmark run entry budget_class")
-    _ensure_non_empty_string(mapping["manifest_path"], context="benchmark run entry manifest_path")
-    if not isinstance(mapping["seed_set"], list) or not mapping["seed_set"]:
-        raise RuntimeError(f"benchmark run entry seed_set must be a non-empty list: {run_id}")
-    _validate_model_payload(mapping["model"])
-    lineage = _ensure_mapping(mapping["lineage"], context="benchmark run entry lineage")
-    actual_lineage_keys = set(lineage.keys())
-    if actual_lineage_keys != _LINEAGE_KEYS:
-        raise RuntimeError(
-            "benchmark run entry lineage keys mismatch: "
-            f"missing={sorted(_LINEAGE_KEYS - actual_lineage_keys)}, extra={sorted(actual_lineage_keys - _LINEAGE_KEYS)}"
-        )
-    for key in _LINEAGE_KEYS:
-        _ensure_optional_string(lineage[key], context=f"benchmark run entry lineage.{key}")
-    _validate_benchmark_bundle_payload(mapping["benchmark_bundle"])
-    _validate_artifacts_payload(mapping["artifacts"])
-    _validate_tab_foundry_metrics_payload(mapping["tab_foundry_metrics"])
-    _validate_training_diagnostics_payload(mapping["training_diagnostics"])
-    _validate_model_size_payload(mapping["model_size"])
-    comparisons = _ensure_mapping(mapping["comparisons"], context="benchmark run entry comparisons")
-    actual_comparisons_keys = set(comparisons.keys())
-    if actual_comparisons_keys != _COMPARISONS_KEYS:
-        raise RuntimeError(
-            "benchmark run entry comparisons keys mismatch: "
-            f"missing={sorted(_COMPARISONS_KEYS - actual_comparisons_keys)}, extra={sorted(actual_comparisons_keys - _COMPARISONS_KEYS)}"
-        )
-    for key in _COMPARISONS_KEYS:
-        value = comparisons[key]
-        if value is not None:
-            _validate_comparison_payload(value, context=f"benchmark run entry comparisons.{key}")
-    decision = _ensure_non_empty_string(mapping["decision"], context="benchmark run entry decision").lower()
-    if decision not in ALLOWED_DECISIONS:
-        raise RuntimeError(
-            "benchmark run entry decision must be one of "
-            f"{sorted(ALLOWED_DECISIONS)}, got {mapping['decision']!r}"
-        )
-    _ensure_non_empty_string(mapping["conclusion"], context="benchmark run entry conclusion")
-    _ensure_non_empty_string(mapping["registered_at_utc"], context="benchmark run entry registered_at_utc")
 
 
 def _comparison_delta(

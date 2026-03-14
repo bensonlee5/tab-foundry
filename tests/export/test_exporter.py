@@ -337,6 +337,73 @@ def test_export_bundle_round_trips_staged_arch_and_stage(tmp_path: Path) -> None
     assert loaded.validated.manifest.inference.model_stage == "nano_exact"
 
 
+def test_validate_export_rejects_tabfoundry_simple_manifest_that_breaks_constructor_invariants(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_simple.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_simple",
+            "d_icl": 96,
+            "many_class_base": 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+    )
+
+    out_dir = tmp_path / "export_simple"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert isinstance(manifest, dict)
+    model_payload = manifest["model"]
+    assert isinstance(model_payload, dict)
+    model_payload["many_class_base"] = 3
+    _rewrite_json(manifest_path, manifest)
+
+    with pytest.raises(ValueError, match="many_class_base=2"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_rejects_tabfoundry_staged_manifest_that_breaks_constructor_invariants(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_staged.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "nano_exact",
+            "d_icl": 96,
+            "many_class_base": 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+    )
+
+    out_dir = tmp_path / "export_staged"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert isinstance(manifest, dict)
+    model_payload = manifest["model"]
+    assert isinstance(model_payload, dict)
+    model_payload["feature_group_size"] = 2
+    _rewrite_json(manifest_path, manifest)
+
+    with pytest.raises(ValueError, match="feature_group_size=1"):
+        _ = validate_export_bundle(out_dir)
+
+
 def test_validate_export_detects_weights_checksum_tamper(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
