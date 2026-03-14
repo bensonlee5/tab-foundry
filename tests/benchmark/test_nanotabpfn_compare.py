@@ -488,3 +488,199 @@ def test_collect_checkpoint_snapshots_prefers_train_elapsed_seconds(tmp_path: Pa
     snapshots = benchmark_module.collect_checkpoint_snapshots(run_dir)
 
     assert snapshots[0]["elapsed_seconds"] == pytest.approx(3.0)
+
+
+def test_collect_checkpoint_snapshots_supports_plain_training_output(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    checkpoint_dir = run_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True)
+    (checkpoint_dir / "best.pt").write_bytes(b"best")
+    (checkpoint_dir / "step_000025.pt").write_bytes(b"step25")
+    history_path = run_dir / "train_history.jsonl"
+    history_path.write_text(
+        json.dumps(
+            {
+                "step": 25,
+                "stage": "stage1",
+                "train_loss": 0.5,
+                "lr": 1.0e-3,
+                "elapsed_seconds": 9.0,
+                "train_elapsed_seconds": 3.0,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    snapshots = benchmark_module.collect_checkpoint_snapshots(run_dir)
+
+    assert snapshots[0]["step"] == 25
+    assert snapshots[0]["elapsed_seconds"] == pytest.approx(3.0)
+
+
+def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    nanotab_root = tmp_path / "nano"
+    (nanotab_root / ".venv" / "bin").mkdir(parents=True)
+    nanotab_python = nanotab_root / ".venv" / "bin" / "python"
+    nanotab_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    prior_dump = nanotab_root / "300k_150x5_2.h5"
+    prior_dump.write_bytes(b"prior")
+    out_root = tmp_path / "benchmark_out"
+    source_bundle_path = tmp_path / "source_bundle.json"
+    benchmark_bundle = {
+        "name": "test_bundle",
+        "version": 1,
+        "selection": {
+            "new_instances": 6,
+            "task_type": "supervised_classification",
+            "max_features": 10,
+            "max_classes": 2,
+            "max_missing_pct": 0.0,
+            "min_minority_class_pct": 2.5,
+        },
+        "task_ids": [1],
+        "tasks": [
+            {
+                "task_id": 1,
+                "dataset_name": "toy",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+        ],
+    }
+    source_bundle_path.write_text(
+        json.dumps(benchmark_bundle, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    registry_path = tmp_path / "control_baselines_v1.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "schema": "tab-foundry-control-baselines-v1",
+                "version": 1,
+                "baselines": {
+                    "cls_benchmark_linear_v1": {
+                        "baseline_id": "cls_benchmark_linear_v1",
+                        "experiment": "cls_benchmark_linear",
+                        "config_profile": "cls_benchmark_linear",
+                        "budget_class": "short-run",
+                        "manifest_path": "data/manifests/default.parquet",
+                        "seed_set": [1],
+                        "run_dir": "outputs/control_baselines/cls_benchmark_linear_v1/train",
+                        "comparison_summary_path": "outputs/control_baselines/cls_benchmark_linear_v1/benchmark/comparison_summary.json",
+                        "benchmark_bundle": {
+                            "name": "test_bundle",
+                            "version": 1,
+                            "source_path": str(source_bundle_path.resolve()),
+                            "task_count": 1,
+                            "task_ids": [1],
+                        },
+                        "tab_foundry_metrics": {
+                            "best_step": 25.0,
+                            "best_training_time": 1.2,
+                            "best_roc_auc": 0.81,
+                            "final_step": 25.0,
+                            "final_training_time": 1.2,
+                            "final_roc_auc": 0.81,
+                        },
+                    }
+                },
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        compare_module,
+        "load_openml_benchmark_datasets",
+        lambda benchmark_bundle_path=None: (
+            {
+                "toy": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64),
+                )
+            },
+            [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
+        ),
+    )
+    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: source_bundle_path)
+    monkeypatch.setattr(compare_module, "load_benchmark_bundle", lambda path=None: benchmark_bundle)
+    monkeypatch.setattr(
+        compare_module,
+        "evaluate_tab_foundry_run",
+        lambda *_args, **_kwargs: [
+            {"checkpoint_path": "/tmp/step_000025.pt", "step": 25, "training_time": 1.2, "roc_auc": 0.81}
+        ],
+    )
+
+    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+        out_index = cmd.index("--out-path") + 1
+        out_path = Path(cmd[out_index])
+        out_path.write_text(
+            json.dumps({"seed": 0, "step": 25, "training_time": 2.0, "roc_auc": 0.78}) + "\n",
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
+
+    summary = compare_module.run_nanotabpfn_benchmark(
+        compare_module.NanoTabPFNBenchmarkConfig(
+            tab_foundry_run_dir=smoke_run_dir,
+            out_root=out_root,
+            nanotabpfn_root=nanotab_root,
+            nanotab_prior_dump=prior_dump,
+            control_baseline_id="cls_benchmark_linear_v1",
+            control_baseline_registry=registry_path,
+        )
+    )
+
+    assert summary["control_baseline"]["baseline_id"] == "cls_benchmark_linear_v1"
+    written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
+    assert written_summary["control_baseline"]["budget_class"] == "short-run"
+
+
+def test_run_nanotabpfn_benchmark_rejects_unknown_control_baseline(tmp_path: Path) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    nanotab_root = tmp_path / "nano"
+    (nanotab_root / ".venv" / "bin").mkdir(parents=True)
+    nanotab_python = nanotab_root / ".venv" / "bin" / "python"
+    nanotab_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    prior_dump = nanotab_root / "300k_150x5_2.h5"
+    prior_dump.write_bytes(b"prior")
+    registry_path = tmp_path / "control_baselines_v1.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "schema": "tab-foundry-control-baselines-v1",
+                "version": 1,
+                "baselines": {},
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="unknown control baseline id"):
+        compare_module.run_nanotabpfn_benchmark(
+            compare_module.NanoTabPFNBenchmarkConfig(
+                tab_foundry_run_dir=smoke_run_dir,
+                out_root=tmp_path / "benchmark_out",
+                nanotabpfn_root=nanotab_root,
+                nanotab_prior_dump=prior_dump,
+                control_baseline_id="missing",
+                control_baseline_registry=registry_path,
+            )
+        )

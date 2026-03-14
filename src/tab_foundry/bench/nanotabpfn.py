@@ -427,6 +427,45 @@ def resolve_device(device: str) -> str:
     return "cpu"
 
 
+def resolve_tab_foundry_run_artifact_paths(run_dir: Path) -> tuple[Path, Path]:
+    """Resolve the training-history JSONL and checkpoint directory for a run."""
+
+    resolved_run_dir = run_dir.expanduser().resolve()
+    candidates = [
+        (
+            resolved_run_dir / "train_history.jsonl",
+            resolved_run_dir / "checkpoints",
+        ),
+        (
+            resolved_run_dir / "train_outputs" / "train_history.jsonl",
+            resolved_run_dir / "train_outputs" / "checkpoints",
+        ),
+    ]
+    for history_path, checkpoint_dir in candidates:
+        if history_path.exists() and checkpoint_dir.exists():
+            return history_path, checkpoint_dir
+    expected = ", ".join(
+        f"history={history_path}, checkpoints={checkpoint_dir}"
+        for history_path, checkpoint_dir in candidates
+    )
+    raise RuntimeError(f"missing tab-foundry run artifacts under {resolved_run_dir}; checked {expected}")
+
+
+def resolve_tab_foundry_best_checkpoint(run_dir: Path) -> Path:
+    """Resolve the best checkpoint path for a plain or smoke tab-foundry run."""
+
+    resolved_run_dir = run_dir.expanduser().resolve()
+    candidates = [
+        resolved_run_dir / "checkpoints" / "best.pt",
+        resolved_run_dir / "train_outputs" / "checkpoints" / "best.pt",
+    ]
+    for checkpoint_path in candidates:
+        if checkpoint_path.exists():
+            return checkpoint_path.resolve()
+    expected = ", ".join(str(path) for path in candidates)
+    raise RuntimeError(f"missing best checkpoint under {resolved_run_dir}; checked {expected}")
+
+
 def collect_checkpoint_snapshots(run_dir: Path) -> list[dict[str, Any]]:
     """Resolve step checkpoints and their elapsed training times."""
 
@@ -450,13 +489,7 @@ def collect_checkpoint_snapshots(run_dir: Path) -> list[dict[str, Any]]:
                 key=lambda snapshot: int(snapshot["step"]),
             )
 
-    history_path = resolved_run_dir / "train_outputs" / "train_history.jsonl"
-    checkpoint_dir = resolved_run_dir / "train_outputs" / "checkpoints"
-    if not history_path.exists():
-        raise RuntimeError(f"missing smoke history file: {history_path}")
-    if not checkpoint_dir.exists():
-        raise RuntimeError(f"missing smoke checkpoint directory: {checkpoint_dir}")
-
+    history_path, checkpoint_dir = resolve_tab_foundry_run_artifact_paths(resolved_run_dir)
     snapshots = checkpoint_snapshots_from_history(history_path, checkpoint_dir)
     return [
         {
@@ -570,6 +603,7 @@ def build_comparison_summary(
     tab_foundry_run_dir: Path,
     nanotabpfn_root: Path,
     nanotabpfn_python: Path,
+    control_baseline: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a compact JSON summary for the benchmark comparison."""
 
@@ -655,4 +689,6 @@ def build_comparison_summary(
         raise RuntimeError("tab-foundry benchmark produced no ROC AUC values")
     if math.isnan(float(nanotabpfn_summary["final_roc_auc"])):
         raise RuntimeError("nanoTabPFN benchmark produced no ROC AUC values")
+    if control_baseline is not None:
+        summary["control_baseline"] = json.loads(json.dumps(control_baseline, sort_keys=True))
     return summary

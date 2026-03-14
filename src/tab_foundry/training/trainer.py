@@ -177,6 +177,27 @@ def _history_path(cfg: DictConfig) -> Path | None:
     return Path(value).expanduser().resolve()
 
 
+def _assert_clean_training_output(output_dir: Path, *, history_path: Path | None) -> None:
+    checkpoint_dir = output_dir / "checkpoints"
+    history_is_dirty = False
+    if history_path is not None and history_path.exists():
+        history_is_dirty = history_path.is_dir() or history_path.stat().st_size > 0
+    checkpoint_paths = sorted(checkpoint_dir.glob("*.pt")) if checkpoint_dir.exists() else []
+    if not history_is_dirty and not checkpoint_paths:
+        return
+    found_artifacts: list[str] = []
+    if history_is_dirty and history_path is not None:
+        found_artifacts.append(f"history={history_path}")
+    if checkpoint_paths:
+        found_artifacts.append(f"checkpoints={checkpoint_dir}")
+    artifact_summary = ", ".join(found_artifacts)
+    raise RuntimeError(
+        "runtime.output_dir is not resume-safe: found existing training artifacts "
+        f"({artifact_summary}); remove prior history/checkpoints or choose a fresh "
+        "runtime.output_dir"
+    )
+
+
 def _history_value(metrics: dict[str, float], key: str) -> float | None:
     value = metrics.get(key)
     if value is None:
@@ -358,6 +379,11 @@ def train(cfg: DictConfig) -> TrainResult:
 
     task = str(cfg.task)
     seed = int(cfg.runtime.seed)
+    output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    history_path = _history_path(cfg)
+    _assert_clean_training_output(output_dir, history_path=history_path)
+
     torch.manual_seed(seed)
     grad_accum_steps = _resolve_grad_accum_steps(cfg.runtime)
     checkpoint_every = _checkpoint_every(cfg.runtime)
@@ -402,10 +428,6 @@ def train(cfg: DictConfig) -> TrainResult:
     model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
     model = build_model_from_spec(model_spec)
     model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
-
-    output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    history_path = _history_path(cfg)
 
     run = _wandb_init(cfg, enabled=bool(cfg.logging.use_wandb and accelerator.is_main_process))
 

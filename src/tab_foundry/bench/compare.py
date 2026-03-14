@@ -10,6 +10,10 @@ import subprocess
 from typing import Any, Sequence
 
 from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
+from tab_foundry.bench.control_baseline import (
+    default_control_baseline_registry_path,
+    load_control_baseline_entry,
+)
 from tab_foundry.bench.nanotabpfn import (
     default_benchmark_bundle_path,
     build_comparison_summary,
@@ -42,6 +46,8 @@ class NanoTabPFNBenchmarkConfig:
     nanotabpfn_eval_every: int = DEFAULT_NANOTABPFN_EVAL_EVERY
     nanotabpfn_batch_size: int = DEFAULT_NANOTABPFN_BATCH_SIZE
     nanotabpfn_lr: float = DEFAULT_NANOTABPFN_LR
+    control_baseline_id: str | None = None
+    control_baseline_registry: Path | None = None
 
 
 def _default_out_root() -> Path:
@@ -132,6 +138,12 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     comparison_summary_path = out_root / "comparison_summary.json"
     benchmark_bundle_path = default_benchmark_bundle_path()
     benchmark_bundle = load_benchmark_bundle(benchmark_bundle_path)
+    control_baseline = None
+    if config.control_baseline_id is not None:
+        control_baseline = load_control_baseline_entry(
+            str(config.control_baseline_id),
+            registry_path=config.control_baseline_registry,
+        )
 
     datasets, benchmark_tasks = load_openml_benchmark_datasets(
         benchmark_bundle_path=benchmark_bundle_path,
@@ -173,6 +185,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         tab_foundry_run_dir=tab_foundry_run_dir,
         nanotabpfn_root=nanotabpfn_root,
         nanotabpfn_python=_nanotabpfn_python(nanotabpfn_root),
+        control_baseline=control_baseline,
     )
     summary["artifacts"] = {
         "benchmark_tasks_json": str(benchmark_tasks_path),
@@ -213,6 +226,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_NANOTABPFN_SEEDS,
         help="Number of nanoTabPFN random seeds",
     )
+    parser.add_argument(
+        "--control-baseline-id",
+        default=None,
+        help="Optional frozen control baseline id to copy into comparison_summary.json",
+    )
+    parser.add_argument(
+        "--control-baseline-registry",
+        default=str(default_control_baseline_registry_path()),
+        help="Control baseline registry JSON path used with --control-baseline-id",
+    )
     return parser
 
 
@@ -228,6 +251,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             device=str(args.device),
             nanotabpfn_steps=int(args.nanotabpfn_steps),
             nanotabpfn_seeds=int(args.nanotabpfn_seeds),
+            control_baseline_id=(
+                str(args.control_baseline_id) if args.control_baseline_id else None
+            ),
+            control_baseline_registry=(
+                Path(str(args.control_baseline_registry))
+                if args.control_baseline_registry
+                else None
+            ),
         )
     )
     print("nanoTabPFN comparison complete:")

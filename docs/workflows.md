@@ -232,12 +232,57 @@ the live OpenML-resolved selection thresholds or task metadata drift from that
 bundle. Older ad hoc bundle files without the full `selection` schema now fail
 to load.
 
+The benchmark-profile training config now writes `train_history.jsonl` directly
+under `runtime.output_dir`, so benchmark comparison can consume plain
+`tab-foundry train experiment=cls_benchmark_linear ...` outputs without a smoke
+wrapper.
+
 One simple preparation path is:
 
 ```bash
 uv run python scripts/dagzoo_smoke.py --out-root /tmp/tab_foundry_dagzoo_smoke_bench
 uv run python scripts/benchmark_nanotabpfn.py \
   --tab-foundry-run-dir /tmp/tab_foundry_dagzoo_smoke_bench \
+  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+```
+
+The canonical control-baseline path is:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_benchmark_linear \
+  data.manifest_path=data/manifests/default.parquet \
+  runtime.output_dir=outputs/control_baselines/cls_benchmark_linear_v1/train
+
+uv run python scripts/benchmark_nanotabpfn.py \
+  --tab-foundry-run-dir outputs/control_baselines/cls_benchmark_linear_v1/train \
+  --out-root outputs/control_baselines/cls_benchmark_linear_v1/benchmark \
+  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+
+uv run python scripts/freeze_control_baseline.py \
+  --run-dir outputs/control_baselines/cls_benchmark_linear_v1/train \
+  --comparison-summary outputs/control_baselines/cls_benchmark_linear_v1/benchmark/comparison_summary.json
+```
+
+Keep `outputs/control_baselines/cls_benchmark_linear_v1/train` empty before rerunning the
+training command; `tab-foundry train` now fails fast if `runtime.output_dir` already contains a
+non-empty history file or checkpoint `.pt` artifacts.
+
+Frozen control baselines are tracked in
+`src/tab_foundry/bench/control_baselines_v1.json`. Registry entries store the
+baseline id, config profile, budget class, manifest path, seed set, preserved
+run path, comparison summary path, benchmark bundle metadata, and compact
+tab-foundry best/final ROC AUC metrics.
+
+Later comparison runs can copy one of those registry entries into
+`comparison_summary.json` via:
+
+```bash
+uv run python scripts/benchmark_nanotabpfn.py \
+  --tab-foundry-run-dir <run_dir> \
+  --out-root <benchmark_out_root> \
+  --control-baseline-id cls_benchmark_linear_v1 \
+  --control-baseline-registry src/tab_foundry/bench/control_baselines_v1.json \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
 
@@ -252,6 +297,8 @@ Review comparison summaries using:
 - `benchmark_bundle.name`
 - `benchmark_bundle.version`
 - `benchmark_bundle.task_ids`
+- `control_baseline.baseline_id` when the run is explicitly compared against a
+  frozen control
 
 If best internal validation and best external benchmark diverge materially, treat that as a selection-quality problem rather than silently trusting internal validation.
 

@@ -27,6 +27,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export validation now rejects unsupported `manifest.model.input_normalization`
   values before model construction.
 
+## [0.3.1] - 2026-03-13
+
+### Changed
+
+- `experiment=cls_benchmark_linear` now writes `train_history.jsonl` under the
+  run output directory by default, so the benchmark comparison flow can consume
+  plain training outputs rather than only smoke-harness layouts.
+- Added a repo-tracked canonical control baseline registry at
+  `src/tab_foundry/bench/control_baselines_v1.json` plus a promotion helper in
+  `scripts/freeze_control_baseline.py` that validates a completed run and
+  `comparison_summary.json` before freezing the baseline metadata.
+- `comparison_summary.json` now supports an additive `control_baseline` object
+  copied from the frozen registry when benchmark comparisons are run with
+  `--control-baseline-id`.
+- `tab-foundry train` now fails fast when `runtime.output_dir` already contains
+  a non-empty history JSONL or checkpoint `.pt` artifacts, preventing benchmark
+  reruns from mixing stale training outputs into later comparisons.
+
 ## [0.3.0] - 2026-03-13
 
 ### Added
