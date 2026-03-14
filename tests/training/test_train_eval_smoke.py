@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
+import sys
 
 from omegaconf import OmegaConf
 import pytest
@@ -239,9 +241,58 @@ def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pyte
         "build_accelerator_from_runtime",
         lambda *_args, **_kwargs: pytest.fail("dirty-output guard should fail before accelerator setup"),
     )
-
     with pytest.raises(RuntimeError, match="not resume-safe"):
         _ = trainer_module.train(cfg)
+
+
+def test_wandb_init_uses_api_key_file_when_env_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg = _classification_cfg(tmp_path)
+    cfg.logging.use_wandb = True
+    key_path = tmp_path / "wandb_api_key.txt"
+    key_path.write_text("secret-key\n", encoding="utf-8")
+
+    calls: list[dict[str, object]] = []
+
+    def _fake_init(**kwargs: object) -> dict[str, object]:
+        calls.append(dict(kwargs))
+        return dict(kwargs)
+
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)
+    monkeypatch.setenv("WANDB_API_KEY_FILE", str(key_path))
+    monkeypatch.setitem(sys.modules, "wandb", SimpleNamespace(init=_fake_init))
+
+    run = trainer_module._wandb_init(cfg, enabled=True)
+
+    assert run is not None
+    assert calls[0]["mode"] == "online"
+    assert os.environ["WANDB_API_KEY"] == "secret-key"
+
+
+def test_wandb_init_falls_back_to_offline_without_any_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg = _classification_cfg(tmp_path)
+    cfg.logging.use_wandb = True
+
+    calls: list[dict[str, object]] = []
+
+    def _fake_init(**kwargs: object) -> dict[str, object]:
+        calls.append(dict(kwargs))
+        return dict(kwargs)
+
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)
+    monkeypatch.delenv("WANDB_API_KEY_FILE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setitem(sys.modules, "wandb", SimpleNamespace(init=_fake_init))
+
+    run = trainer_module._wandb_init(cfg, enabled=True)
+
+    assert run is not None
+    assert calls[0]["mode"] == "offline"
 
 
 def test_train_rejects_existing_checkpoint_artifacts(
