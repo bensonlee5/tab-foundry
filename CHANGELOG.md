@@ -26,6 +26,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of reusing export-time fitted values.
 - Export validation now rejects unsupported `manifest.model.input_normalization`
   values before model construction.
+- Benchmark checkpoint evaluation now honors the saved
+  `model.input_normalization` exactly. Checkpoints saved with
+  `input_normalization="none"` no longer get an implicit train-zscore pass in
+  the external benchmark wrapper, which changes the reproduced ROC AUC curve
+  for the canonical `cls_benchmark_linear_v1` control baseline.
+- Refactored tabfoundry classification conditioning so the column/row backbone
+  is feature-only and label-conditioned reasoning happens in the ICL stage.
+  The many-class path now reruns ICL conditioning per mixed-radix digit view
+  instead of averaging feature-identical column outputs.
+- `tficl` attention masking now preserves each test token's own state by
+  allowing test-token self-attention while still blocking test-to-test
+  cross-attention.
+- Added an additive `tabfoundry_simple` classification debug architecture plus
+  the `experiment=cls_benchmark_linear_simple` benchmark profile for
+  nanoTabPFN-style ablation work on the current 3-task control benchmark.
+- Fixed many-class hierarchical path target clamping to respect the configured
+  `many_class_base` instead of hardcoding base-10 behavior.
 
 ## [0.3.1] - 2026-03-13
 

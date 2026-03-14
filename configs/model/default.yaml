@@ -1,3 +1,4 @@
+arch: tabfoundry
 d_col: 128
 d_icl: 512
 input_normalization: none

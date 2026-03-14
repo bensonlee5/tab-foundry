@@ -7,6 +7,7 @@ from tab_foundry.model.architectures.tabfoundry import (
     TabFoundryClassifier,
     TabFoundryRegressor,
 )
+from tab_foundry.model.components.many_class import balanced_bases, encode_mixed_radix
 from tab_foundry.types import TaskBatch
 
 
@@ -168,6 +169,97 @@ def test_manyclass_mixed_radix_digit_limit() -> None:
     )
     with pytest.raises(RuntimeError, match="mixed-radix depth exceeds"):
         _ = model(batch)
+
+
+def test_icl_encode_allows_test_tokens_to_attend_to_themselves(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = TabFoundryClassifier()
+    captured: dict[str, torch.Tensor | int | None] = {"allowed_mask": None, "n_context": None}
+
+    def _capture_forward(
+        x: torch.Tensor,
+        *,
+        allowed_mask: torch.Tensor | None = None,
+        n_context: int | None = None,
+        force_qass: bool | None = None,
+    ) -> torch.Tensor:
+        _ = force_qass
+        captured["allowed_mask"] = allowed_mask.clone() if allowed_mask is not None else None
+        captured["n_context"] = n_context
+        return x
+
+    monkeypatch.setattr(model.tficl, "forward", _capture_forward)
+
+    row_embeddings = torch.randn(5, model.d_icl)
+    train_target_embed = torch.randn(3, model.d_icl)
+    encoded = model._icl_encode(row_embeddings, train_target_embed, n_train=3)
+
+    assert encoded.shape == row_embeddings.shape
+    assert captured["n_context"] == 3
+    allowed_mask = captured["allowed_mask"]
+    assert isinstance(allowed_mask, torch.Tensor)
+    assert allowed_mask.shape == (1, 1, 5, 5)
+    assert bool(allowed_mask[0, 0, 3, 3])
+    assert bool(allowed_mask[0, 0, 4, 4])
+    assert not bool(allowed_mask[0, 0, 3, 4])
+    assert not bool(allowed_mask[0, 0, 4, 3])
+    assert bool(allowed_mask[0, 0, 3, 0])
+    assert bool(allowed_mask[0, 0, 4, 2])
+
+
+def test_manyclass_forward_runs_per_digit_icl_conditioning(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = TabFoundryClassifier()
+    model.eval()
+    batch = TaskBatch(
+        x_train=torch.randn(32, 12),
+        y_train=torch.arange(32, dtype=torch.int64),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 32, (8,)),
+        metadata={},
+        num_classes=32,
+    )
+    digits = encode_mixed_radix(
+        batch.y_train,
+        bases=balanced_bases(num_classes=32, max_base=model.many_class_base),
+    )
+    captured_calls: list[torch.Tensor] = []
+
+    def _capture_icl(
+        row_embeddings: torch.Tensor,
+        train_target_embed: torch.Tensor,
+        *,
+        n_train: int,
+    ) -> torch.Tensor:
+        assert n_train == int(batch.x_train.shape[0])
+        captured_calls.append(train_target_embed.detach().clone())
+        return row_embeddings
+
+    def _dummy_probs(
+        row_embeddings: torch.Tensor,
+        y_train: torch.Tensor,
+        tree: object,
+        *,
+        n_train: int,
+        num_classes: int,
+    ) -> tuple[torch.Tensor, int, int]:
+        _ = row_embeddings, y_train, tree, n_train
+        n_test = int(batch.x_test.shape[0])
+        return torch.full((n_test, num_classes), 1.0 / float(num_classes)), 0, 0
+
+    monkeypatch.setattr(model, "_icl_encode", _capture_icl)
+    monkeypatch.setattr(model, "_hierarchical_probs", _dummy_probs)
+
+    out = model(batch)
+
+    assert out.class_probs is not None
+    assert len(captured_calls) == int(digits.shape[0])
+    assert any(
+        not torch.allclose(captured_calls[index], captured_calls[0])
+        for index in range(1, len(captured_calls))
+    )
 
 
 def test_regressor_forward_shapes() -> None:

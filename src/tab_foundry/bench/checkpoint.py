@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
 import torch
 import torch.nn.functional as F
 
-from tab_foundry.input_normalization import normalize_train_test_arrays
+from tab_foundry.input_normalization import (
+    InputNormalizationMode,
+    normalize_train_test_arrays,
+)
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import (
     ModelBuildSpec,
@@ -69,17 +72,6 @@ def load_checkpoint_classifier_model(
     return model, spec
 
 
-def normalize_train_test(
-    x_train: np.ndarray,
-    x_test: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Normalize features using train-only statistics."""
-
-    mean = x_train.mean(axis=0)
-    std = x_train.std(axis=0) + 1.0e-8
-    return (x_train - mean) / std, (x_test - mean) / std
-
-
 class TabFoundryClassifier:
     """Small sklearn-style classifier wrapper around a tab-foundry checkpoint."""
 
@@ -108,14 +100,19 @@ class TabFoundryClassifier:
             raise RuntimeError("fit() must be called before predict_proba()")
 
         raw_x_test = np.asarray(x_test, dtype=np.float32)
-        if str(getattr(self.model_spec, "input_normalization", "none")).strip().lower() == "none":
+        model_arch = str(getattr(self.model_spec, "arch", "tabfoundry")).strip().lower()
+        normalization_mode = cast(
+            InputNormalizationMode,
+            str(getattr(self.model_spec, "input_normalization", "none")).strip().lower(),
+        )
+        if model_arch == "tabfoundry_simple" or normalization_mode == "none":
+            x_train_norm, x_test_norm = self._x_train, raw_x_test
+        else:
             x_train_norm, x_test_norm = normalize_train_test_arrays(
                 self._x_train,
                 raw_x_test,
-                mode="train_zscore",
+                mode=normalization_mode,
             )
-        else:
-            x_train_norm, x_test_norm = self._x_train, raw_x_test
         num_classes = int(self._classes.size)
         batch = TaskBatch(
             x_train=torch.tensor(x_train_norm, dtype=torch.float32, device=self.device),

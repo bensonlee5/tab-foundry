@@ -415,7 +415,13 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         compare_module,
         "evaluate_tab_foundry_run",
         lambda *_args, **_kwargs: [
-            {"checkpoint_path": "/tmp/step_000025.pt", "step": 25, "training_time": 1.2, "roc_auc": 0.81}
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "dataset_roc_auc": {"toy": 0.81},
+            }
         ],
     )
 
@@ -428,7 +434,16 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         out_index = cmd.index("--out-path") + 1
         out_path = Path(cmd[out_index])
         out_path.write_text(
-            json.dumps({"seed": 0, "step": 25, "training_time": 2.0, "roc_auc": 0.78}) + "\n",
+            json.dumps(
+                {
+                    "seed": 0,
+                    "step": 25,
+                    "training_time": 2.0,
+                    "roc_auc": 0.78,
+                    "dataset_roc_auc": {"toy": 0.78},
+                }
+            )
+            + "\n",
             encoding="utf-8",
         )
         return subprocess.CompletedProcess(cmd, 0)
@@ -451,8 +466,10 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert summary["dataset_count"] == 1
     assert summary["tab_foundry"]["best_step"] == pytest.approx(25.0)
     assert summary["tab_foundry"]["best_roc_auc"] == pytest.approx(0.81)
+    assert summary["tab_foundry"]["final_dataset_roc_auc"] == {"toy": pytest.approx(0.81)}
     assert summary["nanotabpfn"]["best_step"] == pytest.approx(25.0)
     assert summary["nanotabpfn"]["final_roc_auc"] == pytest.approx(0.78)
+    assert summary["nanotabpfn"]["final_dataset_roc_auc"] == {"toy": pytest.approx(0.78)}
     assert summary["benchmark_bundle"]["name"] == "test_bundle"
     assert summary["benchmark_bundle"]["version"] == 1
     assert summary["benchmark_bundle"]["task_count"] == 1

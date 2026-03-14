@@ -5,6 +5,7 @@ from __future__ import annotations
 from torch import nn
 
 from .architectures.tabfoundry import TabFoundryClassifier, TabFoundryRegressor
+from .architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from .spec import ModelBuildSpec
 
 
@@ -17,6 +18,7 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
 def build_model(
     task: str,
     *,
+    arch: str = "tabfoundry",
     d_col: int = 128,
     d_icl: int = 512,
     input_normalization: str = "none",
@@ -38,7 +40,8 @@ def build_model(
 ) -> nn.Module:
     """Instantiate model for task."""
 
-    if task == "classification":
+    normalized_arch = str(arch).strip().lower()
+    if normalized_arch == "tabfoundry" and task == "classification":
         return TabFoundryClassifier(
             d_col=d_col,
             d_icl=d_icl,
@@ -59,7 +62,7 @@ def build_model(
             head_hidden_dim=head_hidden_dim,
             use_digit_position_embed=use_digit_position_embed,
         )
-    if task == "regression":
+    if normalized_arch == "tabfoundry" and task == "regression":
         return TabFoundryRegressor(
             d_col=d_col,
             d_icl=d_icl,
@@ -76,4 +79,30 @@ def build_model(
             tficl_ff_expansion=tficl_ff_expansion,
             head_hidden_dim=head_hidden_dim,
         )
-    raise ValueError(f"Unsupported task: {task}")
+    if normalized_arch == "tabfoundry_simple":
+        if task != "classification":
+            raise ValueError(
+                "tabfoundry_simple only supports task='classification' in phase 1; "
+                f"got {task!r}"
+            )
+        return TabFoundrySimpleClassifier(
+            d_col=d_col,
+            d_icl=d_icl,
+            input_normalization=input_normalization,
+            feature_group_size=feature_group_size,
+            many_class_train_mode=many_class_train_mode,
+            max_mixed_radix_digits=max_mixed_radix_digits,
+            tfcol_n_heads=tfcol_n_heads,
+            tfcol_n_layers=tfcol_n_layers,
+            tfcol_n_inducing=tfcol_n_inducing,
+            tfrow_n_heads=tfrow_n_heads,
+            tfrow_n_layers=tfrow_n_layers,
+            tfrow_cls_tokens=tfrow_cls_tokens,
+            tficl_n_heads=tficl_n_heads,
+            tficl_n_layers=tficl_n_layers,
+            tficl_ff_expansion=tficl_ff_expansion,
+            many_class_base=many_class_base,
+            head_hidden_dim=head_hidden_dim,
+            use_digit_position_embed=use_digit_position_embed,
+        )
+    raise ValueError(f"Unsupported model arch: {arch!r}")

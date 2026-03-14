@@ -192,6 +192,11 @@ def export_checkpoint(
 
     state_dict = _normalize_state_dict(payload["model"])
     model_build_spec = _checkpoint_model_spec(cfg, task=task, state_dict=state_dict)
+    if model_build_spec.arch != "tabfoundry":
+        raise ValueError(
+            "export only supports model.arch='tabfoundry' in phase 1; "
+            f"got {model_build_spec.arch!r}"
+        )
     model_spec = ExportModelSpec.from_build_spec(model_build_spec)
 
     bundle_dir = out_dir.expanduser().resolve()

@@ -104,6 +104,7 @@ did not yet serialize every reconstruction field.
 
 | Name | Type | Default | Applies To | Meaning |
 | ---- | ---- | ---- | ---- | ---- |
+| `arch` | `str` | `"tabfoundry"` | both | Model architecture. Supported values are `tabfoundry` and the binary benchmark/debug architecture `tabfoundry_simple`. |
 | `d_col` | `int` | `128` | both | Width of grouped feature tokens and the column encoder. |
 | `d_icl` | `int` | `512` | both | Width of row embeddings and the final in-context encoder. |
 | `input_normalization` | `str` | `"none"` | both | Train/test feature normalization mode. Supported values are `none`, `train_zscore`, and `train_zscore_clip`. |
@@ -129,6 +130,7 @@ did not yet serialize every reconstruction field.
 
 These parameters set the overall model size:
 
+- `arch`
 - `d_col`
 - `d_icl`
 - `tfcol_n_layers`
@@ -167,6 +169,15 @@ Regression also has a fixed, non-configurable `999`-quantile output grid.
 
 ## Interaction Notes
 
+- `tabfoundry_simple` is an exact nanoTabPFN-style binary debug architecture.
+  It requires:
+  - `task=classification`
+  - `num_classes=2`
+  - `input_normalization=train_zscore_clip`
+  - `many_class_base=2`
+    It reuses `d_icl`, `tficl_n_heads`, `tficl_n_layers`, and `head_hidden_dim`,
+    and rejects non-default tabfoundry-only knobs such as grouped-token,
+    row/column encoder, and many-class-path settings.
 - `feature_group_size` changes both compute and inductive bias. Larger groups
   reduce token count but make each token represent a wider local feature bundle.
 - `many_class_base` affects both the small-class classifier head width and the

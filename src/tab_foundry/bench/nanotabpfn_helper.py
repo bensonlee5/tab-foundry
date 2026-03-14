@@ -35,7 +35,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     from model import NanoTabPFNModel  # type: ignore[attr-defined]
     from tab_foundry.bench.artifacts import write_jsonl
-    from tab_foundry.bench.nanotabpfn import evaluate_classifier, load_dataset_cache
+    from tab_foundry.bench.nanotabpfn import (
+        dataset_roc_auc_metrics,
+        evaluate_classifier,
+        load_dataset_cache,
+    )
     from train import PriorDumpDataLoader, get_default_device, set_randomness_seed, train
 
     device = get_default_device() if str(args.device).strip().lower() == "auto" else str(args.device)
@@ -44,7 +48,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not prior_dump.exists():
         raise RuntimeError(f"nanoTabPFN prior dump does not exist: {prior_dump}")
 
-    records: list[dict[str, float | int]] = []
+    records: list[dict[str, object]] = []
     for seed in range(int(args.seeds)):
         set_randomness_seed(seed)
         prior = PriorDumpDataLoader(
@@ -77,6 +81,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "step": int(index * int(args.eval_every)),
                     "training_time": float(training_time),
                     "roc_auc": float(metrics["ROC AUC"]),
+                    "dataset_roc_auc": dataset_roc_auc_metrics(metrics),
                 }
             )
 

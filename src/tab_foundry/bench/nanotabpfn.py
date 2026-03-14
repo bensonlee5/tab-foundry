@@ -410,6 +410,16 @@ def evaluate_classifier(
     return metrics
 
 
+def dataset_roc_auc_metrics(metrics: Mapping[str, float]) -> dict[str, float]:
+    """Extract per-dataset ROC AUC values from a benchmark metrics dict."""
+
+    return {
+        str(key[: -len("/ROC AUC")]): float(value)
+        for key, value in metrics.items()
+        if key.endswith("/ROC AUC") and key != "ROC AUC"
+    }
+
+
 def resolve_device(device: str) -> str:
     """Resolve auto device selection to a concrete torch device string."""
 
@@ -523,6 +533,7 @@ def evaluate_tab_foundry_run(
                 "step": int(snapshot["step"]),
                 "training_time": float(snapshot["elapsed_seconds"]),
                 "roc_auc": float(metrics["ROC AUC"]),
+                "dataset_roc_auc": dataset_roc_auc_metrics(metrics),
             }
         )
     return curve_records
@@ -666,6 +677,22 @@ def build_comparison_summary(
             "final_roc_auc": float(final_row["roc_auc"]),
         }
 
+    def _dataset_summary(records: list[dict[str, Any]], *, step: float) -> dict[str, float]:
+        per_dataset: dict[str, list[float]] = {}
+        for record in records:
+            if float(record.get("step", -1.0)) != float(step):
+                continue
+            raw_metrics = record.get("dataset_roc_auc")
+            if not isinstance(raw_metrics, dict):
+                continue
+            for dataset_name, value in raw_metrics.items():
+                per_dataset.setdefault(str(dataset_name), []).append(float(value))
+        return {
+            dataset_name: float(np.mean(values))
+            for dataset_name, values in sorted(per_dataset.items())
+            if values
+        }
+
     summary = {
         "dataset_count": int(len(benchmark_tasks)),
         "benchmark_bundle": benchmark_bundle_summary(
@@ -685,6 +712,22 @@ def build_comparison_summary(
     }
     tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
     nanotabpfn_summary = cast(dict[str, Any], summary["nanotabpfn"])
+    tab_foundry_summary["best_dataset_roc_auc"] = _dataset_summary(
+        tab_foundry_records,
+        step=float(tab_foundry_summary["best_step"]),
+    )
+    tab_foundry_summary["final_dataset_roc_auc"] = _dataset_summary(
+        tab_foundry_records,
+        step=float(tab_foundry_summary["final_step"]),
+    )
+    nanotabpfn_summary["best_dataset_roc_auc"] = _dataset_summary(
+        nanotabpfn_records,
+        step=float(nanotabpfn_summary["best_step"]),
+    )
+    nanotabpfn_summary["final_dataset_roc_auc"] = _dataset_summary(
+        nanotabpfn_records,
+        step=float(nanotabpfn_summary["final_step"]),
+    )
     if math.isnan(float(tab_foundry_summary["final_roc_auc"])):
         raise RuntimeError("tab-foundry benchmark produced no ROC AUC values")
     if math.isnan(float(nanotabpfn_summary["final_roc_auc"])):

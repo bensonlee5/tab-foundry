@@ -26,6 +26,7 @@ tab-foundry = "tab_foundry.cli:main"
 
 [dependency-groups]
 dev = [
+  "h5py>=3.12",
   "matplotlib>=3.10",
   "mdformat>=0.7",
   "mypy>=1.11",

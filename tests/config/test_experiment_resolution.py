@@ -14,6 +14,7 @@ def _compose(*overrides: str):
 def test_cls_workstation_task_resolution() -> None:
     cfg = _compose("experiment=cls_workstation")
     assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry"
     assert int(cfg.model.feature_group_size) == 1
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
@@ -22,6 +23,7 @@ def test_cls_workstation_task_resolution() -> None:
 def test_reg_workstation_task_resolution() -> None:
     cfg = _compose("experiment=reg_workstation")
     assert str(cfg.task) == "regression"
+    assert str(cfg.model.arch) == "tabfoundry"
     assert int(cfg.model.feature_group_size) == 1
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
@@ -30,6 +32,7 @@ def test_reg_workstation_task_resolution() -> None:
 def test_reg_smoke_task_and_runtime_resolution() -> None:
     cfg = _compose("experiment=reg_smoke")
     assert str(cfg.task) == "regression"
+    assert str(cfg.model.arch) == "tabfoundry"
     assert str(cfg.runtime.device) == "cpu"
     assert str(cfg.runtime.mixed_precision) == "no"
     assert int(cfg.runtime.grad_accum_steps) == 1
@@ -43,6 +46,7 @@ def test_reg_smoke_task_and_runtime_resolution() -> None:
 
 def test_cls_smoke_optimizer_resolution() -> None:
     cfg = _compose("experiment=cls_smoke")
+    assert str(cfg.model.arch) == "tabfoundry"
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
     assert int(cfg.model.feature_group_size) == 1
@@ -64,6 +68,7 @@ def test_cls_smoke_adamw_override_resolution() -> None:
 def test_cls_benchmark_linear_resolution() -> None:
     cfg = _compose("experiment=cls_benchmark_linear")
     assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry"
     assert int(cfg.model.feature_group_size) == 1
     assert str(cfg.optimizer.name) == "adamw"
     assert bool(cfg.optimizer.require_requested) is False
@@ -75,3 +80,34 @@ def test_cls_benchmark_linear_resolution() -> None:
     stage = cfg.schedule.stages[0]
     assert str(stage["lr_schedule"]) == "linear"
     assert float(stage["warmup_ratio"]) == 0.05
+
+
+def test_cls_benchmark_linear_simple_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_linear_simple")
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry_simple"
+    assert int(cfg.model.d_icl) == 96
+    assert str(cfg.model.input_normalization) == "train_zscore_clip"
+    assert int(cfg.model.many_class_base) == 2
+    assert int(cfg.model.tficl_n_heads) == 4
+    assert int(cfg.model.tficl_n_layers) == 3
+    assert int(cfg.model.head_hidden_dim) == 192
+    assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_linear_simple/train_history.jsonl"
+
+
+def test_cls_benchmark_linear_simple_prior_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_linear_simple_prior")
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry_simple"
+    assert int(cfg.model.d_icl) == 96
+    assert str(cfg.model.input_normalization) == "train_zscore_clip"
+    assert int(cfg.model.many_class_base) == 2
+    assert int(cfg.runtime.max_steps) == 2500
+    assert int(cfg.runtime.eval_every) == 25
+    assert int(cfg.runtime.checkpoint_every) == 25
+    assert str(cfg.optimizer.name) == "schedulefree_adamw"
+    assert bool(cfg.optimizer.require_requested) is True
+    assert float(cfg.optimizer.weight_decay) == 0.0
+    assert float(cfg.optimizer.min_lr) == 4.0e-3
+    assert bool(cfg.optimizer.muon_per_parameter_lr) is False
+    assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_linear_simple_prior/train_history.jsonl"

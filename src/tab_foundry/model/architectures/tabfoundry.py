@@ -164,14 +164,9 @@ class _TabFoundryBackbone(nn.Module):
     def _column_encode_from_e1(
         self,
         e1: torch.Tensor,
-        train_target_embed: torch.Tensor,
-        *,
-        n_train: int,
     ) -> torch.Tensor:
-        e2 = e1.clone()
-        e2[:n_train] = e2[:n_train] + train_target_embed[:, None, :]
         # Encode each column as one set element over rows.
-        col_in = e2.permute(1, 0, 2)
+        col_in = e1.permute(1, 0, 2)
         col_out = self.tfcol(col_in)
         return col_out.permute(1, 0, 2)
 
@@ -198,8 +193,24 @@ class _TabFoundryBackbone(nn.Module):
             (1, 1, n_tokens, n_tokens), dtype=torch.bool, device=seq.device
         )
         allowed_keys[:, :, :, :n_train] = True
+        diag = torch.arange(n_tokens, device=seq.device)
+        allowed_keys[:, :, diag, diag] = True
         encoded = self.tficl(seq, allowed_mask=allowed_keys, n_context=n_train)
         return encoded[0]
+
+    def _feature_row_embeddings_from_e1(
+        self,
+        e1: torch.Tensor,
+        *,
+        token_padding_mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        col_out = self._column_encode_from_e1(e1)
+        return self._row_encode(col_out, token_padding_mask=token_padding_mask)
+
+    def _lift_digit_position_embed_to_icl(self, digit_position_embed: torch.Tensor) -> torch.Tensor:
+        if int(digit_position_embed.shape[-1]) >= int(self.d_icl):
+            return digit_position_embed[..., : self.d_icl]
+        return F.pad(digit_position_embed, (0, self.d_icl - int(digit_position_embed.shape[-1])))
 
     def _prepare_inputs(
         self, batch: TaskBatch
@@ -219,12 +230,13 @@ class _TabFoundryBackbone(nn.Module):
         self,
         e1: torch.Tensor,
         token_padding_mask: torch.Tensor,
-        train_tae: torch.Tensor,
         train_icl: torch.Tensor,
         n_train: int,
     ) -> torch.Tensor:
-        col_out = self._column_encode_from_e1(e1, train_tae, n_train=n_train)
-        row_embed = self._row_encode(col_out, token_padding_mask=token_padding_mask)
+        row_embed = self._feature_row_embeddings_from_e1(
+            e1,
+            token_padding_mask=token_padding_mask,
+        )
         icl_out = self._icl_encode(row_embed, train_icl, n_train=n_train)
         return icl_out[n_train:]
 
@@ -412,7 +424,7 @@ class TabFoundryClassifier(_TabFoundryBackbone):
             target_classes = y_test[sample_idx].to(torch.int64)
             mapped_test = (
                 map_labels_to_child_groups(target_classes, node)
-                .clamp(max=9)
+                .clamp(max=self.many_class_base - 1)
                 .to(torch.int64)
             )
             n_choices = len(node.classes) if node.is_leaf else len(node.children)
@@ -481,26 +493,30 @@ class TabFoundryClassifier(_TabFoundryBackbone):
                 f"got {int(digits.shape[0])} > {self.max_mixed_radix_digits}"
             )
 
-        col_accum: torch.Tensor | None = None
+        row_embed = self._feature_row_embeddings_from_e1(
+            e1,
+            token_padding_mask=token_padding_mask,
+        )
+        icl_accum: torch.Tensor | None = None
         digit_pos_embed: torch.Tensor | None = None
         if self.use_digit_position_embed:
             digit_positions = torch.arange(
-                digits.shape[0], device=e1.device, dtype=torch.int64
+                digits.shape[0], device=row_embed.device, dtype=torch.int64
             )
             assert self.digit_position_embed is not None
-            digit_pos_embed = self.digit_position_embed(digit_positions)
+            digit_pos_embed = self._lift_digit_position_embed_to_icl(
+                self.digit_position_embed(digit_positions)
+            )
         for view in range(digits.shape[0]):
-            tae_embed = self.embed_tae(
+            icl_embed = self.embed_icl(
                 digits[view].clamp(max=self.many_class_base - 1).to(torch.int64)
             )
             if digit_pos_embed is not None:
-                tae_embed = tae_embed + digit_pos_embed[view][None, :]
-            col_out = self._column_encode_from_e1(e1, tae_embed, n_train=n_train)
-            col_accum = col_out if col_accum is None else col_accum + col_out
-        assert col_accum is not None
-        col_mean = col_accum / float(digits.shape[0])
-
-        row_embed = self._row_encode(col_mean, token_padding_mask=token_padding_mask)
+                icl_embed = icl_embed + digit_pos_embed[view][None, :]
+            conditioned = self._icl_encode(row_embed, icl_embed, n_train=n_train)
+            icl_accum = conditioned if icl_accum is None else icl_accum + conditioned
+        assert icl_accum is not None
+        row_embed = icl_accum / float(digits.shape[0])
         tree = cached_build_balanced_class_tree(
             num_classes, max_branch=self.many_class_base
         )
@@ -556,10 +572,12 @@ class TabFoundryClassifier(_TabFoundryBackbone):
                 token_padding_mask=token_padding_mask,
             )
 
-        train_tae = self.embed_tae(y_train.clamp(max=9))
         train_icl = self.embed_icl(y_train.clamp(max=9))
         test_out = self._encode_from_e1(
-            e1, token_padding_mask, train_tae, train_icl, n_train
+            e1,
+            token_padding_mask,
+            train_icl,
+            n_train,
         )
         logits = self.head(test_out)
         return ClassificationOutput(
@@ -624,9 +642,8 @@ class TabFoundryRegressor(_TabFoundryBackbone):
         y_train = batch.y_train.to(torch.float32)
         e1, token_padding_mask, n_train = self._prepare_inputs(batch)
 
-        tae = self.embed_tae(y_train[:, None])
         icl = self.embed_icl(y_train[:, None])
-        test_out = self._encode_from_e1(e1, token_padding_mask, tae, icl, n_train)
+        test_out = self._encode_from_e1(e1, token_padding_mask, icl, n_train)
         quantiles = self.head(test_out)
 
         return RegressionOutput(

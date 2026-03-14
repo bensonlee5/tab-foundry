@@ -105,7 +105,15 @@ uv run tab-foundry train experiment=reg_workstation
 uv run tab-foundry train \
   experiment=cls_benchmark_linear \
   data.manifest_path=data/manifests/default.parquet
+uv run tab-foundry train \
+  experiment=cls_benchmark_linear_simple \
+  data.manifest_path=<binary_manifest.parquet>
 ```
+
+`cls_benchmark_linear_simple` now targets the exact nanoTabPFN-style binary
+debug model. It is benchmark-focused rather than a general small-class
+classifier, so it requires binary tasks, internal train-split z-score clipping,
+and `many_class_base=2`.
 
 Default training expects Muon to be installed. To run without Muon:
 

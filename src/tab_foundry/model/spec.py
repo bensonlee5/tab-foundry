@@ -9,6 +9,7 @@ from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 
 
 SUPPORTED_MODEL_TASKS = ("classification", "regression")
+SUPPORTED_MODEL_ARCHES = ("tabfoundry", "tabfoundry_simple")
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -34,6 +35,7 @@ class ModelBuildSpec:
     """Canonical model-construction settings shared across train/eval/export/load."""
 
     task: str
+    arch: str = "tabfoundry"
     d_col: int = 128
     d_icl: int = 512
     input_normalization: str = "none"
@@ -58,6 +60,11 @@ class ModelBuildSpec:
         if task not in SUPPORTED_MODEL_TASKS:
             raise ValueError(f"Unsupported task: {task!r}")
         object.__setattr__(self, "task", task)
+
+        arch = str(self.arch).strip().lower()
+        if arch not in SUPPORTED_MODEL_ARCHES:
+            raise ValueError(f"Unsupported model arch: {arch!r}")
+        object.__setattr__(self, "arch", arch)
 
         input_normalization = str(self.input_normalization).strip().lower()
         if input_normalization not in SUPPORTED_INPUT_NORMALIZATION_MODES:
@@ -129,6 +136,7 @@ def model_build_spec_from_mappings(
 
     return ModelBuildSpec(
         task=str(task).strip().lower(),
+        arch=str(_pick("arch", "tabfoundry")),
         d_col=int(_pick("d_col", 128)),
         d_icl=int(_pick("d_icl", 512)),
         input_normalization=str(_pick("input_normalization", "none")),

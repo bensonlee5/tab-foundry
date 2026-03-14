@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
-import json
 import math
 from numbers import Real
 import os
@@ -22,6 +21,13 @@ from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.types import TaskBatch, TrainResult
 
+from .artifacts import (
+    append_history_record,
+    assert_clean_training_output,
+    history_path_from_cfg,
+    history_record,
+    save_checkpoint,
+)
 from .batching import move_batch
 from .distributed import _global_mean_from_local, _reduction_float_dtype
 from .losses import classification_loss, hierarchical_nll_loss, quantile_pinball_loss
@@ -167,101 +173,6 @@ def _wandb_init(cfg: DictConfig, *, enabled: bool) -> Any | None:
     )
 
 
-def _history_path(cfg: DictConfig) -> Path | None:
-    raw_path = getattr(cfg.logging, "history_jsonl_path", None)
-    if raw_path is None:
-        return None
-    value = str(raw_path).strip()
-    if not value:
-        return None
-    return Path(value).expanduser().resolve()
-
-
-def _assert_clean_training_output(output_dir: Path, *, history_path: Path | None) -> None:
-    checkpoint_dir = output_dir / "checkpoints"
-    history_is_dirty = False
-    if history_path is not None and history_path.exists():
-        history_is_dirty = history_path.is_dir() or history_path.stat().st_size > 0
-    checkpoint_paths = sorted(checkpoint_dir.glob("*.pt")) if checkpoint_dir.exists() else []
-    if not history_is_dirty and not checkpoint_paths:
-        return
-    found_artifacts: list[str] = []
-    if history_is_dirty and history_path is not None:
-        found_artifacts.append(f"history={history_path}")
-    if checkpoint_paths:
-        found_artifacts.append(f"checkpoints={checkpoint_dir}")
-    artifact_summary = ", ".join(found_artifacts)
-    raise RuntimeError(
-        "runtime.output_dir is not resume-safe: found existing training artifacts "
-        f"({artifact_summary}); remove prior history/checkpoints or choose a fresh "
-        "runtime.output_dir"
-    )
-
-
-def _history_value(metrics: dict[str, float], key: str) -> float | None:
-    value = metrics.get(key)
-    if value is None:
-        return None
-    value_f = float(value)
-    return value_f if math.isfinite(value_f) else None
-
-
-def _history_record(
-    *,
-    global_step: int,
-    stage_name: str,
-    train_loss: float,
-    train_metrics: dict[str, float],
-    lr: float,
-    grad_norm: float | None,
-    elapsed_seconds: float,
-    train_elapsed_seconds: float,
-    val_metrics: dict[str, float] | None,
-) -> dict[str, float | int | str | None]:
-    record: dict[str, float | int | str | None] = {
-        "step": int(global_step),
-        "stage": stage_name,
-        "train_loss": float(train_loss),
-        "train_acc": _history_value(train_metrics, "acc"),
-        "lr": float(lr),
-        "grad_norm": None if grad_norm is None or not math.isfinite(float(grad_norm)) else float(grad_norm),
-        "elapsed_seconds": max(0.0, float(elapsed_seconds)),
-        "train_elapsed_seconds": max(0.0, float(train_elapsed_seconds)),
-        "val_loss": None,
-        "val_acc": None,
-    }
-    if val_metrics is not None:
-        record["val_loss"] = _history_value(val_metrics, "val_loss")
-        record["val_acc"] = _history_value(val_metrics, "acc")
-    return record
-
-
-def _append_history_record(path: Path, payload: dict[str, float | int | str | None]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        json.dump(payload, handle, sort_keys=True)
-        handle.write("\n")
-
-
-def _save_checkpoint(
-    path: Path,
-    *,
-    accelerator: Accelerator,
-    model: torch.nn.Module,
-    global_step: int,
-    cfg: DictConfig,
-) -> None:
-    if not accelerator.is_main_process:
-        return
-    payload = {
-        "model": accelerator.get_state_dict(model),
-        "global_step": global_step,
-        "config": OmegaConf.to_container(cfg, resolve=True),
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(payload, path)
-
-
 def _resolve_grad_accum_steps(cfg: DictConfig) -> int:
     value = int(getattr(cfg, "grad_accum_steps", 1))
     if value <= 0:
@@ -381,8 +292,8 @@ def train(cfg: DictConfig) -> TrainResult:
     seed = int(cfg.runtime.seed)
     output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    history_path = _history_path(cfg)
-    _assert_clean_training_output(output_dir, history_path=history_path)
+    history_path = history_path_from_cfg(cfg)
+    assert_clean_training_output(output_dir, history_path=history_path)
 
     torch.manual_seed(seed)
     grad_accum_steps = _resolve_grad_accum_steps(cfg.runtime)
@@ -599,24 +510,24 @@ def train(cfg: DictConfig) -> TrainResult:
                     best_val = val_metrics["val_loss"]
                     best_val_step = float(global_step)
                     best_checkpoint = output_dir / "checkpoints" / "best.pt"
-                    _save_checkpoint(
-                        best_checkpoint,
-                        accelerator=accelerator,
-                        model=model,
-                        global_step=global_step,
-                        cfg=cfg,
-                    )
+                    if accelerator.is_main_process:
+                        save_checkpoint(
+                            best_checkpoint,
+                            model_state=accelerator.get_state_dict(model),
+                            global_step=global_step,
+                            cfg=cfg,
+                        )
                 _set_optimizer_training_mode(prepared_opts, training=True)
 
             if checkpoint_every is not None and global_step % checkpoint_every == 0:
                 snapshot_checkpoint = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
-                _save_checkpoint(
-                    snapshot_checkpoint,
-                    accelerator=accelerator,
-                    model=model,
-                    global_step=global_step,
-                    cfg=cfg,
-                )
+                if accelerator.is_main_process:
+                    save_checkpoint(
+                        snapshot_checkpoint,
+                        model_state=accelerator.get_state_dict(model),
+                        global_step=global_step,
+                        cfg=cfg,
+                    )
 
             if history_path is not None and accelerator.is_main_process:
                 train_metrics_for_history = {
@@ -627,9 +538,9 @@ def train(cfg: DictConfig) -> TrainResult:
                     and key != "train/lr"
                     and math.isfinite(float(value))
                 }
-                _append_history_record(
+                append_history_record(
                     history_path,
-                    _history_record(
+                    history_record(
                         global_step=global_step,
                         stage_name=stage.name,
                         train_loss=float(train_loss),
@@ -650,13 +561,13 @@ def train(cfg: DictConfig) -> TrainResult:
                 break
 
         latest_checkpoint = output_dir / "checkpoints" / f"latest_{stage.name}.pt"
-        _save_checkpoint(
-            latest_checkpoint,
-            accelerator=accelerator,
-            model=model,
-            global_step=global_step,
-            cfg=cfg,
-        )
+        if accelerator.is_main_process:
+            save_checkpoint(
+                latest_checkpoint,
+                model_state=accelerator.get_state_dict(model),
+                global_step=global_step,
+                cfg=cfg,
+            )
         if stop_requested:
             break
 
@@ -667,13 +578,13 @@ def train(cfg: DictConfig) -> TrainResult:
     wall_elapsed_seconds = time.perf_counter() - train_start
     if best_checkpoint is None and latest_checkpoint is not None:
         best_checkpoint = output_dir / "checkpoints" / "best.pt"
-        _save_checkpoint(
-            best_checkpoint,
-            accelerator=accelerator,
-            model=model,
-            global_step=global_step,
-            cfg=cfg,
-        )
+        if accelerator.is_main_process:
+            save_checkpoint(
+                best_checkpoint,
+                model_state=accelerator.get_state_dict(model),
+                global_step=global_step,
+                cfg=cfg,
+            )
 
     return TrainResult(
         output_dir=output_dir,

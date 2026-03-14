@@ -73,10 +73,10 @@ class ExportModelSpec:
         cls,
         spec: ModelBuildSpec,
         *,
-        arch: str = "tabfoundry",
+        arch: str | None = None,
     ) -> "ExportModelSpec":
         return cls(
-            arch=str(arch),
+            arch=str(spec.arch if arch is None else arch),
             d_col=int(spec.d_col),
             d_icl=int(spec.d_icl),
             input_normalization=str(spec.input_normalization),
@@ -101,6 +101,7 @@ class ExportModelSpec:
         return model_build_spec_from_mappings(
             task=task,
             primary={
+                "arch": self.arch,
                 "d_col": self.d_col,
                 "d_icl": self.d_icl,
                 "input_normalization": self.input_normalization,
