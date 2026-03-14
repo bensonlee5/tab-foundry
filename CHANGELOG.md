@@ -43,11 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nanoTabPFN-style ablation work on the current 3-task control benchmark.
 - Fixed many-class hierarchical path target clamping to respect the configured
   `many_class_base` instead of hardcoding base-10 behavior.
-
-## [0.3.3] - 2026-03-14
-
-### Changed
-
 - `TabFoundryStagedClassifier` now rejects unsupported
   `many_class_train_mode` and `input_normalization` values during
   construction, matching the eager validation behavior already enforced by the
