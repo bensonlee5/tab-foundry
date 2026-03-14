@@ -88,6 +88,25 @@ def test_stage_recipe_contracts_are_exposed_on_model(stage: str, normalization_m
     assert model.recipe.constraints.normalization_mode == normalization_mode
 
 
+def test_many_class_stage_rejects_invalid_many_class_train_mode() -> None:
+    with pytest.raises(ValueError, match="many_class_train_mode"):
+        _ = _staged(
+            "many_class",
+            many_class_base=4,
+            input_normalization="none",
+            many_class_train_mode="full_prob",
+        )
+
+
+def test_shared_normalization_stage_rejects_invalid_input_normalization() -> None:
+    with pytest.raises(ValueError, match="input_normalization"):
+        _ = _staged(
+            "small_class_head",
+            many_class_base=4,
+            input_normalization="bogus",
+        )
+
+
 def test_nano_exact_stage_matches_simple_feature_encoder() -> None:
     simple = _simple(d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
     staged = _staged("nano_exact", d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
@@ -210,3 +229,29 @@ def test_many_class_stage_emits_path_terms_in_train_mode() -> None:
     assert out.path_targets is not None
     assert out.path_sample_counts is not None
     assert len(out.path_logits) == len(out.path_targets) == len(out.path_sample_counts)
+
+
+def test_many_class_stage_accepts_full_probs_in_train_mode() -> None:
+    model = _staged(
+        "many_class",
+        many_class_base=4,
+        input_normalization="none",
+        many_class_train_mode="full_probs",
+    )
+    model.train()
+    batch = TaskBatch(
+        x_train=torch.randn(24, 12),
+        y_train=torch.randint(0, 6, (24,)),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 12, (8,)),
+        metadata={},
+        num_classes=12,
+    )
+
+    out = model(batch)
+
+    assert out.logits is None
+    assert out.class_probs is not None
+    assert out.path_logits is None
+    assert out.path_targets is None
+    assert out.path_sample_counts is None

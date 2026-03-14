@@ -9,6 +9,7 @@ from torch import nn
 
 from tab_foundry.input_normalization import (
     InputNormalizationMode,
+    SUPPORTED_INPUT_NORMALIZATION_MODES,
     normalize_train_test_tensors,
 )
 from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
@@ -19,7 +20,11 @@ from tab_foundry.model.components.many_class import (
     encode_mixed_radix,
     map_labels_to_child_groups,
 )
-from tab_foundry.model.spec import ModelStage, resolve_model_stage
+from tab_foundry.model.spec import (
+    ModelStage,
+    SUPPORTED_MANY_CLASS_TRAIN_MODES,
+    resolve_model_stage,
+)
 from tab_foundry.types import TaskBatch
 
 from .recipes import recipe_for_stage
@@ -94,6 +99,11 @@ class TabFoundryStagedClassifier(nn.Module):
 
         self.d_icl = int(d_icl)
         self.input_normalization = str(input_normalization).strip().lower()
+        if self.input_normalization not in SUPPORTED_INPUT_NORMALIZATION_MODES:
+            raise ValueError(
+                "input_normalization must be "
+                f"{SUPPORTED_INPUT_NORMALIZATION_MODES}, got {self.input_normalization!r}"
+            )
         self.tficl_n_heads = int(tficl_n_heads)
         self.tficl_n_layers = int(tficl_n_layers)
         self.tficl_ff_expansion = int(tficl_ff_expansion)
@@ -101,6 +111,11 @@ class TabFoundryStagedClassifier(nn.Module):
         self.many_class_base = int(many_class_base)
         self.head_hidden_dim = int(head_hidden_dim)
         self.many_class_train_mode = str(many_class_train_mode).strip().lower()
+        if self.many_class_train_mode not in SUPPORTED_MANY_CLASS_TRAIN_MODES:
+            raise ValueError(
+                "many_class_train_mode must be "
+                f"{SUPPORTED_MANY_CLASS_TRAIN_MODES}, got {self.many_class_train_mode!r}"
+            )
         self.use_digit_position_embed = bool(use_digit_position_embed)
         for name, value in (
             ("d_icl", self.d_icl),
@@ -122,7 +137,7 @@ class TabFoundryStagedClassifier(nn.Module):
         if self.recipe.modules.head != "many_class" and self.many_class_train_mode != "path_nll":
             raise ValueError(
                 f"stage={self.stage!r} only supports many_class_train_mode='path_nll', "
-                f"got {many_class_train_mode!r}"
+                f"got {self.many_class_train_mode!r}"
             )
 
         self.tokenizer = self._build_tokenizer()

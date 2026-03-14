@@ -44,6 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed many-class hierarchical path target clamping to respect the configured
   `many_class_base` instead of hardcoding base-10 behavior.
 
+## [0.3.3] - 2026-03-14
+
+### Changed
+
+- `TabFoundryStagedClassifier` now rejects unsupported
+  `many_class_train_mode` and `input_normalization` values during
+  construction, matching the eager validation behavior already enforced by the
+  canonical model spec and the existing tabfoundry model families.
+
 ## [0.3.2] - 2026-03-13
 
 ### Changed
