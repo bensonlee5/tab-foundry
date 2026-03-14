@@ -163,7 +163,8 @@ def _wandb_init(cfg: DictConfig, *, enabled: bool) -> Any | None:
     except Exception:
         return None
 
-    mode: Literal["online", "offline"] = "online" if os.getenv("WANDB_API_KEY") else "offline"
+    api_key = _resolve_wandb_api_key()
+    mode: Literal["online", "offline"] = "online" if api_key else "offline"
     cfg_payload = cast(dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
     return wandb.init(
         project=str(cfg.logging.project),
@@ -171,6 +172,25 @@ def _wandb_init(cfg: DictConfig, *, enabled: bool) -> Any | None:
         mode=mode,
         config=cfg_payload,
     )
+
+
+def _resolve_wandb_api_key() -> str | None:
+    value = os.getenv("WANDB_API_KEY")
+    if value is not None:
+        normalized = value.strip()
+        if normalized:
+            return normalized
+
+    file_override = os.getenv("WANDB_API_KEY_FILE")
+    candidate = Path(file_override).expanduser() if file_override else Path("~/.wandb/wandb_api_key.txt").expanduser()
+    try:
+        normalized = candidate.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if not normalized:
+        return None
+    os.environ["WANDB_API_KEY"] = normalized
+    return normalized
 
 
 def _resolve_grad_accum_steps(cfg: DictConfig) -> int:
