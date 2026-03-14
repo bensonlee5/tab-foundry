@@ -108,12 +108,36 @@ uv run tab-foundry train \
 uv run tab-foundry train \
   experiment=cls_benchmark_linear_simple \
   data.manifest_path=<binary_manifest.parquet>
+uv run tab-foundry train \
+  experiment=cls_benchmark_staged \
+  data.manifest_path=<binary_manifest.parquet>
 ```
 
 `cls_benchmark_linear_simple` now targets the exact nanoTabPFN-style binary
 debug model. It is benchmark-focused rather than a general small-class
 classifier, so it requires binary tasks, internal train-split z-score clipping,
 and `many_class_base=2`.
+
+`cls_benchmark_staged` is the staged research counterpart. It defaults to
+`model.arch=tabfoundry_staged` and `model.stage=nano_exact`, so the first run
+starts from the frozen repro contract and then promotes forward by overriding
+`model.stage`.
+
+Example promotion step:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_benchmark_staged \
+  data.manifest_path=<binary_manifest.parquet> \
+  model.stage=label_token
+```
+
+Prior-dump training for the staged family uses the same harness with the staged
+experiment default:
+
+```bash
+uv run python scripts/train_tabfoundry_staged_prior.py
+```
 
 Default training expects Muon to be installed. To run without Muon:
 

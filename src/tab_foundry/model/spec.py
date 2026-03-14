@@ -3,16 +3,37 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from enum import StrEnum
 from typing import Any, Mapping
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 
 
 SUPPORTED_MODEL_TASKS = ("classification", "regression")
-SUPPORTED_MODEL_ARCHES = ("tabfoundry", "tabfoundry_simple")
+STAGED_MODEL_ARCH = "tabfoundry_staged"
+SUPPORTED_MODEL_ARCHES = ("tabfoundry", "tabfoundry_simple", STAGED_MODEL_ARCH)
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
+
+
+class ModelStage(StrEnum):
+    """Public stage ladder for the staged research family."""
+
+    NANO_EXACT = "nano_exact"
+    LABEL_TOKEN = "label_token"
+    SHARED_NORM = "shared_norm"
+    PRENORM_BLOCK = "prenorm_block"
+    SMALL_CLASS_HEAD = "small_class_head"
+    TEST_SELF = "test_self"
+    GROUPED_TOKENS = "grouped_tokens"
+    ROW_CLS_POOL = "row_cls_pool"
+    COLUMN_SET = "column_set"
+    QASS_CONTEXT = "qass_context"
+    MANY_CLASS = "many_class"
+
+
+SUPPORTED_MODEL_STAGES = tuple(stage.value for stage in ModelStage)
 
 
 def _coerce_bool(value: Any, *, context: str) -> bool:
@@ -30,12 +51,40 @@ def _coerce_bool(value: Any, *, context: str) -> bool:
     raise ValueError(f"{context} must be boolean-compatible, got {value!r}")
 
 
+def _normalize_model_stage(value: Any, *, context: str) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip().lower()
+    if not normalized:
+        return None
+    if normalized not in SUPPORTED_MODEL_STAGES:
+        raise ValueError(
+            f"{context} must be one of {SUPPORTED_MODEL_STAGES} or null, got {value!r}"
+        )
+    return normalized
+
+
+def resolve_model_stage(*, arch: str, stage: Any) -> str | None:
+    """Normalize arch/stage pairs and enforce public compatibility rules."""
+
+    normalized_stage = _normalize_model_stage(stage, context="model.stage")
+    if arch == STAGED_MODEL_ARCH:
+        return normalized_stage or ModelStage.NANO_EXACT.value
+    if normalized_stage is not None:
+        raise ValueError(
+            "model.stage is only supported when model.arch='tabfoundry_staged'; "
+            f"got arch={arch!r}, stage={normalized_stage!r}"
+        )
+    return None
+
+
 @dataclass(slots=True, frozen=True)
 class ModelBuildSpec:
     """Canonical model-construction settings shared across train/eval/export/load."""
 
     task: str
     arch: str = "tabfoundry"
+    stage: str | None = None
     d_col: int = 128
     d_icl: int = 512
     input_normalization: str = "none"
@@ -65,6 +114,7 @@ class ModelBuildSpec:
         if arch not in SUPPORTED_MODEL_ARCHES:
             raise ValueError(f"Unsupported model arch: {arch!r}")
         object.__setattr__(self, "arch", arch)
+        object.__setattr__(self, "stage", resolve_model_stage(arch=arch, stage=self.stage))
 
         input_normalization = str(self.input_normalization).strip().lower()
         if input_normalization not in SUPPORTED_INPUT_NORMALIZATION_MODES:
@@ -137,6 +187,7 @@ def model_build_spec_from_mappings(
     return ModelBuildSpec(
         task=str(task).strip().lower(),
         arch=str(_pick("arch", "tabfoundry")),
+        stage=_pick("stage", None),
         d_col=int(_pick("d_col", 128)),
         d_icl=int(_pick("d_icl", 512)),
         input_normalization=str(_pick("input_normalization", "none")),

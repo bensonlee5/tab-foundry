@@ -527,6 +527,10 @@ def evaluate_tab_foundry_run(
         checkpoint_path = Path(str(snapshot["path"]))
         classifier = TabFoundryClassifier(checkpoint_path, device=resolved_device)
         metrics = evaluate_classifier(classifier, datasets)
+        model_arch = str(getattr(classifier.model_spec, "arch", "tabfoundry")).strip().lower()
+        model_stage_raw = getattr(classifier.model_spec, "stage", None)
+        model_stage = None if model_stage_raw is None else str(model_stage_raw).strip().lower()
+        benchmark_profile_raw = getattr(classifier.model, "benchmark_profile", None)
         curve_records.append(
             {
                 "checkpoint_path": str(checkpoint_path),
@@ -534,6 +538,11 @@ def evaluate_tab_foundry_run(
                 "training_time": float(snapshot["elapsed_seconds"]),
                 "roc_auc": float(metrics["ROC AUC"]),
                 "dataset_roc_auc": dataset_roc_auc_metrics(metrics),
+                "model_arch": model_arch,
+                "model_stage": model_stage,
+                "benchmark_profile": None
+                if benchmark_profile_raw is None
+                else str(benchmark_profile_raw),
             }
         )
     return curve_records
@@ -693,6 +702,22 @@ def build_comparison_summary(
             if values
         }
 
+    def _identity(records: list[dict[str, Any]]) -> dict[str, str | None]:
+        if not records:
+            return {
+                "model_arch": None,
+                "model_stage": None,
+                "benchmark_profile": None,
+            }
+        first = records[0]
+        return {
+            "model_arch": None if first.get("model_arch") is None else str(first["model_arch"]),
+            "model_stage": None if first.get("model_stage") is None else str(first["model_stage"]),
+            "benchmark_profile": None
+            if first.get("benchmark_profile") is None
+            else str(first["benchmark_profile"]),
+        }
+
     summary = {
         "dataset_count": int(len(benchmark_tasks)),
         "benchmark_bundle": benchmark_bundle_summary(
@@ -702,6 +727,7 @@ def build_comparison_summary(
         "tab_foundry": {
             **_summary_metrics(tab_foundry_records),
             "run_dir": str(tab_foundry_run_dir.expanduser().resolve()),
+            **_identity(tab_foundry_records),
         },
         "nanotabpfn": {
             **_summary_metrics(nanotabpfn_records),

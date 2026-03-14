@@ -4,6 +4,7 @@ from functools import lru_cache
 import importlib.util
 from pathlib import Path
 import json
+from types import SimpleNamespace
 
 import numpy as np
 from omegaconf import OmegaConf
@@ -15,6 +16,7 @@ import tab_foundry.bench.checkpoint as checkpoint_module
 import tab_foundry.bench.prior_train as prior_train_module
 from tab_foundry.bench.nanotabpfn import evaluate_tab_foundry_run
 from tab_foundry.bench.prior_dump import PriorDumpTaskBatchReader
+from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import OptimizerSelection
@@ -444,6 +446,69 @@ def test_train_tabfoundry_simple_prior_matches_nanotabpfn_loss_for_one_batch(
     )
 
 
+def test_train_tabfoundry_simple_prior_rejects_staged_many_class_before_io(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "prior_train_many_class"
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "many_class",
+                "d_icl": 8,
+                "input_normalization": "none",
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+                "tfcol_n_heads": 8,
+                "tfcol_n_layers": 3,
+                "tfcol_n_inducing": 128,
+                "tfrow_n_heads": 8,
+                "tfrow_n_layers": 3,
+                "tfrow_cls_tokens": 4,
+                "tficl_n_heads": 2,
+                "tficl_n_layers": 1,
+                "tficl_ff_expansion": 2,
+                "many_class_base": 4,
+                "head_hidden_dim": 16,
+                "use_digit_position_embed": True,
+            },
+            "runtime": {
+                "seed": 0,
+                "output_dir": str(output_dir),
+                "mixed_precision": "no",
+                "max_steps": 1,
+                "eval_every": 1,
+                "checkpoint_every": 1,
+                "grad_clip": 1.0,
+                "device": "cpu",
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "weight_decay": 0.0,
+                "require_requested": True,
+                "muon_per_parameter_lr": False,
+                "muon_lr_scale_base": 0.2,
+                "muon_partition_non2d": True,
+                "min_lr": 4.0e-3,
+            },
+            "logging": {
+                "history_jsonl_path": str(output_dir / "train_history.jsonl"),
+            },
+        }
+    )
+
+    with pytest.raises(ValueError, match="forward_batched\\(\\) tensor logits"):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=tmp_path / "missing_prior_dump.h5",
+            batch_size=1,
+        )
+
+    assert not output_dir.exists()
+
+
 def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -452,6 +517,8 @@ def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(
         def __init__(self, checkpoint_path: Path, *, device: str = "cpu") -> None:
             self.checkpoint_path = checkpoint_path
             self.device = device
+            self.model_spec = SimpleNamespace(arch="tabfoundry", stage=None)
+            self.model = SimpleNamespace(benchmark_profile=None)
 
         def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_FakeClassifier":
             _ = (x_train, y_train)
@@ -516,3 +583,61 @@ def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(
 
     assert [int(record["step"]) for record in records] == [25, 50]
     assert all("roc_auc" in record for record in records)
+
+
+def test_tabfoundry_staged_nano_exact_matches_simple_prior_batch_loss() -> None:
+    torch.manual_seed(0)
+    simple = TabFoundrySimpleClassifier(
+        d_icl=8,
+        input_normalization="train_zscore_clip",
+        many_class_base=2,
+        tficl_n_heads=2,
+        tficl_n_layers=1,
+        head_hidden_dim=16,
+    )
+    staged = TabFoundryStagedClassifier(
+        stage="nano_exact",
+        d_icl=8,
+        input_normalization="train_zscore_clip",
+        many_class_base=2,
+        tficl_n_heads=2,
+        tficl_n_layers=1,
+        head_hidden_dim=16,
+    )
+    staged.feature_encoder.load_state_dict(simple.feature_encoder.state_dict(), strict=True)
+    staged.target_conditioner.encoder.load_state_dict(simple.target_encoder.state_dict(), strict=True)
+    staged.direct_head.decoder.load_state_dict(simple.decoder.state_dict(), strict=True)
+    for staged_block, simple_block in zip(staged.transformer_blocks, simple.transformer_blocks, strict=True):
+        staged_block.block.load_state_dict(simple_block.state_dict(), strict=True)
+
+    x_batch = torch.tensor(
+        [
+            [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+            [[2.0, 1.0], [4.0, 3.0], [6.0, 5.0], [8.0, 7.0]],
+        ],
+        dtype=torch.float32,
+    )
+    y_train = torch.tensor([[0.0, 1.0], [1.0, 0.0]], dtype=torch.float32)
+    targets = torch.tensor([[0, 1], [1, 1]], dtype=torch.int64).reshape(-1)
+
+    simple_logits = simple.forward_batched(
+        x_all=x_batch.clone(),
+        y_train=y_train.clone(),
+        train_test_split_index=2,
+    )
+    staged_logits = staged.forward_batched(
+        x_all=x_batch.clone(),
+        y_train=y_train.clone(),
+        train_test_split_index=2,
+    )
+
+    simple_loss = classification_loss(
+        simple_logits.reshape(-1, int(simple_logits.shape[-1])),
+        targets,
+    )
+    staged_loss = classification_loss(
+        staged_logits.reshape(-1, int(staged_logits.shape[-1])),
+        targets,
+    )
+
+    assert staged_loss.item() == pytest.approx(simple_loss.item(), rel=1.0e-6, abs=1.0e-6)

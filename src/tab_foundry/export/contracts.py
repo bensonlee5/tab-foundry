@@ -12,7 +12,9 @@ from typing import Any
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.spec import (
     ModelBuildSpec,
+    STAGED_MODEL_ARCH,
     SUPPORTED_MANY_CLASS_TRAIN_MODES,
+    SUPPORTED_MODEL_ARCHES,
     model_build_spec_from_mappings,
 )
 from tab_foundry.preprocessing import (
@@ -33,7 +35,6 @@ EXPECTED_GROUP_SHIFTS = [0, 1, 3]
 EXPECTED_MANY_CLASS_THRESHOLD = 10
 EXPECTED_V2_FEATURE_ORDER_POLICY = "lexicographic_f_columns"
 EXPECTED_MISSING_VALUE_ALL_NAN_FILL = 0.0
-SUPPORTED_MODEL_ARCHES = ("tabfoundry",)
 
 
 @dataclass(slots=True)
@@ -49,6 +50,7 @@ class ProducerInfo:
 @dataclass(slots=True)
 class ExportModelSpec:
     arch: str
+    stage: str | None
     d_col: int
     d_icl: int
     input_normalization: str
@@ -77,6 +79,7 @@ class ExportModelSpec:
     ) -> "ExportModelSpec":
         return cls(
             arch=str(spec.arch if arch is None else arch),
+            stage=None if spec.stage is None else str(spec.stage),
             d_col=int(spec.d_col),
             d_icl=int(spec.d_icl),
             input_normalization=str(spec.input_normalization),
@@ -102,6 +105,7 @@ class ExportModelSpec:
             task=task,
             primary={
                 "arch": self.arch,
+                "stage": self.stage,
                 "d_col": self.d_col,
                 "d_icl": self.d_icl,
                 "input_normalization": self.input_normalization,
@@ -124,7 +128,10 @@ class ExportModelSpec:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return dict(asdict(self))
+        payload = dict(asdict(self))
+        if self.stage is None:
+            payload.pop("stage", None)
+        return payload
 
 
 @dataclass(slots=True)
@@ -150,6 +157,7 @@ class ExportWeights:
 class InferenceConfig:
     task: str
     model_arch: str
+    model_stage: str | None
     group_shifts: list[int]
     feature_group_size: int
     many_class_threshold: int
@@ -158,6 +166,8 @@ class InferenceConfig:
 
     def to_dict(self) -> dict[str, Any]:
         payload = dict(asdict(self))
+        if self.model_stage is None:
+            payload.pop("model_stage", None)
         if self.quantile_levels is None:
             payload.pop("quantile_levels", None)
         return payload
@@ -353,6 +363,7 @@ def _validate_many_class_train_mode(value: Any, *, context: str) -> str:
 
 def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
     primary: dict[str, Any] = {
+        "arch": _as_str(model_raw["arch"], context="manifest.model.arch"),
         "d_col": _as_int(model_raw["d_col"], context="manifest.model.d_col"),
         "d_icl": _as_int(model_raw["d_icl"], context="manifest.model.d_icl"),
         "feature_group_size": _as_int(
@@ -368,6 +379,8 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
             context="manifest.model.max_mixed_radix_digits",
         ),
     }
+    if "stage" in model_raw:
+        primary["stage"] = model_raw["stage"]
     optional_fields: tuple[tuple[str, str], ...] = (
         ("input_normalization", "manifest.model.input_normalization"),
         ("tfcol_n_heads", "manifest.model.tfcol_n_heads"),
@@ -432,6 +445,7 @@ def _validate_model_spec(
         "max_mixed_radix_digits",
     }
     optional_model_keys = {
+        "stage",
         "tfcol_n_heads",
         "tfcol_n_layers",
         "tfcol_n_inducing",
@@ -517,6 +531,10 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
         inference = validate_inference_config_dict(inference_raw)
         if inference.task != task:
             raise ValueError("manifest.task and manifest.inference.task mismatch")
+        if inference.model_arch != model.arch:
+            raise ValueError("manifest.model.arch and manifest.inference.model_arch mismatch")
+        if inference.model_stage != model.stage:
+            raise ValueError("manifest.model.stage and manifest.inference.model_stage mismatch")
         if inference.feature_group_size != model.feature_group_size:
             raise ValueError("feature_group_size mismatch between manifest.model and manifest.inference")
         preprocessor_raw = payload["preprocessor"]
@@ -606,15 +624,28 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
         "many_class_threshold",
         "many_class_inference_mode",
     }
+    optional_keys = {"model_stage"}
     if task == "regression":
         keys.add("quantile_levels")
     elif "quantile_levels" in payload:
         keys.add("quantile_levels")
-    _require_keys(payload, keys=keys, context="inference_config")
+    _require_keys(payload, keys=keys, context="inference_config", optional_keys=optional_keys)
 
     model_arch = _as_str(payload["model_arch"], context="inference_config.model_arch")
     if model_arch not in SUPPORTED_MODEL_ARCHES:
         raise ValueError(f"Unsupported inference model_arch: {model_arch!r}")
+    model_stage_raw = payload.get("model_stage")
+    if model_stage_raw is not None and model_arch != STAGED_MODEL_ARCH:
+        raise ValueError(
+            "inference_config.model_stage is only valid when model_arch='tabfoundry_staged'"
+        )
+    model_stage = None
+    if model_stage_raw is not None:
+        model_stage = str(model_stage_raw).strip().lower()
+        _ = model_build_spec_from_mappings(
+            task=task,
+            primary={"arch": model_arch, "stage": model_stage},
+        )
 
     group_shifts_raw = payload["group_shifts"]
     if not isinstance(group_shifts_raw, list) or any(not isinstance(v, int) for v in group_shifts_raw):
@@ -668,6 +699,7 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
     return InferenceConfig(
         task=task,
         model_arch=model_arch,
+        model_stage=model_stage,
         group_shifts=group_shifts,
         feature_group_size=feature_group_size,
         many_class_threshold=many_class_threshold,

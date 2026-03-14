@@ -157,6 +157,75 @@ def test_tab_foundry_classifier_skips_external_normalization_for_tabfoundry_simp
     assert np.allclose(model.last_batch.x_test.cpu().numpy(), x_test, atol=1.0e-6)
 
 
+def test_tab_foundry_classifier_skips_external_normalization_for_staged_nano_exact(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _CapturingClassifier()
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_staged",
+        stage="nano_exact",
+        input_normalization="train_zscore_clip",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    checkpoint = tmp_path / "staged_nano_exact.pt"
+    torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
+
+    x_train = np.asarray([[1.0, 3.0], [2.0, 4.0], [4.0, 8.0]], dtype=np.float32)
+    x_test = np.asarray([[3.0, 5.0], [5.0, 9.0]], dtype=np.float32)
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    classifier.fit(x_train, np.asarray([0, 1, 0], dtype=np.int64))
+    _ = classifier.predict_proba(x_test)
+
+    assert model.last_batch is not None
+    assert np.allclose(model.last_batch.x_train.cpu().numpy(), x_train, atol=1.0e-6)
+    assert np.allclose(model.last_batch.x_test.cpu().numpy(), x_test, atol=1.0e-6)
+
+
+def test_tab_foundry_classifier_uses_external_normalization_for_staged_shared_norm(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _CapturingClassifier()
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_staged",
+        stage="shared_norm",
+        input_normalization="train_zscore_clip",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    checkpoint = tmp_path / "staged_shared_norm.pt"
+    torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
+
+    x_train = np.asarray([[1.0, 3.0], [2.0, 4.0], [4.0, 8.0]], dtype=np.float32)
+    x_test = np.asarray([[3.0, 5.0], [5.0, 9.0]], dtype=np.float32)
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    classifier.fit(x_train, np.asarray([0, 1, 0], dtype=np.int64))
+    _ = classifier.predict_proba(x_test)
+
+    expected_train, expected_test = normalize_train_test_arrays(
+        x_train,
+        x_test,
+        mode="train_zscore_clip",
+    )
+    assert model.last_batch is not None
+    assert np.allclose(model.last_batch.x_train.cpu().numpy(), expected_train, atol=1.0e-6)
+    assert np.allclose(model.last_batch.x_test.cpu().numpy(), expected_test, atol=1.0e-6)
+
+
 def test_load_checkpoint_classifier_model_rejects_legacy_grouped_weights_without_override(
     tmp_path: Path,
 ) -> None:
@@ -210,6 +279,10 @@ def test_frozen_control_baseline_curve_matches_current_checkpoint_wrapper() -> N
     step_400 = run_root / "checkpoints" / "step_000400.pt"
     if not all(path.exists() for path in (dataset_cache_path, curve_path, step_100, step_400)):
         pytest.skip("frozen control baseline artifacts are not available locally")
+    payload = torch.load(step_100, map_location="cpu", weights_only=False)
+    model_cfg = payload.get("config", {}).get("model", {})
+    if not isinstance(model_cfg, dict) or model_cfg.get("arch") is None:
+        pytest.skip("frozen control baseline artifacts predate persisted model.arch metadata")
 
     curve_by_step: dict[int, float] = {}
     for line in curve_path.read_text(encoding="utf-8").splitlines():

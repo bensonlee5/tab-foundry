@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import typing
@@ -135,6 +136,22 @@ def _load_fixture(name: str) -> dict[str, object]:
     return payload
 
 
+def _rewrite_json(path: Path, payload: dict[str, object]) -> None:
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+
+def _update_v2_checksum(out_dir: Path, *, key: str, file_name: str) -> None:
+    manifest_path = out_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert isinstance(manifest, dict)
+    checksums = manifest["checksums"]
+    assert isinstance(checksums, dict)
+    checksums[key] = hashlib.sha256((out_dir / file_name).read_bytes()).hexdigest()
+    _rewrite_json(manifest_path, manifest)
+
+
 def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(
@@ -266,7 +283,7 @@ def test_export_bundle_supports_explicit_nondefault_feature_group_size(
     assert manifest["inference"]["feature_group_size"] == 32
 
 
-def test_export_bundle_rejects_tabfoundry_simple_checkpoint(tmp_path: Path) -> None:
+def test_export_bundle_supports_tabfoundry_simple_checkpoint(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt_simple.pt"
     _ = _write_checkpoint(
         checkpoint,
@@ -282,8 +299,42 @@ def test_export_bundle_rejects_tabfoundry_simple_checkpoint(tmp_path: Path) -> N
         },
     )
 
-    with pytest.raises(ValueError, match="export only supports model.arch='tabfoundry'"):
-        _ = _export_v3_checkpoint(checkpoint, tmp_path / "export_simple")
+    out_dir = tmp_path / "export_simple"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["model"]["arch"] == "tabfoundry_simple"
+    assert "stage" not in manifest["model"]
+    assert manifest["inference"]["model_arch"] == "tabfoundry_simple"
+    assert "model_stage" not in manifest["inference"]
+
+
+def test_export_bundle_round_trips_staged_arch_and_stage(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_staged.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "nano_exact",
+            "d_icl": 96,
+            "many_class_base": 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+    )
+
+    out_dir = tmp_path / "export_staged"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+    loaded = load_export_bundle(out_dir)
+
+    assert loaded.validated.manifest.model.arch == "tabfoundry_staged"
+    assert loaded.validated.manifest.model.stage == "nano_exact"
+    assert loaded.validated.manifest.inference is not None
+    assert loaded.validated.manifest.inference.model_arch == "tabfoundry_staged"
+    assert loaded.validated.manifest.inference.model_stage == "nano_exact"
 
 
 def test_validate_export_detects_weights_checksum_tamper(tmp_path: Path) -> None:
@@ -349,6 +400,68 @@ def test_validate_export_rejects_old_inference_model_arch(tmp_path: Path) -> Non
         handle.write("\n")
 
     with pytest.raises(ValueError, match="Unsupported inference model_arch"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_v2_rejects_inference_model_arch_mismatch(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_v2_simple.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_simple",
+            "d_icl": 96,
+            "many_class_base": 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+    )
+    out_dir = tmp_path / "export_v2_simple"
+    _ = export_checkpoint(checkpoint, out_dir, artifact_version=SCHEMA_VERSION_V2)
+
+    inference_path = out_dir / "inference_config.json"
+    inference = json.loads(inference_path.read_text(encoding="utf-8"))
+    assert isinstance(inference, dict)
+    inference["model_arch"] = "tabfoundry_staged"
+    _rewrite_json(inference_path, inference)
+    _update_v2_checksum(out_dir, key="inference_config", file_name="inference_config.json")
+
+    with pytest.raises(ValueError, match="manifest.model.arch and inference_config.model_arch mismatch"):
+        _ = validate_export_bundle(out_dir)
+
+
+def test_validate_export_v2_rejects_inference_model_stage_mismatch(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_v2_staged.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "nano_exact",
+            "d_icl": 96,
+            "many_class_base": 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+    )
+    out_dir = tmp_path / "export_v2_staged"
+    _ = export_checkpoint(checkpoint, out_dir, artifact_version=SCHEMA_VERSION_V2)
+
+    inference_path = out_dir / "inference_config.json"
+    inference = json.loads(inference_path.read_text(encoding="utf-8"))
+    assert isinstance(inference, dict)
+    inference["model_stage"] = "many_class"
+    _rewrite_json(inference_path, inference)
+    _update_v2_checksum(out_dir, key="inference_config", file_name="inference_config.json")
+
+    with pytest.raises(
+        ValueError,
+        match="manifest.model.stage and inference_config.model_stage mismatch",
+    ):
         _ = validate_export_bundle(out_dir)
 
 

@@ -44,6 +44,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed many-class hierarchical path target clamping to respect the configured
   `many_class_base` instead of hardcoding base-10 behavior.
 
+## [0.3.2] - 2026-03-13
+
+### Changed
+
+- Prior-dump training now rejects staged `model.stage="many_class"` configs up
+  front instead of failing on the first batch when the staged model does not
+  expose direct `forward_batched()` tensor logits.
+- `tab-foundry-export-v2` validation now rejects bundles whose
+  `manifest.json` and `inference_config.json` disagree on `model_arch` or
+  staged `model_stage`, preventing contradictory model identity metadata from
+  loading successfully.
+
 ## [0.3.1] - 2026-03-13
 
 ### Changed

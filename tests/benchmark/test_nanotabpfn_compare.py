@@ -701,3 +701,48 @@ def test_run_nanotabpfn_benchmark_rejects_unknown_control_baseline(tmp_path: Pat
                 control_baseline_registry=registry_path,
             )
         )
+
+
+def test_build_comparison_summary_preserves_model_identity_metadata(tmp_path: Path) -> None:
+    summary = benchmark_module.build_comparison_summary(
+        tab_foundry_records=[
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "model_arch": "tabfoundry_staged",
+                "model_stage": "nano_exact",
+                "benchmark_profile": "nano_exact",
+            }
+        ],
+        nanotabpfn_records=[
+            {"seed": 0, "step": 25, "training_time": 2.0, "roc_auc": 0.78}
+        ],
+        benchmark_tasks=[
+            {"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}
+        ],
+        benchmark_bundle={
+            "name": "toy_bundle",
+            "version": 1,
+            "selection": dict(DEFAULT_BENCHMARK_SELECTION),
+            "task_ids": [1],
+            "tasks": [
+                {
+                    "task_id": 1,
+                    "dataset_name": "toy",
+                    "n_rows": 6,
+                    "n_features": 2,
+                    "n_classes": 2,
+                }
+            ],
+        },
+        benchmark_bundle_path=tmp_path / "bundle.json",
+        tab_foundry_run_dir=tmp_path / "run",
+        nanotabpfn_root=tmp_path / "nano",
+        nanotabpfn_python=tmp_path / "nano" / ".venv" / "bin" / "python",
+    )
+
+    assert summary["tab_foundry"]["model_arch"] == "tabfoundry_staged"
+    assert summary["tab_foundry"]["model_stage"] == "nano_exact"
+    assert summary["tab_foundry"]["benchmark_profile"] == "nano_exact"
