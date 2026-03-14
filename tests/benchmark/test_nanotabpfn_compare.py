@@ -399,7 +399,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     monkeypatch.setattr(
         compare_module,
         "load_openml_benchmark_datasets",
-        lambda benchmark_bundle_path=None: (
+        lambda *, new_instances=200, benchmark_bundle_path=None: (
             {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -423,6 +423,63 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
                 "dataset_roc_auc": {"toy": 0.81},
             }
         ],
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "derive_benchmark_run_record",
+        lambda **_kwargs: {
+            "manifest_path": "data/manifests/binary.parquet",
+            "seed_set": [1],
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "nano_exact",
+                "benchmark_profile": "nano_exact",
+                "d_icl": 96,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+            },
+            "benchmark_bundle": {
+                "name": "test_bundle",
+                "version": 1,
+                "source_path": str(source_bundle_path.resolve()),
+                "task_count": 1,
+                "task_ids": [1],
+            },
+            "artifacts": {
+                "run_dir": str(smoke_run_dir.resolve()),
+                "benchmark_dir": str(out_root.resolve()),
+                "prior_dir": None,
+                "history_path": str((smoke_run_dir / "train_history.jsonl").resolve()),
+                "best_checkpoint_path": str((smoke_run_dir / "checkpoints" / "best.pt").resolve()),
+                "comparison_summary_path": str((out_root / "comparison_summary.json").resolve()),
+                "comparison_curve_path": str((out_root / "comparison_curve.png").resolve()),
+                "benchmark_run_record_path": str((out_root / "benchmark_run_record.json").resolve()),
+            },
+            "tab_foundry_metrics": {
+                "best_step": 25.0,
+                "best_training_time": 1.2,
+                "best_roc_auc": 0.81,
+                "final_step": 25.0,
+                "final_training_time": 1.2,
+                "final_roc_auc": 0.81,
+            },
+            "training_diagnostics": {
+                "best_val_loss": 0.2,
+                "final_val_loss": 0.21,
+                "best_val_step": 25.0,
+                "post_warmup_train_loss_var": 0.01,
+                "mean_grad_norm": 0.4,
+                "max_grad_norm": 0.5,
+                "final_grad_norm": 0.45,
+                "train_elapsed_seconds": 1.2,
+                "wall_elapsed_seconds": 1.3,
+            },
+            "model_size": {"total_params": 1234, "trainable_params": 1234},
+            "generated_at_utc": "2026-03-13T00:00:00Z",
+        },
     )
 
     captured: dict[str, Any] = {}
@@ -475,8 +532,196 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert summary["benchmark_bundle"]["task_count"] == 1
     assert summary["benchmark_bundle"]["task_ids"] == [1]
     assert summary["benchmark_bundle"]["source_path"] == str(source_bundle_path.resolve())
+    assert summary["tab_foundry"]["manifest_path"] == "data/manifests/binary.parquet"
+    assert summary["tab_foundry"]["model_size"]["total_params"] == 1234
+    assert summary["tab_foundry"]["training_diagnostics"]["mean_grad_norm"] == pytest.approx(0.4)
     assert (out_root / "comparison_summary.json").exists()
     assert (out_root / "comparison_curve.png").exists()
+    assert (out_root / "benchmark_run_record.json").exists()
+    written_bundle = json.loads((out_root / "benchmark_tasks.json").read_text(encoding="utf-8"))
+    assert written_bundle == benchmark_bundle
+
+
+def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    nanotab_root = tmp_path / "nano"
+    (nanotab_root / ".venv" / "bin").mkdir(parents=True)
+    nanotab_python = nanotab_root / ".venv" / "bin" / "python"
+    nanotab_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    prior_dump = nanotab_root / "300k_150x5_2.h5"
+    prior_dump.write_bytes(b"prior")
+    out_root = tmp_path / "benchmark_out"
+    source_bundle_path = tmp_path / "custom_bundle.json"
+    default_bundle_path = tmp_path / "default_bundle.json"
+    benchmark_bundle = {
+        "name": "custom_bundle",
+        "version": 1,
+        "selection": {
+            "new_instances": 6,
+            "task_type": "supervised_classification",
+            "max_features": 10,
+            "max_classes": 3,
+            "max_missing_pct": 0.0,
+            "min_minority_class_pct": 2.5,
+        },
+        "task_ids": [7],
+        "tasks": [
+            {
+                "task_id": 7,
+                "dataset_name": "toy_multi",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 3,
+            }
+        ],
+    }
+    source_bundle_path.write_text(
+        json.dumps(benchmark_bundle, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    default_bundle_path.write_text(
+        json.dumps({"name": "unused", "version": 1, "selection": dict(DEFAULT_BENCHMARK_SELECTION), "task_ids": [1], "tasks": []}, indent=2, sort_keys=True)
+        + "\n",
+        encoding="utf-8",
+    )
+
+    captured: dict[str, Any] = {}
+
+    def _fake_load_bundle(path: Path | None = None) -> dict[str, Any]:
+        captured["bundle_path"] = None if path is None else str(Path(path).resolve())
+        return benchmark_bundle
+
+    def _fake_load_datasets(
+        *,
+        new_instances: int = 200,
+        benchmark_bundle_path: Path | None = None,
+    ) -> tuple[dict[str, tuple[np.ndarray, np.ndarray]], list[dict[str, Any]]]:
+        captured["dataset_new_instances"] = int(new_instances)
+        captured["dataset_bundle_path"] = None if benchmark_bundle_path is None else str(Path(benchmark_bundle_path).resolve())
+        return (
+            {
+                "toy_multi": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 2, 0, 1, 2], dtype=np.int64),
+                )
+            },
+            [{"task_id": 7, "dataset_name": "toy_multi", "n_rows": 6, "n_features": 2, "n_classes": 3}],
+        )
+
+    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: default_bundle_path)
+    monkeypatch.setattr(compare_module, "load_benchmark_bundle", _fake_load_bundle)
+    monkeypatch.setattr(compare_module, "load_openml_benchmark_datasets", _fake_load_datasets)
+    monkeypatch.setattr(
+        compare_module,
+        "evaluate_tab_foundry_run",
+        lambda *_args, **_kwargs: [
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "dataset_roc_auc": {"toy_multi": 0.81},
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "derive_benchmark_run_record",
+        lambda **_kwargs: {
+            "manifest_path": "data/manifests/multiclass.parquet",
+            "seed_set": [1],
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "many_class",
+                "benchmark_profile": "many_class",
+                "d_icl": 96,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 10,
+            },
+            "benchmark_bundle": {
+                "name": "custom_bundle",
+                "version": 1,
+                "source_path": str(source_bundle_path.resolve()),
+                "task_count": 1,
+                "task_ids": [7],
+            },
+            "artifacts": {
+                "run_dir": str(smoke_run_dir.resolve()),
+                "benchmark_dir": str(out_root.resolve()),
+                "prior_dir": None,
+                "history_path": str((smoke_run_dir / "train_history.jsonl").resolve()),
+                "best_checkpoint_path": str((smoke_run_dir / "checkpoints" / "best.pt").resolve()),
+                "comparison_summary_path": str((out_root / "comparison_summary.json").resolve()),
+                "comparison_curve_path": str((out_root / "comparison_curve.png").resolve()),
+                "benchmark_run_record_path": str((out_root / "benchmark_run_record.json").resolve()),
+            },
+            "tab_foundry_metrics": {
+                "best_step": 25.0,
+                "best_training_time": 1.2,
+                "best_roc_auc": 0.81,
+                "final_step": 25.0,
+                "final_training_time": 1.2,
+                "final_roc_auc": 0.81,
+            },
+            "training_diagnostics": {
+                "best_val_loss": 0.2,
+                "final_val_loss": 0.21,
+                "best_val_step": 25.0,
+                "post_warmup_train_loss_var": 0.01,
+                "mean_grad_norm": 0.4,
+                "max_grad_norm": 0.5,
+                "final_grad_norm": 0.45,
+                "train_elapsed_seconds": 1.2,
+                "wall_elapsed_seconds": 1.3,
+            },
+            "model_size": {"total_params": 1234, "trainable_params": 1234},
+            "generated_at_utc": "2026-03-13T00:00:00Z",
+        },
+    )
+
+    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+        out_index = cmd.index("--out-path") + 1
+        out_path = Path(cmd[out_index])
+        out_path.write_text(
+            json.dumps(
+                {
+                    "seed": 0,
+                    "step": 25,
+                    "training_time": 2.0,
+                    "roc_auc": 0.78,
+                    "dataset_roc_auc": {"toy_multi": 0.78},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
+
+    summary = compare_module.run_nanotabpfn_benchmark(
+        compare_module.NanoTabPFNBenchmarkConfig(
+            tab_foundry_run_dir=smoke_run_dir,
+            out_root=out_root,
+            nanotabpfn_root=nanotab_root,
+            nanotab_prior_dump=prior_dump,
+            benchmark_bundle_path=source_bundle_path,
+        )
+    )
+
+    assert captured["bundle_path"] == str(source_bundle_path.resolve())
+    assert captured["dataset_new_instances"] == 6
+    assert captured["dataset_bundle_path"] == str(source_bundle_path.resolve())
+    assert summary["benchmark_bundle"]["source_path"] == str(source_bundle_path.resolve())
+    written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
+    assert written_summary["benchmark_bundle"]["source_path"] == str(source_bundle_path.resolve())
     written_bundle = json.loads((out_root / "benchmark_tasks.json").read_text(encoding="utf-8"))
     assert written_bundle == benchmark_bundle
 
@@ -619,7 +864,7 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
     monkeypatch.setattr(
         compare_module,
         "load_openml_benchmark_datasets",
-        lambda benchmark_bundle_path=None: (
+        lambda *, new_instances=200, benchmark_bundle_path=None: (
             {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -637,6 +882,63 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
         lambda *_args, **_kwargs: [
             {"checkpoint_path": "/tmp/step_000025.pt", "step": 25, "training_time": 1.2, "roc_auc": 0.81}
         ],
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "derive_benchmark_run_record",
+        lambda **_kwargs: {
+            "manifest_path": "data/manifests/default.parquet",
+            "seed_set": [1],
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "nano_exact",
+                "benchmark_profile": "nano_exact",
+                "d_icl": 96,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+            },
+            "benchmark_bundle": {
+                "name": "test_bundle",
+                "version": 1,
+                "source_path": str(source_bundle_path.resolve()),
+                "task_count": 1,
+                "task_ids": [1],
+            },
+            "artifacts": {
+                "run_dir": str(smoke_run_dir.resolve()),
+                "benchmark_dir": str(out_root.resolve()),
+                "prior_dir": None,
+                "history_path": str((smoke_run_dir / "train_history.jsonl").resolve()),
+                "best_checkpoint_path": str((smoke_run_dir / "checkpoints" / "best.pt").resolve()),
+                "comparison_summary_path": str((out_root / "comparison_summary.json").resolve()),
+                "comparison_curve_path": str((out_root / "comparison_curve.png").resolve()),
+                "benchmark_run_record_path": str((out_root / "benchmark_run_record.json").resolve()),
+            },
+            "tab_foundry_metrics": {
+                "best_step": 25.0,
+                "best_training_time": 1.2,
+                "best_roc_auc": 0.81,
+                "final_step": 25.0,
+                "final_training_time": 1.2,
+                "final_roc_auc": 0.81,
+            },
+            "training_diagnostics": {
+                "best_val_loss": 0.2,
+                "final_val_loss": 0.21,
+                "best_val_step": 25.0,
+                "post_warmup_train_loss_var": 0.01,
+                "mean_grad_norm": 0.4,
+                "max_grad_norm": 0.5,
+                "final_grad_norm": 0.45,
+                "train_elapsed_seconds": 1.2,
+                "wall_elapsed_seconds": 1.3,
+            },
+            "model_size": {"total_params": 1234, "trainable_params": 1234},
+            "generated_at_utc": "2026-03-13T00:00:00Z",
+        },
     )
 
     def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:

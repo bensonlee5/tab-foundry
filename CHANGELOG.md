@@ -48,6 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `scripts/benchmark_nanotabpfn.py` now accepts an additive
+  `--benchmark-bundle-path` override so staged benchmark runs can target a
+  repo-tracked non-default OpenML bundle while keeping the binary 3-task bundle
+  as the default compare path.
+- Added `scripts/build_openml_benchmark_bundle.py` plus the repo-tracked
+  `src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`
+  companion bundle, which widens the nanoTabPFN notebook's TabArena v0.1 task
+  set from binary-only to small multiclass without changing the other bundle
+  selection thresholds or runtime drift-check contract.
 - Prior-dump training now rejects staged `model.stage="many_class"` configs up
   front instead of failing on the first batch when the staged model does not
   expose direct `forward_batched()` tensor logits.

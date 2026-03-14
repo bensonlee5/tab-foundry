@@ -175,6 +175,7 @@ These artifacts are the minimum handoff surface for reviewable runs:
 - `sweep_summary.json`
 - `sweep_results.csv`
 - `comparison_summary.json`
+- `benchmark_run_record.json`
 - `comparison_curve.png`
 
 Smoke and benchmark-style runs may also persist generated datasets, manifests, and checkpoint snapshots.
@@ -264,6 +265,36 @@ the live OpenML-resolved selection thresholds or task metadata drift from that
 bundle. Older ad hoc bundle files without the full `selection` schema now fail
 to load.
 
+The pinned 3-task binary bundle remains the canonical promotion gate through
+`model.stage=qass_context`. The staged multiclass branch uses the companion
+bundle at `src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`,
+which widens the same TabArena v0.1 notebook source set from binary-only to
+small multiclass while preserving the same row-count, feature-count, missingness,
+and minority-class filters.
+
+Regenerate a pinned bundle with:
+
+```bash
+uv run python scripts/build_openml_benchmark_bundle.py \
+  --out-path src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json \
+  --bundle-name nanotabpfn_openml_classification_small \
+  --version 1 \
+  --new-instances 200 \
+  --max-features 10 \
+  --max-classes auto \
+  --max-missing-pct 0.0 \
+  --min-minority-class-pct 2.5
+```
+
+Benchmark against a non-default repo-tracked bundle with:
+
+```bash
+uv run python scripts/benchmark_nanotabpfn.py \
+  --tab-foundry-run-dir <run_dir> \
+  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json \
+  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+```
+
 The benchmark-profile training config now writes `train_history.jsonl` directly
 under `runtime.output_dir`, so benchmark comparison can consume plain
 `tab-foundry train experiment=cls_benchmark_linear ...` outputs without a smoke
@@ -328,11 +359,32 @@ Review comparison summaries using:
 - `final_roc_auc`
 - `benchmark_bundle.name`
 - `benchmark_bundle.version`
+- `benchmark_bundle.source_path`
 - `benchmark_bundle.task_ids`
 - `control_baseline.baseline_id` when the run is explicitly compared against a
   frozen control
 
 If best internal validation and best external benchmark diverge materially, treat that as a selection-quality problem rather than silently trusting internal validation.
+
+Benchmark-facing research runs can also be registered in the canonical
+benchmark-run ledger at
+`src/tab_foundry/bench/benchmark_run_registry_v1.json`:
+
+```bash
+uv run python scripts/register_benchmark_run.py \
+  --run-id 01_nano_exact \
+  --track binary_ladder \
+  --run-dir outputs/staged_ladder/01_nano_exact/train \
+  --comparison-summary outputs/staged_ladder/01_nano_exact/benchmark/comparison_summary.json \
+  --experiment cls_benchmark_staged \
+  --config-profile cls_benchmark_staged \
+  --decision keep \
+  --conclusion "Exact staged repro matches the frozen anchor contract."
+```
+
+This registry is the canonical historical record for benchmark-facing runs.
+Use `wandb` for live observation and debugging, not as the benchmark system of
+record.
 
 ## Research Review Loop
 

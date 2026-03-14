@@ -1,0 +1,56 @@
+{
+  "name": "nanotabpfn_openml_classification_small",
+  "selection": {
+    "max_classes": 3,
+    "max_features": 10,
+    "max_missing_pct": 0.0,
+    "min_minority_class_pct": 2.5,
+    "new_instances": 200,
+    "task_type": "supervised_classification"
+  },
+  "task_ids": [
+    363613,
+    363621,
+    363629,
+    363685,
+    363707
+  ],
+  "tasks": [
+    {
+      "dataset_name": "Amazon_employee_access",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 363613
+    },
+    {
+      "dataset_name": "blood-transfusion-service-center",
+      "n_classes": 2,
+      "n_features": 4,
+      "n_rows": 200,
+      "task_id": 363621
+    },
+    {
+      "dataset_name": "diabetes",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 363629
+    },
+    {
+      "dataset_name": "maternal_health_risk",
+      "n_classes": 3,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 363685
+    },
+    {
+      "dataset_name": "website_phishing",
+      "n_classes": 3,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 363707
+    }
+  ],
+  "version": 1
+}
