@@ -1,4 +1,4 @@
-"""Exact-parity prior-dump training for tabfoundry_simple."""
+"""Prior-dump training for exact-parity tabfoundry classification models."""
 
 from __future__ import annotations
 
@@ -15,8 +15,9 @@ import torch
 from tab_foundry.bench.nanotabpfn import resolve_device
 from tab_foundry.bench.prior_dump import PriorDumpTaskBatchReader
 from tab_foundry.config import compose_config
+from tab_foundry.model.architectures.tabfoundry_staged.recipes import recipe_for_stage
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.model.spec import model_build_spec_from_mappings
+from tab_foundry.model.spec import ModelBuildSpec, ModelStage, model_build_spec_from_mappings
 from tab_foundry.training.artifacts import (
     append_history_record,
     assert_clean_training_output,
@@ -74,6 +75,25 @@ def _model_spec_from_cfg(cfg: DictConfig):
     )
 
 
+def _validate_prior_training_model_spec(spec: ModelBuildSpec) -> None:
+    if spec.arch not in {"tabfoundry_simple", "tabfoundry_staged"}:
+        raise ValueError(
+            "prior-dump training requires model.arch in {'tabfoundry_simple', 'tabfoundry_staged'}, "
+            f"got {spec.arch!r}"
+        )
+    if spec.arch != "tabfoundry_staged":
+        return
+
+    stage_name = "nano_exact" if spec.stage is None else str(spec.stage).strip().lower()
+    normalized_stage = ModelStage(stage_name)
+    recipe = recipe_for_stage(normalized_stage)
+    if recipe.modules.head == "many_class":
+        raise ValueError(
+            "prior-dump training requires a staged recipe with forward_batched() tensor logits, "
+            f"got model.stage={normalized_stage.value!r}"
+        )
+
+
 def _stack_prior_step(
     prior_step,
     *,
@@ -128,17 +148,13 @@ def train_tabfoundry_simple_prior(
     prior_dump_path: Path = DEFAULT_PRIOR_DUMP_PATH,
     batch_size: int = DEFAULT_BATCH_SIZE,
 ) -> TrainResult:
-    """Train tabfoundry_simple on the nanoTabPFN prior dump with exact step parity."""
+    """Train an exact-parity staged/simple classifier on the nanoTabPFN prior dump."""
 
     if str(cfg.task).strip().lower() != "classification":
         raise ValueError(f"prior-dump training requires task='classification', got {cfg.task!r}")
 
     spec = _model_spec_from_cfg(cfg)
-    if spec.arch != "tabfoundry_simple":
-        raise ValueError(
-            "prior-dump training requires model.arch='tabfoundry_simple', "
-            f"got {spec.arch!r}"
-        )
+    _validate_prior_training_model_spec(spec)
     if str(cfg.runtime.mixed_precision).strip().lower() != "no":
         raise ValueError(
             "exact-parity prior-dump training requires runtime.mixed_precision='no', "
@@ -219,7 +235,7 @@ def train_tabfoundry_simple_prior(
         forward_batched = getattr(model, "forward_batched", None)
         if not callable(forward_batched):
             raise RuntimeError(
-                "tabfoundry_simple prior-dump training requires a model with forward_batched()"
+                "prior-dump training requires a model with forward_batched()"
             )
         x_batch, y_train_batch, y_all_batch = _stack_prior_step(prior_step, device=device)
         logits = forward_batched(
@@ -228,7 +244,7 @@ def train_tabfoundry_simple_prior(
             train_test_split_index=prior_step.train_test_split_index,
         )
         if not isinstance(logits, torch.Tensor):
-            raise RuntimeError("tabfoundry_simple prior-dump training requires tensor logits")
+            raise RuntimeError("prior-dump training requires tensor logits")
         targets = y_all_batch[:, prior_step.train_test_split_index:].reshape(-1).to(torch.int64)
         loss = classification_loss(
             logits.reshape(-1, int(logits.shape[-1])),
@@ -317,7 +333,9 @@ def train_tabfoundry_simple_prior(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Train tabfoundry_simple on the nanoTabPFN prior dump")
+    parser = argparse.ArgumentParser(
+        description="Train an exact-parity tabfoundry classifier on the nanoTabPFN prior dump"
+    )
     parser.add_argument(
         "--prior-dump",
         default=str(DEFAULT_PRIOR_DUMP_PATH),

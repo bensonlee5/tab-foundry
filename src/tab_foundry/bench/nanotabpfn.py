@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 import json
 import math
 from pathlib import Path
@@ -25,6 +26,18 @@ BENCHMARK_BUNDLE_FILENAME = "nanotabpfn_openml_benchmark_v1.json"
 _BUNDLE_SELECTION_TASK_TYPE = "supervised_classification"
 
 _SKF = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+
+
+@dataclass(slots=True)
+class PreparedOpenMLBenchmarkTask:
+    """Materialized OpenML benchmark task after notebook-style preprocessing."""
+
+    task_id: int
+    dataset_name: str
+    x: np.ndarray
+    y: np.ndarray
+    observed_task: dict[str, Any]
+    qualities: dict[str, float]
 
 
 def get_feature_preprocessor(x: np.ndarray | pd.DataFrame) -> ColumnTransformer:
@@ -130,7 +143,7 @@ def _normalize_selection(payload: Any) -> dict[str, Any]:
     }
 
 
-def _read_required_quality(raw_qualities: Any, *, task_id: int, quality_name: str) -> float:
+def read_required_openml_quality(raw_qualities: Any, *, task_id: int, quality_name: str) -> float:
     """Read a numeric OpenML quality and raise a drift error if it is missing."""
 
     if not isinstance(raw_qualities, dict):
@@ -143,14 +156,11 @@ def _read_required_quality(raw_qualities: Any, *, task_id: int, quality_name: st
     return float(value)
 
 
-def load_benchmark_bundle(path: Path | None = None) -> dict[str, Any]:
-    """Load and validate the canonical benchmark bundle metadata."""
+def normalize_benchmark_bundle(payload: Any) -> dict[str, Any]:
+    """Validate and normalize benchmark bundle metadata."""
 
-    bundle_path = (path or default_benchmark_bundle_path()).expanduser().resolve()
-    with bundle_path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
     if not isinstance(payload, dict):
-        raise RuntimeError(f"benchmark bundle must be a JSON object: {bundle_path}")
+        raise RuntimeError("benchmark bundle must be a JSON object")
     expected_keys = {"name", "version", "selection", "task_ids", "tasks"}
     actual_keys = set(payload.keys())
     if actual_keys != expected_keys:
@@ -212,6 +222,18 @@ def load_benchmark_bundle(path: Path | None = None) -> dict[str, Any]:
     return normalized_bundle
 
 
+def load_benchmark_bundle(path: Path | None = None) -> dict[str, Any]:
+    """Load and validate the canonical benchmark bundle metadata."""
+
+    bundle_path = (path or default_benchmark_bundle_path()).expanduser().resolve()
+    with bundle_path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    try:
+        return normalize_benchmark_bundle(payload)
+    except RuntimeError as exc:
+        raise RuntimeError(f"{exc}: {bundle_path}") from exc
+
+
 def benchmark_bundle_summary(
     bundle: Mapping[str, Any],
     *,
@@ -227,6 +249,87 @@ def benchmark_bundle_summary(
         "task_count": int(len(task_ids)),
         "task_ids": task_ids,
     }
+
+
+def prepare_openml_benchmark_task(
+    task_id: int,
+    *,
+    new_instances: int,
+) -> PreparedOpenMLBenchmarkTask:
+    """Load and preprocess one OpenML task using the nanoTabPFN notebook logic."""
+
+    task = openml.tasks.get_task(task_id, download_splits=False)
+    if task.task_type_id != TaskType.SUPERVISED_CLASSIFICATION:
+        raise RuntimeError(
+            "benchmark bundle drift: "
+            f"task {task_id} is no longer supervised classification"
+        )
+    task_any: Any = task
+    dataset = task_any.get_dataset(download_data=False)
+    dataset_any: Any = dataset
+    raw_qualities = dataset_any.qualities
+    number_of_features = read_required_openml_quality(
+        raw_qualities,
+        task_id=int(task_id),
+        quality_name="NumberOfFeatures",
+    )
+    number_of_classes = read_required_openml_quality(
+        raw_qualities,
+        task_id=int(task_id),
+        quality_name="NumberOfClasses",
+    )
+    missing_pct = read_required_openml_quality(
+        raw_qualities,
+        task_id=int(task_id),
+        quality_name="PercentageOfInstancesWithMissingValues",
+    )
+    minority_class_pct = read_required_openml_quality(
+        raw_qualities,
+        task_id=int(task_id),
+        quality_name="MinorityClassPercentage",
+    )
+
+    x_frame, y_raw, _categorical_indicator, _attribute_names = dataset_any.get_data(
+        target=str(task_any.target_name),
+        dataset_format="dataframe",
+    )
+    if new_instances < int(len(cast(Any, y_raw))):
+        _x_unused, x_sub, _y_unused, y_sub = train_test_split(
+            x_frame,
+            y_raw,
+            test_size=new_instances,
+            stratify=y_raw,
+            random_state=0,
+        )
+    else:
+        x_sub = x_frame
+        y_sub = y_raw
+
+    label_encoder = LabelEncoder()
+    y = label_encoder.fit_transform(y_sub.to_numpy(copy=True))
+    preprocessor = get_feature_preprocessor(x_sub)
+    x = np.asarray(preprocessor.fit_transform(x_sub), dtype=np.float32)
+
+    observed_task = {
+        "task_id": int(task_id),
+        "dataset_name": str(dataset.name),
+        "n_rows": int(x.shape[0]),
+        "n_features": int(x.shape[1]),
+        "n_classes": int(np.unique(y).size),
+    }
+    return PreparedOpenMLBenchmarkTask(
+        task_id=int(task_id),
+        dataset_name=str(dataset.name),
+        x=x,
+        y=y.astype(np.int64, copy=False),
+        observed_task=observed_task,
+        qualities={
+            "NumberOfFeatures": float(number_of_features),
+            "NumberOfClasses": float(number_of_classes),
+            "PercentageOfInstancesWithMissingValues": float(missing_pct),
+            "MinorityClassPercentage": float(minority_class_pct),
+        },
+    )
 
 
 def load_openml_benchmark_datasets(
@@ -249,36 +352,11 @@ def load_openml_benchmark_datasets(
     datasets: dict[str, tuple[np.ndarray, np.ndarray]] = {}
     benchmark_tasks: list[dict[str, Any]] = []
     for task_id in cast(list[int], bundle["task_ids"]):
-        task = openml.tasks.get_task(task_id, download_splits=False)
-        if task.task_type_id != TaskType.SUPERVISED_CLASSIFICATION:
-            raise RuntimeError(
-                "benchmark bundle drift: "
-                f"task {task_id} is no longer supervised classification"
-            )
-        task_any: Any = task
-        dataset = task_any.get_dataset(download_data=False)
-        dataset_any: Any = dataset
-        raw_qualities = dataset_any.qualities
-        number_of_features = _read_required_quality(
-            raw_qualities,
-            task_id=int(task_id),
-            quality_name="NumberOfFeatures",
-        )
-        number_of_classes = _read_required_quality(
-            raw_qualities,
-            task_id=int(task_id),
-            quality_name="NumberOfClasses",
-        )
-        missing_pct = _read_required_quality(
-            raw_qualities,
-            task_id=int(task_id),
-            quality_name="PercentageOfInstancesWithMissingValues",
-        )
-        minority_class_pct = _read_required_quality(
-            raw_qualities,
-            task_id=int(task_id),
-            quality_name="MinorityClassPercentage",
-        )
+        prepared = prepare_openml_benchmark_task(int(task_id), new_instances=new_instances)
+        number_of_features = prepared.qualities["NumberOfFeatures"]
+        number_of_classes = prepared.qualities["NumberOfClasses"]
+        missing_pct = prepared.qualities["PercentageOfInstancesWithMissingValues"]
+        minority_class_pct = prepared.qualities["MinorityClassPercentage"]
         if number_of_features > int(selection["max_features"]):
             raise RuntimeError(
                 "benchmark bundle drift: "
@@ -301,44 +379,15 @@ def load_openml_benchmark_datasets(
                 f"{task_id} violates min_minority_class_pct expected>={selection['min_minority_class_pct']}, "
                 f"actual={minority_class_pct}"
             )
-
-        x_frame, y_raw, _categorical_indicator, _attribute_names = dataset_any.get_data(
-            target=str(task_any.target_name),
-            dataset_format="dataframe",
-        )
-        if new_instances < int(len(cast(Any, y_raw))):
-            _x_unused, x_sub, _y_unused, y_sub = train_test_split(
-                x_frame,
-                y_raw,
-                test_size=new_instances,
-                stratify=y_raw,
-                random_state=0,
-            )
-        else:
-            x_sub = x_frame
-            y_sub = y_raw
-
-        label_encoder = LabelEncoder()
-        y = label_encoder.fit_transform(y_sub.to_numpy(copy=True))
-        preprocessor = get_feature_preprocessor(x_sub)
-        x = np.asarray(preprocessor.fit_transform(x_sub), dtype=np.float32)
-
-        observed_task = {
-            "task_id": int(task_id),
-            "dataset_name": str(dataset.name),
-            "n_rows": int(x.shape[0]),
-            "n_features": int(x.shape[1]),
-            "n_classes": int(np.unique(y).size),
-        }
         expected_task = expected_by_task_id[int(task_id)]
-        if observed_task != expected_task:
+        if prepared.observed_task != expected_task:
             raise RuntimeError(
                 "benchmark bundle drift: "
-                f"task {task_id} metadata mismatch expected={expected_task}, actual={observed_task}"
+                f"task {task_id} metadata mismatch expected={expected_task}, actual={prepared.observed_task}"
             )
 
-        datasets[str(dataset.name)] = (x, y.astype(np.int64, copy=False))
-        benchmark_tasks.append(observed_task)
+        datasets[prepared.dataset_name] = (prepared.x, prepared.y)
+        benchmark_tasks.append(dict(prepared.observed_task))
     if not datasets:
         raise RuntimeError("OpenML benchmark produced no datasets after filtering")
     if len(benchmark_tasks) != len(expected_tasks):
@@ -527,6 +576,10 @@ def evaluate_tab_foundry_run(
         checkpoint_path = Path(str(snapshot["path"]))
         classifier = TabFoundryClassifier(checkpoint_path, device=resolved_device)
         metrics = evaluate_classifier(classifier, datasets)
+        model_arch = str(getattr(classifier.model_spec, "arch", "tabfoundry")).strip().lower()
+        model_stage_raw = getattr(classifier.model_spec, "stage", None)
+        model_stage = None if model_stage_raw is None else str(model_stage_raw).strip().lower()
+        benchmark_profile_raw = getattr(classifier.model, "benchmark_profile", None)
         curve_records.append(
             {
                 "checkpoint_path": str(checkpoint_path),
@@ -534,6 +587,11 @@ def evaluate_tab_foundry_run(
                 "training_time": float(snapshot["elapsed_seconds"]),
                 "roc_auc": float(metrics["ROC AUC"]),
                 "dataset_roc_auc": dataset_roc_auc_metrics(metrics),
+                "model_arch": model_arch,
+                "model_stage": model_stage,
+                "benchmark_profile": None
+                if benchmark_profile_raw is None
+                else str(benchmark_profile_raw),
             }
         )
     return curve_records
@@ -693,6 +751,22 @@ def build_comparison_summary(
             if values
         }
 
+    def _identity(records: list[dict[str, Any]]) -> dict[str, str | None]:
+        if not records:
+            return {
+                "model_arch": None,
+                "model_stage": None,
+                "benchmark_profile": None,
+            }
+        first = records[0]
+        return {
+            "model_arch": None if first.get("model_arch") is None else str(first["model_arch"]),
+            "model_stage": None if first.get("model_stage") is None else str(first["model_stage"]),
+            "benchmark_profile": None
+            if first.get("benchmark_profile") is None
+            else str(first["benchmark_profile"]),
+        }
+
     summary = {
         "dataset_count": int(len(benchmark_tasks)),
         "benchmark_bundle": benchmark_bundle_summary(
@@ -702,6 +776,7 @@ def build_comparison_summary(
         "tab_foundry": {
             **_summary_metrics(tab_foundry_records),
             "run_dir": str(tab_foundry_run_dir.expanduser().resolve()),
+            **_identity(tab_foundry_records),
         },
         "nanotabpfn": {
             **_summary_metrics(nanotabpfn_records),

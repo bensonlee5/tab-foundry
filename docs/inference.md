@@ -43,15 +43,19 @@ Required keys:
   manifest with `manifest_sha256` omitted; validators reject stale or missing
   values
 - `model`: `{arch, d_col, d_icl, input_normalization, feature_group_size, many_class_train_mode, max_mixed_radix_digits}`
+  - `stage` is an additive optional field and is emitted only for
+    `arch=tabfoundry_staged`.
   - Exporter also emits architecture reconstruction fields:
     `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed}`.
   - Validators accept manifests that omit the optional reconstruction fields and
     apply the current model defaults.
+  - Validators also accept older manifests that omit `stage`.
   - See `docs/development/model-config.md` for the meaning of each model field
     and the current canonical defaults.
 - `inference`
   - `task`
-  - `model_arch` (`tabfoundry`)
+  - `model_arch` (`tabfoundry`, `tabfoundry_simple`, or `tabfoundry_staged`)
+  - `model_stage` (optional; emitted only for `tabfoundry_staged`)
   - `group_shifts` (`[0, 1, 3]`)
   - `feature_group_size`
   - `many_class_threshold` (`10`)

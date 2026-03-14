@@ -108,12 +108,36 @@ uv run tab-foundry train \
 uv run tab-foundry train \
   experiment=cls_benchmark_linear_simple \
   data.manifest_path=<binary_manifest.parquet>
+uv run tab-foundry train \
+  experiment=cls_benchmark_staged \
+  data.manifest_path=<binary_manifest.parquet>
 ```
 
 `cls_benchmark_linear_simple` now targets the exact nanoTabPFN-style binary
 debug model. It is benchmark-focused rather than a general small-class
 classifier, so it requires binary tasks, internal train-split z-score clipping,
 and `many_class_base=2`.
+
+`cls_benchmark_staged` is the staged research counterpart. It defaults to
+`model.arch=tabfoundry_staged` and `model.stage=nano_exact`, so the first run
+starts from the frozen repro contract and then promotes forward by overriding
+`model.stage`.
+
+Example promotion step:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_benchmark_staged \
+  data.manifest_path=<binary_manifest.parquet> \
+  model.stage=label_token
+```
+
+Prior-dump training for the staged family uses the same harness with the staged
+experiment default:
+
+```bash
+uv run python scripts/train_tabfoundry_staged_prior.py
+```
 
 Default training expects Muon to be installed. To run without Muon:
 
@@ -151,6 +175,7 @@ These artifacts are the minimum handoff surface for reviewable runs:
 - `sweep_summary.json`
 - `sweep_results.csv`
 - `comparison_summary.json`
+- `benchmark_run_record.json`
 - `comparison_curve.png`
 
 Smoke and benchmark-style runs may also persist generated datasets, manifests, and checkpoint snapshots.
@@ -240,6 +265,36 @@ the live OpenML-resolved selection thresholds or task metadata drift from that
 bundle. Older ad hoc bundle files without the full `selection` schema now fail
 to load.
 
+The pinned 3-task binary bundle remains the canonical promotion gate through
+`model.stage=qass_context`. The staged multiclass branch uses the companion
+bundle at `src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`,
+which widens the same TabArena v0.1 notebook source set from binary-only to
+small multiclass while preserving the same row-count, feature-count, missingness,
+and minority-class filters.
+
+Regenerate a pinned bundle with:
+
+```bash
+uv run python scripts/build_openml_benchmark_bundle.py \
+  --out-path src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json \
+  --bundle-name nanotabpfn_openml_classification_small \
+  --version 1 \
+  --new-instances 200 \
+  --max-features 10 \
+  --max-classes auto \
+  --max-missing-pct 0.0 \
+  --min-minority-class-pct 2.5
+```
+
+Benchmark against a non-default repo-tracked bundle with:
+
+```bash
+uv run python scripts/benchmark_nanotabpfn.py \
+  --tab-foundry-run-dir <run_dir> \
+  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json \
+  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+```
+
 The benchmark-profile training config now writes `train_history.jsonl` directly
 under `runtime.output_dir`, so benchmark comparison can consume plain
 `tab-foundry train experiment=cls_benchmark_linear ...` outputs without a smoke
@@ -304,11 +359,268 @@ Review comparison summaries using:
 - `final_roc_auc`
 - `benchmark_bundle.name`
 - `benchmark_bundle.version`
+- `benchmark_bundle.source_path`
 - `benchmark_bundle.task_ids`
 - `control_baseline.baseline_id` when the run is explicitly compared against a
   frozen control
 
 If best internal validation and best external benchmark diverge materially, treat that as a selection-quality problem rather than silently trusting internal validation.
+
+Benchmark-facing research runs can also be registered in the canonical
+benchmark-run ledger at
+`src/tab_foundry/bench/benchmark_run_registry_v1.json`:
+
+```bash
+uv run python scripts/register_benchmark_run.py \
+  --run-id 01_nano_exact \
+  --track binary_ladder \
+  --run-dir outputs/staged_ladder/01_nano_exact/train \
+  --comparison-summary outputs/staged_ladder/01_nano_exact/benchmark/comparison_summary.json \
+  --experiment cls_benchmark_staged \
+  --config-profile cls_benchmark_staged \
+  --decision keep \
+  --conclusion "Exact staged repro matches the frozen anchor contract."
+```
+
+This registry is the canonical historical record for benchmark-facing runs.
+Use `wandb` for live observation and debugging, not as the benchmark system of
+record.
+
+### Staged Ladder Runbook
+
+Use the staged ladder to separate architecture additions from transformer-size
+scaling. The main rule is: change one axis at a time.
+
+- Stage ladder first at a fixed small transformer size.
+- Size scaling second on a short list of selected stages.
+- LR checks only after a fixed-schedule failure is observed, benchmarked, and
+  registered.
+
+Use these size profiles:
+
+- `xs`: `d_icl=32`, `tficl_n_heads=4`, `tficl_n_layers=2`, `head_hidden_dim=64`
+- `sm`: `d_icl=64`, `tficl_n_heads=4`, `tficl_n_layers=2`, `head_hidden_dim=128`
+- `md`: `d_icl=96`, `tficl_n_heads=4`, `tficl_n_layers=3`, `head_hidden_dim=192`
+
+Keep this optimization surface fixed for the initial ladder:
+
+- `optimizer=adamw`
+- `schedule.stages[0].lr_max=8.0e-4`
+- `schedule.stages[0].warmup_ratio=0.05`
+- `runtime.max_steps=400`
+- `runtime.grad_clip=1.0`
+- `runtime.eval_every=25`
+- `runtime.checkpoint_every=25`
+- `input_normalization=train_zscore_clip`
+
+The staged architecture milestone order is:
+
+- `00_simple_anchor`
+- `01_nano_exact`
+- `02_label_token`
+- `03_shared_norm`
+- `04_prenorm_block`
+- `05_small_class_head`
+- `06_test_self`
+- `07_grouped_tokens`
+- `08_row_cls_pool`
+- `09_column_set`
+- `10_qass_context`
+
+Treat `06_test_self` as the explicit “old approximate simple rebuilt”
+milestone. `07_grouped_tokens` onward is the later fuller-feature path.
+
+Use these benchmark-run registry tracks:
+
+- `binary_arch_xs`
+- `binary_full_xs`
+- `size_scaling_simple_rebuild`
+- `multiclass_branch`
+
+Pass A is the architecture-only ladder at `xs` using one fixed binary manifest
+and the default binary benchmark bundle.
+
+- Run and register:
+  - `00_simple_anchor_xs`
+  - `01_nano_exact_xs`
+  - `02_label_token_xs`
+  - `03_shared_norm_xs`
+  - `04_prenorm_block_xs`
+  - `05_small_class_head_xs`
+  - `06_test_self_xs`
+- Optional later extension:
+  - `07_grouped_tokens_xs`
+  - `08_row_cls_pool_xs`
+  - `09_column_set_xs`
+  - `10_qass_context_xs`
+- `00_simple_anchor_xs` is the anchor for every `xs` staged run.
+- `parent_run_id` is always the immediately previous stage.
+- `anchor_run_id` is always the matching anchor for that size.
+- `01_nano_exact_xs` still needs the exact-parity unit tests, but prior-dump
+  parity is only required at `md`.
+
+Pass B is exactness signoff at `md`.
+
+- Run only:
+  - `00_simple_anchor_md`
+  - `01_nano_exact_md`
+- Then run the prior-dump parity harness for `01_nano_exact_md`.
+- Do not claim staged exact parity from the `xs` pass alone.
+
+Pass C is size scaling on the selected stages:
+
+- `00_simple_anchor`
+- `01_nano_exact`
+- `04_prenorm_block`
+- `06_test_self`
+- Optional later extension: `10_qass_context`
+
+Use these run ids:
+
+- `00_simple_anchor_xs`, `00_simple_anchor_sm`, `00_simple_anchor_md`
+- `01_nano_exact_xs`, `01_nano_exact_sm`, `01_nano_exact_md`
+- `04_prenorm_block_xs`, `04_prenorm_block_sm`, `04_prenorm_block_md`
+- `06_test_self_xs`, `06_test_self_sm`, `06_test_self_md`
+
+This matrix answers whether exact repro, the first major architecture delta,
+and the rebuilt-simple milestone all scale cleanly before broader expansion.
+
+Do not tune LR during Pass A. Only open an LR sanity branch if a larger-size
+run shows an undertraining pattern:
+
+- lower `best_roc_auc` and `final_roc_auc`
+- higher `best_val_loss` and `final_val_loss`
+- low or falling gradient norms
+- no instability spike in `post_warmup_train_loss_var`
+
+If that happens, run one small LR sweep on the failing `01_nano_exact_<size>`
+run with:
+
+- `4.0e-4`
+- `8.0e-4`
+- `1.6e-3`
+
+If one LR clearly fixes the size issue, freeze that LR for the rest of the size
+band and rerun only the selected scaling stages.
+
+Pass D is the multiclass branch after the binary rebuild ladder is stable.
+
+- `11_qass_context_multiclass_xs`
+- `12_many_class_multiclass_xs`
+
+Use:
+
+- a multiclass manifest with `n_classes > many_class_base`
+- `many_class_base=10`
+- `src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`
+
+Train template:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_benchmark_staged \
+  data.manifest_path=<manifest.parquet> \
+  model.stage=<stage> \
+  model.d_icl=<d_icl> \
+  model.tficl_n_heads=4 \
+  model.tficl_n_layers=<n_layers> \
+  model.head_hidden_dim=<head_hidden_dim> \
+  runtime.output_dir=outputs/staged_ladder/<run_id>/train \
+  logging.run_name=staged-<run_id>
+```
+
+Frozen anchor template:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_benchmark_linear_simple \
+  data.manifest_path=<binary_manifest.parquet> \
+  model.d_icl=<d_icl> \
+  model.tficl_n_heads=4 \
+  model.tficl_n_layers=<n_layers> \
+  model.head_hidden_dim=<head_hidden_dim> \
+  runtime.output_dir=outputs/staged_ladder/<run_id>/train \
+  logging.run_name=staged-<run_id>
+```
+
+Benchmark template:
+
+```bash
+uv run python scripts/benchmark_nanotabpfn.py \
+  --tab-foundry-run-dir outputs/staged_ladder/<run_id>/train \
+  --out-root outputs/staged_ladder/<run_id>/benchmark \
+  --control-baseline-id cls_benchmark_linear_v1 \
+  --control-baseline-registry src/tab_foundry/bench/control_baselines_v1.json \
+  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+```
+
+Multiclass benchmark template:
+
+```bash
+uv run python scripts/benchmark_nanotabpfn.py \
+  --tab-foundry-run-dir outputs/staged_ladder/<run_id>/train \
+  --out-root outputs/staged_ladder/<run_id>/benchmark \
+  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json \
+  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+```
+
+Register template:
+
+```bash
+uv run python scripts/register_benchmark_run.py \
+  --run-id <run_id> \
+  --track <track> \
+  --run-dir outputs/staged_ladder/<run_id>/train \
+  --comparison-summary outputs/staged_ladder/<run_id>/benchmark/comparison_summary.json \
+  --experiment <experiment> \
+  --config-profile <config_profile> \
+  --parent-run-id <previous_run_id> \
+  --anchor-run-id <anchor_run_id> \
+  --decision <keep|reject|defer> \
+  --conclusion "<one-line conclusion>"
+```
+
+Prior-dump signoff:
+
+```bash
+uv run python scripts/train_tabfoundry_staged_prior.py \
+  model.stage=nano_exact \
+  model.d_icl=96 \
+  model.tficl_n_heads=4 \
+  model.tficl_n_layers=3 \
+  model.head_hidden_dim=192 \
+  runtime.output_dir=outputs/staged_ladder/01_nano_exact_md/prior
+```
+
+Keep this preflight in the runbook:
+
+```bash
+./.venv/bin/python -m pytest \
+  tests/model/test_tabfoundry_staged.py \
+  tests/benchmark/test_prior_train.py \
+  tests/benchmark/test_checkpoint_classifier.py \
+  tests/benchmark/test_nanotabpfn_compare.py -q
+```
+
+Every benchmark-facing run should produce:
+
+- `train_history.jsonl`
+- checkpoint snapshots
+- `comparison_summary.json`
+- `benchmark_run_record.json`
+- `comparison_curve.png`
+
+Review after every run:
+
+- `comparison_summary.json`
+- `benchmark_run_record.json`
+- `src/tab_foundry/bench/benchmark_run_registry_v1.json`
+- a one-line `keep` / `reject` / `defer` conclusion
+
+If no local binary dagzoo manifest is available yet, a fixed binary Iris-derived
+manifest is acceptable for the initial `xs` dry run, but keep that manifest
+constant within the pass and rerun the kept stages later on the real binary
+manifest before drawing stronger conclusions.
 
 ## Research Review Loop
 

@@ -1,0 +1,257 @@
+from __future__ import annotations
+
+import pytest
+import torch
+
+from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
+from tab_foundry.model.architectures.tabfoundry_staged.recipes import STAGE_RECIPE_REGISTRY
+from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
+from tab_foundry.model.spec import ModelStage
+from tab_foundry.types import TaskBatch
+
+
+def _batch(*, num_classes: int = 2) -> TaskBatch:
+    return TaskBatch(
+        x_train=torch.tensor(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=torch.tensor([0, 1, 0], dtype=torch.int64),
+        x_test=torch.tensor(
+            [
+                [0.5, 1.5, 2.5],
+                [3.5, 4.5, 5.5],
+            ],
+            dtype=torch.float32,
+        ),
+        y_test=torch.tensor([0, 1], dtype=torch.int64),
+        metadata={},
+        num_classes=num_classes,
+    )
+
+
+def _staged(stage: str, **overrides: object) -> TabFoundryStagedClassifier:
+    kwargs = {
+        "stage": stage,
+        "d_icl": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3,
+        "head_hidden_dim": 192,
+    }
+    kwargs.update(overrides)
+    return TabFoundryStagedClassifier(**kwargs)
+
+
+def _simple(**overrides: object) -> TabFoundrySimpleClassifier:
+    kwargs = {
+        "d_icl": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3,
+        "head_hidden_dim": 192,
+    }
+    kwargs.update(overrides)
+    return TabFoundrySimpleClassifier(**kwargs)
+
+
+def test_stage_recipe_registry_covers_public_stage_enum() -> None:
+    assert set(STAGE_RECIPE_REGISTRY) == set(ModelStage)
+
+
+@pytest.mark.parametrize(
+    ("stage", "normalization_mode"),
+    [
+        ("nano_exact", "internal"),
+        ("label_token", "internal"),
+        ("shared_norm", "shared"),
+        ("prenorm_block", "shared"),
+        ("small_class_head", "shared"),
+        ("test_self", "shared"),
+        ("grouped_tokens", "shared"),
+        ("row_cls_pool", "shared"),
+        ("column_set", "shared"),
+        ("qass_context", "shared"),
+        ("many_class", "shared"),
+    ],
+)
+def test_stage_recipe_contracts_are_exposed_on_model(stage: str, normalization_mode: str) -> None:
+    model = _staged(stage, many_class_base=10)
+    assert model.stage == stage
+    assert model.benchmark_profile == stage
+    assert model.recipe.constraints.normalization_mode == normalization_mode
+
+
+def test_many_class_stage_rejects_invalid_many_class_train_mode() -> None:
+    with pytest.raises(ValueError, match="many_class_train_mode"):
+        _ = _staged(
+            "many_class",
+            many_class_base=4,
+            input_normalization="none",
+            many_class_train_mode="full_prob",
+        )
+
+
+def test_shared_normalization_stage_rejects_invalid_input_normalization() -> None:
+    with pytest.raises(ValueError, match="input_normalization"):
+        _ = _staged(
+            "small_class_head",
+            many_class_base=4,
+            input_normalization="bogus",
+        )
+
+
+def test_nano_exact_stage_matches_simple_feature_encoder() -> None:
+    simple = _simple(d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
+    staged = _staged("nano_exact", d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
+    staged.feature_encoder.load_state_dict(simple.feature_encoder.state_dict(), strict=True)
+
+    x_all = torch.randn(2, 8, 3, dtype=torch.float32)
+    observed = staged.feature_encoder(x_all.clone(), 5)
+    expected = simple.feature_encoder(x_all.clone(), 5)
+    assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
+
+
+def test_nano_exact_stage_matches_simple_target_conditioner() -> None:
+    simple = _simple(d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
+    staged = _staged("nano_exact", d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
+    staged.target_conditioner.encoder.load_state_dict(simple.target_encoder.state_dict(), strict=True)
+
+    y_train = torch.tensor(
+        [
+            [0.0, 1.0, 0.0, 1.0, 1.0],
+            [1.0, 0.0, 1.0, 0.0, 0.0],
+        ],
+        dtype=torch.float32,
+    )
+    observed = staged.target_conditioner(y_train.clone(), num_rows=8)
+    expected = simple.target_encoder(y_train.clone(), 8)
+    assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
+
+
+def test_nano_exact_stage_matches_simple_transformer_block() -> None:
+    simple = _simple(d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
+    staged = _staged("nano_exact", d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
+    staged.transformer_blocks[0].block.load_state_dict(
+        simple.transformer_blocks[0].state_dict(),
+        strict=True,
+    )
+
+    src = torch.randn(2, 8, 4, 32, dtype=torch.float32)
+    observed = staged.transformer_blocks[0](src.clone(), train_test_split_index=5)
+    expected = simple.transformer_blocks[0](src.clone(), train_test_split_index=5)
+    assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
+
+
+def test_nano_exact_stage_matches_simple_forward_batched_logits() -> None:
+    simple = _simple(d_icl=32, tficl_n_heads=4, tficl_n_layers=2, head_hidden_dim=64)
+    staged = _staged("nano_exact", d_icl=32, tficl_n_heads=4, tficl_n_layers=2, head_hidden_dim=64)
+    staged.feature_encoder.load_state_dict(simple.feature_encoder.state_dict(), strict=True)
+    staged.target_conditioner.encoder.load_state_dict(simple.target_encoder.state_dict(), strict=True)
+    staged.direct_head.decoder.load_state_dict(simple.decoder.state_dict(), strict=True)
+    for staged_block, simple_block in zip(staged.transformer_blocks, simple.transformer_blocks, strict=True):
+        staged_block.block.load_state_dict(simple_block.state_dict(), strict=True)
+
+    x_all = torch.randn(2, 8, 3, dtype=torch.float32)
+    y_train = torch.tensor(
+        [
+            [0.0, 1.0, 0.0, 1.0, 1.0],
+            [1.0, 0.0, 1.0, 0.0, 0.0],
+        ],
+        dtype=torch.float32,
+    )
+    observed = staged.forward_batched(
+        x_all=x_all.clone(),
+        y_train=y_train.clone(),
+        train_test_split_index=5,
+    )
+    expected = simple.forward_batched(
+        x_all=x_all.clone(),
+        y_train=y_train.clone(),
+        train_test_split_index=5,
+    )
+    assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
+
+
+def test_binary_only_stages_reject_multiclass() -> None:
+    with pytest.raises(RuntimeError, match="binary-only"):
+        _ = _staged("nano_exact")(_batch(num_classes=3))
+
+
+def test_small_class_stage_rejects_more_classes_than_many_class_base() -> None:
+    model = _staged("small_class_head", many_class_base=4, input_normalization="none")
+    with pytest.raises(RuntimeError, match="many_class_base"):
+        _ = model(_batch(num_classes=5))
+
+
+def test_many_class_stage_emits_probabilities_in_eval_mode() -> None:
+    model = _staged("many_class", many_class_base=4, input_normalization="none")
+    model.eval()
+    batch = TaskBatch(
+        x_train=torch.randn(24, 12),
+        y_train=torch.randint(0, 6, (24,)),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 12, (8,)),
+        metadata={},
+        num_classes=12,
+    )
+
+    out = model(batch)
+
+    assert out.logits is None
+    assert out.class_probs is not None
+    assert out.class_probs.shape == (8, 12)
+    assert torch.allclose(out.class_probs.sum(dim=-1), torch.ones(8), atol=1.0e-5)
+
+
+def test_many_class_stage_emits_path_terms_in_train_mode() -> None:
+    model = _staged("many_class", many_class_base=4, input_normalization="none")
+    model.train()
+    batch = TaskBatch(
+        x_train=torch.randn(24, 12),
+        y_train=torch.randint(0, 6, (24,)),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 12, (8,)),
+        metadata={},
+        num_classes=12,
+    )
+
+    out = model(batch)
+
+    assert out.class_probs is None
+    assert out.path_logits is not None
+    assert out.path_targets is not None
+    assert out.path_sample_counts is not None
+    assert len(out.path_logits) == len(out.path_targets) == len(out.path_sample_counts)
+
+
+def test_many_class_stage_accepts_full_probs_in_train_mode() -> None:
+    model = _staged(
+        "many_class",
+        many_class_base=4,
+        input_normalization="none",
+        many_class_train_mode="full_probs",
+    )
+    model.train()
+    batch = TaskBatch(
+        x_train=torch.randn(24, 12),
+        y_train=torch.randint(0, 6, (24,)),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 12, (8,)),
+        metadata={},
+        num_classes=12,
+    )
+
+    out = model(batch)
+
+    assert out.logits is None
+    assert out.class_probs is not None
+    assert out.path_logits is None
+    assert out.path_targets is None
+    assert out.path_sample_counts is None

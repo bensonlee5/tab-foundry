@@ -1,0 +1,261 @@
+"""Helpers for building pinned OpenML benchmark bundles."""
+
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Sequence
+
+import openml
+from openml.tasks import TaskType
+
+from tab_foundry.bench.artifacts import write_json
+from tab_foundry.bench.nanotabpfn import (
+    PreparedOpenMLBenchmarkTask,
+    normalize_benchmark_bundle,
+    prepare_openml_benchmark_task,
+    read_required_openml_quality,
+)
+
+
+NOTEBOOK_TABARENA_V0_1_TASK_IDS: tuple[int, ...] = (
+    363612,
+    363613,
+    363614,
+    363615,
+    363616,
+    363618,
+    363619,
+    363620,
+    363621,
+    363623,
+    363624,
+    363625,
+    363626,
+    363627,
+    363628,
+    363629,
+    363630,
+    363631,
+    363632,
+    363671,
+    363672,
+    363673,
+    363674,
+    363675,
+    363676,
+    363677,
+    363678,
+    363679,
+    363681,
+    363682,
+    363683,
+    363684,
+    363685,
+    363686,
+    363689,
+    363691,
+    363693,
+    363694,
+    363696,
+    363697,
+    363698,
+    363699,
+    363700,
+    363702,
+    363704,
+    363705,
+    363706,
+    363707,
+    363708,
+    363711,
+    363712,
+)
+
+
+@dataclass(slots=True, frozen=True)
+class OpenMLBenchmarkBundleConfig:
+    """Configuration for generating a pinned OpenML bundle."""
+
+    bundle_name: str
+    version: int
+    new_instances: int = 200
+    max_features: int = 10
+    max_classes: int | None = 2
+    max_missing_pct: float = 0.0
+    min_minority_class_pct: float = 2.5
+    task_ids: tuple[int, ...] = NOTEBOOK_TABARENA_V0_1_TASK_IDS
+
+
+@dataclass(slots=True, frozen=True)
+class OpenMLBenchmarkTaskCandidate:
+    """Notebook-source task metadata used for bundle filtering."""
+
+    task_id: int
+    number_of_features: float
+    number_of_classes: float
+    missing_pct: float
+    minority_class_pct: float
+
+
+def _bundle_selection_payload(config: OpenMLBenchmarkBundleConfig, *, max_classes: int) -> dict[str, Any]:
+    return {
+        "new_instances": int(config.new_instances),
+        "task_type": "supervised_classification",
+        "max_features": int(config.max_features),
+        "max_classes": int(max_classes),
+        "max_missing_pct": float(config.max_missing_pct),
+        "min_minority_class_pct": float(config.min_minority_class_pct),
+    }
+
+
+def _collect_task_candidates(config: OpenMLBenchmarkBundleConfig) -> list[OpenMLBenchmarkTaskCandidate]:
+    candidates: list[OpenMLBenchmarkTaskCandidate] = []
+    for task_id in config.task_ids:
+        task = openml.tasks.get_task(int(task_id), download_splits=False)
+        if task.task_type_id != TaskType.SUPERVISED_CLASSIFICATION:
+            continue
+        task_any: Any = task
+        dataset = task_any.get_dataset(download_data=False)
+        dataset_any: Any = dataset
+        raw_qualities = dataset_any.qualities
+        candidate = OpenMLBenchmarkTaskCandidate(
+            task_id=int(task_id),
+            number_of_features=read_required_openml_quality(
+                raw_qualities,
+                task_id=int(task_id),
+                quality_name="NumberOfFeatures",
+            ),
+            number_of_classes=read_required_openml_quality(
+                raw_qualities,
+                task_id=int(task_id),
+                quality_name="NumberOfClasses",
+            ),
+            missing_pct=read_required_openml_quality(
+                raw_qualities,
+                task_id=int(task_id),
+                quality_name="PercentageOfInstancesWithMissingValues",
+            ),
+            minority_class_pct=read_required_openml_quality(
+                raw_qualities,
+                task_id=int(task_id),
+                quality_name="MinorityClassPercentage",
+            ),
+        )
+        if (
+            candidate.number_of_features <= float(config.max_features)
+            and candidate.missing_pct <= float(config.max_missing_pct)
+            and candidate.minority_class_pct >= float(config.min_minority_class_pct)
+        ):
+            candidates.append(candidate)
+    return candidates
+
+
+def _resolve_selected_tasks(
+    config: OpenMLBenchmarkBundleConfig,
+) -> tuple[list[PreparedOpenMLBenchmarkTask], int]:
+    eligible_candidates = _collect_task_candidates(config)
+    if not eligible_candidates:
+        raise RuntimeError("OpenML benchmark bundle produced no eligible tasks")
+
+    effective_max_classes = (
+        max(int(candidate.number_of_classes) for candidate in eligible_candidates)
+        if config.max_classes is None
+        else int(config.max_classes)
+    )
+    selected_candidates = [
+        candidate
+        for candidate in eligible_candidates
+        if int(candidate.number_of_classes) <= effective_max_classes
+    ]
+    if not selected_candidates:
+        raise RuntimeError("OpenML benchmark bundle produced no tasks after max_classes filtering")
+    selected_tasks = [
+        prepare_openml_benchmark_task(int(candidate.task_id), new_instances=int(config.new_instances))
+        for candidate in selected_candidates
+    ]
+    return sorted(selected_tasks, key=lambda prepared: int(prepared.task_id)), int(effective_max_classes)
+
+
+def build_openml_benchmark_bundle(config: OpenMLBenchmarkBundleConfig) -> dict[str, Any]:
+    """Build one normalized benchmark bundle from the notebook task set."""
+
+    selected_tasks, effective_max_classes = _resolve_selected_tasks(config)
+    payload = {
+        "name": str(config.bundle_name),
+        "version": int(config.version),
+        "selection": _bundle_selection_payload(config, max_classes=effective_max_classes),
+        "task_ids": [int(prepared.task_id) for prepared in selected_tasks],
+        "tasks": [dict(prepared.observed_task) for prepared in selected_tasks],
+    }
+    return normalize_benchmark_bundle(payload)
+
+
+def write_openml_benchmark_bundle(path: Path, config: OpenMLBenchmarkBundleConfig) -> Path:
+    """Write one normalized benchmark bundle to disk."""
+
+    return write_json(path.expanduser().resolve(), build_openml_benchmark_bundle(config))
+
+
+def _parse_max_classes_arg(raw_value: str) -> int | None:
+    normalized = str(raw_value).strip().lower()
+    if normalized == "auto":
+        return None
+    value = int(normalized)
+    if value <= 0:
+        raise ValueError("max_classes must be a positive int or 'auto'")
+    return value
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Build a pinned OpenML benchmark bundle")
+    parser.add_argument("--out-path", required=True, help="JSON output path for the bundle")
+    parser.add_argument("--bundle-name", required=True, help="Bundle name persisted in the JSON payload")
+    parser.add_argument("--version", type=int, required=True, help="Bundle version persisted in the JSON payload")
+    parser.add_argument("--new-instances", type=int, default=200, help="Subsampled row count used by the benchmark")
+    parser.add_argument(
+        "--max-features",
+        type=int,
+        default=10,
+        help="Maximum raw OpenML feature count allowed by the bundle filter",
+    )
+    parser.add_argument(
+        "--max-classes",
+        default="2",
+        help="Maximum class count filter, or 'auto' to widen to the highest eligible class count",
+    )
+    parser.add_argument(
+        "--max-missing-pct",
+        type=float,
+        default=0.0,
+        help="Maximum allowed percentage of instances with missing values",
+    )
+    parser.add_argument(
+        "--min-minority-class-pct",
+        type=float,
+        default=2.5,
+        help="Minimum required minority class percentage",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    config = OpenMLBenchmarkBundleConfig(
+        bundle_name=str(args.bundle_name),
+        version=int(args.version),
+        new_instances=int(args.new_instances),
+        max_features=int(args.max_features),
+        max_classes=_parse_max_classes_arg(str(args.max_classes)),
+        max_missing_pct=float(args.max_missing_pct),
+        min_minority_class_pct=float(args.min_minority_class_pct),
+    )
+    out_path = write_openml_benchmark_bundle(Path(str(args.out_path)), config)
+    print(f"wrote benchmark bundle: {out_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

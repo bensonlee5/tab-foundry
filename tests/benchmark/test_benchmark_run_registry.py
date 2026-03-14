@@ -1,0 +1,427 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+import torch
+
+import tab_foundry.bench.benchmark_run_registry as registry_module
+from tab_foundry.model.factory import build_model
+
+
+def _write_checkpoint(
+    path: Path,
+    *,
+    manifest_path: str,
+    seed: int = 1,
+    arch: str | None = "tabfoundry_staged",
+    stage: str | None = "nano_exact",
+) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    model_cfg: dict[str, object] = {
+        "d_icl": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3,
+        "head_hidden_dim": 192,
+    }
+    if arch is not None:
+        model_cfg["arch"] = arch
+    if stage is not None:
+        model_cfg["stage"] = stage
+    torch.save(
+        {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "data": {"manifest_path": manifest_path},
+                "runtime": {"seed": int(seed)},
+                "model": model_cfg,
+                "schedule": {
+                    "stages": [
+                        {
+                            "name": "stage1",
+                            "steps": 400,
+                            "lr_max": 8.0e-4,
+                            "lr_schedule": "linear",
+                            "warmup_ratio": 0.05,
+                        }
+                    ]
+                },
+            },
+        },
+        path,
+    )
+    return path
+
+
+def _write_history(path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    records = [
+        {
+            "step": 25,
+            "stage": "stage1",
+            "train_loss": 0.62,
+            "train_acc": 0.55,
+            "lr": 8.0e-4,
+            "grad_norm": 0.9,
+            "elapsed_seconds": 1.3,
+            "train_elapsed_seconds": 1.0,
+            "val_loss": 0.41,
+            "val_acc": 0.58,
+        },
+        {
+            "step": 50,
+            "stage": "stage1",
+            "train_loss": 0.44,
+            "train_acc": 0.66,
+            "lr": 8.0e-4,
+            "grad_norm": 0.7,
+            "elapsed_seconds": 2.5,
+            "train_elapsed_seconds": 2.0,
+            "val_loss": 0.31,
+            "val_acc": 0.64,
+        },
+        {
+            "step": 75,
+            "stage": "stage1",
+            "train_loss": 0.48,
+            "train_acc": 0.63,
+            "lr": 8.0e-4,
+            "grad_norm": 0.8,
+            "elapsed_seconds": 3.8,
+            "train_elapsed_seconds": 3.0,
+            "val_loss": 0.35,
+            "val_acc": 0.61,
+        },
+    ]
+    with path.open("w", encoding="utf-8") as handle:
+        for record in records:
+            json.dump(record, handle, sort_keys=True)
+            handle.write("\n")
+    return path
+
+
+def _write_comparison_summary(
+    path: Path,
+    *,
+    run_dir: Path,
+    source_bundle_path: str,
+    final_roc_auc: float = 0.83,
+) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "dataset_count": 1,
+        "benchmark_bundle": {
+            "name": "test_bundle",
+            "version": 1,
+            "source_path": source_bundle_path,
+            "task_count": 1,
+            "task_ids": [1],
+        },
+        "tab_foundry": {
+            "best_step": 50.0,
+            "best_training_time": 2.0,
+            "best_roc_auc": 0.84,
+            "final_step": 75.0,
+            "final_training_time": 3.0,
+            "final_roc_auc": float(final_roc_auc),
+            "run_dir": str(run_dir.resolve()),
+            "model_arch": "tabfoundry_staged",
+            "model_stage": "nano_exact",
+            "benchmark_profile": "nano_exact",
+        },
+        "nanotabpfn": {
+            "best_step": 25.0,
+            "best_training_time": 2.2,
+            "best_roc_auc": 0.8,
+            "final_step": 25.0,
+            "final_training_time": 2.2,
+            "final_roc_auc": 0.8,
+            "root": "/tmp/nano",
+            "python": "/tmp/nano/.venv/bin/python",
+            "num_seeds": 2,
+        },
+        "artifacts": {
+            "comparison_curve_png": str((path.parent / "comparison_curve.png").resolve()),
+        },
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (path.parent / "comparison_curve.png").write_bytes(b"png")
+    return path
+
+
+def _prepare_run(
+    repo_root: Path,
+    *,
+    run_name: str,
+    seed: int = 1,
+    final_roc_auc: float = 0.83,
+) -> tuple[Path, Path]:
+    manifest_path = repo_root / "data" / "manifests" / "default.parquet"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_bytes(b"manifest")
+    bundle_path = repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
+    bundle_path.parent.mkdir(parents=True, exist_ok=True)
+    bundle_path.write_text("{}\n", encoding="utf-8")
+
+    run_dir = repo_root / "outputs" / run_name / "train"
+    summary_path = repo_root / "outputs" / run_name / "benchmark" / "comparison_summary.json"
+    _write_checkpoint(
+        run_dir / "checkpoints" / "best.pt",
+        manifest_path="data/manifests/default.parquet",
+        seed=seed,
+    )
+    _write_history(run_dir / "train_history.jsonl")
+    _write_comparison_summary(
+        summary_path,
+        run_dir=run_dir,
+        source_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        final_roc_auc=final_roc_auc,
+    )
+    return run_dir, summary_path
+
+
+def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(repo_root, run_name="stage_01")
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    assert record["manifest_path"] == "data/manifests/default.parquet"
+    assert record["seed_set"] == [1]
+    assert record["model"]["arch"] == "tabfoundry_staged"
+    assert record["model"]["stage"] == "nano_exact"
+    assert record["training_diagnostics"]["best_val_loss"] == pytest.approx(0.31)
+    assert record["training_diagnostics"]["best_val_step"] == pytest.approx(50.0)
+    assert record["training_diagnostics"]["final_grad_norm"] == pytest.approx(0.8)
+    assert record["model_size"]["total_params"] > 0
+    assert record["model_size"]["trainable_params"] > 0
+    assert record["artifacts"]["run_dir"] == "outputs/stage_01/train"
+    assert record["benchmark_bundle"]["source_path"] == (
+        "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
+    )
+
+
+def test_derive_benchmark_run_record_falls_back_to_best_benchmark_step_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(repo_root, run_name="prior_like")
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    best_checkpoint = run_dir / "checkpoints" / "best.pt"
+    best_checkpoint.unlink()
+    _write_checkpoint(
+        run_dir / "checkpoints" / "step_000050.pt",
+        manifest_path="data/manifests/default.parquet",
+        seed=1,
+    )
+    _write_checkpoint(
+        run_dir / "checkpoints" / "step_000075.pt",
+        manifest_path="data/manifests/default.parquet",
+        seed=1,
+    )
+    _write_checkpoint(
+        run_dir / "checkpoints" / "latest.pt",
+        manifest_path="data/manifests/default.parquet",
+        seed=1,
+    )
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    assert record["artifacts"]["best_checkpoint_path"] == (
+        "outputs/prior_like/train/checkpoints/step_000050.pt"
+    )
+    assert record["model_size"]["total_params"] > 0
+
+
+def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    registry_path = repo_root / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+    anchor_run_dir, anchor_summary = _prepare_run(repo_root, run_name="anchor", seed=1, final_roc_auc=0.83)
+    child_run_dir, child_summary = _prepare_run(repo_root, run_name="label_token", seed=2, final_roc_auc=0.87)
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    _ = registry_module.register_benchmark_run(
+        run_id="00_simple_anchor",
+        track="binary_ladder",
+        experiment="cls_benchmark_linear_simple",
+        config_profile="cls_benchmark_linear_simple",
+        budget_class="short-run",
+        run_dir=anchor_run_dir,
+        comparison_summary_path=anchor_summary,
+        decision="keep",
+        conclusion="Frozen anchor for staged comparisons.",
+        registry_path=registry_path,
+    )
+    result = registry_module.register_benchmark_run(
+        run_id="01_nano_exact",
+        track="binary_ladder",
+        experiment="cls_benchmark_staged",
+        config_profile="cls_benchmark_staged",
+        budget_class="short-run",
+        run_dir=child_run_dir,
+        comparison_summary_path=child_summary,
+        decision="keep",
+        conclusion="Exact staged repro matches the frozen anchor contract.",
+        parent_run_id="00_simple_anchor",
+        anchor_run_id="00_simple_anchor",
+        registry_path=registry_path,
+    )
+
+    assert result["registry_path"] == str(registry_path.resolve())
+    run_entry = result["run"]
+    assert run_entry["artifacts"]["run_dir"] == "outputs/label_token/train"
+    assert run_entry["comparisons"]["vs_parent"]["reference_run_id"] == "00_simple_anchor"
+    assert run_entry["comparisons"]["vs_parent"]["final_roc_auc_delta"] == pytest.approx(0.04)
+    assert run_entry["decision"] == "keep"
+    child_record_path = repo_root / str(run_entry["artifacts"]["benchmark_run_record_path"])
+    assert child_record_path.exists()
+    child_record = json.loads(child_record_path.read_text(encoding="utf-8"))
+    assert child_record["manifest_path"] == "data/manifests/default.parquet"
+
+    registry = registry_module.load_benchmark_run_registry(registry_path)
+    assert set(registry["runs"]) == {"00_simple_anchor", "01_nano_exact"}
+    assert registry["runs"]["01_nano_exact"]["comparisons"]["vs_anchor"]["final_roc_auc_delta"] == pytest.approx(0.04)
+
+
+def test_register_benchmark_run_rejects_unknown_parent(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    registry_path = repo_root / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+    run_dir, summary_path = _prepare_run(repo_root, run_name="stage_01")
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    with pytest.raises(RuntimeError, match="unknown parent_run_id"):
+        registry_module.register_benchmark_run(
+            run_id="01_nano_exact",
+            track="binary_ladder",
+            experiment="cls_benchmark_staged",
+            config_profile="cls_benchmark_staged",
+            budget_class="short-run",
+            run_dir=run_dir,
+            comparison_summary_path=summary_path,
+            decision="defer",
+            conclusion="Waiting on the frozen anchor comparison.",
+            parent_run_id="missing",
+            registry_path=registry_path,
+        )
+
+
+def test_derive_benchmark_run_record_rejects_legacy_checkpoint_without_arch_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(repo_root, run_name="legacy_simple_anchor")
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    simple_model = build_model(
+        task="classification",
+        arch="tabfoundry_simple",
+        d_icl=96,
+        input_normalization="train_zscore_clip",
+        many_class_base=2,
+        tficl_n_heads=4,
+        tficl_n_layers=3,
+        head_hidden_dim=192,
+    )
+    torch.save(
+        {
+            "model": simple_model.state_dict(),
+            "config": {
+                "task": "classification",
+                "data": {"manifest_path": "data/manifests/default.parquet"},
+                "runtime": {"seed": 1},
+                "model": {
+                    "d_icl": 96,
+                    "input_normalization": "train_zscore_clip",
+                    "many_class_base": 2,
+                    "tficl_n_heads": 4,
+                    "tficl_n_layers": 3,
+                    "head_hidden_dim": 192,
+                },
+                "schedule": {
+                    "stages": [
+                        {
+                            "name": "stage1",
+                            "steps": 400,
+                            "lr_max": 8.0e-4,
+                            "lr_schedule": "linear",
+                            "warmup_ratio": 0.05,
+                        }
+                    ]
+                },
+            },
+        },
+        run_dir / "checkpoints" / "best.pt",
+    )
+
+    with pytest.raises(RuntimeError, match="persisted model.arch"):
+        registry_module.derive_benchmark_run_record(
+            run_dir=run_dir,
+            comparison_summary_path=summary_path,
+            benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+        )
+
+
+def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_feature_group_size(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(repo_root, run_name="legacy_grouped")
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    grouped_model = build_model(task="classification", feature_group_size=32)
+    torch.save(
+        {
+            "model": grouped_model.state_dict(),
+            "config": {
+                "task": "classification",
+                "data": {"manifest_path": "data/manifests/default.parquet"},
+                "runtime": {"seed": 1},
+                "model": {"arch": "tabfoundry"},
+                "schedule": {
+                    "stages": [
+                        {
+                            "name": "stage1",
+                            "steps": 400,
+                            "lr_max": 8.0e-4,
+                            "lr_schedule": "linear",
+                            "warmup_ratio": 0.05,
+                        }
+                    ]
+                },
+            },
+        },
+        run_dir / "checkpoints" / "best.pt",
+    )
+
+    with pytest.raises(ValueError, match="omitted feature_group_size"):
+        registry_module.derive_benchmark_run_record(
+            run_dir=run_dir,
+            comparison_summary_path=summary_path,
+            benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+        )

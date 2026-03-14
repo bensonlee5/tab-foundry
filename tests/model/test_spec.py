@@ -6,6 +6,7 @@ import torch
 from tab_foundry.model.factory import build_model
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import (
+    ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
     model_build_spec_from_mappings,
 )
@@ -76,6 +77,21 @@ def test_checkpoint_build_spec_supports_explicit_nondefault_feature_group_size()
     )
 
     assert spec.feature_group_size == 32
+
+
+def test_staged_model_defaults_stage_to_nano_exact() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={"arch": "tabfoundry_staged"},
+    )
+
+    assert spec.arch == "tabfoundry_staged"
+    assert spec.stage == "nano_exact"
+
+
+def test_non_staged_arch_rejects_stage() -> None:
+    with pytest.raises(ValueError, match="model.stage"):
+        _ = ModelBuildSpec(task="classification", arch="tabfoundry", stage="nano_exact")
 
 
 def test_checkpoint_build_spec_round_trips_model_arch() -> None:

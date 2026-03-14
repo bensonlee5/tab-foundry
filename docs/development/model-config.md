@@ -104,7 +104,8 @@ did not yet serialize every reconstruction field.
 
 | Name | Type | Default | Applies To | Meaning |
 | ---- | ---- | ---- | ---- | ---- |
-| `arch` | `str` | `"tabfoundry"` | both | Model architecture. Supported values are `tabfoundry` and the binary benchmark/debug architecture `tabfoundry_simple`. |
+| `arch` | `str` | `"tabfoundry"` | both | Model architecture. Supported values are `tabfoundry`, the frozen binary repro architecture `tabfoundry_simple`, and the staged classification research family `tabfoundry_staged`. |
+| `stage` | `str \| null` | `null` | classification | Stage selector for `tabfoundry_staged`. `null` resolves to `nano_exact` when `arch=tabfoundry_staged`; non-null values are rejected for `tabfoundry` and `tabfoundry_simple`. |
 | `d_col` | `int` | `128` | both | Width of grouped feature tokens and the column encoder. |
 | `d_icl` | `int` | `512` | both | Width of row embeddings and the final in-context encoder. |
 | `input_normalization` | `str` | `"none"` | both | Train/test feature normalization mode. Supported values are `none`, `train_zscore`, and `train_zscore_clip`. |
@@ -131,6 +132,7 @@ did not yet serialize every reconstruction field.
 These parameters set the overall model size:
 
 - `arch`
+- `stage`
 - `d_col`
 - `d_icl`
 - `tfcol_n_layers`
@@ -169,7 +171,8 @@ Regression also has a fixed, non-configurable `999`-quantile output grid.
 
 ## Interaction Notes
 
-- `tabfoundry_simple` is an exact nanoTabPFN-style binary debug architecture.
+- `tabfoundry_simple` is frozen as the exact nanoTabPFN-style binary repro and
+  benchmark anchor.
   It requires:
   - `task=classification`
   - `num_classes=2`
@@ -178,6 +181,28 @@ Regression also has a fixed, non-configurable `999`-quantile output grid.
     It reuses `d_icl`, `tficl_n_heads`, `tficl_n_layers`, and `head_hidden_dim`,
     and rejects non-default tabfoundry-only knobs such as grouped-token,
     row/column encoder, and many-class-path settings.
+- `tabfoundry_staged` is the classification-only staged research family.
+  `model.stage` defaults to `nano_exact`, and non-null `model.stage` is rejected
+  for `tabfoundry` and `tabfoundry_simple`.
+- The current staged ladder is:
+  - `nano_exact`
+  - `label_token`
+  - `shared_norm`
+  - `prenorm_block`
+  - `small_class_head`
+  - `test_self`
+  - `grouped_tokens`
+  - `row_cls_pool`
+  - `column_set`
+  - `qass_context`
+  - `many_class`
+- Staged recipes before `shared_norm` keep the nano-style internal
+  `train_zscore_clip` path. `shared_norm` and later stages use the shared repo
+  normalization pipeline and honor `input_normalization`.
+- The intended public tuning surface for `tabfoundry_staged` is small:
+  `d_icl`, `tficl_n_heads`, `tficl_n_layers`, `head_hidden_dim`, and
+  `input_normalization`. Low-level module choices stay internal to the stage
+  recipe registry until they prove worth exposing.
 - `feature_group_size` changes both compute and inductive bias. Larger groups
   reduce token count but make each token represent a wider local feature bundle.
 - `many_class_base` affects both the small-class classifier head width and the
@@ -204,6 +229,33 @@ Grouped-token experiment:
 
 ```bash
 uv run tab-foundry train experiment=cls_smoke model.feature_group_size=32
+```
+
+Frozen nanoTabPFN repro benchmark:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_benchmark_linear_simple \
+  data.manifest_path=<binary_manifest.parquet>
+```
+
+Staged benchmark family from the exact repro starting point:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_benchmark_staged \
+  data.manifest_path=<binary_manifest.parquet>
+```
+
+Promote one staged benchmark step while keeping the shared width/depth surface:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_benchmark_staged \
+  data.manifest_path=<binary_manifest.parquet> \
+  model.stage=shared_norm \
+  model.d_icl=128 \
+  model.tficl_n_layers=4
 ```
 
 Many-class evaluation through full probabilities:

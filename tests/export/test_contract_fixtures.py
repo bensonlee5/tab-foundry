@@ -203,3 +203,25 @@ def test_v3_manifest_validation_rejects_old_inference_model_arch() -> None:
 
     with pytest.raises(ValueError, match="Unsupported inference model_arch"):
         validate_manifest_dict(payload)
+
+
+def test_manifest_validation_accepts_additive_staged_model_stage_fields() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    model_payload = dict(payload["model"])
+    model_payload["arch"] = "tabfoundry_staged"
+    model_payload["stage"] = "nano_exact"
+    model_payload["input_normalization"] = "train_zscore_clip"
+    model_payload["many_class_base"] = 2
+    payload["model"] = model_payload
+
+    inference_payload = dict(payload["inference"])
+    inference_payload["model_arch"] = "tabfoundry_staged"
+    inference_payload["model_stage"] = "nano_exact"
+    payload["inference"] = inference_payload
+
+    manifest = validate_manifest_dict(payload)
+
+    assert manifest.model.arch == "tabfoundry_staged"
+    assert manifest.model.stage == "nano_exact"
+    assert manifest.inference is not None
+    assert manifest.inference.model_stage == "nano_exact"

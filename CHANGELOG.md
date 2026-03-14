@@ -43,6 +43,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nanoTabPFN-style ablation work on the current 3-task control benchmark.
 - Fixed many-class hierarchical path target clamping to respect the configured
   `many_class_base` instead of hardcoding base-10 behavior.
+- `TabFoundryStagedClassifier` now rejects unsupported
+  `many_class_train_mode` and `input_normalization` values during
+  construction, matching the eager validation behavior already enforced by the
+  canonical model spec and the existing tabfoundry model families.
+
+## [0.3.2] - 2026-03-13
+
+### Changed
+
+- `scripts/benchmark_nanotabpfn.py` now accepts an additive
+  `--benchmark-bundle-path` override so staged benchmark runs can target a
+  repo-tracked non-default OpenML bundle while keeping the binary 3-task bundle
+  as the default compare path.
+- Added `scripts/build_openml_benchmark_bundle.py` plus the repo-tracked
+  `src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`
+  companion bundle, which widens the nanoTabPFN notebook's TabArena v0.1 task
+  set from binary-only to small multiclass without changing the other bundle
+  selection thresholds or runtime drift-check contract.
+- Prior-dump training now rejects staged `model.stage="many_class"` configs up
+  front instead of failing on the first batch when the staged model does not
+  expose direct `forward_batched()` tensor logits.
+- `tab-foundry-export-v2` validation now rejects bundles whose
+  `manifest.json` and `inference_config.json` disagree on `model_arch` or
+  staged `model_stage`, preventing contradictory model identity metadata from
+  loading successfully.
 
 ## [0.3.1] - 2026-03-13
 

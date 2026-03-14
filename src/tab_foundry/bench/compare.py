@@ -7,9 +7,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import subprocess
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
+from tab_foundry.bench.benchmark_run_registry import derive_benchmark_run_record
 from tab_foundry.bench.control_baseline import (
     default_control_baseline_registry_path,
     load_control_baseline_entry,
@@ -48,6 +49,7 @@ class NanoTabPFNBenchmarkConfig:
     nanotabpfn_lr: float = DEFAULT_NANOTABPFN_LR
     control_baseline_id: str | None = None
     control_baseline_registry: Path | None = None
+    benchmark_bundle_path: Path | None = None
 
 
 def _default_out_root() -> Path:
@@ -136,8 +138,15 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     nanotabpfn_curve_path = out_root / "nanotabpfn_curve.jsonl"
     comparison_curve_path = out_root / "comparison_curve.png"
     comparison_summary_path = out_root / "comparison_summary.json"
-    benchmark_bundle_path = default_benchmark_bundle_path()
+    benchmark_run_record_path = out_root / "benchmark_run_record.json"
+    benchmark_bundle_path = (
+        default_benchmark_bundle_path()
+        if config.benchmark_bundle_path is None
+        else config.benchmark_bundle_path.expanduser().resolve()
+    )
     benchmark_bundle = load_benchmark_bundle(benchmark_bundle_path)
+    benchmark_selection = cast(dict[str, Any], benchmark_bundle["selection"])
+    benchmark_new_instances = int(benchmark_selection["new_instances"])
     control_baseline = None
     if config.control_baseline_id is not None:
         control_baseline = load_control_baseline_entry(
@@ -146,6 +155,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         )
 
     datasets, benchmark_tasks = load_openml_benchmark_datasets(
+        new_instances=benchmark_new_instances,
         benchmark_bundle_path=benchmark_bundle_path,
     )
     write_json(benchmark_tasks_path, benchmark_bundle)
@@ -193,8 +203,21 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         "nanotabpfn_curve_jsonl": str(nanotabpfn_curve_path),
         "comparison_curve_png": str(comparison_curve_path),
         "benchmark_dataset_cache": str(dataset_cache_path),
+        "benchmark_run_record_json": str(benchmark_run_record_path),
     }
     write_json(comparison_summary_path, summary)
+    benchmark_run_record = derive_benchmark_run_record(
+        run_dir=tab_foundry_run_dir,
+        comparison_summary_path=comparison_summary_path,
+        benchmark_run_record_path=benchmark_run_record_path,
+    )
+    tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
+    tab_foundry_summary["manifest_path"] = str(benchmark_run_record["manifest_path"])
+    tab_foundry_summary["seed_set"] = list(benchmark_run_record["seed_set"])
+    tab_foundry_summary["training_diagnostics"] = dict(benchmark_run_record["training_diagnostics"])
+    tab_foundry_summary["model_size"] = dict(benchmark_run_record["model_size"])
+    write_json(comparison_summary_path, summary)
+    write_json(benchmark_run_record_path, benchmark_run_record)
     return summary
 
 
@@ -236,6 +259,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=str(default_control_baseline_registry_path()),
         help="Control baseline registry JSON path used with --control-baseline-id",
     )
+    parser.add_argument(
+        "--benchmark-bundle-path",
+        default=None,
+        help="Optional repo-tracked OpenML benchmark bundle JSON path",
+    )
     return parser
 
 
@@ -257,6 +285,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             control_baseline_registry=(
                 Path(str(args.control_baseline_registry))
                 if args.control_baseline_registry
+                else None
+            ),
+            benchmark_bundle_path=(
+                Path(str(args.benchmark_bundle_path))
+                if args.benchmark_bundle_path
                 else None
             ),
         )

@@ -4,6 +4,12 @@ This document describes the current `tabfoundry` transformer family as it is
 implemented in the repo today. It is an implementation reference for
 maintainers, not a paper summary.
 
+The repo also carries two adjacent classification architectures:
+
+- `tabfoundry_simple`: the frozen exact nanoTabPFN repro and benchmark anchor
+- `tabfoundry_staged`: the staged research family implemented under
+  `src/tab_foundry/model/architectures/tabfoundry_staged/`
+
 Related docs:
 
 - `docs/development/model-config.md`
@@ -14,6 +20,7 @@ Related code paths:
 - `src/tab_foundry/model/components/blocks.py`
 - `src/tab_foundry/model/components/qass.py`
 - `src/tab_foundry/model/components/many_class.py`
+- `src/tab_foundry/model/architectures/tabfoundry_staged/`
 - `src/tab_foundry/model/spec.py`
 - `configs/model/default.yaml`
 

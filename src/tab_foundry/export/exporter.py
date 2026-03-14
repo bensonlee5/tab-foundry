@@ -108,7 +108,8 @@ def _inference_config(task: str, model_spec: ExportModelSpec) -> InferenceConfig
         quantile_levels = [float(v) for v in levels.tolist()]
     return InferenceConfig(
         task=task,
-        model_arch="tabfoundry",
+        model_arch=str(model_spec.arch),
+        model_stage=None if model_spec.stage is None else str(model_spec.stage),
         group_shifts=list(DEFAULT_GROUP_SHIFTS),
         feature_group_size=int(model_spec.feature_group_size),
         many_class_threshold=DEFAULT_MANY_CLASS_THRESHOLD,
@@ -192,11 +193,6 @@ def export_checkpoint(
 
     state_dict = _normalize_state_dict(payload["model"])
     model_build_spec = _checkpoint_model_spec(cfg, task=task, state_dict=state_dict)
-    if model_build_spec.arch != "tabfoundry":
-        raise ValueError(
-            "export only supports model.arch='tabfoundry' in phase 1; "
-            f"got {model_build_spec.arch!r}"
-        )
     model_spec = ExportModelSpec.from_build_spec(model_build_spec)
 
     bundle_dir = out_dir.expanduser().resolve()
@@ -320,6 +316,10 @@ def validate_export_bundle(bundle_dir: Path) -> ValidatedBundle:
 
     if inference.task != manifest.task:
         raise ValueError("manifest.task and inference_config.task mismatch")
+    if inference.model_arch != manifest.model.arch:
+        raise ValueError("manifest.model.arch and inference_config.model_arch mismatch")
+    if inference.model_stage != manifest.model.stage:
+        raise ValueError("manifest.model.stage and inference_config.model_stage mismatch")
     if inference.feature_group_size != manifest.model.feature_group_size:
         raise ValueError("feature_group_size mismatch between manifest and inference_config")
 
