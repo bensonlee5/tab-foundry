@@ -70,6 +70,7 @@ def _make_config(
     model_overrides: dict[str, object] | None = None,
 ) -> dict[str, object]:
     model_cfg: dict[str, object] = {
+        "arch": "tabfoundry",
         "d_col": 128,
         "d_icl": 512,
         "input_normalization": input_normalization,
@@ -263,6 +264,26 @@ def test_export_bundle_supports_explicit_nondefault_feature_group_size(
 
     assert manifest["model"]["feature_group_size"] == 32
     assert manifest["inference"]["feature_group_size"] == 32
+
+
+def test_export_bundle_rejects_tabfoundry_simple_checkpoint(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_simple.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_simple",
+            "d_icl": 96,
+            "many_class_base": 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+    )
+
+    with pytest.raises(ValueError, match="export only supports model.arch='tabfoundry'"):
+        _ = _export_v3_checkpoint(checkpoint, tmp_path / "export_simple")
 
 
 def test_validate_export_detects_weights_checksum_tamper(tmp_path: Path) -> None:

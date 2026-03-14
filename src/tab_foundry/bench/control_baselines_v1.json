@@ -23,12 +23,12 @@
         1
       ],
       "tab_foundry_metrics": {
-        "best_roc_auc": 0.5766345164688179,
-        "best_step": 100.0,
-        "best_training_time": 28.62284566508606,
-        "final_roc_auc": 0.4196190868008127,
+        "best_roc_auc": 0.5272379558159583,
+        "best_step": 75.0,
+        "best_training_time": 21.534439208218828,
+        "final_roc_auc": 0.5159009977207065,
         "final_step": 400.0,
-        "final_training_time": 109.52822166995611
+        "final_training_time": 108.01595487748273
       }
     }
   },

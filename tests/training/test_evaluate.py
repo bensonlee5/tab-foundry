@@ -72,8 +72,10 @@ def test_evaluate_checkpoint_uses_checkpoint_model_config(
             "config": {
                 "task": "regression",
                 "model": {
+                    "arch": "tabfoundry_simple",
                     "d_col": 64,
                     "d_icl": 256,
+                    "input_normalization": "train_zscore",
                     "feature_group_size": 1,
                     "many_class_train_mode": "path_nll",
                     "max_mixed_radix_digits": 32,
@@ -112,8 +114,10 @@ def test_evaluate_checkpoint_uses_checkpoint_model_config(
         _ = evaluate_module.evaluate_checkpoint(cfg)
 
     assert captured["task"] == "regression"
+    assert captured["arch"] == "tabfoundry_simple"
     assert captured["d_col"] == 64
     assert captured["d_icl"] == 256
+    assert captured["input_normalization"] == "train_zscore"
     assert captured["feature_group_size"] == 1
 
 
