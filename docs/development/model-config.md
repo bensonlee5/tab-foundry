@@ -106,6 +106,8 @@ did not yet serialize every reconstruction field.
 | ---- | ---- | ---- | ---- | ---- |
 | `arch` | `str` | `"tabfoundry"` | both | Model architecture. Supported values are `tabfoundry`, the frozen binary repro architecture `tabfoundry_simple`, and the staged classification research family `tabfoundry_staged`. |
 | `stage` | `str \| null` | `null` | classification | Stage selector for `tabfoundry_staged`. `null` resolves to `nano_exact` when `arch=tabfoundry_staged`; non-null values are rejected for `tabfoundry` and `tabfoundry_simple`. |
+| `stage_label` | `str \| null` | `null` | classification | Optional reporting label for staged runs. When present, benchmark/profile metadata uses this label while the underlying recipe still resolves from `stage`. |
+| `module_overrides` | `mapping \| null` | `null` | classification | Additive atomic staged-surface overrides. Supported top-level keys are `feature_encoder`, `target_conditioner`, `tokenizer`, `column_encoder`, `row_pool`, `context_encoder`, `head`, `table_block_style`, and `allow_test_self_attention`. |
 | `d_col` | `int` | `128` | both | Width of grouped feature tokens and the column encoder. |
 | `d_icl` | `int` | `512` | both | Width of row embeddings and the final in-context encoder. |
 | `input_normalization` | `str` | `"none"` | both | Train/test feature normalization mode. Supported values are `none`, `train_zscore`, and `train_zscore_clip`. |
@@ -184,7 +186,8 @@ Regression also has a fixed, non-configurable `999`-quantile output grid.
 - `tabfoundry_staged` is the classification-only staged research family.
   `model.stage` defaults to `nano_exact`, and non-null `model.stage` is rejected
   for `tabfoundry` and `tabfoundry_simple`.
-- The current staged ladder is:
+- `model.stage` remains the legacy recipe-selector and compatibility surface.
+  Supported recipe names are:
   - `nano_exact`
   - `label_token`
   - `shared_norm`
@@ -196,13 +199,35 @@ Regression also has a fixed, non-configurable `999`-quantile output grid.
   - `column_set`
   - `qass_context`
   - `many_class`
-- Staged recipes before `shared_norm` keep the nano-style internal
-  `train_zscore_clip` path. `shared_norm` and later stages use the shared repo
-  normalization pipeline and honor `input_normalization`.
-- The intended public tuning surface for `tabfoundry_staged` is small:
+- New isolated staged experiments should prefer queue-managed
+  `stage_label + module_overrides` on top of the base recipe rather than
+  treating the legacy stage list as a promotion ladder.
+- On the resolved staged surface, normalization mode depends on the effective
+  feature encoder:
+  - `feature_encoder=nano` keeps internal benchmark normalization
+  - `feature_encoder=shared` uses the shared repo normalization pipeline and
+    honors `input_normalization`
+- `module_overrides` supports these atomic change families:
+  - `feature_encoder`
+  - `target_conditioner`
+  - `tokenizer`
+  - `column_encoder`
+  - `row_pool`
+  - `context_encoder`
+  - `head`
+  - `table_block_style`
+  - `allow_test_self_attention`
+- Important staged override constraints:
+  - `tokenizer` overrides are ineffective while the effective feature encoder is
+    `nano`
+  - `allow_test_self_attention=true` is only valid with
+    `table_block_style=prenorm`
+  - `head=many_class` requires a non-`none` `context_encoder`
+- The low-level numeric tuning surface for `tabfoundry_staged` is still mainly
   `d_icl`, `tficl_n_heads`, `tficl_n_layers`, `head_hidden_dim`, and
-  `input_normalization`. Low-level module choices stay internal to the stage
-  recipe registry until they prove worth exposing.
+  `input_normalization`. The sweep system adds `stage_label` and
+  `module_overrides` so isolated structural changes are explicit and
+  attributable.
 - `feature_group_size` changes both compute and inductive bias. Larger groups
   reduce token count but make each token represent a wider local feature bundle.
 - `many_class_base` affects both the small-class classifier head width and the
@@ -247,16 +272,22 @@ uv run tab-foundry train \
   data.manifest_path=<binary_manifest.parquet>
 ```
 
-Promote one staged benchmark step while keeping the shared width/depth surface:
+Queue-driven isolated staged delta surface:
 
-```bash
-uv run tab-foundry train \
-  experiment=cls_benchmark_staged \
-  data.manifest_path=<binary_manifest.parquet> \
-  model.stage=shared_norm \
-  model.d_icl=128 \
-  model.tficl_n_layers=4
+```yaml
+model:
+  stage: nano_exact
+  stage_label: delta_row_cls_pool
+  module_overrides:
+    row_pool: row_cls
+  d_icl: 96
+  tficl_n_heads: 4
+  tficl_n_layers: 3
+  head_hidden_dim: 192
 ```
+
+Prefer emitting staged deltas through `reference/system_delta_campaign_template.md`
+and the active queue row rather than relying on ad hoc CLI mapping syntax.
 
 Many-class evaluation through full probabilities:
 
