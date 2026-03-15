@@ -115,6 +115,7 @@ def test_cls_benchmark_linear_simple_prior_resolution() -> None:
     assert str(cfg.optimizer.name) == "schedulefree_adamw"
     assert bool(cfg.optimizer.require_requested) is True
     assert float(cfg.optimizer.weight_decay) == 0.0
+    assert list(cfg.optimizer.betas) == [0.9, 0.999]
     assert float(cfg.optimizer.min_lr) == 4.0e-3
     assert bool(cfg.optimizer.muon_per_parameter_lr) is False
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_linear_simple_prior/train_history.jsonl"
@@ -148,6 +149,7 @@ def test_cls_benchmark_staged_prior_resolution() -> None:
     assert str(cfg.optimizer.name) == "schedulefree_adamw"
     assert bool(cfg.optimizer.require_requested) is True
     assert float(cfg.optimizer.weight_decay) == 0.0
+    assert list(cfg.optimizer.betas) == [0.9, 0.999]
     assert float(cfg.optimizer.min_lr) == 4.0e-3
     assert bool(cfg.optimizer.muon_per_parameter_lr) is False
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_staged_prior/train_history.jsonl"
