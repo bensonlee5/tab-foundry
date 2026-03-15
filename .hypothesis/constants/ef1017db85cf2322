@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/architectures/tabfoundry.py
+# hypothesis_version: 6.151.9
+
+[0.0, 1e-12, 128, 512, 999, 1024, 'constant', 'full_probs', 'none', 'path_nll', 'quantile_levels', 'tfcol_n_heads', 'tfcol_n_inducing', 'tfcol_n_layers', 'tficl_ff_expansion', 'tficl_n_heads', 'tficl_n_layers', 'tfrow_cls_tokens', 'tfrow_n_heads', 'tfrow_n_layers']

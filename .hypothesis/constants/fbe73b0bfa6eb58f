@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/openml_benchmark_bundle.py
+# hypothesis_version: 6.151.9
+
+[0.0, 2.5, 200, '--bundle-name', '--max-classes', '--max-features', '--max-missing-pct', '--new-instances', '--out-path', '--task-source', '--version', '2', 'NumberOfClasses', 'NumberOfFeatures', '__main__', 'auto', 'max_classes', 'max_features', 'max_missing_pct', 'name', 'new_instances', 'selection', 'task_ids', 'task_type', 'tasks', 'version']

@@ -1,36 +1,61 @@
 # Module Dependency Map
 
-This file is a maintained baseline for imports under `src/tab_foundry`.
-It is hand-authored for now; there is no generator for this document yet.
+This file records the current top-level package graph under `src/tab_foundry`
+and the intended dependency-direction policy for future refactors.
 
-Update it when major package boundaries move or when a new top-level package
-area becomes part of the canonical architecture.
+The observed graph is synchronized against
+`scripts/audit/module_graph.py --fail-on-doc-drift`. Keep the current-state
+section factual and keep design intent in the policy section below it.
 
-## Package Dependency DAG
+## Observed Current Top-Level Package Graph
+
+<!-- module-graph:start -->
 
 - `tab_foundry.__main__` depends on `tab_foundry.cli`.
-- `tab_foundry.cli` depends on `tab_foundry.cli.commands`.
-- `tab_foundry.cli.commands` depends on `tab_foundry.bench`,
-  `tab_foundry.config`, `tab_foundry.data`, `tab_foundry.export`, and
-  `tab_foundry.training`.
-- `tab_foundry.bench` depends on `tab_foundry.config`, `tab_foundry.data`,
-  `tab_foundry.export`, `tab_foundry.model`, and `tab_foundry.training`.
-- `tab_foundry.training` depends on `tab_foundry.data` and
+- `tab_foundry.bench` depends on `tab_foundry.config`,
+  `tab_foundry.data`, `tab_foundry.input_normalization`,
+  `tab_foundry.model`, `tab_foundry.training`, and `tab_foundry.types`.
+- `tab_foundry.cli` depends on `tab_foundry.config`,
+  `tab_foundry.data`, `tab_foundry.export`, and `tab_foundry.training`.
+- `tab_foundry.data` depends on `tab_foundry.preprocessing` and
+  `tab_foundry.types`.
+- `tab_foundry.export` depends on `tab_foundry.input_normalization`,
+  `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
+- `tab_foundry.model` depends on `tab_foundry.input_normalization` and
+  `tab_foundry.types`.
+- `tab_foundry.research` depends on `tab_foundry.bench` and
   `tab_foundry.model`.
-- `tab_foundry.export` depends on `tab_foundry.model`.
-- `tab_foundry.model.factory` depends on `tab_foundry.model.architectures`.
-- `tab_foundry.model.architectures` depends on
-  `tab_foundry.model.components`.
-- `tab_foundry.data.sources` depends on `tab_foundry.data`.
-- `tab_foundry.model` currently depends on small root helpers such as
-  `tab_foundry.input_normalization` and `tab_foundry.types`, but it should
-  avoid depending on `bench`, `training`, or `export`.
+- `tab_foundry.training` depends on `tab_foundry.data`,
+  `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
+
+<!-- module-graph:end -->
+
+Observed cycle status:
+
+- no top-level cycle candidates
+
+## Intended Dependency-Direction Policy
+
 - `tab_foundry.config`, `tab_foundry.types`, and
-  `tab_foundry.input_normalization` are shared helpers and should remain
-  dependency-light.
-- Package roots such as `tab_foundry.model`, `tab_foundry.data`, and
-  `tab_foundry.export` are namespaces. New imports should target concrete
-  submodules rather than relying on package-root convenience exports.
+  `tab_foundry.input_normalization` should remain dependency-light helpers.
+- `tab_foundry.model` should stay independent of `bench`, `research`,
+  `training`, and `export`.
+- `tab_foundry.preprocessing` should remain a leaf-style utility package that
+  can be used by `data`, `training`, and `export` without growing orchestration
+  logic of its own.
+- `tab_foundry.data` may depend on `preprocessing` helpers and shared types,
+  but it should not depend on `training`, `bench`, or `research`.
+- `tab_foundry.training` may depend on `data`, `model`, `preprocessing`, and
+  shared helpers, but it should not depend on `bench` or `research`.
+- `tab_foundry.export` may depend on `model`, `preprocessing`, and shared
+  helpers, but it should not depend on `bench`, `research`, or `training`.
+- `tab_foundry.bench` is the benchmark and harness layer. It may depend on
+  `config`, `data`, `model`, `training`, and shared helpers, but lower layers
+  should not depend on it.
+- `tab_foundry.research` is the sweep-management layer. It may depend on
+  `bench` and `model`, but lower layers should not depend on it.
+- `scripts/` should remain thin wrapper entrypoints over `bench/`, `research/`,
+  or CLI/library modules rather than reimplementing workflow logic.
 
 ## Change-Impact Hotspots
 
@@ -38,14 +63,14 @@ area becomes part of the canonical architecture.
 
 - Shared model construction surface used by training, evaluation, export, and
   checkpoint loading.
-- Changes here ripple into CLI flows, `bench/` harnesses, and export
-  compatibility.
+- Changes here ripple into CLI flows, `bench/` harnesses, research sweeps, and
+  export compatibility.
 
 ### `src/tab_foundry/training/trainer.py`
 
 - Central training loop and artifact-emission surface.
-- Changes here affect smoke, tuning, checkpoint benchmarking, and shortlist
-  evaluation workflows.
+- Changes here affect smoke, tuning, checkpoint benchmarking, and staged prior
+  workflows.
 
 ### `src/tab_foundry/export/contracts.py`
 
@@ -55,20 +80,11 @@ area becomes part of the canonical architecture.
 ### `src/tab_foundry/bench/compare.py` And `src/tab_foundry/bench/checkpoint.py`
 
 - Benchmark-facing comparison and checkpoint evaluation logic.
-- Changes here affect external-baseline comparison and control-promotion
-  workflows.
+- Changes here affect external-baseline comparison and benchmark registry
+  records.
 
-### `src/tab_foundry/data/manifest.py` And `src/tab_foundry/data/sources/manifest.py`
+### `src/tab_foundry/research/system_delta.py`
 
-- Manifest-backed data is the canonical source path today.
-- Changes here ripple through train, eval, smoke, and export workflows.
-
-## Current Gaps Versus Target Layout
-
-- The `model/components` / `model/architectures` split is now implemented, but
-  the repo still lacks a neutral multi-family registry above the current
-  `tabfoundry` path.
-- `scripts/` remain thin wrapper entrypoints over `bench/`; this is deliberate
-  for now and not a sign that workflow logic should move back out of `bench/`.
-- This file is descriptive, not generated. Tooling-backed dependency docs can
-  be added later if repo churn makes manual upkeep too costly.
+- Canonical sweep manager, queue materializer, and rendered-matrix surface.
+- Changes here affect the active research contract and the generated alias
+  views under `reference/`.

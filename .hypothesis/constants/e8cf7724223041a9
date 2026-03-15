@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/cli/commands/build_manifest.py
+# hypothesis_version: 6.151.9
+
+[0.05, 0.9, ', ', '--data-root', '--filter-policy', '--out-manifest', '--train-ratio', '--val-ratio', 'Manifest built:', 'Warning:', 'accepted_only', 'append', 'build-manifest', 'include_all']

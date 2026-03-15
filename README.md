@@ -14,6 +14,14 @@ uv sync
 uv run pre-commit install
 ```
 
+`uv sync` is the canonical repo-local setup and includes the benchmark helper
+dependencies plus Muon through the dev environment. For a minimal non-dev
+install, opt into the extra surfaces explicitly:
+
+```bash
+uv sync --no-dev --extra benchmark --extra muon
+```
+
 Run the local quality gate:
 
 ```bash
@@ -62,7 +70,8 @@ Run the Iris smoke harness:
 uv run python scripts/iris_smoke.py
 ```
 
-If Muon is not installed locally, override the optimizer explicitly:
+Repo-local `uv sync` includes Muon. If you are using a minimal install without
+the `muon` extra, override the optimizer explicitly:
 
 ```bash
 uv run tab-foundry train experiment=cls_smoke optimizer=adamw

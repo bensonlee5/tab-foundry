@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Clarified the benchmark dependency boundary by adding optional install
+  extras for benchmark helpers and Muon while keeping repo-local `uv sync`
+  behavior unchanged for developers.
+
+- Rewrote the development navigation and dependency-map docs to match the
+  current three-family model surface, live `preprocessing` and `research`
+  packages, and the generated active-sweep alias behavior.
+
+- Added audit guardrails for repo-root Markdown paths, local links, and
+  module-graph drift so future doc changes fail fast when the observed package
+  graph diverges from `docs/development/module-dependency-map.md`.
+
+- Removed the orphaned benchmark-run registry helper
+  `load_benchmark_run_entry()` and the unused legacy benchmark bundle
+  filename constant.
+
+- Cleaned up repeated unused benchmark-test lambda parameters so the repo now
+  passes the current `vulture` threshold cleanly.
+
+- `resolve_data_surface()` and `resolve_preprocessing_surface()` now treat
+  explicit `null`/`None` config values as unset and fall back to their intended
+  defaults instead of coercing them into `"none"`, `False`, or a `TypeError`.
+
+- Added Hypothesis-based property tests for benchmark bundle normalization,
+  data/preprocessing surface resolution, model-spec resolution, manifest helper
+  determinism, and training/runtime resolution invariants under
+  `tests/property/`.
+
+- `build_stage_configs()` now rejects non-positive stage step counts instead of
+  silently accepting invalid stage payloads.
+
 ## [0.6.0] - 2026-03-14
 
 ### Changed

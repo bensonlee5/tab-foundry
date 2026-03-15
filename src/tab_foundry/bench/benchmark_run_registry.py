@@ -378,21 +378,6 @@ def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, 
     return registry_path, payload
 
 
-def load_benchmark_run_entry(
-    run_id: str,
-    *,
-    registry_path: Path | None = None,
-) -> dict[str, Any]:
-    """Load one benchmark run entry by id."""
-
-    registry = load_benchmark_run_registry(registry_path)
-    runs = cast(dict[str, dict[str, Any]], registry["runs"])
-    entry = runs.get(str(run_id))
-    if entry is None:
-        raise RuntimeError(f"unknown benchmark run id: {run_id}")
-    return _copy_jsonable(entry)
-
-
 def _load_comparison_summary(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)

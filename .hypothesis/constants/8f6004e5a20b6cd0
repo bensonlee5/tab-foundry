@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/training/optimizer.py
+# hypothesis_version: 6.151.9
+
+[0.2, 'adamw', 'lr', 'muon', 'muon+adamw', 'muon_unavailable', 'params', 'schedulefree_adamw']

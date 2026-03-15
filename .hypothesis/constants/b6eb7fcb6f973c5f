@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/prior_train.py
+# hypothesis_version: 6.151.9
+
+[0.0, 0.2, '*', '--prior-dump', 'Training complete:', '__main__', 'acc', 'betas', 'checkpoint_every', 'checkpoints', 'classification', 'eval_every', 'experiment=', 'final_grad_norm', 'final_train_acc', 'final_train_loss', 'forward_batched', 'latest.pt', 'lr', 'many_class', 'max_grad_norm', 'max_steps', 'mean_grad_norm', 'min_lr', 'muon_lr_scale_base', 'muon_partition_non2d', 'no', 'overrides', 'prior_dump', 'runtime.eval_every', 'runtime.max_steps', 'schedulefree_adamw', 'tabfoundry_simple', 'tabfoundry_staged', 'wall_elapsed_seconds']

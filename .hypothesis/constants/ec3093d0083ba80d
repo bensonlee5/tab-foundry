@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/cli/commands/train.py
+# hypothesis_version: 6.151.9
+
+['*', 'Training complete:', 'overrides', 'train']

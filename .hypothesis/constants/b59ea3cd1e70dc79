@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/training/trainer.py
+# hypothesis_version: 6.151.9
+
+[0.0, 1.0, 1000.0, 1000, 'WANDB_API_KEY', 'WANDB_API_KEY_FILE', 'acc', 'best.pt', 'best_val_loss', 'best_val_step', 'betas', 'checkpoint_every', 'checkpoints', 'classification', 'eval', 'final_grad_norm', 'final_val_loss', 'grad_accum_steps', 'grad_norm', 'inf', 'lr', 'max_grad_norm', 'max_steps', 'mean_grad_norm', 'nan', 'offline', 'online', 'optimizer/fallback', 'preprocessing', 'rmse', 'stage', 'step', 'sum', 'target_train_seconds', 'train', 'train/', 'train/loss', 'train/lr', 'utf-8', 'val', 'val_loss', 'wall_elapsed_seconds']

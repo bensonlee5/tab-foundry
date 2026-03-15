@@ -127,7 +127,7 @@ def test_load_openml_benchmark_datasets_matches_notebook_filters(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     datasets, metadata = benchmark_module.load_openml_benchmark_datasets(
@@ -259,7 +259,7 @@ def test_load_openml_benchmark_datasets_fails_on_bundle_drift(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     with pytest.raises(RuntimeError, match="benchmark bundle drift"):
@@ -342,7 +342,7 @@ def test_load_openml_benchmark_datasets_requires_bundle_new_instances_match(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     with pytest.raises(RuntimeError, match="selection mismatch"):
@@ -426,7 +426,7 @@ def test_load_openml_benchmark_datasets_fails_on_selection_drift(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     with pytest.raises(RuntimeError, match=message):

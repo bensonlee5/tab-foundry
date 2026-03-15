@@ -66,6 +66,8 @@ def build_stage_configs(cfg_stages: list[dict[str, object]]) -> list[StageConfig
         warmup_ratio_raw = raw.get("warmup_ratio", 0.0)
         if not isinstance(steps_raw, int):
             raise ValueError(f"stage steps must be int, got {type(steps_raw)!r}")
+        if steps_raw <= 0:
+            raise ValueError(f"stage steps must be >= 1, got {steps_raw}")
         if not isinstance(lr_raw, (int, float)):
             raise ValueError(f"stage lr_max must be float, got {type(lr_raw)!r}")
         if not isinstance(lr_schedule_raw, str):

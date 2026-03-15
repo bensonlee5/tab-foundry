@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/artifacts.py
+# hypothesis_version: 6.151.9
+
+[0.0, 0.3, 2.0, 144, '#1f77b4', '#d62728', 'Agg', 'elapsed_seconds', 'loss', 'path', 'r', 'step', 'step_', 'step_*.pt', 'train_loss', 'utf-8', 'val_loss', 'w']

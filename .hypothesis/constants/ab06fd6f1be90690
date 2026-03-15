@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/scripts/audit/check_markdown_links.py
+# hypothesis_version: 6.151.9
+
+['#', '*', '.html', '.md', '/', '//', '<', '>', '?', 'README.md', '__main__', '_index.md', 'data:', 'docs', 'http://', 'https://', 'index.html', 'index.md', 'javascript:', 'mailto:', 'missing scan root', 'program.md', 'reference', 'roots', 'tel:', 'utf-8']

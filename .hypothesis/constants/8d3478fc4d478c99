@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/architectures/tabfoundry_simple.py
+# hypothesis_version: 6.151.9
+
+[-100.0, 1e-20, 1e-05, 100.0, 128, 512, 'd_col', 'feature_group_size', 'head_hidden_dim', 'path_nll', 'tfcol_n_heads', 'tfcol_n_inducing', 'tfcol_n_layers', 'tficl_ff_expansion', 'tficl_n_heads', 'tficl_n_layers', 'tfrow_cls_tokens', 'tfrow_n_heads', 'tfrow_n_layers', 'train_zscore_clip']

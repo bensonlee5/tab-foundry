@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/architectures/tabfoundry_staged/builders.py
+# hypothesis_version: 6.151.9
+
+['binary_direct', 'label_token', 'many_class', 'mean_padded_linear', 'nano', 'nano_postnorm', 'none', 'plain', 'prenorm', 'qass', 'row_cls', 'scalar_per_feature', 'shifted_grouped', 'target_column', 'tfcol', 'token_dim']

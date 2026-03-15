@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/input_normalization.py
+# hypothesis_version: 6.151.9
+
+[1e-08, 1.0, 100.0, 'none', 'train_zscore', 'train_zscore_clip']

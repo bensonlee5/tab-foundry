@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/components/blocks.py
+# hypothesis_version: 6.151.9
+
+[0.0, 0.02, 128, 512, 'gelu']

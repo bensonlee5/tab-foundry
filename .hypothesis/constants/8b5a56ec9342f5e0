@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/prior_dump.py
+# hypothesis_version: 6.151.9
+
+['X', 'dataset_index', 'max_num_classes', 'num_datapoints', 'num_features', 'prior_dump_path', 'r', 'raw_single_eval_pos', 'single_eval_pos', 'source', 'y']

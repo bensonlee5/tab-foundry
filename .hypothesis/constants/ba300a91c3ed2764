@@ -1,0 +1,4 @@
+# file: /Users/bensonlee/dev/tab-foundry/scripts/audit/module_graph.py
+# hypothesis_version: 6.151.9
+
+[' depends on ', '- ', '- none', '--fail-on-doc-drift', '--json', '.', '.py', '__init__.py', '__main__', '__main__.py', '__pycache__', '`([^`]+)`', 'development', 'docs', 'src', 'store_true', 'tab_foundry', 'tab_foundry.__main__', 'utf-8']

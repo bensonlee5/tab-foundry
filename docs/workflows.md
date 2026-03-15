@@ -28,6 +28,14 @@ uv sync
 uv run pre-commit install
 ```
 
+`uv sync` is the canonical repo-local setup and includes the benchmark helper
+dependencies plus Muon through the dev environment. For a minimal non-dev
+install, opt into those optional surfaces explicitly:
+
+```bash
+uv sync --no-dev --extra benchmark --extra muon
+```
+
 Run the full local quality gate:
 
 ```bash
@@ -138,7 +146,8 @@ Use the queue row plus `reference/system_delta_campaign_template.md` to decide
 the staged labels, module overrides, and research-package paths for each
 benchmark-facing delta.
 
-Default training expects Muon to be installed. To run without Muon:
+Repo-local `uv sync` includes Muon. If you are using a minimal install without
+the `muon` extra, run without Muon explicitly:
 
 ```bash
 uv run tab-foundry train experiment=cls_smoke optimizer=adamw
@@ -249,6 +258,10 @@ This bootstraps sibling envs for:
 - `~/dev/nanoTabPFN`
 - `~/dev/TabPFN`
 - `~/dev/tabicl`
+
+The benchmark and plotting helpers live under `src/tab_foundry/bench/`, but
+their third-party dependencies are modeled as the optional `benchmark` extra
+for non-dev installs. Repo-local `uv sync` already includes them.
 
 Run benchmark comparison only after a run has already been selected internally:
 
