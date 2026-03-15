@@ -4,6 +4,8 @@ import importlib.util
 from pathlib import Path
 import sys
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -29,6 +31,10 @@ check_markdown_links = _load_script_module(
 module_graph = _load_script_module(
     REPO_ROOT / "scripts" / "audit" / "module_graph.py",
     "module_graph_script",
+)
+check_version_bump = _load_script_module(
+    REPO_ROOT / "scripts" / "audit" / "check_version_bump.py",
+    "check_version_bump_script",
 )
 
 
@@ -123,3 +129,94 @@ def test_module_dependency_doc_matches_observed_graph() -> None:
 
     assert report.undocumented_edges == []
     assert report.stale_documented_edges == []
+
+
+@pytest.mark.parametrize(
+    ("base_version", "candidate_version"),
+    [
+        ("0.6.0", "0.6.0"),
+        ("0.6.0", "0.6.1"),
+        ("0.6.0", "0.7.0"),
+        ("0.6.0", "1.0.0"),
+        ("1.2.3", "1.2.4"),
+        ("1.2.3", "1.3.0"),
+        ("1.2.3", "2.0.0"),
+    ],
+)
+def test_version_bump_check_allows_same_or_single_semver_step(
+    base_version: str,
+    candidate_version: str,
+) -> None:
+    assert check_version_bump.validate_version_bump(base_version, candidate_version) is None
+
+
+@pytest.mark.parametrize(
+    ("base_version", "candidate_version"),
+    [
+        ("0.6.0", "0.6.2"),
+        ("0.6.0", "0.7.1"),
+        ("0.6.0", "0.8.0"),
+        ("1.2.3", "1.2.2"),
+        ("1.2.3", "2.0.1"),
+        ("1.2.3", "2.1.0"),
+    ],
+)
+def test_version_bump_check_rejects_skipped_or_lower_versions(
+    base_version: str,
+    candidate_version: str,
+) -> None:
+    message = check_version_bump.validate_version_bump(base_version, candidate_version)
+
+    assert message is not None
+    assert base_version in message
+    assert candidate_version in message
+
+
+def test_version_bump_check_rejects_non_semver_versions() -> None:
+    with pytest.raises(ValueError, match="MAJOR.MINOR.PATCH"):
+        check_version_bump.validate_version_bump("0.6.0", "0.6")
+
+
+def test_read_version_from_git_ref_uses_requested_ref(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[object] = []
+
+    def fake_run(*args, **kwargs):
+        calls.append((args, kwargs))
+        return check_version_bump.subprocess.CompletedProcess(
+            args=["git", "show", "main:pyproject.toml"],
+            returncode=0,
+            stdout='[project]\nversion = "1.2.3"\n',
+            stderr="",
+        )
+
+    monkeypatch.setattr(check_version_bump.subprocess, "run", fake_run)
+
+    version = check_version_bump.read_version_from_git_ref(REPO_ROOT, ref="main")
+
+    assert version == "1.2.3"
+    assert calls == [
+        (
+            (["git", "show", "main:pyproject.toml"],),
+            {
+                "cwd": REPO_ROOT,
+                "capture_output": True,
+                "text": True,
+                "check": False,
+            },
+        )
+    ]
+
+
+def test_read_version_from_git_ref_reports_git_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_run(*_args, **_kwargs):
+        return check_version_bump.subprocess.CompletedProcess(
+            args=["git", "show", "missing:pyproject.toml"],
+            returncode=128,
+            stdout="",
+            stderr="fatal: invalid object name 'missing'.",
+        )
+
+    monkeypatch.setattr(check_version_bump.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="invalid object name"):
+        check_version_bump.read_version_from_git_ref(REPO_ROOT, ref="missing")
