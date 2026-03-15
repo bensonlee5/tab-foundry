@@ -191,6 +191,21 @@ def _task_contract_for_surface(surface: ResolvedStageSurface, *, many_class_base
     return StageTaskContract(min_classes=2, max_classes=None, supports_many_class=True)
 
 
+def _normalization_mode_for_feature_encoder(feature_encoder: str) -> str:
+    if feature_encoder == "nano":
+        return "internal"
+    return "shared"
+
+
+def _validate_effective_surface(*, feature_encoder: str, tokenizer: str) -> None:
+    if feature_encoder == "nano" and tokenizer != "scalar_per_feature":
+        raise ValueError(
+            "model.module_overrides.tokenizer is ineffective when "
+            "model.module_overrides.feature_encoder resolves to 'nano'; "
+            "use tokenizer='scalar_per_feature' or switch the feature encoder"
+        )
+
+
 def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
     """Resolve one staged model spec to an explicit atomic surface."""
 
@@ -254,12 +269,13 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
             "model.module_overrides.allow_test_self_attention is only valid with "
             "table_block_style='prenorm'"
         )
+    _validate_effective_surface(feature_encoder=feature_encoder, tokenizer=tokenizer)
 
     surface = ResolvedStageSurface(
         stage=stage.value,
         stage_label=spec.stage_label or stage.value,
         benchmark_profile=spec.stage_label or recipe.benchmark_profile,
-        normalization_mode=recipe.constraints.normalization_mode,
+        normalization_mode=_normalization_mode_for_feature_encoder(feature_encoder),
         feature_encoder=feature_encoder,
         target_conditioner=target_conditioner,
         tokenizer=tokenizer,

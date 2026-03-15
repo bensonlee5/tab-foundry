@@ -249,6 +249,10 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     tab_foundry_summary["seed_set"] = list(benchmark_run_record["seed_set"])
     tab_foundry_summary["training_diagnostics"] = dict(benchmark_run_record["training_diagnostics"])
     tab_foundry_summary["model_size"] = dict(benchmark_run_record["model_size"])
+    summary["artifacts"]["training_surface_record_json"] = cast(
+        dict[str, Any],
+        benchmark_run_record["artifacts"],
+    ).get("training_surface_record_path")
     if benchmark_run_record.get("surface_labels") is not None:
         tab_foundry_summary["surface_labels"] = dict(benchmark_run_record["surface_labels"])
     write_json(comparison_summary_path, summary)

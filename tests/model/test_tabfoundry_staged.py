@@ -5,6 +5,9 @@ import torch
 
 from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
 from tab_foundry.model.architectures.tabfoundry_staged.recipes import STAGE_RECIPE_REGISTRY
+from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
+    staged_surface_uses_internal_benchmark_normalization,
+)
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import ModelStage
 from tab_foundry.types import TaskBatch
@@ -285,3 +288,14 @@ def test_module_overrides_relax_legacy_stage_constraints_for_anchor_only_deltas(
     )
 
     assert model.surface.feature_encoder == "shared"
+    assert model.surface.normalization_mode == "shared"
+    assert staged_surface_uses_internal_benchmark_normalization(model.model_spec) is False
+
+
+def test_module_overrides_reject_ineffective_tokenizer_change_under_nano_encoder() -> None:
+    with pytest.raises(ValueError, match="tokenizer is ineffective"):
+        _ = _staged(
+            "nano_exact",
+            stage_label="delta_shifted_grouped_tokenizer",
+            module_overrides={"tokenizer": "shifted_grouped"},
+        )

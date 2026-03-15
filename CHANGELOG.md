@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-03-14
+
+### Changed
+
+- Staged surface resolution now derives normalization mode from the effective
+  feature encoder instead of the base ladder stage, so anchor-only shared
+  feature-encoder deltas use the intended external train/test normalization
+  path.
+
+- `resolve_staged_surface()` now rejects tokenizer overrides that cannot affect
+  execution while the effective feature encoder remains `nano`, preventing
+  no-op benchmark rows from being recorded as real ablations.
+
+- Checkpoint evaluation now reuses persisted `preprocessing` config when it is
+  present in the saved checkpoint payload, keeping non-default runtime
+  preprocessing surfaces reproducible across train and eval.
+
+- `comparison_summary.json` now records the actual derived
+  `training_surface_record.json` artifact path instead of a speculative
+  benchmark-directory placeholder.
+
 ## [0.5.0] - 2026-03-14
 
 ### Changed

@@ -33,7 +33,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | 2 | `delta_shared_feature_norm` | feature_encoding | yes | ready | shared_norm | Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization. | Run the isolated shared-feature-encoder comparison. |
 | 3 | `delta_prenorm_block` | table_block | yes | ready | prenorm_block | Switch the cell transformer from the nano post-norm block to the staged pre-norm block, still without test self-attention. | Run the pre-norm-only ablation. |
 | 4 | `delta_test_self_attention` | table_block | yes | ready | test_self | Allow test-token self-attention inside the pre-norm block without adding any test-to-test cross-attention. | Queue after the pre-norm-only run so the masking effect has a local comparator. |
-| 5 | `delta_shifted_grouped_tokenizer` | tokenization | yes | ready | grouped_tokens | Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored. | Run the tokenizer-only ablation before any row-pool change. |
+| 5 | `delta_shifted_grouped_tokenizer` | tokenization | yes | blocked_on_surface_semantics | grouped_tokens | Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored. | Unblock only after the comparison surface makes tokenizer changes effective, or replace this row with a genuinely isolatable tokenization experiment. |
 | 6 | `delta_row_cls_pool` | row_pool | yes | ready | row_cls_pool | Replace target-column pooling with CLS-based row pooling while leaving tokenizer, column encoder, and context encoder otherwise anchored. | Run the isolated row-pool toggle and require interpretation before any verdict. |
 | 7 | `delta_column_set_encoder` | column_encoding | yes | ready | column_set | Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed. | Run the isolated column-set encoder delta after the row-pool row is understood. |
 | 8 | `delta_qass_context` | context_encoder | yes | ready | qass_context | Add the QASS-based sequence context encoder over row embeddings. | Run after simpler model deltas so the interpretation has cleaner context. |
@@ -153,23 +153,25 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 5. `delta_shifted_grouped_tokenizer`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `blocked_on_surface_semantics`
 - Binary applicable: `True`
 - Legacy cumulative entanglement: `grouped_tokens`
 - Description: Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored.
-- Rationale: Grouped tokens should be tested before row CLS pooling so tokenization is not confounded with later aggregation changes.
-- Hypothesis: Local grouped views may help feature interaction modeling, but underperformance may reflect a poor feature_group_size neighborhood rather than the tokenizer concept.
+- Rationale: The anchor keeps the nano feature encoder, which bypasses tokenizer outputs entirely, so this row is not isolatable until the surface changes away from the nano path.
+- Hypothesis: Local grouped views may help feature interaction modeling, but this row cannot produce that signal while the nano encoder remains active.
 - Upstream delta: Upstream nanoTabPFN keeps one scalar token per feature.
-- Anchor delta: Changes only tokenizer from scalar_per_feature to shifted_grouped.
-- Expected effect: Better local interaction capacity with some risk of noisy compact-scale parameterization.
+- Anchor delta: Would change only tokenizer from scalar_per_feature to shifted_grouped, but that override is currently ineffective under the anchor's nano feature encoder.
+- Expected effect: None until the tokenizer becomes part of the effective computation graph on this surface.
 - Effective labels: model=`delta_shifted_grouped_tokenizer`, data=`anchor_manifest_default`, preprocessing=`runtime_default`
 - Model overrides: `{'tokenizer': 'shifted_grouped'}`
 - Parameter adequacy plan:
-  - Treat negative evidence as provisional until grouped-token capacity and block compatibility are discussed explicitly.
+  - Do not run while tokenizer changes are bypassed by the active feature encoder.
 - Adequacy knobs to dimension explicitly:
-  - feature_group_size remains 1 today; grouped-token evidence should note that this row uses only the built-in shifted view, not a wider grouping sweep.
-- Interpretation status: `pending`
+  - Revisit only after the comparison surface switches to a non-nano feature encoder.
+- Interpretation status: `blocked`
 - Decision: `None`
+- Confounders:
+  - The nano feature encoder ignores tokenizer outputs, so this row would execute the anchor path unchanged.
 - Follow-up run ids: `[]`
 - Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_shifted_grouped_tokenizer/result_card.md`
 - Benchmark metrics: pending
