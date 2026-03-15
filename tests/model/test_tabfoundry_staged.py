@@ -5,6 +5,9 @@ import torch
 
 from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
 from tab_foundry.model.architectures.tabfoundry_staged.recipes import STAGE_RECIPE_REGISTRY
+from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
+    staged_surface_uses_internal_benchmark_normalization,
+)
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import ModelStage
 from tab_foundry.types import TaskBatch
@@ -255,3 +258,66 @@ def test_many_class_stage_accepts_full_probs_in_train_mode() -> None:
     assert out.path_logits is None
     assert out.path_targets is None
     assert out.path_sample_counts is None
+
+
+def test_module_overrides_surface_stage_label_and_row_pool_hyperparameters() -> None:
+    model = _staged(
+        "nano_exact",
+        stage_label="delta_row_cls_pool",
+        module_overrides={"row_pool": "row_cls"},
+        tfrow_n_heads=2,
+        tfrow_n_layers=1,
+        tfrow_cls_tokens=2,
+    )
+
+    assert model.stage == "nano_exact"
+    assert model.stage_label == "delta_row_cls_pool"
+    assert model.benchmark_profile == "delta_row_cls_pool"
+    assert model.surface.row_pool == "row_cls"
+    assert model.module_hyperparameters["row_pool"]["n_heads"] == 2
+    assert model.module_hyperparameters["row_pool"]["n_layers"] == 1
+    assert model.module_hyperparameters["row_pool"]["cls_tokens"] == 2
+
+
+def test_stage_labels_do_not_trigger_legacy_constraint_enforcement() -> None:
+    model = _staged(
+        "nano_exact",
+        stage_label="anchor_model",
+        input_normalization="none",
+        tfrow_n_heads=2,
+    )
+
+    assert model.surface.feature_encoder == "nano"
+    assert model.surface.normalization_mode == "internal"
+    assert staged_surface_uses_internal_benchmark_normalization(model.model_spec) is True
+
+
+def test_module_overrides_reject_ineffective_tokenizer_change_under_nano_encoder() -> None:
+    with pytest.raises(ValueError, match="tokenizer is ineffective"):
+        _ = _staged(
+            "nano_exact",
+            stage_label="delta_shifted_grouped_tokenizer",
+            module_overrides={"tokenizer": "shifted_grouped"},
+        )
+
+
+def test_module_overrides_reject_many_class_head_without_context_encoder() -> None:
+    with pytest.raises(ValueError, match="requires a non-'none' context_encoder"):
+        _ = _staged(
+            "nano_exact",
+            stage_label="delta_many_class_head",
+            module_overrides={"head": "many_class"},
+        )
+
+
+def test_module_overrides_allow_many_class_head_with_context_encoder() -> None:
+    model = _staged(
+        "nano_exact",
+        stage_label="delta_many_class_head",
+        input_normalization="none",
+        many_class_base=4,
+        module_overrides={"head": "many_class", "context_encoder": "qass"},
+    )
+
+    assert model.surface.head == "many_class"
+    assert model.surface.context_encoder == "qass"

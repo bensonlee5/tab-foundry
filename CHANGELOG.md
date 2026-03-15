@@ -7,6 +7,135 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Clarified the benchmark dependency boundary by adding optional install
+  extras for benchmark helpers and Muon while keeping repo-local `uv sync`
+  behavior unchanged for developers.
+
+- Rewrote the development navigation and dependency-map docs to match the
+  current three-family model surface, live `preprocessing` and `research`
+  packages, and the generated active-sweep alias behavior.
+
+- Added audit guardrails for repo-root Markdown paths, local links, and
+  module-graph drift so future doc changes fail fast when the observed package
+  graph diverges from `docs/development/module-dependency-map.md`.
+
+- Removed the orphaned benchmark-run registry helper
+  `load_benchmark_run_entry()` and the unused legacy benchmark bundle
+  filename constant.
+
+- Cleaned up repeated unused benchmark-test lambda parameters so the repo now
+  passes the current `vulture` threshold cleanly.
+
+- `resolve_data_surface()` and `resolve_preprocessing_surface()` now treat
+  explicit `null`/`None` config values as unset and fall back to their intended
+  defaults instead of coercing them into `"none"`, `False`, or a `TypeError`.
+
+- Added Hypothesis-based property tests for benchmark bundle normalization,
+  data/preprocessing surface resolution, model-spec resolution, manifest helper
+  determinism, and training/runtime resolution invariants under
+  `tests/property/`.
+
+- `build_stage_configs()` now rejects non-positive stage step counts instead of
+  silently accepting invalid stage payloads.
+
+## [0.6.0] - 2026-03-14
+
+### Changed
+
+- Refactored the system-delta workflow into a multi-sweep campaign model with a
+  reusable delta catalog in `reference/system_delta_catalog.yaml`, per-sweep
+  canonical sources under `reference/system_delta_sweeps/<sweep_id>/`, and an
+  active-sweep index in `reference/system_delta_sweeps/index.yaml`.
+
+- `scripts/system_delta_queue.py` and `src/tab_foundry/research/system_delta.py`
+  are now sweep-aware. The tool gained `list-sweeps`, `show-active`,
+  `set-active`, and `create-sweep`, and existing queue commands now accept an
+  optional `--sweep-id`.
+
+- New sweep creation now materializes queue instances from the delta catalog,
+  applies machine-checked applicability guards against the anchor context, and
+  renders a sweep-specific matrix plus active-sweep aliases.
+
+- Benchmark registry records now support additive sweep metadata:
+  `sweep_id`, `delta_id`, `parent_sweep_id`, `queue_order`, and `run_kind`.
+
+- New system-delta research artifacts are sweep-namespaced under
+  `outputs/staged_ladder/research/<sweep_id>/<delta_id>/...`, and rendered
+  matrix references now point at those namespaced result-card paths.
+
+- `program.md` now defines the active-sweep source-of-truth hierarchy and
+  requires new complexity passes to create a new sweep instead of mutating an
+  existing completed sweep.
+
+- User-facing workflow break: `reference/system_delta_queue.yaml` and
+  `reference/system_delta_matrix.md` are no longer the canonical editable
+  sources. They are generated active-sweep aliases, so their default contents
+  now depend on `reference/system_delta_sweeps/index.yaml`.
+
+## [0.5.1] - 2026-03-14
+
+### Changed
+
+- Staged surface resolution now derives normalization mode from the effective
+  feature encoder instead of the base ladder stage, so anchor-only shared
+  feature-encoder deltas use the intended external train/test normalization
+  path.
+
+- `resolve_staged_surface()` now rejects tokenizer overrides that cannot affect
+  execution while the effective feature encoder remains `nano`, preventing
+  no-op benchmark rows from being recorded as real ablations.
+
+- Checkpoint evaluation now reuses persisted `preprocessing` config when it is
+  present in the saved checkpoint payload, keeping non-default runtime
+  preprocessing surfaces reproducible across train and eval.
+
+- `comparison_summary.json` now records the actual derived
+  `training_surface_record.json` artifact path instead of a speculative
+  benchmark-directory placeholder.
+
+## [0.5.0] - 2026-03-14
+
+### Changed
+
+- Refactored `tabfoundry_staged` so staged runs resolve through an explicit
+  atomic surface instead of hidden `_build_*` branch constants. Row-pool,
+  column-encoder, and context-encoder capacity knobs now come from surfaced
+  config (`tfrow_*`, `tfcol_*`, `tficl_*`) rather than hard-coded values.
+
+- Added additive staged model config fields `model.stage_label` and
+  `model.module_overrides`. These are user-facing config-surface changes under
+  `src/tab_foundry` and are intended for anchor-only system-delta experiments.
+
+- Added additive data and preprocessing surface settings:
+  `data.surface_label`, `data.surface_overrides`, `data.filter_policy`,
+  `data.dagzoo_provenance`, and the new root `preprocessing` config group with
+  explicit runtime preprocessing overrides.
+
+- Training and benchmark-facing runs now emit or derive a new
+  `training_surface_record.json` artifact that records the effective model
+  surface, data surface, manifest fingerprint and characteristics, dagzoo
+  provenance references when present, and preprocessing surface.
+
+- Benchmark comparison summaries and benchmark-run registry entries now carry
+  additive training-surface metadata, including
+  `artifacts.training_surface_record_path` and surfaced model/data/preprocessing
+  labels.
+
+- Added the anchor-only system-delta workflow contract:
+  `reference/system_delta_queue.yaml`,
+  `reference/system_delta_matrix.md`,
+  `reference/system_delta_campaign_template.md`, and
+  `scripts/system_delta_queue.py`. `program.md` now references this queue/matrix
+  workflow instead of the old stage-promotion loop.
+
+- User-facing workflow break: the active research contract is now an
+  interpretation-first anchor-only sweep across model, data, and preprocessing
+  dimensions. `result_card.md` and `training_surface_record.json` are required
+  evidence artifacts for completed rows, and underperformance alone is not
+  sufficient for `reject`.
+
 ## [0.4.0] - 2026-03-14
 
 ### Changed

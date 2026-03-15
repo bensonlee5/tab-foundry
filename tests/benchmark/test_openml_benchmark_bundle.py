@@ -83,7 +83,7 @@ def test_build_openml_benchmark_bundle_preserves_binary_filter(
     monkeypatch.setattr(
         bundle_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: _FakeTask(
+        lambda task_id, **_kwargs: _FakeTask(
             _FakeDataset(
                 name=prepared_by_task_id[int(task_id)].dataset_name,
                 qualities={
@@ -139,7 +139,7 @@ def test_build_openml_benchmark_bundle_auto_max_classes_widens_and_sorts(
     monkeypatch.setattr(
         bundle_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: _FakeTask(
+        lambda task_id, **_kwargs: _FakeTask(
             _FakeDataset(
                 name=prepared_by_task_id[int(task_id)].dataset_name,
                 qualities={
@@ -188,7 +188,7 @@ def test_build_openml_benchmark_bundle_uses_named_task_source(
     monkeypatch.setattr(
         bundle_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: _FakeTask(
+        lambda task_id, **_kwargs: _FakeTask(
             _FakeDataset(
                 name=prepared_by_task_id[int(task_id)].dataset_name,
                 qualities={
@@ -240,7 +240,7 @@ def test_build_openml_benchmark_bundle_rejects_empty_selection(
     monkeypatch.setattr(
         bundle_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: _FakeTask(
+        lambda task_id, **_kwargs: _FakeTask(
             _FakeDataset(
                 name=prepared_by_task_id[int(task_id)].dataset_name,
                 qualities={
@@ -378,7 +378,7 @@ def test_load_openml_benchmark_datasets_accepts_checked_in_multiclass_bundle(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     datasets, metadata = benchmark_module.load_openml_benchmark_datasets(
@@ -431,7 +431,7 @@ def test_load_openml_benchmark_datasets_accepts_checked_in_binary_medium_bundle(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     datasets, metadata = benchmark_module.load_openml_benchmark_datasets(

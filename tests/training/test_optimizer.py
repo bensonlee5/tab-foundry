@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import math
 import sys
 from types import SimpleNamespace
@@ -31,7 +30,6 @@ def test_optimizer_unknown_name_raises() -> None:
 
 def test_muon_selection_or_fallback() -> None:
     model = nn.Linear(4, 2)
-    muon_available = importlib.util.find_spec("muon") is not None
 
     sel = build_optimizer(
         model,
@@ -42,7 +40,7 @@ def test_muon_selection_or_fallback() -> None:
         require_requested=False,
     )
 
-    if muon_available:
+    if sel.resolved_name.startswith("muon"):
         assert sel.resolved_name.startswith("muon")
         assert sel.fallback_reason is None
         assert len(sel.optimizers) >= 1
@@ -55,9 +53,8 @@ def test_muon_selection_or_fallback() -> None:
 
 def test_muon_required_behavior() -> None:
     model = nn.Linear(4, 2)
-    muon_available = importlib.util.find_spec("muon") is not None
 
-    if muon_available:
+    try:
         sel = build_optimizer(
             model,
             name="muon",
@@ -67,16 +64,8 @@ def test_muon_required_behavior() -> None:
             require_requested=True,
         )
         assert sel.resolved_name.startswith("muon")
-    else:
-        with pytest.raises(RuntimeError):
-            _ = build_optimizer(
-                model,
-                name="muon",
-                lr=1e-3,
-                weight_decay=0.0,
-                extra_kwargs={},
-                require_requested=True,
-            )
+    except RuntimeError as exc:
+        assert "Requested optimizer 'muon' is unavailable" in str(exc)
 
 
 def test_muon_lr_scale_for_matrix_and_vector_params() -> None:

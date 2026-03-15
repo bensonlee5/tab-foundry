@@ -6,7 +6,7 @@ import argparse
 import random
 import time
 from pathlib import Path
-from typing import Sequence
+from typing import Sequence, cast
 
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
@@ -15,9 +15,9 @@ import torch
 from tab_foundry.bench.nanotabpfn import resolve_device
 from tab_foundry.bench.prior_dump import PriorDumpTaskBatchReader
 from tab_foundry.config import compose_config
-from tab_foundry.model.architectures.tabfoundry_staged.recipes import recipe_for_stage
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.model.spec import ModelBuildSpec, ModelStage, model_build_spec_from_mappings
+from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
+from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
 from tab_foundry.training.artifacts import (
     append_history_record,
     assert_clean_training_output,
@@ -27,6 +27,7 @@ from tab_foundry.training.artifacts import (
 )
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import build_optimizer
+from tab_foundry.training.surface import write_training_surface_record
 from tab_foundry.training.trainer import (
     _normalize_grad_norm_value,
     _set_optimizer_training_mode,
@@ -88,13 +89,11 @@ def _validate_prior_training_model_spec(spec: ModelBuildSpec) -> None:
     if spec.arch != "tabfoundry_staged":
         return
 
-    stage_name = "nano_exact" if spec.stage is None else str(spec.stage).strip().lower()
-    normalized_stage = ModelStage(stage_name)
-    recipe = recipe_for_stage(normalized_stage)
-    if recipe.modules.head == "many_class":
+    surface = resolve_staged_surface(spec)
+    if surface.head == "many_class":
         raise ValueError(
             "prior-dump training requires a staged recipe with forward_batched() tensor logits, "
-            f"got model.stage={normalized_stage.value!r}"
+            f"got model.stage={surface.stage!r}"
         )
 
 
@@ -211,6 +210,12 @@ def train_tabfoundry_simple_prior(
     device = torch.device(resolve_device(str(cfg.runtime.device)))
     model.to(device)
     model.train()
+    raw_cfg = cast(dict[str, object], OmegaConf.to_container(cfg, resolve=True))
+    write_training_surface_record(
+        output_dir / "training_surface_record.json",
+        raw_cfg=raw_cfg,
+        run_dir=output_dir,
+    )
 
     optimizer_selection = build_optimizer(
         model,

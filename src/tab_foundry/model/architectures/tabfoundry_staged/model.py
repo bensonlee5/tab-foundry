@@ -1,4 +1,4 @@
-"""Recipe-driven staged tabfoundry classifier."""
+"""Resolved-surface staged tabfoundry classifier."""
 
 from __future__ import annotations
 
@@ -21,40 +21,38 @@ from tab_foundry.model.components.many_class import (
     map_labels_to_child_groups,
 )
 from tab_foundry.model.spec import (
+    ModelBuildSpec,
     ModelStage,
     SUPPORTED_MANY_CLASS_TRAIN_MODES,
-    resolve_model_stage,
 )
 from tab_foundry.types import TaskBatch
 
-from .recipes import recipe_for_stage
-from .states import CellTableState, HeadOutputState, RawInputState, RowState
-from .subsystems import (
-    DirectClassifierHead,
-    IdentityColumnEncoder,
-    LabelTokenTargetConditioner,
-    MeanPaddedLinearTargetConditioner,
-    NanoBinaryHead,
-    NanoFeatureEncoder,
-    NanoPostNormBlock,
-    PreNormCellBlock,
-    RowCLSPool,
-    ScalarPerFeatureTokenizer,
-    SequenceContextEncoder,
-    SetColumnEncoder,
-    SharedLinearFeatureEncoder,
-    ShiftedGroupedTokenizer,
-    TargetColumnPool,
+from .builders import (
+    build_column_encoder,
+    build_context_encoder,
+    build_context_label_embed,
+    build_digit_position_embed,
+    build_direct_head,
+    build_feature_encoder,
+    build_row_pool,
+    build_table_block,
+    build_target_conditioner,
+    build_tokenizer,
 )
+from .recipes import recipe_for_stage
+from .resolved import resolve_staged_surface
+from .states import CellTableState, HeadOutputState, RawInputState, RowState
 
 
 class TabFoundryStagedClassifier(nn.Module):
-    """Staged classification architecture that grows from nano-exact upward."""
+    """Staged classification architecture that resolves to an explicit surface."""
 
     def __init__(
         self,
         *,
         stage: str | None = None,
+        stage_label: str | None = None,
+        module_overrides: dict[str, object] | None = None,
         d_col: int = 128,
         d_icl: int = 512,
         input_normalization: str = "none",
@@ -75,48 +73,60 @@ class TabFoundryStagedClassifier(nn.Module):
         use_digit_position_embed: bool = True,
     ) -> None:
         super().__init__()
-        normalized_stage = cast(
-            ModelStage,
-            resolve_model_stage(arch="tabfoundry_staged", stage=stage),
-        )
-        self.recipe = recipe_for_stage(ModelStage(normalized_stage))
-        self.stage = self.recipe.stage.value
-        self.arch = "tabfoundry_staged"
-        self.benchmark_profile = self.recipe.benchmark_profile
-
-        self._validate_defaults(
+        self.model_spec = ModelBuildSpec(
+            task="classification",
+            arch="tabfoundry_staged",
+            stage=stage,
+            stage_label=stage_label,
+            module_overrides=module_overrides,
             d_col=d_col,
+            d_icl=d_icl,
+            input_normalization=input_normalization,
             feature_group_size=feature_group_size,
+            many_class_train_mode=many_class_train_mode,
+            max_mixed_radix_digits=max_mixed_radix_digits,
             tfcol_n_heads=tfcol_n_heads,
             tfcol_n_layers=tfcol_n_layers,
             tfcol_n_inducing=tfcol_n_inducing,
             tfrow_n_heads=tfrow_n_heads,
             tfrow_n_layers=tfrow_n_layers,
             tfrow_cls_tokens=tfrow_cls_tokens,
+            tficl_n_heads=tficl_n_heads,
+            tficl_n_layers=tficl_n_layers,
             tficl_ff_expansion=tficl_ff_expansion,
+            many_class_base=many_class_base,
+            head_hidden_dim=head_hidden_dim,
             use_digit_position_embed=use_digit_position_embed,
         )
+        self.surface = resolve_staged_surface(self.model_spec)
+        self.recipe = recipe_for_stage(ModelStage(self.surface.stage))
+        self.stage = self.surface.stage
+        self.stage_label = self.surface.stage_label
+        self.arch = "tabfoundry_staged"
+        self.benchmark_profile = self.surface.benchmark_profile
+        self.module_selection = self.surface.module_selection()
+        self.module_hyperparameters = self.surface.component_hyperparameters()
 
-        self.d_icl = int(d_icl)
-        self.input_normalization = str(input_normalization).strip().lower()
+        self.d_icl = int(self.model_spec.d_icl)
+        self.input_normalization = str(self.model_spec.input_normalization).strip().lower()
         if self.input_normalization not in SUPPORTED_INPUT_NORMALIZATION_MODES:
             raise ValueError(
                 "input_normalization must be "
                 f"{SUPPORTED_INPUT_NORMALIZATION_MODES}, got {self.input_normalization!r}"
             )
-        self.tficl_n_heads = int(tficl_n_heads)
-        self.tficl_n_layers = int(tficl_n_layers)
-        self.tficl_ff_expansion = int(tficl_ff_expansion)
-        self.max_mixed_radix_digits = int(max_mixed_radix_digits)
-        self.many_class_base = int(many_class_base)
-        self.head_hidden_dim = int(head_hidden_dim)
-        self.many_class_train_mode = str(many_class_train_mode).strip().lower()
+        self.tficl_n_heads = int(self.model_spec.tficl_n_heads)
+        self.tficl_n_layers = int(self.model_spec.tficl_n_layers)
+        self.tficl_ff_expansion = int(self.model_spec.tficl_ff_expansion)
+        self.max_mixed_radix_digits = int(self.model_spec.max_mixed_radix_digits)
+        self.many_class_base = int(self.model_spec.many_class_base)
+        self.head_hidden_dim = int(self.model_spec.head_hidden_dim)
+        self.many_class_train_mode = str(self.model_spec.many_class_train_mode).strip().lower()
         if self.many_class_train_mode not in SUPPORTED_MANY_CLASS_TRAIN_MODES:
             raise ValueError(
                 "many_class_train_mode must be "
                 f"{SUPPORTED_MANY_CLASS_TRAIN_MODES}, got {self.many_class_train_mode!r}"
             )
-        self.use_digit_position_embed = bool(use_digit_position_embed)
+        self.use_digit_position_embed = bool(self.model_spec.use_digit_position_embed)
         for name, value in (
             ("d_icl", self.d_icl),
             ("tficl_n_heads", self.tficl_n_heads),
@@ -127,144 +137,46 @@ class TabFoundryStagedClassifier(nn.Module):
         ):
             if value <= 0:
                 raise ValueError(f"{name} must be positive, got {value}")
-        if self.recipe.constraints.required_input_normalization is not None:
-            expected = self.recipe.constraints.required_input_normalization
-            if self.input_normalization != expected:
-                raise ValueError(
-                    f"stage={self.stage!r} requires input_normalization={expected!r}, "
-                    f"got {self.input_normalization!r}"
-                )
-        if self.recipe.modules.head != "many_class" and self.many_class_train_mode != "path_nll":
+        if self.surface.head != "many_class" and self.many_class_train_mode != "path_nll":
             raise ValueError(
                 f"stage={self.stage!r} only supports many_class_train_mode='path_nll', "
                 f"got {self.many_class_train_mode!r}"
             )
 
-        self.tokenizer = self._build_tokenizer()
-        self.feature_encoder = self._build_feature_encoder()
-        self.target_conditioner = self._build_target_conditioner()
+        self.tokenizer = build_tokenizer(self.surface)
+        self.feature_encoder = build_feature_encoder(
+            self.surface,
+            tokenizer=self.tokenizer,
+            d_icl=self.d_icl,
+        )
+        self.target_conditioner = build_target_conditioner(
+            self.surface,
+            d_icl=self.d_icl,
+            many_class_base=self.many_class_base,
+        )
         self.transformer_blocks = nn.ModuleList(
-            [self._build_table_block() for _ in range(self.tficl_n_layers)]
+            [build_table_block(self.surface, d_icl=self.d_icl) for _ in range(self.tficl_n_layers)]
         )
-        self.column_encoder = self._build_column_encoder()
-        self.row_pool = self._build_row_pool()
-        self.context_encoder = self._build_context_encoder()
-        self.context_label_embed: nn.Embedding | None = None
-        if self.context_encoder is not None or self.recipe.modules.head == "many_class":
-            self.context_label_embed = nn.Embedding(self.many_class_base, self.d_icl)
-        self.digit_position_embed: nn.Embedding | None = None
-        if self.recipe.modules.head == "many_class" and self.use_digit_position_embed:
-            self.digit_position_embed = nn.Embedding(self.max_mixed_radix_digits, self.d_icl)
-        self.direct_head = self._build_direct_head()
-
-    def _validate_defaults(self, **values: object) -> None:
-        for name, expected in self.recipe.constraints.required_defaults:
-            actual = values[name]
-            if actual != expected:
-                raise ValueError(
-                    f"stage={self.stage!r} requires the default {name}={expected!r}, got {actual!r}"
-                )
-
-    def _build_tokenizer(self) -> nn.Module:
-        if self.recipe.modules.tokenizer == "scalar_per_feature":
-            return ScalarPerFeatureTokenizer()
-        if self.recipe.modules.tokenizer == "shifted_grouped":
-            return ShiftedGroupedTokenizer()
-        raise RuntimeError(f"Unsupported tokenizer variant: {self.recipe.modules.tokenizer!r}")
-
-    def _build_feature_encoder(self) -> nn.Module:
-        if self.recipe.modules.feature_encoder == "nano":
-            return NanoFeatureEncoder(self.d_icl)
-        token_dim = int(getattr(self.tokenizer, "token_dim"))
-        return SharedLinearFeatureEncoder(token_dim=token_dim, embedding_size=self.d_icl)
-
-    def _build_target_conditioner(self) -> nn.Module:
-        if self.recipe.modules.target_conditioner == "mean_padded_linear":
-            return MeanPaddedLinearTargetConditioner(self.d_icl)
-        if self.recipe.modules.target_conditioner == "label_token":
-            return LabelTokenTargetConditioner(self.many_class_base, self.d_icl)
-        raise RuntimeError(
-            f"Unsupported target conditioner variant: {self.recipe.modules.target_conditioner!r}"
+        self.column_encoder = build_column_encoder(self.surface, d_icl=self.d_icl)
+        self.row_pool = build_row_pool(self.surface, d_icl=self.d_icl)
+        self.context_encoder = build_context_encoder(self.surface, d_icl=self.d_icl)
+        self.context_label_embed = build_context_label_embed(
+            self.surface,
+            d_icl=self.d_icl,
+            many_class_base=self.many_class_base,
         )
-
-    def _build_table_block(self) -> nn.Module:
-        if self.recipe.modules.table_block == "nano_postnorm":
-            return NanoPostNormBlock(
-                embedding_size=self.d_icl,
-                nhead=self.tficl_n_heads,
-                mlp_hidden_size=self.head_hidden_dim,
-            )
-        if self.recipe.modules.table_block == "prenorm":
-            return PreNormCellBlock(
-                embedding_size=self.d_icl,
-                nhead=self.tficl_n_heads,
-                mlp_hidden_size=self.head_hidden_dim,
-                allow_test_self_attention=False,
-            )
-        if self.recipe.modules.table_block == "prenorm_test_self":
-            return PreNormCellBlock(
-                embedding_size=self.d_icl,
-                nhead=self.tficl_n_heads,
-                mlp_hidden_size=self.head_hidden_dim,
-                allow_test_self_attention=True,
-            )
-        raise RuntimeError(f"Unsupported table block variant: {self.recipe.modules.table_block!r}")
-
-    def _build_column_encoder(self) -> nn.Module:
-        if self.recipe.modules.column_encoder == "none":
-            return IdentityColumnEncoder()
-        if self.recipe.modules.column_encoder == "tfcol":
-            return SetColumnEncoder(
-                embedding_size=self.d_icl,
-                n_heads=8,
-                n_layers=3,
-                n_inducing=128,
-            )
-        raise RuntimeError(
-            f"Unsupported column encoder variant: {self.recipe.modules.column_encoder!r}"
+        self.digit_position_embed = build_digit_position_embed(
+            self.surface,
+            d_icl=self.d_icl,
+            max_mixed_radix_digits=self.max_mixed_radix_digits,
+            use_digit_position_embed=self.use_digit_position_embed,
         )
-
-    def _build_row_pool(self) -> nn.Module:
-        if self.recipe.modules.row_pool == "target_column":
-            return TargetColumnPool()
-        if self.recipe.modules.row_pool == "row_cls":
-            return RowCLSPool(
-                embedding_size=self.d_icl,
-                n_heads=8,
-                n_layers=3,
-                cls_tokens=4,
-            )
-        raise RuntimeError(f"Unsupported row pool variant: {self.recipe.modules.row_pool!r}")
-
-    def _build_context_encoder(self) -> SequenceContextEncoder | None:
-        if self.recipe.modules.context_encoder == "none":
-            return None
-        if self.recipe.modules.context_encoder == "plain":
-            return SequenceContextEncoder(
-                embedding_size=self.d_icl,
-                n_heads=self.tficl_n_heads,
-                n_layers=self.tficl_n_layers,
-                ff_expansion=self.tficl_ff_expansion,
-                use_qass=False,
-                allow_test_self_attention=True,
-            )
-        if self.recipe.modules.context_encoder == "qass":
-            return SequenceContextEncoder(
-                embedding_size=self.d_icl,
-                n_heads=self.tficl_n_heads,
-                n_layers=self.tficl_n_layers,
-                ff_expansion=self.tficl_ff_expansion,
-                use_qass=True,
-                allow_test_self_attention=True,
-            )
-        raise RuntimeError(
-            f"Unsupported context encoder variant: {self.recipe.modules.context_encoder!r}"
+        self.direct_head = build_direct_head(
+            self.surface,
+            d_icl=self.d_icl,
+            head_hidden_dim=self.head_hidden_dim,
+            many_class_base=self.many_class_base,
         )
-
-    def _build_direct_head(self) -> nn.Module:
-        if self.recipe.modules.head == "binary_direct":
-            return NanoBinaryHead(self.d_icl, self.head_hidden_dim)
-        return DirectClassifierHead(self.d_icl, self.head_hidden_dim, self.many_class_base)
 
     @staticmethod
     def _task_num_classes(batch: TaskBatch) -> int:
@@ -305,7 +217,7 @@ class TabFoundryStagedClassifier(nn.Module):
             raise ValueError("y_train length must match train_test_split_index")
 
     def _normalize_x_all(self, x_all: torch.Tensor, *, train_test_split_index: int) -> torch.Tensor:
-        if self.recipe.constraints.normalization_mode != "shared":
+        if self.surface.normalization_mode != "shared":
             return x_all
         x_train = x_all[:, :train_test_split_index, :]
         x_test = x_all[:, train_test_split_index:, :]
@@ -350,7 +262,7 @@ class TabFoundryStagedClassifier(nn.Module):
 
     def _feature_cells(self, raw_state: RawInputState) -> torch.Tensor:
         tokenized_x, _token_padding_mask = self.tokenizer(raw_state.x_all)
-        if self.recipe.modules.feature_encoder == "nano":
+        if self.surface.feature_encoder == "nano":
             return self.feature_encoder(raw_state.x_all, raw_state.train_test_split_index)
         return self.feature_encoder(tokenized_x)
 
@@ -440,7 +352,6 @@ class TabFoundryStagedClassifier(nn.Module):
         rows = row_state.rows
         if self.context_encoder is not None:
             if train_target_embeddings is None:
-                assert self.context_label_embed is not None
                 raise RuntimeError("train_target_embeddings must be provided for context encoding")
             rows = self.context_encoder(
                 rows,
@@ -478,7 +389,7 @@ class TabFoundryStagedClassifier(nn.Module):
         y_train: torch.Tensor,
         train_test_split_index: int,
     ) -> torch.Tensor:
-        if self.recipe.modules.head == "many_class":
+        if self.surface.head == "many_class":
             raise RuntimeError("forward_batched() is only supported for direct-head staged recipes")
         raw_state = self._build_raw_input_state(
             x_all=x_all,
@@ -511,10 +422,13 @@ class TabFoundryStagedClassifier(nn.Module):
         )[0]
 
     def _digit_conditioned_rows(self, row_state: RowState, y_train: torch.Tensor) -> torch.Tensor:
-        digits = encode_mixed_radix(y_train, bases=balanced_bases(
-            num_classes=row_state.num_classes,
-            max_base=self.many_class_base,
-        ))
+        digits = encode_mixed_radix(
+            y_train,
+            bases=balanced_bases(
+                num_classes=row_state.num_classes,
+                max_base=self.many_class_base,
+            ),
+        )
         if int(digits.shape[0]) > self.max_mixed_radix_digits:
             raise RuntimeError(
                 "mixed-radix depth exceeds model.max_mixed_radix_digits; "
@@ -718,14 +632,25 @@ class TabFoundryStagedClassifier(nn.Module):
     def _validate_num_classes(self, num_classes: int) -> None:
         if num_classes < 2:
             raise RuntimeError("tabfoundry_staged requires at least 2 classes")
-        if self.recipe.stage in {
-            ModelStage.NANO_EXACT,
-            ModelStage.LABEL_TOKEN,
-            ModelStage.SHARED_NORM,
-            ModelStage.PRENORM_BLOCK,
-        } and num_classes != 2:
-            raise RuntimeError(f"stage={self.stage!r} is binary-only and requires num_classes=2")
-        if self.recipe.modules.head != "many_class" and num_classes > self.many_class_base:
+        if not self.surface.task_contract.supports(num_classes=num_classes):
+            if self.surface.task_contract.max_classes == 2:
+                raise RuntimeError(f"stage={self.stage!r} is binary-only and requires num_classes=2")
+            if (
+                self.surface.task_contract.max_classes is not None
+                and num_classes > self.surface.task_contract.max_classes
+            ):
+                limit = self.surface.task_contract.max_classes
+                if limit == self.many_class_base:
+                    raise RuntimeError(
+                        f"stage={self.stage!r} only supports num_classes <= many_class_base={self.many_class_base}, "
+                        f"got {num_classes}"
+                    )
+                raise RuntimeError(
+                    f"stage={self.stage!r} only supports num_classes <= "
+                    f"{limit}, got {num_classes}"
+                )
+            raise RuntimeError(f"stage={self.stage!r} does not support num_classes={num_classes}")
+        if self.surface.head != "many_class" and num_classes > self.many_class_base:
             raise RuntimeError(
                 f"stage={self.stage!r} only supports num_classes <= many_class_base={self.many_class_base}, "
                 f"got {num_classes}"
@@ -742,7 +667,7 @@ class TabFoundryStagedClassifier(nn.Module):
             train_test_split_index=train_test_split_index,
             num_classes=num_classes,
         )
-        if self.recipe.modules.head == "many_class" and num_classes > self.many_class_base:
+        if self.surface.head == "many_class" and num_classes > self.many_class_base:
             return self._forward_many_class(raw_state)
 
         head_state = self._build_direct_head_state(raw_state)

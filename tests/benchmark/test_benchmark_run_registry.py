@@ -18,6 +18,7 @@ def _write_checkpoint(
     path: Path,
     *,
     manifest_path: str,
+    data_cfg: dict[str, object] | None = None,
     seed: int = 1,
     arch: str | None = "tabfoundry_staged",
     stage: str | None = "nano_exact",
@@ -35,12 +36,15 @@ def _write_checkpoint(
         model_cfg["arch"] = arch
     if stage is not None:
         model_cfg["stage"] = stage
+    checkpoint_data_cfg: dict[str, object] = {"manifest_path": manifest_path}
+    if data_cfg is not None:
+        checkpoint_data_cfg.update(data_cfg)
     torch.save(
         {
             "model": {},
             "config": {
                 "task": "classification",
-                "data": {"manifest_path": manifest_path},
+                "data": checkpoint_data_cfg,
                 "runtime": {"seed": int(seed)},
                 "model": model_cfg,
                 "schedule": {
@@ -161,6 +165,7 @@ def _prepare_run(
     repo_root: Path,
     *,
     run_name: str,
+    checkpoint_data_cfg: dict[str, object] | None = None,
     seed: int = 1,
     final_roc_auc: float = 0.83,
 ) -> tuple[Path, Path]:
@@ -176,6 +181,7 @@ def _prepare_run(
     _write_checkpoint(
         run_dir / "checkpoints" / "best.pt",
         manifest_path="data/manifests/default.parquet",
+        data_cfg=checkpoint_data_cfg,
         seed=seed,
     )
     _write_history(run_dir / "train_history.jsonl")
@@ -212,8 +218,83 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     assert record["model_size"]["total_params"] > 0
     assert record["model_size"]["trainable_params"] > 0
     assert record["artifacts"]["run_dir"] == "outputs/stage_01/train"
+    assert record["artifacts"]["training_surface_record_path"] == (
+        "outputs/stage_01/benchmark/training_surface_record.json"
+    )
+    assert record["surface_labels"]["model"] == "nano_exact"
     assert record["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
+    )
+
+
+def test_derive_benchmark_run_record_includes_optional_sweep_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(repo_root, run_name="stage_01")
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+        sweep_id="binary_md_v1",
+        delta_id="delta_label_token",
+        parent_sweep_id=None,
+        queue_order=1,
+        run_kind="primary",
+    )
+
+    assert record["sweep"] == {
+        "sweep_id": "binary_md_v1",
+        "delta_id": "delta_label_token",
+        "parent_sweep_id": None,
+        "queue_order": 1,
+        "run_kind": "primary",
+    }
+
+
+def test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surface(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    override_manifest = (
+        repo_root
+        / "outputs"
+        / "staged_ladder_support"
+        / "binary_iris_manifest"
+        / "manifest.parquet"
+    )
+    override_manifest.parent.mkdir(parents=True, exist_ok=True)
+    override_manifest.write_bytes(b"manifest")
+    run_dir, summary_path = _prepare_run(
+        repo_root,
+        run_name="surface_override",
+        checkpoint_data_cfg={
+            "surface_label": "binary_iris_manifest",
+            "surface_overrides": {
+                "manifest_path": str(override_manifest),
+            },
+        },
+    )
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    surface_record = json.loads(
+        (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
+    )
+    assert record["manifest_path"] == "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet"
+    assert registry_module.resolve_registry_path_value(record["manifest_path"]) == override_manifest.resolve()
+    assert (
+        Path(surface_record["data"]["manifest"]["manifest_path"]).resolve()
+        == override_manifest.resolve()
     )
 
 
@@ -289,12 +370,24 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
         conclusion="Exact staged repro matches the frozen anchor contract.",
         parent_run_id="00_simple_anchor",
         anchor_run_id="00_simple_anchor",
+        sweep_id="binary_md_v1",
+        delta_id="delta_label_token",
+        parent_sweep_id=None,
+        queue_order=1,
+        run_kind="primary",
         registry_path=registry_path,
     )
 
     assert result["registry_path"] == str(registry_path.resolve())
     run_entry = result["run"]
     assert run_entry["artifacts"]["run_dir"] == "outputs/label_token/train"
+    assert run_entry["sweep"] == {
+        "sweep_id": "binary_md_v1",
+        "delta_id": "delta_label_token",
+        "parent_sweep_id": None,
+        "queue_order": 1,
+        "run_kind": "primary",
+    }
     assert run_entry["comparisons"]["vs_parent"]["reference_run_id"] == "00_simple_anchor"
     assert run_entry["comparisons"]["vs_parent"]["final_roc_auc_delta"] == pytest.approx(0.04)
     assert run_entry["decision"] == "keep"
@@ -302,6 +395,9 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
     assert child_record_path.exists()
     child_record = json.loads(child_record_path.read_text(encoding="utf-8"))
     assert child_record["manifest_path"] == "data/manifests/default.parquet"
+    assert child_record["artifacts"]["training_surface_record_path"] == (
+        "outputs/label_token/benchmark/training_surface_record.json"
+    )
 
     registry = registry_module.load_benchmark_run_registry(registry_path)
     assert set(registry["runs"]) == {"00_simple_anchor", "01_nano_exact"}
@@ -373,6 +469,16 @@ def test_register_benchmark_run_main_parses_cli_and_defaults_config_profile(
             str(tmp_path / "prior"),
             "--control-baseline-id",
             "cls_benchmark_linear_v1",
+            "--sweep-id",
+            "binary_md_v1",
+            "--delta-id",
+            "delta_label_token",
+            "--parent-sweep-id",
+            "binary_xs_v0",
+            "--queue-order",
+            "3",
+            "--run-kind",
+            "followup",
             "--registry-path",
             str(tmp_path / "benchmark_run_registry.json"),
         ]
@@ -392,6 +498,11 @@ def test_register_benchmark_run_main_parses_cli_and_defaults_config_profile(
     assert captured["anchor_run_id"] == "01_nano_exact_md_prior_parity_fix"
     assert captured["prior_dir"] == tmp_path / "prior"
     assert captured["control_baseline_id"] == "cls_benchmark_linear_v1"
+    assert captured["sweep_id"] == "binary_md_v1"
+    assert captured["delta_id"] == "delta_label_token"
+    assert captured["parent_sweep_id"] == "binary_xs_v0"
+    assert captured["queue_order"] == 3
+    assert captured["run_kind"] == "followup"
     assert captured["registry_path"] == tmp_path / "benchmark_run_registry.json"
     assert "Benchmark run registered:" in capsys.readouterr().out
 
@@ -524,3 +635,4 @@ def test_checked_in_benchmark_run_registry_contains_medium_binary_anchor() -> No
     )
     assert run["lineage"]["control_baseline_id"] == "cls_benchmark_linear_v2"
     assert run["artifacts"]["run_dir"] == "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
+    assert run.get("sweep") is None

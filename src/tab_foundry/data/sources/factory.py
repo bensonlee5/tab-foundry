@@ -16,11 +16,17 @@ def build_source_dataset(
     split: str,
     task: str,
     seed: int,
+    preprocessing_cfg: DictConfig | None = None,
 ) -> Dataset[TaskBatch]:
     """Build a task dataset from one registered source."""
 
     source = str(getattr(data_cfg, "source", "manifest")).strip().lower()
     if source == "manifest":
-        return build_manifest_task_dataset(data_cfg, split=split, task=task, seed=seed)
+        return build_manifest_task_dataset(
+            data_cfg,
+            split=split,
+            task=task,
+            seed=seed,
+            preprocessing_cfg=preprocessing_cfg,
+        )
     raise ValueError(f"Unsupported data.source: {source!r}")
-

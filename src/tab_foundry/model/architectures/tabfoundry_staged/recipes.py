@@ -25,9 +25,7 @@ class StageModuleSelection:
 class StageConfigConstraints:
     """Public config constraints for one stage."""
 
-    required_input_normalization: str | None
     normalization_mode: str
-    required_defaults: tuple[tuple[str, object], ...]
 
 
 @dataclass(slots=True, frozen=True)
@@ -57,20 +55,6 @@ class StageRecipe:
     benchmark_profile: str
 
 
-_COMMON_DEFAULTS: tuple[tuple[str, object], ...] = (
-    ("d_col", 128),
-    ("feature_group_size", 1),
-    ("tfcol_n_heads", 8),
-    ("tfcol_n_layers", 3),
-    ("tfcol_n_inducing", 128),
-    ("tfrow_n_heads", 8),
-    ("tfrow_n_layers", 3),
-    ("tfrow_cls_tokens", 4),
-    ("tficl_ff_expansion", 2),
-    ("use_digit_position_embed", True),
-)
-
-
 STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
     ModelStage.NANO_EXACT: StageRecipe(
         stage=ModelStage.NANO_EXACT,
@@ -85,9 +69,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="binary_direct",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization="train_zscore_clip",
             normalization_mode="internal",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=2),
         benchmark_profile="nano_exact",
@@ -105,9 +87,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="binary_direct",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization="train_zscore_clip",
             normalization_mode="internal",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=2),
         benchmark_profile="label_token",
@@ -125,9 +105,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="binary_direct",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization="train_zscore_clip",
             normalization_mode="shared",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=2),
         benchmark_profile="shared_norm",
@@ -145,9 +123,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="binary_direct",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization="train_zscore_clip",
             normalization_mode="shared",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=2),
         benchmark_profile="prenorm_block",
@@ -165,9 +141,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="small_class",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization=None,
             normalization_mode="shared",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=None),
         benchmark_profile="small_class_head",
@@ -185,9 +159,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="small_class",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization=None,
             normalization_mode="shared",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=None),
         benchmark_profile="test_self",
@@ -205,9 +177,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="small_class",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization=None,
             normalization_mode="shared",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=None),
         benchmark_profile="grouped_tokens",
@@ -225,9 +195,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="small_class",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization=None,
             normalization_mode="shared",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=None),
         benchmark_profile="row_cls_pool",
@@ -245,9 +213,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="small_class",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization=None,
             normalization_mode="shared",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=None),
         benchmark_profile="column_set",
@@ -265,9 +231,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="small_class",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization=None,
             normalization_mode="shared",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=None),
         benchmark_profile="qass_context",
@@ -285,9 +249,7 @@ STAGE_RECIPE_REGISTRY: dict[ModelStage, StageRecipe] = {
             head="many_class",
         ),
         constraints=StageConfigConstraints(
-            required_input_normalization=None,
             normalization_mode="shared",
-            required_defaults=_COMMON_DEFAULTS,
         ),
         task_contract=StageTaskContract(min_classes=2, max_classes=None, supports_many_class=True),
         benchmark_profile="many_class",
@@ -305,4 +267,3 @@ def stage_uses_internal_benchmark_normalization(stage: ModelStage) -> bool:
     """Whether external benchmark wrappers must leave feature normalization internal."""
 
     return recipe_for_stage(stage).constraints.normalization_mode == "internal"
-

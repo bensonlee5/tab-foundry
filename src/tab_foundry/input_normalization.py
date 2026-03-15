@@ -30,14 +30,16 @@ def normalize_train_test_arrays(
     normalized_mode = str(mode).strip().lower()
     train = np.asarray(x_train, dtype=np.float32)
     test = np.asarray(x_test, dtype=np.float32)
+    train_stats = np.asarray(x_train, dtype=np.float64)
+    test_stats = np.asarray(x_test, dtype=np.float64)
     if normalized_mode == "none":
         return train, test
 
-    mean = train.mean(axis=0, dtype=np.float32)
-    std = train.std(axis=0, dtype=np.float32)
-    std = np.where(std < _EPS, 1.0, std).astype(np.float32, copy=False)
-    train_norm = (train - mean) / std
-    test_norm = (test - mean) / std
+    mean = train_stats.mean(axis=0, dtype=np.float64)
+    std = train_stats.std(axis=0, dtype=np.float64)
+    std = np.where(std < _EPS, 1.0, std)
+    train_norm = (train_stats - mean) / std
+    test_norm = (test_stats - mean) / std
     if normalized_mode == "train_zscore":
         return train_norm.astype(np.float32, copy=False), test_norm.astype(np.float32, copy=False)
     if normalized_mode == "train_zscore_clip":
@@ -59,14 +61,16 @@ def normalize_train_test_tensors(
     normalized_mode = str(mode).strip().lower()
     train = x_train.to(torch.float32)
     test = x_test.to(torch.float32)
+    train_stats = x_train.to(torch.float64)
+    test_stats = x_test.to(torch.float64)
     if normalized_mode == "none":
         return train, test
 
-    mean = train.mean(dim=0, keepdim=False)
-    std = train.std(dim=0, keepdim=False, unbiased=False)
+    mean = train_stats.mean(dim=0, keepdim=False)
+    std = train_stats.std(dim=0, keepdim=False, unbiased=False)
     std = torch.where(std < _EPS, torch.ones_like(std), std)
-    train_norm = (train - mean) / std
-    test_norm = (test - mean) / std
+    train_norm = ((train_stats - mean) / std).to(torch.float32)
+    test_norm = ((test_stats - mean) / std).to(torch.float32)
     if normalized_mode == "train_zscore":
         return train_norm, test_norm
     if normalized_mode == "train_zscore_clip":

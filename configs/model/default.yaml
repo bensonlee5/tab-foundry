@@ -1,5 +1,7 @@
 arch: tabfoundry
 stage: null
+stage_label: null
+module_overrides: null
 d_col: 128
 d_icl: 512
 input_normalization: none

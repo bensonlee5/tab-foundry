@@ -127,7 +127,7 @@ def test_load_openml_benchmark_datasets_matches_notebook_filters(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     datasets, metadata = benchmark_module.load_openml_benchmark_datasets(
@@ -259,7 +259,7 @@ def test_load_openml_benchmark_datasets_fails_on_bundle_drift(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     with pytest.raises(RuntimeError, match="benchmark bundle drift"):
@@ -342,7 +342,7 @@ def test_load_openml_benchmark_datasets_requires_bundle_new_instances_match(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     with pytest.raises(RuntimeError, match="selection mismatch"):
@@ -426,7 +426,7 @@ def test_load_openml_benchmark_datasets_fails_on_selection_drift(
     monkeypatch.setattr(
         benchmark_module.openml.tasks,
         "get_task",
-        lambda task_id, download_splits=False: fake_tasks[int(task_id)],
+        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
     )
 
     with pytest.raises(RuntimeError, match=message):
@@ -538,6 +538,9 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
                 "comparison_summary_path": str((out_root / "comparison_summary.json").resolve()),
                 "comparison_curve_path": str((out_root / "comparison_curve.png").resolve()),
                 "benchmark_run_record_path": str((out_root / "benchmark_run_record.json").resolve()),
+                "training_surface_record_path": str(
+                    (smoke_run_dir / "training_surface_record.json").resolve()
+                ),
             },
             "tab_foundry_metrics": {
                 "best_step": 25.0,
@@ -616,9 +619,16 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert summary["tab_foundry"]["manifest_path"] == "data/manifests/binary.parquet"
     assert summary["tab_foundry"]["model_size"]["total_params"] == 1234
     assert summary["tab_foundry"]["training_diagnostics"]["mean_grad_norm"] == pytest.approx(0.4)
+    assert summary["artifacts"]["training_surface_record_json"] == str(
+        (smoke_run_dir / "training_surface_record.json").resolve()
+    )
     assert (out_root / "comparison_summary.json").exists()
     assert (out_root / "comparison_curve.png").exists()
     assert (out_root / "benchmark_run_record.json").exists()
+    written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
+    assert written_summary["artifacts"]["training_surface_record_json"] == str(
+        (smoke_run_dir / "training_surface_record.json").resolve()
+    )
     written_bundle = json.loads((out_root / "benchmark_tasks.json").read_text(encoding="utf-8"))
     assert written_bundle == benchmark_bundle
 
@@ -742,6 +752,9 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
                 "comparison_summary_path": str((out_root / "comparison_summary.json").resolve()),
                 "comparison_curve_path": str((out_root / "comparison_curve.png").resolve()),
                 "benchmark_run_record_path": str((out_root / "benchmark_run_record.json").resolve()),
+                "training_surface_record_path": str(
+                    (smoke_run_dir / "training_surface_record.json").resolve()
+                ),
             },
             "tab_foundry_metrics": {
                 "best_step": 25.0,
@@ -801,8 +814,14 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
     assert captured["dataset_new_instances"] == 6
     assert captured["dataset_bundle_path"] == str(source_bundle_path.resolve())
     assert summary["benchmark_bundle"]["source_path"] == str(source_bundle_path.resolve())
+    assert summary["artifacts"]["training_surface_record_json"] == str(
+        (smoke_run_dir / "training_surface_record.json").resolve()
+    )
     written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
     assert written_summary["benchmark_bundle"]["source_path"] == str(source_bundle_path.resolve())
+    assert written_summary["artifacts"]["training_surface_record_json"] == str(
+        (smoke_run_dir / "training_surface_record.json").resolve()
+    )
     written_bundle = json.loads((out_root / "benchmark_tasks.json").read_text(encoding="utf-8"))
     assert written_bundle == benchmark_bundle
 
@@ -905,6 +924,8 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
     assert summary["artifacts"]["benchmark_run_record_json"] is None
     assert written_summary["artifacts"]["benchmark_run_record_json"] is None
+    assert summary["artifacts"]["training_surface_record_json"] is None
+    assert written_summary["artifacts"]["training_surface_record_json"] is None
     assert "persisted model.arch" in summary["tab_foundry"]["benchmark_run_record_warning"]
     assert "persisted model.arch" in written_summary["tab_foundry"]["benchmark_run_record_warning"]
     assert not (out_root / "benchmark_run_record.json").exists()
@@ -1128,6 +1149,9 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
                 "comparison_summary_path": str((out_root / "comparison_summary.json").resolve()),
                 "comparison_curve_path": str((out_root / "comparison_curve.png").resolve()),
                 "benchmark_run_record_path": str((out_root / "benchmark_run_record.json").resolve()),
+                "training_surface_record_path": str(
+                    (smoke_run_dir / "training_surface_record.json").resolve()
+                ),
             },
             "tab_foundry_metrics": {
                 "best_step": 25.0,
@@ -1176,8 +1200,14 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
     )
 
     assert summary["control_baseline"]["baseline_id"] == "cls_benchmark_linear_v1"
+    assert summary["artifacts"]["training_surface_record_json"] == str(
+        (smoke_run_dir / "training_surface_record.json").resolve()
+    )
     written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
     assert written_summary["control_baseline"]["budget_class"] == "short-run"
+    assert written_summary["artifacts"]["training_surface_record_json"] == str(
+        (smoke_run_dir / "training_surface_record.json").resolve()
+    )
 
 
 def test_run_nanotabpfn_benchmark_rejects_unknown_control_baseline(tmp_path: Path) -> None:

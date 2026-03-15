@@ -17,6 +17,8 @@ def test_cls_workstation_task_resolution() -> None:
     assert str(cfg.model.arch) == "tabfoundry"
     assert cfg.model.stage is None
     assert int(cfg.model.feature_group_size) == 1
+    assert bool(cfg.preprocessing.impute_missing) is True
+    assert float(cfg.preprocessing.all_nan_fill) == 0.0
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
 

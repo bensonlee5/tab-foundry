@@ -89,9 +89,40 @@ def test_staged_model_defaults_stage_to_nano_exact() -> None:
     assert spec.stage == "nano_exact"
 
 
+def test_staged_model_spec_accepts_stage_label_and_module_overrides() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": "tabfoundry_staged",
+            "stage": "nano_exact",
+            "stage_label": "delta_row_cls_pool",
+            "module_overrides": {"row_pool": "row_cls"},
+        },
+    )
+
+    assert spec.stage == "nano_exact"
+    assert spec.stage_label == "delta_row_cls_pool"
+    assert spec.module_overrides == {"row_pool": "row_cls"}
+
+
 def test_non_staged_arch_rejects_stage() -> None:
     with pytest.raises(ValueError, match="model.stage"):
         _ = ModelBuildSpec(task="classification", arch="tabfoundry", stage="nano_exact")
+
+
+def test_non_staged_arch_rejects_stage_surface_fields() -> None:
+    with pytest.raises(ValueError, match="stage_label"):
+        _ = ModelBuildSpec(
+            task="classification",
+            arch="tabfoundry",
+            stage_label="delta_label_token",
+        )
+    with pytest.raises(ValueError, match="module_overrides"):
+        _ = ModelBuildSpec(
+            task="classification",
+            arch="tabfoundry",
+            module_overrides={"row_pool": "row_cls"},
+        )
 
 
 def test_checkpoint_build_spec_round_trips_model_arch() -> None:

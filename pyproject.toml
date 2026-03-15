@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tab-foundry"
-version = "0.4.0"
+version = "0.6.0"
 description = "Tabfoundry tabular foundation model training on dagzoo packed shard outputs"
 readme = "README.md"
 license = "MIT"
@@ -22,15 +22,31 @@ dependencies = [
   "wandb>=0.20",
 ]
 
+[project.optional-dependencies]
+benchmark = [
+  "h5py>=3.12",
+  "matplotlib>=3.10",
+  "openml>=0.15",
+  "pandas>=2.2",
+  "scikit-learn>=1.6",
+]
+muon = [
+  "muon-optimizer>=0.1.0",
+]
+
 [project.scripts]
 tab-foundry = "tab_foundry.cli:main"
 
 [dependency-groups]
 dev = [
+  "deptry>=0.23",
+  "grimp>=3.6",
   "h5py>=3.12",
+  "hypothesis>=6.130",
   "matplotlib>=3.10",
   "mdformat>=0.7",
   "mypy>=1.11",
+  "muon-optimizer>=0.1.0",
   "openml>=0.15",
   "pandas>=2.2",
   "pre-commit>=3.8",
@@ -38,6 +54,7 @@ dev = [
   "pytest-cov>=6.0",
   "ruff>=0.6",
   "scikit-learn>=1.6",
+  "vulture>=2.14",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -69,3 +86,9 @@ python_version = "3.13"
 warn_unused_configs = true
 ignore_missing_imports = true
 strict_equality = true
+
+[tool.deptry]
+extend_exclude = ["scripts/audit"]
+known_first_party = ["tab_foundry"]
+package_module_name_map = { "muon-optimizer" = ["muon"], "scikit-learn" = ["sklearn"] }
+per_rule_ignores = { DEP001 = ["model", "train"] }

@@ -51,6 +51,43 @@ def _coerce_bool(value: Any, *, context: str) -> bool:
     raise ValueError(f"{context} must be boolean-compatible, got {value!r}")
 
 
+def _normalize_optional_label(value: Any, *, context: str) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+    return normalized
+
+
+def _normalize_jsonable_mapping(value: Any, *, context: str) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{context} must be a mapping or null, got {value!r}")
+    normalized: dict[str, Any] = {}
+    for raw_key, raw_value in value.items():
+        key = str(raw_key).strip()
+        if not key:
+            raise ValueError(f"{context} keys must be non-empty strings")
+        if isinstance(raw_value, Mapping):
+            normalized[key] = _normalize_jsonable_mapping(
+                raw_value,
+                context=f"{context}.{key}",
+            )
+            continue
+        if isinstance(raw_value, list):
+            normalized[key] = [
+                _normalize_jsonable_mapping(item, context=f"{context}.{key}[{idx}]")
+                if isinstance(item, Mapping)
+                else item
+                for idx, item in enumerate(raw_value)
+            ]
+            continue
+        normalized[key] = raw_value
+    return normalized
+
+
 def _normalize_model_stage(value: Any, *, context: str) -> str | None:
     if value is None:
         return None
@@ -85,6 +122,8 @@ class ModelBuildSpec:
     task: str
     arch: str = "tabfoundry"
     stage: str | None = None
+    stage_label: str | None = None
+    module_overrides: dict[str, Any] | None = None
     d_col: int = 128
     d_icl: int = 512
     input_normalization: str = "none"
@@ -115,6 +154,30 @@ class ModelBuildSpec:
             raise ValueError(f"Unsupported model arch: {arch!r}")
         object.__setattr__(self, "arch", arch)
         object.__setattr__(self, "stage", resolve_model_stage(arch=arch, stage=self.stage))
+        object.__setattr__(
+            self,
+            "stage_label",
+            _normalize_optional_label(self.stage_label, context="model.stage_label"),
+        )
+        object.__setattr__(
+            self,
+            "module_overrides",
+            _normalize_jsonable_mapping(
+                self.module_overrides,
+                context="model.module_overrides",
+            ),
+        )
+        if arch != STAGED_MODEL_ARCH:
+            if self.stage_label is not None:
+                raise ValueError(
+                    "model.stage_label is only supported when model.arch='tabfoundry_staged'; "
+                    f"got arch={arch!r}"
+                )
+            if self.module_overrides is not None:
+                raise ValueError(
+                    "model.module_overrides is only supported when model.arch='tabfoundry_staged'; "
+                    f"got arch={arch!r}"
+                )
 
         input_normalization = str(self.input_normalization).strip().lower()
         if input_normalization not in SUPPORTED_INPUT_NORMALIZATION_MODES:
@@ -188,6 +251,8 @@ def model_build_spec_from_mappings(
         task=str(task).strip().lower(),
         arch=str(_pick("arch", "tabfoundry")),
         stage=_pick("stage", None),
+        stage_label=_pick("stage_label", None),
+        module_overrides=_pick("module_overrides", None),
         d_col=int(_pick("d_col", 128)),
         d_icl=int(_pick("d_icl", 512)),
         input_normalization=str(_pick("input_normalization", "none")),
