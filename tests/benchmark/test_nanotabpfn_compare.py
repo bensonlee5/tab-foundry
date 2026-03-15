@@ -807,6 +807,137 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
     assert written_bundle == benchmark_bundle
 
 
+def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    nanotab_root = tmp_path / "nano"
+    (nanotab_root / ".venv" / "bin").mkdir(parents=True)
+    (nanotab_root / ".venv" / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
+    prior_dump = nanotab_root / "300k_150x5_2.h5"
+    prior_dump.write_bytes(b"prior")
+    out_root = tmp_path / "benchmark_out"
+    source_bundle_path = _write_benchmark_bundle(
+        tmp_path / "legacy_bundle.json",
+        tasks=[
+            {
+                "task_id": 1,
+                "dataset_name": "toy",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+        ],
+    )
+    benchmark_bundle = json.loads(source_bundle_path.read_text(encoding="utf-8"))
+
+    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: source_bundle_path)
+    monkeypatch.setattr(compare_module, "load_benchmark_bundle", lambda path=None: benchmark_bundle)
+    monkeypatch.setattr(
+        compare_module,
+        "load_openml_benchmark_datasets",
+        lambda *, new_instances=200, benchmark_bundle_path=None: (
+            {
+                "toy": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64),
+                )
+            },
+            [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
+        ),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "evaluate_tab_foundry_run",
+        lambda *_args, **_kwargs: [
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "dataset_roc_auc": {"toy": 0.81},
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "derive_benchmark_run_record",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError(
+                "checkpoint config must include explicit model.arch metadata for benchmark "
+                "registration; legacy checkpoints without persisted model.arch cannot be "
+                "registered"
+            )
+        ),
+    )
+
+    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+        out_index = cmd.index("--out-path") + 1
+        Path(cmd[out_index]).write_text(
+            json.dumps(
+                {
+                    "seed": 0,
+                    "step": 25,
+                    "training_time": 2.0,
+                    "roc_auc": 0.78,
+                    "dataset_roc_auc": {"toy": 0.78},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
+
+    summary = compare_module.run_nanotabpfn_benchmark(
+        compare_module.NanoTabPFNBenchmarkConfig(
+            tab_foundry_run_dir=smoke_run_dir,
+            out_root=out_root,
+            nanotabpfn_root=nanotab_root,
+            nanotab_prior_dump=prior_dump,
+        )
+    )
+
+    written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
+    assert summary["artifacts"]["benchmark_run_record_json"] is None
+    assert written_summary["artifacts"]["benchmark_run_record_json"] is None
+    assert "persisted model.arch" in summary["tab_foundry"]["benchmark_run_record_warning"]
+    assert "persisted model.arch" in written_summary["tab_foundry"]["benchmark_run_record_warning"]
+    assert not (out_root / "benchmark_run_record.json").exists()
+    assert "Skipping benchmark_run_record.json derivation" in capsys.readouterr().err
+
+
+def test_explicit_benchmark_bundle_paths_accept_checked_in_legacy_and_medium_binary_bundles() -> None:
+    legacy_bundle_path = (
+        REPO_ROOT / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
+    )
+    medium_bundle_path = (
+        REPO_ROOT / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_binary_medium_v1.json"
+    )
+
+    legacy_bundle = benchmark_module.load_benchmark_bundle(legacy_bundle_path)
+    medium_bundle = benchmark_module.load_benchmark_bundle(medium_bundle_path)
+
+    assert legacy_bundle["name"] == "nanotabpfn_openml_binary_small"
+    assert legacy_bundle["task_ids"] == [363613, 363621, 363629]
+    assert medium_bundle["name"] == "nanotabpfn_openml_binary_medium"
+    assert len(medium_bundle["task_ids"]) == 10
+    assert all(int(task["n_classes"]) == 2 for task in medium_bundle["tasks"])
+
+
+def test_default_benchmark_bundle_path_resolves_to_medium_binary_bundle() -> None:
+    bundle_path = compare_module.default_benchmark_bundle_path()
+
+    assert bundle_path == (
+        REPO_ROOT / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_binary_medium_v1.json"
+    )
+    assert benchmark_module.load_benchmark_bundle(bundle_path)["name"] == "nanotabpfn_openml_binary_medium"
+
+
 def test_collect_checkpoint_snapshots_prefers_train_elapsed_seconds(tmp_path: Path) -> None:
     run_dir = tmp_path / "run"
     checkpoint_dir = run_dir / "train_outputs" / "checkpoints"

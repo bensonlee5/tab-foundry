@@ -7,42 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-14
+
 ### Changed
+
+- Added a named OpenML task-source registry under `src/tab_foundry/bench/`
+  plus an additive `--task-source` flag to
+  `scripts/build_openml_benchmark_bundle.py`, preserving the legacy
+  `tabarena_v0_1` source while adding the broader pinned
+  `binary_expanded_v1` source for the canonical medium binary surface.
+
+- Added the repo-tracked
+  `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json` bundle and
+  changed `default_benchmark_bundle_path()` to return that 10-task binary
+  surface by default.
+
+- Rolled the canonical frozen control baseline id from
+  `cls_benchmark_linear_v1` to `cls_benchmark_linear_v2` without rewriting the
+  historical `v1` registry entry.
+
+- User-facing benchmark surface break: the canonical benchmark bundle path now
+  defaults to `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+  instead of `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`; the
+  canonical comparison surface therefore changes, and new benchmark results are
+  not directly comparable to historical `v1` entries unless the bundle path and
+  control-baseline id are matched explicitly.
 
 - Redefined `tab-foundry-export-v3` as a single-manifest bundle containing
   `manifest.json` plus `weights.safetensors`. The prior v3 sidecar-based bundle
   layout is obsolete, and both those older sidecar bundles and earlier
   single-manifest v3 bundles without `manifest_sha256` must be regenerated.
+
 - Embedded inference and preprocessing policy metadata directly into
   `manifest.json`; `inference_config.json` and `preprocessor_state.json` are no
   longer emitted for v3 bundles.
+
 - Changed the v3 preprocessing contract from dataset-specific fitted state to
   policy-only metadata. Bundled v3 exports no longer persist `feature_ids`,
   per-feature `fill_values`, or classification `label_values`.
+
 - Removed `tab-foundry build-preprocessor-state` and dropped
   `tab-foundry export --preprocessor-state` from the supported CLI surface.
+
 - Reference execution now derives preprocessing from the incoming runtime
   support set, keeping export consumption aligned with dataset loading instead
   of reusing export-time fitted values.
+
 - Export validation now rejects unsupported `manifest.model.input_normalization`
   values before model construction.
+
 - Benchmark checkpoint evaluation now honors the saved
   `model.input_normalization` exactly. Checkpoints saved with
   `input_normalization="none"` no longer get an implicit train-zscore pass in
   the external benchmark wrapper, which changes the reproduced ROC AUC curve
   for the canonical `cls_benchmark_linear_v1` control baseline.
+
 - Refactored tabfoundry classification conditioning so the column/row backbone
   is feature-only and label-conditioned reasoning happens in the ICL stage.
   The many-class path now reruns ICL conditioning per mixed-radix digit view
   instead of averaging feature-identical column outputs.
+
 - `tficl` attention masking now preserves each test token's own state by
   allowing test-token self-attention while still blocking test-to-test
   cross-attention.
+
 - Added an additive `tabfoundry_simple` classification debug architecture plus
   the `experiment=cls_benchmark_linear_simple` benchmark profile for
   nanoTabPFN-style ablation work on the current 3-task control benchmark.
+
 - Fixed many-class hierarchical path target clamping to respect the configured
   `many_class_base` instead of hardcoding base-10 behavior.
+
 - `TabFoundryStagedClassifier` now rejects unsupported
   `many_class_train_mode` and `input_normalization` values during
   construction, matching the eager validation behavior already enforced by the

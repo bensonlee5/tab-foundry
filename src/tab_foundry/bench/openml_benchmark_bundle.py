@@ -17,60 +17,10 @@ from tab_foundry.bench.nanotabpfn import (
     prepare_openml_benchmark_task,
     read_required_openml_quality,
 )
-
-
-NOTEBOOK_TABARENA_V0_1_TASK_IDS: tuple[int, ...] = (
-    363612,
-    363613,
-    363614,
-    363615,
-    363616,
-    363618,
-    363619,
-    363620,
-    363621,
-    363623,
-    363624,
-    363625,
-    363626,
-    363627,
-    363628,
-    363629,
-    363630,
-    363631,
-    363632,
-    363671,
-    363672,
-    363673,
-    363674,
-    363675,
-    363676,
-    363677,
-    363678,
-    363679,
-    363681,
-    363682,
-    363683,
-    363684,
-    363685,
-    363686,
-    363689,
-    363691,
-    363693,
-    363694,
-    363696,
-    363697,
-    363698,
-    363699,
-    363700,
-    363702,
-    363704,
-    363705,
-    363706,
-    363707,
-    363708,
-    363711,
-    363712,
+from tab_foundry.bench.openml_task_source_registry import (
+    DEFAULT_OPENML_TASK_SOURCE,
+    task_ids_for_source,
+    task_source_names,
 )
 
 
@@ -80,12 +30,20 @@ class OpenMLBenchmarkBundleConfig:
 
     bundle_name: str
     version: int
+    task_source: str = DEFAULT_OPENML_TASK_SOURCE
     new_instances: int = 200
     max_features: int = 10
     max_classes: int | None = 2
     max_missing_pct: float = 0.0
     min_minority_class_pct: float = 2.5
-    task_ids: tuple[int, ...] = NOTEBOOK_TABARENA_V0_1_TASK_IDS
+    task_ids: tuple[int, ...] | None = None
+
+    def resolved_task_ids(self) -> tuple[int, ...]:
+        """Resolve custom task ids or fall back to the named pinned source pool."""
+
+        if self.task_ids is not None:
+            return tuple(int(task_id) for task_id in self.task_ids)
+        return task_ids_for_source(self.task_source)
 
 
 @dataclass(slots=True, frozen=True)
@@ -112,7 +70,7 @@ def _bundle_selection_payload(config: OpenMLBenchmarkBundleConfig, *, max_classe
 
 def _collect_task_candidates(config: OpenMLBenchmarkBundleConfig) -> list[OpenMLBenchmarkTaskCandidate]:
     candidates: list[OpenMLBenchmarkTaskCandidate] = []
-    for task_id in config.task_ids:
+    for task_id in config.resolved_task_ids():
         task = openml.tasks.get_task(int(task_id), download_splits=False)
         if task.task_type_id != TaskType.SUPERVISED_CLASSIFICATION:
             continue
@@ -213,6 +171,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out-path", required=True, help="JSON output path for the bundle")
     parser.add_argument("--bundle-name", required=True, help="Bundle name persisted in the JSON payload")
     parser.add_argument("--version", type=int, required=True, help="Bundle version persisted in the JSON payload")
+    parser.add_argument(
+        "--task-source",
+        default=DEFAULT_OPENML_TASK_SOURCE,
+        choices=task_source_names(),
+        help="Named pinned OpenML task-id source pool used before applying bundle filters",
+    )
     parser.add_argument("--new-instances", type=int, default=200, help="Subsampled row count used by the benchmark")
     parser.add_argument(
         "--max-features",
@@ -246,6 +210,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     config = OpenMLBenchmarkBundleConfig(
         bundle_name=str(args.bundle_name),
         version=int(args.version),
+        task_source=str(args.task_source),
         new_instances=int(args.new_instances),
         max_features=int(args.max_features),
         max_classes=_parse_max_classes_arg(str(args.max_classes)),

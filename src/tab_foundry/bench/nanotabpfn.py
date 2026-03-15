@@ -22,7 +22,8 @@ from sklearn.preprocessing import FunctionTransformer, LabelEncoder, OrdinalEnco
 from tab_foundry.bench.artifacts import checkpoint_snapshots_from_history
 
 
-BENCHMARK_BUNDLE_FILENAME = "nanotabpfn_openml_benchmark_v1.json"
+LEGACY_BINARY_BENCHMARK_BUNDLE_FILENAME = "nanotabpfn_openml_benchmark_v1.json"
+BENCHMARK_BUNDLE_FILENAME = "nanotabpfn_openml_binary_medium_v1.json"
 _BUNDLE_SELECTION_TASK_TYPE = "supervised_classification"
 
 _SKF = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)

@@ -511,3 +511,16 @@ def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_f
             comparison_summary_path=summary_path,
             benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
         )
+
+
+def test_checked_in_benchmark_run_registry_contains_medium_binary_anchor() -> None:
+    registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+
+    registry = registry_module.load_benchmark_run_registry(registry_path)
+    run = registry["runs"]["01_nano_exact_md_prior_parity_fix_binary_medium_v1"]
+
+    assert run["benchmark_bundle"]["source_path"] == (
+        "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
+    )
+    assert run["lineage"]["control_baseline_id"] == "cls_benchmark_linear_v2"
+    assert run["artifacts"]["run_dir"] == "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
