@@ -16,9 +16,9 @@ required_repo_local_sources:
   - title: Paper notes
     path: reference/papers.md
     role: Local literature summaries and transfer notes
-  - title: Stage campaign template
-    path: reference/stage_campaign_template.md
-    role: Required stage artifact format
+  - title: System delta template
+    path: reference/system_delta_campaign_template.md
+    role: Required queue-row artifact format
 
 optional_sibling_workspace_sources:
   - title: nanochat GPT implementation

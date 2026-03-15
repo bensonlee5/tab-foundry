@@ -10,17 +10,16 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_program_contract_has_required_policy_sections() -> None:
-    program_path = REPO_ROOT / "program.md"
-    contents = program_path.read_text(encoding="utf-8")
+    contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
 
     required_headers = [
         "## Objective",
-        "## Locked Baseline And Comparison Surface",
-        "## Search Scope",
+        "## Locked Anchor Surface",
+        "## Dimension Families",
+        "## Queue And Matrix",
         "## Required Research Package",
         "## Execution Loop",
         "## Decisions",
-        "## Scaling Confirmation",
     ]
     for header in required_headers:
         assert header in contents
@@ -28,11 +27,13 @@ def test_program_contract_has_required_policy_sections() -> None:
     required_statements = [
         "`final_roc_auc`",
         "The benchmark registry is the historical system of record.",
-        "Any mechanism or preprocessing candidate is allowed",
-        "Never reject a candidate from one run alone.",
-        "Only `keep` candidates enter scaling confirmation.",
+        "Underperformance alone is not enough for `reject`.",
+        "This pass is attribution-first. No row becomes the new base during the sweep.",
         "`best_roc_auc` is a tie-breaker and diagnostic, not the main score.",
+        "`training_surface_record.json`",
         "Agents should use optional sibling-workspace sources when available, but must",
+        "generated compatibility aliases for the active sweep only",
+        "Every benchmark-facing run belongs to exactly one `sweep_id`.",
     ]
     for statement in required_statements:
         assert statement in contents
@@ -41,7 +42,13 @@ def test_program_contract_has_required_policy_sections() -> None:
 def test_program_contract_required_repo_paths_exist() -> None:
     contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
     required_repo_paths = [
-        "reference/stage_campaign_template.md",
+        "reference/system_delta_catalog.yaml",
+        "reference/system_delta_sweeps/index.yaml",
+        "reference/system_delta_sweeps/binary_md_v1/queue.yaml",
+        "reference/system_delta_sweeps/binary_md_v1/matrix.md",
+        "reference/system_delta_queue.yaml",
+        "reference/system_delta_matrix.md",
+        "reference/system_delta_campaign_template.md",
         "reference/stage_research_sources.yaml",
         "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         "src/tab_foundry/bench/benchmark_run_registry_v1.json",
@@ -63,7 +70,7 @@ def test_program_contract_anchor_is_resolved_via_registry() -> None:
     assert f"`{anchor_run_id}`" in contents
     assert f"`{expected_run_dir}`" in contents
     assert f"`{expected_benchmark_dir}`" in contents
-    assert "Resolve its artifact paths through" in contents
+    assert "Resolve canonical identity through" in contents
     assert "They may be absent in a fresh clone or CI" in contents
 
     runs = registry["runs"]
@@ -73,22 +80,93 @@ def test_program_contract_anchor_is_resolved_via_registry() -> None:
     assert artifacts["benchmark_dir"] == expected_benchmark_dir
 
 
-def test_stage_campaign_template_has_required_fields() -> None:
-    contents = (REPO_ROOT / "reference" / "stage_campaign_template.md").read_text(encoding="utf-8")
+def test_system_delta_campaign_template_has_required_fields() -> None:
+    contents = (REPO_ROOT / "reference" / "system_delta_campaign_template.md").read_text(
+        encoding="utf-8"
+    )
     required_fields = [
-        "`candidate_id`",
-        "`mechanism_family`",
-        "`touched_subsystems`",
-        "`comparison_surface`",
-        "primary_metric: final_roc_auc",
-        "`queue_rationale`",
-        "recommended_recipe",
-        "preserved_settings",
-        "shifted_settings",
-        "tunable_params",
+        "`delta_id`",
+        "`sweep_id`",
+        "`dimension_family`",
+        "`comparison_policy: anchor_only`",
+        "`training_surface_record.json`",
+        "`result_card.md`",
+        "`accept_signal`",
+        "`needs_followup`",
+        "`unambiguously_worse`",
+        "adequacy_knobs",
+        "`reference/system_delta_sweeps/<sweep_id>/queue.yaml`",
     ]
     for field in required_fields:
         assert field in contents
+
+    assert "outputs/staged_ladder/research/<sweep_id>/<delta_id>/research_card.md" in contents
+
+
+def test_workflows_runbook_reflects_system_delta_surface() -> None:
+    contents = (REPO_ROOT / "docs" / "workflows.md").read_text(encoding="utf-8")
+
+    required_statements = [
+        "### System-Delta Sweep Runbook",
+        "`reference/system_delta_sweeps/index.yaml`",
+        "`reference/system_delta_queue.yaml` and `reference/system_delta_matrix.md`",
+        "`cls_benchmark_linear_v2`",
+        "`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`",
+        "`training_surface_record.json`",
+    ]
+    for statement in required_statements:
+        assert statement in contents
+
+    forbidden_statements = [
+        "### Staged Ladder Runbook",
+        "canonical promotion gate",
+        "promotes forward by overriding",
+    ]
+    for statement in forbidden_statements:
+        assert statement not in contents
+
+
+def test_model_config_documents_staged_override_surface() -> None:
+    contents = (REPO_ROOT / "docs" / "development" / "model-config.md").read_text(
+        encoding="utf-8"
+    )
+
+    required_statements = [
+        "`stage_label`",
+        "`module_overrides`",
+        "`feature_encoder`",
+        "`target_conditioner`",
+        "`tokenizer`",
+        "`column_encoder`",
+        "`row_pool`",
+        "`context_encoder`",
+        "`head`",
+        "`table_block_style`",
+        "`allow_test_self_attention`",
+        "queue-managed",
+        "reference/system_delta_campaign_template.md",
+    ]
+    for statement in required_statements:
+        assert statement in contents
+
+    assert "The current staged ladder is:" not in contents
+
+
+def test_reference_index_covers_system_delta_surfaces_and_legacy_stage_template_is_removed() -> None:
+    reference_index = (REPO_ROOT / "reference" / "README.md").read_text(encoding="utf-8")
+    required_entries = [
+        "`system_delta_catalog.yaml`",
+        "`system_delta_campaign_template.md`",
+        "`stage_research_sources.yaml`",
+        "`system_delta_sweeps/`",
+        "`system_delta_queue.yaml`",
+        "`system_delta_matrix.md`",
+    ]
+    for entry in required_entries:
+        assert entry in reference_index
+
+    legacy_template = REPO_ROOT / "reference" / "stage_campaign_template.md"
+    assert not legacy_template.exists()
 
 
 def test_stage_research_source_manifest_schema_is_portable() -> None:

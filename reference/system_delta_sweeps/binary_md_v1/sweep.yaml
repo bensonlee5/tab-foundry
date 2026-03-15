@@ -1,0 +1,73 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: binary_md_v1
+parent_sweep_id: null
+status: active
+complexity_level: binary_md
+anchor_run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+
+anchor_surface:
+  notes:
+    - The locked anchor is the current canonical benchmark-facing staged run on the 10-task medium binary bundle.
+    - Relative to upstream nanoTabPFN, the anchor keeps the nano-exact active path but runs inside the general tabfoundry_staged shell.
+    - Data and preprocessing remain part of the comparison surface and must stay fixed unless the queue row declares that exact dimension.
+  dimension_table:
+    - dimension: feature encoder
+      upstream: Scalar feature linear encoder with internal train/test z-score+clip handling.
+      anchor: Same nano feature encoder path.
+      interpretation: Functional parity should be close; remaining differences come from the staged wrapper and metadata surface, not the active encoder math.
+    - dimension: target conditioning
+      upstream: Mean-padded linear target encoder.
+      anchor: Same mean-padded linear target conditioner.
+      interpretation: The anchor intentionally preserves the upstream label-conditioning mechanism.
+    - dimension: cell transformer block
+      upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+      anchor: Same nano post-norm block.
+      interpretation: This is the strongest structural anchor to upstream parity.
+    - dimension: row readout
+      upstream: Target-column readout from the final cell tensor.
+      anchor: Same target-column row pool.
+      interpretation: Later row-pool experiments should be interpreted as explicit departures from upstream, not minor tuning.
+    - dimension: tokenizer
+      upstream: One scalar token per feature.
+      anchor: Same scalar-per-feature tokenizer.
+      interpretation: Grouped-token changes must be isolated from later row/context changes.
+    - dimension: context encoder
+      upstream: None on the direct binary path.
+      anchor: None on the direct binary path.
+      interpretation: Any context encoder row changes both compute graph depth and target-conditioning semantics and therefore needs its own adequacy commentary.
+    - dimension: training data surface
+      upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract.
+      anchor: Repo-local manifest-driven prior-training surface at data/manifests/default.parquet.
+      interpretation: Data-source changes are first-class sweep rows, not background assumptions.
+    - dimension: preprocessing
+      upstream: Notebook preprocessing inside the benchmark helper.
+      anchor: Runtime support-set preprocessing with mean imputation and train-only label remap/filter semantics.
+      interpretation: Preprocessing changes can alter the effective task definition and must be tracked explicitly.
+
+anchor_context:
+  run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
+  model:
+    arch: tabfoundry_staged
+    stage: nano_exact
+    stage_label: nano_exact
+    module_selection:
+      feature_encoder: nano
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+      column_encoder: none
+      row_pool: target_column
+      context_encoder: none
+      head: binary_direct
+      table_block_style: nano_postnorm
+      allow_test_self_attention: false
+  surface_labels:
+    model: nano_exact
+    data: anchor_manifest_default
+    preprocessing: runtime_default
