@@ -103,6 +103,72 @@ def test_system_delta_campaign_template_has_required_fields() -> None:
     assert "outputs/staged_ladder/research/<sweep_id>/<delta_id>/research_card.md" in contents
 
 
+def test_workflows_runbook_reflects_system_delta_surface() -> None:
+    contents = (REPO_ROOT / "docs" / "workflows.md").read_text(encoding="utf-8")
+
+    required_statements = [
+        "### System-Delta Sweep Runbook",
+        "`reference/system_delta_sweeps/index.yaml`",
+        "`reference/system_delta_queue.yaml` and `reference/system_delta_matrix.md`",
+        "`cls_benchmark_linear_v2`",
+        "`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`",
+        "`training_surface_record.json`",
+    ]
+    for statement in required_statements:
+        assert statement in contents
+
+    forbidden_statements = [
+        "### Staged Ladder Runbook",
+        "canonical promotion gate",
+        "promotes forward by overriding",
+    ]
+    for statement in forbidden_statements:
+        assert statement not in contents
+
+
+def test_model_config_documents_staged_override_surface() -> None:
+    contents = (REPO_ROOT / "docs" / "development" / "model-config.md").read_text(
+        encoding="utf-8"
+    )
+
+    required_statements = [
+        "`stage_label`",
+        "`module_overrides`",
+        "`feature_encoder`",
+        "`target_conditioner`",
+        "`tokenizer`",
+        "`column_encoder`",
+        "`row_pool`",
+        "`context_encoder`",
+        "`head`",
+        "`table_block_style`",
+        "`allow_test_self_attention`",
+        "queue-managed",
+        "reference/system_delta_campaign_template.md",
+    ]
+    for statement in required_statements:
+        assert statement in contents
+
+    assert "The current staged ladder is:" not in contents
+
+
+def test_reference_index_covers_system_delta_surfaces_and_legacy_stage_template_is_removed() -> None:
+    reference_index = (REPO_ROOT / "reference" / "README.md").read_text(encoding="utf-8")
+    required_entries = [
+        "`system_delta_catalog.yaml`",
+        "`system_delta_campaign_template.md`",
+        "`stage_research_sources.yaml`",
+        "`system_delta_sweeps/`",
+        "`system_delta_queue.yaml`",
+        "`system_delta_matrix.md`",
+    ]
+    for entry in required_entries:
+        assert entry in reference_index
+
+    legacy_template = REPO_ROOT / "reference" / "stage_campaign_template.md"
+    assert not legacy_template.exists()
+
+
 def test_stage_research_source_manifest_schema_is_portable() -> None:
     manifest_path = REPO_ROOT / "reference" / "stage_research_sources.yaml"
     payload = OmegaConf.to_container(OmegaConf.load(manifest_path), resolve=True)

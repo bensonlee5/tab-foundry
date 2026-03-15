@@ -13,6 +13,7 @@ from tab_foundry.bench.benchmark_run_registry import (
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
+from tab_foundry.bench.nanotabpfn import load_benchmark_bundle
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import ModelBuildSpec
 
@@ -252,11 +253,328 @@ def _anchor_context_from_registry_run(
         "run_id": anchor_run_id,
         "model": {
             "arch": model.get("arch"),
+            "benchmark_profile": model.get("benchmark_profile"),
             "stage": model.get("stage"),
             "stage_label": model.get("stage_label"),
             "module_selection": _staged_module_selection_from_run_model(model),
         },
         "surface_labels": surface_labels,
+    }
+
+
+def _surface_label_from_anchor_context(
+    anchor_context: Mapping[str, Any],
+    *,
+    key: str,
+    fallback: str,
+) -> str:
+    surface_labels = anchor_context.get("surface_labels")
+    if isinstance(surface_labels, dict):
+        value = surface_labels.get(key)
+        if isinstance(value, str) and value.strip():
+            return str(value)
+    if key == "model":
+        model = cast(dict[str, Any], anchor_context.get("model", {}))
+        for candidate in ("stage_label", "stage", "benchmark_profile"):
+            value = model.get(candidate)
+            if isinstance(value, str) and value.strip():
+                return str(value)
+    return fallback
+
+
+def _anchor_module_selection(anchor_context: Mapping[str, Any]) -> Mapping[str, Any]:
+    model = anchor_context.get("model")
+    if not isinstance(model, dict):
+        return {}
+    module_selection = model.get("module_selection")
+    if isinstance(module_selection, dict):
+        return cast(dict[str, Any], module_selection)
+    resolved = _staged_module_selection_from_run_model(cast(dict[str, Any], model))
+    if resolved is None:
+        return {}
+    return resolved
+
+
+def _module_choice(module_selection: Mapping[str, Any], key: str, *, fallback: str = "unknown") -> str:
+    value = module_selection.get(key)
+    if isinstance(value, str) and value.strip():
+        return str(value)
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if value is None:
+        return fallback
+    return str(value)
+
+
+def _describe_feature_encoder(module_selection: Mapping[str, Any]) -> tuple[str, str]:
+    feature_encoder = _module_choice(module_selection, "feature_encoder")
+    if feature_encoder == "nano":
+        return (
+            "Same nano feature encoder path with internal benchmark normalization.",
+            "Feature encoding remains close to upstream parity; later deltas should be attributed elsewhere.",
+        )
+    if feature_encoder == "shared":
+        return (
+            "Shared feature encoder path with benchmark-external normalization.",
+            "Feature encoder swaps change both the representation path and where normalization lives.",
+        )
+    return (
+        f"Staged feature encoder `{feature_encoder}` from the benchmark registry surface.",
+        "Feature encoder changes alter the per-cell representation and should be interpreted explicitly.",
+    )
+
+
+def _describe_target_conditioner(module_selection: Mapping[str, Any]) -> tuple[str, str]:
+    target_conditioner = _module_choice(module_selection, "target_conditioner")
+    if target_conditioner == "mean_padded_linear":
+        return (
+            "Same mean-padded linear target conditioner.",
+            "The anchor preserves the upstream label-conditioning mechanism.",
+        )
+    if target_conditioner == "label_token":
+        return (
+            "Label-token target conditioning.",
+            "Target-conditioning swaps change how labels enter the model and need their own attribution.",
+        )
+    return (
+        f"Target conditioner `{target_conditioner}` from the staged surface.",
+        "Target-conditioning changes should be interpreted separately from encoder or context changes.",
+    )
+
+
+def _describe_table_block(module_selection: Mapping[str, Any]) -> tuple[str, str]:
+    table_block_style = _module_choice(module_selection, "table_block_style")
+    allow_test_self_attention = _module_choice(
+        module_selection,
+        "allow_test_self_attention",
+        fallback="false",
+    )
+    if table_block_style == "nano_postnorm":
+        return (
+            "Same nano post-norm cell transformer block.",
+            "This keeps the strongest structural tie to upstream nanoTabPFN.",
+        )
+    if table_block_style == "prenorm":
+        if allow_test_self_attention == "true":
+            return (
+                "Pre-norm cell transformer block with test-self attention enabled.",
+                "Block-style changes alter attention flow and should not be conflated with tokenizer or readout deltas.",
+            )
+        return (
+            "Pre-norm cell transformer block without test-self attention.",
+            "Block-style changes alter attention flow and should not be conflated with tokenizer or readout deltas.",
+        )
+    return (
+        f"Cell transformer block `{table_block_style}` from the staged surface.",
+        "Cell-block changes affect the core table computation and should be isolated carefully.",
+    )
+
+
+def _describe_tokenizer(module_selection: Mapping[str, Any]) -> tuple[str, str]:
+    tokenizer = _module_choice(module_selection, "tokenizer")
+    if tokenizer == "scalar_per_feature":
+        return (
+            "Same scalar-per-feature tokenizer.",
+            "Tokenization remains aligned with upstream parity.",
+        )
+    if tokenizer == "shifted_grouped":
+        return (
+            "Shifted grouped tokenizer.",
+            "Tokenizer changes reshape the effective table sequence and need their own adequacy commentary.",
+        )
+    return (
+        f"Tokenizer `{tokenizer}` from the staged surface.",
+        "Tokenizer changes alter the token sequence presented to the transformer stack.",
+    )
+
+
+def _describe_column_encoder(module_selection: Mapping[str, Any]) -> tuple[str, str]:
+    column_encoder = _module_choice(module_selection, "column_encoder")
+    if column_encoder == "none":
+        return (
+            "No column-set encoder on the anchor path.",
+            "Column-set modeling remains absent and should not explain anchor behavior.",
+        )
+    if column_encoder == "tfcol":
+        return (
+            "Transformer column-set encoder (`tfcol`).",
+            "Column-set encoding changes how feature interactions are aggregated before row reasoning.",
+        )
+    return (
+        f"Column encoder `{column_encoder}` from the staged surface.",
+        "Column-encoder changes should be read separately from row pooling or context changes.",
+    )
+
+
+def _describe_row_pool(module_selection: Mapping[str, Any]) -> tuple[str, str]:
+    row_pool = _module_choice(module_selection, "row_pool")
+    if row_pool == "target_column":
+        return (
+            "Same target-column row pool.",
+            "Readout remains on the direct upstream-style path.",
+        )
+    if row_pool == "row_cls":
+        return (
+            "Row-CLS pooling path.",
+            "Row-pool changes alter how the table summary is extracted and should be isolated from context changes.",
+        )
+    return (
+        f"Row pool `{row_pool}` from the staged surface.",
+        "Row-pool changes alter the readout contract and require their own interpretation.",
+    )
+
+
+def _describe_context_encoder(module_selection: Mapping[str, Any]) -> tuple[str, str]:
+    context_encoder = _module_choice(module_selection, "context_encoder")
+    if context_encoder == "none":
+        return (
+            "None on the anchor path.",
+            "Context encoding remains absent; later context rows will change both depth and label-flow semantics.",
+        )
+    if context_encoder == "plain":
+        return (
+            "Plain context encoder.",
+            "Context encoding adds extra sequence processing that must be interpreted separately from readout changes.",
+        )
+    if context_encoder == "qass":
+        return (
+            "QASS context encoder.",
+            "QASS changes both compute graph depth and label-context semantics and needs explicit adequacy notes.",
+        )
+    return (
+        f"Context encoder `{context_encoder}` from the staged surface.",
+        "Context-encoder changes alter how training rows condition test rows.",
+    )
+
+
+def _describe_head(module_selection: Mapping[str, Any]) -> tuple[str, str]:
+    head = _module_choice(module_selection, "head")
+    if head == "binary_direct":
+        return (
+            "Direct binary logits head.",
+            "The prediction head remains on the narrow upstream-style binary path.",
+        )
+    if head == "small_class":
+        return (
+            "Small-class direct head.",
+            "Head changes alter the task contract and should be interpreted separately from shared trunk changes.",
+        )
+    if head == "many_class":
+        return (
+            "Many-class head.",
+            "Many-class support changes both the task contract and the downstream label path.",
+        )
+    return (
+        f"Prediction head `{head}` from the staged surface.",
+        "Head changes alter the task contract and output semantics.",
+    )
+
+
+def _build_anchor_surface(
+    *,
+    anchor_run_id: str,
+    benchmark_bundle_path: str,
+    anchor_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    bundle_path = resolve_registry_path_value(benchmark_bundle_path)
+    bundle = load_benchmark_bundle(bundle_path)
+    bundle_name = _ensure_non_empty_string(bundle.get("name"), context="benchmark bundle name")
+    task_ids = cast(list[Any], bundle.get("task_ids", []))
+    task_count = int(len(task_ids))
+    module_selection = _anchor_module_selection(anchor_context)
+    model_label = _surface_label_from_anchor_context(
+        anchor_context,
+        key="model",
+        fallback="registry surface label unavailable",
+    )
+    data_label = _surface_label_from_anchor_context(
+        anchor_context,
+        key="data",
+        fallback="registry surface label unavailable",
+    )
+    preprocessing_label = _surface_label_from_anchor_context(
+        anchor_context,
+        key="preprocessing",
+        fallback="registry surface label unavailable",
+    )
+    feature_encoder, feature_encoder_interpretation = _describe_feature_encoder(module_selection)
+    target_conditioner, target_conditioner_interpretation = _describe_target_conditioner(
+        module_selection
+    )
+    table_block, table_block_interpretation = _describe_table_block(module_selection)
+    tokenizer, tokenizer_interpretation = _describe_tokenizer(module_selection)
+    column_encoder, column_encoder_interpretation = _describe_column_encoder(module_selection)
+    row_pool, row_pool_interpretation = _describe_row_pool(module_selection)
+    context_encoder, context_encoder_interpretation = _describe_context_encoder(module_selection)
+    head, head_interpretation = _describe_head(module_selection)
+    return {
+        "notes": [
+            f"The locked anchor is benchmark registry run `{anchor_run_id}` on bundle `{bundle_name}` ({task_count} tasks).",
+            f"The anchor model surface is taken from the registry-resolved staged selection labeled `{model_label}`.",
+            "Data and preprocessing remain part of the comparison surface and must stay fixed unless the queue row declares that exact dimension.",
+        ],
+        "dimension_table": [
+            {
+                "dimension": "feature encoder",
+                "upstream": "Scalar feature linear encoder with internal train/test z-score+clip handling.",
+                "anchor": feature_encoder,
+                "interpretation": feature_encoder_interpretation,
+            },
+            {
+                "dimension": "target conditioning",
+                "upstream": "Mean-padded linear target encoder on the direct binary path.",
+                "anchor": target_conditioner,
+                "interpretation": target_conditioner_interpretation,
+            },
+            {
+                "dimension": "cell transformer block",
+                "upstream": "Post-norm nanoTabPFN block with feature attention then row attention.",
+                "anchor": table_block,
+                "interpretation": table_block_interpretation,
+            },
+            {
+                "dimension": "tokenizer",
+                "upstream": "One scalar token per feature.",
+                "anchor": tokenizer,
+                "interpretation": tokenizer_interpretation,
+            },
+            {
+                "dimension": "column encoder",
+                "upstream": "None on the upstream direct path.",
+                "anchor": column_encoder,
+                "interpretation": column_encoder_interpretation,
+            },
+            {
+                "dimension": "row readout",
+                "upstream": "Target-column readout from the final cell tensor.",
+                "anchor": row_pool,
+                "interpretation": row_pool_interpretation,
+            },
+            {
+                "dimension": "context encoder",
+                "upstream": "None on the upstream direct path.",
+                "anchor": context_encoder,
+                "interpretation": context_encoder_interpretation,
+            },
+            {
+                "dimension": "prediction head",
+                "upstream": "Direct binary logits head.",
+                "anchor": head,
+                "interpretation": head_interpretation,
+            },
+            {
+                "dimension": "training data surface",
+                "upstream": "OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract.",
+                "anchor": f"Benchmark bundle `{bundle_name}` ({task_count} tasks) with data surface label `{data_label}`.",
+                "interpretation": "Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose.",
+            },
+            {
+                "dimension": "preprocessing",
+                "upstream": "Notebook preprocessing inside the benchmark helper.",
+                "anchor": f"Benchmark preprocessing surface label `{preprocessing_label}`.",
+                "interpretation": "Preprocessing changes can alter the effective task definition and must be tracked explicitly.",
+            },
+        ],
     }
 
 
@@ -336,7 +654,6 @@ def _materialize_row(
         "hypothesis": str(queue_row.get("hypothesis", "")),
         "upstream_delta": str(delta_entry["upstream_delta"]),
         "anchor_delta": str(queue_row.get("anchor_delta", "")),
-        "entangled_legacy_stage": str(delta_entry.get("legacy_stage_alias", "none")),
         "expected_effect": str(delta_entry["expected_effect"]),
         "adequacy_knobs": cast(list[Any], _copy_jsonable(delta_entry.get("adequacy_knobs", []))),
         "parameter_adequacy_policy": parameter_policy,
@@ -599,16 +916,13 @@ def render_system_delta_matrix(
     lines.append("")
     lines.append("## Queue Summary")
     lines.append("")
-    lines.append(
-        "| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |"
-    )
-    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
+    lines.append("| Order | Delta | Family | Binary | Status | Effective change | Next action |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- |")
     for queue_row in ordered_rows(queue):
         lines.append(
             f"| {queue_row['order']} | `{queue_row['delta_id']}` | {queue_row['family']} | "
             f"{'yes' if queue_row.get('binary_applicable', False) else 'no'} | {queue_row['status']} | "
-            f"{queue_row.get('entangled_legacy_stage', 'n/a')} | {queue_row['description']} | "
-            f"{queue_row['next_action']} |"
+            f"{queue_row['description']} | {queue_row['next_action']} |"
         )
     lines.append("")
     lines.append("## Detailed Rows")
@@ -622,9 +936,6 @@ def render_system_delta_matrix(
         lines.append(f"- Dimension family: `{queue_row['dimension_family']}`")
         lines.append(f"- Status: `{queue_row['status']}`")
         lines.append(f"- Binary applicable: `{queue_row.get('binary_applicable', False)}`")
-        lines.append(
-            f"- Legacy stage alias: `{queue_row.get('entangled_legacy_stage', 'n/a')}`"
-        )
         lines.append(f"- Description: {queue_row['description']}")
         lines.append(f"- Rationale: {queue_row['rationale']}")
         lines.append(f"- Hypothesis: {queue_row['hypothesis']}")
@@ -796,9 +1107,10 @@ def create_sweep(
             dict[str, Any],
             _copy_jsonable(cast(dict[str, Any], template_sweep.get("upstream_reference", {}))),
         ),
-        "anchor_surface": cast(
-            dict[str, Any],
-            _copy_jsonable(cast(dict[str, Any], template_sweep.get("anchor_surface", {}))),
+        "anchor_surface": _build_anchor_surface(
+            anchor_run_id=normalized_anchor_run_id,
+            benchmark_bundle_path=normalized_benchmark_bundle_path,
+            anchor_context=anchor_context,
         ),
         "anchor_context": anchor_context,
     }

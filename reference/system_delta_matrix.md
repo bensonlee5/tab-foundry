@@ -34,22 +34,22 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 ## Queue Summary
 
-| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_label_token` | target_conditioning | yes | ready | label_token | Replace mean-padded linear target conditioning with train-label embeddings plus a learned test token. | Train the first anchor-only label-token run on the locked medium binary surface. |
-| 2 | `delta_shared_feature_norm` | feature_encoding | yes | ready | shared_norm | Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization. | Run the isolated shared-feature-encoder comparison. |
-| 3 | `delta_prenorm_block` | table_block | yes | ready | prenorm_block | Switch the cell transformer from the nano post-norm block to the staged pre-norm block, still without test self-attention. | Run the pre-norm-only ablation. |
-| 4 | `delta_test_self_attention` | table_block | yes | ready | test_self | Allow test-token self-attention inside the pre-norm block without adding any test-to-test cross-attention. | Queue after the pre-norm-only run so the masking effect has a local comparator. |
-| 5 | `delta_shifted_grouped_tokenizer` | tokenization | yes | blocked_on_surface_semantics | grouped_tokens | Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored. | Unblock only after the comparison surface makes tokenizer changes effective, or replace this row with a genuinely isolatable tokenization experiment. |
-| 6 | `delta_row_cls_pool` | row_pool | yes | ready | row_cls_pool | Replace target-column pooling with CLS-based row pooling while leaving tokenizer, column encoder, and context encoder otherwise anchored. | Run the isolated row-pool toggle and require interpretation before any verdict. |
-| 7 | `delta_column_set_encoder` | column_encoding | yes | ready | column_set | Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed. | Run the isolated column-set encoder delta after the row-pool row is understood. |
-| 8 | `delta_qass_context` | context_encoder | yes | ready | qass_context | Add the QASS-based sequence context encoder over row embeddings. | Run after simpler model deltas so the interpretation has cleaner context. |
-| 9 | `delta_data_filter_policy_accepted_only` | provenance | yes | blocked_on_artifacts | none | Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor. | Materialize the accepted-only manifest and attach its provenance before scheduling training. |
-| 10 | `delta_data_manifest_root_curated_dagzoo` | provenance | yes | blocked_on_artifacts | none | Point training at a curated dagzoo manifest root with explicit dagzoo command provenance. | Capture the dagzoo generation/filter lineage first. |
-| 11 | `delta_data_manifest_source_binary_iris` | source | yes | ready | none | Swap the training manifest to the small binary iris support surface while keeping the model and preprocessing anchored. | Run only after the matrix explicitly records the anchor-versus-iris manifest characteristics. |
-| 12 | `delta_preproc_impute_missing_off` | missing_values | yes | ready | none | Disable runtime mean imputation while keeping the fitted label-remap path intact. | Run once the matrix records the anchor manifest's missingness expectations. |
-| 13 | `delta_preproc_all_nan_fill_nonzero` | missing_values | yes | ready | none | Keep imputation on but change the all-NaN fallback fill value from 0.0 to 1.0. | Run after the no-imputation row so missing-value sensitivity has context. |
-| 14 | `delta_preproc_label_mapping_surface` | label_mapping | yes | blocked_on_policy_impl | none | Compare the current train-only remap/filter label policy against an alternate surfaced label-mapping policy. | Add a second supported label policy before activating this row. |
+| Order | Delta | Family | Binary | Status | Effective change | Next action |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | `delta_label_token` | target_conditioning | yes | ready | Replace mean-padded linear target conditioning with train-label embeddings plus a learned test token. | Train the first anchor-only label-token run on the locked medium binary surface. |
+| 2 | `delta_shared_feature_norm` | feature_encoding | yes | ready | Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization. | Run the isolated shared-feature-encoder comparison. |
+| 3 | `delta_prenorm_block` | table_block | yes | ready | Switch the cell transformer from the nano post-norm block to the staged pre-norm block, still without test self-attention. | Run the pre-norm-only ablation. |
+| 4 | `delta_test_self_attention` | table_block | yes | ready | Allow test-token self-attention inside the pre-norm block without adding any test-to-test cross-attention. | Queue after the pre-norm-only run so the masking effect has a local comparator. |
+| 5 | `delta_shifted_grouped_tokenizer` | tokenization | yes | blocked_on_surface_semantics | Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored. | Unblock only after the comparison surface makes tokenizer changes effective, or replace this row with a genuinely isolatable tokenization experiment. |
+| 6 | `delta_row_cls_pool` | row_pool | yes | ready | Replace target-column pooling with CLS-based row pooling while leaving tokenizer, column encoder, and context encoder otherwise anchored. | Run the isolated row-pool toggle and require interpretation before any verdict. |
+| 7 | `delta_column_set_encoder` | column_encoding | yes | ready | Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed. | Run the isolated column-set encoder delta after the row-pool row is understood. |
+| 8 | `delta_qass_context` | context_encoder | yes | ready | Add the QASS-based sequence context encoder over row embeddings. | Run after simpler model deltas so the interpretation has cleaner context. |
+| 9 | `delta_data_filter_policy_accepted_only` | provenance | yes | blocked_on_artifacts | Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor. | Materialize the accepted-only manifest and attach its provenance before scheduling training. |
+| 10 | `delta_data_manifest_root_curated_dagzoo` | provenance | yes | blocked_on_artifacts | Point training at a curated dagzoo manifest root with explicit dagzoo command provenance. | Capture the dagzoo generation/filter lineage first. |
+| 11 | `delta_data_manifest_source_binary_iris` | source | yes | ready | Swap the training manifest to the small binary iris support surface while keeping the model and preprocessing anchored. | Run only after the matrix explicitly records the anchor-versus-iris manifest characteristics. |
+| 12 | `delta_preproc_impute_missing_off` | missing_values | yes | ready | Disable runtime mean imputation while keeping the fitted label-remap path intact. | Run once the matrix records the anchor manifest's missingness expectations. |
+| 13 | `delta_preproc_all_nan_fill_nonzero` | missing_values | yes | ready | Keep imputation on but change the all-NaN fallback fill value from 0.0 to 1.0. | Run after the no-imputation row so missing-value sensitivity has context. |
+| 14 | `delta_preproc_label_mapping_surface` | label_mapping | yes | blocked_on_policy_impl | Compare the current train-only remap/filter label policy against an alternate surfaced label-mapping policy. | Add a second supported label policy before activating this row. |
 
 ## Detailed Rows
 
@@ -58,7 +58,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `label_token`
 - Description: Replace mean-padded linear target conditioning with train-label embeddings plus a learned test token.
 - Rationale: This is the smallest staged departure from upstream nanoTabPFN and should be measured before shared normalization or block-style changes.
 - Hypothesis: Discrete label tokens may sharpen small-binary support-set conditioning, but any loss could reflect embedding initialization or calibration drift rather than the idea itself.
@@ -84,7 +83,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `shared_norm`
 - Description: Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization.
 - Rationale: This isolates shared normalization and shared feature weights without changing the table block or row readout.
 - Hypothesis: Shared feature encoding may help the staged family generalize across varied feature identities, but it also moves normalization responsibility outside the nano-exact path.
@@ -110,7 +108,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `prenorm_block`
 - Description: Switch the cell transformer from the nano post-norm block to the staged pre-norm block, still without test self-attention.
 - Rationale: This isolates normalization/block ordering before introducing any new attention edges or tokenization changes.
 - Hypothesis: Pre-norm may stabilize optimization at compact scale, but a loss may simply mean the head/optimizer neighborhood was tuned around post-norm behavior.
@@ -136,7 +133,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `test_self`
 - Description: Allow test-token self-attention inside the pre-norm block without adding any test-to-test cross-attention.
 - Rationale: This isolates the masking change from tokenizer, row-pool, and context-encoder changes.
 - Hypothesis: Keeping each test token's own state through the block may help the direct head, but any failure could mean the surrounding block settings are still mismatched.
@@ -162,7 +158,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `blocked_on_surface_semantics`
 - Binary applicable: `True`
-- Legacy stage alias: `grouped_tokens`
 - Description: Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored.
 - Rationale: The anchor keeps the nano feature encoder, which bypasses tokenizer outputs entirely, so this row is not isolatable until the surface changes away from the nano path.
 - Hypothesis: Local grouped views may help feature interaction modeling, but this row cannot produce that signal while the nano encoder remains active.
@@ -188,7 +183,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `row_cls_pool`
 - Description: Replace target-column pooling with CLS-based row pooling while leaving tokenizer, column encoder, and context encoder otherwise anchored.
 - Rationale: This is the row you called out directly; the structure change is large enough that its introduced capacity knobs must be reported and interpreted, not hidden.
 - Hypothesis: CLS pooling may extract better row summaries, but a weak result is not evidence against the mechanism unless tfrow_n_heads, tfrow_n_layers, and tfrow_cls_tokens are adequate.
@@ -218,7 +212,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `column_set`
 - Description: Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed.
 - Rationale: Column-set encoding should be evaluated separately from row CLS pooling and QASS context so its effect is attributable.
 - Hypothesis: Explicit column-set reasoning may help heterogeneous feature identity, but harm may indicate that tfcol_n_heads / tfcol_n_layers / tfcol_n_inducing are poorly chosen rather than that the idea is bad.
@@ -244,7 +237,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `qass_context`
 - Description: Add the QASS-based sequence context encoder over row embeddings.
 - Rationale: Context encoding changes both depth and label-conditioned message passing, so it belongs late in the binary queue after simpler toggles.
 - Hypothesis: QASS may help longer-range support/test interactions, but weak results may simply indicate the compact benchmark surface does not justify the added context depth.
@@ -270,7 +262,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `data`
 - Status: `blocked_on_artifacts`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
 - Description: Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor.
 - Rationale: Filter policy is a data-surface decision, not a silent background tweak.
 - Hypothesis: Accepted-only data may improve robustness if the current anchor manifest still contains marginal datasets, but a loss may simply reflect reduced diversity.
@@ -297,7 +288,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `data`
 - Status: `blocked_on_artifacts`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
 - Description: Point training at a curated dagzoo manifest root with explicit dagzoo command provenance.
 - Rationale: The queue must be able to compare not only model structure but also the exact dagzoo call set that defined the training corpus.
 - Hypothesis: A more curated dagzoo root may improve signal quality, but any change must be interpreted through manifest lineage and dataset-characteristic shifts.
@@ -325,7 +315,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `data`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
 - Description: Swap the training manifest to the small binary iris support surface while keeping the model and preprocessing anchored.
 - Rationale: This gives the queue one immediately runnable data-source ablation using an existing repo-tracked manifest family.
 - Hypothesis: A very clean but tiny training surface may sharpen some local behavior but is likely to underperform because it collapses diversity; that should be interpreted as a coverage tradeoff, not a verdict on the model.
@@ -351,7 +340,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
 - Description: Disable runtime mean imputation while keeping the fitted label-remap path intact.
 - Rationale: Missing-value handling is a first-class preprocessing dimension and should be measured without mixing in data or model changes.
 - Hypothesis: If missingness is rare on the anchor surface this may be neutral; if not, harm may reflect simple information loss rather than a meaningful architectural weakness.
@@ -375,7 +363,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
 - Description: Keep imputation on but change the all-NaN fallback fill value from 0.0 to 1.0.
 - Rationale: This isolates a preprocessing policy knob that is usually hidden inside fitted-state defaults.
 - Hypothesis: The row is mainly interpretive; a weak result may simply mean all-NaN columns are rare on the current surface.
@@ -399,7 +386,6 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `blocked_on_policy_impl`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
 - Description: Compare the current train-only remap/filter label policy against an alternate surfaced label-mapping policy.
 - Rationale: Label mapping is now explicit in the surface record, but there is not yet a second supported runtime policy to compare.
 - Hypothesis: This row is blocked until a legitimate alternate policy exists; until then it serves as a reminder that label policy is part of the system surface, not a hidden constant.

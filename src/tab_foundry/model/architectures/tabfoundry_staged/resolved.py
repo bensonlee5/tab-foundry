@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from tab_foundry.model.spec import ModelBuildSpec, ModelStage
 
@@ -131,7 +131,6 @@ class ResolvedStageSurface:
     context_encoder: str
     head: str
     task_contract: StageTaskContract
-    uses_legacy_constraints: bool
     table_block: TableBlockSurfaceSpec
     column_encoder_config: ColumnEncoderSurfaceSpec
     row_pool_config: RowPoolSurfaceSpec
@@ -159,34 +158,10 @@ class ResolvedStageSurface:
         }
 
 
-def _uses_legacy_constraints(spec: ModelBuildSpec, overrides: Mapping[str, Any]) -> bool:
-    return not overrides and spec.stage_label is None
-
-
-def _apply_legacy_constraints(
-    *,
-    surface: ResolvedStageSurface,
-    recipe,
-    spec: ModelBuildSpec,
-) -> None:
-    required_input_normalization = recipe.constraints.required_input_normalization
-    if required_input_normalization is not None and spec.input_normalization != required_input_normalization:
-        raise ValueError(
-            f"stage={surface.stage!r} requires input_normalization={required_input_normalization!r}, "
-            f"got {spec.input_normalization!r}"
-        )
-    for name, expected in recipe.constraints.required_defaults:
-        actual = getattr(spec, name)
-        if actual != expected:
-            raise ValueError(
-                f"stage={surface.stage!r} requires the default {name}={expected!r}, got {actual!r}"
-            )
-
-
-def _task_contract_for_surface(surface: ResolvedStageSurface, *, many_class_base: int) -> StageTaskContract:
-    if surface.head == "binary_direct":
+def _task_contract_for_head(head: str, *, many_class_base: int) -> StageTaskContract:
+    if head == "binary_direct":
         return StageTaskContract(min_classes=2, max_classes=2)
-    if surface.head == "small_class":
+    if head == "small_class":
         return StageTaskContract(min_classes=2, max_classes=many_class_base)
     return StageTaskContract(min_classes=2, max_classes=None, supports_many_class=True)
 
@@ -197,12 +172,23 @@ def _normalization_mode_for_feature_encoder(feature_encoder: str) -> str:
     return "shared"
 
 
-def _validate_effective_surface(*, feature_encoder: str, tokenizer: str) -> None:
+def _validate_effective_surface(
+    *,
+    feature_encoder: str,
+    tokenizer: str,
+    context_encoder: str,
+    head: str,
+) -> None:
     if feature_encoder == "nano" and tokenizer != "scalar_per_feature":
         raise ValueError(
             "model.module_overrides.tokenizer is ineffective when "
             "model.module_overrides.feature_encoder resolves to 'nano'; "
             "use tokenizer='scalar_per_feature' or switch the feature encoder"
+        )
+    if head == "many_class" and context_encoder == "none":
+        raise ValueError(
+            "model.module_overrides.head='many_class' requires a non-'none' "
+            "context_encoder on the resolved staged surface"
         )
 
 
@@ -269,9 +255,14 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
             "model.module_overrides.allow_test_self_attention is only valid with "
             "table_block_style='prenorm'"
         )
-    _validate_effective_surface(feature_encoder=feature_encoder, tokenizer=tokenizer)
+    _validate_effective_surface(
+        feature_encoder=feature_encoder,
+        tokenizer=tokenizer,
+        context_encoder=context_encoder,
+        head=head,
+    )
 
-    surface = ResolvedStageSurface(
+    return ResolvedStageSurface(
         stage=stage.value,
         stage_label=spec.stage_label or stage.value,
         benchmark_profile=spec.stage_label or recipe.benchmark_profile,
@@ -283,8 +274,7 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         row_pool=row_pool,
         context_encoder=context_encoder,
         head=head,
-        task_contract=StageTaskContract(min_classes=2, max_classes=None),
-        uses_legacy_constraints=_uses_legacy_constraints(spec, overrides),
+        task_contract=_task_contract_for_head(head, many_class_base=int(spec.many_class_base)),
         table_block=TableBlockSurfaceSpec(
             style=table_block_style,
             allow_test_self_attention=allow_test_self_attention,
@@ -313,28 +303,6 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
             if context_encoder == "none"
             else True,
         ),
-    )
-    if surface.uses_legacy_constraints:
-        _apply_legacy_constraints(surface=surface, recipe=recipe, spec=spec)
-    task_contract = _task_contract_for_surface(surface, many_class_base=int(spec.many_class_base))
-    return ResolvedStageSurface(
-        stage=surface.stage,
-        stage_label=surface.stage_label,
-        benchmark_profile=surface.benchmark_profile,
-        normalization_mode=surface.normalization_mode,
-        feature_encoder=surface.feature_encoder,
-        target_conditioner=surface.target_conditioner,
-        tokenizer=surface.tokenizer,
-        column_encoder=surface.column_encoder,
-        row_pool=surface.row_pool,
-        context_encoder=surface.context_encoder,
-        head=surface.head,
-        task_contract=task_contract,
-        uses_legacy_constraints=surface.uses_legacy_constraints,
-        table_block=surface.table_block,
-        column_encoder_config=surface.column_encoder_config,
-        row_pool_config=surface.row_pool_config,
-        context_encoder_config=surface.context_encoder_config,
     )
 
 

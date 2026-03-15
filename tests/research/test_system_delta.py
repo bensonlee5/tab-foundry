@@ -70,6 +70,7 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     assert "delta_row_cls_pool" in matrix
     assert "tfrow_n_heads" in matrix
     assert "outputs/staged_ladder/research/binary_md_v1/delta_row_cls_pool/result_card.md" in matrix
+    assert "Legacy stage alias" not in matrix
 
 
 def test_grouped_tokenizer_guard_is_captured_in_catalog_and_materialized_queue() -> None:
@@ -124,7 +125,7 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="binary_md_v1",
         complexity_level="binary_sm",
-        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
@@ -132,6 +133,11 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
         sweeps_root=sweeps_root,
     )
 
+    created_sweep = load_system_delta_sweep(
+        "binary_sm_v2",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
     created_queue = load_system_delta_queue_instance(
         "binary_sm_v2",
         index_path=sweeps_root / "index.yaml",
@@ -145,8 +151,16 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
     )
 
     assert Path(result["queue_path"]).exists()
+    assert (
+        created_sweep["anchor_surface"]["notes"][0]
+        == "The locked anchor is benchmark registry run "
+        "`01_nano_exact_md_prior_parity_fix_binary_medium_v1` on bundle "
+        "`nanotabpfn_openml_classification_small` (5 tasks)."
+    )
+    assert "10-task medium binary bundle" not in created_sweep["anchor_surface"]["notes"][0]
     assert created_queue["rows"][0]["delta_ref"] == "delta_label_token"
     assert materialized["sweep_id"] == "binary_sm_v2"
+    assert "entangled_legacy_stage" not in materialized["rows"][0]
     grouped_row = next(row for row in created_queue["rows"] if row["delta_ref"] == "delta_shifted_grouped_tokenizer")
     assert grouped_row["status"] == "blocked_on_surface_semantics"
     assert grouped_row["interpretation_status"] == "blocked"

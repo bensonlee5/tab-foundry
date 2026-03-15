@@ -279,17 +279,17 @@ def test_module_overrides_surface_stage_label_and_row_pool_hyperparameters() -> 
     assert model.module_hyperparameters["row_pool"]["cls_tokens"] == 2
 
 
-def test_module_overrides_relax_legacy_stage_constraints_for_anchor_only_deltas() -> None:
+def test_stage_labels_do_not_trigger_legacy_constraint_enforcement() -> None:
     model = _staged(
         "nano_exact",
-        stage_label="delta_shared_feature_norm",
-        module_overrides={"feature_encoder": "shared"},
-        tfrow_n_heads=6,
+        stage_label="anchor_model",
+        input_normalization="none",
+        tfrow_n_heads=2,
     )
 
-    assert model.surface.feature_encoder == "shared"
-    assert model.surface.normalization_mode == "shared"
-    assert staged_surface_uses_internal_benchmark_normalization(model.model_spec) is False
+    assert model.surface.feature_encoder == "nano"
+    assert model.surface.normalization_mode == "internal"
+    assert staged_surface_uses_internal_benchmark_normalization(model.model_spec) is True
 
 
 def test_module_overrides_reject_ineffective_tokenizer_change_under_nano_encoder() -> None:
@@ -299,3 +299,25 @@ def test_module_overrides_reject_ineffective_tokenizer_change_under_nano_encoder
             stage_label="delta_shifted_grouped_tokenizer",
             module_overrides={"tokenizer": "shifted_grouped"},
         )
+
+
+def test_module_overrides_reject_many_class_head_without_context_encoder() -> None:
+    with pytest.raises(ValueError, match="requires a non-'none' context_encoder"):
+        _ = _staged(
+            "nano_exact",
+            stage_label="delta_many_class_head",
+            module_overrides={"head": "many_class"},
+        )
+
+
+def test_module_overrides_allow_many_class_head_with_context_encoder() -> None:
+    model = _staged(
+        "nano_exact",
+        stage_label="delta_many_class_head",
+        input_normalization="none",
+        many_class_base=4,
+        module_overrides={"head": "many_class", "context_encoder": "qass"},
+    )
+
+    assert model.surface.head == "many_class"
+    assert model.surface.context_encoder == "qass"

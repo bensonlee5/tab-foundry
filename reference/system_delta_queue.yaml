@@ -104,7 +104,6 @@ rows:
   anchor_delta: Changes only target_conditioner from mean_padded_linear to label_token;
     feature encoder, tokenizer, table block, row pooling, data, and preprocessing
     remain anchored.
-  entangled_legacy_stage: label_token
   expected_effect: Better label separation on some binary tasks with possible increased
     variance on tiny support sets.
   adequacy_knobs:
@@ -158,7 +157,6 @@ rows:
     path.
   anchor_delta: Changes only feature_encoder from nano to shared; tokenizer, target
     conditioning, table block, row pooling, data, and preprocessing remain fixed.
-  entangled_legacy_stage: shared_norm
   expected_effect: Better transfer across heterogeneous columns, with risk that the
     shared path simply mismatches the compact binary anchor scale.
   adequacy_knobs:
@@ -211,7 +209,6 @@ rows:
   upstream_delta: Upstream nanoTabPFN uses the post-norm block only.
   anchor_delta: Changes only table_block_style from nano_postnorm to prenorm with
     allow_test_self_attention=false.
-  entangled_legacy_stage: prenorm_block
   expected_effect: Potentially smoother optimization and lower drift, with the risk
     that post-norm remains better matched to the benchmark wrapper.
   adequacy_knobs:
@@ -265,7 +262,6 @@ rows:
     path.
   anchor_delta: Starting from the explicit pre-norm block, change only allow_test_self_attention
     from false to true.
-  entangled_legacy_stage: test_self
   expected_effect: Better preservation of per-test-token state with possible over-conditioning
     on individual test rows.
   adequacy_knobs:
@@ -318,7 +314,6 @@ rows:
   upstream_delta: Upstream nanoTabPFN keeps one scalar token per feature.
   anchor_delta: Would change only tokenizer from scalar_per_feature to shifted_grouped,
     but that override is currently ineffective under the anchor's nano feature encoder.
-  entangled_legacy_stage: grouped_tokens
   expected_effect: None until the tokenizer becomes part of the effective computation
     graph on this surface.
   adequacy_knobs:
@@ -377,7 +372,6 @@ rows:
     are adequate.
   upstream_delta: Upstream nanoTabPFN does not use row-level CLS pooling.
   anchor_delta: Changes only row_pool from target_column to row_cls.
-  entangled_legacy_stage: row_cls_pool
   expected_effect: Richer row aggregation with substantial added capacity and masking
     sensitivity.
   adequacy_knobs:
@@ -435,7 +429,6 @@ rows:
     poorly chosen rather than that the idea is bad.
   upstream_delta: Upstream nanoTabPFN does not include a dedicated column-set encoder.
   anchor_delta: Changes only column_encoder from none to tfcol.
-  entangled_legacy_stage: column_set
   expected_effect: Better feature-set aggregation with extra capacity and inducing-point
     sensitivity.
   adequacy_knobs:
@@ -485,7 +478,6 @@ rows:
     depth.
   upstream_delta: Upstream nanoTabPFN direct binary path has no separate context encoder.
   anchor_delta: Changes only context_encoder from none to qass.
-  entangled_legacy_stage: qass_context
   expected_effect: Richer row-sequence conditioning with risk of unnecessary depth
     on the compact binary surface.
   adequacy_knobs:
@@ -531,7 +523,6 @@ rows:
     still contains marginal datasets, but a loss may simply reflect reduced diversity.
   upstream_delta: Not applicable; this is a repo-local manifest/provenance decision.
   anchor_delta: Changes only the data filter policy and the manifest artifact it yields.
-  entangled_legacy_stage: none
   expected_effect: Cleaner data quality with a possible diversity-versus-quality tradeoff.
   adequacy_knobs:
   - Must report dataset-count and feature/class distribution shifts versus the anchor
@@ -582,7 +573,6 @@ rows:
     must be interpreted through manifest lineage and dataset-characteristic shifts.
   upstream_delta: Not applicable; this is a repo-local dataset-generation axis.
   anchor_delta: Changes only the manifest root and its documented dagzoo provenance.
-  entangled_legacy_stage: none
   expected_effect: Potentially cleaner training data with a materially different corpus
     composition.
   adequacy_knobs:
@@ -639,7 +629,6 @@ rows:
   upstream_delta: Not applicable; upstream nanoTabPFN does not share this repo-local
     prior-training manifest contract.
   anchor_delta: Changes only the manifest path / source surface.
-  entangled_legacy_stage: none
   expected_effect: Faster, cleaner, but much lower-diversity training data.
   adequacy_knobs:
   - Compare manifest row/feature/class distributions to the anchor before training.
@@ -690,7 +679,6 @@ rows:
   upstream_delta: Upstream notebook preprocessing imputes as part of its benchmark
     helper path.
   anchor_delta: Changes only preprocessing.impute_missing from true to false.
-  entangled_legacy_stage: none
   expected_effect: Cleaner attribution around imputation usefulness, but possibly
     brittle feature tensors on some datasets.
   adequacy_knobs:
@@ -738,7 +726,6 @@ rows:
   upstream_delta: Upstream helper logic does not expose this repo-local fill-value
     contract as a first-class surface.
   anchor_delta: Changes only preprocessing.all_nan_fill from 0.0 to 1.0.
-  entangled_legacy_stage: none
   expected_effect: Usually small, but important for understanding whether hidden fill
     defaults matter on this corpus.
   adequacy_knobs:
@@ -787,7 +774,6 @@ rows:
   upstream_delta: Upstream notebook code does not expose this repo-local label-policy
     contract as a benchmarkable axis.
   anchor_delta: Would change only preprocessing.label_mapping and/or preprocessing.unseen_test_label_policy.
-  entangled_legacy_stage: none
   expected_effect: Unknown until an alternate policy is implemented.
   adequacy_knobs:
   - Must record how unseen test labels are handled and whether the effective task

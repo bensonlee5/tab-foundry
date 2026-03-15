@@ -1,0 +1,33 @@
+# @package _global_
+
+task: classification
+model:
+  d_icl: 96
+  input_normalization: train_zscore_clip
+  many_class_base: 2
+  tficl_n_heads: 4
+  tficl_n_layers: 3
+  head_hidden_dim: 192
+runtime:
+  device: auto
+  mixed_precision: "no"
+  num_workers: 0
+  grad_clip: 1.0
+  grad_accum_steps: 1
+  eval_every: 25
+  checkpoint_every: 25
+  val_batches: 16
+  max_steps: 400
+  target_train_seconds: 330
+optimizer:
+  name: adamw
+  require_requested: false
+logging:
+  history_jsonl_path: ${runtime.output_dir}/train_history.jsonl
+schedule:
+  stages:
+    - name: stage1
+      steps: 400
+      lr_max: 8.0e-4
+      lr_schedule: linear
+      warmup_ratio: 0.05
