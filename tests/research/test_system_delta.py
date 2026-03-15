@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 import shutil
 
@@ -37,7 +38,8 @@ def test_active_sweep_materializes_binary_md_v1() -> None:
     assert sweep["sweep_id"] == "binary_md_v1"
     assert queue["sweep_id"] == "binary_md_v1"
     assert queue["generated_from_sweep_id"] == "binary_md_v1"
-    assert next_ready_row(queue)["delta_id"] == "delta_label_token"
+    expected_next_ready = next(row for row in queue["rows"] if row["status"] == "ready")
+    assert next_ready_row(queue) == expected_next_ready
 
 
 def test_catalog_and_canonical_queue_are_split() -> None:
@@ -71,7 +73,11 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     assert "tfrow_n_heads" in matrix
     assert "outputs/staged_ladder/research/binary_md_v1/delta_row_cls_pool/result_card.md" in matrix
     assert "Legacy stage alias" in matrix
-    assert "| 6 | `delta_row_cls_pool` | row_pool | yes | ready | row_cls_pool |" in matrix
+    row_cls_pool = next(row for row in queue["rows"] if row["delta_id"] == "delta_row_cls_pool")
+    assert (
+        f"| 6 | `delta_row_cls_pool` | row_pool | yes | {row_cls_pool['status']} | row_cls_pool |"
+        in matrix
+    )
 
 
 def test_grouped_tokenizer_guard_is_captured_in_catalog_and_materialized_queue() -> None:
@@ -174,9 +180,13 @@ def test_system_delta_queue_validation_passes_when_no_rows_are_completed() -> No
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
+    queue_without_completed_rows = deepcopy(queue)
+    for row in queue_without_completed_rows["rows"]:
+        if row["status"] == "completed":
+            row["status"] = "ready"
 
     assert validate_system_delta_queue(
-        queue,
+        queue_without_completed_rows,
         registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
     ) == []
 
