@@ -74,23 +74,25 @@ for traceability.
 | ---- | ---------- | ---- | ------ | --------- | ------------- |
 | 0 | TF-RD-002 | Repo foundation and dagzoo-style organization | implemented | Implemented | `BL-175 -> BL-177 -> BL-178 -> BL-179 -> BL-180` |
 | 1 | TF-RD-001 | Canonical control baseline and experiment trust | partial | Now | `BL-152 -> BL-155 -> BL-156 -> BL-157 -> BL-158 -> BL-159` |
-| 2 | TF-RD-012 | Shared preprocessing and export-contract fidelity | planned | Now | `no active issue yet; open BL preprocessing chain after TF-RD-001` |
-| 3 | TF-RD-003 | Literature-first references and external baseline borrowing | partial | Now | `BL-154 -> BL-170 -> BL-173` |
-| 4 | TF-RD-004 | Neutral architecture registry and shared component surfaces | planned | Now | `BL-154 -> BL-171 -> BL-181 -> BL-182` |
-| 5 | TF-RD-005 | Modular QASS and non-QASS backbone infrastructure | planned | Now | `BL-154 -> BL-172` |
-| 6 | TF-RD-006 | Scaling-law measurement and Chinchilla-style planning | planned | Now | `BL-154 -> BL-174` |
-| 7 | TF-RD-007 | Current-architecture tuning and control promotion | partial | Now | `BL-153 -> BL-160 -> BL-161 -> BL-162 -> BL-164 -> BL-163` |
-| 8 | TF-RD-008 | Architecture ablations against the control baseline | planned | Next | `BL-165 -> BL-166 -> BL-167 -> BL-169 -> BL-168` |
-| 9 | TF-RD-013 | Separate-repo inference handoff and conformance | planned | Next | `no active issue yet; open BL inference chain after TF-RD-012` |
-| 10 | TF-RD-009 | Core prediction mode parity | partial | Next | `BL-183 -> BL-185 -> BL-186 -> BL-187 -> BL-188 -> BL-189` |
-| 11 | TF-RD-010 | Extended prediction modes and modalities | research | Later | `BL-184 -> BL-191 -> BL-190 -> BL-192 -> BL-193` |
-| 12 | TF-RD-011 | Conditional prior/data alignment when architecture is not the bottleneck | research | Later | `no active issue yet; gated follow-on after TF-RD-007 and TF-RD-008` |
+| 2 | TF-RD-014 | Stable dagzoo handoff and corpus provenance | planned | Now | `BL-195 -> BL-196 -> BL-197 -> BL-198` |
+| 3 | TF-RD-012 | Shared preprocessing and export-contract fidelity | planned | Now | `no active issue yet; open BL preprocessing chain after TF-RD-014` |
+| 4 | TF-RD-003 | Literature-first references and external baseline borrowing | partial | Now | `BL-154 -> BL-170 -> BL-173` |
+| 5 | TF-RD-004 | Neutral architecture registry and shared component surfaces | planned | Now | `BL-154 -> BL-171 -> BL-181 -> BL-182` |
+| 6 | TF-RD-005 | Modular QASS and non-QASS backbone infrastructure | planned | Now | `BL-154 -> BL-172` |
+| 7 | TF-RD-006 | Scaling-law measurement and Chinchilla-style planning | planned | Now | `BL-154 -> BL-174` |
+| 8 | TF-RD-007 | Current-architecture tuning and control promotion | partial | Now | `BL-153 -> BL-160 -> BL-161 -> BL-162 -> BL-164 -> BL-163` |
+| 9 | TF-RD-008 | Architecture ablations against the control baseline | planned | Next | `BL-165 -> BL-166 -> BL-167 -> BL-169 -> BL-168` |
+| 10 | TF-RD-013 | Separate-repo inference handoff and conformance | planned | Next | `no active issue yet; open BL inference chain after TF-RD-012` |
+| 11 | TF-RD-009 | Core prediction mode parity | partial | Next | `BL-183 -> BL-185 -> BL-186 -> BL-187 -> BL-188 -> BL-189` |
+| 12 | TF-RD-010 | Extended prediction modes and modalities | research | Later | `BL-184 -> BL-191 -> BL-190 -> BL-192 -> BL-193` |
+| 13 | TF-RD-011 | Conditional prior/data alignment when architecture is not the bottleneck | research | Later | `no active issue yet; gated follow-on after TF-RD-007 and TF-RD-008` |
 
 ## Current Capability Matrix
 
 | Roadmap Objective / Pillar Claim | Current State | Evidence in Repo | Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Manifest-backed packed-shard training on `dagzoo` outputs | `implemented` | Manifest build flow, manifest-backed train/eval CLI, export/load contract, and packed-shard dataset handling are present in the canonical workflow | Source and prior modularity beyond the manifest path is not yet implemented | `TF-RD-004`, `TF-RD-011` |
+| Corpus provenance and split-safe dagzoo handoff | `planned` | Manifest-backed build flow and dagzoo filter metadata already exist in the canonical workflow | Handoff ingestion, path-independent corpus IDs, and request-run-aware split assignment are not complete | `TF-RD-014`, `TF-RD-001` |
 | Short-run reproducible experiment loop with smoke coverage | `partial` | GitHub Actions quality gate, Iris smoke, dagzoo smoke, persisted run artifacts, and pinned benchmark-bundle discipline are implemented | Repeated-run stability evaluation, checkpoint-selection diagnostics, and leaderboard output are incomplete | `TF-RD-001`, `TF-RD-007` |
 | Benchmark-facing comparison against `nanoTabPFN` | `partial` | Env bootstrap and comparison harnesses exist, and the benchmark remains the selection surface for shortlist validation | Canonical promoted external-baseline configs and benchmark-trust discipline are not complete | `TF-RD-001`, `TF-RD-003`, `TF-RD-007` |
 | Scaling-oriented architecture planning | `partial` | Architecture guidance, literature references, and evidence mapping are now first-class planning artifacts | Neutral registry, modular backbones, and canonical scaling-law measurement are not complete | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006` |
@@ -167,6 +169,8 @@ surface. Use the canonical docs instead:
     artifacts.
   - The canonical benchmark bundle is now pinned in-repo, and the comparison
     flow fails fast on benchmark-input drift.
+  - Benchmark-facing trust remains incomplete until the dagzoo training-data
+    seam becomes path-independent and split-safe under `TF-RD-014`.
   - Repeated-run trust, checkpoint-selection diagnostics, and leaderboard
     output are not yet fully codified.
 - Exit criteria:
@@ -176,6 +180,34 @@ surface. Use the canonical docs instead:
   - Checkpoint-selection diagnostics appear in benchmark summaries.
   - Research and confirmatory runs can land in one canonical leaderboard-style
     output.
+
+### TF-RD-014: Stable dagzoo Handoff and Corpus Provenance
+
+- Status: `planned`
+- Milestone: `Now`
+- Goal alignment: `Goal 1: Scaling Predictability`
+- Pillar alignment: `corpus provenance`
+- Goal: make the `dagzoo` to `tab-foundry` training-data handoff
+  reproducible, path-independent, and split-safe enough that evaluation claims
+  can be trusted.
+- Linear tracking:
+  `BL-195 -> BL-196 -> BL-197 -> BL-198`
+- Repo touchpoints:
+  - `src/tab_foundry/data/manifest.py`
+  - `src/tab_foundry/cli/commands/build_manifest.py`
+  - `tests/data/test_manifest_and_dataset.py`
+  - `src/tab_foundry/bench/dagzoo_smoke.py`
+  - `docs/workflows.md`
+- Current state:
+  - Manifest build still starts from raw roots rather than a first-class
+    dagzoo handoff artifact.
+  - Dataset identity depends on the absolute resolved root path.
+  - Split assignment is dataset-level rather than request-run-aware.
+- Exit criteria:
+  - Validated handoff ingestion exists for `build-manifest`.
+  - Corpus identity is path-independent and provenance-derived.
+  - Request-run grouping exists for serious evaluation.
+  - Docs and tests describe the handoff contract clearly.
 
 ### TF-RD-012: Shared Preprocessing and Export-Contract Fidelity
 
@@ -187,7 +219,7 @@ surface. Use the canonical docs instead:
   preprocessing surface used by dataset loading, evaluation, export, and
   reference consumption.
 - Linear tracking:
-  `no active issue yet; open BL preprocessing chain after TF-RD-001`
+  `no active issue yet; open BL preprocessing chain after TF-RD-014`
 - Repo touchpoints:
   - `src/tab_foundry/preprocessing/`
   - `src/tab_foundry/data/dataset.py`
@@ -538,6 +570,7 @@ surface. Use the canonical docs instead:
 ### Now
 
 - `TF-RD-001` canonical control baseline and experiment trust
+- `TF-RD-014` stable dagzoo handoff and corpus provenance
 - `TF-RD-012` shared preprocessing and export-contract fidelity
 - `TF-RD-003` literature-first references and external baseline borrowing
 - `TF-RD-004` neutral architecture registry and shared component surfaces
@@ -561,11 +594,13 @@ surface. Use the canonical docs instead:
 
 - `TF-RD-001` must mature before deeper benchmark-facing interpretation work can
   be trusted.
+- `TF-RD-014` should land before stronger benchmark-facing interpretation or
+  control-promotion claims rely on the current dagzoo corpora.
 - `TF-RD-002` should stay ahead of deeper architecture expansion so repo growth
   does not recreate historical package sprawl.
 - `TF-RD-003` should inform architecture work before the repo commits to deeper
   refactors or new named baselines.
-- `TF-RD-012` starts immediately after `TF-RD-001` and should land before
+- `TF-RD-012` follows `TF-RD-014` in the near-term queue and should land before
   `TF-RD-006` relies on the export-facing preprocessing surface.
 - `TF-RD-004` and `TF-RD-005` define the platform on which later comparisons are
   supposed to run.
