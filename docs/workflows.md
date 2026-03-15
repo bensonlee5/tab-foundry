@@ -263,25 +263,45 @@ uv run python scripts/benchmark_nanotabpfn.py \
 ```
 
 The comparison flow is pinned to the repo-tracked benchmark bundle at
-`src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`. Runs fail fast if
-the live OpenML-resolved selection thresholds or task metadata drift from that
-bundle. Older ad hoc bundle files without the full `selection` schema now fail
-to load.
+`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`. Runs fail fast
+if the live OpenML-resolved selection thresholds or task metadata drift from
+that bundle. Older ad hoc bundle files without the full `selection` schema now
+fail to load.
 
-The pinned 3-task binary bundle remains the canonical promotion gate through
-`model.stage=qass_context`. The staged multiclass branch uses the companion
-bundle at `src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`,
-which widens the same TabArena v0.1 notebook source set from binary-only to
-small multiclass while preserving the same row-count, feature-count, missingness,
-and minority-class filters.
+The pinned medium-size binary bundle is now the canonical promotion gate
+through `model.stage=qass_context`. The legacy 3-task binary bundle remains
+available at `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json` for
+historical reproduction only. Benchmark results are not directly comparable
+across those two binary surfaces unless the bundle path and control-baseline id
+match exactly. The staged multiclass branch uses the companion bundle at
+`src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json`, which
+widens the TabArena v0.1 source set from binary-only to small multiclass while
+preserving the same row-count, feature-count, missingness, and minority-class
+filters.
 
-Regenerate a pinned bundle with:
+Regenerate the canonical medium binary bundle with:
+
+```bash
+uv run python scripts/build_openml_benchmark_bundle.py \
+  --out-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json \
+  --bundle-name nanotabpfn_openml_binary_medium \
+  --version 1 \
+  --task-source binary_expanded_v1 \
+  --new-instances 200 \
+  --max-features 10 \
+  --max-classes 2 \
+  --max-missing-pct 0.0 \
+  --min-minority-class-pct 2.5
+```
+
+Regenerate the multiclass companion bundle with:
 
 ```bash
 uv run python scripts/build_openml_benchmark_bundle.py \
   --out-path src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json \
   --bundle-name nanotabpfn_openml_classification_small \
   --version 1 \
+  --task-source tabarena_v0_1 \
   --new-instances 200 \
   --max-features 10 \
   --max-classes auto \
@@ -294,7 +314,7 @@ Benchmark against a non-default repo-tracked bundle with:
 ```bash
 uv run python scripts/benchmark_nanotabpfn.py \
   --tab-foundry-run-dir <run_dir> \
-  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json \
+  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
 
@@ -312,7 +332,7 @@ uv run python scripts/benchmark_nanotabpfn.py \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
 
-The canonical control-baseline path is:
+The canonical control-baseline surface is:
 
 ```bash
 uv run tab-foundry train \
@@ -322,17 +342,24 @@ uv run tab-foundry train \
 
 uv run python scripts/benchmark_nanotabpfn.py \
   --tab-foundry-run-dir outputs/control_baselines/cls_benchmark_linear_v1/train \
-  --out-root outputs/control_baselines/cls_benchmark_linear_v1/benchmark \
+  --out-root outputs/control_baselines/cls_benchmark_linear_v2/benchmark \
+  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 
 uv run python scripts/freeze_control_baseline.py \
+  --baseline-id cls_benchmark_linear_v2 \
   --run-dir outputs/control_baselines/cls_benchmark_linear_v1/train \
-  --comparison-summary outputs/control_baselines/cls_benchmark_linear_v1/benchmark/comparison_summary.json
+  --comparison-summary outputs/control_baselines/cls_benchmark_linear_v2/benchmark/comparison_summary.json
 ```
 
 Keep `outputs/control_baselines/cls_benchmark_linear_v1/train` empty before rerunning the
 training command; `tab-foundry train` now fails fast if `runtime.output_dir` already contains a
 non-empty history file or checkpoint `.pt` artifacts.
+
+`cls_benchmark_linear_v2` intentionally reuses the existing frozen linear
+training run and only migrates the benchmark surface from the legacy 3-task
+bundle to the medium binary bundle. `cls_benchmark_linear_v1` remains in the
+registry unchanged for historical comparisons.
 
 Frozen control baselines are tracked in
 `src/tab_foundry/bench/control_baselines_v1.json`. Registry entries store the
@@ -347,7 +374,7 @@ Later comparison runs can copy one of those registry entries into
 uv run python scripts/benchmark_nanotabpfn.py \
   --tab-foundry-run-dir <run_dir> \
   --out-root <benchmark_out_root> \
-  --control-baseline-id cls_benchmark_linear_v1 \
+  --control-baseline-id cls_benchmark_linear_v2 \
   --control-baseline-registry src/tab_foundry/bench/control_baselines_v1.json \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
@@ -579,7 +606,7 @@ Benchmark template:
 uv run python scripts/benchmark_nanotabpfn.py \
   --tab-foundry-run-dir outputs/staged_ladder/<run_id>/train \
   --out-root outputs/staged_ladder/<run_id>/benchmark \
-  --control-baseline-id cls_benchmark_linear_v1 \
+  --control-baseline-id cls_benchmark_linear_v2 \
   --control-baseline-registry src/tab_foundry/bench/control_baselines_v1.json \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```

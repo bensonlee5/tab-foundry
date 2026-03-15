@@ -660,6 +660,91 @@
         "wall_elapsed_seconds": 363.5451752090594
       }
     },
+    "01_nano_exact_md_prior_parity_fix_binary_medium_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1",
+        "benchmark_run_record_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix/checkpoints/step_001125.pt",
+        "comparison_curve_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix/train_history.jsonl",
+        "prior_dir": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix",
+        "run_dir": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "Frozen exact anchor on the medium binary benchmark surface; use this run id for v2-bundle comparisons.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "nano_exact",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "nano_exact",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-15T04:25:36Z",
+      "run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7614517503932239,
+        "best_step": 1125.0,
+        "best_training_time": 166.11370419885498,
+        "final_roc_auc": 0.7598854139194626,
+        "final_step": 2500.0,
+        "final_training_time": 355.5597403793363
+      },
+      "track": "prior_exact_validation",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.2340613454580307,
+        "final_val_loss": null,
+        "max_grad_norm": 4.658189296722412,
+        "mean_grad_norm": 0.17667055217623712,
+        "post_warmup_train_loss_var": 0.002137726767549213,
+        "train_elapsed_seconds": 355.5597403793363,
+        "wall_elapsed_seconds": 363.5451752090594
+      }
+    },
     "01_nano_exact_sm": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/01_nano_exact_sm/benchmark",

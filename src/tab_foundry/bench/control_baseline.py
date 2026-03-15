@@ -15,7 +15,7 @@ from tab_foundry.bench.nanotabpfn import resolve_tab_foundry_best_checkpoint
 
 REGISTRY_SCHEMA = "tab-foundry-control-baselines-v1"
 REGISTRY_VERSION = 1
-DEFAULT_BASELINE_ID = "cls_benchmark_linear_v1"
+DEFAULT_BASELINE_ID = "cls_benchmark_linear_v2"
 DEFAULT_CONFIG_PROFILE = "cls_benchmark_linear"
 DEFAULT_BUDGET_CLASS = "short-run"
 

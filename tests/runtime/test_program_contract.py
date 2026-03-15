@@ -43,7 +43,7 @@ def test_program_contract_required_repo_paths_exist() -> None:
     required_repo_paths = [
         "reference/stage_campaign_template.md",
         "reference/stage_research_sources.yaml",
-        "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         "src/tab_foundry/bench/benchmark_run_registry_v1.json",
     ]
     for relative_path in required_repo_paths:
@@ -56,9 +56,9 @@ def test_program_contract_anchor_is_resolved_via_registry() -> None:
     registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
 
-    anchor_run_id = "01_nano_exact_md_prior_parity_fix"
+    anchor_run_id = "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
     expected_run_dir = "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
-    expected_benchmark_dir = "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_parity_fix"
+    expected_benchmark_dir = "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1"
 
     assert f"`{anchor_run_id}`" in contents
     assert f"`{expected_run_dir}`" in contents

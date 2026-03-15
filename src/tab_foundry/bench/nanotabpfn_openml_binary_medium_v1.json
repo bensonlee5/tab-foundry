@@ -1,0 +1,96 @@
+{
+  "name": "nanotabpfn_openml_binary_medium",
+  "selection": {
+    "max_classes": 2,
+    "max_features": 10,
+    "max_missing_pct": 0.0,
+    "min_minority_class_pct": 2.5,
+    "new_instances": 200,
+    "task_type": "supervised_classification"
+  },
+  "task_ids": [
+    42,
+    3638,
+    3777,
+    9958,
+    10091,
+    10093,
+    146230,
+    363613,
+    363621,
+    363629
+  ],
+  "tasks": [
+    {
+      "dataset_name": "haberman",
+      "n_classes": 2,
+      "n_features": 3,
+      "n_rows": 200,
+      "task_id": 42
+    },
+    {
+      "dataset_name": "quake",
+      "n_classes": 2,
+      "n_features": 3,
+      "n_rows": 200,
+      "task_id": 3638
+    },
+    {
+      "dataset_name": "balloon",
+      "n_classes": 2,
+      "n_features": 1,
+      "n_rows": 200,
+      "task_id": 3777
+    },
+    {
+      "dataset_name": "qualitative-bankruptcy",
+      "n_classes": 2,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 9958
+    },
+    {
+      "dataset_name": "banana",
+      "n_classes": 2,
+      "n_features": 2,
+      "n_rows": 200,
+      "task_id": 10091
+    },
+    {
+      "dataset_name": "banknote-authentication",
+      "n_classes": 2,
+      "n_features": 4,
+      "n_rows": 200,
+      "task_id": 10093
+    },
+    {
+      "dataset_name": "Titanic",
+      "n_classes": 2,
+      "n_features": 3,
+      "n_rows": 200,
+      "task_id": 146230
+    },
+    {
+      "dataset_name": "Amazon_employee_access",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 363613
+    },
+    {
+      "dataset_name": "blood-transfusion-service-center",
+      "n_classes": 2,
+      "n_features": 4,
+      "n_rows": 200,
+      "task_id": 363621
+    },
+    {
+      "dataset_name": "diabetes",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 363629
+    }
+  ],
+  "version": 1
+}

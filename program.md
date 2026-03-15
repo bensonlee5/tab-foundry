@@ -10,11 +10,11 @@ file for objective, search policy, and decision rules.
 ## Objective
 
 Optimize prior-trained candidates against the locked exact anchor
-`01_nano_exact_md_prior_parity_fix`.
+`01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
 
 The primary optimization target for now is `final_roc_auc` from the canonical
 benchmark summary on
-`src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`.
+`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
 
 Supporting checks are:
 
@@ -30,12 +30,13 @@ Supporting checks are:
 Hold this surface fixed unless the research package explicitly declares a new
 comparison surface and the benchmark conclusion calls it out:
 
-- anchor run id: `01_nano_exact_md_prior_parity_fix`
+- anchor run id: `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
 - anchor prior run: `outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`
-- anchor benchmark: `outputs/staged_ladder/01_nano_exact_md/prior_benchmark_parity_fix`
+- anchor benchmark: `outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1`
 - stage template: `reference/stage_campaign_template.md`
 - research sources: `reference/stage_research_sources.yaml`
-- canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`
+- canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
+- canonical control baseline id: `cls_benchmark_linear_v2`
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 
 Keep these invariant by default:
@@ -47,11 +48,18 @@ Keep these invariant by default:
 - prior-trained experiment family: `cls_benchmark_staged_prior`
 - history, checkpoint, and benchmark artifact contracts
 
+The legacy 3-task binary surface remains available at
+`src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`, and
+`cls_benchmark_linear_v1` remains in the control-baseline registry for
+historical reproduction only. Results are not directly comparable across the
+legacy and medium binary surfaces unless the benchmark bundle path and control
+baseline id match exactly.
+
 Use cached `nanotabpfn_curve.jsonl` only when the comparison surface is
 unchanged.
 
-`01_nano_exact_md_prior_parity_fix` is the canonical anchor identity for this
-search cycle. Resolve its artifact paths through
+`01_nano_exact_md_prior_parity_fix_binary_medium_v1` is the canonical anchor
+identity for this search cycle. Resolve its artifact paths through
 `src/tab_foundry/bench/benchmark_run_registry_v1.json`; that registry is the
 historical system of record.
 
@@ -163,7 +171,7 @@ For a kept candidate:
 
 1. Run the exact control `01_nano_exact_md_prior_budget1250`.
 2. Run the winning candidate recipe at `1250` and `2500` steps.
-3. Benchmark both on `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`.
+3. Benchmark both on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
 4. Compare candidate versus exact at both budgets.
 
 Promote the candidate only if it is at least neutral or better on
@@ -171,4 +179,4 @@ Promote the candidate only if it is at least neutral or better on
 steps.
 
 If it helps at one budget but not the other, mark it `defer` and keep
-`01_nano_exact_md_prior_parity_fix` as the active base.
+`01_nano_exact_md_prior_parity_fix_binary_medium_v1` as the active base.

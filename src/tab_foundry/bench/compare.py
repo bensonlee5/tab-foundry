@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import subprocess
+import sys
 from typing import Any, Sequence, cast
 
 from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
@@ -72,6 +73,11 @@ def _helper_script_path() -> Path:
 
 def _src_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def _is_legacy_benchmark_record_compat_error(exc: Exception) -> bool:
+    message = str(exc)
+    return "persisted model.arch" in message or "omitted feature_group_size" in message
 
 
 def _nanotabpfn_helper_command(
@@ -215,11 +221,26 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         "benchmark_run_record_json": str(benchmark_run_record_path),
     }
     write_json(comparison_summary_path, summary)
-    benchmark_run_record = derive_benchmark_run_record(
-        run_dir=tab_foundry_run_dir,
-        comparison_summary_path=comparison_summary_path,
-        benchmark_run_record_path=benchmark_run_record_path,
-    )
+    try:
+        benchmark_run_record = derive_benchmark_run_record(
+            run_dir=tab_foundry_run_dir,
+            comparison_summary_path=comparison_summary_path,
+            benchmark_run_record_path=benchmark_run_record_path,
+        )
+    except (RuntimeError, ValueError) as exc:
+        if not _is_legacy_benchmark_record_compat_error(exc):
+            raise
+        print(
+            "Skipping benchmark_run_record.json derivation for legacy checkpoint metadata: "
+            f"{exc}",
+            file=sys.stderr,
+        )
+        summary["artifacts"]["benchmark_run_record_json"] = None
+        cast(dict[str, Any], summary["tab_foundry"])[
+            "benchmark_run_record_warning"
+        ] = str(exc)
+        write_json(comparison_summary_path, summary)
+        return summary
     tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
     tab_foundry_summary["manifest_path"] = str(benchmark_run_record["manifest_path"])
     tab_foundry_summary["seed_set"] = list(benchmark_run_record["seed_set"])

@@ -9,6 +9,9 @@ import torch
 import tab_foundry.bench.control_baseline as control_baseline_module
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
 def _write_checkpoint(checkpoint_path: Path, *, manifest_path: str, seed: int = 1) -> Path:
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
@@ -178,3 +181,17 @@ def test_freeze_control_baseline_validates_summary_run_dir(
             comparison_summary_path=summary_path,
             registry_path=registry_path,
         )
+
+
+def test_checked_in_control_baseline_registry_preserves_v1_and_adds_v2() -> None:
+    registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
+
+    registry = control_baseline_module.load_control_baseline_registry(registry_path)
+
+    assert {"cls_benchmark_linear_v1", "cls_benchmark_linear_v2"} <= set(registry["baselines"])
+    assert registry["baselines"]["cls_benchmark_linear_v1"]["benchmark_bundle"]["source_path"] == (
+        "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
+    )
+    assert registry["baselines"]["cls_benchmark_linear_v2"]["benchmark_bundle"]["source_path"] == (
+        "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
+    )
