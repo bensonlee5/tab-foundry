@@ -48,7 +48,18 @@ Keep these invariant by default:
 - history, checkpoint, and benchmark artifact contracts
 
 Use cached `nanotabpfn_curve.jsonl` only when the comparison surface is
-unchanged. The benchmark registry is the historical system of record.
+unchanged.
+
+`01_nano_exact_md_prior_parity_fix` is the canonical anchor identity for this
+search cycle. Resolve its artifact paths through
+`src/tab_foundry/bench/benchmark_run_registry_v1.json`; that registry is the
+historical system of record.
+
+The benchmark registry is the historical system of record.
+
+The `outputs/staged_ladder/...` anchor paths above are convenience runtime
+references for local workspaces. They may be absent in a fresh clone or CI
+checkout.
 
 ## Search Scope
 
