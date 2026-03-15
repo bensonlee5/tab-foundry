@@ -78,6 +78,240 @@
         "wall_elapsed_seconds": 27.255408041994087
       }
     },
+    "00_simple_anchor_md_unfiltered": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/00_simple_anchor_md_unfiltered/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/00_simple_anchor_md_unfiltered/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/00_simple_anchor_md_unfiltered/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/00_simple_anchor_md_unfiltered/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/00_simple_anchor_md_unfiltered/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/00_simple_anchor_md_unfiltered/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/00_simple_anchor_md_unfiltered/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "Unfiltered frozen md anchor on the include_all binary corpus.",
+      "config_profile": "cls_benchmark_linear_simple",
+      "decision": "keep",
+      "experiment": "cls_benchmark_linear_simple",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": null,
+        "parent_run_id": null
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_dagzoo_validation/include_all_manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_simple",
+        "benchmark_profile": null,
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-14T22:52:42Z",
+      "run_id": "00_simple_anchor_md_unfiltered",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.515578185909058,
+        "best_step": 125.0,
+        "best_training_time": 19.145977586857043,
+        "final_roc_auc": 0.4055095319364286,
+        "final_step": 400.0,
+        "final_training_time": 59.132395296008326
+      },
+      "track": "binary_realism_validation_unfiltered",
+      "training_diagnostics": {
+        "best_val_loss": 0.6230039596557617,
+        "best_val_step": 400.0,
+        "final_grad_norm": 0.04724748805165291,
+        "final_val_loss": 0.6230039596557617,
+        "max_grad_norm": 5.309685230255127,
+        "mean_grad_norm": 0.48278048434585796,
+        "post_warmup_train_loss_var": 0.011165860958509083,
+        "train_elapsed_seconds": 59.132395296008326,
+        "wall_elapsed_seconds": 74.05535312509164
+      }
+    },
+    "00_simple_anchor_sm": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/00_simple_anchor_sm/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/00_simple_anchor_sm/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/00_simple_anchor_sm/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/00_simple_anchor_sm/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/00_simple_anchor_sm/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/00_simple_anchor_sm/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/00_simple_anchor_sm/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "SM frozen anchor establishes the size-band control and matches the staged nano_exact control on train and benchmark metrics.",
+      "config_profile": "cls_benchmark_linear_simple",
+      "decision": "keep",
+      "experiment": "cls_benchmark_linear_simple",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": null,
+        "parent_run_id": null
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_simple",
+        "benchmark_profile": null,
+        "d_icl": 64,
+        "head_hidden_dim": 128,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 2
+      },
+      "model_size": {
+        "total_params": 109314,
+        "trainable_params": 109314
+      },
+      "registered_at_utc": "2026-03-14T20:55:45Z",
+      "run_id": "00_simple_anchor_sm",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5812806457377077,
+        "best_step": 100.0,
+        "best_training_time": 4.719750622403808,
+        "final_roc_auc": 0.5118462885681881,
+        "final_step": 400.0,
+        "final_training_time": 16.579163043410517
+      },
+      "track": "size_scaling_simple_rebuild",
+      "training_diagnostics": {
+        "best_val_loss": 0.002963149221614003,
+        "best_val_step": 400.0,
+        "final_grad_norm": 0.17225660383701324,
+        "final_val_loss": 0.002963149221614003,
+        "max_grad_norm": 7.567259311676025,
+        "mean_grad_norm": 1.1991011294000782,
+        "post_warmup_train_loss_var": 0.0148410354804368,
+        "train_elapsed_seconds": 16.579163043410517,
+        "wall_elapsed_seconds": 21.771502166986465
+      }
+    },
+    "00_simple_anchor_sm_unfiltered": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/00_simple_anchor_sm_unfiltered/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/00_simple_anchor_sm_unfiltered/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/00_simple_anchor_sm_unfiltered/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/00_simple_anchor_sm_unfiltered/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/00_simple_anchor_sm_unfiltered/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/00_simple_anchor_sm_unfiltered/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/00_simple_anchor_sm_unfiltered/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "Unfiltered frozen sm anchor on include_all binary corpus.",
+      "config_profile": "cls_benchmark_linear_simple",
+      "decision": "keep",
+      "experiment": "cls_benchmark_linear_simple",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": null,
+        "parent_run_id": null
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_dagzoo_validation/include_all_manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_simple",
+        "benchmark_profile": null,
+        "d_icl": 64,
+        "head_hidden_dim": 128,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 2
+      },
+      "model_size": {
+        "total_params": 109314,
+        "trainable_params": 109314
+      },
+      "registered_at_utc": "2026-03-14T22:45:02Z",
+      "run_id": "00_simple_anchor_sm_unfiltered",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5105607087908669,
+        "best_step": 125.0,
+        "best_training_time": 12.514953583246097,
+        "final_roc_auc": 0.4167037938459761,
+        "final_step": 400.0,
+        "final_training_time": 34.276154011138715
+      },
+      "track": "binary_realism_validation_unfiltered",
+      "training_diagnostics": {
+        "best_val_loss": 0.6230052709579468,
+        "best_val_step": 375.0,
+        "final_grad_norm": 0.08907963335514069,
+        "final_val_loss": 0.6230599284172058,
+        "max_grad_norm": 3.9423346519470215,
+        "mean_grad_norm": 0.3528606655471958,
+        "post_warmup_train_loss_var": 0.012589517514695428,
+        "train_elapsed_seconds": 34.276154011138715,
+        "wall_elapsed_seconds": 45.21230662497692
+      }
+    },
     "00_simple_anchor_xs": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/00_simple_anchor_xs/benchmark",
@@ -246,6 +480,276 @@
         "wall_elapsed_seconds": 27.320913499919698
       }
     },
+    "01_nano_exact_md_prior": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/01_nano_exact_md/prior/checkpoints/step_000425.pt",
+        "comparison_curve_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/01_nano_exact_md/prior/train_history.jsonl",
+        "prior_dir": "outputs/staged_ladder/01_nano_exact_md/prior",
+        "run_dir": "outputs/staged_ladder/01_nano_exact_md/prior"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.08282386655741936,
+          "best_training_time_delta": 62.24828080891166,
+          "final_roc_auc_delta": 0.12354285087890216,
+          "final_training_time_delta": 757.2418098249473,
+          "reference_run_id": "00_simple_anchor_md"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.08282386655741936,
+          "best_training_time_delta": 62.22072313865647,
+          "final_roc_auc_delta": 0.12354285087890216,
+          "final_training_time_delta": 757.1687806939008,
+          "reference_run_id": "01_nano_exact_md"
+        }
+      },
+      "conclusion": "Prior-trained nano_exact closes nearly all of the best-ROC gap and most of the final-ROC gap to nanoTabPFN, confirming training mismatch as the dominant shortfall.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_md",
+        "control_baseline_id": null,
+        "parent_run_id": "01_nano_exact_md"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "nano_exact",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "nano_exact",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-15T00:00:57Z",
+      "run_id": "01_nano_exact_md_prior",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7040028392465754,
+        "best_step": 425.0,
+        "best_training_time": 69.09487455384806,
+        "final_roc_auc": 0.6889751244501735,
+        "final_step": 2500.0,
+        "final_training_time": 778.983348818263
+      },
+      "track": "prior_exact_validation",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.22822359204292297,
+        "final_val_loss": null,
+        "max_grad_norm": 4.646632671356201,
+        "mean_grad_norm": 0.18294095520675183,
+        "post_warmup_train_loss_var": 0.002204754194284483,
+        "train_elapsed_seconds": 778.983348818263,
+        "wall_elapsed_seconds": 785.8439691669773
+      }
+    },
+    "01_nano_exact_md_prior_parity_fix": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_parity_fix",
+        "benchmark_run_record_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_parity_fix/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix/checkpoints/step_001125.pt",
+        "comparison_curve_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_parity_fix/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_parity_fix/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix/train_history.jsonl",
+        "prior_dir": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix",
+        "run_dir": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.09568015869597635,
+          "best_training_time_delta": 159.26711045391858,
+          "final_roc_auc_delta": 0.13888806487543182,
+          "final_training_time_delta": 333.8182013860205,
+          "reference_run_id": "00_simple_anchor_md"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.01285629213855699,
+          "best_training_time_delta": 97.01882964500692,
+          "final_roc_auc_delta": 0.01534521399652966,
+          "final_training_time_delta": -423.42360843892675,
+          "reference_run_id": "01_nano_exact_md_prior"
+        }
+      },
+      "conclusion": "Eval-mode ScheduleFree checkpoints and NanoTabPFN-matched betas materially improved best and final ROC while sharply reducing late-stage drift in the prior-trained nano_exact path.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_md",
+        "control_baseline_id": null,
+        "parent_run_id": "01_nano_exact_md_prior"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "nano_exact",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "nano_exact",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-15T00:21:51Z",
+      "run_id": "01_nano_exact_md_prior_parity_fix",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7168591313851324,
+        "best_step": 1125.0,
+        "best_training_time": 166.11370419885498,
+        "final_roc_auc": 0.7043203384467032,
+        "final_step": 2500.0,
+        "final_training_time": 355.5597403793363
+      },
+      "track": "prior_exact_validation",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.2340613454580307,
+        "final_val_loss": null,
+        "max_grad_norm": 4.658189296722412,
+        "mean_grad_norm": 0.17667055217623712,
+        "post_warmup_train_loss_var": 0.002137726767549213,
+        "train_elapsed_seconds": 355.5597403793363,
+        "wall_elapsed_seconds": 363.5451752090594
+      }
+    },
+    "01_nano_exact_sm": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/01_nano_exact_sm/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/01_nano_exact_sm/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/01_nano_exact_sm/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/01_nano_exact_sm/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/01_nano_exact_sm/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/01_nano_exact_sm/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/01_nano_exact_sm/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": -0.05388800206128508,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": -0.06385834270622581,
+          "reference_run_id": "00_simple_anchor_sm"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": -0.05388800206128508,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": -0.06385834270622581,
+          "reference_run_id": "00_simple_anchor_sm"
+        }
+      },
+      "conclusion": "SM nano_exact matched the frozen sm anchor on train diagnostics and benchmark ROC AUC, so the exact control holds at the small size band.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_sm",
+        "control_baseline_id": null,
+        "parent_run_id": "00_simple_anchor_sm"
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "nano_exact",
+        "d_icl": 64,
+        "head_hidden_dim": 128,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "nano_exact",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 2
+      },
+      "model_size": {
+        "total_params": 109314,
+        "trainable_params": 109314
+      },
+      "registered_at_utc": "2026-03-14T20:55:45Z",
+      "run_id": "01_nano_exact_sm",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5812806457377077,
+        "best_step": 100.0,
+        "best_training_time": 4.665862620342523,
+        "final_roc_auc": 0.5118462885681881,
+        "final_step": 400.0,
+        "final_training_time": 16.51530470070429
+      },
+      "track": "size_scaling_simple_rebuild",
+      "training_diagnostics": {
+        "best_val_loss": 0.002963149221614003,
+        "best_val_step": 400.0,
+        "final_grad_norm": 0.17225660383701324,
+        "final_val_loss": 0.002963149221614003,
+        "max_grad_norm": 7.567259311676025,
+        "mean_grad_norm": 1.1991011294000782,
+        "post_warmup_train_loss_var": 0.0148410354804368,
+        "train_elapsed_seconds": 16.51530470070429,
+        "wall_elapsed_seconds": 21.718909667106345
+      }
+    },
     "01_nano_exact_xs": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/01_nano_exact_xs/benchmark",
@@ -336,6 +840,456 @@
         "wall_elapsed_seconds": 23.23727045801934
       }
     },
+    "02_label_token_md": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/02_label_token_md/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/02_label_token_md/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/02_label_token_md/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/02_label_token_md/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/02_label_token_md/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/02_label_token_md/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/02_label_token_md/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.028564604022330853,
+          "best_training_time_delta": -2.0627009492600337,
+          "final_roc_auc_delta": 0.03778500717662947,
+          "final_training_time_delta": 10.33245900599286,
+          "reference_run_id": "00_simple_anchor_md"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.028564604022330853,
+          "best_training_time_delta": -2.0902586195152253,
+          "final_roc_auc_delta": 0.03778500717662947,
+          "final_training_time_delta": 10.259429874946363,
+          "reference_run_id": "01_nano_exact_md"
+        }
+      },
+      "conclusion": "MD label_token materially improved both best and final ROC AUC over nano_exact with stable validation loss, so the label-token delta scales cleanly to medium size.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_md",
+        "control_baseline_id": null,
+        "parent_run_id": "01_nano_exact_md"
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "label_token",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "label_token",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356162,
+        "trainable_params": 356162
+      },
+      "registered_at_utc": "2026-03-14T20:56:12Z",
+      "run_id": "02_label_token_md",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.6497435767114869,
+        "best_step": 75.0,
+        "best_training_time": 4.7838927956763655,
+        "final_roc_auc": 0.6032172807479008,
+        "final_step": 400.0,
+        "final_training_time": 32.07399799930863
+      },
+      "track": "size_scaling_simple_rebuild",
+      "training_diagnostics": {
+        "best_val_loss": 0.00016372566460631788,
+        "best_val_step": 325.0,
+        "final_grad_norm": 0.0017061313847079873,
+        "final_val_loss": 0.00020531633344944566,
+        "max_grad_norm": 21.278423309326172,
+        "mean_grad_norm": 0.8775592678879911,
+        "post_warmup_train_loss_var": 0.008952328154152272,
+        "train_elapsed_seconds": 32.07399799930863,
+        "wall_elapsed_seconds": 38.59329958294984
+      }
+    },
+    "02_label_token_md_prior": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/02_label_token_md/prior_benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/02_label_token_md/prior_benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/02_label_token_md/prior/checkpoints/step_000775.pt",
+        "comparison_curve_path": "outputs/staged_ladder/02_label_token_md/prior_benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/02_label_token_md/prior_benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/02_label_token_md/prior/train_history.jsonl",
+        "prior_dir": "outputs/staged_ladder/02_label_token_md/prior",
+        "run_dir": "outputs/staged_ladder/02_label_token_md/prior"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.0071774494713325865,
+          "best_training_time_delta": -45.94581832282711,
+          "final_roc_auc_delta": -0.0335727971558738,
+          "final_training_time_delta": 9.785178810474463,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.0071774494713325865,
+          "best_training_time_delta": -45.94581832282711,
+          "final_roc_auc_delta": -0.0335727971558738,
+          "final_training_time_delta": 9.785178810474463,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix"
+        }
+      },
+      "conclusion": "Prior-trained label_token regressed both best and final ROC versus the exact baseline and showed substantially larger late drift, so it should not be promoted as the next md prior-trained stage.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "reject",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix",
+        "control_baseline_id": null,
+        "parent_run_id": "01_nano_exact_md_prior_parity_fix"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "label_token",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "label_token",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356162,
+        "trainable_params": 356162
+      },
+      "registered_at_utc": "2026-03-15T00:34:05Z",
+      "run_id": "02_label_token_md_prior",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7096816819137998,
+        "best_step": 775.0,
+        "best_training_time": 120.16788587602787,
+        "final_roc_auc": 0.6707475412908294,
+        "final_step": 2500.0,
+        "final_training_time": 365.34491918981075
+      },
+      "track": "prior_compact_buildout",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.26054850220680237,
+        "final_val_loss": null,
+        "max_grad_norm": 5.20358419418335,
+        "mean_grad_norm": 0.18201343402937054,
+        "post_warmup_train_loss_var": 0.0022537579130572924,
+        "train_elapsed_seconds": 365.34491918981075,
+        "wall_elapsed_seconds": 371.0096669999184
+      }
+    },
+    "02_label_token_md_unfiltered": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/02_label_token_md_unfiltered/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/02_label_token_md_unfiltered/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/02_label_token_md_unfiltered/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/02_label_token_md_unfiltered/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/02_label_token_md_unfiltered/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/02_label_token_md_unfiltered/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/02_label_token_md_unfiltered/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.020963538996153774,
+          "best_training_time_delta": -0.09117167035583407,
+          "final_roc_auc_delta": 0.010024219629132913,
+          "final_training_time_delta": -0.03736291453242302,
+          "reference_run_id": "00_simple_anchor_md_unfiltered"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.020963538996153774,
+          "best_training_time_delta": -0.09117167035583407,
+          "final_roc_auc_delta": 0.010024219629132913,
+          "final_training_time_delta": -0.03736291453242302,
+          "reference_run_id": "00_simple_anchor_md_unfiltered"
+        }
+      },
+      "conclusion": "Unfiltered md label_token improves both best and final ROC over the md anchor while keeping stable training diagnostics.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_md_unfiltered",
+        "control_baseline_id": null,
+        "parent_run_id": "00_simple_anchor_md_unfiltered"
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_dagzoo_validation/include_all_manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "label_token",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "label_token",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356162,
+        "trainable_params": 356162
+      },
+      "registered_at_utc": "2026-03-14T22:52:42Z",
+      "run_id": "02_label_token_md_unfiltered",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5365417249052118,
+        "best_step": 125.0,
+        "best_training_time": 19.05480591650121,
+        "final_roc_auc": 0.4155337515655615,
+        "final_step": 400.0,
+        "final_training_time": 59.0950323814759
+      },
+      "track": "binary_realism_validation_unfiltered",
+      "training_diagnostics": {
+        "best_val_loss": 0.6229780912399292,
+        "best_val_step": 375.0,
+        "final_grad_norm": 0.028762951493263245,
+        "final_val_loss": 0.6230090260505676,
+        "max_grad_norm": 5.484814167022705,
+        "mean_grad_norm": 0.4169645662093535,
+        "post_warmup_train_loss_var": 0.012372123459426683,
+        "train_elapsed_seconds": 59.0950323814759,
+        "wall_elapsed_seconds": 74.09862462501042
+      }
+    },
+    "02_label_token_sm": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/02_label_token_sm/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/02_label_token_sm/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/02_label_token_sm/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/02_label_token_sm/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/02_label_token_sm/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/02_label_token_sm/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/02_label_token_sm/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.015473713094793617,
+          "best_training_time_delta": 8.910399666172452,
+          "final_roc_auc_delta": 0.07314503568317943,
+          "final_training_time_delta": -0.15202325978316367,
+          "reference_run_id": "00_simple_anchor_sm"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.015473713094793617,
+          "best_training_time_delta": 8.964287668233737,
+          "final_roc_auc_delta": 0.07314503568317943,
+          "final_training_time_delta": -0.08816491707693785,
+          "reference_run_id": "01_nano_exact_sm"
+        }
+      },
+      "conclusion": "SM label_token materially improved both best and final ROC AUC over nano_exact while keeping training stable, so it remains the first positive staged delta at small size.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_sm",
+        "control_baseline_id": null,
+        "parent_run_id": "01_nano_exact_sm"
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "label_token",
+        "d_icl": 64,
+        "head_hidden_dim": 128,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "label_token",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 2
+      },
+      "model_size": {
+        "total_params": 109378,
+        "trainable_params": 109378
+      },
+      "registered_at_utc": "2026-03-14T20:55:57Z",
+      "run_id": "02_label_token_sm",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5967543588325013,
+        "best_step": 325.0,
+        "best_training_time": 13.63015028857626,
+        "final_roc_auc": 0.5849913242513676,
+        "final_step": 400.0,
+        "final_training_time": 16.427139783627354
+      },
+      "track": "size_scaling_simple_rebuild",
+      "training_diagnostics": {
+        "best_val_loss": 9.388133912580088e-05,
+        "best_val_step": 400.0,
+        "final_grad_norm": 0.0013248429168015718,
+        "final_val_loss": 9.388133912580088e-05,
+        "max_grad_norm": 19.897842407226562,
+        "mean_grad_norm": 0.8646702216978883,
+        "post_warmup_train_loss_var": 0.01285667926146901,
+        "train_elapsed_seconds": 16.427139783627354,
+        "wall_elapsed_seconds": 21.762871291022748
+      }
+    },
+    "02_label_token_sm_unfiltered": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/02_label_token_sm_unfiltered/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/02_label_token_sm_unfiltered/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/02_label_token_sm_unfiltered/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/02_label_token_sm_unfiltered/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/02_label_token_sm_unfiltered/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/02_label_token_sm_unfiltered/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/02_label_token_sm_unfiltered/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.03717558652154129,
+          "best_training_time_delta": -2.0886440435424447,
+          "final_roc_auc_delta": -0.02447159266483173,
+          "final_training_time_delta": -2.170000556623563,
+          "reference_run_id": "00_simple_anchor_sm_unfiltered"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.03717558652154129,
+          "best_training_time_delta": -2.0886440435424447,
+          "final_roc_auc_delta": -0.02447159266483173,
+          "final_training_time_delta": -2.170000556623563,
+          "reference_run_id": "00_simple_anchor_sm_unfiltered"
+        }
+      },
+      "conclusion": "Unfiltered sm label_token improves best ROC over the anchor and stays stable enough to keep as the compact comparison stage.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_sm_unfiltered",
+        "control_baseline_id": null,
+        "parent_run_id": "00_simple_anchor_sm_unfiltered"
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_dagzoo_validation/include_all_manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "label_token",
+        "d_icl": 64,
+        "head_hidden_dim": 128,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "label_token",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 2
+      },
+      "model_size": {
+        "total_params": 109378,
+        "trainable_params": 109378
+      },
+      "registered_at_utc": "2026-03-14T22:52:42Z",
+      "run_id": "02_label_token_sm_unfiltered",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5477362953124082,
+        "best_step": 125.0,
+        "best_training_time": 10.426309539703652,
+        "final_roc_auc": 0.3922322011811444,
+        "final_step": 400.0,
+        "final_training_time": 32.10615345451515
+      },
+      "track": "binary_realism_validation_unfiltered",
+      "training_diagnostics": {
+        "best_val_loss": 0.6231390237808228,
+        "best_val_step": 375.0,
+        "final_grad_norm": 0.06742717325687408,
+        "final_val_loss": 0.6231740117073059,
+        "max_grad_norm": 3.405043125152588,
+        "mean_grad_norm": 0.29760808605933564,
+        "post_warmup_train_loss_var": 0.012604578630282403,
+        "train_elapsed_seconds": 32.10615345451515,
+        "wall_elapsed_seconds": 43.35920774994884
+      }
+    },
     "02_label_token_xs": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/02_label_token_xs/benchmark",
@@ -424,6 +1378,546 @@
         "post_warmup_train_loss_var": 0.02128228637008844,
         "train_elapsed_seconds": 16.965782807092182,
         "wall_elapsed_seconds": 22.77577279205434
+      }
+    },
+    "03_shared_norm_md": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/03_shared_norm_md/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/03_shared_norm_md/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/03_shared_norm_md/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/03_shared_norm_md/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/03_shared_norm_md/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/03_shared_norm_md/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/03_shared_norm_md/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.02384125676643878,
+          "best_training_time_delta": -2.040459492127411,
+          "final_roc_auc_delta": 0.04077061153121486,
+          "final_training_time_delta": 2.5158089719479904,
+          "reference_run_id": "00_simple_anchor_md"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.004723347255892074,
+          "best_training_time_delta": 0.0222414571326226,
+          "final_roc_auc_delta": 0.0029856043545853916,
+          "final_training_time_delta": -7.816650034044869,
+          "reference_run_id": "02_label_token_md"
+        }
+      },
+      "conclusion": "MD shared_norm slightly improved final ROC AUC over label_token but gave up some best ROC AUC and showed a late validation-loss spike, so it remains promising but not yet signed off as the medium-size research base.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_md",
+        "control_baseline_id": null,
+        "parent_run_id": "02_label_token_md"
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "shared_norm",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "shared_norm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356162,
+        "trainable_params": 356162
+      },
+      "registered_at_utc": "2026-03-14T20:56:21Z",
+      "run_id": "03_shared_norm_md",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.6450202294555948,
+        "best_step": 75.0,
+        "best_training_time": 4.806134252808988,
+        "final_roc_auc": 0.6062028851024862,
+        "final_step": 400.0,
+        "final_training_time": 24.25734796526376
+      },
+      "track": "size_scaling_simple_rebuild",
+      "training_diagnostics": {
+        "best_val_loss": 0.00013704990851692855,
+        "best_val_step": 300.0,
+        "final_grad_norm": 0.005130935460329056,
+        "final_val_loss": 0.01477167196571827,
+        "max_grad_norm": 17.458826065063477,
+        "mean_grad_norm": 0.8196685453210375,
+        "post_warmup_train_loss_var": 0.009573731343123294,
+        "train_elapsed_seconds": 24.25734796526376,
+        "wall_elapsed_seconds": 30.347013416932896
+      }
+    },
+    "03_shared_norm_md_prior_lr3e3_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/03_shared_norm_md_prior_lr3e3_v1/prior_benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/03_shared_norm_md_prior_lr3e3_v1/prior_benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/03_shared_norm_md_prior_lr3e3_v1/prior/checkpoints/step_002425.pt",
+        "comparison_curve_path": "outputs/staged_ladder/03_shared_norm_md_prior_lr3e3_v1/prior_benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/03_shared_norm_md_prior_lr3e3_v1/prior_benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/03_shared_norm_md_prior_lr3e3_v1/prior/train_history.jsonl",
+        "prior_dir": "outputs/staged_ladder/03_shared_norm_md_prior_lr3e3_v1/prior",
+        "run_dir": "outputs/staged_ladder/03_shared_norm_md_prior_lr3e3_v1/prior"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.017102162799251364,
+          "best_training_time_delta": 215.4600905108964,
+          "final_roc_auc_delta": -0.004630890681422528,
+          "final_training_time_delta": 37.41170266328845,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.01107681617095102,
+          "best_training_time_delta": 91.70730166404974,
+          "final_roc_auc_delta": 0.003108069802848612,
+          "final_training_time_delta": 5.243632327066734,
+          "reference_run_id": "03_shared_norm_md_prior_preserve_v1"
+        }
+      },
+      "conclusion": "Lowering shared_norm prior LR to 3e-3 improved final ROC AUC and reduced drift versus the preserve run, but it still missed the exact anchor on final_roc_auc and gave up too much best ROC to promote.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix",
+        "control_baseline_id": "cls_benchmark_linear_v1",
+        "parent_run_id": "03_shared_norm_md_prior_preserve_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "shared_norm",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "shared_norm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356162,
+        "trainable_params": 356162
+      },
+      "registered_at_utc": "2026-03-15T03:47:41Z",
+      "run_id": "03_shared_norm_md_prior_lr3e3_v1",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.699756968585881,
+        "best_step": 2425.0,
+        "best_training_time": 381.5737947097514,
+        "final_roc_auc": 0.6996894477652806,
+        "final_step": 2500.0,
+        "final_training_time": 392.97144304262474
+      },
+      "track": "prior_branch_exploration",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.26847389340400696,
+        "final_val_loss": null,
+        "max_grad_norm": 4.500068187713623,
+        "mean_grad_norm": 0.18489024808257817,
+        "post_warmup_train_loss_var": 0.002066472780285621,
+        "train_elapsed_seconds": 392.97144304262474,
+        "wall_elapsed_seconds": 401.4837437500246
+      }
+    },
+    "03_shared_norm_md_prior_preserve_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/03_shared_norm_md_prior_preserve_v1/prior_benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/03_shared_norm_md_prior_preserve_v1/prior_benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/03_shared_norm_md_prior_preserve_v1/prior/checkpoints/step_001850.pt",
+        "comparison_curve_path": "outputs/staged_ladder/03_shared_norm_md_prior_preserve_v1/prior_benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/03_shared_norm_md_prior_preserve_v1/prior_benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/03_shared_norm_md_prior_preserve_v1/prior/train_history.jsonl",
+        "prior_dir": "outputs/staged_ladder/03_shared_norm_md_prior_preserve_v1/prior",
+        "run_dir": "outputs/staged_ladder/03_shared_norm_md_prior_preserve_v1/prior"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.006025346628300343,
+          "best_training_time_delta": 123.75278884684667,
+          "final_roc_auc_delta": -0.00773896048427114,
+          "final_training_time_delta": 32.16807033622172,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.006025346628300343,
+          "best_training_time_delta": 123.75278884684667,
+          "final_roc_auc_delta": -0.00773896048427114,
+          "final_training_time_delta": 32.16807033622172,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix"
+        }
+      },
+      "conclusion": "Prior-trained shared_norm remained stable and close to the exact anchor but missed it on final_roc_auc, so keep it as a branch candidate for bounded local refinement rather than promote it yet.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix",
+        "control_baseline_id": "cls_benchmark_linear_v1",
+        "parent_run_id": "01_nano_exact_md_prior_parity_fix"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "shared_norm",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "shared_norm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356162,
+        "trainable_params": 356162
+      },
+      "registered_at_utc": "2026-03-15T02:48:40Z",
+      "run_id": "03_shared_norm_md_prior_preserve_v1",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.710833784756832,
+        "best_step": 1850.0,
+        "best_training_time": 289.86649304570165,
+        "final_roc_auc": 0.696581377962432,
+        "final_step": 2500.0,
+        "final_training_time": 387.727810715558
+      },
+      "track": "prior_branch_exploration",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.260492205619812,
+        "final_val_loss": null,
+        "max_grad_norm": 5.204582214355469,
+        "mean_grad_norm": 0.18609600666984916,
+        "post_warmup_train_loss_var": 0.0022467080031438377,
+        "train_elapsed_seconds": 387.727810715558,
+        "wall_elapsed_seconds": 396.00984820805024
+      }
+    },
+    "03_shared_norm_md_unfiltered": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/03_shared_norm_md_unfiltered/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/03_shared_norm_md_unfiltered/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/03_shared_norm_md_unfiltered/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/03_shared_norm_md_unfiltered/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/03_shared_norm_md_unfiltered/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/03_shared_norm_md_unfiltered/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/03_shared_norm_md_unfiltered/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.020963538996153774,
+          "best_training_time_delta": 0.3391337476205081,
+          "final_roc_auc_delta": 0.010135343729618718,
+          "final_training_time_delta": 5.292598829371855,
+          "reference_run_id": "00_simple_anchor_md_unfiltered"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": 0.43030541797634214,
+          "final_roc_auc_delta": 0.00011112410048580434,
+          "final_training_time_delta": 5.329961743904278,
+          "reference_run_id": "02_label_token_md_unfiltered"
+        }
+      },
+      "conclusion": "Unfiltered md shared_norm matches label_token best ROC and slightly improves final ROC, making it the preferred compact base at md.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_md_unfiltered",
+        "control_baseline_id": null,
+        "parent_run_id": "02_label_token_md_unfiltered"
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_dagzoo_validation/include_all_manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "shared_norm",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "shared_norm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356162,
+        "trainable_params": 356162
+      },
+      "registered_at_utc": "2026-03-14T22:52:42Z",
+      "run_id": "03_shared_norm_md_unfiltered",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5365417249052118,
+        "best_step": 125.0,
+        "best_training_time": 19.48511133447755,
+        "final_roc_auc": 0.4156448756660473,
+        "final_step": 400.0,
+        "final_training_time": 64.42499412538018
+      },
+      "track": "binary_realism_validation_unfiltered",
+      "training_diagnostics": {
+        "best_val_loss": 0.6229780316352844,
+        "best_val_step": 375.0,
+        "final_grad_norm": 0.028714677318930626,
+        "final_val_loss": 0.6230090856552124,
+        "max_grad_norm": 5.484691619873047,
+        "mean_grad_norm": 0.41695156164001673,
+        "post_warmup_train_loss_var": 0.01237232570936972,
+        "train_elapsed_seconds": 64.42499412538018,
+        "wall_elapsed_seconds": 80.741490000044
+      }
+    },
+    "03_shared_norm_sm": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/03_shared_norm_sm/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/03_shared_norm_sm/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/03_shared_norm_sm/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/03_shared_norm_sm/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/03_shared_norm_sm/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/03_shared_norm_sm/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/03_shared_norm_sm/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.021118294149859107,
+          "best_training_time_delta": 3.8322379105957225,
+          "final_roc_auc_delta": 0.0893488375193301,
+          "final_training_time_delta": -0.05761217081453651,
+          "reference_run_id": "00_simple_anchor_sm"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.00564458105506549,
+          "best_training_time_delta": -5.07816175557673,
+          "final_roc_auc_delta": 0.016203801836150666,
+          "final_training_time_delta": 0.09441108896862715,
+          "reference_run_id": "02_label_token_sm"
+        }
+      },
+      "conclusion": "SM shared_norm improved on label_token in both best and final ROC AUC with cleaner gradients and low validation-loss drift, so it is the current leading compact binary base at small size.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_sm",
+        "control_baseline_id": null,
+        "parent_run_id": "02_label_token_sm"
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "shared_norm",
+        "d_icl": 64,
+        "head_hidden_dim": 128,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "shared_norm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 2
+      },
+      "model_size": {
+        "total_params": 109378,
+        "trainable_params": 109378
+      },
+      "registered_at_utc": "2026-03-14T20:56:05Z",
+      "run_id": "03_shared_norm_sm",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.6023989398875668,
+        "best_step": 200.0,
+        "best_training_time": 8.55198853299953,
+        "final_roc_auc": 0.6011951260875182,
+        "final_step": 400.0,
+        "final_training_time": 16.52155087259598
+      },
+      "track": "size_scaling_simple_rebuild",
+      "training_diagnostics": {
+        "best_val_loss": 5.505069930222817e-05,
+        "best_val_step": 300.0,
+        "final_grad_norm": 0.0011772162979468703,
+        "final_val_loss": 6.765320722479373e-05,
+        "max_grad_norm": 11.536809921264648,
+        "mean_grad_norm": 0.7990690688643372,
+        "post_warmup_train_loss_var": 0.012116700619039373,
+        "train_elapsed_seconds": 16.52155087259598,
+        "wall_elapsed_seconds": 21.82504779100418
+      }
+    },
+    "03_shared_norm_sm_unfiltered": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/03_shared_norm_sm_unfiltered/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/03_shared_norm_sm_unfiltered/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/03_shared_norm_sm_unfiltered/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/03_shared_norm_sm_unfiltered/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/03_shared_norm_sm_unfiltered/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/03_shared_norm_sm_unfiltered/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/03_shared_norm_sm_unfiltered/train"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_small",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.03681008944551789,
+          "best_training_time_delta": -1.8012365731410682,
+          "final_roc_auc_delta": -0.024434962628201717,
+          "final_training_time_delta": -1.6453749210340902,
+          "reference_run_id": "00_simple_anchor_sm_unfiltered"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.0003654970760234022,
+          "best_training_time_delta": 0.2874074704013765,
+          "final_roc_auc_delta": 3.6630036630014295e-05,
+          "final_training_time_delta": 0.524625635589473,
+          "reference_run_id": "02_label_token_sm_unfiltered"
+        }
+      },
+      "conclusion": "Unfiltered sm shared_norm matches label_token quality and slightly improves final ROC while preserving the shared normalization path.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "00_simple_anchor_sm_unfiltered",
+        "control_baseline_id": null,
+        "parent_run_id": "02_label_token_sm_unfiltered"
+      },
+      "manifest_path": "outputs/staged_ladder_support/binary_dagzoo_validation/include_all_manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "shared_norm",
+        "d_icl": 64,
+        "head_hidden_dim": 128,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": "shared_norm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 2
+      },
+      "model_size": {
+        "total_params": 109378,
+        "trainable_params": 109378
+      },
+      "registered_at_utc": "2026-03-14T22:52:42Z",
+      "run_id": "03_shared_norm_sm_unfiltered",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5473707982363848,
+        "best_step": 125.0,
+        "best_training_time": 10.713717010105029,
+        "final_roc_auc": 0.3922688312177744,
+        "final_step": 400.0,
+        "final_training_time": 32.630779090104625
+      },
+      "track": "binary_realism_validation_unfiltered",
+      "training_diagnostics": {
+        "best_val_loss": 0.6231380105018616,
+        "best_val_step": 375.0,
+        "final_grad_norm": 0.06729111075401306,
+        "final_val_loss": 0.6231729388237,
+        "max_grad_norm": 3.4051153659820557,
+        "mean_grad_norm": 0.2976546769135166,
+        "post_warmup_train_loss_var": 0.012604041479536473,
+        "train_elapsed_seconds": 32.630779090104625,
+        "wall_elapsed_seconds": 43.97082591592334
       }
     },
     "03_shared_norm_xs": {

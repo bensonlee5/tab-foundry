@@ -27,7 +27,11 @@ from tab_foundry.training.artifacts import (
 )
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import build_optimizer
-from tab_foundry.training.trainer import _normalize_grad_norm_value, _total_grad_norm
+from tab_foundry.training.trainer import (
+    _normalize_grad_norm_value,
+    _set_optimizer_training_mode,
+    _total_grad_norm,
+)
 from tab_foundry.types import TrainResult
 
 
@@ -142,6 +146,27 @@ def _stack_prior_step(
     return x_batch, y_train_batch, y_all_batch
 
 
+def _save_eval_mode_checkpoint(
+    optimizer: torch.optim.Optimizer,
+    *,
+    path: Path,
+    model: torch.nn.Module,
+    global_step: int,
+    cfg: DictConfig,
+    restore_training: bool,
+) -> None:
+    prepared_opts = [("schedulefree_adamw", optimizer)]
+    _set_optimizer_training_mode(prepared_opts, training=False)
+    save_checkpoint(
+        path,
+        model_state=model.state_dict(),
+        global_step=global_step,
+        cfg=cfg,
+    )
+    if restore_training:
+        _set_optimizer_training_mode(prepared_opts, training=True)
+
+
 def train_tabfoundry_simple_prior(
     cfg: DictConfig,
     *,
@@ -209,9 +234,8 @@ def train_tabfoundry_simple_prior(
             f"got {len(optimizer_selection.optimizers)}"
         )
     optimizer = optimizer_selection.optimizers[0][1]
-    optimizer_train = getattr(optimizer, "train", None)
-    if callable(optimizer_train):
-        optimizer_train()
+    prepared_opts = [("schedulefree_adamw", optimizer)]
+    _set_optimizer_training_mode(prepared_opts, training=True)
 
     history_step_loss = 0.0
     history_step_acc = 0.0
@@ -293,11 +317,13 @@ def train_tabfoundry_simple_prior(
             )
 
         if global_step % checkpoint_every == 0:
-            save_checkpoint(
-                output_dir / "checkpoints" / f"step_{global_step:06d}.pt",
-                model_state=model.state_dict(),
+            _save_eval_mode_checkpoint(
+                optimizer,
+                path=output_dir / "checkpoints" / f"step_{global_step:06d}.pt",
+                model=model,
                 global_step=global_step,
                 cfg=cfg,
+                restore_training=True,
             )
         if global_step % eval_every == 0:
             print(
@@ -308,11 +334,13 @@ def train_tabfoundry_simple_prior(
             )
 
     latest_checkpoint = output_dir / "checkpoints" / "latest.pt"
-    save_checkpoint(
-        latest_checkpoint,
-        model_state=model.state_dict(),
+    _save_eval_mode_checkpoint(
+        optimizer,
+        path=latest_checkpoint,
+        model=model,
         global_step=global_step,
         cfg=cfg,
+        restore_training=False,
     )
     wall_elapsed_seconds = time.perf_counter() - train_start
     return TrainResult(

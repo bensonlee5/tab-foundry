@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 import importlib.util
-from pathlib import Path
 import json
+from pathlib import Path
+import runpy
+import sys
 from types import SimpleNamespace
 
 import numpy as np
@@ -22,6 +24,7 @@ from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import OptimizerSelection
 
 h5py = pytest.importorskip("h5py")
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _write_prior_dump(
@@ -173,6 +176,18 @@ class _CountingOptimizer:
         return None
 
 
+class _ModeTrackingOptimizer(_CountingOptimizer):
+    def __init__(self) -> None:
+        super().__init__()
+        self.events: list[str] = []
+
+    def train(self) -> None:
+        self.events.append("train")
+
+    def eval(self) -> None:
+        self.events.append("eval")
+
+
 def test_train_tabfoundry_simple_prior_averages_task_loss_and_steps_per_batch(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -289,6 +304,120 @@ def test_train_tabfoundry_simple_prior_averages_task_loss_and_steps_per_batch(
     assert (tmp_path / "train_out" / "checkpoints" / "step_000001.pt").exists()
     assert (tmp_path / "train_out" / "checkpoints" / "step_000002.pt").exists()
     assert (tmp_path / "train_out" / "checkpoints" / "latest.pt").exists()
+
+
+def test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_train_eval_mode.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+                [[2.0, 1.0], [4.0, 3.0], [6.0, 5.0], [8.0, 7.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 1],
+            ],
+            dtype=np.int64,
+        ),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+    model = _ConstantLogitModel()
+    optimizer = _ModeTrackingOptimizer()
+    save_events: list[str] = []
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+
+    original_save_checkpoint = prior_train_module.save_checkpoint
+
+    def _recording_save_checkpoint(path: Path, *, model_state, global_step: int, cfg) -> None:
+        _ = (model_state, global_step, cfg)
+        save_events.append(path.name)
+        original_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
+
+    monkeypatch.setattr(prior_train_module, "save_checkpoint", _recording_save_checkpoint)
+
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_simple",
+                "d_icl": 8,
+                "input_normalization": "train_zscore_clip",
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+                "tfcol_n_heads": 8,
+                "tfcol_n_layers": 3,
+                "tfcol_n_inducing": 128,
+                "tfrow_n_heads": 8,
+                "tfrow_n_layers": 3,
+                "tfrow_cls_tokens": 4,
+                "tficl_n_heads": 2,
+                "tficl_n_layers": 1,
+                "tficl_ff_expansion": 2,
+                "many_class_base": 2,
+                "head_hidden_dim": 16,
+                "use_digit_position_embed": True,
+            },
+            "runtime": {
+                "seed": 1,
+                "output_dir": str(tmp_path / "train_out_eval_mode"),
+                "device": "cpu",
+                "mixed_precision": "no",
+                "grad_clip": 1.0,
+                "max_steps": 2,
+                "eval_every": 1,
+                "checkpoint_every": 1,
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "require_requested": True,
+                "weight_decay": 0.0,
+                "min_lr": 4.0e-3,
+                "betas": [0.9, 0.999],
+                "muon_per_parameter_lr": False,
+                "muon_lr_scale_base": 0.2,
+                "muon_partition_non2d": True,
+            },
+            "logging": {
+                "history_jsonl_path": str(tmp_path / "train_out_eval_mode" / "train_history.jsonl"),
+            },
+        }
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=2,
+    )
+
+    assert save_events == ["step_000001.pt", "step_000002.pt", "latest.pt"]
+    assert optimizer.events == [
+        "train",
+        "eval",
+        "train",
+        "eval",
+        "train",
+        "eval",
+    ]
 
 
 def test_train_tabfoundry_simple_prior_matches_nanotabpfn_loss_for_one_batch(
@@ -444,6 +573,80 @@ def test_train_tabfoundry_simple_prior_matches_nanotabpfn_loss_for_one_batch(
         rel=1.0e-6,
         abs=1.0e-6,
     )
+
+
+def test_prior_train_main_passes_prior_dump_and_overrides(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured: dict[str, object] = {}
+    cfg = OmegaConf.create({"runtime": {"output_dir": str(tmp_path / "train_out")}})
+
+    def _fake_compose(overrides):
+        captured["overrides"] = list(overrides)
+        return cfg
+
+    def _fake_train(resolved_cfg, *, prior_dump_path: Path, batch_size: int = prior_train_module.DEFAULT_BATCH_SIZE):
+        captured["cfg"] = resolved_cfg
+        captured["prior_dump_path"] = prior_dump_path
+        captured["batch_size"] = batch_size
+        return SimpleNamespace(
+            output_dir=tmp_path / "train_out",
+            latest_checkpoint=tmp_path / "train_out" / "checkpoints" / "latest.pt",
+            global_step=25,
+            metrics={"final_train_loss": 0.42},
+        )
+
+    monkeypatch.setattr(prior_train_module, "_compose_prior_cfg", _fake_compose)
+    monkeypatch.setattr(prior_train_module, "train_tabfoundry_simple_prior", _fake_train)
+
+    exit_code = prior_train_module.main(
+        [
+            "--prior-dump",
+            str(tmp_path / "prior_dump.h5"),
+            "model.stage=label_token",
+            "runtime.output_dir=/tmp/cli-prior",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["overrides"] == ["model.stage=label_token", "runtime.output_dir=/tmp/cli-prior"]
+    assert captured["cfg"] is cfg
+    assert captured["prior_dump_path"] == tmp_path / "prior_dump.h5"
+    assert captured["batch_size"] == prior_train_module.DEFAULT_BATCH_SIZE
+    assert "Training complete:" in capsys.readouterr().out
+
+
+def test_train_tabfoundry_staged_prior_script_injects_default_experiment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_main(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(prior_train_module, "main", _fake_main)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "train_tabfoundry_staged_prior.py",
+            "model.stage=label_token",
+            "runtime.output_dir=/tmp/staged-prior",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path(str(REPO_ROOT / "scripts" / "train_tabfoundry_staged_prior.py"), run_name="__main__")
+
+    assert exc_info.value.code == 0
+    assert captured["argv"] == [
+        "experiment=cls_benchmark_staged_prior",
+        "model.stage=label_token",
+        "runtime.output_dir=/tmp/staged-prior",
+    ]
 
 
 def test_train_tabfoundry_simple_prior_rejects_staged_many_class_before_io(

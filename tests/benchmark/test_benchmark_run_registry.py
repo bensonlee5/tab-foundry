@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import runpy
+import sys
 
 import pytest
 import torch
 
 import tab_foundry.bench.benchmark_run_registry as registry_module
 from tab_foundry.model.factory import build_model
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _write_checkpoint(
@@ -327,6 +331,88 @@ def test_register_benchmark_run_rejects_unknown_parent(
             parent_run_id="missing",
             registry_path=registry_path,
         )
+
+
+def test_register_benchmark_run_main_parses_cli_and_defaults_config_profile(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_register_benchmark_run(**kwargs):
+        captured.update(kwargs)
+        return {
+            "registry_path": str((tmp_path / "benchmark_run_registry.json").resolve()),
+            "run": {"run_id": kwargs["run_id"], "decision": kwargs["decision"]},
+        }
+
+    monkeypatch.setattr(registry_module, "register_benchmark_run", _fake_register_benchmark_run)
+
+    exit_code = registry_module.main(
+        [
+            "--run-id",
+            "02_label_token_md_prior",
+            "--track",
+            "prior_compact_buildout",
+            "--run-dir",
+            str(tmp_path / "run"),
+            "--comparison-summary",
+            str(tmp_path / "comparison_summary.json"),
+            "--experiment",
+            "cls_benchmark_staged_prior",
+            "--decision",
+            "keep",
+            "--conclusion",
+            "CLI smoke coverage",
+            "--parent-run-id",
+            "01_nano_exact_md_prior_parity_fix",
+            "--anchor-run-id",
+            "01_nano_exact_md_prior_parity_fix",
+            "--prior-dir",
+            str(tmp_path / "prior"),
+            "--control-baseline-id",
+            "cls_benchmark_linear_v1",
+            "--registry-path",
+            str(tmp_path / "benchmark_run_registry.json"),
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["run_id"] == "02_label_token_md_prior"
+    assert captured["track"] == "prior_compact_buildout"
+    assert captured["experiment"] == "cls_benchmark_staged_prior"
+    assert captured["config_profile"] == "cls_benchmark_staged_prior"
+    assert captured["budget_class"] == registry_module.DEFAULT_BUDGET_CLASS
+    assert captured["run_dir"] == tmp_path / "run"
+    assert captured["comparison_summary_path"] == tmp_path / "comparison_summary.json"
+    assert captured["decision"] == "keep"
+    assert captured["conclusion"] == "CLI smoke coverage"
+    assert captured["parent_run_id"] == "01_nano_exact_md_prior_parity_fix"
+    assert captured["anchor_run_id"] == "01_nano_exact_md_prior_parity_fix"
+    assert captured["prior_dir"] == tmp_path / "prior"
+    assert captured["control_baseline_id"] == "cls_benchmark_linear_v1"
+    assert captured["registry_path"] == tmp_path / "benchmark_run_registry.json"
+    assert "Benchmark run registered:" in capsys.readouterr().out
+
+
+def test_register_benchmark_run_script_delegates_to_registry_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_main(argv=None):
+        captured["argv"] = argv
+        return 0
+
+    monkeypatch.setattr(registry_module, "main", _fake_main)
+    monkeypatch.setattr(sys, "argv", ["register_benchmark_run.py"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path(str(REPO_ROOT / "scripts" / "register_benchmark_run.py"), run_name="__main__")
+
+    assert exc_info.value.code == 0
+    assert captured["argv"] is None
 
 
 def test_derive_benchmark_run_record_rejects_legacy_checkpoint_without_arch_metadata(

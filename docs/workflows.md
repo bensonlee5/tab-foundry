@@ -12,6 +12,9 @@ Related docs:
 
 Planning and repo-shape docs now live under `docs/development/`.
 This file stays top-level because it is the stable operational runbook.
+For agent-driven architecture search, use `program.md` as the execution
+contract; this file stays focused on commands, artifacts, and operational
+policy.
 
 ## Environment And Quality Gate
 
@@ -385,6 +388,33 @@ uv run python scripts/register_benchmark_run.py \
 This registry is the canonical historical record for benchmark-facing runs.
 Use `wandb` for live observation and debugging, not as the benchmark system of
 record.
+
+#### Benchmark Cost Policy
+
+Use three benchmark tiers:
+
+- Tier 0: for every architecture change, run tests plus one short local
+  training run on a fixed manifest and inspect `train_history.jsonl`,
+  validation loss, gradient norms, and checkpoint integrity. Do not pay the
+  full `nanoTabPFN` comparison cost here.
+- Tier 1: for shortlisted candidates, run the pinned benchmark bundle and
+  judge the result against the parent run and the frozen anchor first, not
+  against `nanoTabPFN`.
+- Tier 2: pay the full fresh `nanoTabPFN` helper cost only for milestone
+  results you want to treat as canonical, such as prior-trained
+  `model.stage=nano_exact`, the final selected compact base, or any run that
+  changes the benchmark bundle, prior dump, helper settings, checkout, or
+  device class.
+
+Claims about `nanoTabPFN` closeness should come from the prior-trained
+`nano_exact` path, not from the short-run staged benchmark configs. A short-run
+`nano_exact` benchmark only establishes parity with the frozen
+`tabfoundry_simple` anchor under the same short-run training surface.
+
+If the benchmark bundle path, `nanoTabPFN` prior dump, helper settings,
+checkout, and device class are unchanged, reusing the current
+`nanotabpfn_curve.jsonl` is acceptable for Tier 1 comparisons. Refresh it for
+Tier 2 milestones or whenever any of those inputs changes.
 
 ### Staged Ladder Runbook
 

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import runpy
 import subprocess
+import sys
 from types import SimpleNamespace
 from typing import Any
 
@@ -12,6 +14,8 @@ import pytest
 
 import tab_foundry.bench.compare as compare_module
 import tab_foundry.bench.nanotabpfn as benchmark_module
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 DEFAULT_BENCHMARK_SELECTION = {
@@ -140,6 +144,83 @@ def test_load_openml_benchmark_datasets_matches_notebook_filters(
     assert metadata[0]["dataset_name"] == "keep_me"
     assert bundle["selection"]["max_missing_pct"] == pytest.approx(0.0)
     assert bundle["selection"]["min_minority_class_pct"] == pytest.approx(2.5)
+
+
+def test_compare_main_parses_cli_invocation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run(config):
+        captured["config"] = config
+        return {
+            "dataset_count": 3,
+            "tab_foundry": {"best_roc_auc": 0.71, "final_roc_auc": 0.70},
+            "nanotabpfn": {"best_roc_auc": 0.72, "final_roc_auc": 0.71},
+            "artifacts": {"comparison_curve_png": "/tmp/comparison_curve.png"},
+        }
+
+    monkeypatch.setattr(compare_module, "run_nanotabpfn_benchmark", _fake_run)
+
+    exit_code = compare_module.main(
+        [
+            "--tab-foundry-run-dir",
+            str(tmp_path / "run"),
+            "--out-root",
+            str(tmp_path / "bench"),
+            "--nanotabpfn-root",
+            str(tmp_path / "nano"),
+            "--nanotab-prior-dump",
+            str(tmp_path / "prior.h5"),
+            "--device",
+            "cpu",
+            "--nanotabpfn-steps",
+            "125",
+            "--nanotabpfn-seeds",
+            "3",
+            "--control-baseline-id",
+            "cls_benchmark_linear_v1",
+            "--control-baseline-registry",
+            str(tmp_path / "control_baselines.json"),
+            "--benchmark-bundle-path",
+            str(tmp_path / "bundle.json"),
+        ]
+    )
+
+    assert exit_code == 0
+    config = captured["config"]
+    assert config.tab_foundry_run_dir == tmp_path / "run"
+    assert config.out_root == tmp_path / "bench"
+    assert config.nanotabpfn_root == tmp_path / "nano"
+    assert config.nanotab_prior_dump == tmp_path / "prior.h5"
+    assert config.device == "cpu"
+    assert config.nanotabpfn_steps == 125
+    assert config.nanotabpfn_seeds == 3
+    assert config.control_baseline_id == "cls_benchmark_linear_v1"
+    assert config.control_baseline_registry == tmp_path / "control_baselines.json"
+    assert config.benchmark_bundle_path == tmp_path / "bundle.json"
+    assert "nanoTabPFN comparison complete:" in capsys.readouterr().out
+
+
+def test_benchmark_nanotabpfn_script_delegates_to_compare_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_main(argv=None):
+        captured["argv"] = argv
+        return 0
+
+    monkeypatch.setattr(compare_module, "main", _fake_main)
+    monkeypatch.setattr(sys, "argv", ["benchmark_nanotabpfn.py"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path(str(REPO_ROOT / "scripts" / "benchmark_nanotabpfn.py"), run_name="__main__")
+
+    assert exc_info.value.code == 0
+    assert captured["argv"] is None
 
 
 def test_load_openml_benchmark_datasets_fails_on_bundle_drift(

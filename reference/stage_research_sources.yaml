@@ -1,0 +1,46 @@
+version: 1
+
+required_repo_local_sources:
+  - title: Agent program
+    path: program.md
+    role: Optimization objective and promotion policy
+  - title: Operational runbook
+    path: docs/workflows.md
+    role: Commands, artifacts, and benchmark invariants
+  - title: Design decisions
+    path: docs/development/design-decisions.md
+    role: Repo structure and architectural constraints
+  - title: Evidence notes
+    path: reference/evidence.md
+    role: Local empirical findings and prior conclusions
+  - title: Paper notes
+    path: reference/papers.md
+    role: Local literature summaries and transfer notes
+  - title: Stage campaign template
+    path: reference/stage_campaign_template.md
+    role: Required stage artifact format
+
+optional_sibling_workspace_sources:
+  - title: nanochat GPT implementation
+    path: ../nanochat/nanochat/gpt.py
+    role: Small-transformer architecture calibration
+    optional: true
+  - title: nanochat development log
+    path: ../nanochat/dev/LOG.md
+    role: Small-model recipe and architecture observations
+    optional: true
+  - title: nanoTabPFN training loop
+    path: ../nanoTabPFN/train.py
+    role: Exact prior-training semantics to preserve
+    optional: true
+
+curated_external_sources:
+  - title: autoresearch program
+    url: https://github.com/karpathy/autoresearch/blob/master/program.md
+    role: Reference shape for an agent optimization contract
+  - title: TabPFN paper
+    url: https://arxiv.org/abs/2207.01848
+    role: Background on prior-data training and evaluation goals
+  - title: On Layer Normalization in the Transformer Architecture
+    url: https://arxiv.org/abs/2002.04745
+    role: External calibration for normalization-related stage changes

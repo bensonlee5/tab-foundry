@@ -8,14 +8,15 @@ from dataclasses import dataclass
 from datetime import datetime
 from itertools import product
 import json
-import math
 from pathlib import Path
-from typing import Any, Sequence, cast
-
-from omegaconf import OmegaConf
+from typing import Any, Sequence
 
 from tab_foundry.config import compose_config
-from tab_foundry.training.schedule import build_stage_configs, warmup_steps_for_stage
+from tab_foundry.bench.tune_metrics import (
+    finite_history_values,
+    load_history_summary,
+    post_warmup_variance,
+)
 from tab_foundry.training.trainer import train
 
 
@@ -84,46 +85,6 @@ def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
             writer.writerow({key: row.get(key) for key in fieldnames})
 
 
-def _load_history(path: Path) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            stripped = line.strip()
-            if not stripped:
-                continue
-            payload = json.loads(stripped)
-            if not isinstance(payload, dict):
-                raise RuntimeError(f"history record must be an object: path={path}")
-            records.append(payload)
-    if not records:
-        raise RuntimeError(f"history file contains no records: {path}")
-    return records
-
-
-def _post_warmup_variance(history: list[dict[str, Any]], *, warmup_steps: int) -> float:
-    losses = [
-        float(record["train_loss"])
-        for record in history
-        if int(record["step"]) > warmup_steps and math.isfinite(float(record["train_loss"]))
-    ]
-    if len(losses) < 2:
-        return float("inf")
-    mean = sum(losses) / float(len(losses))
-    return sum((loss - mean) ** 2 for loss in losses) / float(len(losses))
-
-
-def _finite_history_values(history: list[dict[str, Any]], key: str) -> list[float]:
-    values: list[float] = []
-    for record in history:
-        raw = record.get(key)
-        if raw is None:
-            continue
-        value = float(raw)
-        if math.isfinite(value):
-            values.append(value)
-    return values
-
-
 def _slug_float(value: float) -> str:
     return f"{value:.2g}".replace(".", "p").replace("-", "m").replace("+", "")
 
@@ -171,16 +132,11 @@ def _summarize_trial(
     train_metrics: dict[str, float],
 ) -> dict[str, Any]:
     history_path = trial_root / "train_outputs" / "train_history.jsonl"
-    history = _load_history(history_path)
-    raw_stage_payload = OmegaConf.to_container(cfg.schedule.stages, resolve=True)
-    if raw_stage_payload is None:
-        raw_stage_payload = []
-    stage_configs = build_stage_configs(cast(list[dict[str, object]], raw_stage_payload))
-    warmup_steps = warmup_steps_for_stage(stage_configs[0]) if stage_configs else 0
-    val_losses = _finite_history_values(history, "val_loss")
+    history, history_summary = load_history_summary(history_path, raw_cfg=cfg)
+    val_losses = finite_history_values(history, "val_loss")
     if not val_losses:
         raise RuntimeError(f"trial produced no finite validation losses: {trial_root}")
-    grad_norms = _finite_history_values(history, "grad_norm")
+    grad_norms = finite_history_values(history, "grad_norm")
     best_checkpoint = trial_root / "train_outputs" / "checkpoints" / "best.pt"
 
     return {
@@ -191,12 +147,22 @@ def _summarize_trial(
         "grad_clip": float(grad_clip),
         "best_val_loss": float(min(val_losses)),
         "final_val_loss": float(val_losses[-1]),
-        "post_warmup_train_loss_var": float(_post_warmup_variance(history, warmup_steps=warmup_steps)),
+        "post_warmup_train_loss_var": float(post_warmup_variance(history, raw_cfg=cfg)),
         "mean_grad_norm": float(sum(grad_norms) / float(len(grad_norms))) if grad_norms else 0.0,
         "max_grad_norm": float(max(grad_norms)) if grad_norms else 0.0,
         "final_grad_norm": float(grad_norms[-1]) if grad_norms else 0.0,
-        "train_elapsed_seconds": float(train_metrics.get("train_elapsed_seconds", 0.0)),
-        "wall_elapsed_seconds": float(train_metrics.get("wall_elapsed_seconds", 0.0)),
+        "train_elapsed_seconds": float(
+            train_metrics.get(
+                "train_elapsed_seconds",
+                history_summary["train_elapsed_seconds"] or 0.0,
+            )
+        ),
+        "wall_elapsed_seconds": float(
+            train_metrics.get(
+                "wall_elapsed_seconds",
+                history_summary["wall_elapsed_seconds"] or 0.0,
+            )
+        ),
         "best_val_step": float(train_metrics.get("best_val_step", 0.0)),
         "run_dir": str(trial_root.resolve()),
         "best_checkpoint": str(best_checkpoint.resolve()) if best_checkpoint.exists() else None,
