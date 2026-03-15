@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/cli/commands/export.py
-# hypothesis_version: 6.151.9
-
-['--artifact-version', '--bundle-dir', '--checkpoint', '--out-dir', 'Export bundle valid:', 'Export complete:', 'export', 'validate-export']

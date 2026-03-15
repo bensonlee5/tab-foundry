@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/architectures/tabfoundry_staged/resolved.py
-# hypothesis_version: 6.151.9
-
-['0', '1', 'binary_direct', 'column_encoder', 'context_encoder', 'false', 'feature_encoder', 'head', 'internal', 'label_token', 'many_class', 'mean_padded_linear', 'nano', 'nano_postnorm', 'no', 'none', 'off', 'on', 'plain', 'prenorm', 'prenorm_test_self', 'qass', 'row_cls', 'row_pool', 'scalar_per_feature', 'shared', 'shifted_grouped', 'small_class', 'stage', 'tabfoundry_staged', 'table_block', 'table_block_style', 'target_column', 'target_conditioner', 'tfcol', 'tokenizer', 'true', 'yes']

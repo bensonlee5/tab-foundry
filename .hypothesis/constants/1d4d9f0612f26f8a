@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/preprocessing/surface.py
-# hypothesis_version: 6.151.9
-
-[0.0, 'all_nan_fill', 'impute_missing', 'label_mapping', 'overrides', 'runtime_default', 'surface_label']

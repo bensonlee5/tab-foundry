@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/architectures/tabfoundry_staged/recipes.py
-# hypothesis_version: 6.151.9
-
-['binary_direct', 'column_set', 'grouped_tokens', 'internal', 'label_token', 'many_class', 'mean_padded_linear', 'nano', 'nano_exact', 'nano_postnorm', 'none', 'plain', 'prenorm', 'prenorm_block', 'prenorm_test_self', 'qass', 'qass_context', 'row_cls', 'row_cls_pool', 'scalar_per_feature', 'shared', 'shared_norm', 'shifted_grouped', 'small_class', 'small_class_head', 'target_column', 'test_self', 'tfcol']

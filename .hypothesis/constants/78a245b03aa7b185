@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/cli/commands/evaluate.py
-# hypothesis_version: 6.151.9
-
-['*', '--checkpoint', '--split', 'Checkpoint override', 'Eval split override', 'Evaluate checkpoint', 'Evaluation complete:', 'eval', 'overrides']

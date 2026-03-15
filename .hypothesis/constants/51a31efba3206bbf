@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/iris.py
-# hypothesis_version: 6.151.9
-
-[0.5, 1000, '-', '--checkpoint', '--device', '--seeds', 'KNN', 'LogReg', 'RF', 'Tree', 'cpu', 'cuda', 'mps', 'tab_foundry']

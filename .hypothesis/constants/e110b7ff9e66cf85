@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/data/manifest.py
-# hypothesis_version: 6.151.9
-
-[0.05, 0.9, 10000.0, 10000, ',', '/', ':', '_', 'accepted', 'accepted_only', 'classification', 'config', 'dataset', 'dataset_id', 'dataset_index', 'filter', 'filter_accepted', 'filter_mode', 'filter_status', 'include_all', 'invalid split ratios', 'metadata', 'metadata.ndjson', 'metadata_path', 'metadata_sha256', 'metadata_size_bytes', 'missing', 'mode', 'n_classes', 'n_features', 'n_test', 'n_train', 'not_run', 'rb', 'regression', 'rejected', 'root_id', 'seed', 'shard_', 'shard_*', 'shard_id', 'shard_relpath', 'source_root_id', 'source_shard_relpath', 'split', 'status', 'task', 'test', 'test.parquet', 'test_path', 'train', 'train.parquet', 'train_path', 'utf-8', 'val', 'zstd']

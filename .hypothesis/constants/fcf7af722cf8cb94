@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/training/__init__.py
-# hypothesis_version: 6.151.9
-
-['evaluate_checkpoint', 'train']

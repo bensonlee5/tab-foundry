@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/data/dataset.py
-# hypothesis_version: 6.151.9
-
-[0.0, '<unknown>', '=', 'classification', 'dataset_id', 'dataset_index', 'filter', 'metadata', 'metadata_path', 'metadata_sha256', 'metadata_size_bytes', 'n_features', 'n_test', 'n_train', 'rb', 'row_index', 'split', 'stable', 'task', 'test_path', 'train_only_remap', 'train_path', 'utf-8', 'x', 'y']

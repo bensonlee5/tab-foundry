@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/training/artifacts.py
-# hypothesis_version: 6.151.9
-
-[0.0, '*.pt', ', ', 'a', 'acc', 'checkpoints', 'config', 'elapsed_seconds', 'global_step', 'grad_norm', 'history_jsonl_path', 'lr', 'model', 'stage', 'step', 'train_acc', 'train_loss', 'utf-8', 'val_acc', 'val_loss']

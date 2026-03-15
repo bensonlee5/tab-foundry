@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/control_baseline.py
-# hypothesis_version: 6.151.9
-
-['--baseline-id', '--budget-class', '--comparison-summary', '--config-profile', '--experiment', '--registry-path', '--run-dir', 'baseline', 'baseline_id', 'baselines', 'benchmark_bundle', 'best_roc_auc', 'best_step', 'best_training_time', 'budget_class', 'cls_benchmark_linear', 'config', 'config_profile', 'cpu', 'data', 'experiment', 'final_roc_auc', 'final_step', 'final_training_time', 'manifest_path', 'name', 'r', 'registry_path', 'run_dir', 'runtime', 'schema', 'seed', 'seed_set', 'short-run', 'source_path', 'tab_foundry', 'tab_foundry_metrics', 'task_count', 'task_ids', 'utf-8', 'version']

@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/data/surface.py
-# hypothesis_version: 6.151.9
-
-['dagzoo_provenance', 'filter_policy', 'manifest', 'manifest_path', 'source', 'surface_label', 'surface_overrides', 'test_row_cap', 'train_row_cap']

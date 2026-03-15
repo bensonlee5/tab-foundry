@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/compare.py
-# hypothesis_version: 6.151.9
-
-[0.004, 2500, '%Y%m%dT%H%M%S', '--batch-size', '--dataset-cache', '--device', '--eval-every', '--lr', '--nanotab-prior-dump', '--nanotabpfn-root', '--nanotabpfn-seeds', '--nanotabpfn-steps', '--out-path', '--out-root', '--prior-dump', '--seeds', '--steps', '--tab-foundry-src', '.venv', '/tmp', '300k_150x5_2.h5', 'Benchmark device', '__main__', 'artifacts', 'auto', 'benchmark_tasks.json', 'benchmark_tasks_json', 'bin', 'comparison_curve.png', 'comparison_curve_png', 'cpu', 'cuda', 'manifest_path', 'model_size', 'mps', 'nanotabpfn_helper.py', 'new_instances', 'persisted model.arch', 'python', 'seed_set', 'selection', 'surface_labels', 'tab_foundry', 'training_diagnostics', '~/dev/nanoTabPFN']

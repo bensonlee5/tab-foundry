@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/spec.py
-# hypothesis_version: 6.151.9
-
-[128, 512, 1024, '0', '1', 'arch', 'classification', 'column_set', 'd_col', 'd_icl', 'false', 'feature_group_size', 'full_probs', 'group_linear.weight', 'grouped_tokens', 'head_hidden_dim', 'input_normalization', 'label_token', 'many_class', 'many_class_base', 'model.stage', 'model.stage_label', 'module_overrides', 'nano_exact', 'no', 'none', 'off', 'on', 'path_nll', 'prenorm_block', 'qass_context', 'regression', 'row_cls_pool', 'shape', 'shared_norm', 'small_class_head', 'stage', 'stage_label', 'tabfoundry', 'tabfoundry_simple', 'tabfoundry_staged', 'task', 'test_self', 'tfcol_n_heads', 'tfcol_n_inducing', 'tfcol_n_layers', 'tficl_ff_expansion', 'tficl_n_heads', 'tficl_n_layers', 'tfrow_cls_tokens', 'tfrow_n_heads', 'tfrow_n_layers', 'true', 'yes']

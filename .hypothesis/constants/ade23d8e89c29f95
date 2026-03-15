@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/preprocessing/tabular.py
-# hypothesis_version: 6.151.9
-
-[0.0, 'classification', 'regression', 'x_test', 'x_train', 'y_test', 'y_train']

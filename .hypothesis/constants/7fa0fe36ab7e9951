@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/scripts/audit/check_repo_paths.py
-# hypothesis_version: 6.151.9
-
-['#', '#L\\d+(?:-\\d+)?$', '*', '*.md', '*?[]{}', '.,:;', '.md', '.python-version', '/', ':\\d+(?:-\\d+)?$', '<', '>', 'AGENTS.md', 'CHANGELOG.md', 'README.md', '[?#]', '__main__', '`([^`\\n]+)`', '```', 'configs/', 'data/', 'docs', 'docs/', 'missing scan root', 'program.md', 'pyproject.toml', 'reference', 'reference/', 'roots', 'scripts/', 'src/', 'tests/', 'utf-8', 'uv.lock']

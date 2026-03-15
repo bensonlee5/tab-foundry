@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/factory.py
-# hypothesis_version: 6.151.9
-
-[128, 512, 1024, 'classification', 'none', 'path_nll', 'regression', 'tabfoundry', 'tabfoundry_simple', 'tabfoundry_staged']

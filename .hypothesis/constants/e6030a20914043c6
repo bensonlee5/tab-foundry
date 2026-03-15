@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/tune_metrics.py
-# hypothesis_version: 6.151.9
-
-[0.0, 'elapsed_seconds', 'final_grad_norm', 'grad_norm', 'inf', 'max_grad_norm', 'mean_grad_norm', 'schedule', 'stages', 'step', 'train_loss', 'wall_elapsed_seconds']

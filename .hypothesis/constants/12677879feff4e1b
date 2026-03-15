@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/architectures/tabfoundry_staged/model.py
-# hypothesis_version: 6.151.9
-
-[1e-12, 128, 512, 1024, 'classification', 'd_icl', 'head_hidden_dim', 'many_class', 'many_class_base', 'nano', 'none', 'path_nll', 'shared', 'tabfoundry_staged', 'tficl_n_heads', 'tficl_n_layers']

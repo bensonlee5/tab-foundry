@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/training/evaluate.py
-# hypothesis_version: 6.151.9
-
-[0.0, 'acc', 'classification', 'config', 'cpu', 'inf', 'loss', 'model', 'preprocessing', 'regression', 'rmse', 'task']

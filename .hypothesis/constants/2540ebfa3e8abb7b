@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/model/architectures/tabfoundry_staged/subsystems.py
-# hypothesis_version: 6.151.9
-
-[0.0, 0.02, '-inf', 'DirectClassifierHead', 'NanoBinaryHead', 'NanoFeatureEncoder', 'NanoPostNormBlock', 'RowCLSPool', 'SetColumnEncoder', 'TargetColumnPool']

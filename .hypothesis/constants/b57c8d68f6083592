@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/envs.py
-# hypothesis_version: 6.151.9
-
-['--nanotabpfn-root', '--tabicl-root', '--tabpfn-root', '-c', '.venv', 'TabPFN', '__main__', 'bin', 'h5py', 'nanoTabPFN', 'nanotabpfn_python', 'openml', 'pyproject.toml', 'python', 'schedulefree', 'seaborn', 'sync', 'tabicl', 'tabicl_python', 'tabpfn', 'tabpfn_python', 'utf-8', 'uv', '~/dev/TabPFN', '~/dev/nanoTabPFN', '~/dev/tabicl']

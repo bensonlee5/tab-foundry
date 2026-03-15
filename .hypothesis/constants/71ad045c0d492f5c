@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/bench/checkpoint.py
-# hypothesis_version: 6.151.9
-
-['TabFoundryClassifier', 'arch', 'classification', 'config', 'cpu', 'dataset', 'external_benchmark', 'input_normalization', 'model', 'none', 'tabfoundry', 'tabfoundry_simple', 'tabfoundry_staged', 'task']

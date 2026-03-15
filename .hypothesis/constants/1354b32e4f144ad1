@@ -1,4 +1,0 @@
-# file: /Users/bensonlee/dev/tab-foundry/src/tab_foundry/export/exporter.py
-# hypothesis_version: 6.151.9
-
-[0.0, 1000.0, 1000, '+00:00', '0.0.0', 'HEAD', 'Z', 'all_nan_fill', 'checkpoint payload', 'classification', 'config', 'cpu', 'features', 'filter', 'float32', 'full_probs', 'git', 'inference_config', 'int64', 'manifest.json', 'mapping', 'model', 'preprocessor_state', 'regression', 'regression_targets', 'rev-parse', 'strategy', 'tab-foundry', 'task', 'train_mean', 'train_only_remap', 'unseen_test_label', 'utf-8', 'w', 'weights', 'weights.safetensors']
