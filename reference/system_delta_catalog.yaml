@@ -19,6 +19,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: label_token
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -52,6 +53,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: shared_norm
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -85,6 +87,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: prenorm_block
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -117,6 +120,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: test_self
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -149,6 +153,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: grouped_tokens
     default_initial_status: blocked_on_surface_semantics
     default_initial_interpretation_status: blocked
     default_effective_surface:
@@ -191,6 +196,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: row_cls_pool
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -224,6 +230,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: column_set
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -257,6 +264,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: qass_context
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -289,6 +297,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
     default_initial_status: blocked_on_artifacts
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -322,6 +331,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
     default_initial_status: blocked_on_artifacts
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -358,6 +368,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -390,6 +401,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -421,6 +433,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
     default_initial_status: ready
     default_initial_interpretation_status: pending
     default_effective_surface:
@@ -452,6 +465,7 @@ deltas:
         - isolated_change
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
     default_initial_status: blocked_on_policy_impl
     default_initial_interpretation_status: blocked
     default_effective_surface:
