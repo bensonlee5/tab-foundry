@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-14
+
+### Changed
+
+- Refactored the system-delta workflow into a multi-sweep campaign model with a
+  reusable delta catalog in `reference/system_delta_catalog.yaml`, per-sweep
+  canonical sources under `reference/system_delta_sweeps/<sweep_id>/`, and an
+  active-sweep index in `reference/system_delta_sweeps/index.yaml`.
+
+- `scripts/system_delta_queue.py` and `src/tab_foundry/research/system_delta.py`
+  are now sweep-aware. The tool gained `list-sweeps`, `show-active`,
+  `set-active`, and `create-sweep`, and existing queue commands now accept an
+  optional `--sweep-id`.
+
+- New sweep creation now materializes queue instances from the delta catalog,
+  applies machine-checked applicability guards against the anchor context, and
+  renders a sweep-specific matrix plus active-sweep aliases.
+
+- Benchmark registry records now support additive sweep metadata:
+  `sweep_id`, `delta_id`, `parent_sweep_id`, `queue_order`, and `run_kind`.
+
+- New system-delta research artifacts are sweep-namespaced under
+  `outputs/staged_ladder/research/<sweep_id>/<delta_id>/...`, and rendered
+  matrix references now point at those namespaced result-card paths.
+
+- `program.md` now defines the active-sweep source-of-truth hierarchy and
+  requires new complexity passes to create a new sweep instead of mutating an
+  existing completed sweep.
+
+- User-facing workflow break: `reference/system_delta_queue.yaml` and
+  `reference/system_delta_matrix.md` are no longer the canonical editable
+  sources. They are generated active-sweep aliases, so their default contents
+  now depend on `reference/system_delta_sweeps/index.yaml`.
+
 ## [0.5.1] - 2026-03-14
 
 ### Changed

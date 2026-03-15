@@ -2,11 +2,14 @@
 
 Use one copy of this template per queue row under:
 
-- `outputs/staged_ladder/research/<delta_id>/research_card.md`
-- `outputs/staged_ladder/research/<delta_id>/campaign.yaml`
-- `outputs/staged_ladder/research/<delta_id>/result_card.md`
+- `outputs/staged_ladder/research/<sweep_id>/<delta_id>/research_card.md`
+- `outputs/staged_ladder/research/<sweep_id>/<delta_id>/campaign.yaml`
+- `outputs/staged_ladder/research/<sweep_id>/<delta_id>/result_card.md`
 
-The queue in `reference/system_delta_queue.yaml` is the source of truth. These
+The canonical queue source of truth is
+`reference/system_delta_sweeps/<sweep_id>/queue.yaml`, backed by
+`reference/system_delta_catalog.yaml`. The top-level alias
+`reference/system_delta_queue.yaml` is the generated active-sweep view. These
 files explain and interpret one row; they do not redefine the row.
 
 ## research_card.md
@@ -14,6 +17,7 @@ files explain and interpret one row; they do not redefine the row.
 ### Delta
 
 - `delta_id`
+- `sweep_id`
 - `dimension_family`
 - `family`
 - `anchor_run_id`
@@ -43,6 +47,7 @@ files explain and interpret one row; they do not redefine the row.
 ## campaign.yaml
 
 ```yaml
+sweep_id: binary_md_v1
 delta_id: delta_row_cls_pool
 dimension_family: model
 family: row_pool
@@ -54,7 +59,7 @@ training_experiment: cls_benchmark_staged_prior
 preserved_settings:
   model.arch: tabfoundry_staged
   model.input_normalization: train_zscore_clip
-  data.manifest_path: data/manifests/default.parquet
+  queue_ref: reference/system_delta_sweeps/binary_md_v1/queue.yaml
   preprocessing.impute_missing: true
 changed_settings:
   model.stage_label: delta_row_cls_pool

@@ -1,0 +1,482 @@
+schema: tab-foundry-system-delta-catalog-v1
+deltas:
+  delta_label_token:
+    dimension_family: model
+    family: target_conditioning
+    binary_applicable: true
+    description: Replace mean-padded linear target conditioning with train-label embeddings plus a learned test token.
+    upstream_delta: Upstream nanoTabPFN does not use label tokens on the binary path.
+    expected_effect: Better label separation on some binary tasks with possible increased variance on tiny support sets.
+    adequacy_knobs:
+      - many_class_base should stay at 2 on the locked binary surface.
+      - Negative evidence should be checked for calibration drift before rejection.
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the isolated toggle before changing optimizer settings.
+        - If weak, inspect whether the issue is decision-boundary sharpness or late-curve drift.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: label_token
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_label_token
+        module_overrides:
+          target_conditioner: label_token
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Train the first anchor-only label-token run on the locked medium binary surface.
+    applicability_guards: []
+
+  delta_shared_feature_norm:
+    dimension_family: model
+    family: feature_encoding
+    binary_applicable: true
+    description: Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization.
+    upstream_delta: Upstream nanoTabPFN keeps its own internal feature normalization/encoding path.
+    expected_effect: Better transfer across heterogeneous columns, with risk that the shared path simply mismatches the compact binary anchor scale.
+    adequacy_knobs:
+      - input_normalization remains train_zscore_clip on the anchor unless the queue row explicitly changes preprocessing.
+      - If performance drops, note whether the harm appears early or only after longer training.
+    parameter_adequacy_policy:
+      default_plan:
+        - Keep optimizer and row/context structure fixed for the first pass.
+        - Only treat a weak result as structural evidence after checking whether normalization mismatch is the dominant failure mode.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: shared_norm
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_shared_feature_norm
+        module_overrides:
+          feature_encoder: shared
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run the isolated shared-feature-encoder comparison.
+    applicability_guards: []
+
+  delta_prenorm_block:
+    dimension_family: model
+    family: table_block
+    binary_applicable: true
+    description: Switch the cell transformer from the nano post-norm block to the staged pre-norm block, still without test self-attention.
+    upstream_delta: Upstream nanoTabPFN uses the post-norm block only.
+    expected_effect: Potentially smoother optimization and lower drift, with the risk that post-norm remains better matched to the benchmark wrapper.
+    adequacy_knobs:
+      - The relevant knobs are still tficl_n_heads, tficl_n_layers, and head_hidden_dim.
+      - A weak result is ambiguous unless late-curve stability clearly worsens despite similar best-step performance.
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare best ROC AUC, final ROC AUC, and drift jointly.
+        - Defer rather than reject if only the late portion of training worsens without a clear hyperparameter adequacy check.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: prenorm_block
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_prenorm_block
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run the pre-norm-only ablation.
+    applicability_guards: []
+
+  delta_test_self_attention:
+    dimension_family: model
+    family: table_block
+    binary_applicable: true
+    description: Allow test-token self-attention inside the pre-norm block without adding any test-to-test cross-attention.
+    upstream_delta: Upstream nanoTabPFN blocks test-token self attention in the direct path.
+    expected_effect: Better preservation of per-test-token state with possible over-conditioning on individual test rows.
+    adequacy_knobs:
+      - Interpretation depends on the paired pre-norm-only result; a weak result may just indicate the block style itself remains unsettled.
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against both the anchor and the pre-norm-only row in the written interpretation.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: test_self
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_test_self_attention
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: true
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Queue after the pre-norm-only run so the masking effect has a local comparator.
+    applicability_guards: []
+
+  delta_shifted_grouped_tokenizer:
+    dimension_family: model
+    family: tokenization
+    binary_applicable: true
+    description: Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored.
+    upstream_delta: Upstream nanoTabPFN keeps one scalar token per feature.
+    expected_effect: None until the tokenizer becomes part of the effective computation graph on this surface.
+    adequacy_knobs:
+      - Revisit only after the comparison surface switches to a non-nano feature encoder.
+    parameter_adequacy_policy:
+      default_plan:
+        - Do not run while tokenizer changes are bypassed by the active feature encoder.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: grouped_tokens
+    default_initial_status: blocked_on_surface_semantics
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage_label: delta_shifted_grouped_tokenizer
+        module_overrides:
+          tokenizer: shifted_grouped
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Unblock only after the comparison surface makes tokenizer changes effective, or replace this row with a genuinely isolatable tokenization experiment.
+    applicability_guards:
+      - kind: requires_anchor_model_selection
+        key: feature_encoder
+        any_of:
+          - shared
+        failure_status: blocked_on_surface_semantics
+        failure_interpretation_status: blocked
+        failure_next_action: Unblock only after the comparison surface makes tokenizer changes effective, or replace this row with a genuinely isolatable tokenization experiment.
+
+  delta_row_cls_pool:
+    dimension_family: model
+    family: row_pool
+    binary_applicable: true
+    description: Replace target-column pooling with CLS-based row pooling while leaving tokenizer, column encoder, and context encoder otherwise anchored.
+    upstream_delta: Upstream nanoTabPFN does not use row-level CLS pooling.
+    expected_effect: Richer row aggregation with substantial added capacity and masking sensitivity.
+    adequacy_knobs:
+      - tfrow_n_heads
+      - tfrow_n_layers
+      - tfrow_cls_tokens
+    parameter_adequacy_policy:
+      default_plan:
+        - Initial run isolates the structural toggle only.
+        - If neutral-to-bad, perform a bounded adequacy sweep over tfrow_n_heads, tfrow_n_layers, and tfrow_cls_tokens before any reject decision.
+        - Document whether the row pool appears under-capacity, over-capacity, or simply incompatible with the anchor tokenizer.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: row_cls_pool
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_row_cls_pool
+        module_overrides:
+          row_pool: row_cls
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run the isolated row-pool toggle and require interpretation before any verdict.
+    applicability_guards: []
+
+  delta_column_set_encoder:
+    dimension_family: model
+    family: column_encoding
+    binary_applicable: true
+    description: Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed.
+    upstream_delta: Upstream nanoTabPFN does not include a dedicated column-set encoder.
+    expected_effect: Better feature-set aggregation with extra capacity and inducing-point sensitivity.
+    adequacy_knobs:
+      - tfcol_n_heads
+      - tfcol_n_layers
+      - tfcol_n_inducing
+    parameter_adequacy_policy:
+      default_plan:
+        - If the first run underperforms, interpret whether the issue looks like under-capacity, inducing-point mismatch, or interaction with the unchanged row pool.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: column_set
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_column_set_encoder
+        module_overrides:
+          column_encoder: tfcol
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run the isolated column-set encoder delta after the row-pool row is understood.
+    applicability_guards: []
+
+  delta_qass_context:
+    dimension_family: model
+    family: context_encoder
+    binary_applicable: true
+    description: Add the QASS-based sequence context encoder over row embeddings.
+    upstream_delta: Upstream nanoTabPFN direct binary path has no separate context encoder.
+    expected_effect: Richer row-sequence conditioning with risk of unnecessary depth on the compact binary surface.
+    adequacy_knobs:
+      - tficl_n_heads
+      - tficl_n_layers
+      - tficl_ff_expansion
+    parameter_adequacy_policy:
+      default_plan:
+        - Distinguish context-value from pure added-depth effects in the result card.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: qass_context
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_qass_context
+        module_overrides:
+          context_encoder: qass
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run after simpler model deltas so the interpretation has cleaner context.
+    applicability_guards: []
+
+  delta_data_filter_policy_accepted_only:
+    dimension_family: data
+    family: provenance
+    binary_applicable: true
+    description: Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor.
+    upstream_delta: Not applicable; this is a repo-local manifest/provenance decision.
+    expected_effect: Cleaner data quality with a possible diversity-versus-quality tradeoff.
+    adequacy_knobs:
+      - Must report dataset-count and feature/class distribution shifts versus the anchor manifest.
+    parameter_adequacy_policy:
+      default_plan:
+        - Rebuild the manifest and compare manifest characteristics before training.
+        - If weaker, discuss whether coverage loss or provenance tightening is the likely cause.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_artifacts
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: accepted_only_manifest
+        surface_overrides:
+          filter_policy: accepted_only
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Materialize the accepted-only manifest and attach its provenance before scheduling training.
+    applicability_guards: []
+
+  delta_data_manifest_root_curated_dagzoo:
+    dimension_family: data
+    family: provenance
+    binary_applicable: true
+    description: Point training at a curated dagzoo manifest root with explicit dagzoo command provenance.
+    upstream_delta: Not applicable; this is a repo-local dataset-generation axis.
+    expected_effect: Potentially cleaner training data with a materially different corpus composition.
+    adequacy_knobs:
+      - dagzoo generate/filter commands
+      - curated root lineage
+      - dataset count and split distribution deltas
+    parameter_adequacy_policy:
+      default_plan:
+        - Do not run until the dagzoo provenance payload is filled in and the manifest characteristics are attached.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_artifacts
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: curated_dagzoo_root
+        surface_overrides:
+          source: manifest
+          manifest_path: outputs/staged_ladder_support/curated_dagzoo/manifest.parquet
+          dagzoo_provenance:
+            commands: []
+            config_refs: []
+            curated_root_lineage: []
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Capture the dagzoo generation/filter lineage first.
+    applicability_guards: []
+
+  delta_data_manifest_source_binary_iris:
+    dimension_family: data
+    family: source
+    binary_applicable: true
+    description: Swap the training manifest to the small binary iris support surface while keeping the model and preprocessing anchored.
+    upstream_delta: Not applicable; upstream nanoTabPFN does not share this repo-local prior-training manifest contract.
+    expected_effect: Faster, cleaner, but much lower-diversity training data.
+    adequacy_knobs:
+      - Compare manifest row/feature/class distributions to the anchor before training.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat any weakness primarily as evidence about training-surface coverage unless metrics collapse unambiguously.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: binary_iris_manifest
+        surface_overrides:
+          source: manifest
+          manifest_path: outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run only after the matrix explicitly records the anchor-versus-iris manifest characteristics.
+    applicability_guards: []
+
+  delta_preproc_impute_missing_off:
+    dimension_family: preprocessing
+    family: missing_values
+    binary_applicable: true
+    description: Disable runtime mean imputation while keeping the fitted label-remap path intact.
+    upstream_delta: Upstream notebook preprocessing imputes as part of its benchmark helper path.
+    expected_effect: Cleaner attribution around imputation usefulness, but possibly brittle feature tensors on some datasets.
+    adequacy_knobs:
+      - Interpret against manifest missingness prevalence where available.
+    parameter_adequacy_policy:
+      default_plan:
+        - If the result is weak, note whether the benchmark tasks actually contain meaningful missingness on the support side.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_no_impute
+        overrides:
+          impute_missing: false
+    default_next_action: Run once the matrix records the anchor manifest's missingness expectations.
+    applicability_guards: []
+
+  delta_preproc_all_nan_fill_nonzero:
+    dimension_family: preprocessing
+    family: missing_values
+    binary_applicable: true
+    description: Keep imputation on but change the all-NaN fallback fill value from 0.0 to 1.0.
+    upstream_delta: Upstream helper logic does not expose this repo-local fill-value contract as a first-class surface.
+    expected_effect: Usually small, but important for understanding whether hidden fill defaults matter on this corpus.
+    adequacy_knobs:
+      - Report whether all-NaN columns are actually present in the compared manifests.
+    parameter_adequacy_policy:
+      default_plan:
+        - Interpret near-zero movement as expected if the surface rarely exercises this branch.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_all_nan_fill_one
+        overrides:
+          all_nan_fill: 1.0
+    default_next_action: Run after the no-imputation row so missing-value sensitivity has context.
+    applicability_guards: []
+
+  delta_preproc_label_mapping_surface:
+    dimension_family: preprocessing
+    family: label_mapping
+    binary_applicable: true
+    description: Compare the current train-only remap/filter label policy against an alternate surfaced label-mapping policy.
+    upstream_delta: Upstream notebook code does not expose this repo-local label-policy contract as a benchmarkable axis.
+    expected_effect: Unknown until an alternate policy is implemented.
+    adequacy_knobs:
+      - Must record how unseen test labels are handled and whether the effective task definition changes.
+    parameter_adequacy_policy:
+      default_plan:
+        - Do not run until a real alternative policy exists.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_policy_impl
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_label_policy_alt
+        overrides:
+          label_mapping: train_only_remap
+          unseen_test_label_policy: filter
+    default_next_action: Add a second supported label policy before activating this row.
+    applicability_guards: []

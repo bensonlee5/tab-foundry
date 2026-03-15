@@ -1,10 +1,11 @@
-"""Queue and matrix helpers for the anchor-only system-delta sweep."""
+"""Sweep-aware helpers for the anchor-only system-delta workflow."""
 
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
-from typing import Any, Sequence, cast
+from typing import Any, Mapping, Sequence, cast
 
 from omegaconf import OmegaConf
 
@@ -12,10 +13,32 @@ from tab_foundry.bench.benchmark_run_registry import (
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
+from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
+from tab_foundry.model.spec import ModelBuildSpec
+
+
+CATALOG_SCHEMA = "tab-foundry-system-delta-catalog-v1"
+SWEEP_INDEX_SCHEMA = "tab-foundry-system-delta-sweep-index-v1"
+SWEEP_SCHEMA = "tab-foundry-system-delta-sweep-v1"
+SWEEP_QUEUE_SCHEMA = "tab-foundry-system-delta-sweep-queue-v1"
+MATERIALIZED_QUEUE_SCHEMA = "tab-foundry-system-delta-queue-v1"
+DEFAULT_SWEEP_STATUS = "draft"
 
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
+
+
+def default_catalog_path() -> Path:
+    return repo_root() / "reference" / "system_delta_catalog.yaml"
+
+
+def default_sweeps_root() -> Path:
+    return repo_root() / "reference" / "system_delta_sweeps"
+
+
+def default_sweep_index_path() -> Path:
+    return default_sweeps_root() / "index.yaml"
 
 
 def default_queue_path() -> Path:
@@ -30,25 +53,408 @@ def default_registry_path() -> Path:
     return repo_root() / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
 
 
-def load_system_delta_queue(path: Path | None = None) -> dict[str, Any]:
+def sweep_dir(sweep_id: str, *, sweeps_root: Path | None = None) -> Path:
+    return (sweeps_root or default_sweeps_root()) / str(sweep_id)
+
+
+def sweep_metadata_path(sweep_id: str, *, sweeps_root: Path | None = None) -> Path:
+    return sweep_dir(sweep_id, sweeps_root=sweeps_root) / "sweep.yaml"
+
+
+def sweep_queue_path(sweep_id: str, *, sweeps_root: Path | None = None) -> Path:
+    return sweep_dir(sweep_id, sweeps_root=sweeps_root) / "queue.yaml"
+
+
+def sweep_matrix_path(sweep_id: str, *, sweeps_root: Path | None = None) -> Path:
+    return sweep_dir(sweep_id, sweeps_root=sweeps_root) / "matrix.md"
+
+
+def _copy_jsonable(payload: Any) -> Any:
+    return json.loads(json.dumps(payload))
+
+
+def _render_path(path: Path) -> str:
+    resolved = path.expanduser().resolve()
+    root = repo_root()
+    try:
+        return str(resolved.relative_to(root))
+    except ValueError:
+        return str(resolved)
+
+
+def _load_yaml_mapping(path: Path, *, context: str) -> dict[str, Any]:
     payload = OmegaConf.to_container(
-        OmegaConf.load(path or default_queue_path()),
+        OmegaConf.load(path.expanduser().resolve()),
         resolve=True,
     )
     if not isinstance(payload, dict):
-        raise RuntimeError("system delta queue must decode to a mapping")
-    rows = payload.get("rows")
-    if not isinstance(rows, list) or not rows:
-        raise RuntimeError("system delta queue must include a non-empty rows list")
+        raise RuntimeError(f"{context} must decode to a mapping")
     return cast(dict[str, Any], payload)
 
 
-def ordered_rows(queue: dict[str, Any]) -> list[dict[str, Any]]:
+def _write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
+    resolved = path.expanduser().resolve()
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    text = OmegaConf.to_yaml(OmegaConf.create(_copy_jsonable(dict(payload))), resolve=True)
+    resolved.write_text(text, encoding="utf-8")
+
+
+def _write_text(path: Path, contents: str) -> None:
+    resolved = path.expanduser().resolve()
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    resolved.write_text(contents, encoding="utf-8")
+
+
+def _ensure_non_empty_string(value: Any, *, context: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"{context} must be a non-empty string")
+    return str(value)
+
+
+def _ensure_mapping(value: Any, *, context: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise RuntimeError(f"{context} must be a mapping")
+    return cast(dict[str, Any], value)
+
+
+def _ensure_rows(value: Any, *, context: str) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or not value:
+        raise RuntimeError(f"{context} must be a non-empty list")
+    if not all(isinstance(item, dict) for item in value):
+        raise RuntimeError(f"{context} must contain only mappings")
+    return cast(list[dict[str, Any]], value)
+
+
+def load_system_delta_catalog(path: Path | None = None) -> dict[str, Any]:
+    catalog = _load_yaml_mapping(path or default_catalog_path(), context="system delta catalog")
+    if catalog.get("schema") != CATALOG_SCHEMA:
+        raise RuntimeError(
+            f"system delta catalog schema must be {CATALOG_SCHEMA!r}, got {catalog.get('schema')!r}"
+        )
+    deltas = catalog.get("deltas")
+    if not isinstance(deltas, dict) or not deltas:
+        raise RuntimeError("system delta catalog must include a non-empty deltas mapping")
+    return catalog
+
+
+def load_system_delta_index(path: Path | None = None) -> dict[str, Any]:
+    index = _load_yaml_mapping(path or default_sweep_index_path(), context="system delta sweep index")
+    if index.get("schema") != SWEEP_INDEX_SCHEMA:
+        raise RuntimeError(
+            f"system delta sweep index schema must be {SWEEP_INDEX_SCHEMA!r}, got {index.get('schema')!r}"
+        )
+    _ensure_non_empty_string(index.get("active_sweep_id"), context="system delta sweep index.active_sweep_id")
+    sweeps = index.get("sweeps")
+    if not isinstance(sweeps, dict) or not sweeps:
+        raise RuntimeError("system delta sweep index must include a non-empty sweeps mapping")
+    return index
+
+
+def _resolve_selected_sweep_id(
+    sweep_id: str | None,
+    *,
+    index_path: Path | None = None,
+) -> str:
+    if sweep_id is not None:
+        return _ensure_non_empty_string(sweep_id, context="sweep_id")
+    index = load_system_delta_index(index_path)
+    return _ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id")
+
+
+def load_system_delta_sweep(
+    sweep_id: str | None = None,
+    *,
+    index_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    resolved_sweep_id = _resolve_selected_sweep_id(sweep_id, index_path=index_path)
+    sweep = _load_yaml_mapping(
+        sweep_metadata_path(resolved_sweep_id, sweeps_root=sweeps_root),
+        context=f"system delta sweep {resolved_sweep_id!r}",
+    )
+    if sweep.get("schema") != SWEEP_SCHEMA:
+        raise RuntimeError(
+            f"system delta sweep schema must be {SWEEP_SCHEMA!r}, got {sweep.get('schema')!r}"
+        )
+    if _ensure_non_empty_string(sweep.get("sweep_id"), context="sweep.sweep_id") != resolved_sweep_id:
+        raise RuntimeError(
+            f"system delta sweep id mismatch: expected {resolved_sweep_id!r}, got {sweep.get('sweep_id')!r}"
+        )
+    return sweep
+
+
+def load_system_delta_queue_instance(
+    sweep_id: str | None = None,
+    *,
+    index_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    resolved_sweep_id = _resolve_selected_sweep_id(sweep_id, index_path=index_path)
+    queue = _load_yaml_mapping(
+        sweep_queue_path(resolved_sweep_id, sweeps_root=sweeps_root),
+        context=f"system delta queue instance {resolved_sweep_id!r}",
+    )
+    if queue.get("schema") != SWEEP_QUEUE_SCHEMA:
+        raise RuntimeError(
+            f"system delta queue instance schema must be {SWEEP_QUEUE_SCHEMA!r}, got {queue.get('schema')!r}"
+        )
+    if _ensure_non_empty_string(queue.get("sweep_id"), context="queue.sweep_id") != resolved_sweep_id:
+        raise RuntimeError(
+            f"system delta queue sweep id mismatch: expected {resolved_sweep_id!r}, got {queue.get('sweep_id')!r}"
+        )
+    _ensure_rows(queue.get("rows"), context="system delta queue instance rows")
+    return queue
+
+
+def _staged_module_selection_from_run_model(model_payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    module_selection = model_payload.get("module_selection")
+    if isinstance(module_selection, dict) and module_selection:
+        return cast(dict[str, Any], _copy_jsonable(module_selection))
+    if str(model_payload.get("arch")) != "tabfoundry_staged":
+        return None
+    stage_raw = model_payload.get("stage")
+    if not isinstance(stage_raw, str) or not stage_raw.strip():
+        return None
+    stage_label = model_payload.get("stage_label")
+    spec = ModelBuildSpec(
+        task="classification",
+        arch="tabfoundry_staged",
+        stage=str(stage_raw),
+        stage_label=str(stage_label) if isinstance(stage_label, str) and stage_label.strip() else None,
+        d_icl=int(model_payload.get("d_icl", 512)),
+        input_normalization=str(model_payload.get("input_normalization", "none")),
+        many_class_base=int(model_payload.get("many_class_base", 10)),
+        tficl_n_heads=int(model_payload.get("tficl_n_heads", 8)),
+        tficl_n_layers=int(model_payload.get("tficl_n_layers", 12)),
+        head_hidden_dim=int(model_payload.get("head_hidden_dim", 1024)),
+    )
+    return resolve_staged_surface(spec).module_selection()
+
+
+def _anchor_context_from_registry_run(
+    *,
+    anchor_run_id: str,
+    registry_path: Path | None = None,
+) -> dict[str, Any]:
+    registry = load_benchmark_run_registry(registry_path or default_registry_path())
+    runs = _ensure_mapping(registry.get("runs"), context="benchmark registry runs")
+    run = runs.get(anchor_run_id)
+    if not isinstance(run, dict):
+        raise RuntimeError(f"anchor_run_id {anchor_run_id!r} is missing from the benchmark registry")
+    model = _ensure_mapping(run.get("model"), context=f"benchmark registry run {anchor_run_id}.model")
+    surface_labels_raw = run.get("surface_labels")
+    surface_labels = (
+        None
+        if not isinstance(surface_labels_raw, dict)
+        else cast(dict[str, Any], _copy_jsonable(surface_labels_raw))
+    )
+    return {
+        "run_id": anchor_run_id,
+        "model": {
+            "arch": model.get("arch"),
+            "stage": model.get("stage"),
+            "stage_label": model.get("stage_label"),
+            "module_selection": _staged_module_selection_from_run_model(model),
+        },
+        "surface_labels": surface_labels,
+    }
+
+
+def _evaluate_applicability_guard(
+    guard: Mapping[str, Any],
+    *,
+    anchor_context: Mapping[str, Any],
+) -> tuple[bool, str | None]:
+    kind = _ensure_non_empty_string(guard.get("kind"), context="applicability guard kind")
+    if kind != "requires_anchor_model_selection":
+        raise RuntimeError(f"Unsupported applicability guard kind: {kind!r}")
+    key = _ensure_non_empty_string(guard.get("key"), context="applicability guard key")
+    any_of_raw = guard.get("any_of")
+    if not isinstance(any_of_raw, list) or not any_of_raw:
+        raise RuntimeError("applicability guard any_of must be a non-empty list")
+    any_of = {str(item) for item in any_of_raw}
+    anchor_model = cast(dict[str, Any], anchor_context.get("model", {}))
+    module_selection = anchor_model.get("module_selection")
+    if not isinstance(module_selection, dict):
+        return False, None
+    current_value = module_selection.get(key)
+    if current_value is None:
+        return False, None
+    current_value_str = str(current_value)
+    return current_value_str in any_of, current_value_str
+
+
+def _guarded_initial_state(
+    *,
+    delta_entry: Mapping[str, Any],
+    anchor_context: Mapping[str, Any],
+) -> tuple[str, str, str | None]:
+    status = str(delta_entry.get("default_initial_status", "ready"))
+    interpretation_status = str(delta_entry.get("default_initial_interpretation_status", "pending"))
+    next_action_override: str | None = None
+    guards = delta_entry.get("applicability_guards")
+    if not isinstance(guards, list):
+        return status, interpretation_status, next_action_override
+    for raw_guard in guards:
+        if not isinstance(raw_guard, dict):
+            raise RuntimeError("applicability_guards entries must be mappings")
+        matched, _value = _evaluate_applicability_guard(raw_guard, anchor_context=anchor_context)
+        if matched:
+            continue
+        status = str(raw_guard.get("failure_status", status))
+        interpretation_status = str(
+            raw_guard.get("failure_interpretation_status", interpretation_status)
+        )
+        failure_next_action = raw_guard.get("failure_next_action")
+        if isinstance(failure_next_action, str) and failure_next_action.strip():
+            next_action_override = str(failure_next_action)
+        break
+    return status, interpretation_status, next_action_override
+
+
+def _materialize_row(
+    *,
+    queue_row: Mapping[str, Any],
+    delta_entry: Mapping[str, Any],
+) -> dict[str, Any]:
+    parameter_policy = cast(
+        dict[str, Any],
+        _copy_jsonable(cast(dict[str, Any], delta_entry.get("parameter_adequacy_policy", {}))),
+    )
+    parameter_plan = queue_row.get("parameter_adequacy_plan")
+    if not isinstance(parameter_plan, list):
+        parameter_plan = parameter_policy.get("default_plan", [])
+    return {
+        "order": int(queue_row["order"]),
+        "delta_id": _ensure_non_empty_string(queue_row.get("delta_ref"), context="queue row delta_ref"),
+        "status": str(queue_row["status"]),
+        "dimension_family": str(delta_entry["dimension_family"]),
+        "family": str(delta_entry["family"]),
+        "binary_applicable": bool(delta_entry.get("binary_applicable", False)),
+        "description": str(delta_entry["description"]),
+        "rationale": str(queue_row.get("rationale", "")),
+        "hypothesis": str(queue_row.get("hypothesis", "")),
+        "upstream_delta": str(delta_entry["upstream_delta"]),
+        "anchor_delta": str(queue_row.get("anchor_delta", "")),
+        "entangled_legacy_stage": str(delta_entry.get("legacy_stage_alias", "none")),
+        "expected_effect": str(delta_entry["expected_effect"]),
+        "adequacy_knobs": cast(list[Any], _copy_jsonable(delta_entry.get("adequacy_knobs", []))),
+        "parameter_adequacy_policy": parameter_policy,
+        "applicability_guards": cast(
+            list[Any],
+            _copy_jsonable(delta_entry.get("applicability_guards", [])),
+        ),
+        "model": cast(dict[str, Any], _copy_jsonable(queue_row.get("model", {}))),
+        "data": cast(dict[str, Any], _copy_jsonable(queue_row.get("data", {}))),
+        "preprocessing": cast(dict[str, Any], _copy_jsonable(queue_row.get("preprocessing", {}))),
+        "parameter_adequacy_plan": cast(list[Any], _copy_jsonable(parameter_plan)),
+        "run_id": queue_row.get("run_id"),
+        "followup_run_ids": cast(list[Any], _copy_jsonable(queue_row.get("followup_run_ids", []))),
+        "decision": queue_row.get("decision"),
+        "interpretation_status": str(queue_row.get("interpretation_status", "pending")),
+        "confounders": cast(list[Any], _copy_jsonable(queue_row.get("confounders", []))),
+        "next_action": str(queue_row.get("next_action", "")),
+        "notes": cast(list[Any], _copy_jsonable(queue_row.get("notes", []))),
+    }
+
+
+def materialize_system_delta_queue(
+    *,
+    catalog: Mapping[str, Any],
+    sweep: Mapping[str, Any],
+    queue_instance: Mapping[str, Any],
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    deltas = _ensure_mapping(catalog.get("deltas"), context="catalog deltas")
+    sweep_id = _ensure_non_empty_string(sweep.get("sweep_id"), context="sweep.sweep_id")
+    rows_payload = _ensure_rows(queue_instance.get("rows"), context="queue rows")
+    rows: list[dict[str, Any]] = []
+    for queue_row in sorted(rows_payload, key=lambda row: (int(row["order"]), str(row["delta_ref"]))):
+        delta_ref = _ensure_non_empty_string(queue_row.get("delta_ref"), context="queue row delta_ref")
+        delta_entry = deltas.get(delta_ref)
+        if not isinstance(delta_entry, dict):
+            raise RuntimeError(f"unknown delta_ref {delta_ref!r} in sweep {sweep_id!r}")
+        rows.append(_materialize_row(queue_row=queue_row, delta_entry=delta_entry))
+    resolved_sweeps_root = sweeps_root or default_sweeps_root()
+    return {
+        "schema": MATERIALIZED_QUEUE_SCHEMA,
+        "generated_from_sweep_id": sweep_id,
+        "catalog_path": _render_path(catalog_path or default_catalog_path()),
+        "canonical_sweep_path": _render_path(sweep_metadata_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+        "canonical_queue_path": _render_path(sweep_queue_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+        "canonical_matrix_path": _render_path(sweep_matrix_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+        "sweep_id": sweep_id,
+        "parent_sweep_id": sweep.get("parent_sweep_id"),
+        "sweep_status": sweep.get("status"),
+        "complexity_level": sweep.get("complexity_level"),
+        "anchor_run_id": sweep["anchor_run_id"],
+        "benchmark_bundle_path": sweep["benchmark_bundle_path"],
+        "control_baseline_id": sweep["control_baseline_id"],
+        "comparison_policy": sweep["comparison_policy"],
+        "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep["upstream_reference"])),
+        "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep["anchor_surface"])),
+        "anchor_context": cast(dict[str, Any], _copy_jsonable(sweep.get("anchor_context", {}))),
+        "rows": rows,
+    }
+
+
+def load_system_delta_queue(
+    path: Path | None = None,
+    *,
+    sweep_id: str | None = None,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    if path is None:
+        catalog = load_system_delta_catalog(catalog_path)
+        sweep = load_system_delta_sweep(sweep_id, index_path=index_path, sweeps_root=sweeps_root)
+        queue_instance = load_system_delta_queue_instance(
+            sweep_id or str(sweep["sweep_id"]),
+            index_path=index_path,
+            sweeps_root=sweeps_root,
+        )
+        return materialize_system_delta_queue(
+            catalog=catalog,
+            sweep=sweep,
+            queue_instance=queue_instance,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+        )
+
+    payload = _load_yaml_mapping(path, context="system delta queue")
+    schema = payload.get("schema")
+    if schema == SWEEP_QUEUE_SCHEMA:
+        queue_instance = payload
+        resolved_sweep_id = _ensure_non_empty_string(
+            queue_instance.get("sweep_id"),
+            context="system delta queue instance sweep_id",
+        )
+        catalog = load_system_delta_catalog(catalog_path)
+        sweep = load_system_delta_sweep(
+            resolved_sweep_id,
+            index_path=index_path,
+            sweeps_root=sweeps_root,
+        )
+        return materialize_system_delta_queue(
+            catalog=catalog,
+            sweep=sweep,
+            queue_instance=queue_instance,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+        )
+    if not isinstance(payload.get("rows"), list):
+        raise RuntimeError("materialized system delta queue must include rows")
+    return payload
+
+
+def ordered_rows(queue: Mapping[str, Any]) -> list[dict[str, Any]]:
     rows = cast(list[dict[str, Any]], queue["rows"])
     return sorted(rows, key=lambda row: (int(row["order"]), str(row["delta_id"])))
 
 
-def next_ready_row(queue: dict[str, Any]) -> dict[str, Any] | None:
+def next_ready_row(queue: Mapping[str, Any]) -> dict[str, Any] | None:
     for row in ordered_rows(queue):
         if str(row.get("status", "")).strip().lower() == "ready":
             return row
@@ -82,27 +488,27 @@ def _metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, st
     }
 
 
-def _result_card_path(delta_id: str) -> Path:
-    return repo_root() / "outputs" / "staged_ladder" / "research" / delta_id / "result_card.md"
-
-
-def _render_path(path: Path) -> str:
-    resolved = path.expanduser().resolve()
-    root = repo_root()
-    try:
-        return str(resolved.relative_to(root))
-    except ValueError:
-        return str(resolved)
+def _result_card_path(*, sweep_id: str, delta_id: str) -> Path:
+    return (
+        repo_root()
+        / "outputs"
+        / "staged_ladder"
+        / "research"
+        / sweep_id
+        / delta_id
+        / "result_card.md"
+    )
 
 
 def validate_system_delta_queue(
-    queue: dict[str, Any],
+    queue: Mapping[str, Any],
     *,
     registry_path: Path | None = None,
 ) -> list[str]:
     issues: list[str] = []
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = cast(dict[str, dict[str, Any]], registry["runs"])
+    sweep_id = _ensure_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
     for row in ordered_rows(queue):
         status = str(row.get("status", "")).strip().lower()
         if status != "completed":
@@ -116,7 +522,7 @@ def validate_system_delta_queue(
         if run is None:
             issues.append(f"{delta_id}: run_id {run_id!r} is missing from the benchmark registry")
             continue
-        result_card_path = _result_card_path(delta_id)
+        result_card_path = _result_card_path(sweep_id=sweep_id, delta_id=delta_id)
         if not result_card_path.exists():
             issues.append(f"{delta_id}: missing result card at {result_card_path}")
         training_surface_record_path = cast(dict[str, Any], run["artifacts"]).get(
@@ -134,12 +540,13 @@ def validate_system_delta_queue(
 
 
 def render_system_delta_matrix(
-    queue: dict[str, Any],
+    queue: Mapping[str, Any],
     *,
     registry_path: Path | None = None,
 ) -> str:
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = cast(dict[str, dict[str, Any]], registry["runs"])
+    sweep_id = _ensure_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
     anchor_run_id = str(queue["anchor_run_id"])
     anchor = runs.get(anchor_run_id)
     if anchor is None:
@@ -147,11 +554,24 @@ def render_system_delta_matrix(
     anchor_metrics = cast(dict[str, Any], anchor["tab_foundry_metrics"])
     upstream = cast(dict[str, Any], queue["upstream_reference"])
     anchor_surface = cast(dict[str, Any], queue["anchor_surface"])
+    catalog_path = str(queue.get("catalog_path", _render_path(default_catalog_path())))
+    canonical_queue_path = str(
+        queue.get("canonical_queue_path", _render_path(sweep_queue_path(sweep_id)))
+    )
 
     lines: list[str] = []
     lines.append("# System Delta Matrix")
     lines.append("")
-    lines.append("This file is rendered from `reference/system_delta_queue.yaml` plus the canonical benchmark registry.")
+    lines.append(
+        f"This file is rendered from `{canonical_queue_path}` plus `{catalog_path}` and the canonical benchmark registry."
+    )
+    lines.append("")
+    lines.append("## Sweep")
+    lines.append("")
+    lines.append(f"- Sweep id: `{sweep_id}`")
+    lines.append(f"- Sweep status: `{queue.get('sweep_status')}`")
+    lines.append(f"- Parent sweep id: `{queue.get('parent_sweep_id')}`")
+    lines.append(f"- Complexity level: `{queue.get('complexity_level')}`")
     lines.append("")
     lines.append("## Locked Surface")
     lines.append("")
@@ -180,7 +600,7 @@ def render_system_delta_matrix(
     lines.append("## Queue Summary")
     lines.append("")
     lines.append(
-        "| Order | Delta | Family | Binary | Status | Legacy entanglement | Effective change | Next action |"
+        "| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |"
     )
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
     for queue_row in ordered_rows(queue):
@@ -203,7 +623,7 @@ def render_system_delta_matrix(
         lines.append(f"- Status: `{queue_row['status']}`")
         lines.append(f"- Binary applicable: `{queue_row.get('binary_applicable', False)}`")
         lines.append(
-            f"- Legacy cumulative entanglement: `{queue_row.get('entangled_legacy_stage', 'n/a')}`"
+            f"- Legacy stage alias: `{queue_row.get('entangled_legacy_stage', 'n/a')}`"
         )
         lines.append(f"- Description: {queue_row['description']}")
         lines.append(f"- Rationale: {queue_row['rationale']}")
@@ -244,7 +664,9 @@ def render_system_delta_matrix(
             for note in cast(list[str], queue_row["notes"]):
                 lines.append(f"  - {note}")
         lines.append(f"- Follow-up run ids: `{queue_row.get('followup_run_ids', [])}`")
-        lines.append(f"- Result card path: `{_render_path(_result_card_path(delta_id))}`")
+        lines.append(
+            f"- Result card path: `{_render_path(_result_card_path(sweep_id=sweep_id, delta_id=delta_id))}`"
+        )
         if run is None:
             lines.append("- Benchmark metrics: pending")
         else:
@@ -261,18 +683,260 @@ def render_system_delta_matrix(
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _write_matrix(path: Path, contents: str) -> None:
-    resolved = path.expanduser().resolve()
-    resolved.parent.mkdir(parents=True, exist_ok=True)
-    resolved.write_text(contents, encoding="utf-8")
+def _instantiate_queue_row(
+    *,
+    sweep_id: str,
+    anchor_run_id: str,
+    order: int,
+    delta_id: str,
+    delta_entry: Mapping[str, Any],
+    anchor_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    status, interpretation_status, next_action_override = _guarded_initial_state(
+        delta_entry=delta_entry,
+        anchor_context=anchor_context,
+    )
+    default_effective_surface = cast(
+        dict[str, Any],
+        _copy_jsonable(cast(dict[str, Any], delta_entry.get("default_effective_surface", {}))),
+    )
+    parameter_policy = cast(dict[str, Any], delta_entry.get("parameter_adequacy_policy", {}))
+    return {
+        "order": int(order),
+        "delta_ref": str(delta_id),
+        "status": status,
+        "rationale": (
+            f"Contextualize `{delta_id}` against anchor `{anchor_run_id}` for sweep `{sweep_id}`."
+        ),
+        "hypothesis": "",
+        "anchor_delta": (
+            f"TODO: describe how `{delta_id}` differs from the locked anchor `{anchor_run_id}`."
+        ),
+        "model": cast(dict[str, Any], _copy_jsonable(default_effective_surface.get("model", {}))),
+        "data": cast(dict[str, Any], _copy_jsonable(default_effective_surface.get("data", {}))),
+        "preprocessing": cast(
+            dict[str, Any],
+            _copy_jsonable(default_effective_surface.get("preprocessing", {})),
+        ),
+        "parameter_adequacy_plan": cast(
+            list[Any],
+            _copy_jsonable(parameter_policy.get("default_plan", [])),
+        ),
+        "run_id": None,
+        "followup_run_ids": [],
+        "decision": None,
+        "interpretation_status": interpretation_status,
+        "confounders": [],
+        "next_action": str(next_action_override or delta_entry.get("default_next_action", "")),
+        "notes": [],
+    }
+
+
+def create_sweep(
+    *,
+    sweep_id: str,
+    anchor_run_id: str,
+    parent_sweep_id: str | None,
+    complexity_level: str,
+    benchmark_bundle_path: str,
+    control_baseline_id: str,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    registry_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, str]:
+    normalized_sweep_id = _ensure_non_empty_string(sweep_id, context="sweep_id")
+    normalized_anchor_run_id = _ensure_non_empty_string(anchor_run_id, context="anchor_run_id")
+    normalized_complexity_level = _ensure_non_empty_string(
+        complexity_level,
+        context="complexity_level",
+    )
+    normalized_benchmark_bundle_path = _ensure_non_empty_string(
+        benchmark_bundle_path,
+        context="benchmark_bundle_path",
+    )
+    normalized_control_baseline_id = _ensure_non_empty_string(
+        control_baseline_id,
+        context="control_baseline_id",
+    )
+    resolved_index_path = (index_path or default_sweep_index_path()).expanduser().resolve()
+    resolved_sweeps_root = sweeps_root or resolved_index_path.parent
+    index = load_system_delta_index(resolved_index_path)
+    sweeps = _ensure_mapping(index.get("sweeps"), context="sweep index sweeps")
+    if normalized_sweep_id in sweeps:
+        raise RuntimeError(f"sweep_id {normalized_sweep_id!r} already exists")
+
+    catalog = load_system_delta_catalog(catalog_path)
+    active_sweep_id = _ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id")
+    template_sweep = load_system_delta_sweep(
+        parent_sweep_id or active_sweep_id,
+        index_path=resolved_index_path,
+        sweeps_root=resolved_sweeps_root,
+    )
+    anchor_context = _anchor_context_from_registry_run(
+        anchor_run_id=normalized_anchor_run_id,
+        registry_path=registry_path,
+    )
+    sweep_status = DEFAULT_SWEEP_STATUS
+    if not sweeps:
+        sweep_status = "active"
+        index["active_sweep_id"] = normalized_sweep_id
+
+    sweep_payload = {
+        "schema": SWEEP_SCHEMA,
+        "sweep_id": normalized_sweep_id,
+        "parent_sweep_id": None if parent_sweep_id is None else str(parent_sweep_id),
+        "status": sweep_status,
+        "complexity_level": normalized_complexity_level,
+        "anchor_run_id": normalized_anchor_run_id,
+        "benchmark_bundle_path": normalized_benchmark_bundle_path,
+        "control_baseline_id": normalized_control_baseline_id,
+        "comparison_policy": str(template_sweep.get("comparison_policy", "anchor_only")),
+        "upstream_reference": cast(
+            dict[str, Any],
+            _copy_jsonable(cast(dict[str, Any], template_sweep.get("upstream_reference", {}))),
+        ),
+        "anchor_surface": cast(
+            dict[str, Any],
+            _copy_jsonable(cast(dict[str, Any], template_sweep.get("anchor_surface", {}))),
+        ),
+        "anchor_context": anchor_context,
+    }
+
+    deltas = _ensure_mapping(catalog.get("deltas"), context="catalog deltas")
+    queue_rows = [
+        _instantiate_queue_row(
+            sweep_id=normalized_sweep_id,
+            anchor_run_id=normalized_anchor_run_id,
+            order=order,
+            delta_id=delta_id,
+            delta_entry=cast(dict[str, Any], delta_entry),
+            anchor_context=anchor_context,
+        )
+        for order, (delta_id, delta_entry) in enumerate(deltas.items(), start=1)
+    ]
+    queue_payload = {
+        "schema": SWEEP_QUEUE_SCHEMA,
+        "sweep_id": normalized_sweep_id,
+        "rows": queue_rows,
+    }
+
+    sweep_info = {
+        "parent_sweep_id": None if parent_sweep_id is None else str(parent_sweep_id),
+        "status": sweep_status,
+        "anchor_run_id": normalized_anchor_run_id,
+        "complexity_level": normalized_complexity_level,
+        "benchmark_bundle_path": normalized_benchmark_bundle_path,
+        "control_baseline_id": normalized_control_baseline_id,
+    }
+    sweeps[normalized_sweep_id] = sweep_info
+
+    _write_yaml(sweep_metadata_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), sweep_payload)
+    _write_yaml(sweep_queue_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), queue_payload)
+    _write_yaml(resolved_index_path, index)
+
+    queue = materialize_system_delta_queue(
+        catalog=catalog,
+        sweep=sweep_payload,
+        queue_instance=queue_payload,
+        catalog_path=catalog_path,
+        sweeps_root=resolved_sweeps_root,
+    )
+    matrix_contents = render_system_delta_matrix(queue, registry_path=registry_path)
+    _write_text(sweep_matrix_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), matrix_contents)
+    if _ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id") == normalized_sweep_id:
+        sync_active_sweep_aliases(
+            sweep_id=normalized_sweep_id,
+            index_path=resolved_index_path,
+            catalog_path=catalog_path,
+            registry_path=registry_path,
+            sweeps_root=resolved_sweeps_root,
+        )
+
+    return {
+        "sweep_path": str(sweep_metadata_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root).resolve()),
+        "queue_path": str(sweep_queue_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root).resolve()),
+        "matrix_path": str(sweep_matrix_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root).resolve()),
+        "index_path": str(resolved_index_path),
+    }
+
+
+def set_active_sweep(
+    sweep_id: str,
+    *,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    registry_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, str]:
+    normalized_sweep_id = _ensure_non_empty_string(sweep_id, context="sweep_id")
+    resolved_index_path = (index_path or default_sweep_index_path()).expanduser().resolve()
+    index = load_system_delta_index(resolved_index_path)
+    sweeps = _ensure_mapping(index.get("sweeps"), context="sweep index sweeps")
+    if normalized_sweep_id not in sweeps:
+        raise RuntimeError(f"unknown sweep_id: {normalized_sweep_id}")
+    index["active_sweep_id"] = normalized_sweep_id
+    _write_yaml(resolved_index_path, index)
+    return sync_active_sweep_aliases(
+        sweep_id=normalized_sweep_id,
+        index_path=resolved_index_path,
+        catalog_path=catalog_path,
+        registry_path=registry_path,
+        sweeps_root=sweeps_root,
+    )
+
+
+def sync_active_sweep_aliases(
+    *,
+    sweep_id: str | None = None,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    registry_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, str]:
+    queue = load_system_delta_queue(
+        sweep_id=sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    matrix_contents = render_system_delta_matrix(queue, registry_path=registry_path)
+    alias_queue_path = default_queue_path()
+    alias_matrix_path = default_matrix_path()
+    _write_yaml(alias_queue_path, queue)
+    _write_text(alias_matrix_path, matrix_contents)
+    return {
+        "queue_alias_path": str(alias_queue_path.resolve()),
+        "matrix_alias_path": str(alias_matrix_path.resolve()),
+    }
+
+
+def list_sweeps(*, index_path: Path | None = None) -> list[dict[str, Any]]:
+    index = load_system_delta_index(index_path)
+    active_sweep_id = _ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id")
+    sweeps = _ensure_mapping(index.get("sweeps"), context="sweep index sweeps")
+    ordered = sorted(sweeps.items(), key=lambda item: str(item[0]))
+    return [
+        {
+            "sweep_id": sweep_id,
+            "is_active": sweep_id == active_sweep_id,
+            **cast(dict[str, Any], _copy_jsonable(sweep_info)),
+        }
+        for sweep_id, sweep_info in ordered
+    ]
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Manage the anchor-only system delta queue")
+    parser = argparse.ArgumentParser(description="Manage sweep-aware system-delta queues")
     parser.add_argument(
-        "--queue-path",
-        default=str(default_queue_path()),
-        help="Path to reference/system_delta_queue.yaml",
+        "--catalog-path",
+        default=str(default_catalog_path()),
+        help="Path to reference/system_delta_catalog.yaml",
+    )
+    parser.add_argument(
+        "--index-path",
+        default=str(default_sweep_index_path()),
+        help="Path to reference/system_delta_sweeps/index.yaml",
     )
     parser.add_argument(
         "--registry-path",
@@ -280,27 +944,113 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to benchmark_run_registry_v1.json",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("list", help="List queue rows in order")
-    subparsers.add_parser("next", help="Print the next ready row")
-    render_parser = subparsers.add_parser("render", help="Render the markdown matrix")
-    render_parser.add_argument(
-        "--out-path",
-        default=str(default_matrix_path()),
-        help="Output markdown path",
+
+    subparsers.add_parser("list-sweeps", help="List known sweeps")
+    subparsers.add_parser("show-active", help="Print the active sweep id")
+
+    set_active_parser = subparsers.add_parser("set-active", help="Set the active sweep and regenerate aliases")
+    set_active_parser.add_argument("--sweep-id", required=True, help="Sweep id to activate")
+
+    for command_name, help_text in (
+        ("list", "List queue rows in order"),
+        ("next", "Print the next ready row"),
+        ("render", "Render the selected sweep matrix"),
+        ("validate", "Validate completed rows for the selected sweep"),
+    ):
+        command_parser = subparsers.add_parser(command_name, help=help_text)
+        command_parser.add_argument(
+            "--sweep-id",
+            default=None,
+            help="Optional sweep id; defaults to the active sweep",
+        )
+        if command_name == "render":
+            command_parser.add_argument(
+                "--out-path",
+                default=None,
+                help="Optional alternate markdown output path",
+            )
+
+    create_parser = subparsers.add_parser("create-sweep", help="Bootstrap a new sweep from the delta catalog")
+    create_parser.add_argument("--sweep-id", required=True, help="New sweep id")
+    create_parser.add_argument("--anchor-run-id", required=True, help="Anchor benchmark registry run id")
+    create_parser.add_argument("--parent-sweep-id", default=None, help="Optional parent sweep id")
+    create_parser.add_argument("--complexity-level", required=True, help="Complexity level label")
+    create_parser.add_argument(
+        "--benchmark-bundle-path",
+        required=True,
+        help="Benchmark bundle path for the new sweep",
     )
-    subparsers.add_parser("validate", help="Validate completed rows")
+    create_parser.add_argument(
+        "--control-baseline-id",
+        required=True,
+        help="Control baseline id for the new sweep",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    queue = load_system_delta_queue(Path(str(args.queue_path)))
+    catalog_path = Path(str(args.catalog_path))
+    index_path = Path(str(args.index_path))
     registry_path = Path(str(args.registry_path))
+
+    if args.command == "list-sweeps":
+        for sweep_info in list_sweeps(index_path=index_path):
+            marker = "*" if sweep_info["is_active"] else " "
+            print(
+                f"{marker} {sweep_info['sweep_id']}  {sweep_info['status']:<8}  "
+                f"{sweep_info['complexity_level']:<16}  anchor={sweep_info['anchor_run_id']}"
+            )
+        return 0
+
+    if args.command == "show-active":
+        index = load_system_delta_index(index_path)
+        print(_ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id"))
+        return 0
+
+    if args.command == "set-active":
+        result = set_active_sweep(
+            str(args.sweep_id),
+            index_path=index_path,
+            catalog_path=catalog_path,
+            registry_path=registry_path,
+        )
+        print(f"Active sweep set to {args.sweep_id}")
+        print(f"  queue_alias_path={result['queue_alias_path']}")
+        print(f"  matrix_alias_path={result['matrix_alias_path']}")
+        return 0
+
+    if args.command == "create-sweep":
+        result = create_sweep(
+            sweep_id=str(args.sweep_id),
+            anchor_run_id=str(args.anchor_run_id),
+            parent_sweep_id=None if args.parent_sweep_id is None else str(args.parent_sweep_id),
+            complexity_level=str(args.complexity_level),
+            benchmark_bundle_path=str(args.benchmark_bundle_path),
+            control_baseline_id=str(args.control_baseline_id),
+            index_path=index_path,
+            catalog_path=catalog_path,
+            registry_path=registry_path,
+        )
+        print("Sweep created:")
+        print(f"  sweep_path={result['sweep_path']}")
+        print(f"  queue_path={result['queue_path']}")
+        print(f"  matrix_path={result['matrix_path']}")
+        print(f"  index_path={result['index_path']}")
+        return 0
+
+    selected_sweep_id = None if getattr(args, "sweep_id", None) is None else str(args.sweep_id)
+    queue = load_system_delta_queue(
+        sweep_id=selected_sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+    )
     if args.command == "list":
         for row in ordered_rows(queue):
             print(
-                f"{int(row['order']):02d}  {row['status']:<18}  {row['dimension_family']:<13}  {row['delta_id']}"
+                f"{int(row['order']):02d}  {row['status']:<28}  "
+                f"{row['dimension_family']:<13}  {row['delta_id']}"
             )
         return 0
     if args.command == "next":
@@ -312,8 +1062,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "render":
         contents = render_system_delta_matrix(queue, registry_path=registry_path)
-        _write_matrix(Path(str(args.out_path)), contents)
-        print(f"Rendered system delta matrix to {Path(str(args.out_path)).expanduser().resolve()}")
+        resolved_out_path = (
+            sweep_matrix_path(str(queue["sweep_id"]))
+            if args.out_path is None
+            else Path(str(args.out_path))
+        )
+        _write_text(resolved_out_path, contents)
+        active_sweep_id = _ensure_non_empty_string(
+            load_system_delta_index(index_path).get("active_sweep_id"),
+            context="active_sweep_id",
+        )
+        if str(queue["sweep_id"]) == active_sweep_id:
+            sync_active_sweep_aliases(
+                sweep_id=str(queue["sweep_id"]),
+                index_path=index_path,
+                catalog_path=catalog_path,
+                registry_path=registry_path,
+            )
+        print(f"Rendered system delta matrix to {resolved_out_path.expanduser().resolve()}")
         return 0
     if args.command == "validate":
         issues = validate_system_delta_queue(queue, registry_path=registry_path)

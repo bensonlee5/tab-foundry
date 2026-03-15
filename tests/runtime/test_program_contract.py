@@ -32,6 +32,8 @@ def test_program_contract_has_required_policy_sections() -> None:
         "`best_roc_auc` is a tie-breaker and diagnostic, not the main score.",
         "`training_surface_record.json`",
         "Agents should use optional sibling-workspace sources when available, but must",
+        "generated compatibility aliases for the active sweep only",
+        "Every benchmark-facing run belongs to exactly one `sweep_id`.",
     ]
     for statement in required_statements:
         assert statement in contents
@@ -40,6 +42,10 @@ def test_program_contract_has_required_policy_sections() -> None:
 def test_program_contract_required_repo_paths_exist() -> None:
     contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
     required_repo_paths = [
+        "reference/system_delta_catalog.yaml",
+        "reference/system_delta_sweeps/index.yaml",
+        "reference/system_delta_sweeps/binary_md_v1/queue.yaml",
+        "reference/system_delta_sweeps/binary_md_v1/matrix.md",
         "reference/system_delta_queue.yaml",
         "reference/system_delta_matrix.md",
         "reference/system_delta_campaign_template.md",
@@ -80,6 +86,7 @@ def test_system_delta_campaign_template_has_required_fields() -> None:
     )
     required_fields = [
         "`delta_id`",
+        "`sweep_id`",
         "`dimension_family`",
         "`comparison_policy: anchor_only`",
         "`training_surface_record.json`",
@@ -88,9 +95,12 @@ def test_system_delta_campaign_template_has_required_fields() -> None:
         "`needs_followup`",
         "`unambiguously_worse`",
         "adequacy_knobs",
+        "`reference/system_delta_sweeps/<sweep_id>/queue.yaml`",
     ]
     for field in required_fields:
         assert field in contents
+
+    assert "outputs/staged_ladder/research/<sweep_id>/<delta_id>/research_card.md" in contents
 
 
 def test_stage_research_source_manifest_schema_is_portable() -> None:

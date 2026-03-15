@@ -227,6 +227,34 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     )
 
 
+def test_derive_benchmark_run_record_includes_optional_sweep_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(repo_root, run_name="stage_01")
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+        sweep_id="binary_md_v1",
+        delta_id="delta_label_token",
+        parent_sweep_id=None,
+        queue_order=1,
+        run_kind="primary",
+    )
+
+    assert record["sweep"] == {
+        "sweep_id": "binary_md_v1",
+        "delta_id": "delta_label_token",
+        "parent_sweep_id": None,
+        "queue_order": 1,
+        "run_kind": "primary",
+    }
+
+
 def test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surface(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -342,12 +370,24 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
         conclusion="Exact staged repro matches the frozen anchor contract.",
         parent_run_id="00_simple_anchor",
         anchor_run_id="00_simple_anchor",
+        sweep_id="binary_md_v1",
+        delta_id="delta_label_token",
+        parent_sweep_id=None,
+        queue_order=1,
+        run_kind="primary",
         registry_path=registry_path,
     )
 
     assert result["registry_path"] == str(registry_path.resolve())
     run_entry = result["run"]
     assert run_entry["artifacts"]["run_dir"] == "outputs/label_token/train"
+    assert run_entry["sweep"] == {
+        "sweep_id": "binary_md_v1",
+        "delta_id": "delta_label_token",
+        "parent_sweep_id": None,
+        "queue_order": 1,
+        "run_kind": "primary",
+    }
     assert run_entry["comparisons"]["vs_parent"]["reference_run_id"] == "00_simple_anchor"
     assert run_entry["comparisons"]["vs_parent"]["final_roc_auc_delta"] == pytest.approx(0.04)
     assert run_entry["decision"] == "keep"
@@ -429,6 +469,16 @@ def test_register_benchmark_run_main_parses_cli_and_defaults_config_profile(
             str(tmp_path / "prior"),
             "--control-baseline-id",
             "cls_benchmark_linear_v1",
+            "--sweep-id",
+            "binary_md_v1",
+            "--delta-id",
+            "delta_label_token",
+            "--parent-sweep-id",
+            "binary_xs_v0",
+            "--queue-order",
+            "3",
+            "--run-kind",
+            "followup",
             "--registry-path",
             str(tmp_path / "benchmark_run_registry.json"),
         ]
@@ -448,6 +498,11 @@ def test_register_benchmark_run_main_parses_cli_and_defaults_config_profile(
     assert captured["anchor_run_id"] == "01_nano_exact_md_prior_parity_fix"
     assert captured["prior_dir"] == tmp_path / "prior"
     assert captured["control_baseline_id"] == "cls_benchmark_linear_v1"
+    assert captured["sweep_id"] == "binary_md_v1"
+    assert captured["delta_id"] == "delta_label_token"
+    assert captured["parent_sweep_id"] == "binary_xs_v0"
+    assert captured["queue_order"] == 3
+    assert captured["run_kind"] == "followup"
     assert captured["registry_path"] == tmp_path / "benchmark_run_registry.json"
     assert "Benchmark run registered:" in capsys.readouterr().out
 
@@ -580,3 +635,4 @@ def test_checked_in_benchmark_run_registry_contains_medium_binary_anchor() -> No
     )
     assert run["lineage"]["control_baseline_id"] == "cls_benchmark_linear_v2"
     assert run["artifacts"]["run_dir"] == "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
+    assert run.get("sweep") is None

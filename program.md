@@ -1,6 +1,6 @@
 # Agent Program
 
-This file is the agent contract for the anchor-only system-delta sweep in
+This file is the agent contract for the anchor-only system-delta sweep system in
 `tab-foundry`.
 
 Use `docs/workflows.md` for command syntax and artifact expectations. Use this
@@ -36,8 +36,12 @@ dimension family:
 - canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - canonical control baseline id: `cls_benchmark_linear_v2`
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
-- queue source of truth: `reference/system_delta_queue.yaml`
-- rendered comparison matrix: `reference/system_delta_matrix.md`
+- delta catalog: `reference/system_delta_catalog.yaml`
+- sweep index: `reference/system_delta_sweeps/index.yaml`
+- canonical sweep queue: `reference/system_delta_sweeps/binary_md_v1/queue.yaml`
+- canonical sweep matrix: `reference/system_delta_sweeps/binary_md_v1/matrix.md`
+- active queue alias: `reference/system_delta_queue.yaml`
+- active matrix alias: `reference/system_delta_matrix.md`
 - research template: `reference/system_delta_campaign_template.md`
 - research sources: `reference/stage_research_sources.yaml`
 
@@ -76,39 +80,52 @@ states the exact preserved settings and the exact changed settings.
 
 ## Queue And Matrix
 
-`reference/system_delta_queue.yaml` is the machine-readable source of truth for
-the sweep. `reference/system_delta_matrix.md` is the rendered human-readable
-view.
+The canonical source-of-truth hierarchy is:
+
+- `reference/system_delta_catalog.yaml`
+- `reference/system_delta_sweeps/index.yaml`
+- `reference/system_delta_sweeps/<sweep_id>/queue.yaml`
+- `reference/system_delta_sweeps/<sweep_id>/matrix.md`
+
+The top-level files `reference/system_delta_queue.yaml` and
+`reference/system_delta_matrix.md` are generated compatibility aliases for the active sweep only.
+They are convenient views, not the canonical editable sources.
 
 The queue must carry, at minimum:
 
-- `order`, `delta_id`, `status`, `dimension_family`, `family`
+- `order`, `delta_ref`, `status`
 - `description`, `rationale`, `hypothesis`
 - model/data/preprocessing labels and the one active override family
 - `parameter_adequacy_plan`
 - `run_id`, `followup_run_ids`
 - `decision`, `interpretation_status`, `confounders`, `next_action`, `notes`
 
-The matrix must be rerendered from the queue plus the canonical benchmark
-registry. Metrics belong in the registry, not duplicated in the queue.
+The matrix must be rerendered from the active or selected sweep plus the
+canonical benchmark registry. Metrics belong in the registry, not duplicated in
+the queue.
 
 Use `scripts/system_delta_queue.py` to:
 
+- list sweeps and show the active sweep
+- create a new sweep or set a different active sweep
 - list rows in order
 - print the next `ready` row
 - validate completed rows
-- render `reference/system_delta_matrix.md`
+- render `reference/system_delta_sweeps/<sweep_id>/matrix.md`
+
+Every benchmark-facing run belongs to exactly one `sweep_id`. New complexity
+passes should create a new sweep instead of mutating an old completed one.
 
 ## Required Research Package
 
 Before any empirical run for a queue row, create:
 
-- `outputs/staged_ladder/research/<delta_id>/research_card.md`
-- `outputs/staged_ladder/research/<delta_id>/campaign.yaml`
+- `outputs/staged_ladder/research/<sweep_id>/<delta_id>/research_card.md`
+- `outputs/staged_ladder/research/<sweep_id>/<delta_id>/campaign.yaml`
 
 After the run is benchmarked and registered, also create:
 
-- `outputs/staged_ladder/research/<delta_id>/result_card.md`
+- `outputs/staged_ladder/research/<sweep_id>/<delta_id>/result_card.md`
 
 Use `reference/system_delta_campaign_template.md` and
 `reference/stage_research_sources.yaml`.
@@ -130,15 +147,17 @@ record is the system-surface evidence source for:
 
 For each queue row:
 
-1. Select the next `status=ready` row from `reference/system_delta_queue.yaml`.
-2. Write or update `research_card.md` and `campaign.yaml`.
-3. Train on the locked anchor surface, changing only the declared dimension.
-4. Benchmark on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
-5. Register the benchmark-facing run in `src/tab_foundry/bench/benchmark_run_registry_v1.json`.
-6. Ensure the run has `training_surface_record.json`.
-7. Write `result_card.md`.
-8. Rerender `reference/system_delta_matrix.md`.
-9. Update the queue row status, run ids, interpretation, and next action.
+1. Select the active sweep from `reference/system_delta_sweeps/index.yaml`, or pass an explicit `--sweep-id`.
+2. Select the next `status=ready` row from `reference/system_delta_sweeps/<sweep_id>/queue.yaml`.
+3. Write or update `research_card.md` and `campaign.yaml`.
+4. Train on the locked anchor surface, changing only the declared dimension.
+5. Benchmark on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
+6. Register the benchmark-facing run in `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its `sweep_id`.
+7. Ensure the run has `training_surface_record.json`.
+8. Write `result_card.md`.
+9. Rerender `reference/system_delta_sweeps/<sweep_id>/matrix.md`.
+10. Regenerate the top-level alias files if and only if this is the active sweep.
+11. Update the queue row status, run ids, interpretation, and next action.
 
 This pass is attribution-first. No row becomes the new base during the sweep.
 

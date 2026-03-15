@@ -152,6 +152,14 @@ class _SurfaceLabelsPayload(_RegistryPayloadModel):
     preprocessing: StrictStr
 
 
+class _SweepPayload(_RegistryPayloadModel):
+    sweep_id: StrictStr
+    delta_id: StrictStr
+    parent_sweep_id: StrictStr | None = None
+    queue_order: StrictInt | None = None
+    run_kind: Literal["primary", "followup"]
+
+
 class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     manifest_path: StrictStr
     seed_set: list[StrictInt] = Field(min_length=1)
@@ -162,6 +170,7 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     training_diagnostics: _TrainingDiagnosticsPayload
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None
+    sweep: _SweepPayload | None = None
     generated_at_utc: StrictStr
 
 
@@ -181,6 +190,7 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     training_diagnostics: _TrainingDiagnosticsPayload
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None
+    sweep: _SweepPayload | None = None
     comparisons: _ComparisonsPayload
     decision: Literal["keep", "reject", "defer"]
     conclusion: StrictStr
@@ -258,6 +268,44 @@ def _ensure_optional_string(value: Any, *, context: str) -> str | None:
     if value is None:
         return None
     return _ensure_non_empty_string(value, context=context)
+
+
+def _ensure_optional_positive_int(value: Any, *, context: str) -> int | None:
+    if value is None:
+        return None
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+        raise RuntimeError(f"{context} must be a positive int or null")
+    return int(value)
+
+
+def _sweep_payload(
+    *,
+    sweep_id: str | None,
+    delta_id: str | None,
+    parent_sweep_id: str | None,
+    queue_order: int | None,
+    run_kind: str | None,
+) -> dict[str, Any] | None:
+    raw_values = (sweep_id, delta_id, parent_sweep_id, queue_order, run_kind)
+    if all(value is None for value in raw_values):
+        return None
+    normalized_sweep_id = _ensure_non_empty_string(sweep_id, context="sweep_id")
+    normalized_delta_id = _ensure_non_empty_string(delta_id, context="delta_id")
+    normalized_parent_sweep_id = _ensure_optional_string(
+        parent_sweep_id,
+        context="parent_sweep_id",
+    )
+    normalized_queue_order = _ensure_optional_positive_int(queue_order, context="queue_order")
+    normalized_run_kind = _ensure_non_empty_string(run_kind, context="run_kind").lower()
+    if normalized_run_kind not in {"primary", "followup"}:
+        raise RuntimeError("run_kind must be 'primary' or 'followup'")
+    return {
+        "sweep_id": normalized_sweep_id,
+        "delta_id": normalized_delta_id,
+        "parent_sweep_id": normalized_parent_sweep_id,
+        "queue_order": normalized_queue_order,
+        "run_kind": normalized_run_kind,
+    }
 
 
 def _ensure_optional_finite_number(value: Any, *, context: str) -> float | None:
@@ -587,6 +635,11 @@ def derive_benchmark_run_record(
     comparison_summary_path: Path,
     prior_dir: Path | None = None,
     benchmark_run_record_path: Path | None = None,
+    sweep_id: str | None = None,
+    delta_id: str | None = None,
+    parent_sweep_id: str | None = None,
+    queue_order: int | None = None,
+    run_kind: str | None = None,
 ) -> dict[str, Any]:
     """Derive one machine-readable benchmark run record from current artifacts."""
 
@@ -701,6 +754,13 @@ def derive_benchmark_run_record(
         "surface_labels": None
         if training_surface_payload is None
         else dict(cast(dict[str, Any], training_surface_payload["labels"])),
+        "sweep": _sweep_payload(
+            sweep_id=sweep_id,
+            delta_id=delta_id,
+            parent_sweep_id=parent_sweep_id,
+            queue_order=queue_order,
+            run_kind=run_kind,
+        ),
         "generated_at_utc": _utc_now(),
     }
     _validate_record_payload(record)
@@ -760,6 +820,11 @@ def derive_benchmark_run_entry(
     anchor_run_id: str | None = None,
     prior_dir: Path | None = None,
     control_baseline_id: str | None = None,
+    sweep_id: str | None = None,
+    delta_id: str | None = None,
+    parent_sweep_id: str | None = None,
+    queue_order: int | None = None,
+    run_kind: str | None = None,
     registry_path: Path | None = None,
 ) -> dict[str, Any]:
     """Derive one benchmark registry entry from benchmark artifacts and lineage."""
@@ -781,6 +846,11 @@ def derive_benchmark_run_entry(
         comparison_summary_path=resolved_summary_path,
         prior_dir=prior_dir,
         benchmark_run_record_path=resolved_record_path,
+        sweep_id=sweep_id,
+        delta_id=delta_id,
+        parent_sweep_id=parent_sweep_id,
+        queue_order=queue_order,
+        run_kind=run_kind,
     )
     write_json(resolved_record_path, record)
 
@@ -820,6 +890,7 @@ def derive_benchmark_run_entry(
         "training_diagnostics": record["training_diagnostics"],
         "model_size": record["model_size"],
         "surface_labels": record.get("surface_labels"),
+        "sweep": record.get("sweep"),
         "comparisons": {
             "vs_parent": None
             if parent_entry is None
@@ -875,6 +946,11 @@ def register_benchmark_run(
     anchor_run_id: str | None = None,
     prior_dir: Path | None = None,
     control_baseline_id: str | None = None,
+    sweep_id: str | None = None,
+    delta_id: str | None = None,
+    parent_sweep_id: str | None = None,
+    queue_order: int | None = None,
+    run_kind: str | None = None,
     registry_path: Path | None = None,
 ) -> dict[str, Any]:
     """Register one completed benchmark-facing run in the canonical registry."""
@@ -893,6 +969,11 @@ def register_benchmark_run(
         anchor_run_id=anchor_run_id,
         prior_dir=prior_dir,
         control_baseline_id=control_baseline_id,
+        sweep_id=sweep_id,
+        delta_id=delta_id,
+        parent_sweep_id=parent_sweep_id,
+        queue_order=queue_order,
+        run_kind=run_kind,
         registry_path=registry_path,
     )
     resolved_registry_path = upsert_benchmark_run_entry(entry, registry_path=registry_path)
@@ -944,6 +1025,25 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional frozen control baseline id associated with the run",
     )
+    parser.add_argument("--sweep-id", default=None, help="Optional sweep id associated with the run")
+    parser.add_argument("--delta-id", default=None, help="Optional delta id associated with the run")
+    parser.add_argument(
+        "--parent-sweep-id",
+        default=None,
+        help="Optional parent sweep id associated with the run",
+    )
+    parser.add_argument(
+        "--queue-order",
+        default=None,
+        type=int,
+        help="Optional positive queue order within the sweep",
+    )
+    parser.add_argument(
+        "--run-kind",
+        default=None,
+        choices=("primary", "followup"),
+        help="Optional sweep-local run kind",
+    )
     parser.add_argument(
         "--registry-path",
         default=str(default_benchmark_run_registry_path()),
@@ -971,6 +1071,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         control_baseline_id=(
             None if args.control_baseline_id is None else str(args.control_baseline_id)
         ),
+        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
+        delta_id=None if args.delta_id is None else str(args.delta_id),
+        parent_sweep_id=None if args.parent_sweep_id is None else str(args.parent_sweep_id),
+        queue_order=None if args.queue_order is None else int(args.queue_order),
+        run_kind=None if args.run_kind is None else str(args.run_kind),
         registry_path=Path(str(args.registry_path)),
     )
     print("Benchmark run registered:")
