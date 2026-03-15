@@ -22,6 +22,7 @@ def _write_checkpoint(
     seed: int = 1,
     arch: str | None = "tabfoundry_staged",
     stage: str | None = "nano_exact",
+    training_cfg: dict[str, object] | None = None,
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     model_cfg: dict[str, object] = {
@@ -47,6 +48,7 @@ def _write_checkpoint(
                 "data": checkpoint_data_cfg,
                 "runtime": {"seed": int(seed)},
                 "model": model_cfg,
+                **({} if training_cfg is None else {"training": training_cfg}),
                 "schedule": {
                     "stages": [
                         {
@@ -168,6 +170,7 @@ def _prepare_run(
     checkpoint_data_cfg: dict[str, object] | None = None,
     seed: int = 1,
     final_roc_auc: float = 0.83,
+    training_cfg: dict[str, object] | None = None,
 ) -> tuple[Path, Path]:
     manifest_path = repo_root / "data" / "manifests" / "default.parquet"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -183,6 +186,7 @@ def _prepare_run(
         manifest_path="data/manifests/default.parquet",
         data_cfg=checkpoint_data_cfg,
         seed=seed,
+        training_cfg=training_cfg,
     )
     _write_history(run_dir / "train_history.jsonl")
     _write_comparison_summary(
@@ -222,9 +226,35 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
         "outputs/stage_01/benchmark/training_surface_record.json"
     )
     assert record["surface_labels"]["model"] == "nano_exact"
+    assert "training" not in record["surface_labels"]
     assert record["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
     )
+
+
+def test_derive_benchmark_run_record_captures_optional_training_surface_label(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(
+        repo_root,
+        run_name="stage_training",
+        training_cfg={
+            "surface_label": "prior_linear_decay",
+            "apply_schedule": True,
+            "overrides": {"optimizer": {"min_lr": 4.0e-4}},
+        },
+    )
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    assert record["surface_labels"]["training"] == "prior_linear_decay"
 
 
 def test_derive_benchmark_run_record_includes_optional_sweep_metadata(

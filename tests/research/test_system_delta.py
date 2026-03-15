@@ -71,11 +71,25 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     assert "Sweep id: `binary_md_v1`" in matrix
     assert "delta_row_cls_pool" in matrix
     assert "tfrow_n_heads" in matrix
+    assert "delta_row_cls_pool_rmsnorm" in matrix
+    assert "tfrow_norm" in matrix
+    assert "delta_global_rmsnorm" in matrix
+    assert "norm_type" in matrix
+    assert "delta_training_linear_decay" in matrix
+    assert "Training overrides" in matrix
+    assert "training=`prior_linear_decay`" in matrix
     assert "outputs/staged_ladder/research/binary_md_v1/delta_row_cls_pool/result_card.md" in matrix
     assert "Legacy stage alias" in matrix
     row_cls_pool = next(row for row in queue["rows"] if row["delta_id"] == "delta_row_cls_pool")
     assert (
         f"| 6 | `delta_row_cls_pool` | row_pool | yes | {row_cls_pool['status']} | row_cls_pool |"
+        in matrix
+    )
+    training_row = next(row for row in queue["rows"] if row["delta_id"] == "delta_training_linear_decay")
+    assert (
+        f"| {training_row['order']} | `delta_training_linear_decay` | schedule | "
+        f"{'yes' if training_row.get('binary_applicable', False) else 'no'} | "
+        f"{training_row['status']} | {training_row.get('entangled_legacy_stage', 'none')} |"
         in matrix
     )
 

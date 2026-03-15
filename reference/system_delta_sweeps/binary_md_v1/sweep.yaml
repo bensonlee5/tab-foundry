@@ -50,6 +50,10 @@ anchor_surface:
       upstream: Notebook preprocessing inside the benchmark helper.
       anchor: Runtime support-set preprocessing with mean imputation and train-only label remap/filter semantics.
       interpretation: Preprocessing changes can alter the effective task definition and must be tracked explicitly.
+    - dimension: training recipe
+      upstream: No repo-local prior-dump training-surface contract.
+      anchor: Exact-prior training surface label `prior_constant_lr`.
+      interpretation: Optimizer and schedule changes are first-class sweep rows, not silent background recipe assumptions.
 
 anchor_context:
   run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
@@ -71,3 +75,4 @@ anchor_context:
     model: nano_exact
     data: anchor_manifest_default
     preprocessing: runtime_default
+    training: prior_constant_lr

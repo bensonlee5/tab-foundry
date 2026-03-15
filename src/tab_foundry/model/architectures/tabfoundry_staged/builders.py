@@ -63,6 +63,7 @@ def build_table_block(surface: ResolvedStageSurface, *, d_icl: int) -> nn.Module
             embedding_size=d_icl,
             nhead=surface.table_block.n_heads,
             mlp_hidden_size=surface.table_block.mlp_hidden_dim,
+            norm_type=surface.table_block.norm_type,
         )
     if surface.table_block.style == "prenorm":
         return PreNormCellBlock(
@@ -70,6 +71,7 @@ def build_table_block(surface: ResolvedStageSurface, *, d_icl: int) -> nn.Module
             nhead=surface.table_block.n_heads,
             mlp_hidden_size=surface.table_block.mlp_hidden_dim,
             allow_test_self_attention=surface.table_block.allow_test_self_attention,
+            norm_type=surface.table_block.norm_type,
         )
     raise RuntimeError(f"Unsupported table block style: {surface.table_block.style!r}")
 
@@ -83,6 +85,7 @@ def build_column_encoder(surface: ResolvedStageSurface, *, d_icl: int) -> nn.Mod
             n_heads=int(surface.column_encoder_config.n_heads or 0),
             n_layers=int(surface.column_encoder_config.n_layers or 0),
             n_inducing=int(surface.column_encoder_config.n_inducing or 0),
+            norm_type=str(surface.column_encoder_config.norm_type or "layernorm"),
         )
     raise RuntimeError(f"Unsupported column encoder variant: {surface.column_encoder!r}")
 
@@ -96,6 +99,7 @@ def build_row_pool(surface: ResolvedStageSurface, *, d_icl: int) -> nn.Module:
             n_heads=int(surface.row_pool_config.n_heads or 0),
             n_layers=int(surface.row_pool_config.n_layers or 0),
             cls_tokens=int(surface.row_pool_config.cls_tokens or 0),
+            norm_type=str(surface.row_pool_config.norm_type or "layernorm"),
         )
     raise RuntimeError(f"Unsupported row pool variant: {surface.row_pool!r}")
 
@@ -113,6 +117,7 @@ def build_context_encoder(surface: ResolvedStageSurface, *, d_icl: int) -> Seque
             allow_test_self_attention=bool(
                 surface.context_encoder_config.allow_test_self_attention
             ),
+            norm_type=str(surface.context_encoder_config.norm_type or "layernorm"),
         )
     raise RuntimeError(f"Unsupported context encoder variant: {surface.context_encoder!r}")
 

@@ -8,6 +8,8 @@ from typing import cast
 import torch
 from torch import nn
 
+from .normalization import build_norm
+
 
 class QASSScaler(nn.Module):
     """Implements QASS scaling q * base(log n) * (1 + tanh(gate(q)))."""
@@ -113,10 +115,11 @@ class QASSTransformerLayer(nn.Module):
         ff_expansion: int = 2,
         dropout: float = 0.0,
         use_qass: bool = True,
+        norm_type: str = "layernorm",
     ) -> None:
         super().__init__()
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
+        self.norm1 = build_norm(norm_type, d_model)
+        self.norm2 = build_norm(norm_type, d_model)
         self.attn = QASSMultiheadAttention(d_model, n_heads, dropout=dropout, use_qass=use_qass)
         ff_hidden = d_model * ff_expansion
         self.ff = nn.Sequential(
@@ -160,6 +163,7 @@ class QASSTransformerEncoder(nn.Module):
         ff_expansion: int = 2,
         dropout: float = 0.0,
         use_qass: bool = True,
+        norm_type: str = "layernorm",
     ) -> None:
         super().__init__()
         self.layers = nn.ModuleList(
@@ -170,11 +174,12 @@ class QASSTransformerEncoder(nn.Module):
                     ff_expansion=ff_expansion,
                     dropout=dropout,
                     use_qass=use_qass,
+                    norm_type=norm_type,
                 )
                 for _ in range(n_layers)
             ]
         )
-        self.final_norm = nn.LayerNorm(d_model)
+        self.final_norm = build_norm(norm_type, d_model)
 
     def forward(
         self,

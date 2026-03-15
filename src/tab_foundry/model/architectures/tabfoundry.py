@@ -18,6 +18,7 @@ from tab_foundry.input_normalization import (
 from tab_foundry.types import TaskBatch
 
 from ..components.blocks import TFColEncoder, TFRowEncoder
+from ..components.normalization import SUPPORTED_NORM_TYPES
 from ..components.many_class import (
     HierNode,
     balanced_bases,
@@ -64,12 +65,14 @@ class _TabFoundryBackbone(nn.Module):
         d_icl: int = 512,
         input_normalization: str = "none",
         feature_group_size: int = 1,
+        norm_type: str = "layernorm",
         tfcol_n_heads: int = 8,
         tfcol_n_layers: int = 3,
         tfcol_n_inducing: int = 128,
         tfrow_n_heads: int = 8,
         tfrow_n_layers: int = 3,
         tfrow_cls_tokens: int = 4,
+        tfrow_norm: str = "layernorm",
         tficl_n_heads: int = 8,
         tficl_n_layers: int = 12,
         tficl_ff_expansion: int = 2,
@@ -90,12 +93,14 @@ class _TabFoundryBackbone(nn.Module):
             raise ValueError(
                 f"feature_group_size must be positive, got {self.feature_group_size}"
             )
+        self.norm_type = str(norm_type).strip().lower()
         self.tfcol_n_heads = int(tfcol_n_heads)
         self.tfcol_n_layers = int(tfcol_n_layers)
         self.tfcol_n_inducing = int(tfcol_n_inducing)
         self.tfrow_n_heads = int(tfrow_n_heads)
         self.tfrow_n_layers = int(tfrow_n_layers)
         self.tfrow_cls_tokens = int(tfrow_cls_tokens)
+        self.tfrow_norm = str(tfrow_norm).strip().lower()
         self.tficl_n_heads = int(tficl_n_heads)
         self.tficl_n_layers = int(tficl_n_layers)
         self.tficl_ff_expansion = int(tficl_ff_expansion)
@@ -112,6 +117,14 @@ class _TabFoundryBackbone(nn.Module):
         ):
             if value <= 0:
                 raise ValueError(f"{name} must be positive, got {value}")
+        if self.norm_type not in SUPPORTED_NORM_TYPES:
+            raise ValueError(
+                f"norm_type must be one of {SUPPORTED_NORM_TYPES}, got {self.norm_type!r}"
+            )
+        if self.tfrow_norm not in SUPPORTED_NORM_TYPES:
+            raise ValueError(
+                f"tfrow_norm must be one of {SUPPORTED_NORM_TYPES}, got {self.tfrow_norm!r}"
+            )
 
         group_in_dim = len(self.group_shifts) * self.feature_group_size
         self.group_linear = nn.Linear(group_in_dim, d_col)
@@ -120,6 +133,7 @@ class _TabFoundryBackbone(nn.Module):
             n_heads=self.tfcol_n_heads,
             n_layers=self.tfcol_n_layers,
             n_inducing=self.tfcol_n_inducing,
+            norm_type=self.norm_type,
         )
         self.tfrow = TFRowEncoder(
             d_model=d_col,
@@ -127,6 +141,7 @@ class _TabFoundryBackbone(nn.Module):
             n_layers=self.tfrow_n_layers,
             cls_tokens=self.tfrow_cls_tokens,
             d_out=d_icl,
+            norm_type=self.tfrow_norm,
         )
         self.tficl = QASSTransformerEncoder(
             d_model=d_icl,
@@ -134,6 +149,7 @@ class _TabFoundryBackbone(nn.Module):
             n_layers=self.tficl_n_layers,
             ff_expansion=self.tficl_ff_expansion,
             use_qass=True,
+            norm_type=self.norm_type,
         )
 
     def _group_features(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -251,6 +267,7 @@ class TabFoundryClassifier(_TabFoundryBackbone):
         d_icl: int = 512,
         input_normalization: str = "none",
         feature_group_size: int = 1,
+        norm_type: str = "layernorm",
         many_class_train_mode: str = "path_nll",
         max_mixed_radix_digits: int = 64,
         tfcol_n_heads: int = 8,
@@ -259,6 +276,7 @@ class TabFoundryClassifier(_TabFoundryBackbone):
         tfrow_n_heads: int = 8,
         tfrow_n_layers: int = 3,
         tfrow_cls_tokens: int = 4,
+        tfrow_norm: str = "layernorm",
         tficl_n_heads: int = 8,
         tficl_n_layers: int = 12,
         tficl_ff_expansion: int = 2,
@@ -271,12 +289,14 @@ class TabFoundryClassifier(_TabFoundryBackbone):
             d_icl=d_icl,
             input_normalization=input_normalization,
             feature_group_size=feature_group_size,
+            norm_type=norm_type,
             tfcol_n_heads=tfcol_n_heads,
             tfcol_n_layers=tfcol_n_layers,
             tfcol_n_inducing=tfcol_n_inducing,
             tfrow_n_heads=tfrow_n_heads,
             tfrow_n_layers=tfrow_n_layers,
             tfrow_cls_tokens=tfrow_cls_tokens,
+            tfrow_norm=tfrow_norm,
             tficl_n_heads=tficl_n_heads,
             tficl_n_layers=tficl_n_layers,
             tficl_ff_expansion=tficl_ff_expansion,
@@ -595,12 +615,14 @@ class TabFoundryRegressor(_TabFoundryBackbone):
         d_icl: int = 512,
         input_normalization: str = "none",
         feature_group_size: int = 1,
+        norm_type: str = "layernorm",
         tfcol_n_heads: int = 8,
         tfcol_n_layers: int = 3,
         tfcol_n_inducing: int = 128,
         tfrow_n_heads: int = 8,
         tfrow_n_layers: int = 3,
         tfrow_cls_tokens: int = 4,
+        tfrow_norm: str = "layernorm",
         tficl_n_heads: int = 8,
         tficl_n_layers: int = 12,
         tficl_ff_expansion: int = 2,
@@ -611,12 +633,14 @@ class TabFoundryRegressor(_TabFoundryBackbone):
             d_icl=d_icl,
             input_normalization=input_normalization,
             feature_group_size=feature_group_size,
+            norm_type=norm_type,
             tfcol_n_heads=tfcol_n_heads,
             tfcol_n_layers=tfcol_n_layers,
             tfcol_n_inducing=tfcol_n_inducing,
             tfrow_n_heads=tfrow_n_heads,
             tfrow_n_layers=tfrow_n_layers,
             tfrow_cls_tokens=tfrow_cls_tokens,
+            tfrow_norm=tfrow_norm,
             tficl_n_heads=tficl_n_heads,
             tficl_n_layers=tficl_n_layers,
             tficl_ff_expansion=tficl_ff_expansion,

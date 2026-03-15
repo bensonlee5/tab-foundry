@@ -24,6 +24,7 @@ SWEEP_SCHEMA = "tab-foundry-system-delta-sweep-v1"
 SWEEP_QUEUE_SCHEMA = "tab-foundry-system-delta-sweep-queue-v1"
 MATERIALIZED_QUEUE_SCHEMA = "tab-foundry-system-delta-queue-v1"
 DEFAULT_SWEEP_STATUS = "draft"
+DEFAULT_ANCHOR_TRAINING_LABEL = "prior_constant_lr"
 
 
 def repo_root() -> Path:
@@ -497,6 +498,11 @@ def _build_anchor_surface(
         key="preprocessing",
         fallback="registry surface label unavailable",
     )
+    training_label = _surface_label_from_anchor_context(
+        anchor_context,
+        key="training",
+        fallback=DEFAULT_ANCHOR_TRAINING_LABEL,
+    )
     feature_encoder, feature_encoder_interpretation = _describe_feature_encoder(module_selection)
     target_conditioner, target_conditioner_interpretation = _describe_target_conditioner(
         module_selection
@@ -574,6 +580,12 @@ def _build_anchor_surface(
                 "anchor": f"Benchmark preprocessing surface label `{preprocessing_label}`.",
                 "interpretation": "Preprocessing changes can alter the effective task definition and must be tracked explicitly.",
             },
+            {
+                "dimension": "training recipe",
+                "upstream": "No repo-local prior-dump training-surface contract.",
+                "anchor": f"Training surface label `{training_label}`.",
+                "interpretation": "Optimizer and schedule changes are first-class sweep rows, not background recipe assumptions.",
+            },
         ],
     }
 
@@ -634,7 +646,12 @@ def _materialize_row(
     *,
     queue_row: Mapping[str, Any],
     delta_entry: Mapping[str, Any],
+    anchor_context: Mapping[str, Any],
 ) -> dict[str, Any]:
+    default_effective_surface = cast(
+        dict[str, Any],
+        _copy_jsonable(cast(dict[str, Any], delta_entry.get("default_effective_surface", {}))),
+    )
     parameter_policy = cast(
         dict[str, Any],
         _copy_jsonable(cast(dict[str, Any], delta_entry.get("parameter_adequacy_policy", {}))),
@@ -662,9 +679,39 @@ def _materialize_row(
             list[Any],
             _copy_jsonable(delta_entry.get("applicability_guards", [])),
         ),
-        "model": cast(dict[str, Any], _copy_jsonable(queue_row.get("model", {}))),
-        "data": cast(dict[str, Any], _copy_jsonable(queue_row.get("data", {}))),
-        "preprocessing": cast(dict[str, Any], _copy_jsonable(queue_row.get("preprocessing", {}))),
+        "model": cast(
+            dict[str, Any],
+            _copy_jsonable(queue_row.get("model", default_effective_surface.get("model", {}))),
+        ),
+        "data": cast(
+            dict[str, Any],
+            _copy_jsonable(queue_row.get("data", default_effective_surface.get("data", {}))),
+        ),
+        "preprocessing": cast(
+            dict[str, Any],
+            _copy_jsonable(
+                queue_row.get("preprocessing", default_effective_surface.get("preprocessing", {}))
+            ),
+        ),
+        "training": cast(
+            dict[str, Any],
+            _copy_jsonable(
+                queue_row.get(
+                    "training",
+                    default_effective_surface.get(
+                        "training",
+                        {
+                            "surface_label": _surface_label_from_anchor_context(
+                                anchor_context,
+                                key="training",
+                                fallback=DEFAULT_ANCHOR_TRAINING_LABEL,
+                            ),
+                            "overrides": {},
+                        },
+                    ),
+                )
+            ),
+        ),
         "parameter_adequacy_plan": cast(list[Any], _copy_jsonable(parameter_plan)),
         "run_id": queue_row.get("run_id"),
         "followup_run_ids": cast(list[Any], _copy_jsonable(queue_row.get("followup_run_ids", []))),
@@ -693,7 +740,13 @@ def materialize_system_delta_queue(
         delta_entry = deltas.get(delta_ref)
         if not isinstance(delta_entry, dict):
             raise RuntimeError(f"unknown delta_ref {delta_ref!r} in sweep {sweep_id!r}")
-        rows.append(_materialize_row(queue_row=queue_row, delta_entry=delta_entry))
+        rows.append(
+            _materialize_row(
+                queue_row=queue_row,
+                delta_entry=delta_entry,
+                anchor_context=cast(dict[str, Any], sweep.get("anchor_context", {})),
+            )
+        )
     resolved_sweeps_root = sweeps_root or default_sweeps_root()
     return {
         "schema": MATERIALIZED_QUEUE_SCHEMA,
@@ -770,6 +823,20 @@ def load_system_delta_queue(
 def ordered_rows(queue: Mapping[str, Any]) -> list[dict[str, Any]]:
     rows = cast(list[dict[str, Any]], queue["rows"])
     return sorted(rows, key=lambda row: (int(row["order"]), str(row["delta_id"])))
+
+
+def _render_model_change_payload(model_payload: Mapping[str, Any]) -> dict[str, Any]:
+    rendered: dict[str, Any] = {}
+    module_overrides = model_payload.get("module_overrides")
+    if isinstance(module_overrides, dict) and module_overrides:
+        rendered["module_overrides"] = module_overrides
+    for key, value in model_payload.items():
+        if key in {"stage_label", "module_overrides"}:
+            continue
+        if value in (None, {}, []):
+            continue
+        rendered[str(key)] = value
+    return rendered
 
 
 def next_ready_row(queue: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -950,12 +1017,17 @@ def render_system_delta_matrix(
         lines.append(
             f"- Effective labels: model=`{queue_row['model']['stage_label']}`, "
             f"data=`{queue_row['data']['surface_label']}`, "
-            f"preprocessing=`{queue_row['preprocessing']['surface_label']}`"
+            f"preprocessing=`{queue_row['preprocessing']['surface_label']}`, "
+            f"training=`{queue_row['training']['surface_label']}`"
         )
         if queue_row["dimension_family"] == "model":
-            lines.append(f"- Model overrides: `{queue_row['model'].get('module_overrides', {})}`")
+            lines.append(
+                f"- Model overrides: `{_render_model_change_payload(cast(Mapping[str, Any], queue_row['model']))}`"
+            )
         elif queue_row["dimension_family"] == "data":
             lines.append(f"- Data overrides: `{queue_row['data'].get('surface_overrides', {})}`")
+        elif queue_row["dimension_family"] == "training":
+            lines.append(f"- Training overrides: `{queue_row['training'].get('overrides', {})}`")
         else:
             lines.append(
                 f"- Preprocessing overrides: `{queue_row['preprocessing'].get('overrides', {})}`"
@@ -1033,6 +1105,22 @@ def _instantiate_queue_row(
         "preprocessing": cast(
             dict[str, Any],
             _copy_jsonable(default_effective_surface.get("preprocessing", {})),
+        ),
+        "training": cast(
+            dict[str, Any],
+            _copy_jsonable(
+                default_effective_surface.get(
+                    "training",
+                    {
+                        "surface_label": _surface_label_from_anchor_context(
+                            anchor_context,
+                            key="training",
+                            fallback=DEFAULT_ANCHOR_TRAINING_LABEL,
+                        ),
+                        "overrides": {},
+                    },
+                )
+            ),
         ),
         "parameter_adequacy_plan": cast(
             list[Any],

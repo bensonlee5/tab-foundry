@@ -161,3 +161,58 @@ def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_v
     assert overridden_record["data"]["test_row_cap"] == 2
     assert fallback_record["data"]["train_row_cap"] == 10
     assert fallback_record["data"]["test_row_cap"] == 5
+
+
+def test_build_training_surface_record_includes_optional_training_surface(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest.parquet")
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "nano_exact",
+                "d_icl": 96,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
+            },
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+                "surface_label": "anchor_manifest_default",
+            },
+            "training": {
+                "surface_label": "prior_linear_warmup_decay",
+                "apply_schedule": True,
+                "overrides": {
+                    "optimizer": {"min_lr": 4.0e-4},
+                },
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "min_lr": 4.0e-4,
+            },
+            "schedule": {
+                "stages": [
+                    {
+                        "name": "stage1",
+                        "steps": 2500,
+                        "lr_max": 4.0e-3,
+                        "lr_schedule": "linear",
+                        "warmup_ratio": 0.05,
+                    }
+                ]
+            },
+        },
+        run_dir=tmp_path / "run_training",
+    )
+
+    assert record["labels"]["training"] == "prior_linear_warmup_decay"
+    assert record["training"]["apply_schedule"] is True
+    assert record["training"]["optimizer_name"] == "schedulefree_adamw"
+    assert record["training"]["optimizer_min_lr"] == 4.0e-4
+    assert record["training"]["schedule_stages"][0]["warmup_ratio"] == 0.05

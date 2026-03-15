@@ -79,12 +79,14 @@ def _make_config(
         "feature_group_size": 1,
         "many_class_train_mode": "path_nll",
         "max_mixed_radix_digits": 64,
+        "norm_type": "layernorm",
         "tfcol_n_heads": 8,
         "tfcol_n_layers": 3,
         "tfcol_n_inducing": 128,
         "tfrow_n_heads": 8,
         "tfrow_n_layers": 3,
         "tfrow_cls_tokens": 4,
+        "tfrow_norm": "layernorm",
         "tficl_n_heads": 8,
         "tficl_n_layers": 12,
         "tficl_ff_expansion": 2,
@@ -914,8 +916,10 @@ def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -
                 "feature_group_size": 1,
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
+                "norm_type": "layernorm",
                 "tfcol_n_layers": 3,
                 "tfrow_n_layers": 3,
+                "tfrow_norm": "layernorm",
                 "tficl_n_layers": 12,
                 "many_class_base": 10,
                 "head_hidden_dim": 1024,
@@ -927,15 +931,19 @@ def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -
 
     assert eval_spec.task == loaded.validated.manifest.task
     assert eval_spec.input_normalization == loaded.validated.manifest.model.input_normalization
+    assert eval_spec.norm_type == loaded.validated.manifest.model.norm_type
     assert eval_spec.many_class_train_mode == loaded.validated.manifest.model.many_class_train_mode
     assert eval_spec.tfcol_n_layers == loaded.validated.manifest.model.tfcol_n_layers
     assert eval_spec.tfrow_n_layers == loaded.validated.manifest.model.tfrow_n_layers
+    assert eval_spec.tfrow_norm == loaded.validated.manifest.model.tfrow_norm
     assert eval_spec.tficl_n_layers == loaded.validated.manifest.model.tficl_n_layers
     assert eval_spec.many_class_base == loaded.validated.manifest.model.many_class_base
     assert eval_spec.head_hidden_dim == loaded.validated.manifest.model.head_hidden_dim
     assert eval_spec.use_digit_position_embed == loaded.validated.manifest.model.use_digit_position_embed
     assert getattr(loaded.model, "input_normalization") == eval_spec.input_normalization
+    assert getattr(loaded.model, "norm_type") == eval_spec.norm_type
     assert getattr(loaded.model, "many_class_train_mode") == eval_spec.many_class_train_mode
+    assert getattr(loaded.model, "tfrow_norm") == eval_spec.tfrow_norm
     assert getattr(loaded.model, "many_class_base") == eval_spec.many_class_base
     assert getattr(loaded.model, "head_hidden_dim") == eval_spec.head_hidden_dim
     assert bool(getattr(loaded.model, "use_digit_position_embed")) is eval_spec.use_digit_position_embed
