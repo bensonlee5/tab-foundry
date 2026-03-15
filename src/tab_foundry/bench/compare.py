@@ -50,6 +50,7 @@ class NanoTabPFNBenchmarkConfig:
     control_baseline_id: str | None = None
     control_baseline_registry: Path | None = None
     benchmark_bundle_path: Path | None = None
+    reuse_nanotabpfn_curve_path: Path | None = None
 
 
 def _default_out_root() -> Path:
@@ -168,18 +169,26 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     )
     write_jsonl(tab_foundry_curve_path, tab_foundry_records)
 
-    subprocess.run(
-        _nanotabpfn_helper_command(
-            config=config,
-            dataset_cache=dataset_cache_path,
-            out_path=nanotabpfn_curve_path,
-        ),
-        cwd=nanotabpfn_root,
-        check=True,
-    )
-    nanotabpfn_records = load_jsonl(nanotabpfn_curve_path)
-    if not nanotabpfn_records:
-        raise RuntimeError("nanoTabPFN benchmark produced no curve records")
+    nanotabpfn_records: list[dict[str, Any]]
+    if config.reuse_nanotabpfn_curve_path is not None:
+        reuse_path = config.reuse_nanotabpfn_curve_path.expanduser().resolve()
+        nanotabpfn_records = load_jsonl(reuse_path)
+        if not nanotabpfn_records:
+            raise RuntimeError(f"reused nanoTabPFN curve is empty: {reuse_path}")
+        write_jsonl(nanotabpfn_curve_path, nanotabpfn_records)
+    else:
+        subprocess.run(
+            _nanotabpfn_helper_command(
+                config=config,
+                dataset_cache=dataset_cache_path,
+                out_path=nanotabpfn_curve_path,
+            ),
+            cwd=nanotabpfn_root,
+            check=True,
+        )
+        nanotabpfn_records = load_jsonl(nanotabpfn_curve_path)
+        if not nanotabpfn_records:
+            raise RuntimeError("nanoTabPFN benchmark produced no curve records")
 
     plot_comparison_curve(
         tab_foundry_records=tab_foundry_records,

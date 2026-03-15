@@ -12,6 +12,9 @@ Related docs:
 
 Planning and repo-shape docs now live under `docs/development/`.
 This file stays top-level because it is the stable operational runbook.
+For agent-driven architecture search, use `program.md` as the execution
+contract; this file stays focused on commands, artifacts, and operational
+policy.
 
 ## Environment And Quality Gate
 
