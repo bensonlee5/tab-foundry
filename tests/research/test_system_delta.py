@@ -70,7 +70,8 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     assert "delta_row_cls_pool" in matrix
     assert "tfrow_n_heads" in matrix
     assert "outputs/staged_ladder/research/binary_md_v1/delta_row_cls_pool/result_card.md" in matrix
-    assert "Legacy stage alias" not in matrix
+    assert "Legacy stage alias" in matrix
+    assert "| 6 | `delta_row_cls_pool` | row_pool | yes | ready | row_cls_pool |" in matrix
 
 
 def test_grouped_tokenizer_guard_is_captured_in_catalog_and_materialized_queue() -> None:
@@ -160,7 +161,7 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
     assert "10-task medium binary bundle" not in created_sweep["anchor_surface"]["notes"][0]
     assert created_queue["rows"][0]["delta_ref"] == "delta_label_token"
     assert materialized["sweep_id"] == "binary_sm_v2"
-    assert "entangled_legacy_stage" not in materialized["rows"][0]
+    assert materialized["rows"][0]["entangled_legacy_stage"] == "label_token"
     grouped_row = next(row for row in created_queue["rows"] if row["delta_ref"] == "delta_shifted_grouped_tokenizer")
     assert grouped_row["status"] == "blocked_on_surface_semantics"
     assert grouped_row["interpretation_status"] == "blocked"

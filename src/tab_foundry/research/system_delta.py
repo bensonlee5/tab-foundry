@@ -654,6 +654,7 @@ def _materialize_row(
         "hypothesis": str(queue_row.get("hypothesis", "")),
         "upstream_delta": str(delta_entry["upstream_delta"]),
         "anchor_delta": str(queue_row.get("anchor_delta", "")),
+        "entangled_legacy_stage": str(delta_entry.get("legacy_stage_alias", "none")),
         "expected_effect": str(delta_entry["expected_effect"]),
         "adequacy_knobs": cast(list[Any], _copy_jsonable(delta_entry.get("adequacy_knobs", []))),
         "parameter_adequacy_policy": parameter_policy,
@@ -916,12 +917,13 @@ def render_system_delta_matrix(
     lines.append("")
     lines.append("## Queue Summary")
     lines.append("")
-    lines.append("| Order | Delta | Family | Binary | Status | Effective change | Next action |")
-    lines.append("| --- | --- | --- | --- | --- | --- | --- |")
+    lines.append("| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
     for queue_row in ordered_rows(queue):
         lines.append(
             f"| {queue_row['order']} | `{queue_row['delta_id']}` | {queue_row['family']} | "
             f"{'yes' if queue_row.get('binary_applicable', False) else 'no'} | {queue_row['status']} | "
+            f"{queue_row.get('entangled_legacy_stage', 'none')} | "
             f"{queue_row['description']} | {queue_row['next_action']} |"
         )
     lines.append("")
@@ -936,6 +938,9 @@ def render_system_delta_matrix(
         lines.append(f"- Dimension family: `{queue_row['dimension_family']}`")
         lines.append(f"- Status: `{queue_row['status']}`")
         lines.append(f"- Binary applicable: `{queue_row.get('binary_applicable', False)}`")
+        lines.append(
+            f"- Legacy stage alias: `{queue_row.get('entangled_legacy_stage', 'none')}`"
+        )
         lines.append(f"- Description: {queue_row['description']}")
         lines.append(f"- Rationale: {queue_row['rationale']}")
         lines.append(f"- Hypothesis: {queue_row['hypothesis']}")
