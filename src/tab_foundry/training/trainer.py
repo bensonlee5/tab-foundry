@@ -34,6 +34,7 @@ from .losses import classification_loss, hierarchical_nll_loss, quantile_pinball
 from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
 from .schedule import build_stage_configs, stage_base_lr
+from .surface import write_training_surface_record
 
 
 def _cycle(loader: DataLoader[TaskBatch]) -> Iterator[TaskBatch]:
@@ -331,12 +332,14 @@ def train(cfg: DictConfig) -> TrainResult:
         split="train",
         task=task,
         seed=seed,
+        preprocessing_cfg=cfg.get("preprocessing"),
     )
     val_ds = build_task_dataset(
         cfg.data,
         split="val",
         task=task,
         seed=seed + 1,
+        preprocessing_cfg=cfg.get("preprocessing"),
     )
 
     train_loader = build_task_loader(
@@ -359,6 +362,13 @@ def train(cfg: DictConfig) -> TrainResult:
     model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
     model = build_model_from_spec(model_spec)
     model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
+    if accelerator.is_main_process:
+        raw_cfg = cast(dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
+        write_training_surface_record(
+            output_dir / "training_surface_record.json",
+            raw_cfg=raw_cfg,
+            run_dir=output_dir,
+        )
 
     run = _wandb_init(cfg, enabled=bool(cfg.logging.use_wandb and accelerator.is_main_process))
 

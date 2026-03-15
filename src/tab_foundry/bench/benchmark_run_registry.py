@@ -26,11 +26,13 @@ from tab_foundry.bench.nanotabpfn import (
     resolve_tab_foundry_best_checkpoint,
     resolve_tab_foundry_run_artifact_paths,
 )
+from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import (
     checkpoint_model_build_spec_from_mappings,
     ModelBuildSpec,
 )
+from tab_foundry.training.surface import write_training_surface_record
 from tab_foundry.training.schedule import build_stage_configs, warmup_steps_for_stage
 
 
@@ -66,6 +68,7 @@ class _RegistryPayloadModel(BaseModel):
 class _BenchmarkRunModelPayload(_RegistryPayloadModel):
     arch: StrictStr
     stage: StrictStr | None = None
+    stage_label: StrictStr | None = None
     benchmark_profile: StrictStr | None = None
     d_icl: StrictInt
     tficl_n_heads: StrictInt
@@ -73,6 +76,8 @@ class _BenchmarkRunModelPayload(_RegistryPayloadModel):
     head_hidden_dim: StrictInt
     input_normalization: StrictStr
     many_class_base: StrictInt
+    module_selection: dict[StrictStr, Any] | None = None
+    module_hyperparameters: dict[StrictStr, Any] | None = None
 
 
 class _BenchmarkBundlePayload(_RegistryPayloadModel):
@@ -92,6 +97,7 @@ class _BenchmarkArtifactsPayload(_RegistryPayloadModel):
     comparison_summary_path: StrictStr
     comparison_curve_path: StrictStr
     benchmark_run_record_path: StrictStr | None = None
+    training_surface_record_path: StrictStr | None = None
 
 
 class _TabFoundryMetricsPayload(_RegistryPayloadModel):
@@ -139,6 +145,12 @@ class _LineagePayload(_RegistryPayloadModel):
     control_baseline_id: StrictStr | None = None
 
 
+class _SurfaceLabelsPayload(_RegistryPayloadModel):
+    model: StrictStr
+    data: StrictStr
+    preprocessing: StrictStr
+
+
 class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     manifest_path: StrictStr
     seed_set: list[StrictInt] = Field(min_length=1)
@@ -148,6 +160,7 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     model_size: _ModelSizePayload
+    surface_labels: _SurfaceLabelsPayload | None = None
     generated_at_utc: StrictStr
 
 
@@ -166,6 +179,7 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
     model_size: _ModelSizePayload
+    surface_labels: _SurfaceLabelsPayload | None = None
     comparisons: _ComparisonsPayload
     decision: Literal["keep", "reject", "defer"]
     conclusion: StrictStr
@@ -478,9 +492,10 @@ def _model_payload_from_cfg(
 ) -> dict[str, Any]:
     model_spec = _checkpoint_model_spec_from_cfg(raw_cfg, state_dict=state_dict)
     benchmark_profile_raw = summary_tab_foundry.get("benchmark_profile")
-    return {
+    payload: dict[str, Any] = {
         "arch": str(model_spec.arch),
         "stage": None if model_spec.stage is None else str(model_spec.stage),
+        "stage_label": None if model_spec.stage_label is None else str(model_spec.stage_label),
         "benchmark_profile": None if benchmark_profile_raw is None else str(benchmark_profile_raw),
         "d_icl": int(model_spec.d_icl),
         "tficl_n_heads": int(model_spec.tficl_n_heads),
@@ -489,6 +504,41 @@ def _model_payload_from_cfg(
         "input_normalization": str(model_spec.input_normalization),
         "many_class_base": int(model_spec.many_class_base),
     }
+    if model_spec.arch == "tabfoundry_staged":
+        surface = resolve_staged_surface(model_spec)
+        if payload["stage_label"] is None:
+            payload["stage_label"] = str(surface.stage_label)
+        if payload["benchmark_profile"] is None:
+            payload["benchmark_profile"] = str(surface.benchmark_profile)
+        payload["module_selection"] = surface.module_selection()
+        payload["module_hyperparameters"] = surface.component_hyperparameters()
+    return payload
+
+
+def _training_surface_record(
+    *,
+    run_dir: Path,
+    raw_cfg: dict[str, Any],
+    raw_state_dict: dict[str, Any] | None,
+    benchmark_run_record_path: Path | None,
+) -> tuple[dict[str, Any] | None, Path | None]:
+    run_record_path = run_dir.expanduser().resolve() / "training_surface_record.json"
+    if run_record_path.exists():
+        with run_record_path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if not isinstance(payload, dict):
+            raise RuntimeError(f"training_surface_record.json must be a JSON object: {run_record_path}")
+        return cast(dict[str, Any], payload), run_record_path
+    if benchmark_run_record_path is None:
+        return None, None
+    derived_path = benchmark_run_record_path.parent / "training_surface_record.json"
+    payload = write_training_surface_record(
+        derived_path,
+        raw_cfg=raw_cfg,
+        run_dir=run_dir,
+        state_dict=raw_state_dict,
+    )
+    return payload, derived_path
 
 
 def _coerce_integral_step(value: Any) -> int | None:
@@ -592,6 +642,12 @@ def derive_benchmark_run_record(
             comparison_curve_path = Path(str(raw_curve)).expanduser().resolve()
     if comparison_curve_path is None:
         comparison_curve_path = resolved_summary_path.parent / "comparison_curve.png"
+    training_surface_payload, training_surface_path = _training_surface_record(
+        run_dir=resolved_run_dir,
+        raw_cfg=raw_cfg,
+        raw_state_dict=raw_state_dict,
+        benchmark_run_record_path=benchmark_run_record_path,
+    )
 
     record = {
         "manifest_path": _normalize_path_value(manifest_path),
@@ -621,6 +677,9 @@ def derive_benchmark_run_record(
             "benchmark_run_record_path": None
             if benchmark_run_record_path is None
             else _normalize_path_value(benchmark_run_record_path),
+            "training_surface_record_path": None
+            if training_surface_path is None
+            else _normalize_path_value(training_surface_path),
         },
         "tab_foundry_metrics": {
             key: float(tab_foundry[key])
@@ -628,6 +687,9 @@ def derive_benchmark_run_record(
         },
         "training_diagnostics": _training_diagnostics_from_history(history, raw_cfg=raw_cfg),
         "model_size": _count_parameters_from_cfg(raw_cfg, state_dict=raw_state_dict),
+        "surface_labels": None
+        if training_surface_payload is None
+        else dict(cast(dict[str, Any], training_surface_payload["labels"])),
         "generated_at_utc": _utc_now(),
     }
     _validate_record_payload(record)
@@ -746,6 +808,7 @@ def derive_benchmark_run_entry(
         "tab_foundry_metrics": record["tab_foundry_metrics"],
         "training_diagnostics": record["training_diagnostics"],
         "model_size": record["model_size"],
+        "surface_labels": record.get("surface_labels"),
         "comparisons": {
             "vs_parent": None
             if parent_entry is None

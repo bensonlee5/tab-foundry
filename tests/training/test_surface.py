@@ -1,0 +1,121 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+from tab_foundry.training.surface import build_training_surface_record
+
+
+def _write_manifest(path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    table = pa.Table.from_pylist(
+        [
+            {
+                "dataset_id": "root_a/shard_0/dataset_000001",
+                "source_root_id": "root_a",
+                "source_shard_relpath": "shard_0",
+                "split": "train",
+                "task": "classification",
+                "dataset_index": 1,
+                "train_path": "train.parquet",
+                "test_path": "test.parquet",
+                "metadata_path": "metadata.ndjson",
+                "metadata_offset_bytes": 0,
+                "metadata_size_bytes": 16,
+                "metadata_sha256": "0" * 64,
+                "n_train": 24,
+                "n_test": 8,
+                "n_features": 6,
+                "n_classes": 2,
+                "seed": 1,
+                "filter_mode": "curated",
+                "filter_status": "accepted",
+                "filter_accepted": True,
+            },
+            {
+                "dataset_id": "root_a/shard_0/dataset_000002",
+                "source_root_id": "root_a",
+                "source_shard_relpath": "shard_0",
+                "split": "val",
+                "task": "classification",
+                "dataset_index": 2,
+                "train_path": "train.parquet",
+                "test_path": "test.parquet",
+                "metadata_path": "metadata.ndjson",
+                "metadata_offset_bytes": 16,
+                "metadata_size_bytes": 16,
+                "metadata_sha256": "1" * 64,
+                "n_train": 30,
+                "n_test": 10,
+                "n_features": 8,
+                "n_classes": 2,
+                "seed": 2,
+                "filter_mode": "curated",
+                "filter_status": "accepted",
+                "filter_accepted": True,
+            },
+        ]
+    )
+    pq.write_table(table, path)
+    return path
+
+
+def test_build_training_surface_record_captures_model_data_and_preprocessing_surfaces(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest.parquet")
+    raw_cfg = {
+        "task": "classification",
+        "model": {
+            "arch": "tabfoundry_staged",
+            "stage": "nano_exact",
+            "stage_label": "delta_row_cls_pool",
+            "module_overrides": {"row_pool": "row_cls"},
+            "d_icl": 96,
+            "input_normalization": "train_zscore_clip",
+            "many_class_base": 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+            "tfrow_n_heads": 2,
+            "tfrow_n_layers": 1,
+            "tfrow_cls_tokens": 2,
+        },
+        "data": {
+            "source": "manifest",
+            "manifest_path": str(manifest_path),
+            "surface_label": "anchor_manifest_default",
+            "surface_overrides": {
+                "filter_policy": "accepted_only",
+                "dagzoo_provenance": {
+                    "commands": ["dagzoo filter --curated-out ..."],
+                    "config_refs": ["configs/dagzoo/binary.yaml"],
+                },
+            },
+        },
+        "preprocessing": {
+            "surface_label": "runtime_no_impute",
+            "overrides": {"impute_missing": False, "all_nan_fill": 1.0},
+        },
+    }
+
+    record = build_training_surface_record(
+        raw_cfg=raw_cfg,
+        run_dir=tmp_path / "run",
+    )
+
+    assert record["labels"] == {
+        "model": "delta_row_cls_pool",
+        "data": "anchor_manifest_default",
+        "preprocessing": "runtime_no_impute",
+    }
+    assert record["model"]["module_selection"]["row_pool"] == "row_cls"
+    assert record["model"]["module_hyperparameters"]["row_pool"]["n_heads"] == 2
+    assert record["data"]["manifest"]["characteristics"]["record_count"] == 2
+    assert record["data"]["manifest"]["characteristics"]["split_counts"] == {"train": 1, "val": 1}
+    assert record["data"]["filter_policy"] == "accepted_only"
+    assert record["data"]["dagzoo_provenance"]["commands"] == ["dagzoo filter --curated-out ..."]
+    assert record["preprocessing"]["impute_missing"] is False
+    assert record["preprocessing"]["all_nan_fill"] == 1.0

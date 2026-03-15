@@ -905,6 +905,8 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
     assert summary["artifacts"]["benchmark_run_record_json"] is None
     assert written_summary["artifacts"]["benchmark_run_record_json"] is None
+    assert summary["artifacts"]["training_surface_record_json"] is None
+    assert written_summary["artifacts"]["training_surface_record_json"] is None
     assert "persisted model.arch" in summary["tab_foundry"]["benchmark_run_record_warning"]
     assert "persisted model.arch" in written_summary["tab_foundry"]["benchmark_run_record_warning"]
     assert not (out_root / "benchmark_run_record.json").exists()

@@ -21,6 +21,8 @@ def build_model(
     *,
     arch: str = "tabfoundry",
     stage: str | None = None,
+    stage_label: str | None = None,
+    module_overrides: dict[str, object] | None = None,
     d_col: int = 128,
     d_icl: int = 512,
     input_normalization: str = "none",
@@ -44,8 +46,8 @@ def build_model(
 
     normalized_arch = str(arch).strip().lower()
     if normalized_arch == "tabfoundry" and task == "classification":
-        if stage is not None:
-            raise ValueError("tabfoundry does not support model.stage")
+        if stage is not None or stage_label is not None or module_overrides is not None:
+            raise ValueError("tabfoundry does not support staged model surface fields")
         return TabFoundryClassifier(
             d_col=d_col,
             d_icl=d_icl,
@@ -67,8 +69,8 @@ def build_model(
             use_digit_position_embed=use_digit_position_embed,
         )
     if normalized_arch == "tabfoundry" and task == "regression":
-        if stage is not None:
-            raise ValueError("tabfoundry does not support model.stage")
+        if stage is not None or stage_label is not None or module_overrides is not None:
+            raise ValueError("tabfoundry does not support staged model surface fields")
         return TabFoundryRegressor(
             d_col=d_col,
             d_icl=d_icl,
@@ -86,8 +88,8 @@ def build_model(
             head_hidden_dim=head_hidden_dim,
         )
     if normalized_arch == "tabfoundry_simple":
-        if stage is not None:
-            raise ValueError("tabfoundry_simple does not support model.stage")
+        if stage is not None or stage_label is not None or module_overrides is not None:
+            raise ValueError("tabfoundry_simple does not support staged model surface fields")
         if task != "classification":
             raise ValueError(
                 "tabfoundry_simple only supports task='classification' in phase 1; "
@@ -121,6 +123,8 @@ def build_model(
             )
         return TabFoundryStagedClassifier(
             stage=stage,
+            stage_label=stage_label,
+            module_overrides=module_overrides,
             d_col=d_col,
             d_icl=d_icl,
             input_normalization=input_normalization,

@@ -1,5 +1,9 @@
 source: manifest
 manifest_path: data/manifests/default.parquet
+surface_label: manifest_default
+surface_overrides: {}
+filter_policy: null
+dagzoo_provenance: null
 roots:
   - ${oc.env:DAGZOO_DATA_ROOT,${oc.env:HOME}/dev/dagzoo/data}
 train_row_cap: null

@@ -243,6 +243,9 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         train_row_cap: int | None = None,
         test_row_cap: int | None = None,
         impute_missing: bool = True,
+        all_nan_fill: float = 0.0,
+        label_mapping: str = "train_only_remap",
+        unseen_test_label_policy: str = "filter",
         seed: int = 0,
     ) -> None:
         self.manifest_path = manifest_path.expanduser().resolve()
@@ -251,6 +254,9 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         self.train_row_cap = train_row_cap
         self.test_row_cap = test_row_cap
         self.impute_missing = impute_missing
+        self.all_nan_fill = float(all_nan_fill)
+        self.label_mapping = str(label_mapping)
+        self.unseen_test_label_policy = str(unseen_test_label_policy)
         self.seed = int(seed)
 
         table = pq.read_table(self.manifest_path)
@@ -300,6 +306,9 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             x_test=x_test,
             y_test=y_test,
             impute_missing=self.impute_missing,
+            all_nan_fill=self.all_nan_fill,
+            label_mapping=self.label_mapping,
+            unseen_test_label_policy=self.unseen_test_label_policy,
         )
         x_train = processed.x_train
         y_train = processed.y_train

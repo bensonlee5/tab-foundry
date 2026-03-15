@@ -146,6 +146,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     comparison_curve_path = out_root / "comparison_curve.png"
     comparison_summary_path = out_root / "comparison_summary.json"
     benchmark_run_record_path = out_root / "benchmark_run_record.json"
+    training_surface_record_path = out_root / "training_surface_record.json"
     benchmark_bundle_path = (
         default_benchmark_bundle_path()
         if config.benchmark_bundle_path is None
@@ -219,6 +220,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         "comparison_curve_png": str(comparison_curve_path),
         "benchmark_dataset_cache": str(dataset_cache_path),
         "benchmark_run_record_json": str(benchmark_run_record_path),
+        "training_surface_record_json": str(training_surface_record_path),
     }
     write_json(comparison_summary_path, summary)
     try:
@@ -236,6 +238,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
             file=sys.stderr,
         )
         summary["artifacts"]["benchmark_run_record_json"] = None
+        summary["artifacts"]["training_surface_record_json"] = None
         cast(dict[str, Any], summary["tab_foundry"])[
             "benchmark_run_record_warning"
         ] = str(exc)
@@ -246,6 +249,8 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     tab_foundry_summary["seed_set"] = list(benchmark_run_record["seed_set"])
     tab_foundry_summary["training_diagnostics"] = dict(benchmark_run_record["training_diagnostics"])
     tab_foundry_summary["model_size"] = dict(benchmark_run_record["model_size"])
+    if benchmark_run_record.get("surface_labels") is not None:
+        tab_foundry_summary["surface_labels"] = dict(benchmark_run_record["surface_labels"])
     write_json(comparison_summary_path, summary)
     write_json(benchmark_run_record_path, benchmark_run_record)
     return summary

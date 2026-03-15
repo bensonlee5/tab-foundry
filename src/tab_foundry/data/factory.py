@@ -23,10 +23,17 @@ def build_task_dataset(
     split: str,
     task: str,
     seed: int,
+    preprocessing_cfg: DictConfig | None = None,
 ) -> Dataset[TaskBatch]:
     """Build one task dataset from the configured backing source."""
 
-    return build_source_dataset(data_cfg, split=split, task=task, seed=seed)
+    return build_source_dataset(
+        data_cfg,
+        split=split,
+        task=task,
+        seed=seed,
+        preprocessing_cfg=preprocessing_cfg,
+    )
 
 
 def build_task_loader(

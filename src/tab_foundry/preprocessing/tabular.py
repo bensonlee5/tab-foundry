@@ -17,6 +17,10 @@ from .state import (
     FittedPreprocessorState,
     MissingValuePolicyState,
 )
+from .surface import (
+    SUPPORTED_LABEL_MAPPINGS,
+    SUPPORTED_UNSEEN_TEST_LABEL_POLICIES,
+)
 
 
 SUPPORTED_TASKS = ("classification", "regression")
@@ -85,10 +89,23 @@ def fit_fitted_preprocessor(
     x_train: Any,
     y_train: Any,
     all_nan_fill: float = 0.0,
+    label_mapping: str = CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
+    unseen_test_label_policy: str = UNSEEN_TEST_LABEL_POLICY_FILTER,
 ) -> FittedPreprocessorState:
     """Fit the shared preprocessing state from one train split."""
 
     normalized_task = _require_task(task)
+    normalized_label_mapping = str(label_mapping).strip()
+    if normalized_label_mapping not in SUPPORTED_LABEL_MAPPINGS:
+        raise ValueError(
+            f"label_mapping must be one of {SUPPORTED_LABEL_MAPPINGS}, got {label_mapping!r}"
+        )
+    normalized_unseen_test_label_policy = str(unseen_test_label_policy).strip()
+    if normalized_unseen_test_label_policy not in SUPPORTED_UNSEEN_TEST_LABEL_POLICIES:
+        raise ValueError(
+            "unseen_test_label_policy must be one of "
+            f"{SUPPORTED_UNSEEN_TEST_LABEL_POLICIES}, got {unseen_test_label_policy!r}"
+        )
     x_train_matrix = _require_matrix(x_train, context="x_train")
     feature_ids = list(range(int(x_train_matrix.shape[1])))
     missing_value_policy = MissingValuePolicyState(
@@ -105,8 +122,8 @@ def fit_fitted_preprocessor(
         if label_values.size <= 0:
             raise RuntimeError("classification train split has no labels")
         classification_label_policy = ClassificationLabelPolicyState(
-            mapping=CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
-            unseen_test_label=UNSEEN_TEST_LABEL_POLICY_FILTER,
+            mapping=normalized_label_mapping,
+            unseen_test_label=normalized_unseen_test_label_policy,
             label_values=[int(value) for value in label_values.tolist()],
         )
     else:
@@ -258,6 +275,9 @@ def preprocess_runtime_task_arrays(
     x_test: Any,
     y_test: Any | None = None,
     impute_missing: bool = True,
+    all_nan_fill: float = 0.0,
+    label_mapping: str = CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
+    unseen_test_label_policy: str = UNSEEN_TEST_LABEL_POLICY_FILTER,
 ) -> PreprocessedTaskArrays:
     """Fit and apply preprocessing from the runtime support set."""
 
@@ -265,6 +285,9 @@ def preprocess_runtime_task_arrays(
         task=task,
         x_train=x_train,
         y_train=y_train,
+        all_nan_fill=all_nan_fill,
+        label_mapping=label_mapping,
+        unseen_test_label_policy=unseen_test_label_policy,
     )
     return apply_fitted_preprocessor(
         task=task,

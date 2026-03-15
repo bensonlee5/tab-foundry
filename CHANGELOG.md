@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-03-14
+
+### Changed
+
+- Refactored `tabfoundry_staged` so staged runs resolve through an explicit
+  atomic surface instead of hidden `_build_*` branch constants. Row-pool,
+  column-encoder, and context-encoder capacity knobs now come from surfaced
+  config (`tfrow_*`, `tfcol_*`, `tficl_*`) rather than hard-coded values.
+
+- Added additive staged model config fields `model.stage_label` and
+  `model.module_overrides`. These are user-facing config-surface changes under
+  `src/tab_foundry` and are intended for anchor-only system-delta experiments.
+
+- Added additive data and preprocessing surface settings:
+  `data.surface_label`, `data.surface_overrides`, `data.filter_policy`,
+  `data.dagzoo_provenance`, and the new root `preprocessing` config group with
+  explicit runtime preprocessing overrides.
+
+- Training and benchmark-facing runs now emit or derive a new
+  `training_surface_record.json` artifact that records the effective model
+  surface, data surface, manifest fingerprint and characteristics, dagzoo
+  provenance references when present, and preprocessing surface.
+
+- Benchmark comparison summaries and benchmark-run registry entries now carry
+  additive training-surface metadata, including
+  `artifacts.training_surface_record_path` and surfaced model/data/preprocessing
+  labels.
+
+- Added the anchor-only system-delta workflow contract:
+  `reference/system_delta_queue.yaml`,
+  `reference/system_delta_matrix.md`,
+  `reference/system_delta_campaign_template.md`, and
+  `scripts/system_delta_queue.py`. `program.md` now references this queue/matrix
+  workflow instead of the old stage-promotion loop.
+
+- User-facing workflow break: the active research contract is now an
+  interpretation-first anchor-only sweep across model, data, and preprocessing
+  dimensions. `result_card.md` and `training_surface_record.json` are required
+  evidence artifacts for completed rows, and underperformance alone is not
+  sufficient for `reject`.
+
 ## [0.4.0] - 2026-03-14
 
 ### Changed

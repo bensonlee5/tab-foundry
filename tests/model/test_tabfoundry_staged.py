@@ -255,3 +255,33 @@ def test_many_class_stage_accepts_full_probs_in_train_mode() -> None:
     assert out.path_logits is None
     assert out.path_targets is None
     assert out.path_sample_counts is None
+
+
+def test_module_overrides_surface_stage_label_and_row_pool_hyperparameters() -> None:
+    model = _staged(
+        "nano_exact",
+        stage_label="delta_row_cls_pool",
+        module_overrides={"row_pool": "row_cls"},
+        tfrow_n_heads=2,
+        tfrow_n_layers=1,
+        tfrow_cls_tokens=2,
+    )
+
+    assert model.stage == "nano_exact"
+    assert model.stage_label == "delta_row_cls_pool"
+    assert model.benchmark_profile == "delta_row_cls_pool"
+    assert model.surface.row_pool == "row_cls"
+    assert model.module_hyperparameters["row_pool"]["n_heads"] == 2
+    assert model.module_hyperparameters["row_pool"]["n_layers"] == 1
+    assert model.module_hyperparameters["row_pool"]["cls_tokens"] == 2
+
+
+def test_module_overrides_relax_legacy_stage_constraints_for_anchor_only_deltas() -> None:
+    model = _staged(
+        "nano_exact",
+        stage_label="delta_shared_feature_norm",
+        module_overrides={"feature_encoder": "shared"},
+        tfrow_n_heads=6,
+    )
+
+    assert model.surface.feature_encoder == "shared"

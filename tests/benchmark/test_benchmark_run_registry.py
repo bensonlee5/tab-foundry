@@ -212,6 +212,10 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     assert record["model_size"]["total_params"] > 0
     assert record["model_size"]["trainable_params"] > 0
     assert record["artifacts"]["run_dir"] == "outputs/stage_01/train"
+    assert record["artifacts"]["training_surface_record_path"] == (
+        "outputs/stage_01/benchmark/training_surface_record.json"
+    )
+    assert record["surface_labels"]["model"] == "nano_exact"
     assert record["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
     )
@@ -302,6 +306,9 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
     assert child_record_path.exists()
     child_record = json.loads(child_record_path.read_text(encoding="utf-8"))
     assert child_record["manifest_path"] == "data/manifests/default.parquet"
+    assert child_record["artifacts"]["training_surface_record_path"] == (
+        "outputs/label_token/benchmark/training_surface_record.json"
+    )
 
     registry = registry_module.load_benchmark_run_registry(registry_path)
     assert set(registry["runs"]) == {"00_simple_anchor", "01_nano_exact"}
