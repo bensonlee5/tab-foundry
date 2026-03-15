@@ -36,8 +36,8 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_label_token` | target_conditioning | yes | ready | label_token | Replace mean-padded linear target conditioning with train-label embeddings plus a learned test token. | Train the first anchor-only label-token run on the locked medium binary surface. |
-| 2 | `delta_shared_feature_norm` | feature_encoding | yes | ready | shared_norm | Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization. | Run the isolated shared-feature-encoder comparison. |
+| 1 | `delta_label_token` | target_conditioning | yes | completed | label_token | Replace mean-padded linear target conditioning with train-label embeddings plus a learned test token. | Keep this as completed negative evidence and only revisit label-token conditioning if a calibration-focused follow-up becomes justified. |
+| 2 | `delta_shared_feature_norm` | feature_encoding | yes | completed | shared_norm | Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization. | Keep this as completed mixed evidence and only schedule a bounded follow-up if we want to test whether shorter budgets or downstream normalization mismatch explain the late-curve drop. |
 | 3 | `delta_prenorm_block` | table_block | yes | ready | prenorm_block | Switch the cell transformer from the nano post-norm block to the staged pre-norm block, still without test self-attention. | Run the pre-norm-only ablation. |
 | 4 | `delta_test_self_attention` | table_block | yes | ready | test_self | Allow test-token self-attention inside the pre-norm block without adding any test-to-test cross-attention. | Queue after the pre-norm-only run so the masking effect has a local comparator. |
 | 5 | `delta_shifted_grouped_tokenizer` | tokenization | yes | blocked_on_surface_semantics | grouped_tokens | Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored. | Unblock only after the comparison surface makes tokenizer changes effective, or replace this row with a genuinely isolatable tokenization experiment. |
@@ -56,7 +56,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 1. `delta_label_token`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `label_token`
 - Description: Replace mean-padded linear target conditioning with train-label embeddings plus a learned test token.
@@ -73,16 +73,24 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - many_class_base should stay at 2 on the locked binary surface.
   - Negative evidence should be checked for calibration drift before rejection.
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `interpreted`
+- Decision: `defer`
+- Confounders:
+  - No direct calibration or decision-boundary diagnostic was run, so the source of the aggregate drop is still inferred from ROC behavior only.
+  - Dataset-level movement is mixed, with isolated gains on a few tasks despite clearly negative aggregate ROC deltas.
+- Notes:
+  - Completed run `sd_binary_md_v1_01_delta_label_token_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
+  - {'Aggregate delta versus anchor': 'best ROC AUC `-0.0143`, final ROC AUC `-0.0171`.'}
+  - Training was slower than anchor by `+33.5s` at best and `+21.7s` at final.
+  - Largest losses appeared on `banana` and `Amazon_employee_access`; modest gains appeared on `quake` and `Titanic`.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_label_token/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_binary_md_v1_01_delta_label_token_v1` with best ROC AUC `0.7472`, final ROC AUC `0.7428`, final-minus-best `-0.0044`, delta final ROC AUC `-0.0171`, delta drift `-0.0028`, delta final training time `+21.7s`
 
 ### 2. `delta_shared_feature_norm`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `shared_norm`
 - Description: Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization.
@@ -99,11 +107,19 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - input_normalization remains train_zscore_clip on the anchor unless the queue row explicitly changes preprocessing.
   - If performance drops, note whether the harm appears early or only after longer training.
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `interpreted`
+- Decision: `defer`
+- Confounders:
+  - The row reached a better peak than the anchor but retained that gain poorly by the final checkpoint, so the negative final result is still entangled with budget or normalization mismatch.
+  - The shared-normalization path required an MPS compatibility fix before this completed run, so there is no pre-fix row-2 baseline on the same device path.
+- Notes:
+  - Completed run `sd_binary_md_v1_02_delta_shared_feature_norm_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
+  - {'Aggregate delta versus anchor': 'best ROC AUC `+0.0039`, final ROC AUC `-0.0041`.'}
+  - Training was slower than anchor by `+42.6s` at best and `+25.7s` at final.
+  - Best-point signal was positive, but final retention was materially worse than the anchor.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_shared_feature_norm/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_binary_md_v1_02_delta_shared_feature_norm_v1` with best ROC AUC `0.7654`, final ROC AUC `0.7558`, final-minus-best `-0.0096`, delta final ROC AUC `-0.0041`, delta drift `-0.0080`, delta final training time `+25.7s`
 
 ### 3. `delta_prenorm_block`
 

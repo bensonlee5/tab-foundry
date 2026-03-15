@@ -3,7 +3,7 @@ sweep_id: binary_md_v1
 rows:
   - order: 1
     delta_ref: delta_label_token
-    status: ready
+    status: completed
     rationale: This is the smallest staged departure from upstream nanoTabPFN and should be measured before shared normalization or block-style changes.
     hypothesis: Discrete label tokens may sharpen small-binary support-set conditioning, but any loss could reflect embedding initialization or calibration drift rather than the idea itself.
     anchor_delta: Changes only target_conditioner from mean_padded_linear to label_token; feature encoder, tokenizer, table block, row pooling, data, and preprocessing remain anchored.
@@ -18,17 +18,23 @@ rows:
     parameter_adequacy_plan:
       - Confirm the isolated toggle before changing optimizer settings.
       - If weak, inspect whether the issue is decision-boundary sharpness or late-curve drift.
-    run_id: null
+    run_id: sd_binary_md_v1_01_delta_label_token_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Train the first anchor-only label-token run on the locked medium binary surface.
-    notes: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - No direct calibration or decision-boundary diagnostic was run, so the source of the aggregate drop is still inferred from ROC behavior only.
+      - Dataset-level movement is mixed, with isolated gains on a few tasks despite clearly negative aggregate ROC deltas.
+    next_action: Keep this as completed negative evidence and only revisit label-token conditioning if a calibration-focused follow-up becomes justified.
+    notes:
+      - Completed run `sd_binary_md_v1_01_delta_label_token_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
+      - Aggregate delta versus anchor: best ROC AUC `-0.0143`, final ROC AUC `-0.0171`.
+      - Training was slower than anchor by `+33.5s` at best and `+21.7s` at final.
+      - Largest losses appeared on `banana` and `Amazon_employee_access`; modest gains appeared on `quake` and `Titanic`.
 
   - order: 2
     delta_ref: delta_shared_feature_norm
-    status: ready
+    status: completed
     rationale: This isolates shared normalization and shared feature weights without changing the table block or row readout.
     hypothesis: Shared feature encoding may help the staged family generalize across varied feature identities, but it also moves normalization responsibility outside the nano-exact path.
     anchor_delta: Changes only feature_encoder from nano to shared; tokenizer, target conditioning, table block, row pooling, data, and preprocessing remain fixed.
@@ -43,13 +49,19 @@ rows:
     parameter_adequacy_plan:
       - Keep optimizer and row/context structure fixed for the first pass.
       - Only treat a weak result as structural evidence after checking whether normalization mismatch is the dominant failure mode.
-    run_id: null
+    run_id: sd_binary_md_v1_02_delta_shared_feature_norm_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Run the isolated shared-feature-encoder comparison.
-    notes: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - The row reached a better peak than the anchor but retained that gain poorly by the final checkpoint, so the negative final result is still entangled with budget or normalization mismatch.
+      - The shared-normalization path required an MPS compatibility fix before this completed run, so there is no pre-fix row-2 baseline on the same device path.
+    next_action: Keep this as completed mixed evidence and only schedule a bounded follow-up if we want to test whether shorter budgets or downstream normalization mismatch explain the late-curve drop.
+    notes:
+      - Completed run `sd_binary_md_v1_02_delta_shared_feature_norm_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
+      - Aggregate delta versus anchor: best ROC AUC `+0.0039`, final ROC AUC `-0.0041`.
+      - Training was slower than anchor by `+42.6s` at best and `+25.7s` at final.
+      - Best-point signal was positive, but final retention was materially worse than the anchor.
 
   - order: 3
     delta_ref: delta_prenorm_block

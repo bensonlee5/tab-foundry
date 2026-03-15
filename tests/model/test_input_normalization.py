@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import numpy as np
+import torch
 
-from tab_foundry.input_normalization import normalize_train_test_arrays
+from tab_foundry.input_normalization import _tensor_stats_dtype, normalize_train_test_arrays
 
 
 def test_train_zscore_clip_normalizes_from_train_only_and_clips() -> None:
@@ -19,3 +20,8 @@ def test_train_zscore_clip_normalizes_from_train_only_and_clips() -> None:
     assert np.allclose(train_norm[:, 1], np.asarray([0.0, 0.0], dtype=np.float32))
     assert test_norm[0, 0] == np.float32(100.0)
     assert test_norm[0, 1] == np.float32(0.0)
+
+
+def test_tensor_stats_dtype_uses_float32_on_mps() -> None:
+    assert _tensor_stats_dtype(torch.device("cpu")) == torch.float64
+    assert _tensor_stats_dtype(torch.device("mps")) == torch.float32
