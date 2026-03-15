@@ -1,6 +1,6 @@
 version: 1
 
-local_sources:
+required_repo_local_sources:
   - title: Agent program
     path: program.md
     role: Optimization objective and promotion policy
@@ -19,15 +19,20 @@ local_sources:
   - title: Stage campaign template
     path: reference/stage_campaign_template.md
     role: Required stage artifact format
+
+optional_sibling_workspace_sources:
   - title: nanochat GPT implementation
     path: ../nanochat/nanochat/gpt.py
     role: Small-transformer architecture calibration
+    optional: true
   - title: nanochat development log
     path: ../nanochat/dev/LOG.md
     role: Small-model recipe and architecture observations
+    optional: true
   - title: nanoTabPFN training loop
     path: ../nanoTabPFN/train.py
     role: Exact prior-training semantics to preserve
+    optional: true
 
 curated_external_sources:
   - title: autoresearch program

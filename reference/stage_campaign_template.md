@@ -11,11 +11,15 @@ the pinned starting corpus.
 
 ## Research Card
 
-### Stage
+### Candidate
 
+- `candidate_id`: `<label_token_v1|shared_norm_v2|feature_norm_shift|...>`
 - `stage`: `<label_token|shared_norm|prenorm_block|...>`
+- `mechanism_family`: `<tokenization|normalization|preprocessing|attention|...>`
+- `touched_subsystems`: `<model|preprocessing|model+preprocessing>`
 - `anchor_run_id`: `01_nano_exact_md_prior_parity_fix`
 - `prediction`: `<preserve baseline settings|directional shift|uncertain>`
+- `comparison_surface`: `<preserve current surface|declare new surface>`
 
 ### Mechanism
 
@@ -33,6 +37,8 @@ current compact model size.
 - `preserve`: settings that should stay at the exact baseline values
 - `shift`: settings that should move, with direction and rationale
 - `tunable`: the small neighborhood that bounded local refinement is allowed to explore
+- `queue_rationale`: why this candidate is entering now if it jumps ahead of
+  more obvious candidates
 
 ### Red Flags
 
@@ -41,7 +47,12 @@ List failure modes that would count as meaningful evidence against the stage.
 ## campaign.yaml
 
 ```yaml
+candidate_id: label_token_v1
 stage: label_token
+mechanism_family: tokenization
+touched_subsystems: model
+comparison_surface: preserve_current_surface
+primary_metric: final_roc_auc
 anchor_run_id: 01_nano_exact_md_prior_parity_fix
 decision_hypothesis: directional_shift
 full_budget_steps: 2500

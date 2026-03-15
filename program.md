@@ -2,26 +2,33 @@
 
 This file is the agent contract for architecture search in `tab-foundry`.
 Use it to decide what to optimize, what must stay fixed, what evidence is
-required, and when a staged branch can become the new base.
+required, and when a candidate can become the new base.
 
 Use `docs/workflows.md` for command syntax and artifact expectations. Use this
-file for objective, policy, and decision rules.
+file for objective, search policy, and decision rules.
 
 ## Objective
 
-Optimize staged prior-trained branches against the locked exact anchor
+Optimize prior-trained candidates against the locked exact anchor
 `01_nano_exact_md_prior_parity_fix`.
 
-The target is:
+The primary optimization target for now is `final_roc_auc` from the canonical
+benchmark summary on
+`src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`.
 
-- improve or match the exact anchor on the canonical benchmark surface
-- preserve training stability and prior-training semantics
-- require compute-scaling confirmation before a stage becomes the new base
+Supporting checks are:
+
+- `best_roc_auc`
+- `final_minus_best`
+- post-warmup train-loss variance
+- training-time delta versus the exact anchor
+
+`best_roc_auc` is a tie-breaker and diagnostic, not the main score.
 
 ## Locked Baseline And Comparison Surface
 
-Hold this surface fixed unless the stage research package explicitly declares a
-new comparison surface and the benchmark conclusion calls it out:
+Hold this surface fixed unless the research package explicitly declares a new
+comparison surface and the benchmark conclusion calls it out:
 
 - anchor run id: `01_nano_exact_md_prior_parity_fix`
 - anchor prior run: `outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`
@@ -41,39 +48,47 @@ Keep these invariant by default:
 - history, checkpoint, and benchmark artifact contracts
 
 Use cached `nanotabpfn_curve.jsonl` only when the comparison surface is
-unchanged.
+unchanged. The benchmark registry is the historical system of record.
 
-## Experimentation
+## Search Scope
 
-### What you can do
+Any mechanism or preprocessing candidate is allowed, including later
+mechanisms or unrelated preprocessing changes, as long as the candidate is
+well documented and benchmarked on the locked surface.
 
-Modify any files in src/tab_foundry/model/, src/tab_foundry/preprocessing/ to implement a new mechanism.  
+Candidates may change code under:
 
-### What you cannot do
+- `src/tab_foundry/model/`
+- `src/tab_foundry/preprocessing/`
 
-- Do not change the prior dump path or benchmark bundle path unless the research package explicitly calls for it and the benchmark conclusion calls it out.
-- Do not change the `nanoTabPFN` helper settings, device class, or prior-trained experiment family unless the research package explicitly calls for it and the benchmark conclusion calls it out.
-- Do not change the history, checkpoint, or benchmark artifact contracts unless the research package explicitly calls for it and the benchmark conclusion calls it out.
-- Do not change any files in src/tab_foundry/training/ or src/tab_foundry/bench/ without explicit research and benchmark justification.
+Changes to `src/tab_foundry/training/` or `src/tab_foundry/bench/` require
+explicit research and benchmark justification in the candidate package.
 
-### Simplicity Bias
-
-Prefer simple, targeted changes that are easy to attribute to the mechanism under test. Avoid broad, sweeping changes that make it difficult to isolate the effect of the mechanism.
+Prefer simple, attributable changes over broad sweeps that make the effect
+unclear.
 
 ## Required Research Package
 
-Before any empirical run for a stage, create:
+Before any empirical run for a candidate, create:
 
-- `outputs/staged_ladder/research/<stage>/research_card.md`
-- `outputs/staged_ladder/research/<stage>/campaign.yaml`
+- `outputs/staged_ladder/research/<candidate_id>/research_card.md`
+- `outputs/staged_ladder/research/<candidate_id>/campaign.yaml`
 
 Use `reference/stage_campaign_template.md` and
 `reference/stage_research_sources.yaml`.
 
+Agents should use optional sibling-workspace sources when available, but must
+be able to proceed from the required repo-local sources alone.
+
 `research_card.md` must state:
 
-- the mechanism change
-- why it should help or hurt at the current compact scale
+- `candidate_id`
+- `mechanism_family`
+- `touched_subsystems`
+- why the candidate is entering now, especially if it jumps ahead of more
+  obvious candidates
+- whether it preserves the current comparison surface or intentionally defines
+  a new one
 - what exact baseline settings should be preserved
 - what settings should shift, and why
 - direct evidence used for that recommendation
@@ -81,7 +96,12 @@ Use `reference/stage_campaign_template.md` and
 
 `campaign.yaml` must state:
 
+- `candidate_id`
 - `stage`
+- `mechanism_family`
+- `touched_subsystems`
+- `comparison_surface`
+- `primary_metric: final_roc_auc`
 - `anchor_run_id`
 - `recommended_recipe`
 - `preserved_settings`
@@ -96,7 +116,7 @@ baseline value explicitly.
 
 ## Execution Loop
 
-For each stage branch:
+For each candidate:
 
 1. Write the research package.
 2. Run one confirmatory prior-trained branch with the research-recommended
@@ -107,35 +127,37 @@ For each stage branch:
 5. Promote at most two promising variants to full-benchmark candidates.
 6. Register each benchmark-facing candidate via `scripts/register_benchmark_run.py`.
 
-Bounded local refinement is allowed to search only inside the neighborhood
-declared in `campaign.yaml`. Do not broaden the search space ad hoc.
+Bounded local refinement may search only inside the neighborhood declared in
+`campaign.yaml`. Do not broaden the search space ad hoc.
 
 ## Decisions
 
 Use these branch decisions:
 
-- `keep`: a full-benchmark candidate is near-neutral or better on final ROC AUC
-  versus the exact anchor and does not materially worsen late drift
-- `defer`: the branch is stable but evidence is mixed or the benefit is too
-  narrow to promote yet
-- `reject`: the branch is clearly worse across multiple benchmark-facing
+- `keep`: driven primarily by `final_roc_auc`; a full-benchmark candidate is
+  near-neutral or better on `final_roc_auc` versus the exact anchor and does
+  not materially worsen late drift
+- `defer`: the candidate is stable but evidence is mixed, too narrow, or
+  compute-sensitive
+- `reject`: the candidate is clearly worse across multiple benchmark-facing
   attempts or is genuinely unstable
 
-Never reject a stage from one run alone.
+Never reject a candidate from one run alone.
 
 ## Scaling Confirmation
 
-Only `keep` stages enter scaling confirmation.
+Only `keep` candidates enter scaling confirmation.
 
-For a kept stage:
+For a kept candidate:
 
 1. Run the exact control `01_nano_exact_md_prior_budget1250`.
-2. Run the winning stage recipe at `1250` and `2500` steps.
+2. Run the winning candidate recipe at `1250` and `2500` steps.
 3. Benchmark both on `src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json`.
-4. Compare stage versus exact at both budgets.
+4. Compare candidate versus exact at both budgets.
 
-Promote the stage only if it is at least neutral or better at both budgets and
-the gain does not disappear at `2500` steps.
+Promote the candidate only if it is at least neutral or better on
+`final_roc_auc` at both budgets and the gain does not disappear at `2500`
+steps.
 
 If it helps at one budget but not the other, mark it `defer` and keep
 `01_nano_exact_md_prior_parity_fix` as the active base.
