@@ -56,8 +56,8 @@ def resolve_data_surface(data_cfg: Mapping[str, Any] | None) -> DataSurfaceConfi
             context="data.surface_overrides.dagzoo_provenance",
         )
     )
-    train_row_cap_raw = cfg.get("train_row_cap")
-    test_row_cap_raw = cfg.get("test_row_cap")
+    train_row_cap_raw = overrides.get("train_row_cap", cfg.get("train_row_cap"))
+    test_row_cap_raw = overrides.get("test_row_cap", cfg.get("test_row_cap"))
     return DataSurfaceConfig(
         surface_label=str(
             cfg.get("surface_label") or overrides.get("surface_label") or source
@@ -70,4 +70,3 @@ def resolve_data_surface(data_cfg: Mapping[str, Any] | None) -> DataSurfaceConfi
         dagzoo_provenance=dagzoo_provenance,
         overrides=overrides,
     )
-

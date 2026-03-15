@@ -69,7 +69,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_label_token/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_label_token/result_card.md`
 - Benchmark metrics: pending
 
 ### 2. `delta_shared_feature_norm`
@@ -95,7 +95,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_shared_feature_norm/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_shared_feature_norm/result_card.md`
 - Benchmark metrics: pending
 
 ### 3. `delta_prenorm_block`
@@ -121,7 +121,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_prenorm_block/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_prenorm_block/result_card.md`
 - Benchmark metrics: pending
 
 ### 4. `delta_test_self_attention`
@@ -147,7 +147,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Confounders:
   - This row is easiest to interpret after delta_prenorm_block has data.
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_test_self_attention/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_test_self_attention/result_card.md`
 - Benchmark metrics: pending
 
 ### 5. `delta_shifted_grouped_tokenizer`
@@ -173,7 +173,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Confounders:
   - The nano feature encoder ignores tokenizer outputs, so this row would execute the anchor path unchanged.
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_shifted_grouped_tokenizer/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_shifted_grouped_tokenizer/result_card.md`
 - Benchmark metrics: pending
 
 ### 6. `delta_row_cls_pool`
@@ -203,7 +203,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Confounders:
   - Row CLS pooling adds both a new aggregation rule and new capacity knobs.
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_row_cls_pool/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_row_cls_pool/result_card.md`
 - Benchmark metrics: pending
 
 ### 7. `delta_column_set_encoder`
@@ -229,7 +229,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_column_set_encoder/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_column_set_encoder/result_card.md`
 - Benchmark metrics: pending
 
 ### 8. `delta_qass_context`
@@ -255,7 +255,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_qass_context/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_qass_context/result_card.md`
 - Benchmark metrics: pending
 
 ### 9. `delta_data_filter_policy_accepted_only`
@@ -282,7 +282,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Confounders:
   - Requires a manifest rebuild to become runnable.
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_data_filter_policy_accepted_only/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_data_filter_policy_accepted_only/result_card.md`
 - Benchmark metrics: pending
 
 ### 10. `delta_data_manifest_root_curated_dagzoo`
@@ -310,7 +310,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Confounders:
   - Requires a materialized curated dagzoo manifest and provenance references.
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_data_manifest_root_curated_dagzoo/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_data_manifest_root_curated_dagzoo/result_card.md`
 - Benchmark metrics: pending
 
 ### 11. `delta_data_manifest_source_binary_iris`
@@ -336,7 +336,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Confounders:
   - This row changes dataset diversity far more than model structure.
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_data_manifest_source_binary_iris/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_data_manifest_source_binary_iris/result_card.md`
 - Benchmark metrics: pending
 
 ### 12. `delta_preproc_impute_missing_off`
@@ -360,7 +360,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_preproc_impute_missing_off/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_preproc_impute_missing_off/result_card.md`
 - Benchmark metrics: pending
 
 ### 13. `delta_preproc_all_nan_fill_nonzero`
@@ -384,7 +384,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_preproc_all_nan_fill_nonzero/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_preproc_all_nan_fill_nonzero/result_card.md`
 - Benchmark metrics: pending
 
 ### 14. `delta_preproc_label_mapping_surface`
@@ -410,5 +410,5 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Confounders:
   - No alternate runtime label policy has been implemented yet.
 - Follow-up run ids: `[]`
-- Result card path: `/Users/bensonlee/dev/tab-foundry/outputs/staged_ladder/research/delta_preproc_label_mapping_surface/result_card.md`
+- Result card path: `outputs/staged_ladder/research/delta_preproc_label_mapping_surface/result_card.md`
 - Benchmark metrics: pending

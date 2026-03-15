@@ -33,6 +33,7 @@ def test_system_delta_matrix_render_includes_anchor_and_row_cls_details() -> Non
     assert "delta_row_cls_pool" in matrix
     assert "tfrow_n_heads" in matrix
     assert "anchor_only" in matrix
+    assert "outputs/staged_ladder/research/delta_row_cls_pool/result_card.md" in matrix
 
 
 def test_system_delta_grouped_tokenizer_row_is_blocked_until_surface_changes() -> None:

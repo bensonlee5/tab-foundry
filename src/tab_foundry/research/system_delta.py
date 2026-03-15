@@ -86,6 +86,15 @@ def _result_card_path(delta_id: str) -> Path:
     return repo_root() / "outputs" / "staged_ladder" / "research" / delta_id / "result_card.md"
 
 
+def _render_path(path: Path) -> str:
+    resolved = path.expanduser().resolve()
+    root = repo_root()
+    try:
+        return str(resolved.relative_to(root))
+    except ValueError:
+        return str(resolved)
+
+
 def validate_system_delta_queue(
     queue: dict[str, Any],
     *,
@@ -235,7 +244,7 @@ def render_system_delta_matrix(
             for note in cast(list[str], queue_row["notes"]):
                 lines.append(f"  - {note}")
         lines.append(f"- Follow-up run ids: `{queue_row.get('followup_run_ids', [])}`")
-        lines.append(f"- Result card path: `{_result_card_path(delta_id)}`")
+        lines.append(f"- Result card path: `{_render_path(_result_card_path(delta_id))}`")
         if run is None:
             lines.append("- Benchmark metrics: pending")
         else:

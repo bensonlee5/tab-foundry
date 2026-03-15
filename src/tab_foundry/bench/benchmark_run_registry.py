@@ -26,6 +26,7 @@ from tab_foundry.bench.nanotabpfn import (
     resolve_tab_foundry_best_checkpoint,
     resolve_tab_foundry_run_artifact_paths,
 )
+from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import (
@@ -623,7 +624,17 @@ def derive_benchmark_run_record(
     runtime_cfg = raw_cfg.get("runtime")
     if not isinstance(data_cfg, dict) or not isinstance(runtime_cfg, dict):
         raise RuntimeError(f"checkpoint config must include data/runtime mappings: {best_checkpoint_path}")
-    manifest_path = _resolve_config_path(data_cfg.get("manifest_path"))
+    data_surface = resolve_data_surface(data_cfg)
+    manifest_path_raw = (
+        data_surface.overrides["manifest_path"]
+        if "manifest_path" in data_surface.overrides
+        else data_cfg.get("manifest_path")
+    )
+    if manifest_path_raw is None:
+        raise RuntimeError(
+            "checkpoint config must include a non-empty effective data.manifest_path"
+        )
+    manifest_path = _resolve_config_path(manifest_path_raw)
     seed_raw = runtime_cfg.get("seed")
     if not isinstance(seed_raw, int) or isinstance(seed_raw, bool):
         raise RuntimeError(f"checkpoint runtime.seed must be an int: {best_checkpoint_path}")

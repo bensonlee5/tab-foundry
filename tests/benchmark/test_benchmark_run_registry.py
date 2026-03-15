@@ -18,6 +18,7 @@ def _write_checkpoint(
     path: Path,
     *,
     manifest_path: str,
+    data_cfg: dict[str, object] | None = None,
     seed: int = 1,
     arch: str | None = "tabfoundry_staged",
     stage: str | None = "nano_exact",
@@ -35,12 +36,15 @@ def _write_checkpoint(
         model_cfg["arch"] = arch
     if stage is not None:
         model_cfg["stage"] = stage
+    checkpoint_data_cfg: dict[str, object] = {"manifest_path": manifest_path}
+    if data_cfg is not None:
+        checkpoint_data_cfg.update(data_cfg)
     torch.save(
         {
             "model": {},
             "config": {
                 "task": "classification",
-                "data": {"manifest_path": manifest_path},
+                "data": checkpoint_data_cfg,
                 "runtime": {"seed": int(seed)},
                 "model": model_cfg,
                 "schedule": {
@@ -161,6 +165,7 @@ def _prepare_run(
     repo_root: Path,
     *,
     run_name: str,
+    checkpoint_data_cfg: dict[str, object] | None = None,
     seed: int = 1,
     final_roc_auc: float = 0.83,
 ) -> tuple[Path, Path]:
@@ -176,6 +181,7 @@ def _prepare_run(
     _write_checkpoint(
         run_dir / "checkpoints" / "best.pt",
         manifest_path="data/manifests/default.parquet",
+        data_cfg=checkpoint_data_cfg,
         seed=seed,
     )
     _write_history(run_dir / "train_history.jsonl")
@@ -218,6 +224,49 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     assert record["surface_labels"]["model"] == "nano_exact"
     assert record["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
+    )
+
+
+def test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surface(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    override_manifest = (
+        repo_root
+        / "outputs"
+        / "staged_ladder_support"
+        / "binary_iris_manifest"
+        / "manifest.parquet"
+    )
+    override_manifest.parent.mkdir(parents=True, exist_ok=True)
+    override_manifest.write_bytes(b"manifest")
+    run_dir, summary_path = _prepare_run(
+        repo_root,
+        run_name="surface_override",
+        checkpoint_data_cfg={
+            "surface_label": "binary_iris_manifest",
+            "surface_overrides": {
+                "manifest_path": str(override_manifest),
+            },
+        },
+    )
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    surface_record = json.loads(
+        (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
+    )
+    assert record["manifest_path"] == "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet"
+    assert registry_module.resolve_registry_path_value(record["manifest_path"]) == override_manifest.resolve()
+    assert (
+        Path(surface_record["data"]["manifest"]["manifest_path"]).resolve()
+        == override_manifest.resolve()
     )
 
 

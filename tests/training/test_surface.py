@@ -119,3 +119,45 @@ def test_build_training_surface_record_captures_model_data_and_preprocessing_sur
     assert record["data"]["dagzoo_provenance"]["commands"] == ["dagzoo filter --curated-out ..."]
     assert record["preprocessing"]["impute_missing"] is False
     assert record["preprocessing"]["all_nan_fill"] == 1.0
+
+
+def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_values(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest.parquet")
+    overridden_record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry"},
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+                "train_row_cap": 10,
+                "test_row_cap": 5,
+                "surface_overrides": {
+                    "train_row_cap": 3,
+                    "test_row_cap": 2,
+                },
+            },
+        },
+        run_dir=tmp_path / "run_override",
+    )
+    fallback_record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry"},
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+                "train_row_cap": 10,
+                "test_row_cap": 5,
+                "surface_overrides": {},
+            },
+        },
+        run_dir=tmp_path / "run_top_level",
+    )
+
+    assert overridden_record["data"]["train_row_cap"] == 3
+    assert overridden_record["data"]["test_row_cap"] == 2
+    assert fallback_record["data"]["train_row_cap"] == 10
+    assert fallback_record["data"]["test_row_cap"] == 5
