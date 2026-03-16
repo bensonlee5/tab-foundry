@@ -21,6 +21,10 @@ from pydantic import (
 )
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.missingness import (
+    normalize_missingness_mode,
+    validate_missingness_runtime_policy,
+)
 from tab_foundry.model.spec import (
     ModelBuildSpec,
     STAGED_MODEL_ARCH,
@@ -66,34 +70,36 @@ class _ManifestModelPayloadV2(_ContractsPayloadModel):
     stage: StrictStr | None = None
     d_col: StrictInt
     d_icl: StrictInt
-    input_normalization: StrictStr | None = None
+    input_normalization: StrictStr
+    missingness_mode: StrictStr
     feature_group_size: StrictInt
     many_class_train_mode: StrictStr
     max_mixed_radix_digits: StrictInt
-    norm_type: StrictStr | None = None
-    tfcol_n_heads: StrictInt | None = None
-    tfcol_n_layers: StrictInt | None = None
-    tfcol_n_inducing: StrictInt | None = None
-    tfrow_n_heads: StrictInt | None = None
-    tfrow_n_layers: StrictInt | None = None
-    tfrow_cls_tokens: StrictInt | None = None
-    tfrow_norm: StrictStr | None = None
-    tficl_n_heads: StrictInt | None = None
-    tficl_n_layers: StrictInt | None = None
-    tficl_ff_expansion: StrictInt | None = None
-    many_class_base: StrictInt | None = None
-    head_hidden_dim: StrictInt | None = None
-    use_digit_position_embed: StrictBool | None = None
+    norm_type: StrictStr
+    tfcol_n_heads: StrictInt
+    tfcol_n_layers: StrictInt
+    tfcol_n_inducing: StrictInt
+    tfrow_n_heads: StrictInt
+    tfrow_n_layers: StrictInt
+    tfrow_cls_tokens: StrictInt
+    tfrow_norm: StrictStr
+    tficl_n_heads: StrictInt
+    tficl_n_layers: StrictInt
+    tficl_ff_expansion: StrictInt
+    many_class_base: StrictInt
+    head_hidden_dim: StrictInt
+    use_digit_position_embed: StrictBool
 
 
 class _ManifestModelPayloadV3(_ManifestModelPayloadV2):
-    input_normalization: StrictStr
+    pass
 
 
 class _InferenceConfigPayload(_ContractsPayloadModel):
     task: StrictStr
     model_arch: StrictStr
     model_stage: StrictStr | None = None
+    missingness_mode: StrictStr
     group_shifts: list[StrictInt]
     feature_group_size: StrictInt
     many_class_threshold: StrictInt
@@ -130,6 +136,7 @@ class ExportModelSpec:
     d_col: int
     d_icl: int
     input_normalization: str
+    missingness_mode: str
     feature_group_size: int
     many_class_train_mode: str
     max_mixed_radix_digits: int
@@ -161,6 +168,7 @@ class ExportModelSpec:
             d_col=int(spec.d_col),
             d_icl=int(spec.d_icl),
             input_normalization=str(spec.input_normalization),
+            missingness_mode=str(spec.missingness_mode),
             feature_group_size=int(spec.feature_group_size),
             many_class_train_mode=str(spec.many_class_train_mode),
             max_mixed_radix_digits=int(spec.max_mixed_radix_digits),
@@ -189,6 +197,7 @@ class ExportModelSpec:
                 "d_col": self.d_col,
                 "d_icl": self.d_icl,
                 "input_normalization": self.input_normalization,
+                "missingness_mode": self.missingness_mode,
                 "feature_group_size": self.feature_group_size,
                 "many_class_train_mode": self.many_class_train_mode,
                 "max_mixed_radix_digits": self.max_mixed_radix_digits,
@@ -239,12 +248,13 @@ class ExportWeights:
 class InferenceConfig:
     task: str
     model_arch: str
-    model_stage: str | None
+    missingness_mode: str
     group_shifts: list[int]
     feature_group_size: int
     many_class_threshold: int
     many_class_inference_mode: str
-    quantile_levels: list[float] | None
+    model_stage: str | None = None
+    quantile_levels: list[float] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload = dict(asdict(self))
@@ -261,6 +271,7 @@ class LegacyPreprocessorState:
     missing_value_policy: dict[str, Any]
     classification_label_policy: dict[str, Any]
     dtype_policy: dict[str, Any]
+    impute_missing: bool
 
     def to_dict(self) -> dict[str, Any]:
         return dict(asdict(self))
@@ -290,6 +301,7 @@ class ExportPreprocessorState:
     missing_value_policy: ExportMissingValuePolicy
     classification_label_policy: ExportClassificationLabelPolicy | None
     dtype_policy: dict[str, Any]
+    impute_missing: bool
 
     def to_dict(self) -> dict[str, Any]:
         return dict(asdict(self))
@@ -465,6 +477,7 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
         primary["stage"] = model_raw["stage"]
     optional_fields: tuple[tuple[str, str], ...] = (
         ("input_normalization", "manifest.model.input_normalization"),
+        ("missingness_mode", "manifest.model.missingness_mode"),
         ("norm_type", "manifest.model.norm_type"),
         ("tfcol_n_heads", "manifest.model.tfcol_n_heads"),
         ("tfcol_n_layers", "manifest.model.tfcol_n_layers"),
@@ -484,6 +497,11 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
             continue
         if field_name == "input_normalization":
             primary[field_name] = _validate_input_normalization(model_raw[field_name], context=context)
+        elif field_name == "missingness_mode":
+            primary[field_name] = normalize_missingness_mode(
+                model_raw[field_name],
+                context=context,
+            )
         elif field_name in {"norm_type", "tfrow_norm"}:
             primary[field_name] = _as_str(model_raw[field_name], context=context)
         else:
@@ -530,27 +548,27 @@ def _validate_model_spec(
         "many_class_train_mode",
         "max_mixed_radix_digits",
     }
-    optional_model_keys = {
-        "stage",
-        "norm_type",
-        "tfcol_n_heads",
-        "tfcol_n_layers",
-        "tfcol_n_inducing",
-        "tfrow_n_heads",
-        "tfrow_n_layers",
-        "tfrow_cls_tokens",
-        "tfrow_norm",
-        "tficl_n_heads",
-        "tficl_n_layers",
-        "tficl_ff_expansion",
-        "many_class_base",
-        "head_hidden_dim",
-        "use_digit_position_embed",
-    }
-    if schema_version == SCHEMA_VERSION_V3:
-        required_model_keys.add("input_normalization")
-    else:
-        optional_model_keys.add("input_normalization")
+    optional_model_keys = {"stage"}
+    required_model_keys.update(
+        {
+            "input_normalization",
+            "missingness_mode",
+            "norm_type",
+            "tfcol_n_heads",
+            "tfcol_n_layers",
+            "tfcol_n_inducing",
+            "tfrow_n_heads",
+            "tfrow_n_layers",
+            "tfrow_cls_tokens",
+            "tfrow_norm",
+            "tficl_n_heads",
+            "tficl_n_layers",
+            "tficl_ff_expansion",
+            "many_class_base",
+            "head_hidden_dim",
+            "use_digit_position_embed",
+        }
+    )
     _require_keys(
         payload,
         keys=required_model_keys,
@@ -571,6 +589,8 @@ def _validate_model_spec(
     arch = _as_str(payload_dict["arch"], context="manifest.model.arch")
     if arch not in SUPPORTED_MODEL_ARCHES:
         raise ValueError(f"Unsupported model arch: {arch!r}")
+    if arch == STAGED_MODEL_ARCH and payload_dict.get("stage") is None:
+        raise ValueError("manifest.model.stage is required when arch='tabfoundry_staged'")
     model_spec = model_build_spec_from_mappings(
         task=task,
         primary=_manifest_model_primary_dict(payload_dict),
@@ -638,6 +658,8 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
             raise ValueError("manifest.model.arch and manifest.inference.model_arch mismatch")
         if inference.model_stage != model.stage:
             raise ValueError("manifest.model.stage and manifest.inference.model_stage mismatch")
+        if inference.missingness_mode != model.missingness_mode:
+            raise ValueError("missingness_mode mismatch between manifest.model and manifest.inference")
         if inference.feature_group_size != model.feature_group_size:
             raise ValueError("feature_group_size mismatch between manifest.model and manifest.inference")
         preprocessor_raw = payload["preprocessor"]
@@ -650,6 +672,11 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
         )
         if not isinstance(preprocessor, ExportPreprocessorState):
             raise RuntimeError("v3 manifest preprocessor must validate to export preprocessor state")
+        validate_missingness_runtime_policy(
+            missingness_mode=model.missingness_mode,
+            impute_missing=preprocessor.impute_missing,
+            context="manifest.preprocessor",
+        )
         weights_raw = payload["weights"]
         if not isinstance(weights_raw, dict):
             raise ValueError("manifest.weights must be object")
@@ -722,6 +749,7 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
     keys = {
         "task",
         "model_arch",
+        "missingness_mode",
         "group_shifts",
         "feature_group_size",
         "many_class_threshold",
@@ -751,6 +779,10 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
         raise ValueError(
             "inference_config.model_stage is only valid when model_arch='tabfoundry_staged'"
         )
+    if model_arch == STAGED_MODEL_ARCH and model_stage_raw is None:
+        raise ValueError(
+            "inference_config.model_stage is required when model_arch='tabfoundry_staged'"
+        )
     model_stage = None
     if model_stage_raw is not None:
         model_stage = str(model_stage_raw).strip().lower()
@@ -758,6 +790,10 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
             task=task,
             primary={"arch": model_arch, "stage": model_stage},
         )
+    missingness_mode = normalize_missingness_mode(
+        validated_payload.missingness_mode,
+        context="inference_config.missingness_mode",
+    )
 
     group_shifts = [int(v) for v in validated_payload.group_shifts]
     if group_shifts != EXPECTED_GROUP_SHIFTS:
@@ -801,6 +837,7 @@ def validate_inference_config_dict(payload: dict[str, Any]) -> InferenceConfig:
         task=task,
         model_arch=model_arch,
         model_stage=model_stage,
+        missingness_mode=missingness_mode,
         group_shifts=group_shifts,
         feature_group_size=feature_group_size,
         many_class_threshold=many_class_threshold,
@@ -836,6 +873,7 @@ def _validate_v2_preprocessor_state(payload: dict[str, Any]) -> LegacyPreprocess
             "missing_value_policy",
             "classification_label_policy",
             "dtype_policy",
+            "impute_missing",
         },
         context="preprocessor_state",
     )
@@ -915,6 +953,10 @@ def _validate_v2_preprocessor_state(payload: dict[str, Any]) -> LegacyPreprocess
             "unseen_test_label": unseen_test_label,
         },
         dtype_policy=_validate_dtype_policy(payload["dtype_policy"]),
+        impute_missing=_as_bool(
+            payload["impute_missing"],
+            context="preprocessor_state.impute_missing",
+        ),
     )
 
 
@@ -1002,6 +1044,7 @@ def _validate_v3_preprocessor_state(
             "missing_value_policy",
             "classification_label_policy",
             "dtype_policy",
+            "impute_missing",
         },
         context="preprocessor_state",
     )
@@ -1023,6 +1066,10 @@ def _validate_v3_preprocessor_state(
             task=task,
         ),
         dtype_policy=_validate_dtype_policy(payload["dtype_policy"]),
+        impute_missing=_as_bool(
+            payload["impute_missing"],
+            context="preprocessor_state.impute_missing",
+        ),
     )
 
 

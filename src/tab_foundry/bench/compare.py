@@ -82,7 +82,11 @@ def _src_root() -> Path:
 
 def _is_legacy_benchmark_record_compat_error(exc: Exception) -> bool:
     message = str(exc)
-    return "persisted model.arch" in message or "omitted feature_group_size" in message
+    return (
+        "persisted model.arch" in message
+        or "missing required reconstruction fields" in message
+        or "ambiguous across multiple tabfoundry layouts" in message
+    )
 
 
 def _nanotabpfn_helper_command(

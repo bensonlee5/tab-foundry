@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from omegaconf import DictConfig, OmegaConf
 import torch
 
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
+from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.missingness import validate_missingness_runtime_policy
 from tab_foundry.model.spec import (
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
 )
+from tab_foundry.preprocessing import resolve_preprocessing_surface
 from tab_foundry.types import EvalResult
 
 from .batching import move_batch
@@ -46,15 +49,24 @@ def _checkpoint_model_settings(
 ) -> ModelBuildSpec:
     cfg_payload = payload.get("config")
     checkpoint_cfg = cfg_payload if isinstance(cfg_payload, dict) else {}
-    task_raw = checkpoint_cfg.get("task", cfg.task)
+    task_raw = checkpoint_cfg.get("task")
     task = str(task_raw).strip().lower()
     if task not in {"classification", "regression"}:
         raise RuntimeError(f"Unsupported checkpoint task value: {task!r}")
 
-    raw_fallback = OmegaConf.to_container(cfg.model, resolve=True)
-    fallback_model_cfg: dict[str, Any] = {}
-    if isinstance(raw_fallback, dict):
-        fallback_model_cfg = {str(key): value for key, value in raw_fallback.items()}
+    raw_overrides = None
+    eval_cfg = cfg.get("eval")
+    if isinstance(eval_cfg, DictConfig):
+        model_overrides_cfg = eval_cfg.get("model_overrides")
+        if model_overrides_cfg is not None:
+            raw_overrides = OmegaConf.to_container(model_overrides_cfg, resolve=True)
+    elif isinstance(eval_cfg, dict):
+        raw_overrides = eval_cfg.get("model_overrides")
+    explicit_model_overrides: dict[str, Any] | None = None
+    if raw_overrides is not None:
+        if not isinstance(raw_overrides, dict):
+            raise RuntimeError("eval.model_overrides must be a mapping when provided")
+        explicit_model_overrides = {str(key): value for key, value in raw_overrides.items()}
     model_cfg = checkpoint_cfg.get("model")
     primary_model_cfg: dict[str, Any] = {}
     if isinstance(model_cfg, dict):
@@ -64,7 +76,7 @@ def _checkpoint_model_settings(
     return checkpoint_model_build_spec_from_mappings(
         task=task,
         primary=primary_model_cfg,
-        fallback=fallback_model_cfg,
+        explicit_overrides=explicit_model_overrides,
         state_dict=state_dict,
     )
 
@@ -79,6 +91,21 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
 
     model_spec = _checkpoint_model_settings(payload, cfg)
     preprocessing_cfg = _checkpoint_preprocessing_settings(payload, cfg)
+    raw_data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
+    data_surface = resolve_data_surface(
+        cast(dict[str, Any] | None, raw_data_cfg if isinstance(raw_data_cfg, dict) else None)
+    )
+    preprocessing_surface = resolve_preprocessing_surface(
+        None
+        if preprocessing_cfg is None
+        else cast(dict[str, Any] | None, OmegaConf.to_container(preprocessing_cfg, resolve=True))
+    )
+    validate_missingness_runtime_policy(
+        missingness_mode=getattr(model_spec, "missingness_mode", "none"),
+        allow_missing_values=data_surface.allow_missing_values,
+        impute_missing=preprocessing_surface.impute_missing,
+        context="evaluate_checkpoint",
+    )
     task = model_spec.task
     model = build_model_from_spec(model_spec)
     model.load_state_dict(payload["model"])

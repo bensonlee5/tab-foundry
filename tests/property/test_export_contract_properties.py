@@ -5,6 +5,7 @@ from hypothesis import strategies as st
 
 from tab_foundry.export.contracts import ExportModelSpec, InferenceConfig, validate_inference_config_dict
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
+from tab_foundry.model.missingness import SUPPORTED_MISSINGNESS_MODES
 from tab_foundry.model.spec import (
     model_build_spec_from_mappings,
     ModelStage,
@@ -30,6 +31,7 @@ def _exportable_model_spec(
         "d_col": draw(st.integers(min_value=1, max_value=256)),
         "d_icl": draw(st.integers(min_value=1, max_value=512)),
         "input_normalization": draw(st.sampled_from(SUPPORTED_INPUT_NORMALIZATION_MODES)),
+        "missingness_mode": draw(st.sampled_from(SUPPORTED_MISSINGNESS_MODES)),
         "feature_group_size": draw(st.integers(min_value=1, max_value=16)),
         "many_class_train_mode": draw(st.sampled_from(SUPPORTED_MANY_CLASS_TRAIN_MODES)),
         "max_mixed_radix_digits": draw(st.integers(min_value=1, max_value=128)),
@@ -62,6 +64,7 @@ def _valid_inference_payload(draw: st.DrawFn) -> tuple[dict[str, object], str | 
     payload: dict[str, object] = {
         "task": task,
         "model_arch": arch,
+        "missingness_mode": draw(st.sampled_from(SUPPORTED_MISSINGNESS_MODES)),
         "group_shifts": [0, 1, 3],
         "feature_group_size": draw(st.integers(min_value=1, max_value=16)),
         "many_class_threshold": 10,
@@ -101,6 +104,7 @@ def test_validate_inference_config_dict_normalizes_supported_payloads(
 
     assert validated.task == payload["task"]
     assert validated.model_arch == payload["model_arch"]
+    assert validated.missingness_mode == payload["missingness_mode"]
     assert validated.feature_group_size == payload["feature_group_size"]
     assert validated.many_class_threshold == 10
     assert validated.many_class_inference_mode == "full_probs"
@@ -150,6 +154,7 @@ def test_inference_config_to_dict_drops_only_none_fields(
         task="classification",
         model_arch=arch,
         model_stage=model_stage,
+        missingness_mode="none",
         group_shifts=[0, 1, 3],
         feature_group_size=feature_group_size,
         many_class_threshold=many_class_threshold,

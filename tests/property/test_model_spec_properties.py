@@ -21,6 +21,21 @@ def _case_variants(token: str) -> st.SearchStrategy[str]:
     return st.sampled_from([token, token.upper(), token.title(), f" {token.upper()} "])
 
 
+def _checkpoint_model_cfg(*, task: str, **overrides: object) -> dict[str, object]:
+    return model_build_spec_from_mappings(task=task, primary=overrides).to_dict()
+
+
+def _simple_state_dict(missingness_mode: str) -> dict[str, torch.Tensor]:
+    if missingness_mode == "feature_mask":
+        return {"feature_encoder.linear_layer.weight": torch.zeros((96, 2))}
+    if missingness_mode == "explicit_token":
+        return {
+            "feature_encoder.linear_layer.weight": torch.zeros((96, 1)),
+            "feature_encoder.nan_embedding": torch.zeros((96,)),
+        }
+    return {"feature_encoder.linear_layer.weight": torch.zeros((96, 1))}
+
+
 @given(stage=st.one_of(st.none(), st.just(""), _case_variants("nano_exact")))
 def test_resolve_model_stage_defaults_to_nano_exact_for_staged_arch(stage: str | None) -> None:
     assert resolve_model_stage(arch=STAGED_MODEL_ARCH, stage=stage) == "nano_exact"
@@ -79,51 +94,32 @@ def test_coerce_bool_rejects_non_boolean_compatible_values(value: object) -> Non
 @given(
     task=st.sampled_from(SUPPORTED_MODEL_TASKS),
     primary_arch=st.sampled_from(SUPPORTED_MODEL_ARCHES),
-    fallback_arch=st.sampled_from(SUPPORTED_MODEL_ARCHES),
     primary_input_normalization=st.sampled_from(SUPPORTED_INPUT_NORMALIZATION_MODES),
-    fallback_input_normalization=st.sampled_from(SUPPORTED_INPUT_NORMALIZATION_MODES),
-    fallback_feature_group_size=st.integers(min_value=1, max_value=64),
+    explicit_feature_group_size=st.integers(min_value=1, max_value=64),
 )
-def test_model_build_spec_primary_mapping_takes_precedence_and_normalizes_case(
+def test_model_build_spec_primary_mapping_normalizes_case_and_uses_explicit_values(
     task: str,
     primary_arch: str,
-    fallback_arch: str,
     primary_input_normalization: str,
-    fallback_input_normalization: str,
-    fallback_feature_group_size: int,
+    explicit_feature_group_size: int,
 ) -> None:
     spec = model_build_spec_from_mappings(
         task=task.upper(),
         primary={
             "arch": primary_arch.upper(),
             "input_normalization": primary_input_normalization.upper(),
-            "feature_group_size": None,
-        },
-        fallback={
-            "arch": fallback_arch,
-            "input_normalization": fallback_input_normalization,
-            "feature_group_size": fallback_feature_group_size,
+            "feature_group_size": explicit_feature_group_size,
         },
     )
 
     assert spec.task == task
     assert spec.arch == primary_arch
     assert spec.input_normalization == primary_input_normalization
-    assert spec.feature_group_size == fallback_feature_group_size
+    assert spec.feature_group_size == explicit_feature_group_size
 
 
-@given(
-    task=st.sampled_from(SUPPORTED_MODEL_TASKS),
-    fallback_arch=st.sampled_from(SUPPORTED_MODEL_ARCHES),
-    fallback_input_normalization=st.sampled_from(SUPPORTED_INPUT_NORMALIZATION_MODES),
-    fallback_feature_group_size=st.integers(min_value=1, max_value=64),
-)
-def test_model_build_spec_none_in_primary_does_not_erase_fallback(
-    task: str,
-    fallback_arch: str,
-    fallback_input_normalization: str,
-    fallback_feature_group_size: int,
-) -> None:
+@given(task=st.sampled_from(SUPPORTED_MODEL_TASKS))
+def test_model_build_spec_none_in_primary_uses_internal_defaults(task: str) -> None:
     spec = model_build_spec_from_mappings(
         task=task,
         primary={
@@ -131,27 +127,21 @@ def test_model_build_spec_none_in_primary_does_not_erase_fallback(
             "input_normalization": None,
             "feature_group_size": None,
         },
-        fallback={
-            "arch": fallback_arch,
-            "input_normalization": fallback_input_normalization,
-            "feature_group_size": fallback_feature_group_size,
-        },
     )
 
-    assert spec.arch == fallback_arch
-    assert spec.input_normalization == fallback_input_normalization
-    assert spec.feature_group_size == fallback_feature_group_size
+    assert spec.arch == "tabfoundry"
+    assert spec.input_normalization == "none"
+    assert spec.feature_group_size == 1
 
 
 @given(task=st.sampled_from(SUPPORTED_MODEL_TASKS))
-def test_checkpoint_build_spec_defaults_omitted_feature_group_size_for_default_weight_shape(task: str) -> None:
-    spec = checkpoint_model_build_spec_from_mappings(
-        task=task,
-        primary={},
-        state_dict={"group_linear.weight": torch.zeros((128, 3))},
-    )
-
-    assert spec.feature_group_size == 1
+def test_checkpoint_build_spec_requires_explicit_reconstruction_metadata(task: str) -> None:
+    with pytest.raises(ValueError, match="missing required reconstruction fields"):
+        _ = checkpoint_model_build_spec_from_mappings(
+            task=task,
+            primary={},
+            state_dict={"group_linear.weight": torch.zeros((128, 3))},
+        )
 
 
 @given(task=st.sampled_from(SUPPORTED_MODEL_TASKS), feature_group_size=st.integers(min_value=2, max_value=64))
@@ -161,21 +151,51 @@ def test_checkpoint_build_spec_preserves_explicit_nondefault_feature_group_size(
 ) -> None:
     spec = checkpoint_model_build_spec_from_mappings(
         task=task,
-        primary={"feature_group_size": feature_group_size},
+        primary=_checkpoint_model_cfg(
+            task=task,
+            feature_group_size=feature_group_size,
+            missingness_mode="none",
+        ),
         state_dict={"group_linear.weight": torch.zeros((128, feature_group_size * 3))},
     )
 
     assert spec.feature_group_size == feature_group_size
 
 
-@given(task=st.sampled_from(SUPPORTED_MODEL_TASKS), feature_group_size=st.integers(min_value=2, max_value=64))
-def test_checkpoint_build_spec_rejects_legacy_grouped_weights_without_override(
+@given(
+    task=st.sampled_from(SUPPORTED_MODEL_TASKS),
+    feature_group_size=st.integers(min_value=3, max_value=63).filter(lambda value: value % 2 == 1),
+)
+def test_checkpoint_build_spec_rejects_missing_feature_group_size_metadata(
     task: str,
     feature_group_size: int,
 ) -> None:
-    with pytest.raises(ValueError, match="omitted feature_group_size"):
+    primary = _checkpoint_model_cfg(task=task, missingness_mode="none")
+    primary.pop("feature_group_size")
+
+    with pytest.raises(ValueError, match="missing required reconstruction fields: feature_group_size"):
         _ = checkpoint_model_build_spec_from_mappings(
             task=task,
-            primary={},
+            primary=primary,
             state_dict={"group_linear.weight": torch.zeros((128, feature_group_size * 3))},
         )
+
+
+@given(
+    missingness_mode=st.sampled_from(["none", "feature_mask", "explicit_token"]),
+)
+def test_checkpoint_build_spec_accepts_explicit_simple_missingness_overrides(
+    missingness_mode: str,
+) -> None:
+    primary = _checkpoint_model_cfg(task="classification", arch="tabfoundry_simple")
+    primary.pop("missingness_mode")
+
+    spec = checkpoint_model_build_spec_from_mappings(
+        task="classification",
+        primary=primary,
+        explicit_overrides={"missingness_mode": missingness_mode},
+        state_dict=_simple_state_dict(missingness_mode),
+    )
+
+    assert spec.arch == "tabfoundry_simple"
+    assert spec.missingness_mode == missingness_mode

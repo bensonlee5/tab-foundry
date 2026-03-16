@@ -31,16 +31,28 @@ def _checkpoint_model_spec(
 ) -> ModelBuildSpec:
     cfg_payload = payload.get("config")
     checkpoint_cfg = cfg_payload if isinstance(cfg_payload, dict) else {}
-    task_raw = checkpoint_cfg.get("task", "classification")
+    task_raw = checkpoint_cfg.get("task")
     task = str(task_raw).strip().lower()
     if task != "classification":
         raise RuntimeError(f"Checkpoint classifier requires classification checkpoint, got {task!r}")
 
-    fallback_cfg: dict[str, Any] = {}
+    explicit_overrides: dict[str, Any] | None = None
     if cfg is not None:
-        raw_fallback = OmegaConf.to_container(cfg.model, resolve=True)
-        if isinstance(raw_fallback, dict):
-            fallback_cfg = {str(key): value for key, value in raw_fallback.items()}
+        overrides_cfg = cfg.get("checkpoint_model_overrides")
+        raw_overrides = None
+        if overrides_cfg is not None:
+            raw_overrides = OmegaConf.to_container(
+                overrides_cfg,
+                resolve=True,
+            )
+        if raw_overrides is not None:
+            if not isinstance(raw_overrides, dict):
+                raise RuntimeError(
+                    "checkpoint_model_overrides must be a mapping when provided"
+                )
+            explicit_overrides = {
+                str(key): value for key, value in raw_overrides.items()
+            }
     model_cfg = checkpoint_cfg.get("model")
     primary_cfg: dict[str, Any] = {}
     if isinstance(model_cfg, dict):
@@ -50,7 +62,7 @@ def _checkpoint_model_spec(
     return checkpoint_model_build_spec_from_mappings(
         task=task,
         primary=primary_cfg,
-        fallback=fallback_cfg,
+        explicit_overrides=explicit_overrides,
         state_dict=state_dict,
     )
 

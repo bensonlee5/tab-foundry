@@ -4,6 +4,7 @@
 - Prefer breaking dependency cycles and centralizing shared wiring in the existing role-based library modules under `src/tab_foundry/`; avoid "legacy" pathways, duplicate pathways, and shims. Do not introduce parallel implementations of the same logic in different layers of the codebase.
 - We optimize for iteration speed: internal Python APIs and internal config structure may change without backward-compat guarantees.
 - If CLI flags, persisted metadata schema, or dataset artifact contract changes, treat it as a user-facing break and call it out explicitly.
+- Do not introduce hidden fallback defaults or silent runtime downgrades on config, checkpoint, manifest, export, or runtime-selection surfaces. Prefer explicit persisted metadata or explicit user overrides, and fail fast when requested behavior cannot be honored exactly.
 - For behavior/schema changes under `src/tab_foundry`, bump version in `pyproject.toml` just before merging into main so that the version reflects the latest changes (patch by default; minor for intentionally broad user-facing breaks). Docs/tests-only changes do not require a bump.
 - On every version bump, update `CHANGELOG.md` in the same PR.
 - We prefer shared utility packages over hand-rolled helpers to keep invariants centralized

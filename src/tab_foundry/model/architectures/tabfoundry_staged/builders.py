@@ -27,9 +27,9 @@ from .subsystems import (
 
 def build_tokenizer(surface: ResolvedStageSurface) -> nn.Module:
     if surface.tokenizer == "scalar_per_feature":
-        return ScalarPerFeatureTokenizer()
+        return ScalarPerFeatureTokenizer(missingness_mode=surface.missingness_mode)
     if surface.tokenizer == "shifted_grouped":
-        return ShiftedGroupedTokenizer()
+        return ShiftedGroupedTokenizer(missingness_mode=surface.missingness_mode)
     raise RuntimeError(f"Unsupported tokenizer variant: {surface.tokenizer!r}")
 
 
@@ -40,9 +40,13 @@ def build_feature_encoder(
     d_icl: int,
 ) -> nn.Module:
     if surface.feature_encoder == "nano":
-        return NanoFeatureEncoder(d_icl)
+        return NanoFeatureEncoder(d_icl, missingness_mode=surface.missingness_mode)
     token_dim = int(getattr(tokenizer, "token_dim"))
-    return SharedLinearFeatureEncoder(token_dim=token_dim, embedding_size=d_icl)
+    return SharedLinearFeatureEncoder(
+        token_dim=token_dim,
+        embedding_size=d_icl,
+        missingness_mode=surface.missingness_mode,
+    )
 
 
 def build_target_conditioner(

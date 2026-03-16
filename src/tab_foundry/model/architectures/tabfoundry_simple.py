@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import torch
 import torch.nn.functional as F
 from torch import nn
 from torch.nn.modules.transformer import Linear, MultiheadAttention
 
+from tab_foundry.input_normalization import InputNormalizationMode, prepare_train_test_tensors_with_missing
+from tab_foundry.model.missingness import normalize_missingness_mode
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES, build_norm
 from tab_foundry.types import TaskBatch
 
@@ -20,17 +24,53 @@ _REQUIRED_MANY_CLASS_BASE = 2
 class _FeatureEncoder(nn.Module):
     """Exact nanoTabPFN feature encoder."""
 
-    def __init__(self, embedding_size: int) -> None:
+    def __init__(self, embedding_size: int, *, missingness_mode: str = "none") -> None:
         super().__init__()
-        self.linear_layer = nn.Linear(1, embedding_size)
+        self.missingness_mode = normalize_missingness_mode(
+            missingness_mode,
+            context="missingness_mode",
+        )
+        input_dim = 2 if self.missingness_mode == "feature_mask" else 1
+        self.linear_layer = nn.Linear(input_dim, embedding_size)
+        self.nan_embedding: nn.Parameter | None
+        if self.missingness_mode == "explicit_token":
+            self.nan_embedding = nn.Parameter(torch.randn(embedding_size) * 0.02)
+        else:
+            self.register_parameter("nan_embedding", None)
 
     def forward(self, x: torch.Tensor, train_test_split_index: int) -> torch.Tensor:
-        x = x.unsqueeze(-1)
-        mean = torch.mean(x[:, :train_test_split_index], dim=1, keepdim=True)
-        std = torch.std(x[:, :train_test_split_index], dim=1, keepdim=True) + 1.0e-20
-        x = (x - mean) / std
-        x = torch.clip(x, min=-100.0, max=100.0)
-        return self.linear_layer(x)
+        normalization_mode = cast(
+            InputNormalizationMode,
+            _REQUIRED_INPUT_NORMALIZATION,
+        )
+        x_train = x[:, :train_test_split_index, :]
+        x_test = x[:, train_test_split_index:, :]
+        if self.missingness_mode == "none":
+            x_norm = x.unsqueeze(-1)
+            mean = torch.mean(x_norm[:, :train_test_split_index], dim=1, keepdim=True)
+            std = torch.std(x_norm[:, :train_test_split_index], dim=1, keepdim=True) + 1.0e-20
+            x_norm = torch.clamp((x_norm - mean) / std, min=-100.0, max=100.0)
+            return self.linear_layer(x_norm)
+
+        x_train_norm, x_test_norm, train_missing, test_missing = prepare_train_test_tensors_with_missing(
+            x_train,
+            x_test,
+            mode=normalization_mode,
+        )
+        x_norm = torch.cat([x_train_norm, x_test_norm], dim=1).unsqueeze(-1)
+        missing_mask = torch.cat([train_missing, test_missing], dim=1)
+        if self.missingness_mode == "feature_mask":
+            x_src = torch.cat([x_norm, missing_mask.to(dtype=x_norm.dtype).unsqueeze(-1)], dim=-1)
+            return self.linear_layer(x_src)
+        encoded = self.linear_layer(x_norm)
+        if self.missingness_mode == "explicit_token":
+            assert self.nan_embedding is not None
+            return torch.where(
+                missing_mask.unsqueeze(-1),
+                self.nan_embedding.view(1, 1, 1, -1),
+                encoded,
+            )
+        return encoded
 
 
 class _TargetEncoder(nn.Module):
@@ -131,6 +171,7 @@ class TabFoundrySimpleClassifier(nn.Module):
         d_col: int = 128,
         d_icl: int = 512,
         input_normalization: str = _REQUIRED_INPUT_NORMALIZATION,
+        missingness_mode: str = "none",
         feature_group_size: int = 1,
         many_class_train_mode: str = "path_nll",
         max_mixed_radix_digits: int = 64,
@@ -166,6 +207,10 @@ class TabFoundrySimpleClassifier(nn.Module):
         self.d_icl = int(d_icl)
         if self.d_icl <= 0:
             raise ValueError(f"d_icl must be positive, got {self.d_icl}")
+        self.missingness_mode = normalize_missingness_mode(
+            missingness_mode,
+            context="missingness_mode",
+        )
         self.input_normalization = str(input_normalization).strip().lower()
         if self.input_normalization != _REQUIRED_INPUT_NORMALIZATION:
             raise ValueError(
@@ -197,7 +242,10 @@ class TabFoundrySimpleClassifier(nn.Module):
                 f"got {self.many_class_base}"
             )
 
-        self.feature_encoder = _FeatureEncoder(self.d_icl)
+        self.feature_encoder = _FeatureEncoder(
+            self.d_icl,
+            missingness_mode=self.missingness_mode,
+        )
         self.target_encoder = _TargetEncoder(self.d_icl)
         self.transformer_blocks = nn.ModuleList(
             [

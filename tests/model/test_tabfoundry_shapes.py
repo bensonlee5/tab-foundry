@@ -124,6 +124,64 @@ def test_classifier_manyclass_without_digit_position_embedding() -> None:
     assert out.class_probs.shape == (8, 24)
 
 
+def test_classifier_feature_mask_handles_non_finite_inputs() -> None:
+    model = TabFoundryClassifier(missingness_mode="feature_mask")
+    batch = TaskBatch(
+        x_train=torch.tensor(
+            [
+                [1.0, float("nan"), 3.0],
+                [2.0, 4.0, float("inf")],
+                [3.0, 5.0, 6.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=torch.tensor([0, 1, 0], dtype=torch.int64),
+        x_test=torch.tensor(
+            [
+                [float("nan"), 7.0, 8.0],
+                [9.0, 10.0, float("inf")],
+            ],
+            dtype=torch.float32,
+        ),
+        y_test=torch.tensor([1, 0], dtype=torch.int64),
+        metadata={},
+        num_classes=2,
+    )
+
+    out = model(batch)
+
+    assert out.logits is not None
+    assert torch.isfinite(out.logits).all()
+
+
+def test_regressor_feature_mask_handles_non_finite_inputs() -> None:
+    model = TabFoundryRegressor(missingness_mode="feature_mask")
+    batch = TaskBatch(
+        x_train=torch.tensor(
+            [
+                [1.0, float("nan")],
+                [2.0, 3.0],
+                [float("inf"), 4.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=torch.tensor([0.1, 0.2, 0.3], dtype=torch.float32),
+        x_test=torch.tensor([[float("nan"), 5.0]], dtype=torch.float32),
+        y_test=torch.tensor([0.4], dtype=torch.float32),
+        metadata={},
+        num_classes=None,
+    )
+
+    out = model(batch)
+
+    assert torch.isfinite(out.quantiles).all()
+
+
+def test_tabfoundry_rejects_explicit_token_missingness_mode() -> None:
+    with pytest.raises(ValueError, match="explicit_token"):
+        _ = TabFoundryClassifier(missingness_mode="explicit_token")
+
+
 def test_classifier_respects_configured_many_class_base_for_logits_width() -> None:
     model = TabFoundryClassifier(many_class_base=12)
     batch = TaskBatch(

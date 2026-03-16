@@ -187,6 +187,30 @@ def test_binary_only_stages_reject_multiclass() -> None:
         _ = _staged("nano_exact")(_batch(num_classes=3))
 
 
+def test_staged_scalar_explicit_token_handles_missing_inputs() -> None:
+    model = _staged("nano_exact", missingness_mode="explicit_token")
+    batch = _batch()
+    batch.x_train[0, 0] = float("nan")
+    batch.x_test[1, 2] = float("nan")
+
+    out = model(batch)
+
+    assert out.logits is not None
+    assert torch.isfinite(out.logits).all()
+
+
+def test_staged_grouped_feature_mask_handles_non_finite_inputs() -> None:
+    model = _staged("grouped_tokens", missingness_mode="feature_mask", input_normalization="none")
+    batch = _batch()
+    batch.x_train[1, 1] = float("nan")
+    batch.x_test[0, 0] = float("inf")
+
+    out = model(batch)
+
+    assert out.logits is not None
+    assert torch.isfinite(out.logits).all()
+
+
 def test_row_cls_pool_stage_supports_rmsnorm() -> None:
     model = _staged(
         "row_cls_pool",
@@ -443,6 +467,15 @@ def test_module_overrides_reject_ineffective_tokenizer_change_under_nano_encoder
             "nano_exact",
             stage_label="delta_shifted_grouped_tokenizer",
             module_overrides={"tokenizer": "shifted_grouped"},
+        )
+
+
+def test_grouped_staged_surface_rejects_explicit_token_missingness_mode() -> None:
+    with pytest.raises(ValueError, match="explicit_token"):
+        _ = _staged(
+            "grouped_tokens",
+            missingness_mode="explicit_token",
+            input_normalization="none",
         )
 
 

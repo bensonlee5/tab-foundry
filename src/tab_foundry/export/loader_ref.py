@@ -95,6 +95,7 @@ def _reference_batch(
         y_train=y_train,
         x_test=x_test,
         y_test=None,
+        impute_missing=policy.impute_missing,
     )
     if manifest.task == "classification":
         y_train_tensor = torch.from_numpy(np.asarray(processed.y_train, dtype=np.int64))

@@ -70,12 +70,17 @@ def _make_config(
     *,
     input_normalization: str = "none",
     model_overrides: dict[str, object] | None = None,
+    preprocessing_overrides: dict[str, object] | None = None,
 ) -> dict[str, object]:
     model_cfg: dict[str, object] = {
         "arch": "tabfoundry",
+        "stage": None,
+        "stage_label": None,
+        "module_overrides": None,
         "d_col": 128,
         "d_icl": 512,
         "input_normalization": input_normalization,
+        "missingness_mode": "none",
         "feature_group_size": 1,
         "many_class_train_mode": "path_nll",
         "max_mixed_radix_digits": 64,
@@ -96,10 +101,22 @@ def _make_config(
     }
     if model_overrides is not None:
         model_cfg.update(model_overrides)
-    return {
+    payload: dict[str, object] = {
         "task": task,
         "model": model_cfg,
+        "preprocessing": {
+            "surface_label": "runtime_default",
+            "impute_missing": True,
+            "all_nan_fill": 0.0,
+            "label_mapping": "train_only_remap",
+            "unseen_test_label_policy": "filter",
+        },
     }
+    if preprocessing_overrides is not None:
+        preprocessing_cfg = payload["preprocessing"]
+        assert isinstance(preprocessing_cfg, dict)
+        preprocessing_cfg["overrides"] = preprocessing_overrides
+    return payload
 
 
 def _write_checkpoint(
@@ -108,12 +125,14 @@ def _write_checkpoint(
     task: str,
     input_normalization: str = "none",
     model_overrides: dict[str, object] | None = None,
+    preprocessing_overrides: dict[str, object] | None = None,
     seed: int = 0,
 ) -> torch.nn.Module:
     cfg = _make_config(
         task,
         input_normalization=input_normalization,
         model_overrides=model_overrides,
+        preprocessing_overrides=preprocessing_overrides,
     )
     model_cfg = cfg["model"]
     assert isinstance(model_cfg, dict)
@@ -173,11 +192,14 @@ def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path)
     assert manifest["schema_version"] == SCHEMA_VERSION_V3
     assert manifest["model"]["arch"] == "tabfoundry"
     assert manifest["model"]["input_normalization"] == "train_zscore"
+    assert manifest["model"]["missingness_mode"] == "none"
     assert isinstance(manifest["manifest_sha256"], str)
     assert len(manifest["manifest_sha256"]) == 64
     assert manifest["inference"]["model_arch"] == "tabfoundry"
+    assert manifest["inference"]["missingness_mode"] == "none"
     assert manifest["inference"]["many_class_inference_mode"] == "full_probs"
     assert manifest["preprocessor"]["feature_order_policy"] == "positional_feature_ids"
+    assert manifest["preprocessor"]["impute_missing"] is True
     assert manifest["preprocessor"]["classification_label_policy"]["mapping"] == "train_only_remap"
     assert manifest["weights"]["file"] == "weights.safetensors"
     assert (out_dir / "weights.safetensors").exists()
@@ -204,10 +226,39 @@ def test_export_bundle_supports_explicit_v2(tmp_path: Path) -> None:
 
     assert manifest["schema_version"] == SCHEMA_VERSION_V2
     assert "feature_ids" not in preprocessor_state
+    assert preprocessor_state["impute_missing"] is True
     assert preprocessor_state["classification_label_policy"]["mapping"] == "train_only_remap"
 
 
-def test_export_bundle_defaults_omitted_feature_group_size_to_one_when_weights_match(
+def test_export_bundle_round_trips_missingness_mode_and_raw_missing_policy(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_missingness.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        model_overrides={"missingness_mode": "feature_mask"},
+        preprocessing_overrides={"impute_missing": False},
+    )
+    out_dir = tmp_path / "export_missingness"
+
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+    output = run_reference_consumer(
+        out_dir,
+        x_train=_classification_reference_arrays()[0],
+        y_train=_classification_reference_arrays()[1],
+        x_test=_classification_reference_arrays()[2],
+    )
+
+    with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+
+    assert manifest["model"]["missingness_mode"] == "feature_mask"
+    assert manifest["inference"]["missingness_mode"] == "feature_mask"
+    assert manifest["preprocessor"]["impute_missing"] is False
+    assert torch.isnan(output.batch.x_train).any()
+    assert torch.isnan(output.batch.x_test).any()
+
+
+def test_export_bundle_rejects_checkpoint_missing_feature_group_size_metadata(
     tmp_path: Path,
 ) -> None:
     checkpoint = tmp_path / "ckpt_default_group.pt"
@@ -228,17 +279,11 @@ def test_export_bundle_defaults_omitted_feature_group_size_to_one_when_weights_m
         checkpoint,
     )
 
-    out_dir = tmp_path / "export_default_group"
-    _ = _export_v3_checkpoint(checkpoint, out_dir)
-
-    with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
-        manifest = json.load(handle)
-
-    loaded = load_export_bundle(out_dir)
-
-    assert manifest["model"]["feature_group_size"] == 1
-    assert manifest["inference"]["feature_group_size"] == 1
-    assert loaded.validated.manifest.model.feature_group_size == 1
+    with pytest.raises(
+        ValueError,
+        match="missing required reconstruction fields: feature_group_size",
+    ):
+        _ = _export_v3_checkpoint(checkpoint, tmp_path / "export_default_group")
 
 
 def test_export_bundle_rejects_legacy_grouped_weights_when_feature_group_size_is_omitted(
@@ -262,7 +307,7 @@ def test_export_bundle_rejects_legacy_grouped_weights_when_feature_group_size_is
         checkpoint,
     )
 
-    with pytest.raises(ValueError, match="omitted feature_group_size"):
+    with pytest.raises(ValueError, match="ambiguous across multiple tabfoundry layouts"):
         _ = _export_v3_checkpoint(checkpoint, tmp_path / "export_legacy_group")
 
 
@@ -537,7 +582,7 @@ def test_validate_export_v2_rejects_inference_model_arch_mismatch(tmp_path: Path
     inference_path = out_dir / "inference_config.json"
     inference = json.loads(inference_path.read_text(encoding="utf-8"))
     assert isinstance(inference, dict)
-    inference["model_arch"] = "tabfoundry_staged"
+    inference["model_arch"] = "tabfoundry"
     _rewrite_json(inference_path, inference)
     _update_v2_checksum(out_dir, key="inference_config", file_name="inference_config.json")
 
@@ -906,28 +951,8 @@ def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -
 
     payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
     assert isinstance(payload, dict)
-    fallback_cfg = OmegaConf.create(
-        {
-            "task": "classification",
-            "model": {
-                "d_col": 128,
-                "d_icl": 512,
-                "input_normalization": "none",
-                "feature_group_size": 1,
-                "many_class_train_mode": "path_nll",
-                "max_mixed_radix_digits": 64,
-                "norm_type": "layernorm",
-                "tfcol_n_layers": 3,
-                "tfrow_n_layers": 3,
-                "tfrow_norm": "layernorm",
-                "tficl_n_layers": 12,
-                "many_class_base": 10,
-                "head_hidden_dim": 1024,
-                "use_digit_position_embed": True,
-            },
-        }
-    )
-    eval_spec = evaluate_module._checkpoint_model_settings(payload, fallback_cfg)
+    eval_cfg = OmegaConf.create({"eval": {"model_overrides": None}})
+    eval_spec = evaluate_module._checkpoint_model_settings(payload, eval_cfg)
 
     assert eval_spec.task == loaded.validated.manifest.task
     assert eval_spec.input_normalization == loaded.validated.manifest.model.input_normalization

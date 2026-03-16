@@ -14,7 +14,9 @@ from tab_foundry.input_normalization import (
     InputNormalizationMode,
     SUPPORTED_INPUT_NORMALIZATION_MODES,
     normalize_train_test_tensors,
+    prepare_train_test_tensors_with_missing,
 )
+from tab_foundry.model.missingness import normalize_missingness_mode
 from tab_foundry.types import TaskBatch
 
 from ..components.blocks import TFColEncoder, TFRowEncoder
@@ -64,6 +66,7 @@ class _TabFoundryBackbone(nn.Module):
         d_col: int = 128,
         d_icl: int = 512,
         input_normalization: str = "none",
+        missingness_mode: str = "none",
         feature_group_size: int = 1,
         norm_type: str = "layernorm",
         tfcol_n_heads: int = 8,
@@ -86,6 +89,15 @@ class _TabFoundryBackbone(nn.Module):
                 "input_normalization must be "
                 f"{SUPPORTED_INPUT_NORMALIZATION_MODES}, "
                 f"got {input_normalization!r}"
+            )
+        self.missingness_mode = normalize_missingness_mode(
+            missingness_mode,
+            context="missingness_mode",
+        )
+        if self.missingness_mode == "explicit_token":
+            raise ValueError(
+                "tabfoundry only supports missingness_mode='none' or 'feature_mask'; "
+                "explicit_token is only valid on scalar-token paths"
             )
         self.group_shifts = (0, 1, 3)
         self.feature_group_size = int(feature_group_size)
@@ -126,7 +138,8 @@ class _TabFoundryBackbone(nn.Module):
                 f"tfrow_norm must be one of {SUPPORTED_NORM_TYPES}, got {self.tfrow_norm!r}"
             )
 
-        group_in_dim = len(self.group_shifts) * self.feature_group_size
+        missingness_multiplier = 2 if self.missingness_mode == "feature_mask" else 1
+        group_in_dim = len(self.group_shifts) * self.feature_group_size * missingness_multiplier
         self.group_linear = nn.Linear(group_in_dim, d_col)
         self.tfcol = TFColEncoder(
             d_model=d_col,
@@ -152,7 +165,12 @@ class _TabFoundryBackbone(nn.Module):
             norm_type=self.norm_type,
         )
 
-    def _group_features(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def _group_features(
+        self,
+        x: torch.Tensor,
+        *,
+        missing_mask: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # x: [N, M] -> grouped [N, G, group_size * len(shifts)], mask [G]
         n_rows, n_features = x.shape
         n_groups = int(math.ceil(float(n_features) / float(self.feature_group_size)))
@@ -171,10 +189,27 @@ class _TabFoundryBackbone(nn.Module):
             shifted = x_padded[:, base_idx.roll(-shift)]
             cols.append(shifted.view(n_rows, n_groups, self.feature_group_size))
         grouped = torch.cat(cols, dim=-1)
+        if missing_mask is not None:
+            missing_mask_f32 = missing_mask.to(dtype=x.dtype)
+            mask_padded = (
+                F.pad(missing_mask_f32, (0, pad), mode="constant", value=0.0)
+                if pad > 0
+                else missing_mask_f32
+            )
+            mask_cols: list[torch.Tensor] = []
+            for shift in self.group_shifts:
+                shifted_mask = mask_padded[:, base_idx.roll(-shift)]
+                mask_cols.append(shifted_mask.view(n_rows, n_groups, self.feature_group_size))
+            grouped = torch.cat([grouped, torch.cat(mask_cols, dim=-1)], dim=-1)
         return grouped, token_padding_mask
 
-    def _build_e1(self, x_all: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        grouped, token_padding_mask = self._group_features(x_all)
+    def _build_e1(
+        self,
+        x_all: torch.Tensor,
+        *,
+        missing_mask: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        grouped, token_padding_mask = self._group_features(x_all, missing_mask=missing_mask)
         return self.group_linear(grouped), token_padding_mask
 
     def _column_encode_from_e1(
@@ -233,13 +268,22 @@ class _TabFoundryBackbone(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor, int]:
         n_train = batch.x_train.shape[0]
         normalization_mode = cast(InputNormalizationMode, self.input_normalization)
-        x_train, x_test = normalize_train_test_tensors(
-            batch.x_train,
-            batch.x_test,
-            mode=normalization_mode,
-        )
+        missing_mask: torch.Tensor | None = None
+        if self.missingness_mode == "feature_mask":
+            x_train, x_test, train_missing, test_missing = prepare_train_test_tensors_with_missing(
+                batch.x_train,
+                batch.x_test,
+                mode=normalization_mode,
+            )
+            missing_mask = torch.cat([train_missing, test_missing], dim=0)
+        else:
+            x_train, x_test = normalize_train_test_tensors(
+                batch.x_train,
+                batch.x_test,
+                mode=normalization_mode,
+            )
         x_all = torch.cat([x_train, x_test], dim=0)
-        e1, token_padding_mask = self._build_e1(x_all)
+        e1, token_padding_mask = self._build_e1(x_all, missing_mask=missing_mask)
         return e1, token_padding_mask, n_train
 
     def _encode_from_e1(
@@ -266,6 +310,7 @@ class TabFoundryClassifier(_TabFoundryBackbone):
         d_col: int = 128,
         d_icl: int = 512,
         input_normalization: str = "none",
+        missingness_mode: str = "none",
         feature_group_size: int = 1,
         norm_type: str = "layernorm",
         many_class_train_mode: str = "path_nll",
@@ -288,6 +333,7 @@ class TabFoundryClassifier(_TabFoundryBackbone):
             d_col=d_col,
             d_icl=d_icl,
             input_normalization=input_normalization,
+            missingness_mode=missingness_mode,
             feature_group_size=feature_group_size,
             norm_type=norm_type,
             tfcol_n_heads=tfcol_n_heads,
@@ -614,6 +660,7 @@ class TabFoundryRegressor(_TabFoundryBackbone):
         d_col: int = 128,
         d_icl: int = 512,
         input_normalization: str = "none",
+        missingness_mode: str = "none",
         feature_group_size: int = 1,
         norm_type: str = "layernorm",
         tfcol_n_heads: int = 8,
@@ -632,6 +679,7 @@ class TabFoundryRegressor(_TabFoundryBackbone):
             d_col=d_col,
             d_icl=d_icl,
             input_normalization=input_normalization,
+            missingness_mode=missingness_mode,
             feature_group_size=feature_group_size,
             norm_type=norm_type,
             tfcol_n_heads=tfcol_n_heads,

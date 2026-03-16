@@ -125,8 +125,8 @@ Default dimensions from `configs/model/default.yaml`:
 
 | Stage | Input shape | Output shape | Notes |
 | ---- | ---- | ---- | ---- |
-| Normalize + concat | `x_train [N_train, M]`, `x_test [N_test, M]` | `x_all [N, M]` | Uses train-only normalization statistics. |
-| Feature grouping | `x_all [N, M]` | `grouped [N, G, 3 * feature_group_size]` | Shifted views use `group_shifts = [0, 1, 3]`. |
+| Normalize + concat | `x_train [N_train, M]`, `x_test [N_test, M]` | `x_all [N, M]` | Uses train-only normalization statistics. Missing-aware modes also emit a boolean missing mask. |
+| Feature grouping | `x_all [N, M]` | `grouped [N, G, 3 * feature_group_size]` | Shifted views use `group_shifts = [0, 1, 3]`. Under `missingness_mode=feature_mask`, the grouped input width doubles to `6 * feature_group_size`. |
 | Group projection | `grouped [N, G, group_in_dim]` | `e1 [N, G, d_col]` | `group_linear` is the first learned projection. |
 | Column encoder | `e1 [N, G, d_col]` | `col_out [N, G, d_col]` | Internally permutes to `[G, N, d_col]`. |
 | Row encoder | `col_out [N, G, d_col]` | `row_embed [N, d_icl]` | Prepends learned CLS tokens to each row. |
@@ -140,11 +140,20 @@ Default dimensions from `configs/model/default.yaml`:
 `_prepare_inputs()` is the common entrypoint for both tasks.
 
 - It reads `batch.x_train` and `batch.x_test`.
-- It applies `normalize_train_test_tensors()` using
+- With `missingness_mode=none`, it applies
+  `normalize_train_test_tensors()` using
   `input_normalization in {"none", "train_zscore", "train_zscore_clip"}`.
+- With `missingness_mode!=none`, it first treats any non-finite feature value
+  (`NaN` or `Inf`) as missing, computes train-only observed means, fills
+  missing values before normalization, and returns a separate missing mask.
 - It concatenates normalized train and test features into one row-major tensor.
 - It builds `e1`, the first tokenized representation, and a one-dimensional
   `token_padding_mask` for feature groups.
+
+Runtime contract:
+
+- Missing-aware modes require raw missing values to survive preprocessing:
+  `data.allow_missing_values=true` and `preprocessing.impute_missing=false`.
 
 ### 2. Feature Grouping And Projection
 
@@ -156,12 +165,20 @@ Default dimensions from `configs/model/default.yaml`:
   `0`, `1`, and `3`.
 - The three views are concatenated, so each grouped token sees a local bundle
   of shifted feature neighborhoods.
+- Under `missingness_mode=feature_mask`, the same grouping path is applied to a
+  0/1 missing-indicator tensor and concatenated alongside the numeric channels,
+  doubling the first projection width.
 - `token_padding_mask` marks feature groups that are fully padded.
 
 This is one of the main implementation choices that controls compute and
 inductive bias. The current default is paper-faithful one-token-per-feature
 tokenization, while larger `feature_group_size` values enable grouped-token
 experiments with fewer tokens.
+
+`tabfoundry` does not support `missingness_mode=explicit_token` in v1 because
+its tokenizer is always shifted-grouped. The explicit-token mode is instead
+available on scalar-token paths such as `tabfoundry_simple` and staged
+`scalar_per_feature` configurations.
 
 ### 3. Column Encoder
 

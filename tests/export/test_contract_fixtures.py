@@ -32,6 +32,7 @@ def test_manifest_v2_fixture_validates() -> None:
     assert manifest.task == "classification"
     assert manifest.model.feature_group_size == 1
     assert manifest.model.input_normalization == "none"
+    assert manifest.model.missingness_mode == "none"
     assert manifest.model.norm_type == "layernorm"
     assert manifest.model.tfrow_norm == "layernorm"
 
@@ -41,6 +42,7 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     manifest = validate_manifest_dict(payload)
     assert manifest.schema_version == SCHEMA_VERSION_V3
     assert manifest.model.input_normalization == "train_zscore"
+    assert manifest.model.missingness_mode == "none"
     assert manifest.model.norm_type == "layernorm"
     assert manifest.model.tfrow_norm == "layernorm"
     assert manifest.manifest_sha256 is not None
@@ -48,8 +50,10 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     assert manifest.preprocessor is not None
     assert manifest.weights is not None
     assert manifest.inference.group_shifts == [0, 1, 3]
+    assert manifest.inference.missingness_mode == "none"
     assert manifest.inference.many_class_inference_mode == "full_probs"
     assert isinstance(manifest.preprocessor, ExportPreprocessorState)
+    assert manifest.preprocessor.impute_missing is True
     assert manifest.preprocessor.classification_label_policy is not None
     assert manifest.preprocessor.classification_label_policy.mapping == "train_only_remap"
     assert manifest.weights.file == "weights.safetensors"
@@ -63,7 +67,7 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     assert build_spec.tfrow_norm == "layernorm"
 
 
-def test_manifest_v2_validation_applies_model_defaults_via_canonical_spec() -> None:
+def test_manifest_v2_validation_requires_explicit_model_reconstruction_fields() -> None:
     payload = _load_fixture("manifest_v2.json")
     model_raw = payload["model"]
     assert isinstance(model_raw, dict)
@@ -88,23 +92,8 @@ def test_manifest_v2_validation_applies_model_defaults_via_canonical_spec() -> N
         model_payload.pop(key, None)
     payload["model"] = model_payload
 
-    manifest = validate_manifest_dict(payload)
-
-    assert manifest.model.input_normalization == "none"
-    assert manifest.model.norm_type == "layernorm"
-    assert manifest.model.tfcol_n_heads == 8
-    assert manifest.model.tfcol_n_layers == 3
-    assert manifest.model.tfcol_n_inducing == 128
-    assert manifest.model.tfrow_n_heads == 8
-    assert manifest.model.tfrow_n_layers == 3
-    assert manifest.model.tfrow_cls_tokens == 4
-    assert manifest.model.tfrow_norm == "layernorm"
-    assert manifest.model.tficl_n_heads == 8
-    assert manifest.model.tficl_n_layers == 12
-    assert manifest.model.tficl_ff_expansion == 2
-    assert manifest.model.many_class_base == 10
-    assert manifest.model.head_hidden_dim == 1024
-    assert manifest.model.use_digit_position_embed is True
+    with pytest.raises(ValueError, match="manifest.model keys mismatch"):
+        validate_manifest_dict(payload)
 
 
 def test_manifest_v3_validation_requires_input_normalization() -> None:
@@ -155,8 +144,10 @@ def test_v2_section_fixtures_validate() -> None:
     v2_state = validate_preprocessor_state_dict(v2_preproc_payload, schema_version=SCHEMA_VERSION_V2)
 
     assert v2_cfg.model_arch == "tabfoundry"
+    assert v2_cfg.missingness_mode == "none"
     assert v2_cfg.feature_group_size == 1
     assert isinstance(v2_state, LegacyPreprocessorState)
+    assert v2_state.impute_missing is True
     assert v2_state.feature_order_policy == "lexicographic_f_columns"
     assert v2_state.classification_label_policy["unseen_test_label"] == "filter"
 
@@ -176,6 +167,7 @@ def test_v3_section_validation_supports_classification_and_regression_policies()
                 "strategy": "train_mean",
                 "all_nan_fill": 0.0,
             },
+            "impute_missing": True,
             "classification_label_policy": None,
             "dtype_policy": {
                 "features": "float32",
@@ -188,7 +180,9 @@ def test_v3_section_validation_supports_classification_and_regression_policies()
     )
 
     assert cls_inference.many_class_inference_mode == "full_probs"
+    assert cls_inference.missingness_mode == "none"
     assert isinstance(cls_preprocessor, ExportPreprocessorState)
+    assert cls_preprocessor.impute_missing is True
     assert cls_preprocessor.classification_label_policy is not None
     assert cls_preprocessor.classification_label_policy.unseen_test_label == "filter"
     assert isinstance(reg_preprocessor, ExportPreprocessorState)

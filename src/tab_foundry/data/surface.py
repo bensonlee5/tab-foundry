@@ -36,13 +36,15 @@ class DataSurfaceConfig:
 def resolve_data_surface(data_cfg: Mapping[str, Any] | None) -> DataSurfaceConfig:
     """Resolve one data surface with additive overrides."""
 
-    cfg = {} if data_cfg is None else {str(key): value for key, value in data_cfg.items()}
+    if data_cfg is None:
+        raise ValueError("data config is required")
+    cfg = {str(key): value for key, value in data_cfg.items()}
     overrides = _mapping_from_any(cfg.get("surface_overrides"), context="data.surface_overrides")
     raw_source = overrides.get("source")
     if raw_source is None:
         raw_source = cfg.get("source")
     if raw_source is None:
-        raw_source = "manifest"
+        raise ValueError("data.source must be explicitly configured")
     source = str(raw_source).strip().lower()
     raw_manifest_path = overrides.get("manifest_path")
     if raw_manifest_path is None:
@@ -50,6 +52,8 @@ def resolve_data_surface(data_cfg: Mapping[str, Any] | None) -> DataSurfaceConfi
     manifest_path = None
     if raw_manifest_path is not None:
         manifest_path = Path(str(raw_manifest_path)).expanduser().resolve()
+    if source == "manifest" and manifest_path is None:
+        raise ValueError("data.manifest_path must be configured when data.source='manifest'")
     filter_policy_raw = overrides.get("filter_policy")
     if filter_policy_raw is None:
         filter_policy_raw = cfg.get("filter_policy")
@@ -57,7 +61,9 @@ def resolve_data_surface(data_cfg: Mapping[str, Any] | None) -> DataSurfaceConfi
     allow_missing_values_raw = overrides.get("allow_missing_values")
     if allow_missing_values_raw is None:
         allow_missing_values_raw = cfg.get("allow_missing_values")
-    allow_missing_values = bool(allow_missing_values_raw) if allow_missing_values_raw is not None else False
+    if allow_missing_values_raw is None:
+        raise ValueError("data.allow_missing_values must be explicitly configured")
+    allow_missing_values = bool(allow_missing_values_raw)
     dagzoo_provenance_raw = overrides.get("dagzoo_provenance")
     if dagzoo_provenance_raw is None:
         dagzoo_provenance_raw = cfg.get("dagzoo_provenance")
@@ -78,8 +84,8 @@ def resolve_data_surface(data_cfg: Mapping[str, Any] | None) -> DataSurfaceConfi
     surface_label_raw = cfg.get("surface_label")
     if surface_label_raw is None:
         surface_label_raw = overrides.get("surface_label")
-    if surface_label_raw is None:
-        surface_label_raw = source
+    if surface_label_raw is None or not str(surface_label_raw).strip():
+        raise ValueError("data.surface_label must be explicitly configured")
     return DataSurfaceConfig(
         surface_label=str(surface_label_raw).strip(),
         source=source,

@@ -1,5 +1,5 @@
 name: adamw
-require_requested: false
+require_requested: true
 weight_decay: 0.01
 betas: [0.9, 0.95]
 min_lr: 1.0e-6

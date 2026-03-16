@@ -8,6 +8,29 @@ import pyarrow.parquet as pq
 from tab_foundry.training.surface import build_training_surface_record
 
 
+def _data_cfg(manifest_path: Path, **overrides: object) -> dict[str, object]:
+    cfg: dict[str, object] = {
+        "source": "manifest",
+        "manifest_path": str(manifest_path),
+        "surface_label": "anchor_manifest_default",
+        "allow_missing_values": False,
+    }
+    cfg.update(overrides)
+    return cfg
+
+
+def _preprocessing_cfg(**overrides: object) -> dict[str, object]:
+    cfg: dict[str, object] = {
+        "surface_label": "runtime_default",
+        "impute_missing": True,
+        "all_nan_fill": 0.0,
+        "label_mapping": "train_only_remap",
+        "unseen_test_label_policy": "filter",
+    }
+    cfg.update(overrides)
+    return cfg
+
+
 def _write_manifest(path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     table = pa.Table.from_pylist(
@@ -119,22 +142,20 @@ def test_build_training_surface_record_captures_model_data_and_preprocessing_sur
             "tfrow_n_layers": 1,
             "tfrow_cls_tokens": 2,
         },
-        "data": {
-            "source": "manifest",
-            "manifest_path": str(manifest_path),
-            "surface_label": "anchor_manifest_default",
-            "surface_overrides": {
+        "data": _data_cfg(
+            manifest_path,
+            surface_overrides={
                 "filter_policy": "accepted_only",
                 "dagzoo_provenance": {
                     "commands": ["dagzoo filter --curated-out ..."],
                     "config_refs": ["configs/dagzoo/binary.yaml"],
                 },
             },
-        },
-        "preprocessing": {
-            "surface_label": "runtime_no_impute",
-            "overrides": {"impute_missing": False, "all_nan_fill": 1.0},
-        },
+        ),
+        "preprocessing": _preprocessing_cfg(
+            surface_label="runtime_no_impute",
+            overrides={"impute_missing": False, "all_nan_fill": 1.0},
+        ),
     }
 
     record = build_training_surface_record(
@@ -147,6 +168,7 @@ def test_build_training_surface_record_captures_model_data_and_preprocessing_sur
         "data": "anchor_manifest_default",
         "preprocessing": "runtime_no_impute",
     }
+    assert record["model"]["missingness_mode"] == "none"
     assert record["model"]["module_selection"]["row_pool"] == "row_cls"
     assert record["model"]["module_hyperparameters"]["row_pool"]["n_heads"] == 2
     assert record["data"]["manifest"]["characteristics"]["record_count"] == 2
@@ -199,10 +221,8 @@ def test_build_training_surface_record_marks_missing_inputs_when_manifest_is_dir
         raw_cfg={
             "task": "classification",
             "model": {"arch": "tabfoundry"},
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-            },
+            "data": _data_cfg(manifest_path, allow_missing_values=True),
+            "preprocessing": _preprocessing_cfg(),
         },
         run_dir=tmp_path / "run_dirty",
     )
@@ -231,11 +251,8 @@ def test_build_training_surface_record_captures_post_encoder_norm_component(tmp_
                 "tficl_n_layers": 3,
                 "head_hidden_dim": 192,
             },
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-                "surface_label": "anchor_manifest_default",
-            },
+            "data": _data_cfg(manifest_path),
+            "preprocessing": _preprocessing_cfg(),
         },
         run_dir=tmp_path / "run_post_encoder_norm",
     )
@@ -256,10 +273,8 @@ def test_build_training_surface_record_marks_legacy_manifest_missingness_as_unkn
         raw_cfg={
             "task": "classification",
             "model": {"arch": "tabfoundry"},
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-            },
+            "data": _data_cfg(manifest_path),
+            "preprocessing": _preprocessing_cfg(),
         },
         run_dir=tmp_path / "run_legacy",
     )
@@ -278,16 +293,16 @@ def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_v
         raw_cfg={
             "task": "classification",
             "model": {"arch": "tabfoundry"},
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-                "train_row_cap": 10,
-                "test_row_cap": 5,
-                "surface_overrides": {
+            "data": _data_cfg(
+                manifest_path,
+                train_row_cap=10,
+                test_row_cap=5,
+                surface_overrides={
                     "train_row_cap": 3,
                     "test_row_cap": 2,
                 },
-            },
+            ),
+            "preprocessing": _preprocessing_cfg(),
         },
         run_dir=tmp_path / "run_override",
     )
@@ -295,13 +310,13 @@ def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_v
         raw_cfg={
             "task": "classification",
             "model": {"arch": "tabfoundry"},
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-                "train_row_cap": 10,
-                "test_row_cap": 5,
-                "surface_overrides": {},
-            },
+            "data": _data_cfg(
+                manifest_path,
+                train_row_cap=10,
+                test_row_cap=5,
+                surface_overrides={},
+            ),
+            "preprocessing": _preprocessing_cfg(),
         },
         run_dir=tmp_path / "run_top_level",
     )
@@ -329,11 +344,8 @@ def test_build_training_surface_record_includes_optional_training_surface(
                 "tficl_n_layers": 3,
                 "head_hidden_dim": 192,
             },
-            "data": {
-                "source": "manifest",
-                "manifest_path": str(manifest_path),
-                "surface_label": "anchor_manifest_default",
-            },
+            "data": _data_cfg(manifest_path),
+            "preprocessing": _preprocessing_cfg(),
             "training": {
                 "surface_label": "prior_linear_warmup_decay",
                 "apply_schedule": True,

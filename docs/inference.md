@@ -42,20 +42,21 @@ Required keys:
 - `manifest_sha256`: SHA-256 of the canonical UTF-8 JSON encoding of the full
   manifest with `manifest_sha256` omitted; validators reject stale or missing
   values
-- `model`: `{arch, d_col, d_icl, input_normalization, feature_group_size, many_class_train_mode, max_mixed_radix_digits}`
+- `model`: `{arch, d_col, d_icl, input_normalization, missingness_mode, feature_group_size, many_class_train_mode, max_mixed_radix_digits}`
   - `stage` is an additive optional field and is emitted only for
     `arch=tabfoundry_staged`.
   - Exporter also emits architecture reconstruction fields:
     `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed}`.
-  - Validators accept manifests that omit the optional reconstruction fields and
-    apply the current model defaults.
-  - Validators also accept older manifests that omit `stage`.
+  - Validators require the reconstruction fields needed to rebuild the model
+    exactly. Older manifests that omitted those fields must be regenerated.
+  - Validators also require `stage` whenever `arch=tabfoundry_staged`.
   - See `docs/development/model-config.md` for the meaning of each model field
     and the current canonical defaults.
 - `inference`
   - `task`
   - `model_arch` (`tabfoundry`, `tabfoundry_simple`, or `tabfoundry_staged`)
   - `model_stage` (optional; emitted only for `tabfoundry_staged`)
+  - `missingness_mode` (`none`, `explicit_token`, or `feature_mask`)
   - `group_shifts` (`[0, 1, 3]`)
   - `feature_group_size`
   - `many_class_threshold` (`10`)
@@ -64,6 +65,7 @@ Required keys:
 - `preprocessor`
   - `feature_order_policy` (`positional_feature_ids`)
   - `missing_value_policy` (`strategy=train_mean`, `all_nan_fill=0.0`)
+  - `impute_missing` (`true | false`)
   - `classification_label_policy`
     - classification bundles: `{mapping=train_only_remap, unseen_test_label=filter}`
     - regression bundles: `null`
@@ -77,6 +79,11 @@ Required keys:
   persist dataset-specific fitted preprocessing values.
 - Runtime preprocessing is always derived from the incoming support set
   (`x_train`, `y_train`) before applying the model.
+- Missing values are defined as any non-finite feature entry (`NaN` or `Inf`).
+- When `manifest.model.missingness_mode != "none"`, runtime inputs must preserve
+  raw missing values. In practice that means the exported preprocessor policy
+  must have `impute_missing=false`, and the reference consumer now honors that
+  field instead of always imputing first.
 - The bundled `preprocessor` section is used for invariant contract checks and
   conformance, not as a cache of export-time train statistics.
 - `manifest_sha256` protects the embedded `model`, `inference`,
@@ -140,10 +147,12 @@ Out of scope here:
 - Existing single-manifest v3 bundles without `manifest_sha256` are
   intentionally obsolete after the metadata-integrity fix and must be
   regenerated.
+- Older v3 manifests that omit reconstructive model fields or preprocessor
+  policy fields are intentionally obsolete and must be regenerated.
 - `tab-foundry-export-v2` bundles remain validator-readable during migration.
 - `tab-foundry-export-v1` bundles are intentionally unsupported after the
   `tabfoundry` family rename and must be regenerated.
-- Checkpoint export/load now treats omitted `feature_group_size` as `1`. Legacy
-  grouped-token checkpoints that omitted that field are intentionally rejected
-  and must be regenerated or loaded with an explicit `feature_group_size`
-  override before export.
+- Checkpoint export/load now requires explicit reconstruction metadata. Legacy
+  checkpoints that omitted fields such as `feature_group_size` or
+  `missingness_mode` are intentionally rejected and must be regenerated or
+  loaded with explicit overrides before export.

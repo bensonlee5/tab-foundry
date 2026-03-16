@@ -150,21 +150,14 @@ def build_training_surface_record(
     raw_schedule_cfg = raw_cfg.get("schedule")
     if not isinstance(raw_model_cfg, Mapping):
         raise RuntimeError("training surface record requires cfg.model to be a mapping")
+    if not isinstance(raw_data_cfg, Mapping):
+        raise RuntimeError("training surface record requires cfg.data to be a mapping")
+    if not isinstance(raw_preprocessing_cfg, Mapping):
+        raise RuntimeError("training surface record requires cfg.preprocessing to be a mapping")
 
     model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
-    if not isinstance(raw_data_cfg, Mapping):
-        data_cfg = {
-            "source": "prior_dump",
-            "surface_label": "prior_dump",
-            "surface_overrides": {},
-        }
-    else:
-        data_cfg = {str(key): value for key, value in raw_data_cfg.items()}
-    preprocessing_cfg = (
-        None
-        if not isinstance(raw_preprocessing_cfg, Mapping)
-        else {str(key): value for key, value in raw_preprocessing_cfg.items()}
-    )
+    data_cfg = {str(key): value for key, value in raw_data_cfg.items()}
+    preprocessing_cfg = {str(key): value for key, value in raw_preprocessing_cfg.items()}
     training_cfg = (
         None
         if not isinstance(raw_training_cfg, Mapping)
@@ -207,6 +200,7 @@ def build_training_surface_record(
         "stage": None if model_spec.stage is None else str(model_spec.stage),
         "stage_label": None if model_spec.stage_label is None else str(model_spec.stage_label),
         "input_normalization": str(model_spec.input_normalization),
+        "missingness_mode": str(model_spec.missingness_mode),
         "feature_group_size": int(model_spec.feature_group_size),
         "many_class_base": int(model_spec.many_class_base),
         "build_spec": model_spec.to_dict(),

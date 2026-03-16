@@ -11,6 +11,7 @@ from tab_foundry.input_normalization import (
     InputNormalizationMode,
     SUPPORTED_INPUT_NORMALIZATION_MODES,
     normalize_train_test_tensors,
+    prepare_train_test_tensors_with_missing,
 )
 from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
 from tab_foundry.model.components.many_class import (
@@ -57,6 +58,7 @@ class TabFoundryStagedClassifier(nn.Module):
         d_col: int = 128,
         d_icl: int = 512,
         input_normalization: str = "none",
+        missingness_mode: str = "none",
         feature_group_size: int = 1,
         many_class_train_mode: str = "path_nll",
         max_mixed_radix_digits: int = 64,
@@ -85,6 +87,7 @@ class TabFoundryStagedClassifier(nn.Module):
             d_col=d_col,
             d_icl=d_icl,
             input_normalization=input_normalization,
+            missingness_mode=missingness_mode,
             feature_group_size=feature_group_size,
             many_class_train_mode=many_class_train_mode,
             max_mixed_radix_digits=max_mixed_radix_digits,
@@ -111,6 +114,7 @@ class TabFoundryStagedClassifier(nn.Module):
         self.benchmark_profile = self.surface.benchmark_profile
         self.module_selection = self.surface.module_selection()
         self.module_hyperparameters = self.surface.component_hyperparameters()
+        self.missingness_mode = self.surface.missingness_mode
 
         self.d_icl = int(self.model_spec.d_icl)
         self.input_normalization = str(self.model_spec.input_normalization).strip().lower()
@@ -246,31 +250,62 @@ class TabFoundryStagedClassifier(nn.Module):
         if int(y_train.shape[1]) != train_test_split_index:
             raise ValueError("y_train length must match train_test_split_index")
 
-    def _normalize_x_all(self, x_all: torch.Tensor, *, train_test_split_index: int) -> torch.Tensor:
+    def _prepare_x_all(
+        self,
+        x_all: torch.Tensor,
+        *,
+        train_test_split_index: int,
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         if self.surface.normalization_mode != "shared":
-            return x_all
+            return x_all, None
         x_train = x_all[:, :train_test_split_index, :]
         x_test = x_all[:, train_test_split_index:, :]
         train_parts: list[torch.Tensor] = []
         test_parts: list[torch.Tensor] = []
+        train_missing_parts: list[torch.Tensor] = []
+        test_missing_parts: list[torch.Tensor] = []
         for batch_idx in range(int(x_all.shape[0])):
-            train_norm, test_norm = normalize_train_test_tensors(
-                x_train[batch_idx],
-                x_test[batch_idx],
-                mode=cast(
-                    InputNormalizationMode,
-                    self.input_normalization,
-                ),
+            normalization_mode = cast(
+                InputNormalizationMode,
+                self.input_normalization,
             )
+            if self.surface.missingness_mode == "none":
+                train_norm, test_norm = normalize_train_test_tensors(
+                    x_train[batch_idx],
+                    x_test[batch_idx],
+                    mode=normalization_mode,
+                )
+                train_missing = torch.zeros_like(x_train[batch_idx], dtype=torch.bool)
+                test_missing = torch.zeros_like(x_test[batch_idx], dtype=torch.bool)
+            else:
+                train_norm, test_norm, train_missing, test_missing = (
+                    prepare_train_test_tensors_with_missing(
+                        x_train[batch_idx],
+                        x_test[batch_idx],
+                        mode=normalization_mode,
+                    )
+                )
             train_parts.append(train_norm)
             test_parts.append(test_norm)
-        return torch.cat(
+            train_missing_parts.append(train_missing)
+            test_missing_parts.append(test_missing)
+        normalized = torch.cat(
             [
                 torch.stack(train_parts, dim=0),
                 torch.stack(test_parts, dim=0),
             ],
             dim=1,
         )
+        if self.surface.missingness_mode == "none":
+            return normalized, None
+        missing_mask = torch.cat(
+            [
+                torch.stack(train_missing_parts, dim=0),
+                torch.stack(test_missing_parts, dim=0),
+            ],
+            dim=1,
+        )
+        return normalized, missing_mask
 
     def _build_raw_input_state(
         self,
@@ -282,8 +317,13 @@ class TabFoundryStagedClassifier(nn.Module):
         num_classes: int,
     ) -> RawInputState:
         self._validate_batched_inputs(x_all, y_train, train_test_split_index)
+        prepared_x_all, missing_mask = self._prepare_x_all(
+            x_all,
+            train_test_split_index=train_test_split_index,
+        )
         return RawInputState(
-            x_all=self._normalize_x_all(x_all, train_test_split_index=train_test_split_index),
+            x_all=prepared_x_all,
+            missing_mask=missing_mask,
             y_train=y_train,
             y_test=y_test,
             train_test_split_index=train_test_split_index,
@@ -291,11 +331,17 @@ class TabFoundryStagedClassifier(nn.Module):
         )
 
     def _feature_cells(self, raw_state: RawInputState) -> torch.Tensor:
-        tokenized_x, _token_padding_mask = self.tokenizer(raw_state.x_all)
         if self.surface.feature_encoder == "nano":
             feature_cells = self.feature_encoder(raw_state.x_all, raw_state.train_test_split_index)
         else:
-            feature_cells = self.feature_encoder(tokenized_x)
+            tokenized_x, _token_padding_mask, token_missing_mask = self.tokenizer(
+                raw_state.x_all,
+                missing_mask=raw_state.missing_mask,
+            )
+            feature_cells = self.feature_encoder(
+                tokenized_x,
+                token_missing_mask=token_missing_mask,
+            )
         self.trace_activation("post_feature_encoder", feature_cells)
         return feature_cells
 

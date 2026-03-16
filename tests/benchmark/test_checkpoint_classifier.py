@@ -15,6 +15,7 @@ from tab_foundry.bench.nanotabpfn import evaluate_classifier, load_dataset_cache
 from tab_foundry.input_normalization import normalize_train_test_arrays
 from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
 from tab_foundry.model.factory import build_model
+from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.types import TaskBatch
 
 
@@ -36,6 +37,10 @@ class _CapturingClassifier(nn.Module):
         self.last_batch = batch
         logits = torch.zeros((batch.x_test.shape[0], 2), dtype=batch.x_test.dtype, device=batch.x_test.device)
         return ClassificationOutput(logits=logits, num_classes=2)
+
+
+def _checkpoint_model_cfg(**overrides: object) -> dict[str, object]:
+    return model_build_spec_from_mappings(task="classification", primary=overrides).to_dict()
 
 
 def test_tab_foundry_classifier_predicts_probabilities(
@@ -231,15 +236,17 @@ def test_load_checkpoint_classifier_model_rejects_legacy_grouped_weights_without
 ) -> None:
     checkpoint = tmp_path / "legacy.pt"
     model = build_model(task="classification", feature_group_size=32)
+    checkpoint_model_cfg = _checkpoint_model_cfg(missingness_mode="none")
+    checkpoint_model_cfg.pop("feature_group_size")
     torch.save(
         {
             "model": model.state_dict(),
-            "config": {"task": "classification", "model": {}},
+            "config": {"task": "classification", "model": checkpoint_model_cfg},
         },
         checkpoint,
     )
 
-    with pytest.raises(ValueError, match="omitted feature_group_size"):
+    with pytest.raises(ValueError, match="ambiguous across multiple tabfoundry layouts"):
         _ = checkpoint_classifier.load_checkpoint_classifier_model(
             checkpoint,
             device=torch.device("cpu"),
@@ -251,14 +258,16 @@ def test_load_checkpoint_classifier_model_supports_explicit_override_for_legacy_
 ) -> None:
     checkpoint = tmp_path / "legacy.pt"
     model = build_model(task="classification", feature_group_size=32)
+    checkpoint_model_cfg = _checkpoint_model_cfg(missingness_mode="none")
+    checkpoint_model_cfg.pop("feature_group_size")
     torch.save(
         {
             "model": model.state_dict(),
-            "config": {"task": "classification", "model": {}},
+            "config": {"task": "classification", "model": checkpoint_model_cfg},
         },
         checkpoint,
     )
-    cfg = OmegaConf.create({"model": {"feature_group_size": 32}})
+    cfg = OmegaConf.create({"checkpoint_model_overrides": {"feature_group_size": 32}})
 
     loaded_model, spec = checkpoint_classifier.load_checkpoint_classifier_model(
         checkpoint,

@@ -20,19 +20,31 @@ The model config surface is shared across several layers, but the roles differ:
   - This is the intended operator-facing default source.
 - `src/tab_foundry/model/spec.py`
   - Canonical typed representation of model settings.
-  - Provides fallback defaults for non-Hydra paths such as checkpoint-based
-    evaluation, export reconstruction, and bundle loading.
+  - Provides typed normalization and direct-construction defaults for internal
+    call sites that are not reconstructing persisted artifacts.
 - Checkpoint payload `config.model`
   - Persists the model settings used for a training run.
-  - Takes precedence over fallback config when evaluating or exporting a
-    checkpoint.
+  - Is the source of truth for checkpoint evaluation/export reconstruction.
 - Export manifest `model`
   - Persists the resolved model settings that an inference/runtime loader needs
     to reconstruct the model.
 
+Explicitness policy:
+
+- Hydra-composed training config may rely on repo defaults from
+  `configs/model/default.yaml`.
+- Persisted artifact readers must not silently backfill omitted reconstruction
+  fields from current repo defaults.
+- Checkpoint/export/bundle loading accepts only:
+  - persisted artifact metadata
+  - explicit user override fields where the caller exposes them
+- If required reconstruction metadata is missing or ambiguous, loading fails
+  with a compatibility error instead of inferring or substituting behavior.
+
 Current canonical default:
 
 - `feature_group_size = 1`
+- `missingness_mode = "none"`
 
 That means the default model uses one token per feature. Larger values such as
 `32` are non-default grouped-token experiments that reduce token count and
@@ -55,23 +67,19 @@ source of truth for default values.
 
 ### Evaluate Checkpoint
 
-Checkpoint evaluation resolves settings from both the checkpoint payload and the
-current Hydra config.
+Checkpoint evaluation resolves settings from checkpoint metadata plus explicit
+user overrides.
 
 Resolution order:
 
 1. `checkpoint["config"]["model"]`
-1. `cfg.model`
-1. `ModelBuildSpec` fallback defaults
+1. explicit caller-provided overrides such as `eval.model_overrides`
+1. hard failure if required reconstruction fields are missing or ambiguous
 
-This lets evaluation preserve the checkpoint's original architecture settings
-while still tolerating older checkpoints that omitted newer fields.
-When `feature_group_size` is omitted, checkpoint-backed reconstruction now
-resolves it to `1`. If the saved weights are incompatible with that per-feature
-default, loading fails with a compatibility error instead of silently
-reconstructing a grouped-token model. Legacy checkpoints that omitted
-`feature_group_size` and were trained with grouped tokens must be regenerated
-or loaded with an explicit `feature_group_size` override.
+Current repo defaults do not implicitly override or fill checkpoint metadata.
+Legacy checkpoints that omitted reconstructive fields such as
+`feature_group_size` or `missingness_mode` must be regenerated or loaded with
+explicit overrides that match the saved weights.
 
 ### Export Checkpoint
 
@@ -80,13 +88,13 @@ Export reconstruction resolves the model spec from the checkpoint payload.
 Resolution order:
 
 1. `checkpoint["config"]["model"]`
-1. `ModelBuildSpec` fallback defaults
+1. hard failure if required reconstruction fields are missing or ambiguous
 
 The resolved spec is then written into `manifest.json`, including the embedded
 `manifest.inference` section for v3 bundles.
-As with checkpoint evaluation, omitted `feature_group_size` values now resolve
-to `1`, and incompatible grouped-token legacy checkpoints fail fast with a
-compatibility error.
+`missingness_mode` is serialized into the manifest/inference payload for new
+exports, and the exporter now requires the checkpoint to persist the fields
+needed to reconstruct the model exactly.
 
 ### Load Export Bundle
 
@@ -95,10 +103,11 @@ Bundle loading reconstructs the model from the manifest.
 Resolution order:
 
 1. `manifest.model`
-1. `ModelBuildSpec` fallback defaults for omitted optional manifest fields
+1. hard failure if required reconstruction fields are missing
 
-This exists mainly so validators and loaders can tolerate older manifests that
-did not yet serialize every reconstruction field.
+Bundle validators and loaders require the manifest to persist the model fields
+needed to reconstruct the model exactly. Older manifests that omitted those
+fields must be regenerated.
 
 ## Parameter Reference
 
@@ -111,6 +120,7 @@ did not yet serialize every reconstruction field.
 | `d_col` | `int` | `128` | both | Width of grouped feature tokens and the column encoder. |
 | `d_icl` | `int` | `512` | both | Width of row embeddings and the final in-context encoder. |
 | `input_normalization` | `str` | `"none"` | both | Train/test feature normalization mode. Supported values are `none`, `train_zscore`, and `train_zscore_clip`. |
+| `missingness_mode` | `str` | `"none"` | both | Model-native missing-value handling mode. Supported values are `none`, `explicit_token`, and `feature_mask`. Missing values are any non-finite feature entries (`NaN` or `Inf`). |
 | `feature_group_size` | `int` | `1` | both | Number of raw features per grouped token before shifted concatenation. `1` is the paper-faithful per-feature default. |
 | `many_class_train_mode` | `str` | `"path_nll"` | classification | Training branch for many-class classification. `path_nll` returns path terms; `full_probs` trains through full probabilities. |
 | `max_mixed_radix_digits` | `int` | `64` | classification | Maximum allowed depth for mixed-radix many-class decomposition. |
@@ -148,12 +158,18 @@ row representation width and the final QASS transformer width.
 ### Tokenization And Preprocessing
 
 - `input_normalization`
+- `missingness_mode`
 - `feature_group_size`
 
 `feature_group_size` is the highest-leverage token-count knob:
 
 - `1`: one token per feature, paper-faithful default
 - `>1`: grouped-token mode, fewer tokens and lower attention cost
+
+`missingness_mode` controls whether missingness is ignored by the architecture
+(`none`), encoded through a dedicated learned replacement token
+(`explicit_token`), or exposed explicitly as one extra 0/1 channel per feature
+(`feature_mask`).
 
 ### Many-Class Classification
 
@@ -183,6 +199,12 @@ Regression also has a fixed, non-configurable `999`-quantile output grid.
     It reuses `d_icl`, `tficl_n_heads`, `tficl_n_layers`, and `head_hidden_dim`,
     and rejects non-default tabfoundry-only knobs such as grouped-token,
     row/column encoder, and many-class-path settings.
+  - `missingness_mode=none` is the exact parity path.
+  - `missingness_mode=feature_mask` and `missingness_mode=explicit_token` are
+    supported opt-in deviations.
+- `tabfoundry` supports `missingness_mode=none` and `feature_mask`.
+  `missingness_mode=explicit_token` is rejected because the architecture always
+  uses shifted grouped tokens.
 - `tabfoundry_staged` is the classification-only staged research family.
   `model.stage` defaults to `nano_exact`, and non-null `model.stage` is rejected
   for `tabfoundry` and `tabfoundry_simple`.
@@ -207,6 +229,15 @@ Regression also has a fixed, non-configurable `999`-quantile output grid.
   - `feature_encoder=nano` keeps internal benchmark normalization
   - `feature_encoder=shared` uses the shared repo normalization pipeline and
     honors `input_normalization`
+- Runtime missingness requirements:
+  - `missingness_mode=none` works with the usual preprocessing settings
+  - `missingness_mode!=none` requires `data.allow_missing_values=true`
+  - `missingness_mode!=none` also requires `preprocessing.impute_missing=false`
+- Architecture compatibility for missingness:
+  - `feature_mask` is supported across `tabfoundry`, `tabfoundry_simple`, and
+    `tabfoundry_staged`
+  - `explicit_token` is only valid on scalar-token paths
+  - staged `tokenizer=shifted_grouped` rejects `explicit_token`
 - `module_overrides` supports these atomic change families:
   - `feature_encoder`
   - `post_encoder_norm`
@@ -258,6 +289,16 @@ Grouped-token experiment:
 
 ```bash
 uv run tab-foundry train experiment=cls_smoke model.feature_group_size=32
+```
+
+Per-feature missingness mask experiment:
+
+```bash
+uv run tab-foundry train \
+  experiment=cls_smoke \
+  data.allow_missing_values=true \
+  preprocessing.overrides.impute_missing=false \
+  model.missingness_mode=feature_mask
 ```
 
 Frozen nanoTabPFN repro benchmark:

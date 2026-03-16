@@ -17,7 +17,7 @@ runtime:
   target_train_seconds: 330
 optimizer:
   name: adamw
-  require_requested: false
+  require_requested: true
 logging:
   run_name: cls-benchmark-linear
   history_jsonl_path: ${runtime.output_dir}/train_history.jsonl

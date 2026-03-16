@@ -12,5 +12,6 @@
     "features": "float32",
     "classification_labels": "int64",
     "regression_targets": "float32"
-  }
+  },
+  "impute_missing": true
 }

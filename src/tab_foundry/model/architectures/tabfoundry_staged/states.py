@@ -12,6 +12,7 @@ class RawInputState:
     """Canonical raw-input state before feature encoding."""
 
     x_all: torch.Tensor
+    missing_mask: torch.Tensor | None
     y_train: torch.Tensor
     y_test: torch.Tensor | None
     train_test_split_index: int
@@ -43,4 +44,3 @@ class HeadOutputState:
     rows: torch.Tensor
     train_test_split_index: int
     num_classes: int
-

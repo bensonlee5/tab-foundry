@@ -18,6 +18,7 @@ from tab_foundry.data.manifest import build_manifest
 from tab_foundry.export.exporter import export_checkpoint
 from tab_foundry.export.loader_ref import run_reference_consumer
 from tab_foundry.model.factory import build_model
+from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import apply_fitted_preprocessor, fit_fitted_preprocessor
 
 
@@ -514,29 +515,39 @@ def test_dataset_and_reference_consumer_share_runtime_preprocessing_semantics(
     checkpoint = tmp_path / "ckpt.pt"
     cfg = {
         "task": "classification",
-        "model": {
-            "d_col": 16,
-            "d_icl": 32,
-            "input_normalization": "none",
-            "feature_group_size": 1,
-            "many_class_train_mode": "path_nll",
-            "max_mixed_radix_digits": 64,
-            "tfcol_n_heads": 4,
-            "tfcol_n_layers": 1,
-            "tfcol_n_inducing": 8,
-            "tfrow_n_heads": 4,
-            "tfrow_n_layers": 1,
-            "tfrow_cls_tokens": 2,
-            "tficl_n_heads": 4,
-            "tficl_n_layers": 2,
-            "tficl_ff_expansion": 2,
-            "many_class_base": 10,
-            "head_hidden_dim": 32,
-            "use_digit_position_embed": True,
+        "model": model_build_spec_from_mappings(
+            task="classification",
+            primary={
+                "d_col": 16,
+                "d_icl": 32,
+                "input_normalization": "none",
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+                "tfcol_n_heads": 4,
+                "tfcol_n_layers": 1,
+                "tfcol_n_inducing": 8,
+                "tfrow_n_heads": 4,
+                "tfrow_n_layers": 1,
+                "tfrow_cls_tokens": 2,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 2,
+                "tficl_ff_expansion": 2,
+                "many_class_base": 10,
+                "head_hidden_dim": 32,
+                "use_digit_position_embed": True,
+            },
+        ).to_dict(),
+        "preprocessing": {
+            "surface_label": "runtime_default",
+            "impute_missing": True,
+            "all_nan_fill": 0.0,
+            "label_mapping": "train_only_remap",
+            "unseen_test_label_policy": "filter",
         },
     }
     torch.manual_seed(0)
-    model = build_model(task="classification", **cfg["model"])
+    model = build_model(**cfg["model"])
     torch.save({"model": model.state_dict(), "global_step": 1, "config": cfg}, checkpoint)
 
     bundle_dir = tmp_path / "bundle"

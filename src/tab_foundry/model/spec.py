@@ -7,6 +7,9 @@ from enum import StrEnum
 from typing import Any, Mapping
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
+from tab_foundry.model.missingness import (
+    normalize_missingness_mode,
+)
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES
 
 
@@ -14,8 +17,42 @@ SUPPORTED_MODEL_TASKS = ("classification", "regression")
 STAGED_MODEL_ARCH = "tabfoundry_staged"
 SUPPORTED_MODEL_ARCHES = ("tabfoundry", "tabfoundry_simple", STAGED_MODEL_ARCH)
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
+_NULLABLE_MODEL_FIELDS = frozenset({"stage", "stage_label", "module_overrides"})
+_REQUIRED_CHECKPOINT_MODEL_FIELDS = (
+    "arch",
+    "stage",
+    "stage_label",
+    "module_overrides",
+    "d_col",
+    "d_icl",
+    "input_normalization",
+    "missingness_mode",
+    "feature_group_size",
+    "many_class_train_mode",
+    "max_mixed_radix_digits",
+    "norm_type",
+    "tfcol_n_heads",
+    "tfcol_n_layers",
+    "tfcol_n_inducing",
+    "tfrow_n_heads",
+    "tfrow_n_layers",
+    "tfrow_cls_tokens",
+    "tfrow_norm",
+    "tficl_n_heads",
+    "tficl_n_layers",
+    "tficl_ff_expansion",
+    "many_class_base",
+    "head_hidden_dim",
+    "use_digit_position_embed",
+)
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
+_SIMPLE_FEATURE_ENCODER_WEIGHT_KEY = "feature_encoder.linear_layer.weight"
+_SHARED_FEATURE_ENCODER_WEIGHT_KEY = "feature_encoder.linear.weight"
+_NAN_EMBEDDING_PARAMETER_KEYS = (
+    "feature_encoder.nan_embedding",
+    "feature_encoder.nan_embedding_token",
+)
 
 
 class ModelStage(StrEnum):
@@ -128,6 +165,7 @@ class ModelBuildSpec:
     d_col: int = 128
     d_icl: int = 512
     input_normalization: str = "none"
+    missingness_mode: str = "none"
     feature_group_size: int = 1
     many_class_train_mode: str = "path_nll"
     max_mixed_radix_digits: int = 64
@@ -189,6 +227,14 @@ class ModelBuildSpec:
                 f"{SUPPORTED_INPUT_NORMALIZATION_MODES}, got {input_normalization!r}"
             )
         object.__setattr__(self, "input_normalization", input_normalization)
+        object.__setattr__(
+            self,
+            "missingness_mode",
+            normalize_missingness_mode(
+                self.missingness_mode,
+                context="missingness_mode",
+            ),
+        )
 
         norm_type = str(self.norm_type).strip().lower()
         if norm_type not in SUPPORTED_NORM_TYPES:
@@ -250,18 +296,14 @@ def model_build_spec_from_mappings(
     *,
     task: str,
     primary: Mapping[str, Any] | None = None,
-    fallback: Mapping[str, Any] | None = None,
 ) -> ModelBuildSpec:
-    """Resolve a canonical model spec from a primary mapping with optional fallback."""
+    """Resolve a canonical model spec from one primary mapping."""
 
     primary_map = primary if primary is not None else {}
-    fallback_map = fallback if fallback is not None else {}
 
     def _pick(name: str, default: Any) -> Any:
         if name in primary_map and primary_map[name] is not None:
             return primary_map[name]
-        if name in fallback_map and fallback_map[name] is not None:
-            return fallback_map[name]
         return default
 
     return ModelBuildSpec(
@@ -273,6 +315,7 @@ def model_build_spec_from_mappings(
         d_col=int(_pick("d_col", 128)),
         d_icl=int(_pick("d_icl", 512)),
         input_normalization=str(_pick("input_normalization", "none")),
+        missingness_mode=str(_pick("missingness_mode", "none")),
         feature_group_size=int(_pick("feature_group_size", 1)),
         many_class_train_mode=str(_pick("many_class_train_mode", "path_nll")),
         max_mixed_radix_digits=int(_pick("max_mixed_radix_digits", 64)),
@@ -298,6 +341,8 @@ def model_build_spec_from_mappings(
 
 def _feature_group_size_from_state_dict(
     state_dict: Mapping[str, Any] | None,
+    *,
+    missingness_mode: str,
 ) -> int | None:
     if state_dict is None:
         return None
@@ -309,38 +354,195 @@ def _feature_group_size_from_state_dict(
         in_features = int(shape[1])
     except (IndexError, TypeError, ValueError):
         return None
-    if in_features <= 0 or in_features % _GROUP_SHIFT_COUNT != 0:
+    mode_multiplier = 2 if missingness_mode == "feature_mask" else 1
+    divisor = _GROUP_SHIFT_COUNT * mode_multiplier
+    if in_features <= 0 or in_features % divisor != 0:
         return None
-    return in_features // _GROUP_SHIFT_COUNT
+    return in_features // divisor
+
+
+def _state_dict_has_nan_embedding(state_dict: Mapping[str, Any] | None) -> bool:
+    if state_dict is None:
+        return False
+    return any(key in state_dict for key in _NAN_EMBEDDING_PARAMETER_KEYS)
+
+
+def _merge_explicit_model_overrides(
+    *,
+    primary: Mapping[str, Any] | None,
+    explicit_overrides: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    merged = dict(primary) if primary is not None else {}
+    if explicit_overrides is None:
+        return merged
+    for key, value in explicit_overrides.items():
+        merged[str(key)] = value
+    return merged
+
+
+def _require_checkpoint_model_fields(model_cfg: Mapping[str, Any]) -> None:
+    missing = sorted(
+        field_name
+        for field_name in _REQUIRED_CHECKPOINT_MODEL_FIELDS
+        if field_name not in model_cfg
+        or (model_cfg[field_name] is None and field_name not in _NULLABLE_MODEL_FIELDS)
+    )
+    if not missing:
+        return
+    missing_rendered = ", ".join(missing)
+    raise ValueError(
+        "Checkpoint config.model is missing required reconstruction fields: "
+        f"{missing_rendered}. Regenerate the checkpoint with explicit model metadata "
+        "or provide explicit checkpoint model overrides for every missing field."
+    )
+
+
+def _raise_on_ambiguous_checkpoint_layout(
+    *,
+    model_cfg: Mapping[str, Any],
+    state_dict: Mapping[str, Any] | None,
+) -> None:
+    arch = str(model_cfg.get("arch", "")).strip().lower()
+    feature_group_size_missing = "feature_group_size" not in model_cfg or model_cfg["feature_group_size"] is None
+    missingness_mode_missing = "missingness_mode" not in model_cfg or model_cfg["missingness_mode"] is None
+    if arch != "tabfoundry" or state_dict is None or (not feature_group_size_missing and not missingness_mode_missing):
+        return
+    candidates = [
+        (mode, feature_group_size)
+        for mode in ("none", "feature_mask")
+        if (
+            feature_group_size := _feature_group_size_from_state_dict(
+                state_dict,
+                missingness_mode=mode,
+            )
+        )
+        is not None
+    ]
+    if len(candidates) < 2:
+        return
+    rendered = ", ".join(
+        f"(missingness_mode={mode!r}, feature_group_size={feature_group_size})"
+        for mode, feature_group_size in candidates
+    )
+    raise ValueError(
+        "Checkpoint weights are ambiguous across multiple tabfoundry layouts: "
+        f"{rendered}. Persist explicit model.missingness_mode and "
+        "model.feature_group_size metadata or provide explicit checkpoint "
+        "model overrides."
+    )
+
+
+def _missingness_mode_from_state_dict(
+    *,
+    spec: ModelBuildSpec,
+    state_dict: Mapping[str, Any] | None,
+) -> str | None:
+    if state_dict is None:
+        return None
+    if spec.arch == "tabfoundry":
+        # Shifted-grouped tabfoundry weights are validated by the resolved
+        # feature_group_size + missingness_mode pair, and shapes such as
+        # in_features=6 are ambiguous across legacy grouped-token layouts.
+        return None
+
+    if spec.arch == "tabfoundry_simple":
+        raw_weight = state_dict.get(_SIMPLE_FEATURE_ENCODER_WEIGHT_KEY)
+        shape = getattr(raw_weight, "shape", None)
+        if shape is None or len(shape) != 2:
+            return None
+        try:
+            in_features = int(shape[1])
+        except (IndexError, TypeError, ValueError):
+            return None
+        if in_features == 2:
+            return "feature_mask"
+        if in_features == 1 and _state_dict_has_nan_embedding(state_dict):
+            return "explicit_token"
+        if in_features == 1:
+            return "none"
+        return None
+
+    if spec.arch == STAGED_MODEL_ARCH:
+        from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
+
+        surface = resolve_staged_surface(spec)
+        if surface.feature_encoder == "nano":
+            raw_weight = state_dict.get(_SIMPLE_FEATURE_ENCODER_WEIGHT_KEY)
+            shape = getattr(raw_weight, "shape", None)
+            if shape is None or len(shape) != 2:
+                return None
+            try:
+                in_features = int(shape[1])
+            except (IndexError, TypeError, ValueError):
+                return None
+            if in_features == 2:
+                return "feature_mask"
+            if in_features == 1 and _state_dict_has_nan_embedding(state_dict):
+                return "explicit_token"
+            if in_features == 1:
+                return "none"
+            return None
+
+        raw_weight = state_dict.get(_SHARED_FEATURE_ENCODER_WEIGHT_KEY)
+        shape = getattr(raw_weight, "shape", None)
+        if shape is None or len(shape) != 2:
+            return None
+        try:
+            in_features = int(shape[1])
+        except (IndexError, TypeError, ValueError):
+            return None
+        base_token_dim = 1 if surface.tokenizer == "scalar_per_feature" else 3
+        if in_features == base_token_dim * 2:
+            return "feature_mask"
+        if in_features == base_token_dim and _state_dict_has_nan_embedding(state_dict):
+            return "explicit_token"
+        if in_features == base_token_dim:
+            return "none"
+        return None
+
+    return None
 
 
 def _validate_checkpoint_feature_group_size(
     *,
     spec: ModelBuildSpec,
     state_dict: Mapping[str, Any] | None,
-    feature_group_size_is_configured: bool,
 ) -> None:
-    checkpoint_feature_group_size = _feature_group_size_from_state_dict(state_dict)
+    checkpoint_feature_group_size = _feature_group_size_from_state_dict(
+        state_dict,
+        missingness_mode=spec.missingness_mode,
+    )
     if checkpoint_feature_group_size is None:
         return
     if checkpoint_feature_group_size == spec.feature_group_size:
         return
 
-    if feature_group_size_is_configured:
-        raise ValueError(
-            "Resolved feature_group_size="
-            f"{spec.feature_group_size} is incompatible with checkpoint weights "
-            f"implying feature_group_size={checkpoint_feature_group_size}; "
-            "load the checkpoint with an explicit feature_group_size override that matches "
-            "the weights or regenerate the checkpoint with an explicit feature_group_size in "
-            "its saved config."
-        )
-
     raise ValueError(
-        "Checkpoint config omitted feature_group_size, which now defaults to 1, but "
-        f"checkpoint weights imply feature_group_size={checkpoint_feature_group_size}; "
-        "regenerate the checkpoint with an explicit feature_group_size or load it with an "
-        "explicit feature_group_size override."
+        "Resolved feature_group_size="
+        f"{spec.feature_group_size} is incompatible with checkpoint weights "
+        f"implying feature_group_size={checkpoint_feature_group_size}; "
+        "update the persisted checkpoint metadata or provide an explicit "
+        "checkpoint model override that matches the weights."
+    )
+
+
+def _validate_checkpoint_missingness_mode(
+    *,
+    spec: ModelBuildSpec,
+    state_dict: Mapping[str, Any] | None,
+) -> None:
+    checkpoint_missingness_mode = _missingness_mode_from_state_dict(
+        spec=spec,
+        state_dict=state_dict,
+    )
+    if checkpoint_missingness_mode is None or checkpoint_missingness_mode == spec.missingness_mode:
+        return
+    raise ValueError(
+        "Resolved missingness_mode="
+        f"{spec.missingness_mode!r} is incompatible with checkpoint weights "
+        f"implying missingness_mode={checkpoint_missingness_mode!r}; "
+        "update the persisted checkpoint metadata or provide an explicit "
+        "checkpoint model override that matches the weights."
     )
 
 
@@ -348,25 +550,38 @@ def checkpoint_model_build_spec_from_mappings(
     *,
     task: str,
     primary: Mapping[str, Any] | None = None,
-    fallback: Mapping[str, Any] | None = None,
+    explicit_overrides: Mapping[str, Any] | None = None,
     state_dict: Mapping[str, Any] | None = None,
 ) -> ModelBuildSpec:
     """Resolve a checkpoint-backed model spec and validate weight compatibility."""
 
-    primary_map = dict(primary) if primary is not None else {}
-    fallback_map = fallback if fallback is not None else {}
-    feature_group_size_is_configured = (
-        primary_map.get("feature_group_size") is not None
-        or fallback_map.get("feature_group_size") is not None
+    effective_model_cfg = _merge_explicit_model_overrides(
+        primary=primary,
+        explicit_overrides=explicit_overrides,
     )
+    _raise_on_ambiguous_checkpoint_layout(
+        model_cfg=effective_model_cfg,
+        state_dict=state_dict,
+    )
+    _require_checkpoint_model_fields(effective_model_cfg)
+    if (
+        str(effective_model_cfg["arch"]).strip().lower() == STAGED_MODEL_ARCH
+        and effective_model_cfg["stage"] is None
+    ):
+        raise ValueError(
+            "Checkpoint config.model.stage must be explicitly set when "
+            "model.arch='tabfoundry_staged'."
+        )
     spec = model_build_spec_from_mappings(
         task=task,
-        primary=primary_map,
-        fallback=fallback,
+        primary=effective_model_cfg,
+    )
+    _validate_checkpoint_missingness_mode(
+        spec=spec,
+        state_dict=state_dict,
     )
     _validate_checkpoint_feature_group_size(
         spec=spec,
         state_dict=state_dict,
-        feature_group_size_is_configured=feature_group_size_is_configured,
     )
     return spec

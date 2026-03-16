@@ -13,7 +13,9 @@ from typing import Any
 from safetensors.torch import save_file
 import torch
 
+from tab_foundry.model.missingness import validate_missingness_runtime_policy
 from tab_foundry.model.spec import ModelBuildSpec, checkpoint_model_build_spec_from_mappings
+from tab_foundry.preprocessing import resolve_preprocessing_surface
 
 from .checksums import sha256_file
 from .contracts import (
@@ -110,6 +112,7 @@ def _inference_config(task: str, model_spec: ExportModelSpec) -> InferenceConfig
         task=task,
         model_arch=str(model_spec.arch),
         model_stage=None if model_spec.stage is None else str(model_spec.stage),
+        missingness_mode=str(model_spec.missingness_mode),
         group_shifts=list(DEFAULT_GROUP_SHIFTS),
         feature_group_size=int(model_spec.feature_group_size),
         many_class_threshold=DEFAULT_MANY_CLASS_THRESHOLD,
@@ -118,7 +121,7 @@ def _inference_config(task: str, model_spec: ExportModelSpec) -> InferenceConfig
     )
 
 
-def _preprocessor_state_v2() -> LegacyPreprocessorState:
+def _preprocessor_state_v2(*, impute_missing: bool) -> LegacyPreprocessorState:
     return LegacyPreprocessorState(
         feature_order_policy="lexicographic_f_columns",
         missing_value_policy={"strategy": "train_mean", "all_nan_fill": 0.0},
@@ -131,10 +134,11 @@ def _preprocessor_state_v2() -> LegacyPreprocessorState:
             "classification_labels": "int64",
             "regression_targets": "float32",
         },
+        impute_missing=bool(impute_missing),
     )
 
 
-def _preprocessor_state_v3(task: str) -> ExportPreprocessorState:
+def _preprocessor_state_v3(task: str, *, impute_missing: bool) -> ExportPreprocessorState:
     classification_label_policy: ExportClassificationLabelPolicy | None = None
     if task == "classification":
         classification_label_policy = ExportClassificationLabelPolicy(
@@ -153,6 +157,7 @@ def _preprocessor_state_v3(task: str) -> ExportPreprocessorState:
             "classification_labels": "int64",
             "regression_targets": "float32",
         },
+        impute_missing=bool(impute_missing),
     )
 
 
@@ -194,6 +199,15 @@ def export_checkpoint(
     state_dict = _normalize_state_dict(payload["model"])
     model_build_spec = _checkpoint_model_spec(cfg, task=task, state_dict=state_dict)
     model_spec = ExportModelSpec.from_build_spec(model_build_spec)
+    preprocessing_cfg = cfg.get("preprocessing")
+    preprocessing_surface = resolve_preprocessing_surface(
+        preprocessing_cfg if isinstance(preprocessing_cfg, dict) else None
+    )
+    validate_missingness_runtime_policy(
+        missingness_mode=model_build_spec.missingness_mode,
+        impute_missing=preprocessing_surface.impute_missing,
+        context="export_checkpoint",
+    )
 
     bundle_dir = out_dir.expanduser().resolve()
     bundle_dir.mkdir(parents=True, exist_ok=True)
@@ -213,7 +227,10 @@ def export_checkpoint(
             model=model_spec,
             created_at_utc=datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z"),
             inference=_inference_config(task, model_spec),
-            preprocessor=_preprocessor_state_v3(task),
+            preprocessor=_preprocessor_state_v3(
+                task,
+                impute_missing=preprocessing_surface.impute_missing,
+            ),
             weights=ExportWeights(
                 file=weights_name,
                 sha256=sha256_file(weights_path),
@@ -226,7 +243,12 @@ def export_checkpoint(
         inference_path = bundle_dir / inference_name
         preproc_path = bundle_dir / preproc_name
         _write_json(inference_path, _inference_config(task, model_spec).to_dict())
-        _write_json(preproc_path, _preprocessor_state_v2().to_dict())
+        _write_json(
+            preproc_path,
+            _preprocessor_state_v2(
+                impute_missing=preprocessing_surface.impute_missing,
+            ).to_dict(),
+        )
         manifest = ExportManifest(
             schema_version=artifact_version,
             producer=_producer_info(),
@@ -320,8 +342,15 @@ def validate_export_bundle(bundle_dir: Path) -> ValidatedBundle:
         raise ValueError("manifest.model.arch and inference_config.model_arch mismatch")
     if inference.model_stage != manifest.model.stage:
         raise ValueError("manifest.model.stage and inference_config.model_stage mismatch")
+    if inference.missingness_mode != manifest.model.missingness_mode:
+        raise ValueError("missingness_mode mismatch between manifest and inference_config")
     if inference.feature_group_size != manifest.model.feature_group_size:
         raise ValueError("feature_group_size mismatch between manifest and inference_config")
+    validate_missingness_runtime_policy(
+        missingness_mode=manifest.model.missingness_mode,
+        impute_missing=preprocessor_state.impute_missing,
+        context="validate_export_bundle",
+    )
 
     current_checksums = {
         "weights": sha256_file(weights_path),

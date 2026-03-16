@@ -14,45 +14,115 @@ from tab_foundry.model.architectures.tabfoundry_simple import (
 )
 from tab_foundry.model.components.normalization import build_norm
 from tab_foundry.model.components.blocks import TFColEncoder, TFRowEncoder
+from tab_foundry.model.missingness import normalize_missingness_mode
 from tab_foundry.model.components.qass import QASSTransformerEncoder
 
 
 class ScalarPerFeatureTokenizer(nn.Module):
     """One scalar token per feature."""
 
-    token_dim = 1
+    def __init__(self, *, missingness_mode: str = "none") -> None:
+        super().__init__()
+        self.missingness_mode = normalize_missingness_mode(
+            missingness_mode,
+            context="missingness_mode",
+        )
+        self.token_dim = 2 if self.missingness_mode == "feature_mask" else 1
 
-    def forward(self, x_all: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
-        return x_all.unsqueeze(-1), None
+    def forward(
+        self,
+        x_all: torch.Tensor,
+        *,
+        missing_mask: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor | None]:
+        token_missing_mask = missing_mask
+        if self.missingness_mode == "feature_mask":
+            if missing_mask is None:
+                missing_mask = torch.zeros_like(x_all, dtype=torch.bool)
+            tokenized = torch.stack(
+                [x_all, missing_mask.to(dtype=x_all.dtype)],
+                dim=-1,
+            )
+            return tokenized, None, None
+        return x_all.unsqueeze(-1), None, token_missing_mask
 
 
 class ShiftedGroupedTokenizer(nn.Module):
     """Shifted feature tokenizer using the shared (0, 1, 3) offsets."""
 
-    token_dim = 3
-
-    def __init__(self) -> None:
+    def __init__(self, *, missingness_mode: str = "none") -> None:
         super().__init__()
+        self.missingness_mode = normalize_missingness_mode(
+            missingness_mode,
+            context="missingness_mode",
+        )
         self.group_shifts = (0, 1, 3)
+        self.token_dim = 6 if self.missingness_mode == "feature_mask" else 3
 
-    def forward(self, x_all: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
+    def forward(
+        self,
+        x_all: torch.Tensor,
+        *,
+        missing_mask: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor | None]:
         n_features = int(x_all.shape[-1])
         base_idx = torch.arange(n_features, device=x_all.device)
         shifted = [
             x_all.index_select(-1, base_idx.roll(-shift)) for shift in self.group_shifts
         ]
-        return torch.stack(shifted, dim=-1), None
+        tokenized = torch.stack(shifted, dim=-1)
+        if self.missingness_mode != "feature_mask":
+            return tokenized, None, None
+        if missing_mask is None:
+            missing_mask = torch.zeros_like(x_all, dtype=torch.bool)
+        shifted_mask = [
+            missing_mask.to(dtype=x_all.dtype).index_select(-1, base_idx.roll(-shift))
+            for shift in self.group_shifts
+        ]
+        return torch.cat([tokenized, torch.stack(shifted_mask, dim=-1)], dim=-1), None, None
 
 
 class SharedLinearFeatureEncoder(nn.Module):
     """Linear feature encoder for pre-tokenized feature vectors."""
 
-    def __init__(self, token_dim: int, embedding_size: int) -> None:
+    def __init__(
+        self,
+        token_dim: int,
+        embedding_size: int,
+        *,
+        missingness_mode: str = "none",
+    ) -> None:
         super().__init__()
+        self.missingness_mode = normalize_missingness_mode(
+            missingness_mode,
+            context="missingness_mode",
+        )
         self.linear = nn.Linear(token_dim, embedding_size)
+        self.nan_embedding: nn.Parameter | None
+        if self.missingness_mode == "explicit_token":
+            self.nan_embedding = nn.Parameter(torch.randn(embedding_size) * 0.02)
+        else:
+            self.register_parameter("nan_embedding", None)
 
-    def forward(self, tokenized_x: torch.Tensor) -> torch.Tensor:
-        return self.linear(tokenized_x)
+    def forward(
+        self,
+        tokenized_x: torch.Tensor,
+        *,
+        token_missing_mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        encoded = self.linear(tokenized_x)
+        if self.missingness_mode != "explicit_token":
+            return encoded
+        if token_missing_mask is None:
+            raise RuntimeError(
+                "explicit_token feature encoding requires a tokenizer missing mask"
+            )
+        assert self.nan_embedding is not None
+        return torch.where(
+            token_missing_mask.unsqueeze(-1),
+            self.nan_embedding.view(1, 1, 1, -1),
+            encoded,
+        )
 
 
 class PostEncoderNorm(nn.Module):

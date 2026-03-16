@@ -113,7 +113,21 @@ def _classification_cfg(tmp_path: Path) -> object:
         {
             "task": "classification",
             "model": {},
-            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "data": {
+                "source": "manifest",
+                "manifest_path": "unused.parquet",
+                "surface_label": "runtime_manifest",
+                "allow_missing_values": False,
+                "train_row_cap": None,
+                "test_row_cap": None,
+            },
+            "preprocessing": {
+                "surface_label": "runtime_default",
+                "impute_missing": True,
+                "all_nan_fill": 0.0,
+                "label_mapping": "train_only_remap",
+                "unseen_test_label_policy": "filter",
+            },
             "runtime": {
                 "seed": 1,
                 "num_workers": 0,
@@ -205,7 +219,10 @@ def test_evaluate_checkpoint_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     cfg = _classification_cfg(tmp_path)
     checkpoint = tmp_path / "tiny.pt"
     model = _TinyClassifier()
-    torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
+    torch.save(
+        {"model": model.state_dict(), "config": {"task": "classification", "model": {}}},
+        checkpoint,
+    )
     cfg.eval.checkpoint = str(checkpoint)
 
     result = evaluate_module.evaluate_checkpoint(cfg)

@@ -16,6 +16,7 @@ def test_cls_workstation_task_resolution() -> None:
     assert str(cfg.task) == "classification"
     assert str(cfg.model.arch) == "tabfoundry"
     assert cfg.model.stage is None
+    assert str(cfg.model.missingness_mode) == "none"
     assert int(cfg.model.feature_group_size) == 1
     assert bool(cfg.preprocessing.impute_missing) is True
     assert float(cfg.preprocessing.all_nan_fill) == 0.0
@@ -68,7 +69,7 @@ def test_runtime_smoke_override_resolution() -> None:
 def test_cls_smoke_adamw_override_resolution() -> None:
     cfg = _compose("experiment=cls_smoke", "optimizer=adamw")
     assert str(cfg.optimizer.name) == "adamw"
-    assert bool(cfg.optimizer.require_requested) is False
+    assert bool(cfg.optimizer.require_requested) is True
 
 
 def test_cls_benchmark_linear_resolution() -> None:
@@ -78,7 +79,7 @@ def test_cls_benchmark_linear_resolution() -> None:
     assert cfg.model.stage is None
     assert int(cfg.model.feature_group_size) == 1
     assert str(cfg.optimizer.name) == "adamw"
-    assert bool(cfg.optimizer.require_requested) is False
+    assert bool(cfg.optimizer.require_requested) is True
     assert int(cfg.runtime.eval_every) == 25
     assert int(cfg.runtime.checkpoint_every) == 25
     assert int(cfg.runtime.max_steps) == 400
@@ -94,6 +95,7 @@ def test_cls_benchmark_linear_simple_resolution() -> None:
     assert str(cfg.task) == "classification"
     assert str(cfg.model.arch) == "tabfoundry_simple"
     assert cfg.model.stage is None
+    assert str(cfg.model.missingness_mode) == "none"
     assert int(cfg.model.d_icl) == 96
     assert str(cfg.model.input_normalization) == "train_zscore_clip"
     assert int(cfg.model.many_class_base) == 2
@@ -128,6 +130,7 @@ def test_cls_benchmark_staged_resolution() -> None:
     assert str(cfg.task) == "classification"
     assert str(cfg.model.arch) == "tabfoundry_staged"
     assert str(cfg.model.stage) == "nano_exact"
+    assert str(cfg.model.missingness_mode) == "none"
     assert int(cfg.model.d_icl) == 96
     assert str(cfg.model.input_normalization) == "train_zscore_clip"
     assert int(cfg.model.many_class_base) == 2

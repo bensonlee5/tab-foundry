@@ -1,6 +1,7 @@
 source: manifest
 manifest_path: data/manifests/default.parquet
 surface_label: manifest_default
+allow_missing_values: false
 surface_overrides: {}
 filter_policy: null
 dagzoo_provenance: null

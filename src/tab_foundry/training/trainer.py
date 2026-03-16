@@ -14,9 +14,12 @@ from torch.utils.data import DataLoader
 from omegaconf import DictConfig, OmegaConf
 
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
+from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.model.architectures.tabfoundry import ClassificationOutput, RegressionOutput
 from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.missingness import validate_missingness_runtime_policy
 from tab_foundry.model.spec import model_build_spec_from_mappings
+from tab_foundry.preprocessing import resolve_preprocessing_surface
 from tab_foundry.types import TaskBatch, TrainResult
 
 from .artifacts import (
@@ -343,6 +346,28 @@ def train(cfg: DictConfig) -> TrainResult:
     if isinstance(raw_model_cfg, dict):
         model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
     model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
+    raw_data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
+    preprocessing_cfg = cfg.get("preprocessing")
+    raw_preprocessing_cfg = (
+        None
+        if preprocessing_cfg is None
+        else OmegaConf.to_container(preprocessing_cfg, resolve=True)
+    )
+    data_surface = resolve_data_surface(
+        cast(dict[str, Any] | None, raw_data_cfg if isinstance(raw_data_cfg, dict) else None)
+    )
+    preprocessing_surface = resolve_preprocessing_surface(
+        cast(
+            dict[str, Any] | None,
+            raw_preprocessing_cfg if isinstance(raw_preprocessing_cfg, dict) else None,
+        )
+    )
+    validate_missingness_runtime_policy(
+        missingness_mode=getattr(model_spec, "missingness_mode", "none"),
+        allow_missing_values=data_surface.allow_missing_values,
+        impute_missing=preprocessing_surface.impute_missing,
+        context="train",
+    )
     model = build_model_from_spec(model_spec)
     model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
     if accelerator.is_main_process:

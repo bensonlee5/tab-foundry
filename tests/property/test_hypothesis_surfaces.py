@@ -110,15 +110,15 @@ def test_normalize_benchmark_bundle_rejects_task_id_order_drift(
 
 
 @given(
-    top_source=st.one_of(st.none(), _LABEL_TEXT),
+    top_source=st.sampled_from(["manifest", "prior_dump", "benchmark"]),
     override_source=st.one_of(st.none(), _LABEL_TEXT),
-    top_manifest=st.one_of(st.none(), _PATH_TEXT),
+    top_manifest=_PATH_TEXT,
     override_manifest=st.one_of(st.none(), _PATH_TEXT),
     top_filter_policy=st.one_of(st.none(), _LABEL_TEXT),
     override_filter_policy=st.one_of(st.none(), _LABEL_TEXT),
-    top_surface_label=st.one_of(st.none(), _LABEL_TEXT),
+    top_surface_label=_LABEL_TEXT,
     override_surface_label=st.one_of(st.none(), _LABEL_TEXT),
-    top_allow_missing_values=st.one_of(st.none(), st.booleans()),
+    top_allow_missing_values=st.booleans(),
     override_allow_missing_values=st.one_of(st.none(), st.booleans()),
     top_train_row_cap=st.one_of(st.none(), st.integers(min_value=1, max_value=50_000)),
     override_train_row_cap=st.one_of(st.none(), st.integers(min_value=1, max_value=50_000)),
@@ -134,15 +134,15 @@ def test_normalize_benchmark_bundle_rejects_task_id_order_drift(
     ),
 )
 def test_resolve_data_surface_respects_override_precedence(
-    top_source: str | None,
+    top_source: str,
     override_source: str | None,
-    top_manifest: str | None,
+    top_manifest: str,
     override_manifest: str | None,
     top_filter_policy: str | None,
     override_filter_policy: str | None,
-    top_surface_label: str | None,
+    top_surface_label: str,
     override_surface_label: str | None,
-    top_allow_missing_values: bool | None,
+    top_allow_missing_values: bool,
     override_allow_missing_values: bool | None,
     top_train_row_cap: int | None,
     override_train_row_cap: int | None,
@@ -177,18 +177,18 @@ def test_resolve_data_surface_respects_override_precedence(
     }
 
     resolved = resolve_data_surface(cfg)
-    expected_source = str(override_source if override_source is not None else top_source or "manifest").strip().lower()
+    expected_source = str(override_source if override_source is not None else top_source).strip().lower()
     expected_manifest_raw = override_manifest if override_manifest is not None else top_manifest
     expected_filter_policy = (
-        None if override_filter_policy is None and top_filter_policy is None else str(override_filter_policy or top_filter_policy).strip()
+        None
+        if override_filter_policy is None and top_filter_policy is None
+        else str(override_filter_policy or top_filter_policy).strip()
     )
-    expected_surface_label = str(top_surface_label or override_surface_label or expected_source).strip()
+    expected_surface_label = str(top_surface_label).strip()
     expected_allow_missing_values = (
         override_allow_missing_values
         if override_allow_missing_values is not None
         else top_allow_missing_values
-        if top_allow_missing_values is not None
-        else False
     )
     expected_train_row_cap = override_train_row_cap if override_train_row_cap is not None else top_train_row_cap
     expected_test_row_cap = override_test_row_cap if override_test_row_cap is not None else top_test_row_cap
@@ -201,35 +201,28 @@ def test_resolve_data_surface_respects_override_precedence(
     assert resolved.train_row_cap == expected_train_row_cap
     assert resolved.test_row_cap == expected_test_row_cap
     assert resolved.dagzoo_provenance == expected_provenance
-    if expected_manifest_raw is None:
-        assert resolved.manifest_path is None
-        assert resolved.to_dict()["manifest_path"] is None
-    else:
-        expected_manifest_path = Path(str(expected_manifest_raw)).expanduser().resolve()
-        assert resolved.manifest_path == expected_manifest_path
-        assert resolved.to_dict()["manifest_path"] == str(expected_manifest_path)
+    expected_manifest_path = Path(str(expected_manifest_raw)).expanduser().resolve()
+    assert resolved.manifest_path == expected_manifest_path
+    assert resolved.to_dict()["manifest_path"] == str(expected_manifest_path)
 
 
 @given(
-    top_surface_label=st.one_of(st.none(), _LABEL_TEXT),
+    top_surface_label=_LABEL_TEXT,
     override_surface_label=st.one_of(st.none(), _LABEL_TEXT),
-    top_impute_missing=st.one_of(st.none(), st.booleans()),
+    top_impute_missing=st.booleans(),
     override_impute_missing=st.one_of(st.none(), st.booleans()),
-    top_all_nan_fill=st.one_of(
-        st.none(),
-        st.floats(min_value=-1_000.0, max_value=1_000.0, allow_nan=False, allow_infinity=False),
-    ),
+    top_all_nan_fill=st.floats(min_value=-1_000.0, max_value=1_000.0, allow_nan=False, allow_infinity=False),
     override_all_nan_fill=st.one_of(
         st.none(),
         st.floats(min_value=-1_000.0, max_value=1_000.0, allow_nan=False, allow_infinity=False),
     ),
 )
 def test_resolve_preprocessing_surface_respects_override_precedence(
-    top_surface_label: str | None,
+    top_surface_label: str,
     override_surface_label: str | None,
-    top_impute_missing: bool | None,
+    top_impute_missing: bool,
     override_impute_missing: bool | None,
-    top_all_nan_fill: float | None,
+    top_all_nan_fill: float,
     override_all_nan_fill: float | None,
 ) -> None:
     cfg = {
@@ -250,20 +243,16 @@ def test_resolve_preprocessing_surface_respects_override_precedence(
     }
 
     resolved = resolve_preprocessing_surface(cfg)
-    expected_surface_label = str(top_surface_label or override_surface_label or "runtime_default").strip()
+    expected_surface_label = str(top_surface_label).strip()
     expected_impute_missing = (
         override_impute_missing
         if override_impute_missing is not None
         else top_impute_missing
-        if top_impute_missing is not None
-        else True
     )
     expected_all_nan_fill = float(
         override_all_nan_fill
         if override_all_nan_fill is not None
         else top_all_nan_fill
-        if top_all_nan_fill is not None
-        else 0.0
     )
 
     assert resolved.surface_label == expected_surface_label

@@ -103,6 +103,44 @@ def test_tabfoundry_simple_forward_shapes() -> None:
     assert out.num_classes == 2
 
 
+def test_tabfoundry_simple_feature_mask_handles_non_finite_inputs() -> None:
+    batch = _batch(
+        x_test=torch.tensor(
+            [
+                [float("nan"), 1.5, 2.5],
+                [3.5, float("inf"), 5.5],
+            ],
+            dtype=torch.float32,
+        )
+    )
+    batch.x_train[0, 1] = float("nan")
+    model = _model(missingness_mode="feature_mask")
+
+    out = model(batch)
+
+    assert out.logits is not None
+    assert torch.isfinite(out.logits).all()
+
+
+def test_tabfoundry_simple_explicit_token_handles_missing_inputs() -> None:
+    batch = _batch(
+        x_test=torch.tensor(
+            [
+                [float("nan"), 1.5, 2.5],
+                [3.5, 4.5, float("nan")],
+            ],
+            dtype=torch.float32,
+        )
+    )
+    batch.x_train[1, 0] = float("nan")
+    model = _model(missingness_mode="explicit_token")
+
+    out = model(batch)
+
+    assert out.logits is not None
+    assert torch.isfinite(out.logits).all()
+
+
 def test_tabfoundry_simple_requires_binary_num_classes() -> None:
     model = _model()
 
@@ -252,4 +290,3 @@ def test_tabfoundry_simple_logits_match_nanotabpfn_reference() -> None:
     )
 
     assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
-

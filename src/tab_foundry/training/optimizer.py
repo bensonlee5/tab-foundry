@@ -74,7 +74,7 @@ def build_optimizer(
     lr: float,
     weight_decay: float,
     extra_kwargs: dict[str, Any] | None = None,
-    require_requested: bool = False,
+    require_requested: bool = True,
     muon_per_parameter_lr: bool = True,
     muon_lr_scale_base: float = 0.2,
     muon_partition_non2d: bool = True,

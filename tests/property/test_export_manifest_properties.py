@@ -146,6 +146,7 @@ def test_validate_preprocessor_state_dict_roundtrips_valid_v3_payloads(task: str
             "strategy": "train_mean",
             "all_nan_fill": 0.0,
         },
+        "impute_missing": True,
         "classification_label_policy": (
             {
                 "mapping": "train_only_remap",
@@ -180,6 +181,7 @@ def test_validate_preprocessor_state_dict_rejects_task_policy_mismatch(task: str
             "strategy": "train_mean",
             "all_nan_fill": 0.0,
         },
+        "impute_missing": True,
         "classification_label_policy": (
             None
             if task == "classification"

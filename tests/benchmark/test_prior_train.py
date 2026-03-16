@@ -284,6 +284,24 @@ class _FakeWandbRun:
         self.finished = True
 
 
+def _prior_data_cfg() -> dict[str, object]:
+    return {
+        "source": "prior_dump",
+        "surface_label": "prior_dump_reader",
+        "allow_missing_values": False,
+    }
+
+
+def _prior_preprocessing_cfg() -> dict[str, object]:
+    return {
+        "surface_label": "runtime_default",
+        "impute_missing": True,
+        "all_nan_fill": 0.0,
+        "label_mapping": "train_only_remap",
+        "unseen_test_label_policy": "filter",
+    }
+
+
 def _prior_cfg(
     tmp_path: Path,
     *,
@@ -315,6 +333,8 @@ def _prior_cfg(
             "head_hidden_dim": 16,
             "use_digit_position_embed": True,
         },
+        "data": _prior_data_cfg(),
+        "preprocessing": _prior_preprocessing_cfg(),
         "runtime": {
             "seed": 1,
             "output_dir": str(tmp_path / "train_out"),
@@ -407,6 +427,8 @@ def test_train_tabfoundry_simple_prior_averages_task_loss_and_steps_per_batch(
                 "head_hidden_dim": 16,
                 "use_digit_position_embed": True,
             },
+            "data": _prior_data_cfg(),
+            "preprocessing": _prior_preprocessing_cfg(),
             "runtime": {
                 "seed": 1,
                 "output_dir": str(tmp_path / "train_out"),
@@ -555,6 +577,8 @@ def test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode(
                 "head_hidden_dim": 16,
                 "use_digit_position_embed": True,
             },
+            "data": _prior_data_cfg(),
+            "preprocessing": _prior_preprocessing_cfg(),
             "runtime": {
                 "seed": 1,
                 "output_dir": str(tmp_path / "train_out_eval_mode"),
@@ -850,6 +874,8 @@ def test_train_tabfoundry_simple_prior_matches_nanotabpfn_loss_for_one_batch(
                 "head_hidden_dim": 16,
                 "use_digit_position_embed": True,
             },
+            "data": _prior_data_cfg(),
+            "preprocessing": _prior_preprocessing_cfg(),
             "runtime": {
                 "seed": 0,
                 "output_dir": str(tmp_path / "train_exact"),
@@ -993,6 +1019,8 @@ def test_train_tabfoundry_staged_prior_writes_staged_gradient_keys(
                 "head_hidden_dim": 16,
                 "use_digit_position_embed": True,
             },
+            "data": _prior_data_cfg(),
+            "preprocessing": _prior_preprocessing_cfg(),
             "runtime": {
                 "seed": 0,
                 "output_dir": str(tmp_path / "train_staged"),
@@ -1119,6 +1147,8 @@ def test_train_tabfoundry_staged_prior_writes_activation_norms_when_enabled(
                 "head_hidden_dim": 16,
                 "use_digit_position_embed": True,
             },
+            "data": _prior_data_cfg(),
+            "preprocessing": _prior_preprocessing_cfg(),
             "runtime": {
                 "seed": 0,
                 "output_dir": str(tmp_path / "train_staged_activation_trace"),
@@ -1262,6 +1292,8 @@ def test_train_tabfoundry_staged_prior_writes_context_gradient_keys_when_active(
                 "head_hidden_dim": 16,
                 "use_digit_position_embed": True,
             },
+            "data": _prior_data_cfg(),
+            "preprocessing": _prior_preprocessing_cfg(),
             "runtime": {
                 "seed": 0,
                 "output_dir": str(tmp_path / "train_staged_context"),
@@ -1450,6 +1482,8 @@ def test_train_tabfoundry_simple_prior_rejects_staged_many_class_before_io(
                 "head_hidden_dim": 16,
                 "use_digit_position_embed": True,
             },
+            "data": _prior_data_cfg(),
+            "preprocessing": _prior_preprocessing_cfg(),
             "runtime": {
                 "seed": 0,
                 "output_dir": str(output_dir),

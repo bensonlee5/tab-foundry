@@ -45,25 +45,27 @@ def resolve_preprocessing_surface(
 ) -> PreprocessingSurfaceConfig:
     """Resolve one runtime preprocessing surface with additive overrides."""
 
-    cfg = {} if preprocessing_cfg is None else {str(key): value for key, value in preprocessing_cfg.items()}
+    if preprocessing_cfg is None:
+        raise ValueError("preprocessing config is required")
+    cfg = {str(key): value for key, value in preprocessing_cfg.items()}
     overrides = _mapping_from_any(cfg.get("overrides"))
     raw_impute_missing = overrides.get("impute_missing")
     if raw_impute_missing is None:
         raw_impute_missing = cfg.get("impute_missing")
     if raw_impute_missing is None:
-        raw_impute_missing = True
+        raise ValueError("preprocessing.impute_missing must be explicitly configured")
     impute_missing = bool(raw_impute_missing)
     raw_all_nan_fill = overrides.get("all_nan_fill")
     if raw_all_nan_fill is None:
         raw_all_nan_fill = cfg.get("all_nan_fill")
     if raw_all_nan_fill is None:
-        raw_all_nan_fill = 0.0
+        raise ValueError("preprocessing.all_nan_fill must be explicitly configured")
     all_nan_fill = float(raw_all_nan_fill)
     label_mapping_raw = overrides.get("label_mapping")
     if label_mapping_raw is None:
         label_mapping_raw = cfg.get("label_mapping")
     if label_mapping_raw is None:
-        label_mapping_raw = CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP
+        raise ValueError("preprocessing.label_mapping must be explicitly configured")
     label_mapping = str(label_mapping_raw).strip()
     if label_mapping not in SUPPORTED_LABEL_MAPPINGS:
         raise ValueError(
@@ -73,7 +75,7 @@ def resolve_preprocessing_surface(
     if unseen_test_label_policy_raw is None:
         unseen_test_label_policy_raw = cfg.get("unseen_test_label_policy")
     if unseen_test_label_policy_raw is None:
-        unseen_test_label_policy_raw = UNSEEN_TEST_LABEL_POLICY_FILTER
+        raise ValueError("preprocessing.unseen_test_label_policy must be explicitly configured")
     unseen_test_label_policy = str(unseen_test_label_policy_raw).strip()
     if unseen_test_label_policy not in SUPPORTED_UNSEEN_TEST_LABEL_POLICIES:
         raise ValueError(
@@ -83,8 +85,8 @@ def resolve_preprocessing_surface(
     surface_label_raw = cfg.get("surface_label")
     if surface_label_raw is None:
         surface_label_raw = overrides.get("surface_label")
-    if surface_label_raw is None:
-        surface_label_raw = "runtime_default"
+    if surface_label_raw is None or not str(surface_label_raw).strip():
+        raise ValueError("preprocessing.surface_label must be explicitly configured")
     surface_label = str(surface_label_raw).strip()
     return PreprocessingSurfaceConfig(
         surface_label=surface_label,

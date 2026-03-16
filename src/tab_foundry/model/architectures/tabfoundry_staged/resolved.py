@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES
+from tab_foundry.model.missingness import normalize_missingness_mode
 from tab_foundry.model.spec import ModelBuildSpec, ModelStage
 
 from .recipes import StageTaskContract, recipe_for_stage
@@ -139,6 +140,7 @@ class ResolvedStageSurface:
     stage_label: str
     benchmark_profile: str
     normalization_mode: str
+    missingness_mode: str
     feature_encoder: str
     post_encoder_norm: str
     target_conditioner: str
@@ -194,11 +196,17 @@ def _normalization_mode_for_feature_encoder(feature_encoder: str) -> str:
 
 def _validate_effective_surface(
     *,
+    missingness_mode: str,
     feature_encoder: str,
     tokenizer: str,
     context_encoder: str,
     head: str,
 ) -> None:
+    if missingness_mode == "explicit_token" and tokenizer != "scalar_per_feature":
+        raise ValueError(
+            "model.missingness_mode='explicit_token' is only supported when the "
+            "resolved staged tokenizer is 'scalar_per_feature'"
+        )
     if feature_encoder == "nano" and tokenizer != "scalar_per_feature":
         raise ValueError(
             "model.module_overrides.tokenizer is ineffective when "
@@ -221,6 +229,10 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
     recipe = recipe_for_stage(stage)
     overrides = _override_mapping(spec)
     legacy_table_block, legacy_allow_test_self = _LEGACY_TABLE_BLOCKS[recipe.modules.table_block]
+    missingness_mode = normalize_missingness_mode(
+        spec.missingness_mode,
+        context="missingness_mode",
+    )
 
     feature_encoder = _require_choice(
         value=overrides.get("feature_encoder", recipe.modules.feature_encoder),
@@ -291,6 +303,7 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
             "table_block_style='prenorm'"
         )
     _validate_effective_surface(
+        missingness_mode=missingness_mode,
         feature_encoder=feature_encoder,
         tokenizer=tokenizer,
         context_encoder=context_encoder,
@@ -302,6 +315,7 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         stage_label=spec.stage_label or stage.value,
         benchmark_profile=spec.stage_label or recipe.benchmark_profile,
         normalization_mode=_normalization_mode_for_feature_encoder(feature_encoder),
+        missingness_mode=missingness_mode,
         feature_encoder=feature_encoder,
         post_encoder_norm=post_encoder_norm,
         target_conditioner=target_conditioner,

@@ -41,8 +41,8 @@ def normalize_train_test_arrays(
     if normalized_mode == "none":
         return train, test
 
-    mean = train_stats.mean(axis=0, dtype=np.float64)
-    std = train_stats.std(axis=0, dtype=np.float64)
+    mean = train_stats.mean(axis=-2, dtype=np.float64, keepdims=True)
+    std = train_stats.std(axis=-2, dtype=np.float64, keepdims=True)
     std = np.where(std < _EPS, 1.0, std)
     train_norm = (train_stats - mean) / std
     test_norm = (test_stats - mean) / std
@@ -73,8 +73,8 @@ def normalize_train_test_tensors(
     if normalized_mode == "none":
         return train, test
 
-    mean = train_stats.mean(dim=0, keepdim=False)
-    std = train_stats.std(dim=0, keepdim=False, unbiased=False)
+    mean = train_stats.mean(dim=-2, keepdim=True)
+    std = train_stats.std(dim=-2, keepdim=True, unbiased=False)
     std = torch.where(std < _EPS, torch.ones_like(std), std)
     train_norm = ((train_stats - mean) / std).to(torch.float32)
     test_norm = ((test_stats - mean) / std).to(torch.float32)
@@ -86,3 +86,39 @@ def normalize_train_test_tensors(
             max=_CLIP_VALUE,
         )
     raise ValueError(f"Unsupported input_normalization mode: {mode!r}")
+
+
+def prepare_train_test_tensors_with_missing(
+    x_train: torch.Tensor,
+    x_test: torch.Tensor,
+    *,
+    mode: InputNormalizationMode,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Normalize tensors while preserving a separate non-finite mask."""
+
+    train_missing = ~torch.isfinite(x_train)
+    test_missing = ~torch.isfinite(x_test)
+    if not bool(train_missing.any() or test_missing.any()):
+        train_norm, test_norm = normalize_train_test_tensors(x_train, x_test, mode=mode)
+        return (
+            train_norm,
+            test_norm,
+            train_missing.to(torch.bool),
+            test_missing.to(torch.bool),
+        )
+
+    train = x_train.to(torch.float32)
+    test = x_test.to(torch.float32)
+    train_observed = (~train_missing).to(torch.float32)
+    train_safe = torch.where(train_missing, torch.zeros_like(train), train)
+    observed_count = train_observed.sum(dim=-2, keepdim=False)
+    observed_sum = train_safe.sum(dim=-2, keepdim=False)
+    fill_values = torch.where(
+        observed_count > 0,
+        observed_sum / observed_count.clamp_min(1.0),
+        torch.zeros_like(observed_sum),
+    )
+    train_filled = torch.where(train_missing, fill_values.unsqueeze(-2), train)
+    test_filled = torch.where(test_missing, fill_values.unsqueeze(-2), test)
+    train_norm, test_norm = normalize_train_test_tensors(train_filled, test_filled, mode=mode)
+    return train_norm, test_norm, train_missing.to(torch.bool), test_missing.to(torch.bool)

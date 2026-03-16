@@ -10,6 +10,7 @@ import torch
 
 import tab_foundry.bench.benchmark_run_registry as registry_module
 from tab_foundry.model.factory import build_model
+from tab_foundry.model.spec import model_build_spec_from_mappings
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -37,15 +38,32 @@ def _write_checkpoint(
         model_cfg["arch"] = arch
     if stage is not None:
         model_cfg["stage"] = stage
-    checkpoint_data_cfg: dict[str, object] = {"manifest_path": manifest_path}
+    model_cfg = model_build_spec_from_mappings(
+        task="classification",
+        primary=model_cfg,
+    ).to_dict()
+    checkpoint_data_cfg: dict[str, object] = {
+        "source": "manifest",
+        "manifest_path": manifest_path,
+        "surface_label": "benchmark_manifest",
+        "allow_missing_values": False,
+    }
     if data_cfg is not None:
         checkpoint_data_cfg.update(data_cfg)
+    preprocessing_cfg: dict[str, object] = {
+        "surface_label": "runtime_default",
+        "impute_missing": True,
+        "all_nan_fill": 0.0,
+        "label_mapping": "train_only_remap",
+        "unseen_test_label_policy": "filter",
+    }
     torch.save(
         {
             "model": {},
             "config": {
                 "task": "classification",
                 "data": checkpoint_data_cfg,
+                "preprocessing": preprocessing_cfg,
                 "runtime": {"seed": int(seed)},
                 "model": model_cfg,
                 **({} if training_cfg is None else {"training": training_cfg}),
@@ -577,12 +595,24 @@ def test_derive_benchmark_run_record_rejects_legacy_checkpoint_without_arch_meta
     torch.save(
         {
             "model": simple_model.state_dict(),
-            "config": {
-                "task": "classification",
-                "data": {"manifest_path": "data/manifests/default.parquet"},
-                "runtime": {"seed": 1},
-                "model": {
-                    "d_icl": 96,
+                "config": {
+                    "task": "classification",
+                    "data": {
+                        "source": "manifest",
+                        "manifest_path": "data/manifests/default.parquet",
+                        "surface_label": "benchmark_manifest",
+                        "allow_missing_values": False,
+                    },
+                    "preprocessing": {
+                        "surface_label": "runtime_default",
+                        "impute_missing": True,
+                        "all_nan_fill": 0.0,
+                        "label_mapping": "train_only_remap",
+                        "unseen_test_label_policy": "filter",
+                    },
+                    "runtime": {"seed": 1},
+                    "model": {
+                        "d_icl": 96,
                     "input_normalization": "train_zscore_clip",
                     "many_class_base": 2,
                     "tficl_n_heads": 4,
@@ -605,7 +635,7 @@ def test_derive_benchmark_run_record_rejects_legacy_checkpoint_without_arch_meta
         run_dir / "checkpoints" / "best.pt",
     )
 
-    with pytest.raises(RuntimeError, match="persisted model.arch"):
+    with pytest.raises(ValueError, match="missing required reconstruction fields: arch"):
         registry_module.derive_benchmark_run_record(
             run_dir=run_dir,
             comparison_summary_path=summary_path,
@@ -625,12 +655,24 @@ def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_f
     torch.save(
         {
             "model": grouped_model.state_dict(),
-            "config": {
-                "task": "classification",
-                "data": {"manifest_path": "data/manifests/default.parquet"},
-                "runtime": {"seed": 1},
-                "model": {"arch": "tabfoundry"},
-                "schedule": {
+                "config": {
+                    "task": "classification",
+                    "data": {
+                        "source": "manifest",
+                        "manifest_path": "data/manifests/default.parquet",
+                        "surface_label": "benchmark_manifest",
+                        "allow_missing_values": False,
+                    },
+                    "preprocessing": {
+                        "surface_label": "runtime_default",
+                        "impute_missing": True,
+                        "all_nan_fill": 0.0,
+                        "label_mapping": "train_only_remap",
+                        "unseen_test_label_policy": "filter",
+                    },
+                    "runtime": {"seed": 1},
+                    "model": {"arch": "tabfoundry"},
+                    "schedule": {
                     "stages": [
                         {
                             "name": "stage1",
@@ -646,7 +688,7 @@ def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_f
         run_dir / "checkpoints" / "best.pt",
     )
 
-    with pytest.raises(ValueError, match="omitted feature_group_size"):
+    with pytest.raises(ValueError, match="ambiguous across multiple tabfoundry layouts"):
         registry_module.derive_benchmark_run_record(
             run_dir=run_dir,
             comparison_summary_path=summary_path,
