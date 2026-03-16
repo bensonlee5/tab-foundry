@@ -55,6 +55,20 @@ class RegressionOutput:
     quantile_levels: torch.Tensor | None = None
 
 
+def _require_numeric_feature_state(batch: TaskBatch, *, arch: str) -> None:
+    """Reject categorical feature-state payloads on numeric-only model families."""
+
+    feature_state = batch.feature_state
+    if feature_state is None:
+        return
+    categorical_mask = feature_state.categorical_mask.to(dtype=torch.bool)
+    if bool(torch.any(categorical_mask).item()):
+        raise RuntimeError(
+            f"{arch} only supports numeric feature_state; "
+            "use tabfoundry_staged for categorical runtime tasks"
+        )
+
+
 class _TabFoundryBackbone(nn.Module):
     """Shared Tabfoundry backbone."""
 
@@ -231,6 +245,7 @@ class _TabFoundryBackbone(nn.Module):
     def _prepare_inputs(
         self, batch: TaskBatch
     ) -> tuple[torch.Tensor, torch.Tensor, int]:
+        _require_numeric_feature_state(batch, arch="tabfoundry")
         n_train = batch.x_train.shape[0]
         normalization_mode = cast(InputNormalizationMode, self.input_normalization)
         x_train, x_test = normalize_train_test_tensors(

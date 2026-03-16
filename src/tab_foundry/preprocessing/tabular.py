@@ -3,19 +3,26 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 
+from tab_foundry.feature_state import PreprocessedFeatureState
+
 from .state import (
+    CATEGORICAL_FEATURE_TYPE,
+    CATEGORICAL_VALUE_POLICY_OOV_BUCKET,
     CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
     DTYPE_POLICY,
     FEATURE_ORDER_POLICY_POSITIONAL,
     MISSING_VALUE_STRATEGY_TRAIN_MEAN,
+    NUMERIC_FEATURE_TYPE,
     UNSEEN_TEST_LABEL_POLICY_FILTER,
+    CategoricalFeaturePolicyState,
     ClassificationLabelPolicyState,
     FittedPreprocessorState,
     MissingValuePolicyState,
+    normalize_feature_types,
 )
 from .surface import (
     SUPPORTED_LABEL_MAPPINGS,
@@ -36,6 +43,7 @@ class PreprocessedTaskArrays:
     y_test: np.ndarray | None
     num_classes: int | None
     valid_test_mask: np.ndarray | None
+    feature_state: PreprocessedFeatureState | None
 
 
 def _require_task(task: str) -> str:
@@ -46,9 +54,14 @@ def _require_task(task: str) -> str:
 
 
 def _require_matrix(x: Any, *, context: str) -> np.ndarray:
-    array = np.asarray(x, dtype=np.float32)
+    array = np.asarray(x)
     if array.ndim != 2:
         raise RuntimeError(f"{context} must be a rank-2 matrix, got shape={array.shape!r}")
+    if not (
+        np.issubdtype(array.dtype, np.integer)
+        or np.issubdtype(array.dtype, np.floating)
+    ):
+        raise RuntimeError(f"{context} must contain numeric values, got dtype={array.dtype!r}")
     return array
 
 
@@ -76,11 +89,72 @@ def _require_matching_rows(
 def _fit_fill_values(
     x_train: np.ndarray,
     *,
+    feature_types: Sequence[str],
     all_nan_fill: float,
 ) -> list[float]:
-    means = np.nanmean(x_train, axis=0)
-    means = np.where(np.isnan(means), float(all_nan_fill), means)
-    return [float(value) for value in means.astype(np.float32, copy=False).tolist()]
+    fill_values = np.full((int(x_train.shape[1]),), float(all_nan_fill), dtype=np.float32)
+    numeric_mask = np.asarray(
+        [feature_type == NUMERIC_FEATURE_TYPE for feature_type in feature_types],
+        dtype=bool,
+    )
+    if np.any(numeric_mask):
+        means = np.nanmean(x_train[:, numeric_mask], axis=0)
+        means = np.where(np.isnan(means), float(all_nan_fill), means)
+        fill_values[numeric_mask] = means.astype(np.float32, copy=False)
+    return [float(value) for value in fill_values.tolist()]
+
+
+def _fit_categorical_feature_policy(
+    x_train: np.ndarray,
+    *,
+    feature_types: Sequence[str],
+) -> CategoricalFeaturePolicyState:
+    train_value_vocab: list[list[int | float]] = []
+    cardinalities: list[int] = []
+    for col_idx, feature_type in enumerate(feature_types):
+        if feature_type != CATEGORICAL_FEATURE_TYPE:
+            train_value_vocab.append([])
+            cardinalities.append(0)
+            continue
+        column = np.asarray(x_train[:, col_idx])
+        finite_values = column[np.isfinite(column)]
+        vocab = np.unique(finite_values)
+        train_value_vocab.append(list(vocab.tolist()))
+        cardinalities.append(int(vocab.shape[0]))
+    return CategoricalFeaturePolicyState(
+        feature_types=list(feature_types),
+        train_value_vocab=train_value_vocab,
+        cardinalities=cardinalities,
+        value_policy=CATEGORICAL_VALUE_POLICY_OOV_BUCKET,
+    )
+
+
+def _encode_categorical_column(
+    values: np.ndarray,
+    *,
+    vocab: np.ndarray,
+    context: str,
+    allow_oov: bool,
+) -> np.ndarray:
+    oov_id = int(vocab.shape[0])
+    encoded = np.full(values.shape, oov_id, dtype=np.int64)
+    finite_mask = np.isfinite(values)
+    if not np.any(finite_mask):
+        return encoded
+    if vocab.size <= 0:
+        if not allow_oov:
+            raise RuntimeError(f"{context} contains finite values absent from categorical vocabulary")
+        return encoded
+
+    finite_idx = np.where(finite_mask)[0]
+    finite_values = values[finite_mask]
+    positions = np.searchsorted(vocab, finite_values)
+    clipped = np.clip(positions, 0, vocab.shape[0] - 1)
+    valid = vocab[clipped] == finite_values
+    encoded[finite_idx[valid]] = positions[valid].astype(np.int64, copy=False)
+    if not allow_oov and not bool(np.all(valid)):
+        raise RuntimeError(f"{context} contains values absent from fitted categorical vocabulary")
+    return encoded
 
 
 def fit_fitted_preprocessor(
@@ -88,6 +162,7 @@ def fit_fitted_preprocessor(
     task: str,
     x_train: Any,
     y_train: Any,
+    feature_types: Sequence[str] | None = None,
     all_nan_fill: float = 0.0,
     label_mapping: str = CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
     unseen_test_label_policy: str = UNSEEN_TEST_LABEL_POLICY_FILTER,
@@ -108,10 +183,22 @@ def fit_fitted_preprocessor(
         )
     x_train_matrix = _require_matrix(x_train, context="x_train")
     feature_ids = list(range(int(x_train_matrix.shape[1])))
+    normalized_feature_types = normalize_feature_types(
+        feature_types,
+        width=int(x_train_matrix.shape[1]),
+    )
     missing_value_policy = MissingValuePolicyState(
         strategy=MISSING_VALUE_STRATEGY_TRAIN_MEAN,
         all_nan_fill=float(all_nan_fill),
-        fill_values=_fit_fill_values(x_train_matrix, all_nan_fill=float(all_nan_fill)),
+        fill_values=_fit_fill_values(
+            x_train_matrix,
+            feature_types=normalized_feature_types,
+            all_nan_fill=float(all_nan_fill),
+        ),
+    )
+    categorical_feature_policy = _fit_categorical_feature_policy(
+        x_train_matrix,
+        feature_types=normalized_feature_types,
     )
 
     classification_label_policy: ClassificationLabelPolicyState | None = None
@@ -134,6 +221,7 @@ def fit_fitted_preprocessor(
         feature_order_policy=FEATURE_ORDER_POLICY_POSITIONAL,
         feature_ids=feature_ids,
         missing_value_policy=missing_value_policy,
+        categorical_feature_policy=categorical_feature_policy,
         classification_label_policy=classification_label_policy,
         dtype_policy=dict(DTYPE_POLICY),
     )
@@ -145,7 +233,7 @@ def _apply_feature_preprocessing(
     x_train: Any,
     x_test: Any,
     impute_missing: bool,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, PreprocessedFeatureState]:
     x_train_matrix = _require_matrix(x_train, context="x_train")
     x_test_matrix = _require_matrix(x_test, context="x_test")
     expected_width = len(state.feature_ids)
@@ -158,18 +246,50 @@ def _apply_feature_preprocessing(
     fill_values = np.asarray(state.missing_value_policy.fill_values, dtype=np.float32)
     train = x_train_matrix.astype(np.float32, copy=True)
     test = x_test_matrix.astype(np.float32, copy=True)
-    if not impute_missing:
-        return train, test
+    categorical_policy = state.categorical_feature_policy
+    categorical_mask = np.asarray(
+        [feature_type == CATEGORICAL_FEATURE_TYPE for feature_type in categorical_policy.feature_types],
+        dtype=bool,
+    )
+    categorical_cardinalities = np.asarray(categorical_policy.cardinalities, dtype=np.int64)
+    train_categorical_ids = np.zeros(train.shape, dtype=np.int64)
+    test_categorical_ids = np.zeros(test.shape, dtype=np.int64)
 
-    train_nan = np.isnan(train)
-    if np.any(train_nan):
-        train[train_nan] = np.take(fill_values, np.where(train_nan)[1])
+    for col_idx, is_categorical in enumerate(categorical_mask.tolist()):
+        if is_categorical:
+            vocab = np.asarray(categorical_policy.train_value_vocab[col_idx])
+            train_ids = _encode_categorical_column(
+                x_train_matrix[:, col_idx],
+                vocab=vocab,
+                context=f"x_train column {col_idx}",
+                allow_oov=False,
+            )
+            test_ids = _encode_categorical_column(
+                x_test_matrix[:, col_idx],
+                vocab=vocab,
+                context=f"x_test column {col_idx}",
+                allow_oov=True,
+            )
+            train_categorical_ids[:, col_idx] = train_ids
+            test_categorical_ids[:, col_idx] = test_ids
+            train[:, col_idx] = train_ids.astype(np.float32, copy=False)
+            test[:, col_idx] = test_ids.astype(np.float32, copy=False)
+            continue
+        if not impute_missing:
+            continue
+        train_nan = np.isnan(train[:, col_idx])
+        if np.any(train_nan):
+            train[train_nan, col_idx] = float(fill_values[col_idx])
+        test_nan = np.isnan(test[:, col_idx])
+        if np.any(test_nan):
+            test[test_nan, col_idx] = float(fill_values[col_idx])
 
-    test_nan = np.isnan(test)
-    if np.any(test_nan):
-        test[test_nan] = np.take(fill_values, np.where(test_nan)[1])
-
-    return train, test
+    return train, test, PreprocessedFeatureState(
+        categorical_mask=categorical_mask,
+        categorical_cardinalities=categorical_cardinalities,
+        x_train_categorical_ids=train_categorical_ids,
+        x_test_categorical_ids=test_categorical_ids,
+    )
 
 
 def _map_classification_targets(
@@ -218,12 +338,24 @@ def apply_fitted_preprocessor(
     y_train: Any,
     x_test: Any,
     y_test: Any | None = None,
+    feature_types: Sequence[str] | None = None,
     impute_missing: bool = True,
 ) -> PreprocessedTaskArrays:
     """Apply one fitted preprocessing state to raw task arrays."""
 
     normalized_task = _require_task(task)
-    train_x, test_x = _apply_feature_preprocessing(
+    if feature_types is not None:
+        expected_feature_types = list(state.categorical_feature_policy.feature_types)
+        provided_feature_types = normalize_feature_types(
+            feature_types,
+            width=len(expected_feature_types),
+        )
+        if provided_feature_types != expected_feature_types:
+            raise RuntimeError(
+                "feature_types do not match fitted preprocessing state: "
+                f"expected={expected_feature_types}, got={provided_feature_types}"
+            )
+    train_x, test_x, feature_state = _apply_feature_preprocessing(
         state,
         x_train=x_train,
         x_test=x_test,
@@ -242,6 +374,7 @@ def apply_fitted_preprocessor(
         )
         if valid_mask is not None:
             test_x = test_x[valid_mask]
+            feature_state = feature_state.filter_test_rows(valid_mask)
         return PreprocessedTaskArrays(
             x_train=train_x,
             y_train=train_y.astype(np.int64, copy=False),
@@ -249,6 +382,7 @@ def apply_fitted_preprocessor(
             y_test=None if test_y is None else test_y.astype(np.int64, copy=False),
             num_classes=num_classes,
             valid_test_mask=valid_mask,
+            feature_state=feature_state,
         )
 
     train_y = _require_vector(y_train, dtype=np.float32, context="y_train")
@@ -264,6 +398,7 @@ def apply_fitted_preprocessor(
         y_test=None if test_y_array is None else test_y_array.astype(np.float32, copy=False),
         num_classes=None,
         valid_test_mask=None,
+        feature_state=feature_state,
     )
 
 
@@ -274,6 +409,7 @@ def preprocess_runtime_task_arrays(
     y_train: Any,
     x_test: Any,
     y_test: Any | None = None,
+    feature_types: Sequence[str] | None = None,
     impute_missing: bool = True,
     all_nan_fill: float = 0.0,
     label_mapping: str = CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
@@ -285,6 +421,7 @@ def preprocess_runtime_task_arrays(
         task=task,
         x_train=x_train,
         y_train=y_train,
+        feature_types=feature_types,
         all_nan_fill=all_nan_fill,
         label_mapping=label_mapping,
         unseen_test_label_policy=unseen_test_label_policy,
@@ -296,5 +433,6 @@ def preprocess_runtime_task_arrays(
         y_train=y_train,
         x_test=x_test,
         y_test=y_test,
+        feature_types=feature_types,
         impute_missing=impute_missing,
     )

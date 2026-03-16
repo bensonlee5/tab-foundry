@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pytest
 import torch
 
@@ -10,6 +11,7 @@ from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
 )
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import ModelStage
+from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
 
@@ -34,6 +36,44 @@ def _batch(*, num_classes: int = 2) -> TaskBatch:
         y_test=torch.tensor([0, 1], dtype=torch.int64),
         metadata={},
         num_classes=num_classes,
+    )
+
+
+def _categorical_batch(
+    *,
+    x_test_categorical: tuple[float, float] = (20.0, 30.0),
+) -> TaskBatch:
+    processed = preprocess_runtime_task_arrays(
+        task="classification",
+        x_train=np.asarray(
+            [
+                [1.0, 10.0, 0.5],
+                [3.0, 10.0, 1.5],
+                [5.0, 20.0, 2.5],
+                [7.0, 20.0, 3.5],
+            ],
+            dtype=np.float32,
+        ),
+        y_train=np.asarray([0, 1, 0, 1], dtype=np.int64),
+        x_test=np.asarray(
+            [
+                [9.0, x_test_categorical[0], 4.5],
+                [11.0, x_test_categorical[1], 5.5],
+            ],
+            dtype=np.float32,
+        ),
+        y_test=np.asarray([0, 1], dtype=np.int64),
+        feature_types=["num", "cat", "num"],
+    )
+    assert processed.feature_state is not None
+    return TaskBatch(
+        x_train=torch.from_numpy(processed.x_train),
+        y_train=torch.from_numpy(processed.y_train),
+        x_test=torch.from_numpy(processed.x_test),
+        y_test=torch.from_numpy(processed.y_test),
+        metadata={},
+        num_classes=processed.num_classes,
+        feature_state=processed.feature_state.to_task_feature_state(),
     )
 
 
@@ -180,6 +220,36 @@ def test_nano_exact_stage_matches_simple_forward_batched_logits() -> None:
         train_test_split_index=5,
     )
     assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
+
+
+@pytest.mark.parametrize("stage", ["nano_exact", "shared_norm"])
+def test_staged_forward_supports_categorical_feature_state(stage: str) -> None:
+    model = _staged(stage, d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
+    model.eval()
+    batch = _categorical_batch()
+
+    with torch.no_grad():
+        out = model(batch)
+
+    assert out.logits is not None
+    assert tuple(out.logits.shape) == (2, 2)
+    assert torch.isfinite(out.logits).all()
+
+
+def test_staged_categorical_inputs_change_logits_and_allow_oov_values() -> None:
+    model = _staged("shared_norm", d_icl=32, tficl_n_heads=4, tficl_n_layers=1, head_hidden_dim=64)
+    model.eval()
+    seen_batch = _categorical_batch(x_test_categorical=(20.0, 20.0))
+    oov_batch = _categorical_batch(x_test_categorical=(20.0, 30.0))
+
+    with torch.no_grad():
+        seen_out = model(seen_batch)
+        oov_out = model(oov_batch)
+
+    assert seen_out.logits is not None
+    assert oov_out.logits is not None
+    assert torch.isfinite(oov_out.logits).all()
+    assert not torch.allclose(seen_out.logits, oov_out.logits)
 
 
 def test_binary_only_stages_reject_multiclass() -> None:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Sequence, cast
 
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
@@ -21,6 +21,11 @@ from tab_foundry.model.spec import (
 )
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     staged_surface_uses_internal_benchmark_normalization,
+)
+from tab_foundry.preprocessing import (
+    feature_types_include_categorical,
+    fit_fitted_preprocessor,
+    preprocess_runtime_task_arrays,
 )
 from tab_foundry.types import TaskBatch
 
@@ -75,6 +80,41 @@ def load_checkpoint_classifier_model(
     return model, spec
 
 
+def _normalize_preprocessed_feature_arrays(
+    x_train: np.ndarray,
+    x_test: np.ndarray,
+    *,
+    mode: InputNormalizationMode,
+    categorical_mask: np.ndarray | None,
+) -> tuple[np.ndarray, np.ndarray]:
+    if categorical_mask is None or not bool(np.any(categorical_mask)):
+        return normalize_train_test_arrays(x_train, x_test, mode=mode)
+    numeric_mask = ~np.asarray(categorical_mask, dtype=bool)
+    train_out = np.asarray(x_train, dtype=np.float32).copy()
+    test_out = np.asarray(x_test, dtype=np.float32).copy()
+    if np.any(numeric_mask):
+        numeric_train, numeric_test = normalize_train_test_arrays(
+            train_out[:, numeric_mask],
+            test_out[:, numeric_mask],
+            mode=mode,
+        )
+        train_out[:, numeric_mask] = numeric_train
+        test_out[:, numeric_mask] = numeric_test
+    return train_out, test_out
+
+
+def _require_staged_categorical_support(
+    *,
+    feature_types: Sequence[str] | None,
+    model_arch: str,
+) -> None:
+    if feature_types_include_categorical(feature_types) and model_arch != "tabfoundry_staged":
+        raise RuntimeError(
+            "categorical feature_types are only supported for tabfoundry_staged checkpoints; "
+            f"got arch={model_arch!r}"
+        )
+
+
 class TabFoundryClassifier:
     """Small sklearn-style classifier wrapper around a tab-foundry checkpoint."""
 
@@ -88,21 +128,47 @@ class TabFoundryClassifier:
         self._classes: np.ndarray | None = None
         self._x_train: np.ndarray | None = None
         self._y_train: np.ndarray | None = None
+        self._feature_types: list[str] | None = None
 
-    def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "TabFoundryClassifier":
+    def fit(
+        self,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+        *,
+        feature_types: Sequence[str] | None = None,
+    ) -> "TabFoundryClassifier":
         classes, encoded = np.unique(np.asarray(y_train), return_inverse=True)
         if classes.size < 2:
             raise RuntimeError("benchmark classifier requires at least 2 classes in fit()")
+        model_arch = str(getattr(self.model_spec, "arch", "tabfoundry")).strip().lower()
+        _require_staged_categorical_support(feature_types=feature_types, model_arch=model_arch)
         self._classes = classes
-        self._x_train = np.asarray(x_train, dtype=np.float32)
+        self._x_train = np.asarray(x_train)
         self._y_train = encoded.astype(np.int64, copy=False)
+        state = fit_fitted_preprocessor(
+            task="classification",
+            x_train=self._x_train,
+            y_train=self._y_train,
+            feature_types=feature_types,
+        )
+        self._feature_types = list(state.categorical_feature_policy.feature_types)
         return self
 
     def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
         if self._classes is None or self._x_train is None or self._y_train is None:
             raise RuntimeError("fit() must be called before predict_proba()")
 
-        raw_x_test = np.asarray(x_test, dtype=np.float32)
+        raw_x_test = np.asarray(x_test)
+        processed = preprocess_runtime_task_arrays(
+            task="classification",
+            x_train=self._x_train,
+            y_train=self._y_train,
+            x_test=raw_x_test,
+            y_test=None,
+            feature_types=self._feature_types,
+        )
+        x_train_model = np.asarray(processed.x_train, dtype=np.float32)
+        x_test_model = np.asarray(processed.x_test, dtype=np.float32)
         model_arch = str(getattr(self.model_spec, "arch", "tabfoundry")).strip().lower()
         normalization_mode = cast(
             InputNormalizationMode,
@@ -114,12 +180,15 @@ class TabFoundryClassifier:
                 self.model_spec,
             )
         if internal_normalization or normalization_mode == "none":
-            x_train_norm, x_test_norm = self._x_train, raw_x_test
+            x_train_norm, x_test_norm = x_train_model, x_test_model
         else:
-            x_train_norm, x_test_norm = normalize_train_test_arrays(
-                self._x_train,
-                raw_x_test,
+            x_train_norm, x_test_norm = _normalize_preprocessed_feature_arrays(
+                x_train_model,
+                x_test_model,
                 mode=normalization_mode,
+                categorical_mask=None
+                if processed.feature_state is None
+                else processed.feature_state.categorical_mask,
             )
         num_classes = int(self._classes.size)
         batch = TaskBatch(
@@ -129,6 +198,9 @@ class TabFoundryClassifier:
             y_test=torch.zeros((x_test_norm.shape[0],), dtype=torch.int64, device=self.device),
             metadata={"dataset": "external_benchmark"},
             num_classes=num_classes,
+            feature_state=None
+            if processed.feature_state is None
+            else processed.feature_state.to_task_feature_state().to(self.device),
         )
         with torch.no_grad():
             output = self.model(batch)

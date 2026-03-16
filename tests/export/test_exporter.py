@@ -1081,3 +1081,70 @@ def test_reference_consumer_derives_preprocessing_from_runtime_support_set(tmp_p
         output.batch.x_test,
         torch.tensor([[3.0, 11.0]], dtype=torch.float32),
     )
+
+
+def test_reference_consumer_rejects_categorical_feature_types_for_non_staged_bundle(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_preproc_categorical.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=9)
+    out_dir = tmp_path / "export_runtime_preproc_categorical"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    with pytest.raises(RuntimeError, match="only supported for tabfoundry_staged export bundles"):
+        _ = run_reference_consumer(
+            out_dir,
+            x_train=np.asarray(
+                [
+                    [1.0, 10.0],
+                    [3.0, 10.0],
+                    [5.0, 20.0],
+                ],
+                dtype=np.float32,
+            ),
+            y_train=np.asarray([100, 200, 100], dtype=np.int64),
+            x_test=np.asarray([[7.0, 20.0], [9.0, 30.0]], dtype=np.float32),
+            feature_types=["num", "categorical"],
+        )
+
+
+def test_reference_consumer_supports_categorical_feature_types_for_staged_bundle(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_preproc_categorical_staged.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore_clip",
+        model_overrides={"arch": "tabfoundry_staged", "stage": "shared_norm"},
+        seed=9,
+    )
+    out_dir = tmp_path / "export_runtime_preproc_categorical_staged"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    output = run_reference_consumer(
+        out_dir,
+        x_train=np.asarray(
+            [
+                [1.0, 10.0],
+                [3.0, 10.0],
+                [5.0, 20.0],
+            ],
+            dtype=np.float32,
+        ),
+        y_train=np.asarray([100, 200, 100], dtype=np.int64),
+        x_test=np.asarray([[7.0, 20.0], [9.0, 30.0]], dtype=np.float32),
+        feature_types=["num", "cat"],
+    )
+
+    assert output.batch.feature_state is not None
+    assert output.batch.feature_state.categorical_mask.tolist() == [False, True]
+    assert output.batch.feature_state.categorical_cardinalities.tolist() == [0, 2]
+    assert torch.allclose(
+        output.batch.x_train,
+        torch.tensor([[1.0, 0.0], [3.0, 0.0], [5.0, 1.0]], dtype=torch.float32),
+    )
+    assert torch.allclose(
+        output.batch.x_test,
+        torch.tensor([[7.0, 1.0], [9.0, 2.0]], dtype=torch.float32),
+    )

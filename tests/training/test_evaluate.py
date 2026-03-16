@@ -251,6 +251,72 @@ def test_evaluate_checkpoint_falls_back_to_runtime_preprocessing_config(
     }
 
 
+@pytest.mark.parametrize(
+    ("arch", "expected"),
+    [("tabfoundry", False), ("tabfoundry_staged", True)],
+)
+def test_evaluate_checkpoint_threads_staged_categorical_dataset_flag(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    arch: str,
+    expected: bool,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class _DummyModel:
+        def load_state_dict(self, _state: object) -> None:
+            return None
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {
+                    "arch": arch,
+                    "d_col": 128,
+                    "d_icl": 512,
+                    "feature_group_size": 1,
+                    "many_class_train_mode": "path_nll",
+                    "max_mixed_radix_digits": 64,
+                },
+            },
+        }
+
+    def _capture_dataset(
+        *_args: object,
+        enable_categorical_feature_state: bool = False,
+        **_kwargs: object,
+    ) -> None:
+        captured["enable_categorical_feature_state"] = enable_categorical_feature_state
+        raise RuntimeError("stop_after_dataset")
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", _capture_dataset)
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="stop_after_dataset"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert captured["enable_categorical_feature_state"] is expected
+
+
 def test_checkpoint_model_settings_rejects_legacy_grouped_weights_without_override() -> None:
     payload = {
         "model": {

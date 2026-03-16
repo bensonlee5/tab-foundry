@@ -80,6 +80,10 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     model_spec = _checkpoint_model_settings(payload, cfg)
     preprocessing_cfg = _checkpoint_preprocessing_settings(payload, cfg)
     task = model_spec.task
+    model_arch = str(getattr(model_spec, "arch", "tabfoundry")).strip().lower()
+    enable_categorical_feature_state = (
+        task == "classification" and model_arch == "tabfoundry_staged"
+    )
     model = build_model_from_spec(model_spec)
     model.load_state_dict(payload["model"])
 
@@ -90,6 +94,7 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         task=task,
         seed=int(cfg.runtime.seed),
         preprocessing_cfg=preprocessing_cfg,
+        enable_categorical_feature_state=enable_categorical_feature_state,
     )
     loader = build_task_loader(
         ds,

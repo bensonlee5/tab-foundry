@@ -17,6 +17,7 @@ def build_source_dataset(
     task: str,
     seed: int,
     preprocessing_cfg: DictConfig | None = None,
+    enable_categorical_feature_state: bool = False,
 ) -> Dataset[TaskBatch]:
     """Build a task dataset from one registered source."""
 
@@ -28,5 +29,6 @@ def build_source_dataset(
             task=task,
             seed=seed,
             preprocessing_cfg=preprocessing_cfg,
+            enable_categorical_feature_state=enable_categorical_feature_state,
         )
     raise ValueError(f"Unsupported data.source: {source!r}")

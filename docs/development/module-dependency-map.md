@@ -14,19 +14,22 @@ section factual and keep design intent in the policy section below it.
 - `tab_foundry.__main__` depends on `tab_foundry.cli`.
 - `tab_foundry.bench` depends on `tab_foundry.config`,
   `tab_foundry.data`, `tab_foundry.input_normalization`,
-  `tab_foundry.model`, `tab_foundry.training`, and `tab_foundry.types`.
+  `tab_foundry.model`, `tab_foundry.preprocessing`,
+  `tab_foundry.training`, and `tab_foundry.types`.
 - `tab_foundry.cli` depends on `tab_foundry.config`,
   `tab_foundry.data`, `tab_foundry.export`, and `tab_foundry.training`.
 - `tab_foundry.data` depends on `tab_foundry.preprocessing` and
   `tab_foundry.types`.
 - `tab_foundry.export` depends on `tab_foundry.input_normalization`,
   `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
-- `tab_foundry.model` depends on `tab_foundry.input_normalization` and
-  `tab_foundry.types`.
+- `tab_foundry.model` depends on `tab_foundry.feature_state`,
+  `tab_foundry.input_normalization`, and `tab_foundry.types`.
+- `tab_foundry.preprocessing` depends on `tab_foundry.feature_state`.
 - `tab_foundry.research` depends on `tab_foundry.bench` and
   `tab_foundry.model`.
 - `tab_foundry.training` depends on `tab_foundry.data`,
   `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
+- `tab_foundry.types` depends on `tab_foundry.feature_state`.
 
 <!-- module-graph:end -->
 
@@ -36,8 +39,9 @@ Observed cycle status:
 
 ## Intended Dependency-Direction Policy
 
-- `tab_foundry.config`, `tab_foundry.types`, and
-  `tab_foundry.input_normalization` should remain dependency-light helpers.
+- `tab_foundry.config`, `tab_foundry.types`,
+  `tab_foundry.feature_state`, and `tab_foundry.input_normalization` should
+  remain dependency-light helpers.
 - `tab_foundry.model` should stay independent of `bench`, `research`,
   `training`, and `export`.
 - `tab_foundry.preprocessing` should remain a leaf-style utility package that

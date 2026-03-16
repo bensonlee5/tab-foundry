@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-03-16
+
+### Changed
+
+- `tabfoundry_staged` now accepts mixed numeric/categorical runtime tasks via
+  task-time `feature_types` preprocessing state. Categorical columns are fit
+  from the support set, remapped to contiguous ids with per-column
+  cardinalities, and unseen or missing runtime values are routed to OOV
+  buckets without changing the `tab-foundry-export-v3` bundle schema.
+
+- Manifest-backed datasets and benchmark/reference-consumer helper paths now
+  thread additive `TaskBatch.feature_state` metadata through preprocessing so
+  staged models can consume categorical feature state at `forward()` time.
+  User-facing note: Python helpers
+  `TabFoundryClassifier.fit(..., feature_types=...)` and
+  `run_reference_consumer(..., feature_types=...)` accept optional mixed
+  feature schemas using `num`, `cat`, or `categorical` only for
+  `tabfoundry_staged`; non-staged checkpoint/bundle helpers now reject
+  categorical schemas instead of silently remapping them into numeric inputs.
+
 ## [0.6.5] - 2026-03-16
 
 ### Changed

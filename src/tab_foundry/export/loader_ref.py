@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 from safetensors.torch import load_file
@@ -12,7 +12,10 @@ import torch
 from torch import nn
 
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.preprocessing import preprocess_runtime_task_arrays
+from tab_foundry.preprocessing import (
+    feature_types_include_categorical,
+    preprocess_runtime_task_arrays,
+)
 from tab_foundry.types import TaskBatch
 
 from .contracts import ExportPreprocessorState, SCHEMA_VERSION_V3, ValidatedBundle
@@ -80,14 +83,31 @@ def _dummy_y_test(task: str, *, row_count: int) -> np.ndarray:
     return np.zeros((row_count,), dtype=np.float32)
 
 
+def _require_staged_categorical_support(
+    *,
+    feature_types: Sequence[str] | None,
+    model_arch: str,
+) -> None:
+    if feature_types_include_categorical(feature_types) and model_arch != "tabfoundry_staged":
+        raise RuntimeError(
+            "categorical feature_types are only supported for tabfoundry_staged export bundles; "
+            f"got arch={model_arch!r}"
+        )
+
+
 def _reference_batch(
     bundle: LoadedExportBundle,
     *,
     x_train: Any,
     y_train: Any,
     x_test: Any,
+    feature_types: Sequence[str] | None = None,
 ) -> TaskBatch:
     manifest = bundle.validated.manifest
+    _require_staged_categorical_support(
+        feature_types=feature_types,
+        model_arch=str(manifest.model.arch).strip().lower(),
+    )
     policy = _require_preprocessor_policy(bundle)
     processed = preprocess_runtime_task_arrays(
         task=manifest.task,
@@ -95,6 +115,7 @@ def _reference_batch(
         y_train=y_train,
         x_test=x_test,
         y_test=None,
+        feature_types=feature_types,
     )
     if manifest.task == "classification":
         y_train_tensor = torch.from_numpy(np.asarray(processed.y_train, dtype=np.int64))
@@ -115,6 +136,9 @@ def _reference_batch(
         y_test=y_test_tensor,
         metadata={"preprocessor_policy": policy.to_dict()},
         num_classes=num_classes,
+        feature_state=None
+        if processed.feature_state is None
+        else processed.feature_state.to_task_feature_state(),
     )
 
 
@@ -124,6 +148,7 @@ def run_reference_consumer(
     x_train: Any,
     y_train: Any,
     x_test: Any,
+    feature_types: Sequence[str] | None = None,
 ) -> ReferenceConsumerOutput:
     """Execute the reference-only inference path for one exported bundle."""
 
@@ -133,6 +158,7 @@ def run_reference_consumer(
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
+        feature_types=feature_types,
     )
     with torch.no_grad():
         output = bundle.model(batch)

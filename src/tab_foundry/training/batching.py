@@ -25,4 +25,5 @@ def move_batch(batch: TaskBatch, device: torch.device) -> TaskBatch:
         y_test=batch.y_test.to(device),
         metadata=batch.metadata,
         num_classes=batch.num_classes,
+        feature_state=None if batch.feature_state is None else batch.feature_state.to(device),
     )
