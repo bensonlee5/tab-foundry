@@ -1,12 +1,7 @@
-schema: tab-foundry-system-delta-queue-v1
-generated_from_sweep_id: binary_md_v3
-catalog_path: reference/system_delta_catalog.yaml
-canonical_sweep_path: reference/system_delta_sweeps/binary_md_v3/sweep.yaml
-canonical_queue_path: reference/system_delta_sweeps/binary_md_v3/queue.yaml
-canonical_matrix_path: reference/system_delta_sweeps/binary_md_v3/matrix.md
+schema: tab-foundry-system-delta-sweep-v1
 sweep_id: binary_md_v3
 parent_sweep_id: binary_md_v2
-sweep_status: active
+status: active
 complexity_level: binary_md
 anchor_run_id: 01_shared_norm_post_ln_binary_medium_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -103,60 +98,3 @@ anchor_context:
     model: delta_shared_norm_post_ln
     preprocessing: runtime_default
     training: prior_constant_lr
-rows:
-- order: 1
-  delta_id: delta_preproc_impute_missing_off
-  status: deferred_separate_workstream
-  dimension_family: preprocessing
-  family: missing_values
-  binary_applicable: true
-  description: Disable runtime mean imputation while keeping the fitted label-remap
-    path intact.
-  rationale: Keep the missingness-only placeholder attached to the promoted shared+LayerNorm
-    anchor while missingness work proceeds on a separate branch.
-  hypothesis: Missingness-specific conclusions should wait for a dedicated workstream
-    with explicit missing-valued training and evaluation inputs.
-  upstream_delta: Upstream notebook preprocessing imputes as part of its benchmark
-    helper path.
-  anchor_delta: Changes only preprocessing by disabling runtime mean imputation while
-    keeping the shared+LayerNorm anchor model, data surface, and training recipe fixed.
-  entangled_legacy_stage: none
-  expected_effect: Cleaner attribution around imputation usefulness, but possibly
-    brittle feature tensors on some datasets.
-  adequacy_knobs:
-  - Interpret against manifest missingness prevalence where available.
-  parameter_adequacy_policy:
-    default_plan:
-    - If the result is weak, note whether the benchmark tasks actually contain meaningful
-      missingness on the support side.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
-  model:
-    stage_label: anchor_model
-  data:
-    surface_label: anchor_manifest_default
-  preprocessing:
-    surface_label: runtime_no_impute
-    overrides:
-      impute_missing: false
-  training:
-    surface_label: prior_constant_lr
-    overrides: {}
-  parameter_adequacy_plan:
-  - If the result is weak, note whether the benchmark tasks actually contain meaningful
-    missingness on the support side.
-  run_id: null
-  followup_run_ids: []
-  decision: null
-  interpretation_status: blocked
-  confounders: []
-  next_action: Do not run on the main no-missing campaign; revisit only in a dedicated
-    missingness workstream with explicit missing-valued training and evaluation inputs.
-  notes:
-  - Placeholder row only on this branch; missingness implementation lives on a separate
-    branch.
-  benchmark_metrics: null
