@@ -797,6 +797,10 @@ def _materialize_row(
         "confounders": cast(list[Any], _copy_jsonable(queue_row.get("confounders", []))),
         "next_action": str(queue_row.get("next_action", "")),
         "notes": cast(list[Any], _copy_jsonable(queue_row.get("notes", []))),
+        "benchmark_metrics": cast(
+            dict[str, Any] | None,
+            _copy_jsonable(queue_row.get("benchmark_metrics")) if queue_row.get("benchmark_metrics") else None,
+        ),
     }
 
 
@@ -1140,7 +1144,22 @@ def render_system_delta_matrix(
             f"- Result card path: `{_render_path(_result_card_path(sweep_id=sweep_id, delta_id=delta_id))}`"
         )
         if run is None:
-            lines.append("- Benchmark metrics: pending")
+            inline_metrics = queue_row.get("benchmark_metrics")
+            if inline_metrics:
+                best = float(inline_metrics["best_roc_auc"])
+                step = inline_metrics.get("best_step", "?")
+                final = float(inline_metrics["final_roc_auc"])
+                drift = float(inline_metrics["drift"])
+                lines.append("- Benchmark metrics:")
+                lines.append(f"  - Best ROC AUC: `{best:.4f}` (step {step})")
+                lines.append(f"  - Final ROC AUC: `{final:.4f}`")
+                lines.append(f"  - Drift (final − best): `{drift:.4f}`")
+                if "nanotabpfn_best" in inline_metrics:
+                    lines.append(f"  - NanoTabPFN control: `{float(inline_metrics['nanotabpfn_best']):.4f}`")
+                if "max_grad_norm" in inline_metrics:
+                    lines.append(f"  - max_grad_norm: `{float(inline_metrics['max_grad_norm']):.3f}`")
+            else:
+                lines.append("- Benchmark metrics: pending")
         else:
             metrics = _metric_summary(run, anchor)
             lines.append(

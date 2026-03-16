@@ -156,6 +156,13 @@ rows:
   notes:
   - 'wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/litf5n0i'
   - final_train_loss=0.452, mean_grad_norm=0.177, max_grad_norm=4.658
+  benchmark_metrics:
+    best_roc_auc: 0.7615
+    best_step: 1125
+    final_roc_auc: 0.7599
+    drift: -0.0016
+    nanotabpfn_best: 0.7616
+    max_grad_norm: 4.658
 - order: 2
   delta_id: delta_shared_feature_norm
   status: completed
@@ -220,6 +227,13 @@ rows:
   notes:
   - 'wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/6h20zft8'
   - final_train_loss=0.450, mean_grad_norm=0.175, max_grad_norm=4.660
+  benchmark_metrics:
+    best_roc_auc: 0.7654
+    best_step: 1325
+    final_roc_auc: 0.7558
+    drift: -0.0096
+    nanotabpfn_best: 0.7616
+    max_grad_norm: 4.66
 - order: 3
   delta_id: delta_shared_feature_norm_with_post_layernorm
   status: completed
@@ -288,6 +302,13 @@ rows:
   notes:
   - 'wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/fedytzgt'
   - final_train_loss=0.452, mean_grad_norm=0.182, max_grad_norm=4.208
+  benchmark_metrics:
+    best_roc_auc: 0.767
+    best_step: 2075
+    final_roc_auc: 0.7643
+    drift: -0.0026
+    nanotabpfn_best: 0.7616
+    max_grad_norm: 4.208
 - order: 4
   delta_id: delta_shared_feature_norm_with_post_rmsnorm
   status: completed
@@ -355,3 +376,10 @@ rows:
   notes:
   - 'wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/r684s86u'
   - final_train_loss=0.454, mean_grad_norm=0.182, max_grad_norm=4.216
+  benchmark_metrics:
+    best_roc_auc: 0.7604
+    best_step: 1250
+    final_roc_auc: 0.7548
+    drift: -0.0056
+    nanotabpfn_best: 0.7616
+    max_grad_norm: 4.216

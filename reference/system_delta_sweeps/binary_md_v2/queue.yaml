@@ -29,6 +29,13 @@ rows:
     rows.
   run_id: litf5n0i
   followup_run_ids: []
+  benchmark_metrics:
+    best_roc_auc: 0.7615
+    best_step: 1125
+    final_roc_auc: 0.7599
+    drift: -0.0016
+    nanotabpfn_best: 0.7616
+    max_grad_norm: 4.658
   decision: Anchor trace baseline established. Best ROC AUC 0.7596 (step 2275). Activation
     norms captured in gradient_history. NanoTabPFN best 0.7616.
   interpretation_status: completed
@@ -67,6 +74,13 @@ rows:
     mismatch is the dominant failure mode.
   run_id: 6h20zft8
   followup_run_ids: []
+  benchmark_metrics:
+    best_roc_auc: 0.7654
+    best_step: 1325
+    final_roc_auc: 0.7558
+    drift: -0.0096
+    nanotabpfn_best: 0.7616
+    max_grad_norm: 4.660
   decision: Shared feature encoder (no post-norm) best ROC AUC 0.7620 (step 1950),
     slightly above anchor 0.7596. Activation norms captured. NanoTabPFN best 0.7616.
   interpretation_status: completed
@@ -106,6 +120,13 @@ rows:
     even when final ROC AUC is neutral.
   run_id: fedytzgt
   followup_run_ids: []
+  benchmark_metrics:
+    best_roc_auc: 0.7670
+    best_step: 2075
+    final_roc_auc: 0.7643
+    drift: -0.0026
+    nanotabpfn_best: 0.7616
+    max_grad_norm: 4.208
   decision: LayerNorm post-encoder achieved BEST sweep ROC AUC 0.7670 (step 2075),
     exceeding both anchor (0.7596) and shared-no-norm (0.7620). Hypothesis confirmed -
     LayerNorm stabilizes post-encoder activations. max_grad_norm reduced to 4.208 vs
@@ -146,6 +167,13 @@ rows:
     encoder itself.
   run_id: r684s86u
   followup_run_ids: []
+  benchmark_metrics:
+    best_roc_auc: 0.7604
+    best_step: 1250
+    final_roc_auc: 0.7548
+    drift: -0.0056
+    nanotabpfn_best: 0.7616
+    max_grad_norm: 4.216
   decision: RMSNorm post-encoder best ROC AUC 0.7572 (step 1975), below both anchor
     (0.7596) and LayerNorm (0.7670). RMSNorm did not improve over shared-no-norm
     (0.7620). max_grad_norm 4.216 similar to LayerNorm. LayerNorm is the clear winner.

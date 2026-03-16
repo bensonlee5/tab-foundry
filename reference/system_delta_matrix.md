@@ -140,11 +140,11 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v2/delta_shared_feature_norm_with_post_layernorm/result_card.md`
 - Benchmark metrics:
-  - Best ROC AUC: **`0.7670`** (step 2075) — sweep best
-  - Final ROC AUC: **`0.7643`** — sweep best
-  - Drift (final − best): **`-0.0026`** — lowest drift
+  - Best ROC AUC: `0.7670` (step 2075)
+  - Final ROC AUC: `0.7643`
+  - Drift (final − best): `-0.0026`
   - NanoTabPFN control: `0.7616`
-  - max_grad_norm: **`4.208`** — lowest grad norm
+  - max_grad_norm: `4.208`
 
 ### 4. `delta_shared_feature_norm_with_post_rmsnorm`
 
