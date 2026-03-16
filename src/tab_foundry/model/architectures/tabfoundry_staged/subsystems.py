@@ -55,6 +55,17 @@ class SharedLinearFeatureEncoder(nn.Module):
         return self.linear(tokenized_x)
 
 
+class PostEncoderNorm(nn.Module):
+    """Optional normalization applied to the cell table before the transformer."""
+
+    def __init__(self, embedding_size: int, norm_type: str = "layernorm") -> None:
+        super().__init__()
+        self.norm = build_norm(norm_type, embedding_size)
+
+    def forward(self, cells: torch.Tensor) -> torch.Tensor:
+        return self.norm(cells)
+
+
 class MeanPaddedLinearTargetConditioner(nn.Module):
     """Exact nanoTabPFN mean-padded linear target path."""
 
@@ -365,6 +376,7 @@ __all__ = [
     "NanoBinaryHead",
     "NanoFeatureEncoder",
     "NanoPostNormBlock",
+    "PostEncoderNorm",
     "RowCLSPool",
     "ScalarPerFeatureTokenizer",
     "SequenceContextEncoder",

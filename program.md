@@ -40,8 +40,8 @@ dimension family:
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
-- canonical sweep queue: `reference/system_delta_sweeps/binary_md_v1/queue.yaml`
-- canonical sweep matrix: `reference/system_delta_sweeps/binary_md_v1/matrix.md`
+- canonical sweep queue: `reference/system_delta_sweeps/binary_md_v2/queue.yaml`
+- canonical sweep matrix: `reference/system_delta_sweeps/binary_md_v2/matrix.md`
 - active queue alias: `reference/system_delta_queue.yaml`
 - active matrix alias: `reference/system_delta_matrix.md`
 - research template: `reference/system_delta_campaign_template.md`
@@ -67,6 +67,7 @@ This sweep is not architecture-only. Every queue row must isolate exactly one
 declared dimension family against the anchor:
 
 - model
+- training
 - data
 - preprocessing
 

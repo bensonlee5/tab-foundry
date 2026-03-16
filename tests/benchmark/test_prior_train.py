@@ -1039,9 +1039,159 @@ def test_train_tabfoundry_staged_prior_writes_staged_gradient_keys(
         "tokenizer",
         "transformer_blocks.0",
     }
+    assert "activation_norms" not in gradient_history[0]
     assert "context_encoder" not in gradient_history[0]["module_grad_norms"]
     assert "context_label_embed" not in gradient_history[0]["module_grad_norms"]
     assert "digit_position_embed" not in gradient_history[0]["module_grad_norms"]
+
+
+def test_train_tabfoundry_staged_prior_writes_activation_norms_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_staged_activation_trace.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+                [[2.0, 1.0], [4.0, 3.0], [6.0, 5.0], [8.0, 7.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 1],
+            ],
+            dtype=np.float32,
+        ),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+    model = TabFoundryStagedClassifier(
+        stage="nano_exact",
+        module_overrides={"feature_encoder": "shared", "post_encoder_norm": "layernorm"},
+        d_icl=8,
+        input_normalization="train_zscore_clip",
+        many_class_base=2,
+        tficl_n_heads=2,
+        tficl_n_layers=1,
+        head_hidden_dim=16,
+    )
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "nano_exact",
+                "stage_label": "delta_shared_norm_post_ln",
+                "module_overrides": {
+                    "feature_encoder": "shared",
+                    "post_encoder_norm": "layernorm",
+                },
+                "d_icl": 8,
+                "input_normalization": "train_zscore_clip",
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+                "tfcol_n_heads": 8,
+                "tfcol_n_layers": 3,
+                "tfcol_n_inducing": 128,
+                "tfrow_n_heads": 8,
+                "tfrow_n_layers": 3,
+                "tfrow_cls_tokens": 4,
+                "tficl_n_heads": 2,
+                "tficl_n_layers": 1,
+                "tficl_ff_expansion": 2,
+                "many_class_base": 2,
+                "head_hidden_dim": 16,
+                "use_digit_position_embed": True,
+            },
+            "runtime": {
+                "seed": 0,
+                "output_dir": str(tmp_path / "train_staged_activation_trace"),
+                "device": "cpu",
+                "mixed_precision": "no",
+                "grad_clip": 1.0,
+                "trace_activations": True,
+                "max_steps": 1,
+                "eval_every": 1,
+                "checkpoint_every": 1,
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "require_requested": True,
+                "weight_decay": 0.0,
+                "min_lr": 4.0e-3,
+                "betas": [0.9, 0.95],
+                "muon_per_parameter_lr": False,
+                "muon_lr_scale_base": 0.2,
+                "muon_partition_non2d": True,
+            },
+            "logging": {
+                "history_jsonl_path": str(
+                    tmp_path / "train_staged_activation_trace" / "train_history.jsonl"
+                ),
+            },
+        }
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=2,
+    )
+
+    gradient_history = [
+        json.loads(line)
+        for line in (
+            tmp_path / "train_staged_activation_trace" / "gradient_history.jsonl"
+        ).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    telemetry = json.loads(
+        (tmp_path / "train_staged_activation_trace" / "telemetry.json").read_text(encoding="utf-8")
+    )
+
+    assert set(gradient_history[0]["module_grad_norms"]) == {
+        "column_encoder",
+        "direct_head",
+        "feature_encoder",
+        "post_encoder_norm",
+        "row_pool",
+        "target_conditioner",
+        "tokenizer",
+        "transformer_blocks.0",
+    }
+    assert set(gradient_history[0]["activation_norms"]) == {
+        "post_feature_encoder",
+        "post_target_conditioner",
+        "pre_transformer",
+        "post_transformer_block_0",
+        "post_column_encoder",
+        "post_row_pool",
+    }
+    assert set(telemetry["gradient_summary"]["activations"]) == {
+        "post_feature_encoder",
+        "post_target_conditioner",
+        "pre_transformer",
+        "post_transformer_block_0",
+        "post_column_encoder",
+        "post_row_pool",
+    }
+    assert telemetry["gradient_summary"]["activations"]["pre_transformer"]["final"] >= 0.0
 
 
 def test_train_tabfoundry_staged_prior_writes_context_gradient_keys_when_active(

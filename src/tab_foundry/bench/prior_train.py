@@ -71,6 +71,22 @@ def _resolve_positive_int(value: object, *, name: str) -> int:
     return resolved
 
 
+def _resolve_runtime_bool(value: object, *, name: str) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and value in {0, 1}:
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off", ""}:
+            return False
+    raise ValueError(f"{name} must be boolean-compatible, got {value!r}")
+
+
 def _resolve_lr(cfg: DictConfig) -> float:
     raw_lr = getattr(cfg.optimizer, "min_lr", None)
     if raw_lr is None:
@@ -359,11 +375,19 @@ def train_tabfoundry_simple_prior(
         name="runtime.checkpoint_every",
     )
     grad_clip = float(cfg.runtime.grad_clip)
+    trace_activations = _resolve_runtime_bool(
+        getattr(cfg.runtime, "trace_activations", False),
+        name="runtime.trace_activations",
+    )
     if grad_clip <= 0:
         raise ValueError(f"runtime.grad_clip must be > 0 for prior-dump training, got {grad_clip}")
 
     lr_min = _resolve_lr(cfg)
     model = build_model_from_spec(spec)
+    enable_activation_trace = getattr(model, "enable_activation_trace", None)
+    flush_activation_trace = getattr(model, "flush_activation_trace", None)
+    if trace_activations and callable(enable_activation_trace):
+        enable_activation_trace()
     device = torch.device(resolve_device(str(cfg.runtime.device)))
     model.to(device)
     model.train()
@@ -478,6 +502,9 @@ def train_tabfoundry_simple_prior(
             )
             if not isinstance(logits, torch.Tensor):
                 raise RuntimeError("prior-dump training requires tensor logits")
+            activation_norms = (
+                flush_activation_trace() if trace_activations and callable(flush_activation_trace) else None
+            )
             targets = y_all_batch[:, prior_step.train_test_split_index:].reshape(-1).to(torch.int64)
             loss = classification_loss(
                 logits.reshape(-1, int(logits.shape[-1])),
@@ -561,6 +588,7 @@ def train_tabfoundry_simple_prior(
                 lr=float(optimizer.param_groups[0]["lr"]),
                 global_grad_norm=final_grad_norm,
                 module_grad_norms=pre_clip_module_grad_norms,
+                activation_norms=activation_norms,
                 elapsed_seconds=elapsed_seconds,
                 train_elapsed_seconds=train_elapsed_seconds,
                 grad_clip_threshold=float(grad_clip),

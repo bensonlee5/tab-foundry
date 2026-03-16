@@ -13,6 +13,7 @@ from .subsystems import (
     NanoBinaryHead,
     NanoFeatureEncoder,
     NanoPostNormBlock,
+    PostEncoderNorm,
     PreNormCellBlock,
     RowCLSPool,
     ScalarPerFeatureTokenizer,
@@ -55,6 +56,12 @@ def build_target_conditioner(
     if surface.target_conditioner == "label_token":
         return LabelTokenTargetConditioner(many_class_base, d_icl)
     raise RuntimeError(f"Unsupported target conditioner variant: {surface.target_conditioner!r}")
+
+
+def build_post_encoder_norm(surface: ResolvedStageSurface, *, d_icl: int) -> nn.Module | None:
+    if surface.post_encoder_norm == "none":
+        return None
+    return PostEncoderNorm(d_icl, norm_type=surface.post_encoder_norm)
 
 
 def build_table_block(surface: ResolvedStageSurface, *, d_icl: int) -> nn.Module:

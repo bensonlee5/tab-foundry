@@ -65,7 +65,145 @@ deltas:
         surface_label: anchor_manifest_default
       preprocessing:
         surface_label: runtime_default
+      training:
+        surface_label: prior_constant_lr_trace_activations
+        overrides:
+          runtime:
+            trace_activations: true
     default_next_action: Run the isolated shared-feature-encoder comparison.
+    applicability_guards: []
+
+  delta_anchor_activation_trace_baseline:
+    dimension_family: training
+    family: diagnostics
+    binary_applicable: true
+    description: >-
+      Keep the locked anchor model surface fixed but rerun prior training with
+      activation tracing enabled so forward-pass norm dynamics are captured in
+      `gradient_history.jsonl` and `telemetry.json`.
+    upstream_delta: Upstream nanoTabPFN does not emit comparable forward-pass activation telemetry.
+    expected_effect: >-
+      No model-quality change is expected; this row establishes the traced
+      anchor baseline needed to interpret later shared-encoder stabilization
+      runs.
+    adequacy_knobs:
+      - Treat this as a diagnostic rerun of the anchor, not a new structural model claim.
+      - Confirm the additive tracing overhead does not perturb the run contract or artifact schema.
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the traced run preserves the anchor model, data, and preprocessing surfaces.
+        - Use the emitted activation norms as the baseline comparator for all later stabilization rows.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_anchor_activation_trace_baseline
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_constant_lr_trace_activations
+        overrides:
+          runtime:
+            trace_activations: true
+    default_next_action: Run the traced anchor baseline before comparing shared-encoder stabilization variants.
+    applicability_guards: []
+
+  delta_shared_feature_norm_with_post_layernorm:
+    dimension_family: model
+    family: feature_encoding
+    binary_applicable: true
+    description: >-
+      Shared linear feature encoder with explicit post-encoder LayerNorm before
+      the transformer blocks.
+    upstream_delta: Upstream nanoTabPFN does not expose a separate post-encoder normalization stage on this path.
+    expected_effect: >-
+      LayerNorm after encoding should stabilize the activation scale entering
+      the transformer and improve late-curve retention relative to the plain
+      shared feature encoder row.
+    adequacy_knobs:
+      - Compare pre-transformer and per-block activation growth directly against the traced shared-without-post-norm run.
+      - Keep optimizer, dataset bundle, and preprocessing fixed so only the post-encoder normalization changes.
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare the traced shared baseline and this row jointly before drawing conclusions about structural encoder quality.
+        - If the row is mixed, inspect whether activation-scale stabilization improves drift even when final ROC AUC is neutral.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_shared_norm_post_ln
+        module_overrides:
+          feature_encoder: shared
+          post_encoder_norm: layernorm
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_constant_lr_trace_activations
+        overrides:
+          runtime:
+            trace_activations: true
+    default_next_action: Run after the traced shared-feature baseline to test whether LayerNorm fixes late-curve retention.
+    applicability_guards: []
+
+  delta_shared_feature_norm_with_post_rmsnorm:
+    dimension_family: model
+    family: feature_encoding
+    binary_applicable: true
+    description: >-
+      Shared linear feature encoder with explicit post-encoder RMSNorm before
+      the transformer blocks.
+    upstream_delta: Upstream nanoTabPFN does not expose a separate post-encoder normalization stage on this path.
+    expected_effect: >-
+      RMSNorm may stabilize the shared encoder activation scale with less
+      feature rescaling than LayerNorm, offering a second normalization
+      hypothesis for the late-curve retention gap.
+    adequacy_knobs:
+      - Compare against both the traced shared baseline and the post-layernorm row before preferring one normalization family.
+      - Keep optimizer, dataset bundle, and preprocessing fixed so only the post-encoder normalization changes.
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare activation traces and final ROC AUC jointly against the traced shared baseline.
+        - Use the result to separate normalization-family effects from the shared feature encoder itself.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_shared_norm_post_rms
+        module_overrides:
+          feature_encoder: shared
+          post_encoder_norm: rmsnorm
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_constant_lr_trace_activations
+        overrides:
+          runtime:
+            trace_activations: true
+    default_next_action: Run after the LayerNorm variant to compare normalization families on the shared encoder path.
     applicability_guards: []
 
   delta_prenorm_block:

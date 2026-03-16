@@ -12,6 +12,7 @@ from .recipes import StageTaskContract, recipe_for_stage
 
 
 SUPPORTED_FEATURE_ENCODERS = ("nano", "shared")
+SUPPORTED_POST_ENCODER_NORMS = ("none", "layernorm", "rmsnorm")
 SUPPORTED_TARGET_CONDITIONERS = ("mean_padded_linear", "label_token")
 SUPPORTED_TOKENIZERS = ("scalar_per_feature", "shifted_grouped")
 SUPPORTED_COLUMN_ENCODERS = ("none", "tfcol")
@@ -21,6 +22,7 @@ SUPPORTED_HEADS = ("binary_direct", "small_class", "many_class")
 SUPPORTED_TABLE_BLOCK_STYLES = ("nano_postnorm", "prenorm")
 SUPPORTED_MODULE_OVERRIDE_KEYS = (
     "feature_encoder",
+    "post_encoder_norm",
     "target_conditioner",
     "tokenizer",
     "column_encoder",
@@ -123,12 +125,22 @@ class ContextEncoderSurfaceSpec:
 
 
 @dataclass(slots=True, frozen=True)
+class PostEncoderNormSurfaceSpec:
+    name: str
+    norm_type: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(asdict(self))
+
+
+@dataclass(slots=True, frozen=True)
 class ResolvedStageSurface:
     stage: str
     stage_label: str
     benchmark_profile: str
     normalization_mode: str
     feature_encoder: str
+    post_encoder_norm: str
     target_conditioner: str
     tokenizer: str
     column_encoder: str
@@ -140,10 +152,12 @@ class ResolvedStageSurface:
     column_encoder_config: ColumnEncoderSurfaceSpec
     row_pool_config: RowPoolSurfaceSpec
     context_encoder_config: ContextEncoderSurfaceSpec
+    post_encoder_norm_config: PostEncoderNormSurfaceSpec
 
     def module_selection(self) -> dict[str, Any]:
         return {
             "feature_encoder": self.feature_encoder,
+            "post_encoder_norm": self.post_encoder_norm,
             "target_conditioner": self.target_conditioner,
             "tokenizer": self.tokenizer,
             "column_encoder": self.column_encoder,
@@ -160,6 +174,7 @@ class ResolvedStageSurface:
             "column_encoder": self.column_encoder_config.to_dict(),
             "row_pool": self.row_pool_config.to_dict(),
             "context_encoder": self.context_encoder_config.to_dict(),
+            "post_encoder_norm": self.post_encoder_norm_config.to_dict(),
         }
 
 
@@ -211,6 +226,11 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         value=overrides.get("feature_encoder", recipe.modules.feature_encoder),
         supported=SUPPORTED_FEATURE_ENCODERS,
         context="model.module_overrides.feature_encoder",
+    )
+    post_encoder_norm = _require_choice(
+        value=overrides.get("post_encoder_norm", "none"),
+        supported=SUPPORTED_POST_ENCODER_NORMS,
+        context="model.module_overrides.post_encoder_norm",
     )
     target_conditioner = _require_choice(
         value=overrides.get("target_conditioner", recipe.modules.target_conditioner),
@@ -283,6 +303,7 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         benchmark_profile=spec.stage_label or recipe.benchmark_profile,
         normalization_mode=_normalization_mode_for_feature_encoder(feature_encoder),
         feature_encoder=feature_encoder,
+        post_encoder_norm=post_encoder_norm,
         target_conditioner=target_conditioner,
         tokenizer=tokenizer,
         column_encoder=column_encoder,
@@ -321,6 +342,10 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
             if context_encoder == "none"
             else True,
             norm_type=None if context_encoder == "none" else norm_type,
+        ),
+        post_encoder_norm_config=PostEncoderNormSurfaceSpec(
+            name=post_encoder_norm,
+            norm_type=None if post_encoder_norm == "none" else post_encoder_norm,
         ),
     )
 
