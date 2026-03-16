@@ -145,6 +145,7 @@ def test_classification_preprocessing_supports_categorical_feature_state() -> No
 
     assert state.missing_value_policy.fill_values == [2.0, 0.0, 0.0]
     assert state.categorical_feature_policy.feature_types == ["num", "cat", "cat"]
+    assert state.categorical_feature_policy.value_dtypes == [None, "float32", "float32"]
     assert state.categorical_feature_policy.cardinalities == [0, 2, 2]
     assert state.categorical_feature_policy.train_value_vocab == [[], [10.0, 20.0], [1.0, 2.0]]
 
@@ -194,6 +195,7 @@ def test_classification_preprocessing_preserves_large_integer_categorical_ids() 
         feature_types=["cat"],
     )
 
+    assert state.categorical_feature_policy.value_dtypes == ["int64"]
     assert state.categorical_feature_policy.cardinalities == [2]
     assert state.categorical_feature_policy.train_value_vocab == [[16777216, 16777217]]
 
@@ -214,6 +216,36 @@ def test_classification_preprocessing_preserves_large_integer_categorical_ids() 
     assert processed.feature_state.categorical_cardinalities.tolist() == [2]
     assert processed.feature_state.x_train_categorical_ids.tolist() == [[0], [1]]
     assert processed.feature_state.x_test_categorical_ids.tolist() == [[1], [2]]
+
+
+def test_classification_preprocessing_matches_float_categorical_values_across_dtypes() -> None:
+    x_train = np.asarray([[0.1], [0.2], [0.1]], dtype=np.float32)
+    y_train = np.asarray([0, 1, 0], dtype=np.int64)
+    x_test = np.asarray([[0.2], [0.1], [0.3]], dtype=np.float64)
+    y_test = np.asarray([1, 0, 1], dtype=np.int64)
+
+    state = fit_fitted_preprocessor(
+        task="classification",
+        x_train=x_train,
+        y_train=y_train,
+        feature_types=["cat"],
+    )
+
+    assert state.categorical_feature_policy.value_dtypes == ["float32"]
+    processed = apply_fitted_preprocessor(
+        task="classification",
+        state=state,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        y_test=y_test,
+        feature_types=["cat"],
+    )
+
+    assert processed.x_train.tolist() == [[0.0], [1.0], [0.0]]
+    assert processed.x_test.tolist() == [[1.0], [0.0], [2.0]]
+    assert processed.feature_state is not None
+    assert processed.feature_state.x_test_categorical_ids.tolist() == [[1], [0], [2]]
 
 
 def test_apply_fitted_preprocessor_rejects_feature_type_mismatch() -> None:

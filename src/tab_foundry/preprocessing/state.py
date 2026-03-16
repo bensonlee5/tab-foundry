@@ -90,6 +90,7 @@ class CategoricalFeaturePolicyState:
 
     feature_types: list[str]
     train_value_vocab: list[list[NumericScalar]]
+    value_dtypes: list[str | None]
     cardinalities: list[int]
     value_policy: str
 

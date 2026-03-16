@@ -110,20 +110,24 @@ def _fit_categorical_feature_policy(
     feature_types: Sequence[str],
 ) -> CategoricalFeaturePolicyState:
     train_value_vocab: list[list[int | float]] = []
+    value_dtypes: list[str | None] = []
     cardinalities: list[int] = []
     for col_idx, feature_type in enumerate(feature_types):
         if feature_type != CATEGORICAL_FEATURE_TYPE:
             train_value_vocab.append([])
+            value_dtypes.append(None)
             cardinalities.append(0)
             continue
         column = np.asarray(x_train[:, col_idx])
         finite_values = column[np.isfinite(column)]
         vocab = np.unique(finite_values)
         train_value_vocab.append(list(vocab.tolist()))
+        value_dtypes.append(np.dtype(column.dtype).name)
         cardinalities.append(int(vocab.shape[0]))
     return CategoricalFeaturePolicyState(
         feature_types=list(feature_types),
         train_value_vocab=train_value_vocab,
+        value_dtypes=value_dtypes,
         cardinalities=cardinalities,
         value_policy=CATEGORICAL_VALUE_POLICY_OOV_BUCKET,
     )
@@ -133,9 +137,12 @@ def _encode_categorical_column(
     values: np.ndarray,
     *,
     vocab: np.ndarray,
+    lookup_dtype: str | None,
     context: str,
     allow_oov: bool,
 ) -> np.ndarray:
+    if lookup_dtype is not None:
+        vocab = np.asarray(vocab, dtype=np.dtype(lookup_dtype))
     oov_id = int(vocab.shape[0])
     encoded = np.full(values.shape, oov_id, dtype=np.int64)
     finite_mask = np.isfinite(values)
@@ -148,6 +155,8 @@ def _encode_categorical_column(
 
     finite_idx = np.where(finite_mask)[0]
     finite_values = values[finite_mask]
+    if lookup_dtype is not None and np.issubdtype(vocab.dtype, np.floating):
+        finite_values = finite_values.astype(vocab.dtype, copy=False)
     positions = np.searchsorted(vocab, finite_values)
     clipped = np.clip(positions, 0, vocab.shape[0] - 1)
     valid = vocab[clipped] == finite_values
@@ -258,15 +267,18 @@ def _apply_feature_preprocessing(
     for col_idx, is_categorical in enumerate(categorical_mask.tolist()):
         if is_categorical:
             vocab = np.asarray(categorical_policy.train_value_vocab[col_idx])
+            vocab_dtype = categorical_policy.value_dtypes[col_idx]
             train_ids = _encode_categorical_column(
                 x_train_matrix[:, col_idx],
                 vocab=vocab,
+                lookup_dtype=vocab_dtype,
                 context=f"x_train column {col_idx}",
                 allow_oov=False,
             )
             test_ids = _encode_categorical_column(
                 x_test_matrix[:, col_idx],
                 vocab=vocab,
+                lookup_dtype=vocab_dtype,
                 context=f"x_test column {col_idx}",
                 allow_oov=True,
             )

@@ -315,6 +315,67 @@ def test_tab_foundry_classifier_supports_categorical_feature_types(
     assert model.last_batch.feature_state.categorical_cardinalities.tolist() == [0, 2]
 
 
+def test_tab_foundry_classifier_matches_float_categorical_values_across_dtypes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _CapturingClassifier()
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_staged",
+        stage="shared_norm",
+        input_normalization="train_zscore_clip",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    checkpoint = tmp_path / "staged_shared_norm_float_categorical.pt"
+    torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
+
+    x_train = np.asarray(
+        [
+            [1.0, 0.1],
+            [3.0, 0.1],
+            [5.0, 0.2],
+        ],
+        dtype=np.float32,
+    )
+    x_test = np.asarray(
+        [
+            [7.0, 0.2],
+            [9.0, 0.3],
+        ],
+        dtype=np.float64,
+    )
+
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    classifier.fit(x_train, np.asarray([0, 1, 0], dtype=np.int64), feature_types=["num", "cat"])
+    _ = classifier.predict_proba(x_test)
+
+    expected_train_num, expected_test_num = normalize_train_test_arrays(
+        x_train[:, [0]],
+        x_test[:, [0]],
+        mode="train_zscore_clip",
+    )
+    assert model.last_batch is not None
+    assert np.allclose(
+        model.last_batch.x_train.cpu().numpy(),
+        np.concatenate([expected_train_num, np.asarray([[0.0], [0.0], [1.0]], dtype=np.float32)], axis=1),
+        atol=1.0e-6,
+    )
+    assert np.allclose(
+        model.last_batch.x_test.cpu().numpy(),
+        np.concatenate([expected_test_num, np.asarray([[1.0], [2.0]], dtype=np.float32)], axis=1),
+        atol=1.0e-6,
+    )
+    assert model.last_batch.feature_state is not None
+    assert model.last_batch.feature_state.x_test_categorical_ids.tolist() == [[0, 1], [0, 2]]
+
+
 def test_tab_foundry_classifier_preserves_large_integer_categorical_ids(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
