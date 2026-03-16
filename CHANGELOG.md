@@ -22,8 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   staged models can consume categorical feature state at `forward()` time.
   User-facing note: Python helpers
   `TabFoundryClassifier.fit(..., feature_types=...)` and
-  `run_reference_consumer(..., feature_types=...)` now accept optional mixed
-  feature schemas using `num`, `cat`, or `categorical`.
+  `run_reference_consumer(..., feature_types=...)` accept optional mixed
+  feature schemas using `num`, `cat`, or `categorical` only for
+  `tabfoundry_staged`; non-staged checkpoint/bundle helpers now reject
+  categorical schemas instead of silently remapping them into numeric inputs.
 
 ## [0.6.5] - 2026-03-16
 

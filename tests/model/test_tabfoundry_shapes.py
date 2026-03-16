@@ -3,12 +3,37 @@ from __future__ import annotations
 import pytest
 import torch
 
+from tab_foundry.feature_state import TaskFeatureState
 from tab_foundry.model.architectures.tabfoundry import (
     TabFoundryClassifier,
     TabFoundryRegressor,
 )
 from tab_foundry.model.components.many_class import balanced_bases, encode_mixed_radix
 from tab_foundry.types import TaskBatch
+
+
+def _feature_state(
+    *,
+    n_train: int,
+    n_test: int,
+    n_features: int,
+    categorical_index: int | None,
+) -> TaskFeatureState:
+    categorical_mask = torch.zeros((n_features,), dtype=torch.bool)
+    categorical_cardinalities = torch.zeros((n_features,), dtype=torch.int64)
+    x_train_ids = torch.zeros((n_train, n_features), dtype=torch.int64)
+    x_test_ids = torch.zeros((n_test, n_features), dtype=torch.int64)
+    if categorical_index is not None:
+        categorical_mask[categorical_index] = True
+        categorical_cardinalities[categorical_index] = 3
+        x_train_ids[:, categorical_index] = torch.arange(n_train, dtype=torch.int64) % 4
+        x_test_ids[:, categorical_index] = torch.arange(n_test, dtype=torch.int64) % 4
+    return TaskFeatureState(
+        categorical_mask=categorical_mask,
+        categorical_cardinalities=categorical_cardinalities,
+        x_train_categorical_ids=x_train_ids,
+        x_test_categorical_ids=x_test_ids,
+    )
 
 
 def test_classifier_forward_shapes() -> None:
@@ -20,6 +45,37 @@ def test_classifier_forward_shapes() -> None:
         y_test=torch.randint(0, 5, (8,)),
         metadata={},
         num_classes=5,
+    )
+    out = model(batch)
+    assert out.logits is not None
+    assert out.logits.shape == (8, 10)
+
+
+def test_classifier_rejects_categorical_feature_state() -> None:
+    model = TabFoundryClassifier()
+    batch = TaskBatch(
+        x_train=torch.randn(32, 12),
+        y_train=torch.randint(0, 5, (32,)),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 5, (8,)),
+        metadata={},
+        num_classes=5,
+        feature_state=_feature_state(n_train=32, n_test=8, n_features=12, categorical_index=1),
+    )
+    with pytest.raises(RuntimeError, match="tabfoundry only supports numeric feature_state"):
+        _ = model(batch)
+
+
+def test_classifier_accepts_all_numeric_feature_state() -> None:
+    model = TabFoundryClassifier()
+    batch = TaskBatch(
+        x_train=torch.randn(32, 12),
+        y_train=torch.randint(0, 5, (32,)),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 5, (8,)),
+        metadata={},
+        num_classes=5,
+        feature_state=_feature_state(n_train=32, n_test=8, n_features=12, categorical_index=None),
     )
     out = model(batch)
     assert out.logits is not None
@@ -276,3 +332,18 @@ def test_regressor_forward_shapes() -> None:
     assert out.quantiles.shape == (8, 999)
     assert out.quantile_levels is not None
     assert out.quantile_levels.shape == (999,)
+
+
+def test_regressor_rejects_categorical_feature_state() -> None:
+    model = TabFoundryRegressor()
+    batch = TaskBatch(
+        x_train=torch.randn(32, 12),
+        y_train=torch.randn(32),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randn(8),
+        metadata={},
+        num_classes=None,
+        feature_state=_feature_state(n_train=32, n_test=8, n_features=12, categorical_index=2),
+    )
+    with pytest.raises(RuntimeError, match="tabfoundry only supports numeric feature_state"):
+        _ = model(batch)

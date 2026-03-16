@@ -13,6 +13,8 @@ from .state import (
     ClassificationLabelPolicyState,
     FittedPreprocessorState,
     MissingValuePolicyState,
+    feature_types_include_categorical,
+    normalize_feature_types,
 )
 from .surface import (
     SUPPORTED_LABEL_MAPPINGS,
@@ -40,6 +42,8 @@ __all__ = [
     "ClassificationLabelPolicyState",
     "FittedPreprocessorState",
     "MissingValuePolicyState",
+    "feature_types_include_categorical",
+    "normalize_feature_types",
     "PreprocessedTaskArrays",
     "PreprocessingSurfaceConfig",
     "SUPPORTED_LABEL_MAPPINGS",

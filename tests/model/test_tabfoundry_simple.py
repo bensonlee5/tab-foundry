@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 import torch
 
+from tab_foundry.feature_state import TaskFeatureState
 from tab_foundry.model.architectures.tabfoundry_simple import (
     TabFoundrySimpleClassifier,
     _TransformerEncoderLayer,
@@ -51,6 +52,24 @@ def _model(**overrides: object) -> TabFoundrySimpleClassifier:
     }
     kwargs.update(overrides)
     return TabFoundrySimpleClassifier(**kwargs)
+
+
+def _feature_state(*, categorical_index: int | None) -> TaskFeatureState:
+    categorical_mask = torch.zeros((3,), dtype=torch.bool)
+    categorical_cardinalities = torch.zeros((3,), dtype=torch.int64)
+    x_train_ids = torch.zeros((3, 3), dtype=torch.int64)
+    x_test_ids = torch.zeros((2, 3), dtype=torch.int64)
+    if categorical_index is not None:
+        categorical_mask[categorical_index] = True
+        categorical_cardinalities[categorical_index] = 3
+        x_train_ids[:, categorical_index] = torch.tensor([0, 1, 2], dtype=torch.int64)
+        x_test_ids[:, categorical_index] = torch.tensor([1, 3], dtype=torch.int64)
+    return TaskFeatureState(
+        categorical_mask=categorical_mask,
+        categorical_cardinalities=categorical_cardinalities,
+        x_train_categorical_ids=x_train_ids,
+        x_test_categorical_ids=x_test_ids,
+    )
 
 
 @lru_cache(maxsize=1)
@@ -108,6 +127,42 @@ def test_tabfoundry_simple_requires_binary_num_classes() -> None:
 
     with pytest.raises(RuntimeError, match="binary-only"):
         _ = model(_batch(num_classes=3))
+
+
+def test_tabfoundry_simple_rejects_categorical_feature_state() -> None:
+    model = _model()
+    batch = _batch()
+    batch = TaskBatch(
+        x_train=batch.x_train,
+        y_train=batch.y_train,
+        x_test=batch.x_test,
+        y_test=batch.y_test,
+        metadata=batch.metadata,
+        num_classes=batch.num_classes,
+        feature_state=_feature_state(categorical_index=1),
+    )
+
+    with pytest.raises(RuntimeError, match="tabfoundry_simple only supports numeric feature_state"):
+        _ = model(batch)
+
+
+def test_tabfoundry_simple_accepts_all_numeric_feature_state() -> None:
+    model = _model()
+    batch = _batch()
+    batch = TaskBatch(
+        x_train=batch.x_train,
+        y_train=batch.y_train,
+        x_test=batch.x_test,
+        y_test=batch.y_test,
+        metadata=batch.metadata,
+        num_classes=batch.num_classes,
+        feature_state=_feature_state(categorical_index=None),
+    )
+
+    out = model(batch)
+
+    assert out.logits is not None
+    assert out.logits.shape == (2, 2)
 
 
 def test_tabfoundry_simple_requires_exact_input_normalization() -> None:
@@ -252,4 +307,3 @@ def test_tabfoundry_simple_logits_match_nanotabpfn_reference() -> None:
     )
 
     assert torch.allclose(observed, expected, atol=1.0e-6, rtol=1.0e-6)
-

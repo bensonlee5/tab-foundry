@@ -226,6 +226,33 @@ def test_tab_foundry_classifier_uses_external_normalization_for_staged_shared_no
     assert np.allclose(model.last_batch.x_test.cpu().numpy(), expected_test, atol=1.0e-6)
 
 
+@pytest.mark.parametrize("arch", ["tabfoundry", "tabfoundry_simple"])
+def test_tab_foundry_classifier_rejects_categorical_feature_types_for_non_staged_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    arch: str,
+) -> None:
+    model = _CapturingClassifier()
+    fake_spec = SimpleNamespace(task="classification", arch=arch, input_normalization="none")
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    checkpoint = tmp_path / f"{arch}_categorical.pt"
+    torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
+
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    with pytest.raises(RuntimeError, match="only supported for tabfoundry_staged checkpoints"):
+        classifier.fit(
+            np.asarray([[1.0, 10.0], [3.0, 20.0]], dtype=np.float32),
+            np.asarray([0, 1], dtype=np.int64),
+            feature_types=["num", "categorical"],
+        )
+
+
 def test_tab_foundry_classifier_supports_categorical_feature_types(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

@@ -12,7 +12,10 @@ import torch
 from torch import nn
 
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.preprocessing import preprocess_runtime_task_arrays
+from tab_foundry.preprocessing import (
+    feature_types_include_categorical,
+    preprocess_runtime_task_arrays,
+)
 from tab_foundry.types import TaskBatch
 
 from .contracts import ExportPreprocessorState, SCHEMA_VERSION_V3, ValidatedBundle
@@ -80,6 +83,18 @@ def _dummy_y_test(task: str, *, row_count: int) -> np.ndarray:
     return np.zeros((row_count,), dtype=np.float32)
 
 
+def _require_staged_categorical_support(
+    *,
+    feature_types: Sequence[str] | None,
+    model_arch: str,
+) -> None:
+    if feature_types_include_categorical(feature_types) and model_arch != "tabfoundry_staged":
+        raise RuntimeError(
+            "categorical feature_types are only supported for tabfoundry_staged export bundles; "
+            f"got arch={model_arch!r}"
+        )
+
+
 def _reference_batch(
     bundle: LoadedExportBundle,
     *,
@@ -89,6 +104,10 @@ def _reference_batch(
     feature_types: Sequence[str] | None = None,
 ) -> TaskBatch:
     manifest = bundle.validated.manifest
+    _require_staged_categorical_support(
+        feature_types=feature_types,
+        model_arch=str(manifest.model.arch).strip().lower(),
+    )
     policy = _require_preprocessor_policy(bundle)
     processed = preprocess_runtime_task_arrays(
         task=manifest.task,

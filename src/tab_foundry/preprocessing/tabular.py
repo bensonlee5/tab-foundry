@@ -22,6 +22,7 @@ from .state import (
     ClassificationLabelPolicyState,
     FittedPreprocessorState,
     MissingValuePolicyState,
+    normalize_feature_types,
 )
 from .surface import (
     SUPPORTED_LABEL_MAPPINGS,
@@ -30,11 +31,6 @@ from .surface import (
 
 
 SUPPORTED_TASKS = ("classification", "regression")
-_FEATURE_TYPE_ALIASES = {
-    NUMERIC_FEATURE_TYPE: NUMERIC_FEATURE_TYPE,
-    CATEGORICAL_FEATURE_TYPE: CATEGORICAL_FEATURE_TYPE,
-    "categorical": CATEGORICAL_FEATURE_TYPE,
-}
 
 
 @dataclass(slots=True)
@@ -101,32 +97,6 @@ def _fit_fill_values(
         means = np.where(np.isnan(means), float(all_nan_fill), means)
         fill_values[numeric_mask] = means.astype(np.float32, copy=False)
     return [float(value) for value in fill_values.tolist()]
-
-
-def _normalize_feature_types(
-    feature_types: Sequence[str] | None,
-    *,
-    width: int,
-) -> list[str]:
-    if feature_types is None:
-        return [NUMERIC_FEATURE_TYPE] * width
-    normalized: list[str] = []
-    raw_types = list(feature_types)
-    if len(raw_types) != width:
-        raise RuntimeError(
-            "feature_types length must match feature count: "
-            f"expected={width}, got={len(raw_types)}"
-        )
-    for index, value in enumerate(raw_types):
-        token = str(value).strip().lower()
-        normalized_token = _FEATURE_TYPE_ALIASES.get(token)
-        if normalized_token is None:
-            raise RuntimeError(
-                "feature_types entries must be one of "
-                f"{tuple(sorted(_FEATURE_TYPE_ALIASES))}, got {value!r} at index={index}"
-            )
-        normalized.append(normalized_token)
-    return normalized
 
 
 def _fit_categorical_feature_policy(
@@ -208,7 +178,7 @@ def fit_fitted_preprocessor(
         )
     x_train_matrix = _require_matrix(x_train, context="x_train")
     feature_ids = list(range(int(x_train_matrix.shape[1])))
-    normalized_feature_types = _normalize_feature_types(
+    normalized_feature_types = normalize_feature_types(
         feature_types,
         width=int(x_train_matrix.shape[1]),
     )
@@ -371,7 +341,7 @@ def apply_fitted_preprocessor(
     normalized_task = _require_task(task)
     if feature_types is not None:
         expected_feature_types = list(state.categorical_feature_policy.feature_types)
-        provided_feature_types = _normalize_feature_types(
+        provided_feature_types = normalize_feature_types(
             feature_types,
             width=len(expected_feature_types),
         )

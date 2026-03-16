@@ -78,15 +78,18 @@ Required keys:
 - Runtime preprocessing is always derived from the incoming support set
   (`x_train`, `y_train`) before applying the model.
 - Runtime callers may optionally provide `feature_types` alongside the support
-  set to declare mixed numeric/categorical tables. Supported values are
-  `num`, `cat`, and `categorical` (normalized to `cat`).
+  set to declare mixed numeric/categorical tables for `tabfoundry_staged`
+  runtime paths. Supported values are `num`, `cat`, and `categorical`
+  (normalized to `cat`).
 - Categorical columns are assumed to be numeric-coded already. Raw string or
   object category adapters remain out of scope for this repo.
-- For categorical columns, runtime preprocessing fits the per-column train-set
-  vocabulary and cardinality from `x_train`, remaps train/test values to
-  contiguous ids, and sends unseen or missing test values to a per-column OOV
-  bucket. This is support-set-derived runtime state only; the export schema
-  does not change.
+- Non-staged `tabfoundry` and `tabfoundry_simple` helpers reject categorical
+  `feature_types` and categorical `TaskBatch.feature_state`.
+- For staged categorical columns, runtime preprocessing fits the per-column
+  train-set vocabulary and cardinality from `x_train`, remaps train/test
+  values to contiguous ids, and sends unseen or missing test values to a
+  per-column OOV bucket. This is support-set-derived runtime state only; the
+  export schema does not change.
 - The bundled `preprocessor` section is used for invariant contract checks and
   conformance, not as a cache of export-time train statistics.
 - `manifest_sha256` protects the embedded `model`, `inference`,
@@ -126,7 +129,7 @@ This repo includes a reference-only executable consumer in
 Scope:
 
 - dense numeric matrices in, with optional numeric-coded categorical columns
-  declared via `feature_types`
+  declared via `feature_types` for `tabfoundry_staged` bundles
 - persisted checksum and schema validation
 - runtime-derived preprocessing using the support set
 - model-native outputs out (`class_probs` for classification,
@@ -142,10 +145,13 @@ Out of scope here:
 Python helper surface:
 
 - `tab_foundry.export.loader_ref.run_reference_consumer(..., feature_types=...)`
-  accepts the optional runtime feature schema for mixed-type tables.
+  accepts the optional runtime feature schema for mixed-type tables when the
+  loaded bundle is `tabfoundry_staged`; non-staged bundles reject categorical
+  schemas.
 - `tab_foundry.bench.checkpoint.TabFoundryClassifier.fit(..., feature_types=...)`
-  accepts the same optional schema and reuses it for later `predict()` and
-  `predict_proba()` calls.
+  accepts the same optional schema for `tabfoundry_staged` checkpoints and
+  reuses it for later `predict()` and `predict_proba()` calls; non-staged
+  checkpoints reject categorical schemas.
 
 ## Compatibility Policy
 

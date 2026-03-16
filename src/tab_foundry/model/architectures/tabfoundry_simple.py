@@ -10,7 +10,11 @@ from torch.nn.modules.transformer import Linear, MultiheadAttention
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES, build_norm
 from tab_foundry.types import TaskBatch
 
-from .tabfoundry import ClassificationOutput, DEFAULT_HEAD_HIDDEN_DIM
+from .tabfoundry import (
+    ClassificationOutput,
+    DEFAULT_HEAD_HIDDEN_DIM,
+    _require_numeric_feature_state,
+)
 
 
 _REQUIRED_INPUT_NORMALIZATION = "train_zscore_clip"
@@ -236,6 +240,7 @@ class TabFoundrySimpleClassifier(nn.Module):
         train_test_split_index = int(batch.x_train.shape[0])
         if train_test_split_index <= 0:
             raise RuntimeError("tabfoundry_simple requires at least one training row")
+        _require_numeric_feature_state(batch, arch="tabfoundry_simple")
         x_all = torch.cat([batch.x_train, batch.x_test], dim=0).to(torch.float32).unsqueeze(0)
         y_train = batch.y_train.to(torch.float32).unsqueeze(0)
         return x_all, y_train, train_test_split_index

@@ -22,7 +22,11 @@ from tab_foundry.model.spec import (
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     staged_surface_uses_internal_benchmark_normalization,
 )
-from tab_foundry.preprocessing import fit_fitted_preprocessor, preprocess_runtime_task_arrays
+from tab_foundry.preprocessing import (
+    feature_types_include_categorical,
+    fit_fitted_preprocessor,
+    preprocess_runtime_task_arrays,
+)
 from tab_foundry.types import TaskBatch
 
 
@@ -99,6 +103,18 @@ def _normalize_preprocessed_feature_arrays(
     return train_out, test_out
 
 
+def _require_staged_categorical_support(
+    *,
+    feature_types: Sequence[str] | None,
+    model_arch: str,
+) -> None:
+    if feature_types_include_categorical(feature_types) and model_arch != "tabfoundry_staged":
+        raise RuntimeError(
+            "categorical feature_types are only supported for tabfoundry_staged checkpoints; "
+            f"got arch={model_arch!r}"
+        )
+
+
 class TabFoundryClassifier:
     """Small sklearn-style classifier wrapper around a tab-foundry checkpoint."""
 
@@ -124,6 +140,8 @@ class TabFoundryClassifier:
         classes, encoded = np.unique(np.asarray(y_train), return_inverse=True)
         if classes.size < 2:
             raise RuntimeError("benchmark classifier requires at least 2 classes in fit()")
+        model_arch = str(getattr(self.model_spec, "arch", "tabfoundry")).strip().lower()
+        _require_staged_categorical_support(feature_types=feature_types, model_arch=model_arch)
         self._classes = classes
         self._x_train = np.asarray(x_train, dtype=np.float32)
         self._y_train = encoded.astype(np.int64, copy=False)
