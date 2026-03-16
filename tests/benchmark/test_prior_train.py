@@ -188,6 +188,78 @@ class _ModeTrackingOptimizer(_CountingOptimizer):
         self.events.append("eval")
 
 
+class _LrTrackingOptimizer(_CountingOptimizer):
+    def __init__(self) -> None:
+        super().__init__()
+        self.step_lrs: list[float] = []
+
+    def step(self) -> None:
+        self.step_lrs.append(float(self.param_groups[0]["lr"]))
+        super().step()
+
+
+def _prior_cfg(
+    tmp_path: Path,
+    *,
+    max_steps: int,
+    training_cfg: dict[str, object] | None = None,
+    schedule_cfg: dict[str, object] | None = None,
+) -> object:
+    payload: dict[str, object] = {
+        "task": "classification",
+        "model": {
+            "arch": "tabfoundry_simple",
+            "d_icl": 8,
+            "input_normalization": "train_zscore_clip",
+            "feature_group_size": 1,
+            "many_class_train_mode": "path_nll",
+            "max_mixed_radix_digits": 64,
+            "norm_type": "layernorm",
+            "tfcol_n_heads": 8,
+            "tfcol_n_layers": 3,
+            "tfcol_n_inducing": 128,
+            "tfrow_n_heads": 8,
+            "tfrow_n_layers": 3,
+            "tfrow_cls_tokens": 4,
+            "tfrow_norm": "layernorm",
+            "tficl_n_heads": 2,
+            "tficl_n_layers": 1,
+            "tficl_ff_expansion": 2,
+            "many_class_base": 2,
+            "head_hidden_dim": 16,
+            "use_digit_position_embed": True,
+        },
+        "runtime": {
+            "seed": 1,
+            "output_dir": str(tmp_path / "train_out"),
+            "device": "cpu",
+            "mixed_precision": "no",
+            "grad_clip": 1.0,
+            "max_steps": max_steps,
+            "eval_every": 1,
+            "checkpoint_every": 1,
+        },
+        "optimizer": {
+            "name": "schedulefree_adamw",
+            "require_requested": True,
+            "weight_decay": 0.0,
+            "min_lr": 4.0e-4,
+            "betas": [0.9, 0.999],
+            "muon_per_parameter_lr": False,
+            "muon_lr_scale_base": 0.2,
+            "muon_partition_non2d": True,
+        },
+        "logging": {
+            "history_jsonl_path": str(tmp_path / "train_out" / "train_history.jsonl"),
+        },
+    }
+    if training_cfg is not None:
+        payload["training"] = training_cfg
+    if schedule_cfg is not None:
+        payload["schedule"] = schedule_cfg
+    return OmegaConf.create(payload)
+
+
 def test_train_tabfoundry_simple_prior_averages_task_loss_and_steps_per_batch(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -417,6 +489,167 @@ def test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode(
         "eval",
         "train",
         "eval",
+    ]
+
+
+def test_train_tabfoundry_simple_prior_keeps_constant_lr_when_schedule_is_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_constant_lr.h5",
+        x=np.asarray(
+            [[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]],
+            dtype=np.float32,
+        ),
+        y=np.asarray([[0, 1, 0, 1]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([4], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    model = _ConstantLogitModel()
+    optimizer = _LrTrackingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+
+    cfg = _prior_cfg(
+        tmp_path,
+        max_steps=2,
+        training_cfg={"surface_label": "prior_constant_lr", "apply_schedule": False},
+        schedule_cfg={
+            "stages": [
+                {
+                    "name": "stage1",
+                    "steps": 2,
+                    "lr_max": 4.0e-3,
+                    "lr_schedule": "linear",
+                    "warmup_ratio": 0.5,
+                }
+            ]
+        },
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(cfg, prior_dump_path=path, batch_size=1)
+
+    assert optimizer.step_lrs == [pytest.approx(4.0e-4), pytest.approx(4.0e-4)]
+
+
+def test_train_tabfoundry_simple_prior_applies_linear_decay_schedule(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_linear_decay.h5",
+        x=np.asarray(
+            [[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]],
+            dtype=np.float32,
+        ),
+        y=np.asarray([[0, 1, 0, 1]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([4], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    model = _ConstantLogitModel()
+    optimizer = _LrTrackingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+
+    cfg = _prior_cfg(
+        tmp_path,
+        max_steps=3,
+        training_cfg={"surface_label": "prior_linear_decay", "apply_schedule": True},
+        schedule_cfg={
+            "stages": [
+                {
+                    "name": "stage1",
+                    "steps": 3,
+                    "lr_max": 4.0e-3,
+                    "lr_schedule": "linear",
+                    "warmup_ratio": 0.0,
+                }
+            ]
+        },
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(cfg, prior_dump_path=path, batch_size=1)
+
+    assert optimizer.step_lrs == [
+        pytest.approx(4.0e-3),
+        pytest.approx(2.2e-3),
+        pytest.approx(4.0e-4),
+    ]
+
+
+def test_train_tabfoundry_simple_prior_applies_linear_warmup_decay_schedule(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_linear_warmup_decay.h5",
+        x=np.asarray(
+            [[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]],
+            dtype=np.float32,
+        ),
+        y=np.asarray([[0, 1, 0, 1]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([4], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    model = _ConstantLogitModel()
+    optimizer = _LrTrackingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+
+    cfg = _prior_cfg(
+        tmp_path,
+        max_steps=3,
+        training_cfg={"surface_label": "prior_linear_warmup_decay", "apply_schedule": True},
+        schedule_cfg={
+            "stages": [
+                {
+                    "name": "stage1",
+                    "steps": 3,
+                    "lr_max": 4.0e-3,
+                    "lr_schedule": "linear",
+                    "warmup_ratio": 0.5,
+                }
+            ]
+        },
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(cfg, prior_dump_path=path, batch_size=1)
+
+    assert optimizer.step_lrs == [
+        pytest.approx(2.0e-3),
+        pytest.approx(4.0e-3),
+        pytest.approx(4.0e-4),
     ]
 
 
@@ -710,6 +943,34 @@ def test_train_tabfoundry_simple_prior_rejects_staged_many_class_before_io(
         )
 
     assert not output_dir.exists()
+
+
+def test_train_tabfoundry_simple_prior_rejects_mismatched_schedule_steps(
+    tmp_path: Path,
+) -> None:
+    cfg = _prior_cfg(
+        tmp_path,
+        max_steps=3,
+        training_cfg={"surface_label": "prior_linear_decay", "apply_schedule": True},
+        schedule_cfg={
+            "stages": [
+                {
+                    "name": "stage1",
+                    "steps": 4,
+                    "lr_max": 4.0e-3,
+                    "lr_schedule": "linear",
+                    "warmup_ratio": 0.0,
+                }
+            ]
+        },
+    )
+
+    with pytest.raises(ValueError, match="requires schedule.stages\\[0\\]\\.steps to equal runtime.max_steps"):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=tmp_path / "unused_prior_dump.h5",
+            batch_size=1,
+        )
 
 
 def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(

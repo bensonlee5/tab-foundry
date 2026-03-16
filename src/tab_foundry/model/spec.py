@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Any, Mapping
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
+from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES
 
 
 SUPPORTED_MODEL_TASKS = ("classification", "regression")
@@ -130,12 +131,14 @@ class ModelBuildSpec:
     feature_group_size: int = 1
     many_class_train_mode: str = "path_nll"
     max_mixed_radix_digits: int = 64
+    norm_type: str = "layernorm"
     tfcol_n_heads: int = 8
     tfcol_n_layers: int = 3
     tfcol_n_inducing: int = 128
     tfrow_n_heads: int = 8
     tfrow_n_layers: int = 3
     tfrow_cls_tokens: int = 4
+    tfrow_norm: str = "layernorm"
     tficl_n_heads: int = 8
     tficl_n_layers: int = 12
     tficl_ff_expansion: int = 2
@@ -186,6 +189,20 @@ class ModelBuildSpec:
                 f"{SUPPORTED_INPUT_NORMALIZATION_MODES}, got {input_normalization!r}"
             )
         object.__setattr__(self, "input_normalization", input_normalization)
+
+        norm_type = str(self.norm_type).strip().lower()
+        if norm_type not in SUPPORTED_NORM_TYPES:
+            raise ValueError(
+                f"norm_type must be one of {SUPPORTED_NORM_TYPES}, got {norm_type!r}"
+            )
+        object.__setattr__(self, "norm_type", norm_type)
+
+        tfrow_norm = str(self.tfrow_norm).strip().lower()
+        if tfrow_norm not in SUPPORTED_NORM_TYPES:
+            raise ValueError(
+                f"tfrow_norm must be one of {SUPPORTED_NORM_TYPES}, got {tfrow_norm!r}"
+            )
+        object.__setattr__(self, "tfrow_norm", tfrow_norm)
 
         many_class_train_mode = str(self.many_class_train_mode).strip().lower()
         if many_class_train_mode not in SUPPORTED_MANY_CLASS_TRAIN_MODES:
@@ -259,12 +276,14 @@ def model_build_spec_from_mappings(
         feature_group_size=int(_pick("feature_group_size", 1)),
         many_class_train_mode=str(_pick("many_class_train_mode", "path_nll")),
         max_mixed_radix_digits=int(_pick("max_mixed_radix_digits", 64)),
+        norm_type=str(_pick("norm_type", "layernorm")),
         tfcol_n_heads=int(_pick("tfcol_n_heads", 8)),
         tfcol_n_layers=int(_pick("tfcol_n_layers", 3)),
         tfcol_n_inducing=int(_pick("tfcol_n_inducing", 128)),
         tfrow_n_heads=int(_pick("tfrow_n_heads", 8)),
         tfrow_n_layers=int(_pick("tfrow_n_layers", 3)),
         tfrow_cls_tokens=int(_pick("tfrow_cls_tokens", 4)),
+        tfrow_norm=str(_pick("tfrow_norm", "layernorm")),
         tficl_n_heads=int(_pick("tficl_n_heads", 8)),
         tficl_n_layers=int(_pick("tficl_n_layers", 12)),
         tficl_ff_expansion=int(_pick("tficl_ff_expansion", 2)),

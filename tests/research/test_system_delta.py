@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 import shutil
 
 from omegaconf import OmegaConf
+import pytest
 
 from tab_foundry.research.system_delta import (
     create_sweep,
@@ -19,6 +21,35 @@ from tab_foundry.research.system_delta import (
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:
+    reference_root = tmp_path / "reference"
+    sweeps_root = reference_root / "system_delta_sweeps"
+    source_sweeps_root = REPO_ROOT / "reference" / "system_delta_sweeps"
+    sweeps_root.mkdir(parents=True, exist_ok=True)
+    (reference_root / "system_delta_catalog.yaml").write_text(
+        (REPO_ROOT / "reference" / "system_delta_catalog.yaml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (sweeps_root / "index.yaml").write_text(
+        (source_sweeps_root / "index.yaml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    shutil.copytree(source_sweeps_root / "binary_md_v1", sweeps_root / "binary_md_v1")
+    return reference_root, sweeps_root
+
+
+def _anchor_dimension_anchor_text(sweep: dict[str, object], *, dimension: str) -> str:
+    dimension_table = sweep["anchor_surface"]
+    assert isinstance(dimension_table, dict)
+    rows = dimension_table["dimension_table"]
+    assert isinstance(rows, list)
+    match = next(row for row in rows if row["dimension"] == dimension)
+    assert isinstance(match, dict)
+    value = match["anchor"]
+    assert isinstance(value, str)
+    return value
 
 
 def test_active_sweep_materializes_binary_md_v1() -> None:
@@ -37,7 +68,9 @@ def test_active_sweep_materializes_binary_md_v1() -> None:
     assert sweep["sweep_id"] == "binary_md_v1"
     assert queue["sweep_id"] == "binary_md_v1"
     assert queue["generated_from_sweep_id"] == "binary_md_v1"
-    assert next_ready_row(queue)["delta_id"] == "delta_label_token"
+    assert "prior_constant_lr" in _anchor_dimension_anchor_text(sweep, dimension="training recipe")
+    expected_next_ready = next(row for row in queue["rows"] if row["status"] == "ready")
+    assert next_ready_row(queue) == expected_next_ready
 
 
 def test_catalog_and_canonical_queue_are_split() -> None:
@@ -69,9 +102,28 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     assert "Sweep id: `binary_md_v1`" in matrix
     assert "delta_row_cls_pool" in matrix
     assert "tfrow_n_heads" in matrix
+    assert "delta_row_cls_pool_rmsnorm" in matrix
+    assert "tfrow_norm" in matrix
+    assert "delta_global_rmsnorm" in matrix
+    assert "norm_type" in matrix
+    assert "delta_training_linear_decay" in matrix
+    assert "Training overrides" in matrix
+    assert "training=`prior_linear_decay`" in matrix
+    assert "- {'" not in matrix
     assert "outputs/staged_ladder/research/binary_md_v1/delta_row_cls_pool/result_card.md" in matrix
     assert "Legacy stage alias" in matrix
-    assert "| 6 | `delta_row_cls_pool` | row_pool | yes | ready | row_cls_pool |" in matrix
+    row_cls_pool = next(row for row in queue["rows"] if row["delta_id"] == "delta_row_cls_pool")
+    assert (
+        f"| 6 | `delta_row_cls_pool` | row_pool | yes | {row_cls_pool['status']} | row_cls_pool |"
+        in matrix
+    )
+    training_row = next(row for row in queue["rows"] if row["delta_id"] == "delta_training_linear_decay")
+    assert (
+        f"| {training_row['order']} | `delta_training_linear_decay` | schedule | "
+        f"{'yes' if training_row.get('binary_applicable', False) else 'no'} | "
+        f"{training_row['status']} | {training_row.get('entangled_legacy_stage', 'none')} |"
+        in matrix
+    )
 
 
 def test_grouped_tokenizer_guard_is_captured_in_catalog_and_materialized_queue() -> None:
@@ -107,19 +159,7 @@ def test_active_alias_queue_matches_materialized_active_sweep() -> None:
 
 
 def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path) -> None:
-    reference_root = tmp_path / "reference"
-    sweeps_root = reference_root / "system_delta_sweeps"
-    source_sweeps_root = REPO_ROOT / "reference" / "system_delta_sweeps"
-    sweeps_root.mkdir(parents=True, exist_ok=True)
-    (reference_root / "system_delta_catalog.yaml").write_text(
-        (REPO_ROOT / "reference" / "system_delta_catalog.yaml").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
-    (sweeps_root / "index.yaml").write_text(
-        (source_sweeps_root / "index.yaml").read_text(encoding="utf-8"),
-        encoding="utf-8",
-    )
-    shutil.copytree(source_sweeps_root / "binary_md_v1", sweeps_root / "binary_md_v1")
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
 
     result = create_sweep(
         sweep_id="binary_sm_v2",
@@ -168,15 +208,89 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
     assert next(row for row in created_queue["rows"] if row["delta_ref"] == "delta_label_token")["status"] == "ready"
 
 
+def test_create_sweep_marks_unknown_training_label_for_unlabeled_nonprior_anchor(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="binary_sm_simple_anchor",
+        anchor_run_id="00_simple_anchor_md",
+        parent_sweep_id="binary_md_v1",
+        complexity_level="binary_sm",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        sweeps_root=sweeps_root,
+    )
+
+    created_sweep = load_system_delta_sweep(
+        "binary_sm_simple_anchor",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="binary_sm_simple_anchor",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert _anchor_dimension_anchor_text(created_sweep, dimension="training recipe") == (
+        "Training surface label `training surface label unavailable`."
+    )
+    label_token_row = next(row for row in materialized["rows"] if row["delta_id"] == "delta_label_token")
+    assert label_token_row["training"]["surface_label"] == "training surface label unavailable"
+
+
+def test_load_system_delta_queue_instance_rejects_non_string_notes(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+    queue_path = sweeps_root / "binary_md_v1" / "queue.yaml"
+    queue_payload = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(queue_payload, dict)
+    rows = queue_payload["rows"]
+    assert isinstance(rows, list)
+    rows[0]["notes"] = [{"bad": "note"}]
+    queue_path.write_text(OmegaConf.to_yaml(OmegaConf.create(queue_payload), resolve=True), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="notes\\[0\\] must be a non-empty string"):
+        _ = load_system_delta_queue_instance(
+            "binary_md_v1",
+            index_path=sweeps_root / "index.yaml",
+            sweeps_root=sweeps_root,
+        )
+
+
+def test_load_materialized_system_delta_queue_rejects_non_string_notes(tmp_path: Path) -> None:
+    queue = load_system_delta_queue(
+        sweep_id="binary_md_v1",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+    )
+    broken_queue = deepcopy(queue)
+    broken_queue["rows"][0]["notes"] = [{"bad": "note"}]
+    queue_path = tmp_path / "materialized_queue.yaml"
+    queue_path.write_text(OmegaConf.to_yaml(OmegaConf.create(broken_queue), resolve=True), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="notes\\[0\\] must be a non-empty string"):
+        _ = load_system_delta_queue(path=queue_path)
+
+
 def test_system_delta_queue_validation_passes_when_no_rows_are_completed() -> None:
     queue = load_system_delta_queue(
         sweep_id="binary_md_v1",
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
+    queue_without_completed_rows = deepcopy(queue)
+    for row in queue_without_completed_rows["rows"]:
+        if row["status"] == "completed":
+            row["status"] = "ready"
 
     assert validate_system_delta_queue(
-        queue,
+        queue_without_completed_rows,
         registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
     ) == []
 

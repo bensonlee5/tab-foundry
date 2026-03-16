@@ -150,6 +150,7 @@ class _SurfaceLabelsPayload(_RegistryPayloadModel):
     model: StrictStr
     data: StrictStr
     preprocessing: StrictStr
+    training: StrictStr | None = None
 
 
 class _SweepPayload(_RegistryPayloadModel):

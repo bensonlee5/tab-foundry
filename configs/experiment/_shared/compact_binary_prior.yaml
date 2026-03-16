@@ -27,5 +27,7 @@ optimizer:
   muon_per_parameter_lr: false
   muon_lr_scale_base: 0.2
   muon_partition_non2d: true
+training:
+  surface_label: prior_constant_lr
 logging:
   history_jsonl_path: ${runtime.output_dir}/train_history.jsonl

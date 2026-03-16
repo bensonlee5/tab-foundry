@@ -65,6 +65,9 @@ changed_settings:
   model.stage_label: delta_row_cls_pool
   model.module_overrides:
     row_pool: row_cls
+  model.norm_type: layernorm
+  training.surface_label: prior_constant_lr
+  training.overrides: {}
 adequacy_knobs:
   - model.tfrow_n_heads
   - model.tfrow_n_layers

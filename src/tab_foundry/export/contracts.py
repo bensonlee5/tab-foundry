@@ -70,12 +70,14 @@ class _ManifestModelPayloadV2(_ContractsPayloadModel):
     feature_group_size: StrictInt
     many_class_train_mode: StrictStr
     max_mixed_radix_digits: StrictInt
+    norm_type: StrictStr | None = None
     tfcol_n_heads: StrictInt | None = None
     tfcol_n_layers: StrictInt | None = None
     tfcol_n_inducing: StrictInt | None = None
     tfrow_n_heads: StrictInt | None = None
     tfrow_n_layers: StrictInt | None = None
     tfrow_cls_tokens: StrictInt | None = None
+    tfrow_norm: StrictStr | None = None
     tficl_n_heads: StrictInt | None = None
     tficl_n_layers: StrictInt | None = None
     tficl_ff_expansion: StrictInt | None = None
@@ -131,12 +133,14 @@ class ExportModelSpec:
     feature_group_size: int
     many_class_train_mode: str
     max_mixed_radix_digits: int
+    norm_type: str
     tfcol_n_heads: int
     tfcol_n_layers: int
     tfcol_n_inducing: int
     tfrow_n_heads: int
     tfrow_n_layers: int
     tfrow_cls_tokens: int
+    tfrow_norm: str
     tficl_n_heads: int
     tficl_n_layers: int
     tficl_ff_expansion: int
@@ -160,12 +164,14 @@ class ExportModelSpec:
             feature_group_size=int(spec.feature_group_size),
             many_class_train_mode=str(spec.many_class_train_mode),
             max_mixed_radix_digits=int(spec.max_mixed_radix_digits),
+            norm_type=str(spec.norm_type),
             tfcol_n_heads=int(spec.tfcol_n_heads),
             tfcol_n_layers=int(spec.tfcol_n_layers),
             tfcol_n_inducing=int(spec.tfcol_n_inducing),
             tfrow_n_heads=int(spec.tfrow_n_heads),
             tfrow_n_layers=int(spec.tfrow_n_layers),
             tfrow_cls_tokens=int(spec.tfrow_cls_tokens),
+            tfrow_norm=str(spec.tfrow_norm),
             tficl_n_heads=int(spec.tficl_n_heads),
             tficl_n_layers=int(spec.tficl_n_layers),
             tficl_ff_expansion=int(spec.tficl_ff_expansion),
@@ -186,12 +192,14 @@ class ExportModelSpec:
                 "feature_group_size": self.feature_group_size,
                 "many_class_train_mode": self.many_class_train_mode,
                 "max_mixed_radix_digits": self.max_mixed_radix_digits,
+                "norm_type": self.norm_type,
                 "tfcol_n_heads": self.tfcol_n_heads,
                 "tfcol_n_layers": self.tfcol_n_layers,
                 "tfcol_n_inducing": self.tfcol_n_inducing,
                 "tfrow_n_heads": self.tfrow_n_heads,
                 "tfrow_n_layers": self.tfrow_n_layers,
                 "tfrow_cls_tokens": self.tfrow_cls_tokens,
+                "tfrow_norm": self.tfrow_norm,
                 "tficl_n_heads": self.tficl_n_heads,
                 "tficl_n_layers": self.tficl_n_layers,
                 "tficl_ff_expansion": self.tficl_ff_expansion,
@@ -457,12 +465,14 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
         primary["stage"] = model_raw["stage"]
     optional_fields: tuple[tuple[str, str], ...] = (
         ("input_normalization", "manifest.model.input_normalization"),
+        ("norm_type", "manifest.model.norm_type"),
         ("tfcol_n_heads", "manifest.model.tfcol_n_heads"),
         ("tfcol_n_layers", "manifest.model.tfcol_n_layers"),
         ("tfcol_n_inducing", "manifest.model.tfcol_n_inducing"),
         ("tfrow_n_heads", "manifest.model.tfrow_n_heads"),
         ("tfrow_n_layers", "manifest.model.tfrow_n_layers"),
         ("tfrow_cls_tokens", "manifest.model.tfrow_cls_tokens"),
+        ("tfrow_norm", "manifest.model.tfrow_norm"),
         ("tficl_n_heads", "manifest.model.tficl_n_heads"),
         ("tficl_n_layers", "manifest.model.tficl_n_layers"),
         ("tficl_ff_expansion", "manifest.model.tficl_ff_expansion"),
@@ -474,6 +484,8 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
             continue
         if field_name == "input_normalization":
             primary[field_name] = _validate_input_normalization(model_raw[field_name], context=context)
+        elif field_name in {"norm_type", "tfrow_norm"}:
+            primary[field_name] = _as_str(model_raw[field_name], context=context)
         else:
             primary[field_name] = _as_int(model_raw[field_name], context=context)
     if "use_digit_position_embed" in model_raw:
@@ -520,12 +532,14 @@ def _validate_model_spec(
     }
     optional_model_keys = {
         "stage",
+        "norm_type",
         "tfcol_n_heads",
         "tfcol_n_layers",
         "tfcol_n_inducing",
         "tfrow_n_heads",
         "tfrow_n_layers",
         "tfrow_cls_tokens",
+        "tfrow_norm",
         "tficl_n_heads",
         "tficl_n_layers",
         "tficl_ff_expansion",

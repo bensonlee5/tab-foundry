@@ -19,6 +19,12 @@ _EPS = 1.0e-8
 _CLIP_VALUE = 100.0
 
 
+def _tensor_stats_dtype(device: torch.device) -> torch.dtype:
+    """Choose a reduction dtype that is supported on the active device."""
+
+    return torch.float32 if device.type == "mps" else torch.float64
+
+
 def normalize_train_test_arrays(
     x_train: np.ndarray,
     x_test: np.ndarray,
@@ -61,8 +67,9 @@ def normalize_train_test_tensors(
     normalized_mode = str(mode).strip().lower()
     train = x_train.to(torch.float32)
     test = x_test.to(torch.float32)
-    train_stats = x_train.to(torch.float64)
-    test_stats = x_test.to(torch.float64)
+    stats_dtype = _tensor_stats_dtype(x_train.device)
+    train_stats = x_train.to(stats_dtype)
+    test_stats = x_test.to(stats_dtype)
     if normalized_mode == "none":
         return train, test
 

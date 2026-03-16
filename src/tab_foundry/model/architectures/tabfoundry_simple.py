@@ -5,8 +5,9 @@ from __future__ import annotations
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn.modules.transformer import LayerNorm, Linear, MultiheadAttention
+from torch.nn.modules.transformer import Linear, MultiheadAttention
 
+from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES, build_norm
 from tab_foundry.types import TaskBatch
 
 from .tabfoundry import ClassificationOutput, DEFAULT_HEAD_HIDDEN_DIM
@@ -60,6 +61,7 @@ class _TransformerEncoderLayer(nn.Module):
         *,
         layer_norm_eps: float = 1.0e-5,
         batch_first: bool = True,
+        norm_type: str = "layernorm",
     ) -> None:
         super().__init__()
         self.self_attention_between_datapoints = MultiheadAttention(
@@ -74,9 +76,9 @@ class _TransformerEncoderLayer(nn.Module):
         )
         self.linear1 = Linear(embedding_size, mlp_hidden_size)
         self.linear2 = Linear(mlp_hidden_size, embedding_size)
-        self.norm1 = LayerNorm(embedding_size, eps=layer_norm_eps)
-        self.norm2 = LayerNorm(embedding_size, eps=layer_norm_eps)
-        self.norm3 = LayerNorm(embedding_size, eps=layer_norm_eps)
+        self.norm1 = build_norm(norm_type, embedding_size, eps=layer_norm_eps)
+        self.norm2 = build_norm(norm_type, embedding_size, eps=layer_norm_eps)
+        self.norm3 = build_norm(norm_type, embedding_size, eps=layer_norm_eps)
 
     def forward(self, src: torch.Tensor, train_test_split_index: int) -> torch.Tensor:
         batch_size, rows_size, col_size, embedding_size = src.shape
@@ -132,12 +134,14 @@ class TabFoundrySimpleClassifier(nn.Module):
         feature_group_size: int = 1,
         many_class_train_mode: str = "path_nll",
         max_mixed_radix_digits: int = 64,
+        norm_type: str = "layernorm",
         tfcol_n_heads: int = 8,
         tfcol_n_layers: int = 3,
         tfcol_n_inducing: int = 128,
         tfrow_n_heads: int = 8,
         tfrow_n_layers: int = 3,
         tfrow_cls_tokens: int = 4,
+        tfrow_norm: str = "layernorm",
         tficl_n_heads: int = 8,
         tficl_n_layers: int = 12,
         tficl_ff_expansion: int = 2,
@@ -156,6 +160,7 @@ class TabFoundrySimpleClassifier(nn.Module):
         self._require_default("tfrow_n_heads", int(tfrow_n_heads), 8)
         self._require_default("tfrow_n_layers", int(tfrow_n_layers), 3)
         self._require_default("tfrow_cls_tokens", int(tfrow_cls_tokens), 4)
+        self._require_default("tfrow_norm", str(tfrow_norm).strip().lower(), "layernorm")
         self._require_default("use_digit_position_embed", bool(use_digit_position_embed), True)
 
         self.d_icl = int(d_icl)
@@ -173,6 +178,11 @@ class TabFoundrySimpleClassifier(nn.Module):
         self.tficl_ff_expansion = int(tficl_ff_expansion)
         self.many_class_base = int(many_class_base)
         self.head_hidden_dim = int(head_hidden_dim)
+        self.norm_type = str(norm_type).strip().lower()
+        if self.norm_type not in SUPPORTED_NORM_TYPES:
+            raise ValueError(
+                f"norm_type must be one of {SUPPORTED_NORM_TYPES}, got {self.norm_type!r}"
+            )
         for name, value in (
             ("tficl_n_heads", self.tficl_n_heads),
             ("tficl_n_layers", self.tficl_n_layers),
@@ -195,6 +205,7 @@ class TabFoundrySimpleClassifier(nn.Module):
                     self.d_icl,
                     self.tficl_n_heads,
                     self.head_hidden_dim,
+                    norm_type=self.norm_type,
                 )
                 for _ in range(self.tficl_n_layers)
             ]

@@ -5,13 +5,14 @@ from __future__ import annotations
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn.modules.transformer import LayerNorm, Linear, MultiheadAttention
+from torch.nn.modules.transformer import Linear, MultiheadAttention
 
 from tab_foundry.model.architectures.tabfoundry_simple import (
     _Decoder as NanoDecoder,
     _FeatureEncoder as NanoFeatureEncoder,
     _TargetEncoder as NanoTargetEncoder,
 )
+from tab_foundry.model.components.normalization import build_norm
 from tab_foundry.model.components.blocks import TFColEncoder, TFRowEncoder
 from tab_foundry.model.components.qass import QASSTransformerEncoder
 
@@ -85,7 +86,14 @@ class LabelTokenTargetConditioner(nn.Module):
 class NanoPostNormBlock(nn.Module):
     """Exact nanoTabPFN post-norm block."""
 
-    def __init__(self, embedding_size: int, nhead: int, mlp_hidden_size: int) -> None:
+    def __init__(
+        self,
+        embedding_size: int,
+        nhead: int,
+        mlp_hidden_size: int,
+        *,
+        norm_type: str,
+    ) -> None:
         super().__init__()
         from tab_foundry.model.architectures.tabfoundry_simple import (
             _TransformerEncoderLayer,
@@ -95,6 +103,7 @@ class NanoPostNormBlock(nn.Module):
             embedding_size=embedding_size,
             nhead=nhead,
             mlp_hidden_size=mlp_hidden_size,
+            norm_type=norm_type,
         )
 
     def forward(self, cells: torch.Tensor, *, train_test_split_index: int) -> torch.Tensor:
@@ -111,6 +120,7 @@ class PreNormCellBlock(nn.Module):
         mlp_hidden_size: int,
         *,
         allow_test_self_attention: bool,
+        norm_type: str,
     ) -> None:
         super().__init__()
         self.allow_test_self_attention = allow_test_self_attention
@@ -124,9 +134,9 @@ class PreNormCellBlock(nn.Module):
             nhead,
             batch_first=True,
         )
-        self.feature_norm = LayerNorm(embedding_size)
-        self.row_norm = LayerNorm(embedding_size)
-        self.ff_norm = LayerNorm(embedding_size)
+        self.feature_norm = build_norm(norm_type, embedding_size)
+        self.row_norm = build_norm(norm_type, embedding_size)
+        self.ff_norm = build_norm(norm_type, embedding_size)
         self.linear1 = Linear(embedding_size, mlp_hidden_size)
         self.linear2 = Linear(mlp_hidden_size, embedding_size)
 
@@ -191,6 +201,7 @@ class SetColumnEncoder(nn.Module):
         n_heads: int,
         n_layers: int,
         n_inducing: int,
+        norm_type: str,
     ) -> None:
         super().__init__()
         self.encoder = TFColEncoder(
@@ -198,6 +209,7 @@ class SetColumnEncoder(nn.Module):
             n_heads=n_heads,
             n_layers=n_layers,
             n_inducing=n_inducing,
+            norm_type=norm_type,
         )
 
     def forward(self, cells: torch.Tensor) -> torch.Tensor:
@@ -230,6 +242,7 @@ class RowCLSPool(nn.Module):
         n_heads: int,
         n_layers: int,
         cls_tokens: int,
+        norm_type: str,
     ) -> None:
         super().__init__()
         self.encoder = TFRowEncoder(
@@ -238,6 +251,7 @@ class RowCLSPool(nn.Module):
             n_layers=n_layers,
             cls_tokens=cls_tokens,
             d_out=embedding_size,
+            norm_type=norm_type,
         )
 
     def forward(
@@ -264,6 +278,7 @@ class SequenceContextEncoder(nn.Module):
         ff_expansion: int,
         use_qass: bool,
         allow_test_self_attention: bool,
+        norm_type: str,
     ) -> None:
         super().__init__()
         self.allow_test_self_attention = allow_test_self_attention
@@ -273,6 +288,7 @@ class SequenceContextEncoder(nn.Module):
             n_layers=n_layers,
             ff_expansion=ff_expansion,
             use_qass=use_qass,
+            norm_type=norm_type,
         )
 
     def _allowed_mask(

@@ -211,6 +211,43 @@ deltas:
     default_next_action: Run the isolated row-pool toggle and require interpretation before any verdict.
     applicability_guards: []
 
+  delta_row_cls_pool_rmsnorm:
+    dimension_family: model
+    family: row_pool
+    binary_applicable: true
+    description: Keep the row-CLS pooling path but replace its row-encoder LayerNorm modules with RMSNorm.
+    upstream_delta: Upstream nanoTabPFN does not use row-level CLS pooling or this row-encoder normalization path.
+    expected_effect: Potentially more stable row-CLS optimization, with the risk that normalization changes only mask a deeper mechanism mismatch.
+    adequacy_knobs:
+      - tfrow_n_heads
+      - tfrow_n_layers
+      - tfrow_cls_tokens
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against both the anchor and the resolved row-CLS evidence.
+        - If neutral-to-bad, perform a bounded adequacy sweep over tfrow_n_heads, tfrow_n_layers, and tfrow_cls_tokens before any reject decision.
+        - Document whether RMSNorm improves stability, quality, or neither.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: row_cls_pool
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_row_cls_pool_rmsnorm
+        module_overrides:
+          row_pool: row_cls
+        tfrow_norm: rmsnorm
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run after the row-CLS adequacy sweep to test whether row-encoder normalization changes the stability story.
+    applicability_guards: []
+
   delta_column_set_encoder:
     dimension_family: model
     family: column_encoding
@@ -277,6 +314,132 @@ deltas:
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run after simpler model deltas so the interpretation has cleaner context.
+    applicability_guards: []
+
+  delta_global_rmsnorm:
+    dimension_family: model
+    family: normalization
+    binary_applicable: true
+    description: Keep the anchor structure fixed but switch the staged/global LayerNorm family to RMSNorm, including the row-pool norm override for completeness.
+    upstream_delta: Upstream nanoTabPFN uses LayerNorm in its exact transformer blocks.
+    expected_effect: Potentially smoother optimization or lower gradient spikes, with the risk that RMSNorm only shifts calibration or late-curve behavior.
+    adequacy_knobs:
+      - model.norm_type
+      - model.tfrow_norm
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare best/final ROC AUC and training stability against the constant anchor surface.
+        - Distinguish early-step stabilization from true end-of-run quality improvements.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_global_rmsnorm
+        norm_type: rmsnorm
+        tfrow_norm: rmsnorm
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run after the other model rows so the norm-family change is separated from structural deltas.
+    applicability_guards: []
+
+  delta_training_linear_decay:
+    dimension_family: training
+    family: schedule
+    binary_applicable: true
+    description: Keep the anchor model, data, and preprocessing surfaces but replace the exact-prior constant LR with single-stage linear decay.
+    upstream_delta: Not applicable; this is a repo-local exact-prior training recipe change.
+    expected_effect: Better late-curve retention or stability if the constant exact-prior LR is too aggressive for the anchored surface.
+    adequacy_knobs:
+      - schedule.stages[0].lr_max
+      - optimizer.min_lr
+      - schedule.stages[0].warmup_ratio
+    parameter_adequacy_policy:
+      default_plan:
+        - Interpret against the constant-LR anchor on both ROC and post-warmup stability diagnostics.
+        - Keep optimizer, model, data, and preprocessing fixed for the first pass.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_decay
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.0
+    default_next_action: Run after the model rows so schedule evidence is not mixed with structure changes.
+    applicability_guards: []
+
+  delta_training_linear_warmup_decay:
+    dimension_family: training
+    family: schedule
+    binary_applicable: true
+    description: Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup.
+    upstream_delta: Not applicable; this is a repo-local exact-prior training recipe change.
+    expected_effect: Reduced early instability versus constant LR or plain linear decay, with uncertain final quality impact.
+    adequacy_knobs:
+      - schedule.stages[0].lr_max
+      - optimizer.min_lr
+      - schedule.stages[0].warmup_ratio
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare against both the constant-LR anchor and the no-warmup linear-decay row.
+        - Treat best/final ROC, post-warmup train-loss variance, and gradient norms as the primary interpretation surface.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run after the no-warmup linear-decay row so warmup is isolated from pure decay.
     applicability_guards: []
 
   delta_data_filter_policy_accepted_only:

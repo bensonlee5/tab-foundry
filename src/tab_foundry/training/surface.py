@@ -113,6 +113,9 @@ def build_training_surface_record(
     raw_model_cfg = raw_cfg.get("model")
     raw_data_cfg = raw_cfg.get("data")
     raw_preprocessing_cfg = raw_cfg.get("preprocessing")
+    raw_training_cfg = raw_cfg.get("training")
+    raw_optimizer_cfg = raw_cfg.get("optimizer")
+    raw_schedule_cfg = raw_cfg.get("schedule")
     if not isinstance(raw_model_cfg, Mapping):
         raise RuntimeError("training surface record requires cfg.model to be a mapping")
 
@@ -129,6 +132,21 @@ def build_training_surface_record(
         None
         if not isinstance(raw_preprocessing_cfg, Mapping)
         else {str(key): value for key, value in raw_preprocessing_cfg.items()}
+    )
+    training_cfg = (
+        None
+        if not isinstance(raw_training_cfg, Mapping)
+        else {str(key): value for key, value in raw_training_cfg.items()}
+    )
+    optimizer_cfg = (
+        None
+        if not isinstance(raw_optimizer_cfg, Mapping)
+        else {str(key): value for key, value in raw_optimizer_cfg.items()}
+    )
+    schedule_cfg = (
+        None
+        if not isinstance(raw_schedule_cfg, Mapping)
+        else {str(key): value for key, value in raw_schedule_cfg.items()}
     )
     if state_dict is None:
         model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
@@ -171,15 +189,16 @@ def build_training_surface_record(
 
     data_label = str(data_surface.surface_label)
     preprocessing_label = str(preprocessing_surface.surface_label)
-    return {
+    labels: dict[str, Any] = {
+        "model": model_label,
+        "data": data_label,
+        "preprocessing": preprocessing_label,
+    }
+    payload = {
         "schema": TRAINING_SURFACE_SCHEMA,
         "generated_at_utc": _utc_now(),
         "run_dir": str(run_dir.expanduser().resolve()),
-        "labels": {
-            "model": model_label,
-            "data": data_label,
-            "preprocessing": preprocessing_label,
-        },
+        "labels": labels,
         "model": model_payload,
         "data": {
             "surface_label": data_label,
@@ -202,6 +221,24 @@ def build_training_surface_record(
             "overrides": preprocessing_surface.overrides,
         },
     }
+    if training_cfg is not None:
+        training_label = str(training_cfg.get("surface_label", "training_default"))
+        labels["training"] = training_label
+        payload["training"] = {
+            "surface_label": training_label,
+            "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
+            "optimizer_name": None
+            if optimizer_cfg is None or optimizer_cfg.get("name") is None
+            else str(optimizer_cfg["name"]),
+            "optimizer_min_lr": None
+            if optimizer_cfg is None or optimizer_cfg.get("min_lr") is None
+            else float(optimizer_cfg["min_lr"]),
+            "schedule_stages": None
+            if schedule_cfg is None
+            else schedule_cfg.get("stages"),
+            "overrides": training_cfg.get("overrides", {}),
+        }
+    return payload
 
 
 def write_training_surface_record(

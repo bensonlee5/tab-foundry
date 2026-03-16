@@ -34,10 +34,12 @@ jobs:
         run: uv sync --group dev
 
       - name: Fetch main for version audit
-        run: git fetch --no-tags --depth=1 origin main:main
+        if: github.event_name == 'pull_request'
+        run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main
 
       - name: Version bump guard
-        run: uv run python scripts/audit/check_version_bump.py
+        if: github.event_name == 'pull_request'
+        run: uv run python scripts/audit/check_version_bump.py --base-ref origin/main
 
       - name: Markdown format
         run: uv run mdformat --check AGENTS.md README.md docs reference CHANGELOG.md

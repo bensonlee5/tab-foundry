@@ -2274,6 +2274,2084 @@
         "train_elapsed_seconds": 18.40863876277581,
         "wall_elapsed_seconds": 25.121561584062874
       }
+    },
+    "sd_binary_md_v1_01_delta_label_token_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_01_delta_label_token_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_01_delta_label_token_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_01_delta_label_token_v1/train/checkpoints/step_001275.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_01_delta_label_token_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_01_delta_label_token_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_01_delta_label_token_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_01_delta_label_token_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_01_delta_label_token_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.014290419125117637,
+          "best_training_time_delta": 33.48113095923327,
+          "final_roc_auc_delta": -0.01711096787790367,
+          "final_training_time_delta": 21.654927945928648,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "Label-token conditioning underperformed the frozen exact anchor on both best and final ROC AUC while taking longer, so keep it as negative evidence and defer any final rejection until the calibration/decision-boundary story is clearer.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_label_token",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column"
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_label_token",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356162,
+        "trainable_params": 356162
+      },
+      "registered_at_utc": "2026-03-15T18:12:32Z",
+      "run_id": "sd_binary_md_v1_01_delta_label_token_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_label_token",
+        "preprocessing": "runtime_default"
+      },
+      "sweep": {
+        "delta_id": "delta_label_token",
+        "parent_sweep_id": null,
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7471613312681062,
+        "best_step": 1275.0,
+        "best_training_time": 199.59483515808824,
+        "final_roc_auc": 0.742774446041559,
+        "final_step": 2500.0,
+        "final_training_time": 377.21466832526494
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.253372460603714,
+        "final_val_loss": null,
+        "max_grad_norm": 5.20358419418335,
+        "mean_grad_norm": 0.1807672644920647,
+        "post_warmup_train_loss_var": 0.0022464732826955975,
+        "train_elapsed_seconds": 377.21466832526494,
+        "wall_elapsed_seconds": 385.5710514159873
+      }
+    },
+    "sd_binary_md_v1_02_delta_shared_feature_norm_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_02_delta_shared_feature_norm_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_02_delta_shared_feature_norm_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_02_delta_shared_feature_norm_v1/train/checkpoints/step_001325.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_02_delta_shared_feature_norm_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_02_delta_shared_feature_norm_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_02_delta_shared_feature_norm_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_02_delta_shared_feature_norm_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_02_delta_shared_feature_norm_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.0039153315651063725,
+          "best_training_time_delta": 42.59964397456497,
+          "final_roc_auc_delta": -0.00410769119921317,
+          "final_training_time_delta": 25.74472340673674,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "Shared feature normalization beat the anchor at its peak but finished below the anchor with materially worse late-curve retention and slower training, so treat it as mixed evidence and defer any verdict until the normalization-versus-budget story is clearer.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_shared_feature_norm",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column"
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "shared",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_shared_feature_norm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-15T18:35:37Z",
+      "run_id": "sd_binary_md_v1_02_delta_shared_feature_norm_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_shared_feature_norm",
+        "preprocessing": "runtime_default"
+      },
+      "sweep": {
+        "delta_id": "delta_shared_feature_norm",
+        "parent_sweep_id": null,
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7653670819583303,
+        "best_step": 1325.0,
+        "best_training_time": 208.71334817341994,
+        "final_roc_auc": 0.7557777227202495,
+        "final_step": 2500.0,
+        "final_training_time": 381.30446378607303
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.22045332193374634,
+        "final_val_loss": null,
+        "max_grad_norm": 4.659820079803467,
+        "mean_grad_norm": 0.17498021255880594,
+        "post_warmup_train_loss_var": 0.0021445587239896638,
+        "train_elapsed_seconds": 381.30446378607303,
+        "wall_elapsed_seconds": 387.1650785000529
+      }
+    },
+    "sd_binary_md_v1_03_delta_prenorm_block_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_03_delta_prenorm_block_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_03_delta_prenorm_block_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_03_delta_prenorm_block_v1/train/checkpoints/step_002100.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_03_delta_prenorm_block_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_03_delta_prenorm_block_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_03_delta_prenorm_block_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_03_delta_prenorm_block_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_03_delta_prenorm_block_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.014205370253163707,
+          "best_training_time_delta": 136.01032574672718,
+          "final_roc_auc_delta": -0.016435745269782642,
+          "final_training_time_delta": 3.272893979679793,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "The isolated pre-norm block underperformed the frozen anchor on both best and final ROC AUC while taking substantially longer to reach its peak, so record it as negative evidence and defer any hard rejection until adequacy beyond the anchor tuning neighborhood is clearer.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_prenorm_block",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column"
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_prenorm_block",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-15T19:36:00Z",
+      "run_id": "sd_binary_md_v1_03_delta_prenorm_block_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_prenorm_block",
+        "preprocessing": "runtime_default"
+      },
+      "sweep": {
+        "delta_id": "delta_prenorm_block",
+        "parent_sweep_id": null,
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7472463801400602,
+        "best_step": 2100.0,
+        "best_training_time": 302.12402994558215,
+        "final_roc_auc": 0.74344966864968,
+        "final_step": 2500.0,
+        "final_training_time": 358.8326343590161
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.5361587405204773,
+        "final_val_loss": null,
+        "max_grad_norm": 13.8268404006958,
+        "mean_grad_norm": 0.29161210682094096,
+        "post_warmup_train_loss_var": 0.004823389998529451,
+        "train_elapsed_seconds": 358.8326343590161,
+        "wall_elapsed_seconds": 365.2361082920106
+      }
+    },
+    "sd_binary_md_v1_04_delta_test_self_attention_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_04_delta_test_self_attention_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_04_delta_test_self_attention_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_04_delta_test_self_attention_v1/train/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_04_delta_test_self_attention_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_04_delta_test_self_attention_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_04_delta_test_self_attention_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_04_delta_test_self_attention_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_04_delta_test_self_attention_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.0067126401539510105,
+          "best_training_time_delta": 204.90671947796363,
+          "final_roc_auc_delta": -0.005146303680189757,
+          "final_training_time_delta": 15.46068329748232,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "Enabling test self-attention materially improves the explicit pre-norm comparator, but the combined pre-norm-plus-self-attention path still trails the anchor at both best and final ROC AUC while taking longer, so record it as mixed local evidence and defer any promotion.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_test_self_attention",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column"
+          },
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_test_self_attention",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-15T19:57:00Z",
+      "run_id": "sd_binary_md_v1_04_delta_test_self_attention_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_test_self_attention",
+        "preprocessing": "runtime_default"
+      },
+      "sweep": {
+        "delta_id": "delta_test_self_attention",
+        "parent_sweep_id": null,
+        "queue_order": 4,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7547391102392729,
+        "best_step": 2500.0,
+        "best_training_time": 371.0204236768186,
+        "final_roc_auc": 0.7547391102392729,
+        "final_step": 2500.0,
+        "final_training_time": 371.0204236768186
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.5033941864967346,
+        "final_val_loss": null,
+        "max_grad_norm": 13.833664894104004,
+        "mean_grad_norm": 0.29348962743878365,
+        "post_warmup_train_loss_var": 0.004844457420546781,
+        "train_elapsed_seconds": 371.0204236768186,
+        "wall_elapsed_seconds": 379.3652636250481
+      }
+    },
+    "sd_binary_md_v1_06_delta_row_cls_pool_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_06_delta_row_cls_pool_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_06_delta_row_cls_pool_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_06_delta_row_cls_pool_v1/train/checkpoints/step_000050.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_06_delta_row_cls_pool_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_06_delta_row_cls_pool_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_06_delta_row_cls_pool_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_06_delta_row_cls_pool_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_06_delta_row_cls_pool_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.17626948299654144,
+          "best_training_time_delta": -148.68166153307538,
+          "final_roc_auc_delta": -0.255729892292611,
+          "final_training_time_delta": 302.1279460177757,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "The isolated row-CLS pool collapsed badly relative to the anchor, peaked at step 50, finished far below anchor quality, and showed extreme gradient norms, so record it as negative primary evidence and require the bounded tfrow adequacy sweep before resolving the row.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_row_cls_pool",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls"
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "row_cls",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_row_cls_pool",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 617954,
+        "trainable_params": 617954
+      },
+      "registered_at_utc": "2026-03-15T20:54:04Z",
+      "run_id": "sd_binary_md_v1_06_delta_row_cls_pool_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_row_cls_pool",
+        "preprocessing": "runtime_default"
+      },
+      "sweep": {
+        "delta_id": "delta_row_cls_pool",
+        "parent_sweep_id": null,
+        "queue_order": 6,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5851822673966824,
+        "best_step": 50.0,
+        "best_training_time": 17.43204266577959,
+        "final_roc_auc": 0.5041555216268516,
+        "final_step": 2500.0,
+        "final_training_time": 657.687686397112
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 3225276.25,
+        "final_val_loss": null,
+        "max_grad_norm": 3288131.0,
+        "mean_grad_norm": 482899.7218169128,
+        "post_warmup_train_loss_var": 0.3176864522743966,
+        "train_elapsed_seconds": 657.687686397112,
+        "wall_elapsed_seconds": 664.558468541014
+      }
+    },
+    "sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1/train/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.2323289821166148,
+          "best_training_time_delta": 501.3538502117153,
+          "final_roc_auc_delta": -0.23076264564285354,
+          "final_training_time_delta": 311.907814031234,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.05605949912007335,
+          "best_training_time_delta": 650.0355117447907,
+          "final_roc_auc_delta": 0.02496724664975747,
+          "final_training_time_delta": 9.779868013458326,
+          "reference_run_id": "sd_binary_md_v1_06_delta_row_cls_pool_v1"
+        }
+      },
+      "conclusion": "Reducing row-CLS heads stabilizes gradients but remains far below the anchor on ROC AUC and training efficiency.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_binary_md_v1_06_delta_row_cls_pool_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_row_cls_pool",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "row_cls",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_row_cls_pool",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 617954,
+        "trainable_params": 617954
+      },
+      "registered_at_utc": "2026-03-15T22:09:40Z",
+      "run_id": "sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_row_cls_pool",
+        "preprocessing": "runtime_default"
+      },
+      "sweep": {
+        "delta_id": "delta_row_cls_pool",
+        "parent_sweep_id": null,
+        "queue_order": 6,
+        "run_kind": "followup",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5291227682766091,
+        "best_step": 2500.0,
+        "best_training_time": 667.4675544105703,
+        "final_roc_auc": 0.5291227682766091,
+        "final_step": 2500.0,
+        "final_training_time": 667.4675544105703
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 17332.392578125,
+        "final_val_loss": null,
+        "max_grad_norm": 185607.953125,
+        "mean_grad_norm": 24171.650617787836,
+        "post_warmup_train_loss_var": 0.00019536406101891467,
+        "train_elapsed_seconds": 667.4675544105703,
+        "wall_elapsed_seconds": 674.7234838750446
+      }
+    },
+    "sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1/train/checkpoints/step_000125.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.190894806463755,
+          "best_training_time_delta": -138.63379049196374,
+          "final_roc_auc_delta": -0.2598854139194626,
+          "final_training_time_delta": 97.95944485545624,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.014625323467213569,
+          "best_training_time_delta": 10.047871041111648,
+          "final_roc_auc_delta": -0.0041555216268516215,
+          "final_training_time_delta": -204.16850116231944,
+          "reference_run_id": "sd_binary_md_v1_06_delta_row_cls_pool_v1"
+        }
+      },
+      "conclusion": "Reducing row-CLS depth to one layer still yields unstable training diagnostics and remains well below the anchor on both best and final ROC AUC.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_binary_md_v1_06_delta_row_cls_pool_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_row_cls_pool",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 1,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "row_cls",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_row_cls_pool",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 468386,
+        "trainable_params": 468386
+      },
+      "registered_at_utc": "2026-03-15T22:26:09Z",
+      "run_id": "sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "manifest_default",
+        "model": "delta_row_cls_pool",
+        "preprocessing": "runtime_default",
+        "training": "prior_constant_lr"
+      },
+      "sweep": {
+        "delta_id": "delta_row_cls_pool",
+        "parent_sweep_id": null,
+        "queue_order": 6,
+        "run_kind": "followup",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5705569439294689,
+        "best_step": 125.0,
+        "best_training_time": 27.47991370689124,
+        "final_roc_auc": 0.5,
+        "final_step": 2500.0,
+        "final_training_time": 453.51918523479253
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 46708148.0,
+        "final_val_loss": null,
+        "max_grad_norm": 798033856.0,
+        "mean_grad_norm": 12418678.332690582,
+        "post_warmup_train_loss_var": 0.0018994965735665025,
+        "train_elapsed_seconds": 453.51918523479253,
+        "wall_elapsed_seconds": 459.7192447499838
+      }
+    },
+    "sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1/train/checkpoints/step_000325.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.1881261528929612,
+          "best_training_time_delta": -84.818896651268,
+          "final_roc_auc_delta": -0.26599443310344734,
+          "final_training_time_delta": 229.42203723278362,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.011856669896419758,
+          "best_training_time_delta": 63.86276488180738,
+          "final_roc_auc_delta": -0.010264540810836331,
+          "final_training_time_delta": -72.70590878499206,
+          "reference_run_id": "sd_binary_md_v1_06_delta_row_cls_pool_v1"
+        }
+      },
+      "conclusion": "Reducing row-CLS token count materially improves stability, but benchmark quality still remains far below the anchor on both best and final ROC AUC.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_binary_md_v1_06_delta_row_cls_pool_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_row_cls_pool",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "row_cls",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_row_cls_pool",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-15T22:37:36Z",
+      "run_id": "sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "manifest_default",
+        "model": "delta_row_cls_pool",
+        "preprocessing": "runtime_default",
+        "training": "prior_constant_lr"
+      },
+      "sweep": {
+        "delta_id": "delta_row_cls_pool",
+        "parent_sweep_id": null,
+        "queue_order": 6,
+        "run_kind": "followup",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5733255975002627,
+        "best_step": 325.0,
+        "best_training_time": 81.29480754758697,
+        "final_roc_auc": 0.4938909808160153,
+        "final_step": 2500.0,
+        "final_training_time": 584.9817776121199
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.04918939620256424,
+        "final_val_loss": null,
+        "max_grad_norm": 6446348.0,
+        "mean_grad_norm": 8928.97203364304,
+        "post_warmup_train_loss_var": 4.595195746230741e-05,
+        "train_elapsed_seconds": 584.9817776121199,
+        "wall_elapsed_seconds": 591.857372624916
+      }
+    },
+    "sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1/train/checkpoints/step_000225.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.19566981230667047,
+          "best_training_time_delta": -97.32108994631562,
+          "final_roc_auc_delta": -0.2629321328562662,
+          "final_training_time_delta": 354.36978562828153,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "RMSNorm changes the row-CLS training trajectory, but the default row-CLS RMSNorm path still remains far below the anchor and does not beat the strongest LayerNorm adequacy variant.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_row_cls_pool_rmsnorm",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "rmsnorm"
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "row_cls",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_row_cls_pool_rmsnorm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 617282,
+        "trainable_params": 617282
+      },
+      "registered_at_utc": "2026-03-15T22:55:39Z",
+      "run_id": "sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "manifest_default",
+        "model": "delta_row_cls_pool_rmsnorm",
+        "preprocessing": "runtime_default",
+        "training": "prior_constant_lr"
+      },
+      "sweep": {
+        "delta_id": "delta_row_cls_pool_rmsnorm",
+        "parent_sweep_id": null,
+        "queue_order": 7,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.5657819380865534,
+        "best_step": 225.0,
+        "best_training_time": 68.79261425253935,
+        "final_roc_auc": 0.4969532810631964,
+        "final_step": 2500.0,
+        "final_training_time": 709.9295260076178
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 1180686848.0,
+        "final_val_loss": null,
+        "max_grad_norm": 7545585664.0,
+        "mean_grad_norm": 216035150.80149725,
+        "post_warmup_train_loss_var": 0.003903408409210017,
+        "train_elapsed_seconds": 709.9295260076178,
+        "wall_elapsed_seconds": 716.6678295000456
+      }
+    },
+    "sd_binary_md_v1_08_delta_column_set_encoder_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_08_delta_column_set_encoder_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_08_delta_column_set_encoder_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_08_delta_column_set_encoder_v1/train/checkpoints/step_002275.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_08_delta_column_set_encoder_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_08_delta_column_set_encoder_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_08_delta_column_set_encoder_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_08_delta_column_set_encoder_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_08_delta_column_set_encoder_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.0044748649442882815,
+          "best_training_time_delta": 649.8560610481072,
+          "final_roc_auc_delta": -0.004433659888724795,
+          "final_training_time_delta": 540.3898126997519,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "The column-set encoder stays close to the anchor with strong stability, but the first pass is still modestly negative and does not yet close the adequacy question around heads, layers, and inducing points.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_column_set_encoder",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": 8,
+            "n_inducing": 128,
+            "n_layers": 3,
+            "name": "tfcol",
+            "norm_type": "layernorm"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "tfcol",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_column_set_encoder",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 777482,
+        "trainable_params": 777482
+      },
+      "registered_at_utc": "2026-03-15T23:40:13Z",
+      "run_id": "sd_binary_md_v1_08_delta_column_set_encoder_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "manifest_default",
+        "model": "delta_column_set_encoder",
+        "preprocessing": "runtime_default",
+        "training": "prior_constant_lr"
+      },
+      "sweep": {
+        "delta_id": "delta_column_set_encoder",
+        "parent_sweep_id": null,
+        "queue_order": 8,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7569768854489356,
+        "best_step": 2275.0,
+        "best_training_time": 815.9697652469622,
+        "final_roc_auc": 0.7554517540307378,
+        "final_step": 2500.0,
+        "final_training_time": 895.9495530790882
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.2771977484226227,
+        "final_val_loss": null,
+        "max_grad_norm": 8.066725730895996,
+        "mean_grad_norm": 0.24167106387019158,
+        "post_warmup_train_loss_var": 0.0028724000842037236,
+        "train_elapsed_seconds": 895.9495530790882,
+        "wall_elapsed_seconds": 907.8717465419322
+      }
+    },
+    "sd_binary_md_v1_09_delta_qass_context_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_09_delta_qass_context_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_09_delta_qass_context_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_09_delta_qass_context_v1/train/checkpoints/step_001500.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_09_delta_qass_context_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_09_delta_qass_context_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_09_delta_qass_context_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_09_delta_qass_context_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_09_delta_qass_context_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.008277597976543372,
+          "best_training_time_delta": 147.63867852138355,
+          "final_roc_auc_delta": -0.011912271930162754,
+          "final_training_time_delta": 158.96894833783153,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "QASS trained stably and showed stronger train-side capacity than the simpler rows, but best and final ROC AUC both stayed below the anchor and the final gap widened, which points more to added depth without enough useful context value than to an optimization failure.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_context",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "qass",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_qass_context",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 609386,
+        "trainable_params": 609386
+      },
+      "registered_at_utc": "2026-03-15T23:53:08Z",
+      "run_id": "sd_binary_md_v1_09_delta_qass_context_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_qass_context",
+        "preprocessing": "runtime_default",
+        "training": "prior_constant_lr"
+      },
+      "sweep": {
+        "delta_id": "delta_qass_context",
+        "parent_sweep_id": null,
+        "queue_order": 9,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7531741524166805,
+        "best_step": 1500.0,
+        "best_training_time": 313.75238272023853,
+        "final_roc_auc": 0.7479731419892999,
+        "final_step": 2500.0,
+        "final_training_time": 514.5286887171678
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.20100262761116028,
+        "final_val_loss": null,
+        "max_grad_norm": 4.312342643737793,
+        "mean_grad_norm": 0.18731195563450456,
+        "post_warmup_train_loss_var": 0.0021690464883293023,
+        "train_elapsed_seconds": 514.5286887171678,
+        "wall_elapsed_seconds": 525.6929002079414
+      }
+    },
+    "sd_binary_md_v1_10_delta_global_rmsnorm_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_10_delta_global_rmsnorm_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_10_delta_global_rmsnorm_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_10_delta_global_rmsnorm_v1/train/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_10_delta_global_rmsnorm_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_10_delta_global_rmsnorm_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_10_delta_global_rmsnorm_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_10_delta_global_rmsnorm_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_10_delta_global_rmsnorm_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.001358413332724684,
+          "best_training_time_delta": 241.56405278877355,
+          "final_roc_auc_delta": 0.00020792314103657006,
+          "final_training_time_delta": 52.11801660829224,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "Broad RMSNorm stayed numerically healthy and nearly matched the anchor, and it was vastly stronger than the row-CLS-specific RMSNorm failure, but it still did not beat the anchor on best or final ROC AUC and remained moderately slower.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_global_rmsnorm",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "rmsnorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_global_rmsnorm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 355202,
+        "trainable_params": 355202
+      },
+      "registered_at_utc": "2026-03-16T00:02:40Z",
+      "run_id": "sd_binary_md_v1_10_delta_global_rmsnorm_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_global_rmsnorm",
+        "preprocessing": "runtime_default",
+        "training": "prior_constant_lr"
+      },
+      "sweep": {
+        "delta_id": "delta_global_rmsnorm",
+        "parent_sweep_id": null,
+        "queue_order": 10,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7600933370604992,
+        "best_step": 2500.0,
+        "best_training_time": 407.6777569876285,
+        "final_roc_auc": 0.7600933370604992,
+        "final_step": 2500.0,
+        "final_training_time": 407.6777569876285
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.21635831892490387,
+        "final_val_loss": null,
+        "max_grad_norm": 4.424612522125244,
+        "mean_grad_norm": 0.17360405326336623,
+        "post_warmup_train_loss_var": 0.0021207955525577157,
+        "train_elapsed_seconds": 407.6777569876285,
+        "wall_elapsed_seconds": 415.4292005409952
+      }
+    },
+    "sd_binary_md_v1_11_delta_training_linear_decay_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/train/checkpoints/step_001375.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.004236718561929864,
+          "best_training_time_delta": 38.403908339561895,
+          "final_roc_auc_delta": -0.013334072628115257,
+          "final_training_time_delta": 9.031294664135203,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "The single-stage linear-decay recipe applied correctly and trained stably, but it did not preserve late benchmark quality: best ROC AUC stayed below anchor and final ROC AUC fell materially further below, with only a small runtime offset by the end.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "anchor_model",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "anchor_model",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-16T00:13:01Z",
+      "run_id": "sd_binary_md_v1_11_delta_training_linear_decay_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "anchor_model",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_training_linear_decay",
+        "parent_sweep_id": null,
+        "queue_order": 11,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.757215031831294,
+        "best_step": 1375.0,
+        "best_training_time": 204.51761253841687,
+        "final_roc_auc": 0.7465513412913474,
+        "final_step": 2500.0,
+        "final_training_time": 364.5910350434715
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.21459996700286865,
+        "final_val_loss": null,
+        "max_grad_norm": 4.657632827758789,
+        "mean_grad_norm": 0.17146995757222175,
+        "post_warmup_train_loss_var": 0.0021603478166553084,
+        "train_elapsed_seconds": 364.5910350434715,
+        "wall_elapsed_seconds": 371.04626920796
+      }
+    },
+    "sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/train/checkpoints/step_001000.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.007635309143869784,
+          "best_training_time_delta": -14.221098916255869,
+          "final_roc_auc_delta": -0.00928026616073474,
+          "final_training_time_delta": 8.844549294328317,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "Adding 5% warmup to the linear-decay recipe reduced gradient spikes and improved final ROC relative to plain decay, but it made the best checkpoint worse and still left both best and final quality below the constant-LR anchor.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "anchor_model",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "anchor_model",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-16T00:21:32Z",
+      "run_id": "sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "anchor_model",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_training_linear_warmup_decay",
+        "parent_sweep_id": null,
+        "queue_order": 12,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7538164412493541,
+        "best_step": 1000.0,
+        "best_training_time": 151.8926052825991,
+        "final_roc_auc": 0.7506051477587279,
+        "final_step": 2500.0,
+        "final_training_time": 364.4042896736646
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.2381671518087387,
+        "final_val_loss": null,
+        "max_grad_norm": 1.8456202745437622,
+        "mean_grad_norm": 0.1904018479168415,
+        "post_warmup_train_loss_var": 0.0017550200152058688,
+        "train_elapsed_seconds": 364.4042896736646,
+        "wall_elapsed_seconds": 370.51272904209327
+      }
     }
   },
   "schema": "tab-foundry-benchmark-runs-v1",

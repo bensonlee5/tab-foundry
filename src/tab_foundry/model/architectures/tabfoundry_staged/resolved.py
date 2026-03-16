@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES
 from tab_foundry.model.spec import ModelBuildSpec, ModelStage
 
 from .recipes import StageTaskContract, recipe_for_stage
@@ -77,6 +78,7 @@ class TableBlockSurfaceSpec:
     allow_test_self_attention: bool
     n_heads: int
     mlp_hidden_dim: int
+    norm_type: str
 
     def to_dict(self) -> dict[str, Any]:
         return dict(asdict(self))
@@ -88,6 +90,7 @@ class ColumnEncoderSurfaceSpec:
     n_heads: int | None = None
     n_layers: int | None = None
     n_inducing: int | None = None
+    norm_type: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return dict(asdict(self))
@@ -99,6 +102,7 @@ class RowPoolSurfaceSpec:
     n_heads: int | None = None
     n_layers: int | None = None
     cls_tokens: int | None = None
+    norm_type: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return dict(asdict(self))
@@ -112,6 +116,7 @@ class ContextEncoderSurfaceSpec:
     ff_expansion: int | None = None
     use_qass: bool | None = None
     allow_test_self_attention: bool | None = None
+    norm_type: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return dict(asdict(self))
@@ -227,6 +232,16 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         supported=SUPPORTED_ROW_POOLS,
         context="model.module_overrides.row_pool",
     )
+    norm_type = str(spec.norm_type).strip().lower()
+    if norm_type not in SUPPORTED_NORM_TYPES:
+        raise ValueError(
+            f"model.norm_type must be one of {SUPPORTED_NORM_TYPES}, got {spec.norm_type!r}"
+        )
+    tfrow_norm = str(spec.tfrow_norm).strip().lower()
+    if tfrow_norm not in SUPPORTED_NORM_TYPES:
+        raise ValueError(
+            f"model.tfrow_norm must be one of {SUPPORTED_NORM_TYPES}, got {spec.tfrow_norm!r}"
+        )
     context_encoder = _require_choice(
         value=overrides.get("context_encoder", recipe.modules.context_encoder),
         supported=SUPPORTED_CONTEXT_ENCODERS,
@@ -280,18 +295,21 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
             allow_test_self_attention=allow_test_self_attention,
             n_heads=int(spec.tficl_n_heads),
             mlp_hidden_dim=int(spec.head_hidden_dim),
+            norm_type=norm_type,
         ),
         column_encoder_config=ColumnEncoderSurfaceSpec(
             name=column_encoder,
             n_heads=None if column_encoder == "none" else int(spec.tfcol_n_heads),
             n_layers=None if column_encoder == "none" else int(spec.tfcol_n_layers),
             n_inducing=None if column_encoder == "none" else int(spec.tfcol_n_inducing),
+            norm_type=None if column_encoder == "none" else norm_type,
         ),
         row_pool_config=RowPoolSurfaceSpec(
             name=row_pool,
             n_heads=None if row_pool == "target_column" else int(spec.tfrow_n_heads),
             n_layers=None if row_pool == "target_column" else int(spec.tfrow_n_layers),
             cls_tokens=None if row_pool == "target_column" else int(spec.tfrow_cls_tokens),
+            norm_type=None if row_pool == "target_column" else tfrow_norm,
         ),
         context_encoder_config=ContextEncoderSurfaceSpec(
             name=context_encoder,
@@ -302,6 +320,7 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
             allow_test_self_attention=None
             if context_encoder == "none"
             else True,
+            norm_type=None if context_encoder == "none" else norm_type,
         ),
     )
 

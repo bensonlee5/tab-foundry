@@ -32,6 +32,8 @@ def test_manifest_v2_fixture_validates() -> None:
     assert manifest.task == "classification"
     assert manifest.model.feature_group_size == 1
     assert manifest.model.input_normalization == "none"
+    assert manifest.model.norm_type == "layernorm"
+    assert manifest.model.tfrow_norm == "layernorm"
 
 
 def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> None:
@@ -39,6 +41,8 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     manifest = validate_manifest_dict(payload)
     assert manifest.schema_version == SCHEMA_VERSION_V3
     assert manifest.model.input_normalization == "train_zscore"
+    assert manifest.model.norm_type == "layernorm"
+    assert manifest.model.tfrow_norm == "layernorm"
     assert manifest.manifest_sha256 is not None
     assert manifest.inference is not None
     assert manifest.preprocessor is not None
@@ -55,6 +59,8 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
 
     assert roundtrip.to_dict() == manifest.model.to_dict()
     assert build_spec.input_normalization == "train_zscore"
+    assert build_spec.norm_type == "layernorm"
+    assert build_spec.tfrow_norm == "layernorm"
 
 
 def test_manifest_v2_validation_applies_model_defaults_via_canonical_spec() -> None:
@@ -64,12 +70,14 @@ def test_manifest_v2_validation_applies_model_defaults_via_canonical_spec() -> N
     model_payload = dict(model_raw)
     for key in (
         "input_normalization",
+        "norm_type",
         "tfcol_n_heads",
         "tfcol_n_layers",
         "tfcol_n_inducing",
         "tfrow_n_heads",
         "tfrow_n_layers",
         "tfrow_cls_tokens",
+        "tfrow_norm",
         "tficl_n_heads",
         "tficl_n_layers",
         "tficl_ff_expansion",
@@ -83,12 +91,14 @@ def test_manifest_v2_validation_applies_model_defaults_via_canonical_spec() -> N
     manifest = validate_manifest_dict(payload)
 
     assert manifest.model.input_normalization == "none"
+    assert manifest.model.norm_type == "layernorm"
     assert manifest.model.tfcol_n_heads == 8
     assert manifest.model.tfcol_n_layers == 3
     assert manifest.model.tfcol_n_inducing == 128
     assert manifest.model.tfrow_n_heads == 8
     assert manifest.model.tfrow_n_layers == 3
     assert manifest.model.tfrow_cls_tokens == 4
+    assert manifest.model.tfrow_norm == "layernorm"
     assert manifest.model.tficl_n_heads == 8
     assert manifest.model.tficl_n_layers == 12
     assert manifest.model.tficl_ff_expansion == 2

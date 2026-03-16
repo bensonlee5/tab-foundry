@@ -3,7 +3,7 @@ sweep_id: binary_md_v1
 rows:
   - order: 1
     delta_ref: delta_label_token
-    status: ready
+    status: completed
     rationale: This is the smallest staged departure from upstream nanoTabPFN and should be measured before shared normalization or block-style changes.
     hypothesis: Discrete label tokens may sharpen small-binary support-set conditioning, but any loss could reflect embedding initialization or calibration drift rather than the idea itself.
     anchor_delta: Changes only target_conditioner from mean_padded_linear to label_token; feature encoder, tokenizer, table block, row pooling, data, and preprocessing remain anchored.
@@ -18,17 +18,23 @@ rows:
     parameter_adequacy_plan:
       - Confirm the isolated toggle before changing optimizer settings.
       - If weak, inspect whether the issue is decision-boundary sharpness or late-curve drift.
-    run_id: null
+    run_id: sd_binary_md_v1_01_delta_label_token_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Train the first anchor-only label-token run on the locked medium binary surface.
-    notes: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - No direct calibration or decision-boundary diagnostic was run, so the source of the aggregate drop is still inferred from ROC behavior only.
+      - Dataset-level movement is mixed, with isolated gains on a few tasks despite clearly negative aggregate ROC deltas.
+    next_action: Keep this as completed negative evidence and only revisit label-token conditioning if a calibration-focused follow-up becomes justified.
+    notes:
+      - Completed run `sd_binary_md_v1_01_delta_label_token_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
+      - "Aggregate delta versus anchor: best ROC AUC `-0.0143`, final ROC AUC `-0.0171`."
+      - Training was slower than anchor by `+33.5s` at best and `+21.7s` at final.
+      - Largest losses appeared on `banana` and `Amazon_employee_access`; modest gains appeared on `quake` and `Titanic`.
 
   - order: 2
     delta_ref: delta_shared_feature_norm
-    status: ready
+    status: completed
     rationale: This isolates shared normalization and shared feature weights without changing the table block or row readout.
     hypothesis: Shared feature encoding may help the staged family generalize across varied feature identities, but it also moves normalization responsibility outside the nano-exact path.
     anchor_delta: Changes only feature_encoder from nano to shared; tokenizer, target conditioning, table block, row pooling, data, and preprocessing remain fixed.
@@ -43,17 +49,23 @@ rows:
     parameter_adequacy_plan:
       - Keep optimizer and row/context structure fixed for the first pass.
       - Only treat a weak result as structural evidence after checking whether normalization mismatch is the dominant failure mode.
-    run_id: null
+    run_id: sd_binary_md_v1_02_delta_shared_feature_norm_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Run the isolated shared-feature-encoder comparison.
-    notes: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - The row reached a better peak than the anchor but retained that gain poorly by the final checkpoint, so the negative final result is still entangled with budget or normalization mismatch.
+      - The shared-normalization path required an MPS compatibility fix before this completed run, so there is no pre-fix row-2 baseline on the same device path.
+    next_action: Keep this as completed mixed evidence and only schedule a bounded follow-up if we want to test whether shorter budgets or downstream normalization mismatch explain the late-curve drop.
+    notes:
+      - Completed run `sd_binary_md_v1_02_delta_shared_feature_norm_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
+      - "Aggregate delta versus anchor: best ROC AUC `+0.0039`, final ROC AUC `-0.0041`."
+      - Training was slower than anchor by `+42.6s` at best and `+25.7s` at final.
+      - Best-point signal was positive, but final retention was materially worse than the anchor.
 
   - order: 3
     delta_ref: delta_prenorm_block
-    status: ready
+    status: completed
     rationale: This isolates normalization/block ordering before introducing any new attention edges or tokenization changes.
     hypothesis: Pre-norm may stabilize optimization at compact scale, but a loss may simply mean the head/optimizer neighborhood was tuned around post-norm behavior.
     anchor_delta: Changes only table_block_style from nano_postnorm to prenorm with allow_test_self_attention=false.
@@ -69,17 +81,23 @@ rows:
     parameter_adequacy_plan:
       - Compare best ROC AUC, final ROC AUC, and drift jointly.
       - Defer rather than reject if only the late portion of training worsens without a clear hyperparameter adequacy check.
-    run_id: null
+    run_id: sd_binary_md_v1_03_delta_prenorm_block_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Run the pre-norm-only ablation.
-    notes: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - The row is clearly negative versus the anchor, but it still uses the anchor optimizer and head neighborhood, so the mechanism-versus-tuning split is not fully closed.
+      - This row is now the required local comparator for `delta_test_self_attention`, so its main value is both negative evidence and an interpretive baseline.
+    next_action: Keep this as completed negative evidence and compare any self-attention benefit against both the anchor and this pre-norm-only baseline.
+    notes:
+      - Completed run `sd_binary_md_v1_03_delta_prenorm_block_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
+      - "Aggregate delta versus anchor: best ROC AUC `-0.0142`, final ROC AUC `-0.0164`."
+      - Training was slower than anchor by `+136.0s` at best and `+3.3s` at final.
+      - Largest losses appeared on `banana`, `Amazon_employee_access`, and `blood-transfusion-service-center`; modest gains appeared on `haberman` and `diabetes`.
 
   - order: 4
     delta_ref: delta_test_self_attention
-    status: ready
+    status: completed
     rationale: This isolates the masking change from tokenizer, row-pool, and context-encoder changes.
     hypothesis: Keeping each test token's own state through the block may help the direct head, but any failure could mean the surrounding block settings are still mismatched.
     anchor_delta: Starting from the explicit pre-norm block, change only allow_test_self_attention from false to true.
@@ -94,14 +112,20 @@ rows:
       surface_label: runtime_default
     parameter_adequacy_plan:
       - Compare directly against both the anchor and the pre-norm-only row in the written interpretation.
-    run_id: null
+    run_id: sd_binary_md_v1_04_delta_test_self_attention_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
+    decision: defer
+    interpretation_status: interpreted
     confounders:
       - This row is easiest to interpret after delta_prenorm_block has data.
-    next_action: Queue after the pre-norm-only run so the masking effect has a local comparator.
-    notes: []
+      - The result is nested inside the explicit pre-norm block, so it shows local recovery versus row 3 more clearly than it shows superiority to the anchor.
+    next_action: Keep this as completed mixed evidence; treat self-attention as a local repair to the pre-norm row rather than a launch-ready improvement over the anchor.
+    notes:
+      - Completed run `sd_binary_md_v1_04_delta_test_self_attention_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1` and local comparator `sd_binary_md_v1_03_delta_prenorm_block_v1`.
+      - "Aggregate delta versus anchor: best ROC AUC `-0.0067`, final ROC AUC `-0.0051`."
+      - "Aggregate delta versus pre-norm comparator: best ROC AUC `+0.0075`, final ROC AUC `+0.0113`."
+      - Training remained slower than anchor by `+204.9s` at best and `+15.5s` at final.
+      - Largest remaining losses versus anchor appeared on `banana`, `Amazon_employee_access`, and `Titanic`, while the strongest recovery versus row 3 appeared on `blood-transfusion-service-center`, `banana`, and `Amazon_employee_access`.
 
   - order: 5
     delta_ref: delta_shifted_grouped_tokenizer
@@ -130,7 +154,7 @@ rows:
 
   - order: 6
     delta_ref: delta_row_cls_pool
-    status: ready
+    status: completed
     rationale: This is the row you called out directly; the structure change is large enough that its introduced capacity knobs must be reported and interpreted, not hidden.
     hypothesis: CLS pooling may extract better row summaries, but a weak result is not evidence against the mechanism unless tfrow_n_heads, tfrow_n_layers, and tfrow_cls_tokens are adequate.
     anchor_delta: Changes only row_pool from target_column to row_cls.
@@ -146,18 +170,62 @@ rows:
       - Initial run isolates the structural toggle only.
       - If neutral-to-bad, perform a bounded adequacy sweep over tfrow_n_heads, tfrow_n_layers, and tfrow_cls_tokens before any reject decision.
       - Document whether the row pool appears under-capacity, over-capacity, or simply incompatible with the anchor tokenizer.
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
+    run_id: sd_binary_md_v1_06_delta_row_cls_pool_v1
+    followup_run_ids:
+      - sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1
+      - sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1
+      - sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1
+    decision: defer
+    interpretation_status: interpreted
     confounders:
       - Row CLS pooling adds both a new aggregation rule and new capacity knobs.
-    next_action: Run the isolated row-pool toggle and require interpretation before any verdict.
-    notes: []
+      - Smaller row-CLS configurations improved stability without recovering quality, which leaves the remaining gap split between over-capacity and a likely mismatch with the anchor tokenizer and readout surface.
+    next_action: Keep this as completed negative evidence, then run delta_row_cls_pool_rmsnorm to test whether normalization changes can convert the CLS-token stability gain into useful benchmark quality.
+    notes:
+      - Completed primary run sd_binary_md_v1_06_delta_row_cls_pool_v1 plus bounded adequacy follow-ups sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1, sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1, and sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1.
+      - "Primary row-CLS was decisively negative versus anchor: best ROC AUC -0.1763, final ROC AUC -0.2557, with final grad norm 3225276.25."
+      - heads4 reduced gradient severity materially, but benchmark quality remained worse than the primary row on best ROC AUC and far below anchor at final ROC AUC -0.2308.
+      - layers1 did not stabilize the mechanism; it reached max grad norm 798033856.0 and finished at chance-level final ROC AUC 0.5000.
+      - cls2 was the cleanest adequacy variant on stability, with final grad norm 0.0492, but still finished far below anchor at best ROC AUC -0.1881 and final ROC AUC -0.2660.
+      - "Combined interpretation: the default row-CLS setting looks over-capacity for this surface, especially on CLS token count, but stabilization alone did not make row-CLS competitive, so the mechanism still appears mismatched to the anchor nano-exact surface."
 
   - order: 7
+    delta_ref: delta_row_cls_pool_rmsnorm
+    status: completed
+    rationale: This keeps the row-CLS structural change but isolates the row-encoder normalization choice after the base row-CLS evidence is in hand.
+    hypothesis: RMSNorm may reduce row-CLS instability, but a weak result could still mean the row-CLS mechanism is mismatched to the anchor surface rather than merely badly normalized.
+    anchor_delta: Starting from the anchor, change row_pool from target_column to row_cls and row-encoder normalization from LayerNorm to RMSNorm.
+    model:
+      stage_label: delta_row_cls_pool_rmsnorm
+      module_overrides:
+        row_pool: row_cls
+      tfrow_norm: rmsnorm
+    data:
+      surface_label: anchor_manifest_default
+    preprocessing:
+      surface_label: runtime_default
+    parameter_adequacy_plan:
+      - Compare directly against both the anchor and the resolved row-CLS evidence.
+      - If neutral-to-bad, perform a bounded adequacy sweep over tfrow_n_heads, tfrow_n_layers, and tfrow_cls_tokens before any reject decision.
+      - Document whether RMSNorm improves stability, quality, or neither.
+    run_id: sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1
+    followup_run_ids: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - RMSNorm changes row-encoder stabilization without addressing any deeper tokenizer or readout mismatch by itself.
+      - The primary RMSNorm row was enough to show that normalization alone does not rescue the default row-CLS path, but it does not answer whether a smaller RMSNorm row-CLS configuration such as cls2 would behave better.
+    next_action: Keep this as completed negative evidence for the default RMSNorm row-CLS path, then move to delta_column_set_encoder; only revisit RMSNorm later if a targeted smaller-capacity row-CLS combination becomes worth testing.
+    notes:
+      - Completed run sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1 and interpreted directly against the completed LayerNorm row-CLS evidence.
+      - "Aggregate delta versus anchor: best ROC AUC -0.1957, final ROC AUC -0.2629."
+      - The RMSNorm row was slightly worse than the LayerNorm row-CLS primary on both best and final ROC AUC, and slightly worse than the LayerNorm cls2 adequacy variant on best ROC AUC.
+      - "Training trajectory was visibly different, with lower-loss mid-run windows, but training diagnostics remained extremely unstable: final grad norm 1180686848.0, mean grad norm 216035150.8, max grad norm 7545585664.0."
+      - Benchmarking this row exposed a real implementation bug in RMSNorm compatibility with the transformer eval fast path; the fix now disables that fast path for non-LayerNorm row encoders and is covered by eval-mode regression tests.
+
+  - order: 8
     delta_ref: delta_column_set_encoder
-    status: ready
+    status: completed
     rationale: Column-set encoding should be evaluated separately from row CLS pooling and QASS context so its effect is attributable.
     hypothesis: Explicit column-set reasoning may help heterogeneous feature identity, but harm may indicate that tfcol_n_heads / tfcol_n_layers / tfcol_n_inducing are poorly chosen rather than that the idea is bad.
     anchor_delta: Changes only column_encoder from none to tfcol.
@@ -171,17 +239,24 @@ rows:
       surface_label: runtime_default
     parameter_adequacy_plan:
       - If the first run underperforms, interpret whether the issue looks like under-capacity, inducing-point mismatch, or interaction with the unchanged row pool.
-    run_id: null
+    run_id: sd_binary_md_v1_08_delta_column_set_encoder_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Run the isolated column-set encoder delta after the row-pool row is understood.
-    notes: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - The first-pass TFCol row stayed stable, so the remaining ambiguity is more about inducing-point and capacity choice than raw optimization failure.
+      - The unchanged target-column row pool may limit how much explicit column-set reasoning can pay off on this anchored surface.
+    next_action: Keep this as completed negative evidence for the default TFCol setting, then move to delta_qass_context; only revisit TFCol later if a bounded inducing-point or depth adequacy check becomes necessary.
+    notes:
+      - Completed run sd_binary_md_v1_08_delta_column_set_encoder_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1.
+      - "Aggregate delta versus anchor: best ROC AUC -0.0046, final ROC AUC -0.0051."
+      - Training stayed healthy and late-improving, with final grad norm 0.2772, mean grad norm 0.2417, max grad norm 8.0667, and best checkpoint at step 2275.
+      - "The row's main cost was efficiency: best training time +534.7s and final training time +611.9s versus anchor."
+      - "Combined interpretation: the default TFCol encoder looks plausible but not yet adequate on this bundle, with the strongest ambiguity centered on inducing-point/capacity cost rather than instability."
 
-  - order: 8
+  - order: 9
     delta_ref: delta_qass_context
-    status: ready
+    status: completed
     rationale: Context encoding changes both depth and label-conditioned message passing, so it belongs late in the binary queue after simpler toggles.
     hypothesis: QASS may help longer-range support/test interactions, but weak results may simply indicate the compact benchmark surface does not justify the added context depth.
     anchor_delta: Changes only context_encoder from none to qass.
@@ -195,15 +270,140 @@ rows:
       surface_label: runtime_default
     parameter_adequacy_plan:
       - Distinguish context-value from pure added-depth effects in the result card.
-    run_id: null
+    run_id: sd_binary_md_v1_09_delta_qass_context_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Run after simpler model deltas so the interpretation has cleaner context.
-    notes: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - The first-pass QASS row trained cleanly, so the remaining ambiguity is more about whether added context depth is actually useful on this compact bundle than about raw optimization failure.
+      - This run did not include a pure added-depth control, so some residual ambiguity remains between context-value and depth-cost.
+    next_action: Keep this as completed negative evidence for the default QASS setting, then move to delta_global_rmsnorm; only revisit QASS later if a bounded context-vs-depth adequacy check becomes necessary.
+    notes:
+      - Completed run sd_binary_md_v1_09_delta_qass_context_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1.
+      - "Aggregate delta versus anchor: best ROC AUC -0.0084, final ROC AUC -0.0126."
+      - Training stayed healthy, with final grad norm 0.2010, mean grad norm 0.1873, max grad norm 4.3123, and a strongest train-loss window down to 0.3285 at step 1625.
+      - "The row paid a moderate time cost: best training time +32.5s and final training time +230.5s versus anchor."
+      - "Combined interpretation: QASS added real capacity but not enough useful context signal to beat the anchor on this bundle, so the default setting remains deferred rather than rejected."
 
-  - order: 9
+  - order: 10
+    delta_ref: delta_global_rmsnorm
+    status: completed
+    rationale: A broad norm-family change should be measured explicitly rather than smuggled into structural rescue runs.
+    hypothesis: RMSNorm may reduce optimization instability on the anchored staged surface, but any gain must be separated from late-curve calibration or retention effects.
+    anchor_delta: Keep the anchor structure fixed and switch model.norm_type and model.tfrow_norm from LayerNorm to RMSNorm.
+    model:
+      stage_label: delta_global_rmsnorm
+      norm_type: rmsnorm
+      tfrow_norm: rmsnorm
+    data:
+      surface_label: anchor_manifest_default
+    preprocessing:
+      surface_label: runtime_default
+    parameter_adequacy_plan:
+      - Compare best/final ROC AUC and training stability against the constant anchor surface.
+      - Distinguish early-step stabilization from true end-of-run quality improvements.
+    run_id: sd_binary_md_v1_10_delta_global_rmsnorm_v1
+    followup_run_ids: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - A broad norm-family change can improve gradient behavior without improving benchmark quality.
+      - This near-neutral result does not answer whether RMSNorm would interact differently with a changed training schedule.
+    next_action: Keep this as completed near-neutral evidence for broad RMSNorm, then move to delta_training_linear_decay; only revisit RMSNorm later if schedule interactions make it newly compelling.
+    notes:
+      - Completed run sd_binary_md_v1_10_delta_global_rmsnorm_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1 and interpreted alongside the completed row-CLS RMSNorm evidence.
+      - "Aggregate delta versus anchor: best ROC AUC -0.0014, final ROC AUC +0.0002."
+      - Training stayed healthy, with final grad norm 0.2164, mean grad norm 0.1736, max grad norm 4.4246, and no instability signature.
+      - "Runtime remained slower than anchor: best and final training time +241.6s and +52.1s."
+      - "Combined interpretation: broad RMSNorm looks viable and far healthier than the row-CLS-specific RMSNorm structural row, but it is still not a clear improvement over the LayerNorm anchor."
+
+  - order: 11
+    delta_ref: delta_training_linear_decay
+    status: completed
+    rationale: Training recipe changes should be measured explicitly after the simpler structural rows, not smuggled in as silent recovery attempts.
+    hypothesis: A decayed exact-prior LR may retain more of the anchor's peak quality or reduce instability without changing the model surface at all.
+    anchor_delta: Keep model, data, and preprocessing fixed and replace the constant exact-prior LR with a single-stage linear-decay schedule.
+    model:
+      stage_label: anchor_model
+    data:
+      surface_label: anchor_manifest_default
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_linear_decay
+      overrides:
+        apply_schedule: true
+        optimizer:
+          min_lr: 0.0004
+        schedule:
+          stages:
+            - name: stage1
+              steps: 2500
+              lr_max: 0.004
+              lr_schedule: linear
+              warmup_ratio: 0.0
+    parameter_adequacy_plan:
+      - Interpret against the constant-LR anchor on both ROC and post-warmup stability diagnostics.
+      - Keep optimizer, model, data, and preprocessing fixed for the first pass.
+    run_id: sd_binary_md_v1_11_delta_training_linear_decay_v1
+    followup_run_ids: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - This row changes optimization dynamics only, so any gain or loss is easy to over-attribute without checking variance and gradient behavior.
+      - Warmup remains untested in this row, so the main residual ambiguity is whether plain decay failed because the early schedule was too abrupt rather than because decay is unhelpful outright.
+    next_action: Keep this as completed negative evidence for plain linear decay on the anchor surface, then move to delta_training_linear_warmup_decay to separate warmup from decay itself.
+    notes:
+      - Completed run sd_binary_md_v1_11_delta_training_linear_decay_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1.
+      - "Aggregate delta versus anchor: best ROC AUC -0.0042, final ROC AUC -0.0133."
+      - The schedule was applied as intended, with LR 0.0040 at step 1, about 0.0022 at step 1250, and 0.0004 at step 2500.
+      - "Runtime stayed near anchor by the end: best and final training time +38.4s and +9.0s."
+      - "Combined interpretation: plain linear decay trained cleanly but hurt late benchmark retention, so it is negative first-pass evidence rather than a launch default candidate."
+
+  - order: 12
+    delta_ref: delta_training_linear_warmup_decay
+    status: completed
+    rationale: Warmup should be measured separately from plain decay so the queue can tell whether any benefit comes from gentler early steps or just from a lower late-stage LR.
+    hypothesis: A short warmup may reduce early instability on the exact-prior surface and improve retention relative to no-warmup decay, but it may also simply slow convergence.
+    anchor_delta: Keep model, data, and preprocessing fixed and replace the constant exact-prior LR with a single-stage linear schedule plus warmup.
+    model:
+      stage_label: anchor_model
+    data:
+      surface_label: anchor_manifest_default
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_linear_warmup_decay
+      overrides:
+        apply_schedule: true
+        optimizer:
+          min_lr: 0.0004
+        schedule:
+          stages:
+            - name: stage1
+              steps: 2500
+              lr_max: 0.004
+              lr_schedule: linear
+              warmup_ratio: 0.05
+    parameter_adequacy_plan:
+      - Compare against both the constant-LR anchor and the no-warmup linear-decay row.
+      - Treat best/final ROC, post-warmup train-loss variance, and gradient norms as the primary interpretation surface.
+    run_id: sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1
+    followup_run_ids: []
+    decision: defer
+    interpretation_status: interpreted
+    confounders:
+      - Warmup can improve early stability while still hurting final retention, so both shape and endpoint matter here.
+      - This row only tests one warmup ratio on one LR floor, so the remaining ambiguity is about schedule tuning rather than whether the tested recipe beats the anchor.
+    next_action: Keep this as completed evidence that warmup partly improves the decay recipe but still does not justify replacing the constant-LR anchor, then move to delta_data_manifest_source_binary_iris.
+    notes:
+      - Completed run sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1 and compared directly against sd_binary_md_v1_11_delta_training_linear_decay_v1.
+      - "Aggregate delta versus anchor: best ROC AUC -0.0076, final ROC AUC -0.0093."
+      - "Versus no-warmup decay, warmup traded peak quality for better finish: best ROC AUC -0.0034, final ROC AUC +0.0041."
+      - The schedule was applied as intended, with LR 0.000032 at step 1, peak 0.0040 by step 125, and 0.0004 at step 2500.
+      - "Combined interpretation: warmup reduced gradient severity and improved final retention relative to plain decay, but the combined recipe still remained clearly below the constant-LR anchor."
+
+  - order: 13
     delta_ref: delta_data_filter_policy_accepted_only
     status: blocked_on_artifacts
     rationale: Filter policy is a data-surface decision, not a silent background tweak.
@@ -229,7 +429,7 @@ rows:
     next_action: Materialize the accepted-only manifest and attach its provenance before scheduling training.
     notes: []
 
-  - order: 10
+  - order: 14
     delta_ref: delta_data_manifest_root_curated_dagzoo
     status: blocked_on_artifacts
     rationale: The queue must be able to compare not only model structure but also the exact dagzoo call set that defined the training corpus.
@@ -259,7 +459,7 @@ rows:
     next_action: Capture the dagzoo generation/filter lineage first.
     notes: []
 
-  - order: 11
+  - order: 15
     delta_ref: delta_data_manifest_source_binary_iris
     status: ready
     rationale: This gives the queue one immediately runnable data-source ablation using an existing repo-tracked manifest family.
@@ -285,7 +485,7 @@ rows:
     next_action: Run only after the matrix explicitly records the anchor-versus-iris manifest characteristics.
     notes: []
 
-  - order: 12
+  - order: 16
     delta_ref: delta_preproc_impute_missing_off
     status: ready
     rationale: Missing-value handling is a first-class preprocessing dimension and should be measured without mixing in data or model changes.
@@ -309,7 +509,7 @@ rows:
     next_action: Run once the matrix records the anchor manifest's missingness expectations.
     notes: []
 
-  - order: 13
+  - order: 17
     delta_ref: delta_preproc_all_nan_fill_nonzero
     status: ready
     rationale: This isolates a preprocessing policy knob that is usually hidden inside fitted-state defaults.
@@ -333,7 +533,7 @@ rows:
     next_action: Run after the no-imputation row so missing-value sensitivity has context.
     notes: []
 
-  - order: 14
+  - order: 18
     delta_ref: delta_preproc_label_mapping_surface
     status: blocked_on_policy_impl
     rationale: Label mapping is now explicit in the surface record, but there is not yet a second supported runtime policy to compare.

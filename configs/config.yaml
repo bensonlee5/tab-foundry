@@ -1,6 +1,7 @@
 defaults:
   - data: default
   - preprocessing: default
+  - training: default
   - model: default
   - optimizer: muon_default
   - schedule: scaled_default

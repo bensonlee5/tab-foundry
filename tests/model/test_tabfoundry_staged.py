@@ -187,6 +187,64 @@ def test_binary_only_stages_reject_multiclass() -> None:
         _ = _staged("nano_exact")(_batch(num_classes=3))
 
 
+def test_row_cls_pool_stage_supports_rmsnorm() -> None:
+    model = _staged(
+        "row_cls_pool",
+        tfrow_n_heads=2,
+        tfrow_n_layers=1,
+        tfrow_cls_tokens=2,
+        tfrow_norm="rmsnorm",
+    )
+    model.eval()
+
+    with torch.no_grad():
+        out = model(_batch())
+
+    assert model.module_hyperparameters["row_pool"]["norm_type"] == "rmsnorm"
+    assert out.logits is not None
+    assert tuple(out.logits.shape) == (2, 2)
+
+
+def test_simple_classifier_supports_global_rmsnorm() -> None:
+    model = _simple(
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=1,
+        head_hidden_dim=64,
+        norm_type="rmsnorm",
+    )
+
+    out = model(_batch())
+
+    assert model.norm_type == "rmsnorm"
+    assert out.logits is not None
+    assert tuple(out.logits.shape) == (2, 2)
+
+
+def test_staged_surface_supports_global_rmsnorm_across_active_modules() -> None:
+    model = _staged(
+        "nano_exact",
+        stage_label="delta_global_rmsnorm",
+        module_overrides={"column_encoder": "tfcol", "context_encoder": "qass"},
+        norm_type="rmsnorm",
+        tfrow_norm="rmsnorm",
+        tfcol_n_heads=2,
+        tfcol_n_layers=1,
+        tfcol_n_inducing=8,
+        tficl_n_heads=2,
+        tficl_n_layers=1,
+        head_hidden_dim=64,
+    )
+
+    out = model(_batch())
+
+    assert model.module_hyperparameters["table_block"]["norm_type"] == "rmsnorm"
+    assert model.module_hyperparameters["column_encoder"]["norm_type"] == "rmsnorm"
+    assert model.module_hyperparameters["context_encoder"]["norm_type"] == "rmsnorm"
+    assert out.logits is not None
+    assert tuple(out.logits.shape) == (2, 2)
+
+
 def test_small_class_stage_rejects_more_classes_than_many_class_base() -> None:
     model = _staged("small_class_head", many_class_base=4, input_normalization="none")
     with pytest.raises(RuntimeError, match="many_class_base"):

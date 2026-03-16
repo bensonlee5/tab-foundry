@@ -28,8 +28,10 @@ from tab_foundry.training.artifacts import (
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import build_optimizer
 from tab_foundry.training.surface import write_training_surface_record
+from tab_foundry.training.schedule import build_stage_configs, stage_base_lr, StageConfig
 from tab_foundry.training.trainer import (
     _normalize_grad_norm_value,
+    _set_optimizer_base_lr,
     _set_optimizer_training_mode,
     _total_grad_norm,
 )
@@ -59,6 +61,36 @@ def _resolve_lr(cfg: DictConfig) -> float:
     if lr <= 0:
         raise ValueError(f"optimizer.min_lr must be > 0, got {lr}")
     return lr
+
+
+def _resolve_prior_schedule(cfg: DictConfig, *, max_steps: int, lr_min: float) -> StageConfig | None:
+    training_cfg = getattr(cfg, "training", None)
+    apply_schedule = bool(getattr(training_cfg, "apply_schedule", False))
+    if not apply_schedule:
+        return None
+
+    schedule_cfg = getattr(cfg, "schedule", None)
+    raw_stages = getattr(schedule_cfg, "stages", None)
+    if raw_stages is None:
+        raise ValueError("exact-parity prior training requires schedule.stages when training.apply_schedule=true")
+    resolved = OmegaConf.to_container(raw_stages, resolve=True)
+    if not isinstance(resolved, list):
+        raise ValueError("exact-parity prior training requires schedule.stages to resolve to a list")
+    stages = build_stage_configs(cast(list[dict[str, object]], resolved))
+    if len(stages) != 1:
+        raise ValueError("exact-parity prior training currently supports exactly one schedule stage")
+    stage = stages[0]
+    if int(stage.steps) != int(max_steps):
+        raise ValueError(
+            "exact-parity prior training requires schedule.stages[0].steps to equal runtime.max_steps; "
+            f"got steps={stage.steps}, max_steps={max_steps}"
+        )
+    if float(lr_min) > float(stage.lr_max):
+        raise ValueError(
+            "exact-parity prior training requires optimizer.min_lr <= schedule.stages[0].lr_max; "
+            f"got min_lr={lr_min}, lr_max={stage.lr_max}"
+        )
+    return stage
 
 
 def _optimizer_kwargs(cfg: DictConfig) -> dict[str, object]:
@@ -205,7 +237,7 @@ def train_tabfoundry_simple_prior(
     if grad_clip <= 0:
         raise ValueError(f"runtime.grad_clip must be > 0 for prior-dump training, got {grad_clip}")
 
-    lr = _resolve_lr(cfg)
+    lr_min = _resolve_lr(cfg)
     model = build_model_from_spec(spec)
     device = torch.device(resolve_device(str(cfg.runtime.device)))
     model.to(device)
@@ -217,10 +249,17 @@ def train_tabfoundry_simple_prior(
         run_dir=output_dir,
     )
 
+    prior_stage = _resolve_prior_schedule(cfg, max_steps=max_steps, lr_min=lr_min)
+    initial_lr = (
+        float(stage_base_lr(prior_stage, step=1, lr_min=lr_min))
+        if prior_stage is not None
+        else float(lr_min)
+    )
+
     optimizer_selection = build_optimizer(
         model,
         name=str(cfg.optimizer.name),
-        lr=lr,
+        lr=initial_lr,
         weight_decay=float(cfg.optimizer.weight_decay),
         extra_kwargs=_optimizer_kwargs(cfg),
         require_requested=bool(cfg.optimizer.require_requested),
@@ -237,10 +276,16 @@ def train_tabfoundry_simple_prior(
         raise RuntimeError(
             "exact-parity prior-dump training expects exactly one optimizer instance, "
             f"got {len(optimizer_selection.optimizers)}"
-        )
+    )
     optimizer = optimizer_selection.optimizers[0][1]
     prepared_opts = [("schedulefree_adamw", optimizer)]
     _set_optimizer_training_mode(prepared_opts, training=True)
+    lr_scales = [1.0 for _ in optimizer.param_groups]
+    _set_optimizer_base_lr(
+        optimizer,
+        base_lr=initial_lr,
+        scales=lr_scales,
+    )
 
     history_step_loss = 0.0
     history_step_acc = 0.0
@@ -261,6 +306,15 @@ def train_tabfoundry_simple_prior(
     for prior_step in reader:
         optimizer.zero_grad(set_to_none=True)
         step_train_start = time.perf_counter()
+        if prior_stage is not None:
+            current_base_lr = float(
+                stage_base_lr(prior_stage, step=int(prior_step.step_index), lr_min=lr_min)
+            )
+            _set_optimizer_base_lr(
+                optimizer,
+                base_lr=current_base_lr,
+                scales=lr_scales,
+            )
         forward_batched = getattr(model, "forward_batched", None)
         if not callable(forward_batched):
             raise RuntimeError(

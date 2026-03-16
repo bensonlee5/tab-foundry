@@ -8,12 +8,14 @@ input_normalization: none
 feature_group_size: 1
 many_class_train_mode: path_nll
 max_mixed_radix_digits: 64
+norm_type: layernorm
 tfcol_n_heads: 8
 tfcol_n_layers: 3
 tfcol_n_inducing: 128
 tfrow_n_heads: 8
 tfrow_n_layers: 3
 tfrow_cls_tokens: 4
+tfrow_norm: layernorm
 tficl_n_heads: 8
 tficl_n_layers: 12
 tficl_ff_expansion: 2

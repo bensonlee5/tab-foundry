@@ -5,6 +5,7 @@ from __future__ import annotations
 import torch
 from torch import nn
 
+from .normalization import build_norm
 from .qass import QASSMultiheadAttention
 
 
@@ -19,13 +20,14 @@ class ISABBlock(nn.Module):
         *,
         ff_expansion: int = 2,
         dropout: float = 0.0,
+        norm_type: str = "layernorm",
     ) -> None:
         super().__init__()
         self.inducing = nn.Parameter(torch.randn(1, n_inducing, d_model) * 0.02)
 
-        self.norm_in = nn.LayerNorm(d_model)
-        self.norm_mid = nn.LayerNorm(d_model)
-        self.norm_out = nn.LayerNorm(d_model)
+        self.norm_in = build_norm(norm_type, d_model)
+        self.norm_mid = build_norm(norm_type, d_model)
+        self.norm_out = build_norm(norm_type, d_model)
 
         self.attn_in_to_inducing = QASSMultiheadAttention(
             d_model=d_model,
@@ -80,6 +82,7 @@ class TFColEncoder(nn.Module):
         n_heads: int = 8,
         n_layers: int = 3,
         n_inducing: int = 128,
+        norm_type: str = "layernorm",
     ) -> None:
         super().__init__()
         self.blocks = nn.ModuleList(
@@ -88,6 +91,7 @@ class TFColEncoder(nn.Module):
                     d_model=d_model,
                     n_heads=n_heads,
                     n_inducing=n_inducing,
+                    norm_type=norm_type,
                 )
                 for _ in range(n_layers)
             ]
@@ -113,9 +117,12 @@ class TFRowEncoder(nn.Module):
         cls_tokens: int = 4,
         d_out: int = 512,
         ff_expansion: int = 2,
+        norm_type: str = "layernorm",
     ) -> None:
         super().__init__()
         self.cls_tokens = cls_tokens
+        self.norm_type = str(norm_type).strip().lower()
+        self._disable_transformer_fastpath = self.norm_type != "layernorm"
         self.cls = nn.Parameter(torch.randn(1, cls_tokens, d_model) * 0.02)
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model,
@@ -125,10 +132,12 @@ class TFRowEncoder(nn.Module):
             activation="gelu",
             norm_first=True,
         )
+        setattr(encoder_layer, "norm1", build_norm(norm_type, d_model))
+        setattr(encoder_layer, "norm2", build_norm(norm_type, d_model))
         self.encoder = nn.TransformerEncoder(
             encoder_layer,
             num_layers=n_layers,
-            norm=nn.LayerNorm(d_model),
+            norm=build_norm(norm_type, d_model),
             enable_nested_tensor=False,
         )
         self.out = nn.Linear(cls_tokens * d_model, d_out)
@@ -158,6 +167,14 @@ class TFRowEncoder(nn.Module):
                 device=tokens.device, dtype=torch.bool
             ).expand(n_rows, -1)
             src_key_padding_mask = torch.cat([cls_mask, feat_mask], dim=1)
-        h = self.encoder(tokens, src_key_padding_mask=src_key_padding_mask)
+        if self._disable_transformer_fastpath:
+            previous_fastpath = torch.backends.mha.get_fastpath_enabled()
+            torch.backends.mha.set_fastpath_enabled(False)
+            try:
+                h = self.encoder(tokens, src_key_padding_mask=src_key_padding_mask)
+            finally:
+                torch.backends.mha.set_fastpath_enabled(previous_fastpath)
+        else:
+            h = self.encoder(tokens, src_key_padding_mask=src_key_padding_mask)
         cls_out = h[:, : self.cls_tokens, :].reshape(n_rows, -1)
         return self.out(cls_out)

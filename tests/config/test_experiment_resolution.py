@@ -154,4 +154,8 @@ def test_cls_benchmark_staged_prior_resolution() -> None:
     assert list(cfg.optimizer.betas) == [0.9, 0.999]
     assert float(cfg.optimizer.min_lr) == 4.0e-3
     assert bool(cfg.optimizer.muon_per_parameter_lr) is False
+    assert str(cfg.model.norm_type) == "layernorm"
+    assert str(cfg.model.tfrow_norm) == "layernorm"
+    assert str(cfg.training.surface_label) == "prior_constant_lr"
+    assert bool(cfg.training.apply_schedule) is False
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_staged_prior/train_history.jsonl"
