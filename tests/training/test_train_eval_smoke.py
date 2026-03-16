@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 import json
-import os
 from pathlib import Path
 from types import SimpleNamespace
-import sys
 
 from omegaconf import OmegaConf
 import pytest
@@ -97,6 +95,19 @@ class _TinyClassifier(nn.Module):
         )
 
 
+class _FakeWandbRun:
+    def __init__(self) -> None:
+        self.logged: list[tuple[dict[str, object], int]] = []
+        self.summary: dict[str, object] = {}
+        self.finished = False
+
+    def log(self, payload: dict[str, object], *, step: int) -> None:
+        self.logged.append((dict(payload), int(step)))
+
+    def finish(self) -> None:
+        self.finished = True
+
+
 def _classification_cfg(tmp_path: Path) -> object:
     return OmegaConf.create(
         {
@@ -146,7 +157,7 @@ def _install_classification_fakes(monkeypatch: pytest.MonkeyPatch) -> None:
         "build_accelerator_from_runtime",
         lambda *_args, **_kwargs: _FakeAccelerator(),
     )
-    monkeypatch.setattr(trainer_module, "_wandb_init", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(trainer_module, "model_build_spec_from_mappings", lambda **_kwargs: fake_spec)
     monkeypatch.setattr(
         evaluate_module,
@@ -249,56 +260,6 @@ def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pyte
         _ = trainer_module.train(cfg)
 
 
-def test_wandb_init_uses_api_key_file_when_env_missing(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    cfg = _classification_cfg(tmp_path)
-    cfg.logging.use_wandb = True
-    key_path = tmp_path / "wandb_api_key.txt"
-    key_path.write_text("secret-key\n", encoding="utf-8")
-
-    calls: list[dict[str, object]] = []
-
-    def _fake_init(**kwargs: object) -> dict[str, object]:
-        calls.append(dict(kwargs))
-        return dict(kwargs)
-
-    monkeypatch.delenv("WANDB_API_KEY", raising=False)
-    monkeypatch.setenv("WANDB_API_KEY_FILE", str(key_path))
-    monkeypatch.setitem(sys.modules, "wandb", SimpleNamespace(init=_fake_init))
-
-    run = trainer_module._wandb_init(cfg, enabled=True)
-
-    assert run is not None
-    assert calls[0]["mode"] == "online"
-    assert os.environ["WANDB_API_KEY"] == "secret-key"
-
-
-def test_wandb_init_falls_back_to_offline_without_any_api_key(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    cfg = _classification_cfg(tmp_path)
-    cfg.logging.use_wandb = True
-
-    calls: list[dict[str, object]] = []
-
-    def _fake_init(**kwargs: object) -> dict[str, object]:
-        calls.append(dict(kwargs))
-        return dict(kwargs)
-
-    monkeypatch.delenv("WANDB_API_KEY", raising=False)
-    monkeypatch.delenv("WANDB_API_KEY_FILE", raising=False)
-    monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setitem(sys.modules, "wandb", SimpleNamespace(init=_fake_init))
-
-    run = trainer_module._wandb_init(cfg, enabled=True)
-
-    assert run is not None
-    assert calls[0]["mode"] == "offline"
-
-
 def test_train_rejects_existing_checkpoint_artifacts(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -362,3 +323,49 @@ def test_train_history_uses_linear_schedule_values(
         if line.strip()
     ]
     assert [record["lr"] for record in records] == pytest.approx([1.0e-3, 7.0e-4, 4.0e-4, 1.0e-4])
+
+
+def test_train_logs_enriched_wandb_metrics_and_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    cfg.logging.use_wandb = True
+    cfg.schedule.stages = [{"name": "stage1", "steps": 2, "lr_max": 1.0e-3}]
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+
+    result = trainer_module.train(cfg)
+
+    train_logs = [
+        (payload, step)
+        for payload, step in fake_run.logged
+        if "train/loss" in payload
+    ]
+    assert [step for _payload, step in train_logs] == [1, 2]
+    assert "train/loss_delta" not in train_logs[0][0]
+    assert train_logs[1][0]["train/stage"] == "stage1"
+    assert "train/loss_delta" in train_logs[1][0]
+    assert "train/loss_ema" in train_logs[1][0]
+    assert "train/elapsed_seconds" in train_logs[1][0]
+    assert "train/train_elapsed_seconds" in train_logs[1][0]
+    assert "train/grad_clip_threshold" in train_logs[1][0]
+    assert "train/grad_clip_triggered" in train_logs[1][0]
+    assert "train/lr_adamw" in train_logs[1][0]
+    val_logs = [
+        (payload, step)
+        for payload, step in fake_run.logged
+        if "val/val_loss" in payload
+    ]
+    assert [step for _payload, step in val_logs] == [1, 2]
+    assert fake_run.finished is True
+    assert fake_run.summary["optimizer/requested_name"] == "adamw"
+    assert fake_run.summary["optimizer/resolved_name"] == "adamw"
+    assert fake_run.summary["run/output_dir"] == str(result.output_dir)
+    assert fake_run.summary["run/global_step"] == 2
+    assert fake_run.summary["run/best_checkpoint"] == str(result.best_checkpoint.resolve())
+    assert fake_run.summary["run/latest_checkpoint"] == str(result.latest_checkpoint.resolve())
+    assert fake_run.summary["metrics/best_val_loss"] >= 0.0
+    assert fake_run.summary["metrics/final_grad_norm"] >= 0.0
+    assert fake_run.summary["metrics/wall_elapsed_seconds"] >= 0.0

@@ -271,6 +271,19 @@ class _LrTrackingOptimizer(_CountingOptimizer):
         super().step()
 
 
+class _FakeWandbRun:
+    def __init__(self) -> None:
+        self.logged: list[tuple[dict[str, object], int]] = []
+        self.summary: dict[str, object] = {}
+        self.finished = False
+
+    def log(self, payload: dict[str, object], *, step: int) -> None:
+        self.logged.append((dict(payload), int(step)))
+
+    def finish(self) -> None:
+        self.finished = True
+
+
 def _prior_cfg(
     tmp_path: Path,
     *,
@@ -1579,6 +1592,129 @@ def test_train_tabfoundry_simple_prior_writes_failure_telemetry_for_nonfinite_la
     assert telemetry["missingness"]["prior_dump"]["affected_dataset_indices"] == [0]
     assert telemetry["missingness"]["prior_dump"]["non_finite_feature_count"] == 0
     assert telemetry["missingness"]["prior_dump"]["non_finite_label_count"] == 1
+
+
+def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_wandb.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+                [[2.0, 1.0], [4.0, 3.0], [6.0, 5.0], [8.0, 7.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 1],
+            ],
+            dtype=np.int64,
+        ),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    monkeypatch.setattr(
+        prior_train_module,
+        "module_grad_norms",
+        lambda _model: {"decoder": 0.25},
+    )
+    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    cfg = _prior_cfg(tmp_path, max_steps=2)
+    cfg.logging.use_wandb = True
+    cfg.logging.project = "test-project"
+    cfg.logging.run_name = "prior-wandb"
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=2,
+    )
+
+    train_logs = [
+        (payload, step)
+        for payload, step in fake_run.logged
+        if "train/loss" in payload
+    ]
+    assert [step for _payload, step in train_logs] == [1, 2]
+    assert "train/loss_delta" not in train_logs[0][0]
+    assert train_logs[1][0]["train/stage"] == "prior_dump"
+    assert "train/loss_delta" in train_logs[1][0]
+    assert "train/loss_ema" in train_logs[1][0]
+    assert "train/elapsed_seconds" in train_logs[1][0]
+    assert "train/train_elapsed_seconds" in train_logs[1][0]
+    assert "train/grad_clip_threshold" in train_logs[1][0]
+    assert "train/grad_clip_triggered" in train_logs[1][0]
+    assert train_logs[1][0]["train/module_grad_norm/decoder"] == pytest.approx(0.25)
+    assert fake_run.finished is True
+    assert fake_run.summary["run/output_dir"] == str((tmp_path / "train_out").resolve())
+    assert fake_run.summary["run/global_step"] == 2
+    assert fake_run.summary["telemetry/success"] is True
+    assert fake_run.summary["telemetry/checkpoint_snapshot_count"] == 2
+    assert fake_run.summary["artifacts/latest_checkpoint"].endswith("latest.pt")
+    assert fake_run.summary["loss_summary/final_train_loss"] >= 0.0
+    assert fake_run.summary["gradient_summary/global/final_grad_norm"] >= 0.0
+    assert fake_run.summary["missingness/prior_dump/non_finite_feature_count"] == 0
+
+
+def test_train_tabfoundry_simple_prior_logs_wandb_failure_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_wandb_nonfinite.h5",
+        x=np.asarray([[[1.0, np.nan], [2.0, 3.0], [4.0, 5.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+    cfg.logging.use_wandb = True
+    cfg.logging.project = "test-project"
+    cfg.logging.run_name = "prior-wandb-failure"
+
+    with pytest.raises(PriorDumpNonFiniteInputError):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=path,
+            batch_size=1,
+        )
+
+    assert fake_run.finished is True
+    assert fake_run.summary["telemetry/success"] is False
+    assert fake_run.summary["error/type"] == "PriorDumpNonFiniteInputError"
+    assert "contains NaN or Inf" in str(fake_run.summary["error/message"])
+    assert fake_run.summary["missingness/prior_dump/affected_batch_count"] == 1
 
 
 def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(

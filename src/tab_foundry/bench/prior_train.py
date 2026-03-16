@@ -47,6 +47,12 @@ from tab_foundry.training.optimizer import build_optimizer
 from tab_foundry.training.surface import write_training_surface_record
 from tab_foundry.training.schedule import build_stage_configs, stage_base_lr, StageConfig
 from tab_foundry.training.trainer import _set_optimizer_base_lr, _set_optimizer_training_mode
+from tab_foundry.training.wandb import (
+    finish_wandb_run,
+    init_wandb_run,
+    log_wandb_metrics,
+    update_wandb_summary,
+)
 from tab_foundry.types import TrainResult
 
 
@@ -264,6 +270,73 @@ def _accumulate_missingness(
         prior_dump["last_batch"] = batch_missingness.to_dict()
 
 
+def _prior_wandb_summary_payload(
+    *,
+    output_dir: Path,
+    global_step: int,
+    telemetry_payload: dict[str, Any],
+) -> dict[str, Any]:
+    raw_gradient_summary = telemetry_payload.get("gradient_summary")
+    gradient_global = (
+        raw_gradient_summary.get("global")
+        if isinstance(raw_gradient_summary, dict)
+        else None
+    )
+    raw_missingness = telemetry_payload.get("missingness")
+    prior_dump_missingness = (
+        raw_missingness.get("prior_dump")
+        if isinstance(raw_missingness, dict)
+        else None
+    )
+    affected_indices = (
+        prior_dump_missingness.get("affected_dataset_indices")
+        if isinstance(prior_dump_missingness, dict)
+        else None
+    )
+    raw_artifacts = telemetry_payload.get("artifacts")
+    latest_checkpoint = (
+        raw_artifacts.get("latest_checkpoint")
+        if isinstance(raw_artifacts, dict)
+        else None
+    )
+    summary: dict[str, Any] = {
+        "run": {
+            "output_dir": str(output_dir),
+            "global_step": int(global_step),
+        },
+        "telemetry": {
+            "success": telemetry_payload.get("success"),
+            "checkpoint_snapshot_count": len(telemetry_payload.get("checkpoint_snapshots", [])),
+        },
+        "artifacts": {
+            "latest_checkpoint": latest_checkpoint,
+        },
+        "loss_summary": telemetry_payload.get("loss_summary"),
+        "gradient_summary": {
+            "global": gradient_global,
+        },
+    }
+    if isinstance(prior_dump_missingness, dict):
+        summary["missingness"] = {
+            "prior_dump": {
+                "batches_seen": prior_dump_missingness.get("batches_seen"),
+                "affected_batch_count": prior_dump_missingness.get("affected_batch_count"),
+                "affected_dataset_count": len(affected_indices)
+                if isinstance(affected_indices, list)
+                else None,
+                "non_finite_feature_count": prior_dump_missingness.get("non_finite_feature_count"),
+                "non_finite_label_count": prior_dump_missingness.get("non_finite_label_count"),
+            }
+        }
+    raw_error = telemetry_payload.get("error")
+    if isinstance(raw_error, dict):
+        summary["error"] = {
+            "type": raw_error.get("type"),
+            "message": raw_error.get("message"),
+        }
+    return summary
+
+
 def train_tabfoundry_simple_prior(
     cfg: DictConfig,
     *,
@@ -324,6 +397,10 @@ def train_tabfoundry_simple_prior(
         training_surface_path,
         raw_cfg=raw_cfg,
         run_dir=output_dir,
+    )
+    run = init_wandb_run(
+        cfg,
+        enabled=bool(getattr(cfg.logging, "use_wandb", False)),
     )
     artifacts: dict[str, Any] = {
         "train_history_jsonl": None if history_path is None else str(history_path),
@@ -468,6 +545,22 @@ def train_tabfoundry_simple_prior(
             loss_ema = update_loss_ema(history_step_loss, previous_ema=loss_ema)
             previous_train_loss = history_step_loss
             elapsed_seconds = time.perf_counter() - train_start
+            train_log: dict[str, Any] = {
+                "train/loss": float(history_step_loss),
+                "train/acc": float(history_step_acc),
+                "train/lr": float(optimizer.param_groups[0]["lr"]),
+                "train/grad_norm": float(final_grad_norm),
+                "train/loss_delta": loss_delta_value,
+                "train/loss_ema": loss_ema,
+                "train/elapsed_seconds": float(elapsed_seconds),
+                "train/train_elapsed_seconds": float(train_elapsed_seconds),
+                "train/grad_clip_threshold": float(grad_clip),
+                "train/grad_clip_triggered": grad_clip_triggered,
+                "train/stage": _PRIOR_STAGE_NAME,
+            }
+            for module_name, module_value in pre_clip_module_grad_norms.items():
+                train_log[f"train/module_grad_norm/{module_name}"] = float(module_value)
+            log_wandb_metrics(run, train_log, step=global_step)
             history_payload = history_record(
                 global_step=global_step,
                 stage_name=_PRIOR_STAGE_NAME,
@@ -552,6 +645,14 @@ def train_tabfoundry_simple_prior(
             training_surface_record=training_surface_payload,
         )
         write_training_telemetry(telemetry_output_path, telemetry_payload)
+        update_wandb_summary(
+            run,
+            _prior_wandb_summary_payload(
+                output_dir=output_dir,
+                global_step=global_step,
+                telemetry_payload=telemetry_payload,
+            ),
+        )
         return TrainResult(
             output_dir=output_dir,
             best_checkpoint=None,
@@ -585,7 +686,17 @@ def train_tabfoundry_simple_prior(
             error=exc,
         )
         write_training_telemetry(telemetry_output_path, telemetry_payload)
+        update_wandb_summary(
+            run,
+            _prior_wandb_summary_payload(
+                output_dir=output_dir,
+                global_step=global_step,
+                telemetry_payload=telemetry_payload,
+            ),
+        )
         raise
+    finally:
+        finish_wandb_run(run)
 
 
 def build_parser() -> argparse.ArgumentParser:
