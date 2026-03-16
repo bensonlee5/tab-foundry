@@ -44,9 +44,9 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | 5 | `delta_shifted_grouped_tokenizer` | tokenization | yes | blocked_on_surface_semantics | grouped_tokens | Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored. | Unblock only after the comparison surface makes tokenizer changes effective, or replace this row with a genuinely isolatable tokenization experiment. |
 | 6 | `delta_row_cls_pool` | row_pool | yes | completed | row_cls_pool | Replace target-column pooling with CLS-based row pooling while leaving tokenizer, column encoder, and context encoder otherwise anchored. | Keep this as completed negative evidence, then run delta_row_cls_pool_rmsnorm to test whether normalization changes can convert the CLS-token stability gain into useful benchmark quality. |
 | 7 | `delta_row_cls_pool_rmsnorm` | row_pool | yes | completed | row_cls_pool | Keep the row-CLS pooling path but replace its row-encoder LayerNorm modules with RMSNorm. | Keep this as completed negative evidence for the default RMSNorm row-CLS path, then move to delta_column_set_encoder; only revisit RMSNorm later if a targeted smaller-capacity row-CLS combination becomes worth testing. |
-| 8 | `delta_column_set_encoder` | column_encoding | yes | ready | column_set | Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed. | Run the isolated column-set encoder delta after the row-pool row is understood. |
-| 9 | `delta_qass_context` | context_encoder | yes | ready | qass_context | Add the QASS-based sequence context encoder over row embeddings. | Run after simpler model deltas so the interpretation has cleaner context. |
-| 10 | `delta_global_rmsnorm` | normalization | yes | ready | none | Keep the anchor structure fixed but switch the staged/global LayerNorm family to RMSNorm, including the row-pool norm override for completeness. | Run after the other model rows so the norm-family change is separated from structural deltas. |
+| 8 | `delta_column_set_encoder` | column_encoding | yes | completed | column_set | Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed. | Keep this as completed negative evidence for the default TFCol setting, then move to delta_qass_context; only revisit TFCol later if a bounded inducing-point or depth adequacy check becomes necessary. |
+| 9 | `delta_qass_context` | context_encoder | yes | completed | qass_context | Add the QASS-based sequence context encoder over row embeddings. | Keep this as completed negative evidence for the default QASS setting, then move to delta_global_rmsnorm; only revisit QASS later if a bounded context-vs-depth adequacy check becomes necessary. |
+| 10 | `delta_global_rmsnorm` | normalization | yes | completed | none | Keep the anchor structure fixed but switch the staged/global LayerNorm family to RMSNorm, including the row-pool norm override for completeness. | Keep this as completed near-neutral evidence for broad RMSNorm, then move to delta_training_linear_decay; only revisit RMSNorm later if schedule interactions make it newly compelling. |
 | 11 | `delta_training_linear_decay` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but replace the exact-prior constant LR with single-stage linear decay. | Run after the model rows so schedule evidence is not mixed with structure changes. |
 | 12 | `delta_training_linear_warmup_decay` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup. | Run after the no-warmup linear-decay row so warmup is isolated from pure decay. |
 | 13 | `delta_data_filter_policy_accepted_only` | provenance | yes | blocked_on_artifacts | none | Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor. | Materialize the accepted-only manifest and attach its provenance before scheduling training. |
@@ -85,7 +85,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Dataset-level movement is mixed, with isolated gains on a few tasks despite clearly negative aggregate ROC deltas.
 - Notes:
   - Completed run `sd_binary_md_v1_01_delta_label_token_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
-  - {'Aggregate delta versus anchor': 'best ROC AUC `-0.0143`, final ROC AUC `-0.0171`.'}
+  - Aggregate delta versus anchor: best ROC AUC `-0.0143`, final ROC AUC `-0.0171`.
   - Training was slower than anchor by `+33.5s` at best and `+21.7s` at final.
   - Largest losses appeared on `banana` and `Amazon_employee_access`; modest gains appeared on `quake` and `Titanic`.
 - Follow-up run ids: `[]`
@@ -119,7 +119,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - The shared-normalization path required an MPS compatibility fix before this completed run, so there is no pre-fix row-2 baseline on the same device path.
 - Notes:
   - Completed run `sd_binary_md_v1_02_delta_shared_feature_norm_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
-  - {'Aggregate delta versus anchor': 'best ROC AUC `+0.0039`, final ROC AUC `-0.0041`.'}
+  - Aggregate delta versus anchor: best ROC AUC `+0.0039`, final ROC AUC `-0.0041`.
   - Training was slower than anchor by `+42.6s` at best and `+25.7s` at final.
   - Best-point signal was positive, but final retention was materially worse than the anchor.
 - Follow-up run ids: `[]`
@@ -153,7 +153,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - This row is now the required local comparator for `delta_test_self_attention`, so its main value is both negative evidence and an interpretive baseline.
 - Notes:
   - Completed run `sd_binary_md_v1_03_delta_prenorm_block_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1`.
-  - {'Aggregate delta versus anchor': 'best ROC AUC `-0.0142`, final ROC AUC `-0.0164`.'}
+  - Aggregate delta versus anchor: best ROC AUC `-0.0142`, final ROC AUC `-0.0164`.
   - Training was slower than anchor by `+136.0s` at best and `+3.3s` at final.
   - Largest losses appeared on `banana`, `Amazon_employee_access`, and `blood-transfusion-service-center`; modest gains appeared on `haberman` and `diabetes`.
 - Follow-up run ids: `[]`
@@ -185,8 +185,8 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - The result is nested inside the explicit pre-norm block, so it shows local recovery versus row 3 more clearly than it shows superiority to the anchor.
 - Notes:
   - Completed run `sd_binary_md_v1_04_delta_test_self_attention_v1` against anchor `01_nano_exact_md_prior_parity_fix_binary_medium_v1` and local comparator `sd_binary_md_v1_03_delta_prenorm_block_v1`.
-  - {'Aggregate delta versus anchor': 'best ROC AUC `-0.0067`, final ROC AUC `-0.0051`.'}
-  - {'Aggregate delta versus pre-norm comparator': 'best ROC AUC `+0.0075`, final ROC AUC `+0.0113`.'}
+  - Aggregate delta versus anchor: best ROC AUC `-0.0067`, final ROC AUC `-0.0051`.
+  - Aggregate delta versus pre-norm comparator: best ROC AUC `+0.0075`, final ROC AUC `+0.0113`.
   - Training remained slower than anchor by `+204.9s` at best and `+15.5s` at final.
   - Largest remaining losses versus anchor appeared on `banana`, `Amazon_employee_access`, and `Titanic`, while the strongest recovery versus row 3 appeared on `blood-transfusion-service-center`, `banana`, and `Amazon_employee_access`.
 - Follow-up run ids: `[]`
@@ -248,11 +248,11 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Smaller row-CLS configurations improved stability without recovering quality, which leaves the remaining gap split between over-capacity and a likely mismatch with the anchor tokenizer and readout surface.
 - Notes:
   - Completed primary run sd_binary_md_v1_06_delta_row_cls_pool_v1 plus bounded adequacy follow-ups sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1, sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1, and sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1.
-  - {'Primary row-CLS was decisively negative versus anchor': 'best ROC AUC -0.1763, final ROC AUC -0.2557, with final grad norm 3225276.25.'}
+  - Primary row-CLS was decisively negative versus anchor: best ROC AUC -0.1763, final ROC AUC -0.2557, with final grad norm 3225276.25.
   - heads4 reduced gradient severity materially, but benchmark quality remained worse than the primary row on best ROC AUC and far below anchor at final ROC AUC -0.2308.
   - layers1 did not stabilize the mechanism; it reached max grad norm 798033856.0 and finished at chance-level final ROC AUC 0.5000.
   - cls2 was the cleanest adequacy variant on stability, with final grad norm 0.0492, but still finished far below anchor at best ROC AUC -0.1881 and final ROC AUC -0.2660.
-  - {'Combined interpretation': 'the default row-CLS setting looks over-capacity for this surface, especially on CLS token count, but stabilization alone did not make row-CLS competitive, so the mechanism still appears mismatched to the anchor nano-exact surface.'}
+  - Combined interpretation: the default row-CLS setting looks over-capacity for this surface, especially on CLS token count, but stabilization alone did not make row-CLS competitive, so the mechanism still appears mismatched to the anchor nano-exact surface.
 - Follow-up run ids: `['sd_binary_md_v1_06f1_delta_row_cls_pool_heads4_v1', 'sd_binary_md_v1_06f2_delta_row_cls_pool_layers1_v1', 'sd_binary_md_v1_06f3_delta_row_cls_pool_cls2_v1']`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_row_cls_pool/result_card.md`
 - Registered run: `sd_binary_md_v1_06_delta_row_cls_pool_v1` with best ROC AUC `0.5852`, final ROC AUC `0.5042`, final-minus-best `-0.0810`, delta final ROC AUC `-0.2557`, delta drift `-0.0795`, delta final training time `+302.1s`
@@ -286,9 +286,9 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - The primary RMSNorm row was enough to show that normalization alone does not rescue the default row-CLS path, but it does not answer whether a smaller RMSNorm row-CLS configuration such as cls2 would behave better.
 - Notes:
   - Completed run sd_binary_md_v1_07_delta_row_cls_pool_rmsnorm_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1 and interpreted directly against the completed LayerNorm row-CLS evidence.
-  - {'Aggregate delta versus anchor': 'best ROC AUC -0.1957, final ROC AUC -0.2629.'}
+  - Aggregate delta versus anchor: best ROC AUC -0.1957, final ROC AUC -0.2629.
   - The RMSNorm row was slightly worse than the LayerNorm row-CLS primary on both best and final ROC AUC, and slightly worse than the LayerNorm cls2 adequacy variant on best ROC AUC.
-  - {'Training trajectory was visibly different, with lower-loss mid-run windows, but training diagnostics remained extremely unstable': 'final grad norm 1180686848.0, mean grad norm 216035150.8, max grad norm 7545585664.0.'}
+  - Training trajectory was visibly different, with lower-loss mid-run windows, but training diagnostics remained extremely unstable: final grad norm 1180686848.0, mean grad norm 216035150.8, max grad norm 7545585664.0.
   - Benchmarking this row exposed a real implementation bug in RMSNorm compatibility with the transformer eval fast path; the fix now disables that fast path for non-LayerNorm row encoders and is covered by eval-mode regression tests.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_row_cls_pool_rmsnorm/result_card.md`
@@ -297,7 +297,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 8. `delta_column_set_encoder`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `column_set`
 - Description: Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed.
@@ -314,16 +314,25 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfcol_n_heads
   - tfcol_n_layers
   - tfcol_n_inducing
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `interpreted`
+- Decision: `defer`
+- Confounders:
+  - The first-pass TFCol row stayed stable, so the remaining ambiguity is more about inducing-point and capacity choice than raw optimization failure.
+  - The unchanged target-column row pool may limit how much explicit column-set reasoning can pay off on this anchored surface.
+- Notes:
+  - Completed run sd_binary_md_v1_08_delta_column_set_encoder_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1.
+  - Aggregate delta versus anchor: best ROC AUC -0.0046, final ROC AUC -0.0051.
+  - Training stayed healthy and late-improving, with final grad norm 0.2772, mean grad norm 0.2417, max grad norm 8.0667, and best checkpoint at step 2275.
+  - The row's main cost was efficiency: best training time +534.7s and final training time +611.9s versus anchor.
+  - Combined interpretation: the default TFCol encoder looks plausible but not yet adequate on this bundle, with the strongest ambiguity centered on inducing-point/capacity cost rather than instability.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_column_set_encoder/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_binary_md_v1_08_delta_column_set_encoder_v1` with best ROC AUC `0.7570`, final ROC AUC `0.7555`, final-minus-best `-0.0015`, delta final ROC AUC `-0.0044`, delta drift `+0.0000`, delta final training time `+540.4s`
 
 ### 9. `delta_qass_context`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `qass_context`
 - Description: Add the QASS-based sequence context encoder over row embeddings.
@@ -340,16 +349,25 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tficl_n_heads
   - tficl_n_layers
   - tficl_ff_expansion
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `interpreted`
+- Decision: `defer`
+- Confounders:
+  - The first-pass QASS row trained cleanly, so the remaining ambiguity is more about whether added context depth is actually useful on this compact bundle than about raw optimization failure.
+  - This run did not include a pure added-depth control, so some residual ambiguity remains between context-value and depth-cost.
+- Notes:
+  - Completed run sd_binary_md_v1_09_delta_qass_context_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1.
+  - Aggregate delta versus anchor: best ROC AUC -0.0084, final ROC AUC -0.0126.
+  - Training stayed healthy, with final grad norm 0.2010, mean grad norm 0.1873, max grad norm 4.3123, and a strongest train-loss window down to 0.3285 at step 1625.
+  - The row paid a moderate time cost: best training time +32.5s and final training time +230.5s versus anchor.
+  - Combined interpretation: QASS added real capacity but not enough useful context signal to beat the anchor on this bundle, so the default setting remains deferred rather than rejected.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_qass_context/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_binary_md_v1_09_delta_qass_context_v1` with best ROC AUC `0.7532`, final ROC AUC `0.7480`, final-minus-best `-0.0052`, delta final ROC AUC `-0.0119`, delta drift `-0.0036`, delta final training time `+159.0s`
 
 ### 10. `delta_global_rmsnorm`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Keep the anchor structure fixed but switch the staged/global LayerNorm family to RMSNorm, including the row-pool norm override for completeness.
@@ -366,13 +384,20 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - model.norm_type
   - model.tfrow_norm
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `interpreted`
+- Decision: `defer`
 - Confounders:
   - A broad norm-family change can improve gradient behavior without improving benchmark quality.
+  - This near-neutral result does not answer whether RMSNorm would interact differently with a changed training schedule.
+- Notes:
+  - Completed run sd_binary_md_v1_10_delta_global_rmsnorm_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1 and interpreted alongside the completed row-CLS RMSNorm evidence.
+  - Aggregate delta versus anchor: best ROC AUC -0.0014, final ROC AUC +0.0002.
+  - Training stayed healthy, with final grad norm 0.2164, mean grad norm 0.1736, max grad norm 4.4246, and no instability signature.
+  - Runtime remained slower than anchor: best and final training time +241.6s and +52.1s.
+  - Combined interpretation: broad RMSNorm looks viable and far healthier than the row-CLS-specific RMSNorm structural row, but it is still not a clear improvement over the LayerNorm anchor.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_global_rmsnorm/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_binary_md_v1_10_delta_global_rmsnorm_v1` with best ROC AUC `0.7601`, final ROC AUC `0.7601`, final-minus-best `+0.0000`, delta final ROC AUC `+0.0002`, delta drift `+0.0016`, delta final training time `+52.1s`
 
 ### 11. `delta_training_linear_decay`
 

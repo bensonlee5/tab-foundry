@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
 from omegaconf import OmegaConf
+import yaml  # type: ignore[import-untyped]
 
 from tab_foundry.bench.benchmark_run_registry import (
     load_benchmark_run_registry,
@@ -24,7 +25,30 @@ SWEEP_SCHEMA = "tab-foundry-system-delta-sweep-v1"
 SWEEP_QUEUE_SCHEMA = "tab-foundry-system-delta-sweep-queue-v1"
 MATERIALIZED_QUEUE_SCHEMA = "tab-foundry-system-delta-queue-v1"
 DEFAULT_SWEEP_STATUS = "draft"
-DEFAULT_ANCHOR_TRAINING_LABEL = "prior_constant_lr"
+LEGACY_PRIOR_CONSTANT_LR_LABEL = "prior_constant_lr"
+UNAVAILABLE_TRAINING_LABEL = "training surface label unavailable"
+_QUEUE_PROSE_FIELDS = (
+    "notes",
+    "confounders",
+    "parameter_adequacy_plan",
+    "adequacy_knobs",
+)
+_LEGACY_PRIOR_CONFIG_PROFILE = "cls_benchmark_staged_prior"
+
+
+class _SystemDeltaYamlDumper(yaml.SafeDumper):
+    """Quote ambiguous scalars so queue prose round-trips as strings."""
+
+
+def _represent_system_delta_str(
+    dumper: yaml.SafeDumper,
+    value: str,
+) -> yaml.ScalarNode:
+    style = "'" if ": " in value else None
+    return dumper.represent_scalar("tag:yaml.org,2002:str", value, style=style)
+
+
+_SystemDeltaYamlDumper.add_representer(str, _represent_system_delta_str)
 
 
 def repo_root() -> Path:
@@ -97,7 +121,12 @@ def _load_yaml_mapping(path: Path, *, context: str) -> dict[str, Any]:
 def _write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
     resolved = path.expanduser().resolve()
     resolved.parent.mkdir(parents=True, exist_ok=True)
-    text = OmegaConf.to_yaml(OmegaConf.create(_copy_jsonable(dict(payload))), resolve=True)
+    text = yaml.dump(
+        _copy_jsonable(dict(payload)),
+        Dumper=_SystemDeltaYamlDumper,
+        sort_keys=False,
+        allow_unicode=False,
+    )
     resolved.write_text(text, encoding="utf-8")
 
 
@@ -125,6 +154,27 @@ def _ensure_rows(value: Any, *, context: str) -> list[dict[str, Any]]:
     if not all(isinstance(item, dict) for item in value):
         raise RuntimeError(f"{context} must contain only mappings")
     return cast(list[dict[str, Any]], value)
+
+
+def _ensure_string_list(value: Any, *, context: str) -> list[str]:
+    if not isinstance(value, list):
+        raise RuntimeError(f"{context} must be a list")
+    normalized: list[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            raise RuntimeError(f"{context}[{index}] must be a non-empty string")
+        normalized.append(str(item))
+    return normalized
+
+
+def _validate_prose_fields(
+    payload: Mapping[str, Any],
+    *,
+    context: str,
+    field_names: tuple[str, ...] = _QUEUE_PROSE_FIELDS,
+) -> None:
+    for field_name in field_names:
+        _ = _ensure_string_list(payload.get(field_name, []), context=f"{context}.{field_name}")
 
 
 def load_system_delta_catalog(path: Path | None = None) -> dict[str, Any]:
@@ -204,7 +254,13 @@ def load_system_delta_queue_instance(
         raise RuntimeError(
             f"system delta queue sweep id mismatch: expected {resolved_sweep_id!r}, got {queue.get('sweep_id')!r}"
         )
-    _ensure_rows(queue.get("rows"), context="system delta queue instance rows")
+    rows = _ensure_rows(queue.get("rows"), context="system delta queue instance rows")
+    for index, row in enumerate(rows):
+        _validate_prose_fields(
+            row,
+            context=f"system delta queue instance rows[{index}]",
+            field_names=("notes", "confounders", "parameter_adequacy_plan"),
+        )
     return queue
 
 
@@ -252,6 +308,8 @@ def _anchor_context_from_registry_run(
     )
     return {
         "run_id": anchor_run_id,
+        "experiment": run.get("experiment"),
+        "config_profile": run.get("config_profile"),
         "model": {
             "arch": model.get("arch"),
             "benchmark_profile": model.get("benchmark_profile"),
@@ -281,6 +339,19 @@ def _surface_label_from_anchor_context(
             if isinstance(value, str) and value.strip():
                 return str(value)
     return fallback
+
+
+def _anchor_training_surface_label(anchor_context: Mapping[str, Any]) -> str:
+    surface_labels = anchor_context.get("surface_labels")
+    if isinstance(surface_labels, dict):
+        value = surface_labels.get("training")
+        if isinstance(value, str) and value.strip():
+            return str(value)
+    experiment = anchor_context.get("experiment")
+    config_profile = anchor_context.get("config_profile")
+    if experiment == _LEGACY_PRIOR_CONFIG_PROFILE or config_profile == _LEGACY_PRIOR_CONFIG_PROFILE:
+        return LEGACY_PRIOR_CONSTANT_LR_LABEL
+    return UNAVAILABLE_TRAINING_LABEL
 
 
 def _anchor_module_selection(anchor_context: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -498,11 +569,7 @@ def _build_anchor_surface(
         key="preprocessing",
         fallback="registry surface label unavailable",
     )
-    training_label = _surface_label_from_anchor_context(
-        anchor_context,
-        key="training",
-        fallback=DEFAULT_ANCHOR_TRAINING_LABEL,
-    )
+    training_label = _anchor_training_surface_label(anchor_context)
     feature_encoder, feature_encoder_interpretation = _describe_feature_encoder(module_selection)
     target_conditioner, target_conditioner_interpretation = _describe_target_conditioner(
         module_selection
@@ -656,9 +723,23 @@ def _materialize_row(
         dict[str, Any],
         _copy_jsonable(cast(dict[str, Any], delta_entry.get("parameter_adequacy_policy", {}))),
     )
+    _validate_prose_fields(
+        queue_row,
+        context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}",
+        field_names=("notes", "confounders", "parameter_adequacy_plan"),
+    )
+    _validate_prose_fields(
+        delta_entry,
+        context=f"delta entry {queue_row.get('delta_ref', '<missing>')!r}",
+        field_names=("adequacy_knobs",),
+    )
     parameter_plan = queue_row.get("parameter_adequacy_plan")
     if not isinstance(parameter_plan, list):
         parameter_plan = parameter_policy.get("default_plan", [])
+    _ = _ensure_string_list(
+        parameter_plan,
+        context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}.parameter_adequacy_plan",
+    )
     return {
         "order": int(queue_row["order"]),
         "delta_id": _ensure_non_empty_string(queue_row.get("delta_ref"), context="queue row delta_ref"),
@@ -701,11 +782,7 @@ def _materialize_row(
                     default_effective_surface.get(
                         "training",
                         {
-                            "surface_label": _surface_label_from_anchor_context(
-                                anchor_context,
-                                key="training",
-                                fallback=DEFAULT_ANCHOR_TRAINING_LABEL,
-                            ),
+                            "surface_label": _anchor_training_surface_label(anchor_context),
                             "overrides": {},
                         },
                     ),
@@ -747,6 +824,8 @@ def materialize_system_delta_queue(
                 anchor_context=cast(dict[str, Any], sweep.get("anchor_context", {})),
             )
         )
+    for index, row in enumerate(rows):
+        _validate_prose_fields(row, context=f"materialized queue rows[{index}]")
     resolved_sweeps_root = sweeps_root or default_sweeps_root()
     return {
         "schema": MATERIALIZED_QUEUE_SCHEMA,
@@ -815,8 +894,13 @@ def load_system_delta_queue(
             catalog_path=catalog_path,
             sweeps_root=sweeps_root,
         )
-    if not isinstance(payload.get("rows"), list):
+    rows = payload.get("rows")
+    if not isinstance(rows, list):
         raise RuntimeError("materialized system delta queue must include rows")
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise RuntimeError(f"materialized system delta queue rows[{index}] must be mappings")
+        _validate_prose_fields(row, context=f"materialized system delta queue rows[{index}]")
     return payload
 
 
@@ -1112,11 +1196,7 @@ def _instantiate_queue_row(
                 default_effective_surface.get(
                     "training",
                     {
-                        "surface_label": _surface_label_from_anchor_context(
-                            anchor_context,
-                            key="training",
-                            fallback=DEFAULT_ANCHOR_TRAINING_LABEL,
-                        ),
+                        "surface_label": _anchor_training_surface_label(anchor_context),
                         "overrides": {},
                     },
                 )
