@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-03-16
+
+### Changed
+
+- Training runs now use a shared internal Weights & Biases helper module, and
+  both the main trainer and exact-prior trainer emit richer additive wandb
+  scalar telemetry and end-of-run summaries without changing the logging config
+  surface or uploading artifact files.
+
+- `delta_shared_feature_norm` catalog defaults now preserve the traced training
+  surface used by the canonical `binary_md_v2` queue, so curated subset sweeps
+  created via `create_sweep(..., delta_refs=...)` reproduce the intended shared
+  activation-baseline row instead of silently dropping `runtime.trace_activations`.
+
+- Staged activation tracing now records detached fp32 per-element RMS values
+  instead of size-dependent whole-tensor L2 norms, keeping
+  `gradient_history.jsonl.activation_norms` and
+  `telemetry.json.gradient_summary.activations` comparable across varying
+  padded prior-dump batch shapes without changing their schema.
+
+## [0.6.4] - 2026-03-16
+
 ### Changed
 
 - Added optional staged `model.module_overrides.post_encoder_norm` support with
@@ -27,10 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   completed `binary_md_v1` queue to the new four-row diagnostic follow-up
   sweep `binary_md_v2`.
 
-- Training runs now use a shared internal Weights & Biases helper module, and
-  both the main trainer and exact-prior trainer emit richer additive wandb
-  scalar telemetry and end-of-run summaries without changing the logging config
-  surface or uploading artifact files.
+## [0.6.3] - 2026-03-16
+
+### Changed
 
 - Prior-dump queue reruns now emit additive instability-debug artifacts:
   `gradient_history.jsonl` for module-level gradient traces and
@@ -48,6 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `outputs/staged_ladder/sd_binary_md_v1_*/train/train_history.jsonl` runs,
   joins available benchmark summaries and result cards, and writes ranked audit
   reports under `outputs/staged_ladder/reports/`.
+
+## [0.6.2] - 2026-03-16
+
+### Changed
 
 - Added explicit no-missing mainline guardrails for benchmark-facing manifests,
   manifest-backed datasets, prior-dump training inputs, and benchmark bundle
@@ -88,6 +113,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   User-facing note: this bundle intentionally relaxes the medium bundle's
   `max_features` and `max_missing_pct` filters to `20` and `5.0` so the pinned
   TabArena source yields a meaningfully larger confirmation surface.
+
+## [0.6.1] - 2026-03-15
+
+### Changed
 
 - Added row-CLS `tfrow_norm` support with a shared `RMSNorm` implementation so
   staged row-pool experiments can compare LayerNorm versus RMSNorm without
