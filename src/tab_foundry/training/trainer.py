@@ -310,12 +310,23 @@ def train(cfg: DictConfig) -> TrainResult:
         grad_accum_steps_override=grad_accum_steps,
     )
 
+    raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
+    model_cfg: dict[str, Any] = {}
+    if isinstance(raw_model_cfg, dict):
+        model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
+    model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
+    model_arch = str(getattr(model_spec, "arch", "tabfoundry")).strip().lower()
+    enable_categorical_feature_state = (
+        task == "classification" and model_arch == "tabfoundry_staged"
+    )
+
     train_ds = build_task_dataset(
         cfg.data,
         split="train",
         task=task,
         seed=seed,
         preprocessing_cfg=cfg.get("preprocessing"),
+        enable_categorical_feature_state=enable_categorical_feature_state,
     )
     val_ds = build_task_dataset(
         cfg.data,
@@ -323,6 +334,7 @@ def train(cfg: DictConfig) -> TrainResult:
         task=task,
         seed=seed + 1,
         preprocessing_cfg=cfg.get("preprocessing"),
+        enable_categorical_feature_state=enable_categorical_feature_state,
     )
 
     train_loader = build_task_loader(
@@ -338,11 +350,6 @@ def train(cfg: DictConfig) -> TrainResult:
         seed=seed + 1,
     )
 
-    raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
-    model_cfg: dict[str, Any] = {}
-    if isinstance(raw_model_cfg, dict):
-        model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
-    model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
     model = build_model_from_spec(model_spec)
     model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
     if accelerator.is_main_process:

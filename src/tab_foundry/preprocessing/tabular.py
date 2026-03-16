@@ -54,9 +54,14 @@ def _require_task(task: str) -> str:
 
 
 def _require_matrix(x: Any, *, context: str) -> np.ndarray:
-    array = np.asarray(x, dtype=np.float32)
+    array = np.asarray(x)
     if array.ndim != 2:
         raise RuntimeError(f"{context} must be a rank-2 matrix, got shape={array.shape!r}")
+    if not (
+        np.issubdtype(array.dtype, np.integer)
+        or np.issubdtype(array.dtype, np.floating)
+    ):
+        raise RuntimeError(f"{context} must contain numeric values, got dtype={array.dtype!r}")
     return array
 
 
@@ -104,17 +109,17 @@ def _fit_categorical_feature_policy(
     *,
     feature_types: Sequence[str],
 ) -> CategoricalFeaturePolicyState:
-    train_value_vocab: list[list[float]] = []
+    train_value_vocab: list[list[int | float]] = []
     cardinalities: list[int] = []
     for col_idx, feature_type in enumerate(feature_types):
         if feature_type != CATEGORICAL_FEATURE_TYPE:
             train_value_vocab.append([])
             cardinalities.append(0)
             continue
-        column = np.asarray(x_train[:, col_idx], dtype=np.float32)
+        column = np.asarray(x_train[:, col_idx])
         finite_values = column[np.isfinite(column)]
         vocab = np.unique(finite_values)
-        train_value_vocab.append([float(value) for value in vocab.tolist()])
+        train_value_vocab.append(list(vocab.tolist()))
         cardinalities.append(int(vocab.shape[0]))
     return CategoricalFeaturePolicyState(
         feature_types=list(feature_types),
@@ -252,15 +257,15 @@ def _apply_feature_preprocessing(
 
     for col_idx, is_categorical in enumerate(categorical_mask.tolist()):
         if is_categorical:
-            vocab = np.asarray(categorical_policy.train_value_vocab[col_idx], dtype=np.float32)
+            vocab = np.asarray(categorical_policy.train_value_vocab[col_idx])
             train_ids = _encode_categorical_column(
-                train[:, col_idx],
+                x_train_matrix[:, col_idx],
                 vocab=vocab,
                 context=f"x_train column {col_idx}",
                 allow_oov=False,
             )
             test_ids = _encode_categorical_column(
-                test[:, col_idx],
+                x_test_matrix[:, col_idx],
                 vocab=vocab,
                 context=f"x_test column {col_idx}",
                 allow_oov=True,

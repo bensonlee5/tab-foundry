@@ -23,6 +23,7 @@ DTYPE_POLICY = {
     "classification_labels": "int64",
     "regression_targets": "float32",
 }
+NumericScalar = int | float
 
 
 def normalize_feature_types(
@@ -88,7 +89,7 @@ class CategoricalFeaturePolicyState:
     """Fitted categorical-column remapping state."""
 
     feature_types: list[str]
-    train_value_vocab: list[list[float]]
+    train_value_vocab: list[list[NumericScalar]]
     cardinalities: list[int]
     value_policy: str
 

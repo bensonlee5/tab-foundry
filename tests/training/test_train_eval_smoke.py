@@ -215,6 +215,45 @@ def test_evaluate_checkpoint_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     assert "acc" in result.metrics
 
 
+@pytest.mark.parametrize(
+    ("arch", "expected"),
+    [("tabfoundry", False), ("tabfoundry_staged", True)],
+)
+def test_train_threads_staged_categorical_dataset_flag(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    arch: str,
+    expected: bool,
+) -> None:
+    captured: list[bool] = []
+
+    def _capture_dataset(
+        *_args: object,
+        enable_categorical_feature_state: bool = False,
+        **_kwargs: object,
+    ) -> _FakeTaskDataset:
+        captured.append(enable_categorical_feature_state)
+        if len(captured) >= 2:
+            raise RuntimeError("stop_after_dataset")
+        return _FakeTaskDataset()
+
+    fake_spec = SimpleNamespace(task="classification", arch=arch)
+    monkeypatch.setattr(trainer_module, "build_task_dataset", _capture_dataset)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    monkeypatch.setattr(trainer_module, "model_build_spec_from_mappings", lambda **_kwargs: fake_spec)
+
+    cfg = _classification_cfg(tmp_path)
+
+    with pytest.raises(RuntimeError, match="stop_after_dataset"):
+        _ = trainer_module.train(cfg)
+
+    assert captured == [expected, expected]
+
+
 def test_train_smoke_writes_history_jsonl(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     _install_classification_fakes(monkeypatch)
     cfg = _classification_cfg(tmp_path)

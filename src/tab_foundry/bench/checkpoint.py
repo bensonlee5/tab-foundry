@@ -143,7 +143,7 @@ class TabFoundryClassifier:
         model_arch = str(getattr(self.model_spec, "arch", "tabfoundry")).strip().lower()
         _require_staged_categorical_support(feature_types=feature_types, model_arch=model_arch)
         self._classes = classes
-        self._x_train = np.asarray(x_train, dtype=np.float32)
+        self._x_train = np.asarray(x_train)
         self._y_train = encoded.astype(np.int64, copy=False)
         state = fit_fitted_preprocessor(
             task="classification",
@@ -158,7 +158,7 @@ class TabFoundryClassifier:
         if self._classes is None or self._x_train is None or self._y_train is None:
             raise RuntimeError("fit() must be called before predict_proba()")
 
-        raw_x_test = np.asarray(x_test, dtype=np.float32)
+        raw_x_test = np.asarray(x_test)
         processed = preprocess_runtime_task_arrays(
             task="classification",
             x_train=self._x_train,

@@ -24,6 +24,7 @@ def build_task_dataset(
     task: str,
     seed: int,
     preprocessing_cfg: DictConfig | None = None,
+    enable_categorical_feature_state: bool = False,
 ) -> Dataset[TaskBatch]:
     """Build one task dataset from the configured backing source."""
 
@@ -33,6 +34,7 @@ def build_task_dataset(
         task=task,
         seed=seed,
         preprocessing_cfg=preprocessing_cfg,
+        enable_categorical_feature_state=enable_categorical_feature_state,
     )
 
 

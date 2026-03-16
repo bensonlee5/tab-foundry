@@ -224,8 +224,44 @@ def test_manifest_dataset_threads_categorical_feature_state_from_metadata(tmp_pa
 
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
+    split = pq.read_table(manifest_path).to_pylist()[0]["split"]
 
-    sample = PackedParquetTaskDataset(manifest_path, split="train", task="classification")[0]
+    sample = PackedParquetTaskDataset(manifest_path, split=str(split), task="classification")[0]
+
+    assert sample.feature_state is None
+    assert torch.allclose(sample.x_train, torch.tensor([[1.0, 10.0], [3.0, 20.0], [5.0, 10.0]]))
+    assert torch.allclose(sample.x_test, torch.tensor([[7.0, 30.0], [9.0, 20.0]]))
+
+    model = build_model(task="classification")
+    with torch.no_grad():
+        output = model(sample)
+    assert output.logits is not None
+    assert output.logits.shape[0] == 2
+
+
+def test_manifest_dataset_threads_categorical_feature_state_for_staged_tasks(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    dataset = {
+        "dataset_index": 0,
+        "x_train": np.asarray([[1.0, 10.0], [3.0, 20.0], [5.0, 10.0]], dtype=np.float32),
+        "y_train": np.asarray([0, 1, 0], dtype=np.int64),
+        "x_test": np.asarray([[7.0, 30.0], [9.0, 20.0]], dtype=np.float32),
+        "y_test": np.asarray([0, 1], dtype=np.int64),
+        "feature_types": ["num", "cat"],
+        "metadata": _classification_metadata(n_features=2, n_classes=2),
+    }
+    _ = _write_packed_shard(shard_dir, datasets=[dataset])
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    split = pq.read_table(manifest_path).to_pylist()[0]["split"]
+
+    sample = PackedParquetTaskDataset(
+        manifest_path,
+        split=str(split),
+        task="classification",
+        enable_categorical_feature_state=True,
+    )[0]
 
     assert sample.feature_state is not None
     assert sample.feature_state.categorical_mask.tolist() == [False, True]

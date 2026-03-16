@@ -18,6 +18,7 @@ def build_manifest_task_dataset(
     task: str,
     seed: int,
     preprocessing_cfg: DictConfig | None = None,
+    enable_categorical_feature_state: bool = False,
 ) -> PackedParquetTaskDataset:
     """Build one manifest-backed task dataset."""
 
@@ -41,4 +42,5 @@ def build_manifest_task_dataset(
         unseen_test_label_policy=str(preprocessing_surface.unseen_test_label_policy),
         allow_missing_values=bool(data_surface.allow_missing_values),
         seed=seed,
+        enable_categorical_feature_state=enable_categorical_feature_state,
     )

@@ -259,6 +259,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         unseen_test_label_policy: str = "filter",
         allow_missing_values: bool = False,
         seed: int = 0,
+        enable_categorical_feature_state: bool = False,
     ) -> None:
         self.manifest_path = manifest_path.expanduser().resolve()
         self.split = split
@@ -271,6 +272,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         self.unseen_test_label_policy = str(unseen_test_label_policy)
         self.allow_missing_values = bool(allow_missing_values)
         self.seed = int(seed)
+        self.enable_categorical_feature_state = bool(enable_categorical_feature_state)
 
         table = pq.read_table(self.manifest_path)
         records: list[dict[str, Any]] = table.to_pylist()
@@ -306,7 +308,11 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         x_test = loaded.x_test
         y_test = loaded.y_test
         metadata = loaded.metadata
-        feature_types = loaded.feature_types
+        feature_types = (
+            loaded.feature_types
+            if self.enable_categorical_feature_state and self.task == "classification"
+            else None
+        )
         if not self.allow_missing_values:
             assert_no_non_finite_values(
                 {
@@ -380,6 +386,6 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             metadata=metadata_out,
             num_classes=num_classes,
             feature_state=None
-            if processed.feature_state is None
+            if feature_types is None or processed.feature_state is None
             else processed.feature_state.to_task_feature_state(),
         )
