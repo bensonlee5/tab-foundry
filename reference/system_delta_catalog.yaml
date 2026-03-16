@@ -65,6 +65,11 @@ deltas:
         surface_label: anchor_manifest_default
       preprocessing:
         surface_label: runtime_default
+      training:
+        surface_label: prior_constant_lr_trace_activations
+        overrides:
+          runtime:
+            trace_activations: true
     default_next_action: Run the isolated shared-feature-encoder comparison.
     applicability_guards: []
 

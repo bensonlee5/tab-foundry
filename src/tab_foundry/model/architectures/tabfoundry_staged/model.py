@@ -194,7 +194,10 @@ class TabFoundryStagedClassifier(nn.Module):
     def trace_activation(self, name: str, tensor: torch.Tensor) -> None:
         if self._activation_trace is None:
             return
-        self._activation_trace.setdefault(name, []).append(float(tensor.detach().norm().item()))
+        trace_value = float(
+            tensor.detach().to(torch.float32).square().mean().sqrt().item()
+        )
+        self._activation_trace.setdefault(name, []).append(trace_value)
 
     def flush_activation_trace(self) -> dict[str, float] | None:
         if self._activation_trace is None:

@@ -214,6 +214,11 @@ def test_create_sweep_supports_explicit_delta_ref_order(tmp_path: Path) -> None:
         "delta_shared_feature_norm_with_post_layernorm",
         "delta_shared_feature_norm_with_post_rmsnorm",
     ]
+    shared_row = next(row for row in created_queue["rows"] if row["delta_ref"] == "delta_shared_feature_norm")
+    assert shared_row["training"] == {
+        "surface_label": "prior_constant_lr_trace_activations",
+        "overrides": {"runtime": {"trace_activations": True}},
+    }
 
 
 def test_create_sweep_rejects_unknown_explicit_delta_ref(tmp_path: Path) -> None:

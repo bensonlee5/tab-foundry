@@ -403,6 +403,27 @@ def test_activation_trace_records_expected_points_and_resets() -> None:
     assert model.flush_activation_trace() is None
 
 
+def test_activation_trace_uses_shape_normalized_rms() -> None:
+    model = _staged(
+        "nano_exact",
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=1,
+        head_hidden_dim=64,
+    )
+
+    model.enable_activation_trace()
+    model.trace_activation("constant", torch.full((1, 2, 3), 2.0, dtype=torch.float32))
+    first_snapshot = model.flush_activation_trace()
+    model.trace_activation("constant", torch.full((2, 5, 7), 2.0, dtype=torch.float32))
+    second_snapshot = model.flush_activation_trace()
+
+    assert first_snapshot is not None
+    assert second_snapshot is not None
+    assert first_snapshot["constant"] == pytest.approx(2.0)
+    assert second_snapshot["constant"] == pytest.approx(2.0)
+
+
 def test_stage_labels_do_not_trigger_legacy_constraint_enforcement() -> None:
     model = _staged(
         "nano_exact",
