@@ -319,7 +319,7 @@ rows:
 
   - order: 11
     delta_ref: delta_training_linear_decay
-    status: ready
+    status: completed
     rationale: Training recipe changes should be measured explicitly after the simpler structural rows, not smuggled in as silent recovery attempts.
     hypothesis: A decayed exact-prior LR may retain more of the anchor's peak quality or reduce instability without changing the model surface at all.
     anchor_delta: Keep model, data, and preprocessing fixed and replace the constant exact-prior LR with a single-stage linear-decay schedule.
@@ -345,18 +345,24 @@ rows:
     parameter_adequacy_plan:
       - Interpret against the constant-LR anchor on both ROC and post-warmup stability diagnostics.
       - Keep optimizer, model, data, and preprocessing fixed for the first pass.
-    run_id: null
+    run_id: sd_binary_md_v1_11_delta_training_linear_decay_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
+    decision: defer
+    interpretation_status: interpreted
     confounders:
       - This row changes optimization dynamics only, so any gain or loss is easy to over-attribute without checking variance and gradient behavior.
-    next_action: Run after the model rows so schedule evidence is not mixed with structure changes.
-    notes: []
+      - Warmup remains untested in this row, so the main residual ambiguity is whether plain decay failed because the early schedule was too abrupt rather than because decay is unhelpful outright.
+    next_action: Keep this as completed negative evidence for plain linear decay on the anchor surface, then move to delta_training_linear_warmup_decay to separate warmup from decay itself.
+    notes:
+      - Completed run sd_binary_md_v1_11_delta_training_linear_decay_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1.
+      - "Aggregate delta versus anchor: best ROC AUC -0.0042, final ROC AUC -0.0133."
+      - The schedule was applied as intended, with LR 0.0040 at step 1, about 0.0022 at step 1250, and 0.0004 at step 2500.
+      - "Runtime stayed near anchor by the end: best and final training time +38.4s and +9.0s."
+      - "Combined interpretation: plain linear decay trained cleanly but hurt late benchmark retention, so it is negative first-pass evidence rather than a launch default candidate."
 
   - order: 12
     delta_ref: delta_training_linear_warmup_decay
-    status: ready
+    status: completed
     rationale: Warmup should be measured separately from plain decay so the queue can tell whether any benefit comes from gentler early steps or just from a lower late-stage LR.
     hypothesis: A short warmup may reduce early instability on the exact-prior surface and improve retention relative to no-warmup decay, but it may also simply slow convergence.
     anchor_delta: Keep model, data, and preprocessing fixed and replace the constant exact-prior LR with a single-stage linear schedule plus warmup.
@@ -382,14 +388,20 @@ rows:
     parameter_adequacy_plan:
       - Compare against both the constant-LR anchor and the no-warmup linear-decay row.
       - Treat best/final ROC, post-warmup train-loss variance, and gradient norms as the primary interpretation surface.
-    run_id: null
+    run_id: sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
+    decision: defer
+    interpretation_status: interpreted
     confounders:
       - Warmup can improve early stability while still hurting final retention, so both shape and endpoint matter here.
-    next_action: Run after the no-warmup linear-decay row so warmup is isolated from pure decay.
-    notes: []
+      - This row only tests one warmup ratio on one LR floor, so the remaining ambiguity is about schedule tuning rather than whether the tested recipe beats the anchor.
+    next_action: Keep this as completed evidence that warmup partly improves the decay recipe but still does not justify replacing the constant-LR anchor, then move to delta_data_manifest_source_binary_iris.
+    notes:
+      - Completed run sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1 and compared directly against sd_binary_md_v1_11_delta_training_linear_decay_v1.
+      - "Aggregate delta versus anchor: best ROC AUC -0.0076, final ROC AUC -0.0093."
+      - "Versus no-warmup decay, warmup traded peak quality for better finish: best ROC AUC -0.0034, final ROC AUC +0.0041."
+      - The schedule was applied as intended, with LR 0.000032 at step 1, peak 0.0040 by step 125, and 0.0004 at step 2500.
+      - "Combined interpretation: warmup reduced gradient severity and improved final retention relative to plain decay, but the combined recipe still remained clearly below the constant-LR anchor."
 
   - order: 13
     delta_ref: delta_data_filter_policy_accepted_only

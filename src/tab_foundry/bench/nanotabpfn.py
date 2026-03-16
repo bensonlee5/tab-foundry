@@ -469,6 +469,70 @@ def dataset_roc_auc_metrics(metrics: Mapping[str, float]) -> dict[str, float]:
     }
 
 
+def task_bootstrap_roc_auc_interval(
+    dataset_roc_auc: Mapping[str, float],
+    *,
+    bootstrap_samples: int,
+    confidence: float = 0.95,
+    seed: int = 0,
+) -> dict[str, float | int] | None:
+    """Estimate a task-bootstrap confidence interval for mean ROC AUC."""
+
+    if bootstrap_samples <= 0:
+        return None
+    if not 0.0 < float(confidence) < 1.0:
+        raise ValueError(f"confidence must be in (0, 1), got {confidence!r}")
+    values = np.asarray([float(value) for value in dataset_roc_auc.values()], dtype=np.float64)
+    if values.size <= 0:
+        return None
+    rng = np.random.default_rng(seed)
+    draws = rng.integers(0, values.size, size=(int(bootstrap_samples), values.size))
+    means = values[draws].mean(axis=1)
+    alpha = (1.0 - float(confidence)) / 2.0
+    lower = float(np.quantile(means, alpha))
+    upper = float(np.quantile(means, 1.0 - alpha))
+    return {
+        "samples": int(bootstrap_samples),
+        "confidence": float(confidence),
+        "lower": lower,
+        "upper": upper,
+    }
+
+
+def annotate_curve_records_with_task_statistics(
+    records: list[dict[str, Any]],
+    *,
+    bootstrap_samples: int = 0,
+    bootstrap_confidence: float = 0.95,
+    bootstrap_seed: int = 0,
+) -> list[dict[str, Any]]:
+    """Add per-checkpoint task-count and optional bootstrap diagnostics."""
+
+    annotated: list[dict[str, Any]] = []
+    for index, record in enumerate(records):
+        raw_dataset_roc_auc = record.get("dataset_roc_auc")
+        dataset_roc_auc = (
+            {
+                str(dataset_name): float(value)
+                for dataset_name, value in raw_dataset_roc_auc.items()
+            }
+            if isinstance(raw_dataset_roc_auc, Mapping)
+            else {}
+        )
+        enriched = dict(record)
+        enriched["dataset_count"] = int(len(dataset_roc_auc))
+        bootstrap_interval = task_bootstrap_roc_auc_interval(
+            dataset_roc_auc,
+            bootstrap_samples=int(bootstrap_samples),
+            confidence=float(bootstrap_confidence),
+            seed=int(bootstrap_seed) + index,
+        )
+        if bootstrap_interval is not None:
+            enriched["roc_auc_task_bootstrap_ci"] = bootstrap_interval
+        annotated.append(enriched)
+    return annotated
+
+
 def resolve_device(device: str) -> str:
     """Resolve auto device selection to a concrete torch device string."""
 
@@ -565,6 +629,7 @@ def evaluate_tab_foundry_run(
     *,
     datasets: Mapping[str, tuple[np.ndarray, np.ndarray]],
     device: str,
+    allow_checkpoint_failures: bool = False,
 ) -> list[dict[str, Any]]:
     """Evaluate smoke-run checkpoints on the notebook benchmark suite."""
 
@@ -574,8 +639,21 @@ def evaluate_tab_foundry_run(
     curve_records: list[dict[str, Any]] = []
     for snapshot in collect_checkpoint_snapshots(run_dir):
         checkpoint_path = Path(str(snapshot["path"]))
-        classifier = TabFoundryClassifier(checkpoint_path, device=resolved_device)
-        metrics = evaluate_classifier(classifier, datasets)
+        try:
+            classifier = TabFoundryClassifier(checkpoint_path, device=resolved_device)
+            metrics = evaluate_classifier(classifier, datasets)
+        except Exception as exc:
+            if not allow_checkpoint_failures:
+                raise
+            curve_records.append(
+                {
+                    "checkpoint_path": str(checkpoint_path),
+                    "step": int(snapshot["step"]),
+                    "training_time": float(snapshot["elapsed_seconds"]),
+                    "evaluation_error": str(exc),
+                }
+            )
+            continue
         model_arch = str(getattr(classifier.model_spec, "arch", "tabfoundry")).strip().lower()
         model_stage_raw = getattr(classifier.model_spec, "stage", None)
         model_stage = None if model_stage_raw is None else str(model_stage_raw).strip().lower()

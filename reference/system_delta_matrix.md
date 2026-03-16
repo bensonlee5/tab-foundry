@@ -47,8 +47,8 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | 8 | `delta_column_set_encoder` | column_encoding | yes | completed | column_set | Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed. | Keep this as completed negative evidence for the default TFCol setting, then move to delta_qass_context; only revisit TFCol later if a bounded inducing-point or depth adequacy check becomes necessary. |
 | 9 | `delta_qass_context` | context_encoder | yes | completed | qass_context | Add the QASS-based sequence context encoder over row embeddings. | Keep this as completed negative evidence for the default QASS setting, then move to delta_global_rmsnorm; only revisit QASS later if a bounded context-vs-depth adequacy check becomes necessary. |
 | 10 | `delta_global_rmsnorm` | normalization | yes | completed | none | Keep the anchor structure fixed but switch the staged/global LayerNorm family to RMSNorm, including the row-pool norm override for completeness. | Keep this as completed near-neutral evidence for broad RMSNorm, then move to delta_training_linear_decay; only revisit RMSNorm later if schedule interactions make it newly compelling. |
-| 11 | `delta_training_linear_decay` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but replace the exact-prior constant LR with single-stage linear decay. | Run after the model rows so schedule evidence is not mixed with structure changes. |
-| 12 | `delta_training_linear_warmup_decay` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup. | Run after the no-warmup linear-decay row so warmup is isolated from pure decay. |
+| 11 | `delta_training_linear_decay` | schedule | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces but replace the exact-prior constant LR with single-stage linear decay. | Keep this as completed negative evidence for plain linear decay on the anchor surface, then move to delta_training_linear_warmup_decay to separate warmup from decay itself. |
+| 12 | `delta_training_linear_warmup_decay` | schedule | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup. | Keep this as completed evidence that warmup partly improves the decay recipe but still does not justify replacing the constant-LR anchor, then move to delta_data_manifest_source_binary_iris. |
 | 13 | `delta_data_filter_policy_accepted_only` | provenance | yes | blocked_on_artifacts | none | Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor. | Materialize the accepted-only manifest and attach its provenance before scheduling training. |
 | 14 | `delta_data_manifest_root_curated_dagzoo` | provenance | yes | blocked_on_artifacts | none | Point training at a curated dagzoo manifest root with explicit dagzoo command provenance. | Capture the dagzoo generation/filter lineage first. |
 | 15 | `delta_data_manifest_source_binary_iris` | source | yes | ready | none | Swap the training manifest to the small binary iris support surface while keeping the model and preprocessing anchored. | Run only after the matrix explicitly records the anchor-versus-iris manifest characteristics. |
@@ -402,7 +402,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 11. `delta_training_linear_decay`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Keep the anchor model, data, and preprocessing surfaces but replace the exact-prior constant LR with single-stage linear decay.
@@ -420,18 +420,25 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - schedule.stages[0].lr_max
   - optimizer.min_lr
   - schedule.stages[0].warmup_ratio
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `interpreted`
+- Decision: `defer`
 - Confounders:
   - This row changes optimization dynamics only, so any gain or loss is easy to over-attribute without checking variance and gradient behavior.
+  - Warmup remains untested in this row, so the main residual ambiguity is whether plain decay failed because the early schedule was too abrupt rather than because decay is unhelpful outright.
+- Notes:
+  - Completed run sd_binary_md_v1_11_delta_training_linear_decay_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1.
+  - Aggregate delta versus anchor: best ROC AUC -0.0042, final ROC AUC -0.0133.
+  - The schedule was applied as intended, with LR 0.0040 at step 1, about 0.0022 at step 1250, and 0.0004 at step 2500.
+  - Runtime stayed near anchor by the end: best and final training time +38.4s and +9.0s.
+  - Combined interpretation: plain linear decay trained cleanly but hurt late benchmark retention, so it is negative first-pass evidence rather than a launch default candidate.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_training_linear_decay/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_binary_md_v1_11_delta_training_linear_decay_v1` with best ROC AUC `0.7572`, final ROC AUC `0.7466`, final-minus-best `-0.0107`, delta final ROC AUC `-0.0133`, delta drift `-0.0091`, delta final training time `+9.0s`
 
 ### 12. `delta_training_linear_warmup_decay`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup.
@@ -449,13 +456,20 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - schedule.stages[0].lr_max
   - optimizer.min_lr
   - schedule.stages[0].warmup_ratio
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `interpreted`
+- Decision: `defer`
 - Confounders:
   - Warmup can improve early stability while still hurting final retention, so both shape and endpoint matter here.
+  - This row only tests one warmup ratio on one LR floor, so the remaining ambiguity is about schedule tuning rather than whether the tested recipe beats the anchor.
+- Notes:
+  - Completed run sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1 against anchor 01_nano_exact_md_prior_parity_fix_binary_medium_v1 and compared directly against sd_binary_md_v1_11_delta_training_linear_decay_v1.
+  - Aggregate delta versus anchor: best ROC AUC -0.0076, final ROC AUC -0.0093.
+  - Versus no-warmup decay, warmup traded peak quality for better finish: best ROC AUC -0.0034, final ROC AUC +0.0041.
+  - The schedule was applied as intended, with LR 0.000032 at step 1, peak 0.0040 by step 125, and 0.0004 at step 2500.
+  - Combined interpretation: warmup reduced gradient severity and improved final retention relative to plain decay, but the combined recipe still remained clearly below the constant-LR anchor.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_training_linear_warmup_decay/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1` with best ROC AUC `0.7538`, final ROC AUC `0.7506`, final-minus-best `-0.0032`, delta final ROC AUC `-0.0093`, delta drift `-0.0016`, delta final training time `+8.8s`
 
 ### 13. `delta_data_filter_policy_accepted_only`
 

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Added a dedicated benchmark-bounce diagnosis runner and script that benchmark
+  completed runs on both the primary and a larger confirmation bundle, writes
+  task-bootstrap checkpoint traces, and classifies likely causes such as
+  benchmark noise, checkpoint aliasing, optimization instability, and
+  concentrated per-dataset tradeoffs.
+
+- Added a repo-tracked large binary confirmation benchmark bundle for diagnosis
+  work under `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.
+  User-facing note: this bundle intentionally relaxes the medium bundle's
+  `max_features` and `max_missing_pct` filters to `20` and `5.0` so the pinned
+  TabArena source yields a meaningfully larger confirmation surface.
+
 - Added row-CLS `tfrow_norm` support with a shared `RMSNorm` implementation so
   staged row-pool experiments can compare LayerNorm versus RMSNorm without
   changing the rest of the model surface.

@@ -4054,6 +4054,304 @@
         "train_elapsed_seconds": 407.6777569876285,
         "wall_elapsed_seconds": 415.4292005409952
       }
+    },
+    "sd_binary_md_v1_11_delta_training_linear_decay_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/train/checkpoints/step_001375.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_11_delta_training_linear_decay_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.004236718561929864,
+          "best_training_time_delta": 38.403908339561895,
+          "final_roc_auc_delta": -0.013334072628115257,
+          "final_training_time_delta": 9.031294664135203,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "The single-stage linear-decay recipe applied correctly and trained stably, but it did not preserve late benchmark quality: best ROC AUC stayed below anchor and final ROC AUC fell materially further below, with only a small runtime offset by the end.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "anchor_model",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "anchor_model",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-16T00:13:01Z",
+      "run_id": "sd_binary_md_v1_11_delta_training_linear_decay_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "anchor_model",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_training_linear_decay",
+        "parent_sweep_id": null,
+        "queue_order": 11,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.757215031831294,
+        "best_step": 1375.0,
+        "best_training_time": 204.51761253841687,
+        "final_roc_auc": 0.7465513412913474,
+        "final_step": 2500.0,
+        "final_training_time": 364.5910350434715
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.21459996700286865,
+        "final_val_loss": null,
+        "max_grad_norm": 4.657632827758789,
+        "mean_grad_norm": 0.17146995757222175,
+        "post_warmup_train_loss_var": 0.0021603478166553084,
+        "train_elapsed_seconds": 364.5910350434715,
+        "wall_elapsed_seconds": 371.04626920796
+      }
+    },
+    "sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/train/checkpoints/step_001000.pt",
+        "comparison_curve_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.007635309143869784,
+          "best_training_time_delta": -14.221098916255869,
+          "final_roc_auc_delta": -0.00928026616073474,
+          "final_training_time_delta": 8.844549294328317,
+          "reference_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "Adding 5% warmup to the linear-decay recipe reduced gradient spikes and improved final ROC relative to plain decay, but it made the best checkpoint worse and still left both best and final quality below the constant-LR anchor.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "anchor_model",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "row_pool": "target_column",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "anchor_model",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-16T00:21:32Z",
+      "run_id": "sd_binary_md_v1_12_delta_training_linear_warmup_decay_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "anchor_model",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_training_linear_warmup_decay",
+        "parent_sweep_id": null,
+        "queue_order": 12,
+        "run_kind": "primary",
+        "sweep_id": "binary_md_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7538164412493541,
+        "best_step": 1000.0,
+        "best_training_time": 151.8926052825991,
+        "final_roc_auc": 0.7506051477587279,
+        "final_step": 2500.0,
+        "final_training_time": 364.4042896736646
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.2381671518087387,
+        "final_val_loss": null,
+        "max_grad_norm": 1.8456202745437622,
+        "mean_grad_norm": 0.1904018479168415,
+        "post_warmup_train_loss_var": 0.0017550200152058688,
+        "train_elapsed_seconds": 364.4042896736646,
+        "wall_elapsed_seconds": 370.51272904209327
+      }
     }
   },
   "schema": "tab-foundry-benchmark-runs-v1",

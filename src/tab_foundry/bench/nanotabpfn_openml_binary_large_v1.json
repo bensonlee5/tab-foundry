@@ -1,0 +1,112 @@
+{
+  "name": "nanotabpfn_openml_binary_large",
+  "selection": {
+    "max_classes": 2,
+    "max_features": 20,
+    "max_missing_pct": 5.0,
+    "min_minority_class_pct": 2.5,
+    "new_instances": 200,
+    "task_type": "supervised_classification"
+  },
+  "task_ids": [
+    363613,
+    363618,
+    363619,
+    363621,
+    363623,
+    363629,
+    363632,
+    363671,
+    363679,
+    363682,
+    363691,
+    363700
+  ],
+  "tasks": [
+    {
+      "dataset_name": "Amazon_employee_access",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 363613
+    },
+    {
+      "dataset_name": "bank-marketing",
+      "n_classes": 2,
+      "n_features": 13,
+      "n_rows": 200,
+      "task_id": 363618
+    },
+    {
+      "dataset_name": "Bank_Customer_Churn",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 363619
+    },
+    {
+      "dataset_name": "blood-transfusion-service-center",
+      "n_classes": 2,
+      "n_features": 4,
+      "n_rows": 200,
+      "task_id": 363621
+    },
+    {
+      "dataset_name": "churn",
+      "n_classes": 2,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 363623
+    },
+    {
+      "dataset_name": "diabetes",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 363629
+    },
+    {
+      "dataset_name": "E-CommereShippingData",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 363632
+    },
+    {
+      "dataset_name": "Fitness_Club",
+      "n_classes": 2,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 363671
+    },
+    {
+      "dataset_name": "HR_Analytics_Job_Change_of_Data_Scientists",
+      "n_classes": 2,
+      "n_features": 12,
+      "n_rows": 200,
+      "task_id": 363679
+    },
+    {
+      "dataset_name": "Is-this-a-good-customer",
+      "n_classes": 2,
+      "n_features": 13,
+      "n_rows": 200,
+      "task_id": 363682
+    },
+    {
+      "dataset_name": "online_shoppers_intention",
+      "n_classes": 2,
+      "n_features": 17,
+      "n_rows": 200,
+      "task_id": 363691
+    },
+    {
+      "dataset_name": "seismic-bumps",
+      "n_classes": 2,
+      "n_features": 15,
+      "n_rows": 200,
+      "task_id": 363700
+    }
+  ],
+  "version": 1
+}
