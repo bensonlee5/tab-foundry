@@ -100,6 +100,21 @@ def _non_finite_count(array: np.ndarray) -> int:
     return int(np.count_nonzero(~np.isfinite(array)))
 
 
+def _non_finite_padded_feature_count(
+    batch_x: np.ndarray,
+    *,
+    n_datapoints: int,
+    n_features: int,
+) -> int:
+    valid_mask = np.zeros(batch_x.shape, dtype=bool)
+    valid_mask[:n_datapoints, :n_features] = True
+    return _non_finite_count(batch_x[~valid_mask])
+
+
+def _non_finite_padded_label_count(batch_y: np.ndarray, *, n_datapoints: int) -> int:
+    return _non_finite_count(batch_y[n_datapoints:])
+
+
 class PriorDumpTaskBatchReader:
     """Iterate a nanoTabPFN prior dump with the notebook's batching semantics."""
 
@@ -160,18 +175,16 @@ class PriorDumpTaskBatchReader:
                 first_split = int(split_values[0])
                 max_num_features = int(num_features.max())
                 max_num_datapoints = int(num_datapoints.max())
-                x_batch = torch.from_numpy(
-                    np.asarray(
-                        x_ds[pointer:end, :max_num_datapoints, :max_num_features],
-                        dtype=np.float32,
-                    )
+                x_batch_array = np.asarray(
+                    x_ds[pointer:end, :max_num_datapoints, :max_num_features],
+                    dtype=np.float32,
                 )
-                y_batch = torch.from_numpy(
-                    np.asarray(
-                        y_ds[pointer:end, :max_num_datapoints],
-                        dtype=np.float32,
-                    )
+                y_batch_array = np.asarray(
+                    y_ds[pointer:end, :max_num_datapoints],
+                    dtype=np.float32,
                 )
+                x_batch = torch.from_numpy(x_batch_array)
+                y_batch = torch.from_numpy(y_batch_array)
                 tasks: list[TaskBatch] = []
                 affected_datasets: list[PriorDumpDatasetMissingness] = []
                 batch_non_finite_feature_count = 0
@@ -207,8 +220,15 @@ class PriorDumpTaskBatchReader:
                             f"prior dump dataset {dataset_index} label shape mismatch: "
                             f"expected {n_datapoints}, got {raw_y.shape[0]}"
                         )
-                    non_finite_feature_count = _non_finite_count(x)
-                    non_finite_label_count = _non_finite_count(raw_y)
+                    non_finite_feature_count = _non_finite_count(x) + _non_finite_padded_feature_count(
+                        x_batch_array[local_index],
+                        n_datapoints=n_datapoints,
+                        n_features=n_features,
+                    )
+                    non_finite_label_count = _non_finite_count(raw_y) + _non_finite_padded_label_count(
+                        y_batch_array[local_index],
+                        n_datapoints=n_datapoints,
+                    )
                     batch_non_finite_feature_count += non_finite_feature_count
                     batch_non_finite_label_count += non_finite_label_count
                     if non_finite_feature_count > 0 or non_finite_label_count > 0:
@@ -219,6 +239,8 @@ class PriorDumpTaskBatchReader:
                                 non_finite_label_count=int(non_finite_label_count),
                             )
                         )
+                    if non_finite_label_count > 0:
+                        continue
                     y = raw_y.astype(np.int64)
                     if np.any((y < 0) | (y > 1)):
                         raise RuntimeError(

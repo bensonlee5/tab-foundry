@@ -22,7 +22,7 @@ from tab_foundry.training.instability import history_loss_summary
 DEFAULT_SWEEP_ID = "binary_md_v1"
 DEFAULT_ANCHOR_RUN_ID = "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
 
-_RUN_ID_PATTERN = re.compile(r"^- run id: `([^`]+)`$", re.MULTILINE)
+_RUN_ID_PATTERN = re.compile(r"^- (?:primary )?run id: `([^`]+)`$", re.MULTILINE)
 _DECISION_PATTERN = re.compile(r"^- decision recommendation: `([^`]+)`$", re.MULTILINE)
 _NEXT_ACTION_PATTERN = re.compile(r"^- recommended next action: `([^`]+)`$", re.MULTILINE)
 

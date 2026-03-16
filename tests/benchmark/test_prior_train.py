@@ -145,6 +145,62 @@ def test_prior_dump_reader_rejects_nan_or_inf_inputs_by_default(tmp_path: Path) 
     assert exc_info.value.summary.affected_dataset_indices == (0,)
 
 
+def test_prior_dump_reader_rejects_nonfinite_padded_batch_cells_by_default(tmp_path: Path) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_nonfinite_padding.h5",
+        x=np.asarray(
+            [
+                [
+                    [1.0, 2.0, 0.0],
+                    [3.0, 4.0, np.nan],
+                    [5.0, 6.0, 0.0],
+                    [7.0, 8.0, 0.0],
+                ],
+                [
+                    [9.0, 10.0, 11.0],
+                    [12.0, 13.0, 14.0],
+                    [15.0, 16.0, 17.0],
+                    [18.0, 19.0, 20.0],
+                ],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 0],
+            ],
+            dtype=np.int64,
+        ),
+        num_features=np.asarray([2, 3], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+
+    with pytest.raises(PriorDumpNonFiniteInputError, match="contains NaN or Inf") as exc_info:
+        _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=2)))
+    assert exc_info.value.summary.non_finite_feature_count == 1
+    assert exc_info.value.summary.non_finite_label_count == 0
+    assert exc_info.value.summary.affected_dataset_indices == (0,)
+
+
+def test_prior_dump_reader_reports_inf_labels_as_nonfinite(tmp_path: Path) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_inf_labels.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0.0, np.inf, 1.0]], dtype=np.float32),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+
+    with pytest.raises(PriorDumpNonFiniteInputError, match="contains NaN or Inf") as exc_info:
+        _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=1)))
+    assert exc_info.value.summary.non_finite_feature_count == 0
+    assert exc_info.value.summary.non_finite_label_count == 1
+    assert exc_info.value.summary.affected_dataset_indices == (0,)
+
+
 @lru_cache(maxsize=1)
 def _nanotabpfn_module():
     model_path = Path("~/dev/nanoTabPFN/model.py").expanduser()
@@ -1332,6 +1388,47 @@ def test_train_tabfoundry_simple_prior_writes_failure_telemetry_for_nonfinite_in
     assert telemetry["missingness"]["prior_dump"]["affected_batch_count"] == 1
     assert telemetry["missingness"]["prior_dump"]["affected_dataset_indices"] == [0]
     assert telemetry["missingness"]["prior_dump"]["non_finite_feature_count"] == 1
+
+
+def test_train_tabfoundry_simple_prior_writes_failure_telemetry_for_nonfinite_labels(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_nonfinite_labels_runtime.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0.0, np.inf, 1.0]], dtype=np.float32),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+
+    with pytest.raises(PriorDumpNonFiniteInputError):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=path,
+            batch_size=1,
+        )
+
+    telemetry = json.loads((tmp_path / "train_out" / "telemetry.json").read_text(encoding="utf-8"))
+    assert telemetry["success"] is False
+    assert telemetry["error"]["type"] == "PriorDumpNonFiniteInputError"
+    assert telemetry["missingness"]["prior_dump"]["affected_batch_count"] == 1
+    assert telemetry["missingness"]["prior_dump"]["affected_dataset_indices"] == [0]
+    assert telemetry["missingness"]["prior_dump"]["non_finite_feature_count"] == 0
+    assert telemetry["missingness"]["prior_dump"]["non_finite_label_count"] == 1
 
 
 def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(

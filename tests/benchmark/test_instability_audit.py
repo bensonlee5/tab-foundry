@@ -150,3 +150,52 @@ def test_build_instability_audit_ranks_runs_and_writes_reports(
     report_text = markdown_path.read_text(encoding="utf-8")
     assert "sd_binary_md_v1_02_delta_unstable_v1" in report_text
     assert "Anchor reference rerun with module telemetry" in report_text
+
+
+def test_build_instability_audit_indexes_primary_run_id_result_cards(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    staged_ladder_root = tmp_path / "outputs" / "staged_ladder"
+    candidate_run_dir = staged_ladder_root / "sd_binary_md_v1_06_delta_row_cls_pool_v1" / "train"
+    _write_history(
+        candidate_run_dir / "train_history.jsonl",
+        grad_norms=[5.0, 25.0, 4.0],
+        train_losses=[0.9, 1.6, 0.7],
+    )
+    _write_comparison_summary(
+        staged_ladder_root / "sd_binary_md_v1_06_delta_row_cls_pool_v1" / "benchmark" / "comparison_summary.json",
+        run_dir=candidate_run_dir,
+        best_roc_auc=0.58,
+        final_roc_auc=0.5,
+    )
+    result_card_path = (
+        staged_ladder_root / "research" / "binary_md_v1" / "delta_row_cls_pool" / "result_card.md"
+    )
+    result_card_path.parent.mkdir(parents=True, exist_ok=True)
+    result_card_path.write_text(
+        "\n".join(
+            [
+                "# Result Card",
+                "",
+                "- primary run id: `sd_binary_md_v1_06_delta_row_cls_pool_v1`",
+                "- decision recommendation: `defer`",
+                "- recommended next action: `delta_row_cls_pool_rmsnorm`",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(audit_module, "load_benchmark_run_registry", lambda _path=None: {"runs": {}})
+
+    payload = audit_module.build_instability_audit(
+        staged_ladder_root=staged_ladder_root,
+        registry_path=tmp_path / "benchmark_run_registry.json",
+    )
+
+    assert payload["run_count"] == 1
+    assert payload["runs"][0]["run_id"] == "sd_binary_md_v1_06_delta_row_cls_pool_v1"
+    assert payload["runs"][0]["result_card_path"] == str(result_card_path.resolve())
+    assert payload["runs"][0]["decision_recommendation"] == "defer"
+    assert payload["runs"][0]["next_action"] == "delta_row_cls_pool_rmsnorm"
