@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Added optional staged `model.module_overrides.post_encoder_norm` support with
+  `none`, `layernorm`, and `rmsnorm` variants, wired immediately before the
+  staged transformer stack. User-facing note: staged
+  `training_surface_record.json` model metadata now includes additive
+  `module_selection.post_encoder_norm` and
+  `module_hyperparameters.post_encoder_norm` fields.
+
+- Prior-dump staged reruns can now opt into additive activation telemetry with
+  `runtime.trace_activations`. When enabled, `gradient_history.jsonl` gains an
+  optional `activation_norms` object and `telemetry.json.gradient_summary`
+  gains an additive `activations` section summarizing traced forward-pass norm
+  checkpoints.
+
+- Sweep tooling now supports curated follow-up sweeps via explicit ordered
+  delta subsets, and the active system-delta sweep has advanced from the
+  completed `binary_md_v1` queue to the new four-row diagnostic follow-up
+  sweep `binary_md_v2`.
+
 - Prior-dump queue reruns now emit additive instability-debug artifacts:
   `gradient_history.jsonl` for module-level gradient traces and
   `telemetry.json` for run summaries, checkpoint snapshots, missingness

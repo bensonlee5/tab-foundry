@@ -127,6 +127,7 @@ def gradient_history_record(
     lr: float,
     global_grad_norm: float,
     module_grad_norms: Mapping[str, float],
+    activation_norms: Mapping[str, float] | None = None,
     elapsed_seconds: float,
     train_elapsed_seconds: float,
     grad_clip_threshold: float | None,
@@ -134,7 +135,7 @@ def gradient_history_record(
 ) -> dict[str, Any]:
     """Build one detailed module-gradient record for JSONL output."""
 
-    return {
+    record: dict[str, Any] = {
         "step": int(global_step),
         "stage": stage_name,
         "train_loss": float(train_loss),
@@ -157,6 +158,13 @@ def gradient_history_record(
         if grad_clip_triggered is None
         else bool(grad_clip_triggered),
     }
+    if activation_norms is not None:
+        record["activation_norms"] = {
+            str(name): float(value)
+            for name, value in sorted(activation_norms.items())
+            if math.isfinite(float(value))
+        }
+    return record
 
 
 def append_history_record(path: Path, payload: Mapping[str, float | int | str | None]) -> None:

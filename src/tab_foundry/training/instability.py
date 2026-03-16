@@ -18,6 +18,7 @@ TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v1"
 _TOP_LEVEL_GRADIENT_MODULES = (
     "tokenizer",
     "feature_encoder",
+    "post_encoder_norm",
     "target_encoder",
     "target_conditioner",
     "column_encoder",
@@ -171,6 +172,24 @@ def history_loss_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, floa
     }
 
 
+def _mapping_value_history(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    key: str,
+) -> dict[str, list[float]]:
+    history: dict[str, list[float]] = {}
+    for record in records:
+        raw_values = record.get(key)
+        if not isinstance(raw_values, Mapping):
+            continue
+        for name, value in raw_values.items():
+            value_f = float(value)
+            if not math.isfinite(value_f):
+                continue
+            history.setdefault(str(name), []).append(value_f)
+    return history
+
+
 def gradient_trace_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     """Summarize global and module-level gradients from gradient-history records."""
 
@@ -180,16 +199,8 @@ def gradient_trace_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, An
         if record.get("global_grad_norm") is not None
         and math.isfinite(float(record["global_grad_norm"]))
     ]
-    module_history: dict[str, list[float]] = {}
-    for record in records:
-        raw_module_grad_norms = record.get("module_grad_norms")
-        if not isinstance(raw_module_grad_norms, Mapping):
-            continue
-        for name, value in raw_module_grad_norms.items():
-            value_f = float(value)
-            if not math.isfinite(value_f):
-                continue
-            module_history.setdefault(str(name), []).append(value_f)
+    module_history = _mapping_value_history(records, key="module_grad_norms")
+    activation_history = _mapping_value_history(records, key="activation_norms")
 
     return {
         "record_count": int(len(records)),
@@ -207,6 +218,14 @@ def gradient_trace_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, An
                 "final_grad_norm": float(values[-1]),
             }
             for name, values in sorted(module_history.items())
+        },
+        "activations": {
+            name: {
+                "mean": float(sum(values) / float(len(values))),
+                "max": float(max(values)),
+                "final": float(values[-1]),
+            }
+            for name, values in sorted(activation_history.items())
         },
     }
 

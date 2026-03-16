@@ -1224,6 +1224,7 @@ def create_sweep(
     complexity_level: str,
     benchmark_bundle_path: str,
     control_baseline_id: str,
+    delta_refs: Sequence[str] | None = None,
     index_path: Path | None = None,
     catalog_path: Path | None = None,
     registry_path: Path | None = None,
@@ -1289,16 +1290,30 @@ def create_sweep(
     }
 
     deltas = _ensure_mapping(catalog.get("deltas"), context="catalog deltas")
+    selected_delta_ids: list[str]
+    if delta_refs is None:
+        selected_delta_ids = list(deltas)
+    else:
+        selected_delta_ids = [
+            _ensure_non_empty_string(delta_ref, context="delta_refs[]") for delta_ref in delta_refs
+        ]
+        if not selected_delta_ids:
+            raise RuntimeError("delta_refs must include at least one delta id when provided")
+        if len(set(selected_delta_ids)) != len(selected_delta_ids):
+            raise RuntimeError("delta_refs must not contain duplicates")
+        unknown_delta_ids = [delta_id for delta_id in selected_delta_ids if delta_id not in deltas]
+        if unknown_delta_ids:
+            raise RuntimeError(f"unknown delta_refs for sweep {normalized_sweep_id!r}: {unknown_delta_ids}")
     queue_rows = [
         _instantiate_queue_row(
             sweep_id=normalized_sweep_id,
             anchor_run_id=normalized_anchor_run_id,
             order=order,
             delta_id=delta_id,
-            delta_entry=cast(dict[str, Any], delta_entry),
+            delta_entry=cast(dict[str, Any], deltas[delta_id]),
             anchor_context=anchor_context,
         )
-        for order, (delta_id, delta_entry) in enumerate(deltas.items(), start=1)
+        for order, delta_id in enumerate(selected_delta_ids, start=1)
     ]
     queue_payload = {
         "schema": SWEEP_QUEUE_SCHEMA,
@@ -1470,6 +1485,13 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Control baseline id for the new sweep",
     )
+    create_parser.add_argument(
+        "--delta-ref",
+        action="append",
+        dest="delta_refs",
+        default=None,
+        help="Optional ordered delta id to include; repeat to build a curated subset",
+    )
     return parser
 
 
@@ -1514,6 +1536,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             complexity_level=str(args.complexity_level),
             benchmark_bundle_path=str(args.benchmark_bundle_path),
             control_baseline_id=str(args.control_baseline_id),
+            delta_refs=None if args.delta_refs is None else [str(value) for value in args.delta_refs],
             index_path=index_path,
             catalog_path=catalog_path,
             registry_path=registry_path,

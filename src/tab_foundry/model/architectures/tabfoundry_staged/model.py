@@ -34,6 +34,7 @@ from .builders import (
     build_digit_position_embed,
     build_direct_head,
     build_feature_encoder,
+    build_post_encoder_norm,
     build_row_pool,
     build_table_block,
     build_target_conditioner,
@@ -169,6 +170,7 @@ class TabFoundryStagedClassifier(nn.Module):
             d_icl=self.d_icl,
             many_class_base=self.many_class_base,
         )
+        self.post_encoder_norm = build_post_encoder_norm(self.surface, d_icl=self.d_icl)
         self.digit_position_embed = build_digit_position_embed(
             self.surface,
             d_icl=self.d_icl,
@@ -181,6 +183,27 @@ class TabFoundryStagedClassifier(nn.Module):
             head_hidden_dim=self.head_hidden_dim,
             many_class_base=self.many_class_base,
         )
+        self._activation_trace: dict[str, list[float]] | None = None
+
+    def enable_activation_trace(self) -> None:
+        self._activation_trace = {}
+
+    def disable_activation_trace(self) -> None:
+        self._activation_trace = None
+
+    def trace_activation(self, name: str, tensor: torch.Tensor) -> None:
+        if self._activation_trace is None:
+            return
+        self._activation_trace.setdefault(name, []).append(float(tensor.detach().norm().item()))
+
+    def flush_activation_trace(self) -> dict[str, float] | None:
+        if self._activation_trace is None:
+            return None
+        snapshot = {
+            name: values[-1] for name, values in self._activation_trace.items() if values
+        }
+        self._activation_trace = {}
+        return snapshot
 
     @staticmethod
     def _task_num_classes(batch: TaskBatch) -> int:
@@ -267,8 +290,11 @@ class TabFoundryStagedClassifier(nn.Module):
     def _feature_cells(self, raw_state: RawInputState) -> torch.Tensor:
         tokenized_x, _token_padding_mask = self.tokenizer(raw_state.x_all)
         if self.surface.feature_encoder == "nano":
-            return self.feature_encoder(raw_state.x_all, raw_state.train_test_split_index)
-        return self.feature_encoder(tokenized_x)
+            feature_cells = self.feature_encoder(raw_state.x_all, raw_state.train_test_split_index)
+        else:
+            feature_cells = self.feature_encoder(tokenized_x)
+        self.trace_activation("post_feature_encoder", feature_cells)
+        return feature_cells
 
     def _build_table_tokens_from_raw(self, raw_state: RawInputState) -> torch.Tensor:
         feature_cells = self._feature_cells(raw_state)
@@ -276,6 +302,7 @@ class TabFoundryStagedClassifier(nn.Module):
             raw_state.y_train,
             num_rows=int(raw_state.x_all.shape[1]),
         )
+        self.trace_activation("post_target_conditioner", target_cells)
         return torch.cat([feature_cells, target_cells], dim=2)
 
     def _build_table_tokens_batched(
@@ -306,8 +333,12 @@ class TabFoundryStagedClassifier(nn.Module):
             y_train,
             train_test_split_index=train_test_split_index,
         )
-        for block in self.transformer_blocks:
+        if self.post_encoder_norm is not None:
+            cells = self.post_encoder_norm(cells)
+        self.trace_activation("pre_transformer", cells)
+        for index, block in enumerate(self.transformer_blocks):
             cells = block(cells, train_test_split_index=train_test_split_index)
+            self.trace_activation(f"post_transformer_block_{index}", cells)
         return cells
 
     def _build_table_tokens(self, batch: TaskBatch) -> tuple[torch.Tensor, int]:
@@ -330,8 +361,12 @@ class TabFoundryStagedClassifier(nn.Module):
 
     def _encode_to_cell_state(self, raw_state: RawInputState) -> CellTableState:
         cells = self._build_table_tokens_from_raw(raw_state)
-        for block in self.transformer_blocks:
+        if self.post_encoder_norm is not None:
+            cells = self.post_encoder_norm(cells)
+        self.trace_activation("pre_transformer", cells)
+        for index, block in enumerate(self.transformer_blocks):
             cells = block(cells, train_test_split_index=raw_state.train_test_split_index)
+            self.trace_activation(f"post_transformer_block_{index}", cells)
         return CellTableState(
             cells=cells,
             train_test_split_index=raw_state.train_test_split_index,
@@ -340,7 +375,9 @@ class TabFoundryStagedClassifier(nn.Module):
 
     def _pool_rows(self, cell_state: CellTableState) -> RowState:
         encoded_cells = self.column_encoder(cell_state.cells)
+        self.trace_activation("post_column_encoder", encoded_cells)
         rows = self.row_pool(encoded_cells, token_padding_mask=None)
+        self.trace_activation("post_row_pool", rows)
         return RowState(
             rows=rows,
             train_test_split_index=cell_state.train_test_split_index,

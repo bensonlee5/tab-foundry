@@ -44,8 +44,8 @@ def test_program_contract_required_repo_paths_exist() -> None:
     required_repo_paths = [
         "reference/system_delta_catalog.yaml",
         "reference/system_delta_sweeps/index.yaml",
-        "reference/system_delta_sweeps/binary_md_v1/queue.yaml",
-        "reference/system_delta_sweeps/binary_md_v1/matrix.md",
+        "reference/system_delta_sweeps/binary_md_v2/queue.yaml",
+        "reference/system_delta_sweeps/binary_md_v2/matrix.md",
         "reference/system_delta_queue.yaml",
         "reference/system_delta_matrix.md",
         "reference/system_delta_campaign_template.md",
@@ -135,6 +135,7 @@ def test_model_config_documents_staged_override_surface() -> None:
         "`stage_label`",
         "`module_overrides`",
         "`feature_encoder`",
+        "`post_encoder_norm`",
         "`target_conditioner`",
         "`tokenizer`",
         "`column_encoder`",

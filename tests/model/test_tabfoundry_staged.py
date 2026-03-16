@@ -337,6 +337,72 @@ def test_module_overrides_surface_stage_label_and_row_pool_hyperparameters() -> 
     assert model.module_hyperparameters["row_pool"]["cls_tokens"] == 2
 
 
+@pytest.mark.parametrize("post_encoder_norm", ["none", "layernorm", "rmsnorm"])
+def test_module_overrides_surface_post_encoder_norm(post_encoder_norm: str) -> None:
+    module_overrides: dict[str, object] = {"feature_encoder": "shared"}
+    if post_encoder_norm != "none":
+        module_overrides["post_encoder_norm"] = post_encoder_norm
+    model = _staged(
+        "nano_exact",
+        stage_label=f"delta_post_encoder_norm_{post_encoder_norm}",
+        module_overrides=module_overrides,
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=1,
+        head_hidden_dim=64,
+    )
+
+    out = model(_batch())
+
+    assert model.module_selection["post_encoder_norm"] == post_encoder_norm
+    assert model.module_hyperparameters["post_encoder_norm"]["name"] == post_encoder_norm
+    expected_norm = None if post_encoder_norm == "none" else post_encoder_norm
+    assert model.module_hyperparameters["post_encoder_norm"]["norm_type"] == expected_norm
+    assert out.logits is not None
+    assert tuple(out.logits.shape) == (2, 2)
+
+
+def test_activation_trace_records_expected_points_and_resets() -> None:
+    model = _staged(
+        "nano_exact",
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=2,
+        head_hidden_dim=64,
+    )
+    x_all = torch.randn(2, 8, 3, dtype=torch.float32)
+    y_train = torch.tensor(
+        [
+            [0.0, 1.0, 0.0, 1.0, 1.0],
+            [1.0, 0.0, 1.0, 0.0, 0.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    model.enable_activation_trace()
+    _ = model.forward_batched(
+        x_all=x_all,
+        y_train=y_train,
+        train_test_split_index=5,
+    )
+    snapshot = model.flush_activation_trace()
+
+    assert snapshot is not None
+    assert set(snapshot) == {
+        "post_feature_encoder",
+        "post_target_conditioner",
+        "pre_transformer",
+        "post_transformer_block_0",
+        "post_transformer_block_1",
+        "post_column_encoder",
+        "post_row_pool",
+    }
+    assert all(value >= 0.0 for value in snapshot.values())
+    assert model.flush_activation_trace() == {}
+    model.disable_activation_trace()
+    assert model.flush_activation_trace() is None
+
+
 def test_stage_labels_do_not_trigger_legacy_constraint_enforcement() -> None:
     model = _staged(
         "nano_exact",

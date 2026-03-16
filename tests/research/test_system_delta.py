@@ -36,7 +36,10 @@ def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:
         (source_sweeps_root / "index.yaml").read_text(encoding="utf-8"),
         encoding="utf-8",
     )
-    shutil.copytree(source_sweeps_root / "binary_md_v1", sweeps_root / "binary_md_v1")
+    for source_dir in sorted(source_sweeps_root.iterdir()):
+        if source_dir.name == "index.yaml" or not source_dir.is_dir():
+            continue
+        shutil.copytree(source_dir, sweeps_root / source_dir.name)
     return reference_root, sweeps_root
 
 
@@ -52,22 +55,22 @@ def _anchor_dimension_anchor_text(sweep: dict[str, object], *, dimension: str) -
     return value
 
 
-def test_active_sweep_materializes_binary_md_v1() -> None:
+def test_active_sweep_materializes_binary_md_v2() -> None:
     index = load_system_delta_index(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
     sweep = load_system_delta_sweep(
-        "binary_md_v1",
+        "binary_md_v2",
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
     )
     queue = load_system_delta_queue(
-        sweep_id="binary_md_v1",
+        sweep_id="binary_md_v2",
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
 
-    assert index["active_sweep_id"] == "binary_md_v1"
-    assert sweep["sweep_id"] == "binary_md_v1"
-    assert queue["sweep_id"] == "binary_md_v1"
-    assert queue["generated_from_sweep_id"] == "binary_md_v1"
+    assert index["active_sweep_id"] == "binary_md_v2"
+    assert sweep["sweep_id"] == "binary_md_v2"
+    assert queue["sweep_id"] == "binary_md_v2"
+    assert queue["generated_from_sweep_id"] == "binary_md_v2"
     assert "prior_constant_lr" in _anchor_dimension_anchor_text(sweep, dimension="training recipe")
     expected_next_ready = next(row for row in queue["rows"] if row["status"] == "ready")
     assert next_ready_row(queue) == expected_next_ready
@@ -163,8 +166,9 @@ def test_missingness_rows_are_deferred_from_the_main_campaign() -> None:
 
 
 def test_active_alias_queue_matches_materialized_active_sweep() -> None:
+    index = load_system_delta_index(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
     materialized = load_system_delta_queue(
-        sweep_id="binary_md_v1",
+        sweep_id=str(index["active_sweep_id"]),
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
@@ -174,6 +178,61 @@ def test_active_alias_queue_matches_materialized_active_sweep() -> None:
     )
 
     assert alias_payload == materialized
+
+
+def test_create_sweep_supports_explicit_delta_ref_order(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="binary_md_followup",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="binary_md_v1",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=[
+            "delta_anchor_activation_trace_baseline",
+            "delta_shared_feature_norm",
+            "delta_shared_feature_norm_with_post_layernorm",
+            "delta_shared_feature_norm_with_post_rmsnorm",
+        ],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        sweeps_root=sweeps_root,
+    )
+
+    created_queue = load_system_delta_queue_instance(
+        "binary_md_followup",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert [row["delta_ref"] for row in created_queue["rows"]] == [
+        "delta_anchor_activation_trace_baseline",
+        "delta_shared_feature_norm",
+        "delta_shared_feature_norm_with_post_layernorm",
+        "delta_shared_feature_norm_with_post_rmsnorm",
+    ]
+
+
+def test_create_sweep_rejects_unknown_explicit_delta_ref(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    with pytest.raises(RuntimeError, match="unknown delta_refs"):
+        _ = create_sweep(
+            sweep_id="binary_md_bad_subset",
+            anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+            parent_sweep_id="binary_md_v1",
+            complexity_level="binary_md",
+            benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+            control_baseline_id="cls_benchmark_linear_v2",
+            delta_refs=["delta_anchor_activation_trace_baseline", "delta_missing_unknown"],
+            index_path=sweeps_root / "index.yaml",
+            catalog_path=reference_root / "system_delta_catalog.yaml",
+            registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+            sweeps_root=sweeps_root,
+        )
 
 
 def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path) -> None:
@@ -314,8 +373,9 @@ def test_system_delta_queue_validation_passes_when_no_rows_are_completed() -> No
 
 
 def test_checked_in_system_delta_matrix_matches_rendered_active_sweep() -> None:
+    index = load_system_delta_index(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
     queue = load_system_delta_queue(
-        sweep_id="binary_md_v1",
+        sweep_id=str(index["active_sweep_id"]),
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )

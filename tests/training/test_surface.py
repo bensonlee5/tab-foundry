@@ -210,6 +210,43 @@ def test_build_training_surface_record_marks_missing_inputs_when_manifest_is_dir
     assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is False
 
 
+def test_build_training_surface_record_captures_post_encoder_norm_component(tmp_path: Path) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_post_encoder_norm.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "nano_exact",
+                "stage_label": "delta_shared_norm_post_ln",
+                "module_overrides": {
+                    "feature_encoder": "shared",
+                    "post_encoder_norm": "layernorm",
+                },
+                "d_icl": 96,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
+            },
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+                "surface_label": "anchor_manifest_default",
+            },
+        },
+        run_dir=tmp_path / "run_post_encoder_norm",
+    )
+
+    assert record["model"]["module_selection"]["post_encoder_norm"] == "layernorm"
+    assert record["model"]["module_hyperparameters"]["post_encoder_norm"] == {
+        "name": "layernorm",
+        "norm_type": "layernorm",
+    }
+
+
 def test_build_training_surface_record_marks_legacy_manifest_missingness_as_unknown(
     tmp_path: Path,
 ) -> None:
