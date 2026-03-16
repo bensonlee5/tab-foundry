@@ -17,7 +17,7 @@ from torch import nn
 import tab_foundry.bench.checkpoint as checkpoint_module
 import tab_foundry.bench.prior_train as prior_train_module
 from tab_foundry.bench.nanotabpfn import evaluate_tab_foundry_run
-from tab_foundry.bench.prior_dump import PriorDumpTaskBatchReader
+from tab_foundry.bench.prior_dump import PriorDumpNonFiniteInputError, PriorDumpTaskBatchReader
 from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.training.losses import classification_loss
@@ -138,8 +138,67 @@ def test_prior_dump_reader_rejects_nan_or_inf_inputs_by_default(tmp_path: Path) 
         single_eval_pos=np.asarray([2], dtype=np.int64),
     )
 
-    with pytest.raises(RuntimeError, match="contains NaN or Inf"):
+    with pytest.raises(PriorDumpNonFiniteInputError, match="contains NaN or Inf") as exc_info:
         _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=1)))
+    assert exc_info.value.summary.non_finite_feature_count == 2
+    assert exc_info.value.summary.non_finite_label_count == 0
+    assert exc_info.value.summary.affected_dataset_indices == (0,)
+
+
+def test_prior_dump_reader_rejects_nonfinite_padded_batch_cells_by_default(tmp_path: Path) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_nonfinite_padding.h5",
+        x=np.asarray(
+            [
+                [
+                    [1.0, 2.0, 0.0],
+                    [3.0, 4.0, np.nan],
+                    [5.0, 6.0, 0.0],
+                    [7.0, 8.0, 0.0],
+                ],
+                [
+                    [9.0, 10.0, 11.0],
+                    [12.0, 13.0, 14.0],
+                    [15.0, 16.0, 17.0],
+                    [18.0, 19.0, 20.0],
+                ],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 0],
+            ],
+            dtype=np.int64,
+        ),
+        num_features=np.asarray([2, 3], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+
+    with pytest.raises(PriorDumpNonFiniteInputError, match="contains NaN or Inf") as exc_info:
+        _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=2)))
+    assert exc_info.value.summary.non_finite_feature_count == 1
+    assert exc_info.value.summary.non_finite_label_count == 0
+    assert exc_info.value.summary.affected_dataset_indices == (0,)
+
+
+def test_prior_dump_reader_reports_inf_labels_as_nonfinite(tmp_path: Path) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_inf_labels.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0.0, np.inf, 1.0]], dtype=np.float32),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+
+    with pytest.raises(PriorDumpNonFiniteInputError, match="contains NaN or Inf") as exc_info:
+        _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=1)))
+    assert exc_info.value.summary.non_finite_feature_count == 0
+    assert exc_info.value.summary.non_finite_label_count == 1
+    assert exc_info.value.summary.affected_dataset_indices == (0,)
 
 
 @lru_cache(maxsize=1)
@@ -387,9 +446,29 @@ def test_train_tabfoundry_simple_prior_averages_task_loss_and_steps_per_batch(
     records = [json.loads(line) for line in history_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     assert len(records) == 2
     assert records[0]["train_loss"] == pytest.approx(expected_mean_loss, rel=1.0e-6, abs=1.0e-6)
+    assert records[0]["train_loss_delta"] is None
+    assert records[0]["train_loss_ema"] == pytest.approx(expected_mean_loss, rel=1.0e-6, abs=1.0e-6)
+    assert records[0]["grad_clip_threshold"] == pytest.approx(1.0)
+    assert isinstance(records[0]["grad_clip_triggered"], bool)
     assert (tmp_path / "train_out" / "checkpoints" / "step_000001.pt").exists()
     assert (tmp_path / "train_out" / "checkpoints" / "step_000002.pt").exists()
     assert (tmp_path / "train_out" / "checkpoints" / "latest.pt").exists()
+    gradient_history_path = tmp_path / "train_out" / "gradient_history.jsonl"
+    telemetry_path = tmp_path / "train_out" / "telemetry.json"
+    assert gradient_history_path.exists()
+    assert telemetry_path.exists()
+    gradient_records = [
+        json.loads(line)
+        for line in gradient_history_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(gradient_records) == 2
+    assert gradient_records[0]["module_grad_norms"] == {}
+    telemetry = json.loads(telemetry_path.read_text(encoding="utf-8"))
+    assert telemetry["success"] is True
+    assert telemetry["missingness"]["prior_dump"]["non_finite_feature_count"] == 0
+    assert telemetry["artifacts"]["gradient_history_jsonl"].endswith("gradient_history.jsonl")
+    assert telemetry["gradient_summary"]["modules"] == {}
 
 
 def test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode(
@@ -820,6 +899,257 @@ def test_train_tabfoundry_simple_prior_matches_nanotabpfn_loss_for_one_batch(
         rel=1.0e-6,
         abs=1.0e-6,
     )
+    gradient_history = [
+        json.loads(line)
+        for line in (tmp_path / "train_exact" / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert set(gradient_history[0]["module_grad_norms"]) == {
+        "decoder",
+        "feature_encoder",
+        "target_encoder",
+        "transformer_blocks.0",
+    }
+
+
+def test_train_tabfoundry_staged_prior_writes_staged_gradient_keys(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_staged.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+                [[2.0, 1.0], [4.0, 3.0], [6.0, 5.0], [8.0, 7.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 1],
+            ],
+            dtype=np.float32,
+        ),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+    model = TabFoundryStagedClassifier(
+        stage="nano_exact",
+        d_icl=8,
+        input_normalization="train_zscore_clip",
+        many_class_base=2,
+        tficl_n_heads=2,
+        tficl_n_layers=1,
+        head_hidden_dim=16,
+    )
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "nano_exact",
+                "d_icl": 8,
+                "input_normalization": "train_zscore_clip",
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+                "tfcol_n_heads": 8,
+                "tfcol_n_layers": 3,
+                "tfcol_n_inducing": 128,
+                "tfrow_n_heads": 8,
+                "tfrow_n_layers": 3,
+                "tfrow_cls_tokens": 4,
+                "tficl_n_heads": 2,
+                "tficl_n_layers": 1,
+                "tficl_ff_expansion": 2,
+                "many_class_base": 2,
+                "head_hidden_dim": 16,
+                "use_digit_position_embed": True,
+            },
+            "runtime": {
+                "seed": 0,
+                "output_dir": str(tmp_path / "train_staged"),
+                "device": "cpu",
+                "mixed_precision": "no",
+                "grad_clip": 1.0,
+                "max_steps": 1,
+                "eval_every": 1,
+                "checkpoint_every": 1,
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "require_requested": True,
+                "weight_decay": 0.0,
+                "min_lr": 4.0e-3,
+                "betas": [0.9, 0.95],
+                "muon_per_parameter_lr": False,
+                "muon_lr_scale_base": 0.2,
+                "muon_partition_non2d": True,
+            },
+            "logging": {
+                "history_jsonl_path": str(tmp_path / "train_staged" / "train_history.jsonl"),
+            },
+        }
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=2,
+    )
+
+    gradient_history = [
+        json.loads(line)
+        for line in (tmp_path / "train_staged" / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert set(gradient_history[0]["module_grad_norms"]) == {
+        "column_encoder",
+        "direct_head",
+        "feature_encoder",
+        "row_pool",
+        "target_conditioner",
+        "tokenizer",
+        "transformer_blocks.0",
+    }
+    assert "context_encoder" not in gradient_history[0]["module_grad_norms"]
+    assert "context_label_embed" not in gradient_history[0]["module_grad_norms"]
+    assert "digit_position_embed" not in gradient_history[0]["module_grad_norms"]
+
+
+def test_train_tabfoundry_staged_prior_writes_context_gradient_keys_when_active(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_staged_context.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+                [[2.0, 1.0], [4.0, 3.0], [6.0, 5.0], [8.0, 7.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 1],
+            ],
+            dtype=np.float32,
+        ),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+    model = TabFoundryStagedClassifier(
+        stage="column_set",
+        d_icl=8,
+        input_normalization="train_zscore_clip",
+        many_class_base=2,
+        tficl_n_heads=2,
+        tficl_n_layers=1,
+        head_hidden_dim=16,
+    )
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "column_set",
+                "d_icl": 8,
+                "input_normalization": "train_zscore_clip",
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+                "tfcol_n_heads": 8,
+                "tfcol_n_layers": 3,
+                "tfcol_n_inducing": 128,
+                "tfrow_n_heads": 8,
+                "tfrow_n_layers": 3,
+                "tfrow_cls_tokens": 4,
+                "tficl_n_heads": 2,
+                "tficl_n_layers": 1,
+                "tficl_ff_expansion": 2,
+                "many_class_base": 2,
+                "head_hidden_dim": 16,
+                "use_digit_position_embed": True,
+            },
+            "runtime": {
+                "seed": 0,
+                "output_dir": str(tmp_path / "train_staged_context"),
+                "device": "cpu",
+                "mixed_precision": "no",
+                "grad_clip": 1.0,
+                "max_steps": 1,
+                "eval_every": 1,
+                "checkpoint_every": 1,
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "require_requested": True,
+                "weight_decay": 0.0,
+                "min_lr": 4.0e-3,
+                "betas": [0.9, 0.95],
+                "muon_per_parameter_lr": False,
+                "muon_lr_scale_base": 0.2,
+                "muon_partition_non2d": True,
+            },
+            "logging": {
+                "history_jsonl_path": str(tmp_path / "train_staged_context" / "train_history.jsonl"),
+            },
+        }
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=2,
+    )
+
+    gradient_history = [
+        json.loads(line)
+        for line in (tmp_path / "train_staged_context" / "gradient_history.jsonl").read_text(
+            encoding="utf-8"
+        ).splitlines()
+        if line.strip()
+    ]
+    assert set(gradient_history[0]["module_grad_norms"]) == {
+        "column_encoder",
+        "context_encoder",
+        "context_label_embed",
+        "direct_head",
+        "feature_encoder",
+        "row_pool",
+        "target_conditioner",
+        "tokenizer",
+        "transformer_blocks.0",
+    }
+    assert "digit_position_embed" not in gradient_history[0]["module_grad_norms"]
 
 
 def test_prior_train_main_passes_prior_dump_and_overrides(
@@ -890,9 +1220,42 @@ def test_train_tabfoundry_staged_prior_script_injects_default_experiment(
 
     assert exc_info.value.code == 0
     assert captured["argv"] == [
-        "experiment=cls_benchmark_staged_prior",
         "model.stage=label_token",
         "runtime.output_dir=/tmp/staged-prior",
+        "experiment=cls_benchmark_staged_prior",
+    ]
+
+
+def test_train_tabfoundry_staged_prior_script_keeps_prior_dump_option_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_main(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(prior_train_module, "main", _fake_main)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "train_tabfoundry_staged_prior.py",
+            "--prior-dump",
+            "/tmp/prior.h5",
+            "runtime.max_steps=1",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        runpy.run_path(str(REPO_ROOT / "scripts" / "train_tabfoundry_staged_prior.py"), run_name="__main__")
+
+    assert exc_info.value.code == 0
+    assert captured["argv"] == [
+        "--prior-dump",
+        "/tmp/prior.h5",
+        "runtime.max_steps=1",
+        "experiment=cls_benchmark_staged_prior",
     ]
 
 
@@ -985,6 +1348,87 @@ def test_train_tabfoundry_simple_prior_rejects_mismatched_schedule_steps(
             prior_dump_path=tmp_path / "unused_prior_dump.h5",
             batch_size=1,
         )
+
+
+def test_train_tabfoundry_simple_prior_writes_failure_telemetry_for_nonfinite_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_nonfinite_runtime.h5",
+        x=np.asarray([[[1.0, np.nan], [2.0, 3.0], [4.0, 5.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+
+    with pytest.raises(PriorDumpNonFiniteInputError):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=path,
+            batch_size=1,
+        )
+
+    telemetry = json.loads((tmp_path / "train_out" / "telemetry.json").read_text(encoding="utf-8"))
+    assert telemetry["success"] is False
+    assert telemetry["error"]["type"] == "PriorDumpNonFiniteInputError"
+    assert telemetry["missingness"]["prior_dump"]["affected_batch_count"] == 1
+    assert telemetry["missingness"]["prior_dump"]["affected_dataset_indices"] == [0]
+    assert telemetry["missingness"]["prior_dump"]["non_finite_feature_count"] == 1
+
+
+def test_train_tabfoundry_simple_prior_writes_failure_telemetry_for_nonfinite_labels(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_nonfinite_labels_runtime.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0.0, np.inf, 1.0]], dtype=np.float32),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+
+    with pytest.raises(PriorDumpNonFiniteInputError):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=path,
+            batch_size=1,
+        )
+
+    telemetry = json.loads((tmp_path / "train_out" / "telemetry.json").read_text(encoding="utf-8"))
+    assert telemetry["success"] is False
+    assert telemetry["error"]["type"] == "PriorDumpNonFiniteInputError"
+    assert telemetry["missingness"]["prior_dump"]["affected_batch_count"] == 1
+    assert telemetry["missingness"]["prior_dump"]["affected_dataset_indices"] == [0]
+    assert telemetry["missingness"]["prior_dump"]["non_finite_feature_count"] == 0
+    assert telemetry["missingness"]["prior_dump"]["non_finite_label_count"] == 1
 
 
 def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(

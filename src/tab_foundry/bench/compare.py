@@ -29,6 +29,7 @@ from tab_foundry.bench.nanotabpfn import (
     save_dataset_cache,
     summarize_checkpoint_curve,
 )
+from tab_foundry.training.instability import gradient_history_path, telemetry_path
 
 
 DEFAULT_NANOTABPFN_STEPS = 2500
@@ -231,12 +232,18 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         nanotabpfn_python=_nanotabpfn_python(nanotabpfn_root),
         control_baseline=control_baseline,
     )
+    gradient_history_jsonl = gradient_history_path(tab_foundry_run_dir)
+    telemetry_json = telemetry_path(tab_foundry_run_dir)
     summary["artifacts"] = {
         "benchmark_tasks_json": str(benchmark_tasks_path),
         "tab_foundry_curve_jsonl": str(tab_foundry_curve_path),
         "nanotabpfn_curve_jsonl": str(nanotabpfn_curve_path),
         "comparison_curve_png": str(comparison_curve_path),
         "benchmark_dataset_cache": str(dataset_cache_path),
+        "gradient_history_jsonl": (
+            str(gradient_history_jsonl.resolve()) if gradient_history_jsonl.exists() else None
+        ),
+        "telemetry_json": str(telemetry_json.resolve()) if telemetry_json.exists() else None,
         "benchmark_run_record_json": str(benchmark_run_record_path),
         "training_surface_record_json": str(training_surface_record_path),
     }

@@ -442,6 +442,8 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
 ) -> None:
     smoke_run_dir = tmp_path / "smoke_run"
     smoke_run_dir.mkdir()
+    (smoke_run_dir / "gradient_history.jsonl").write_text("{}\n", encoding="utf-8")
+    (smoke_run_dir / "telemetry.json").write_text("{}\n", encoding="utf-8")
     nanotab_root = tmp_path / "nano"
     (nanotab_root / ".venv" / "bin").mkdir(parents=True)
     nanotab_python = nanotab_root / ".venv" / "bin" / "python"
@@ -665,12 +667,24 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert summary["artifacts"]["training_surface_record_json"] == str(
         (smoke_run_dir / "training_surface_record.json").resolve()
     )
+    assert summary["artifacts"]["gradient_history_jsonl"] == str(
+        (smoke_run_dir / "gradient_history.jsonl").resolve()
+    )
+    assert summary["artifacts"]["telemetry_json"] == str(
+        (smoke_run_dir / "telemetry.json").resolve()
+    )
     assert (out_root / "comparison_summary.json").exists()
     assert (out_root / "comparison_curve.png").exists()
     assert (out_root / "benchmark_run_record.json").exists()
     written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
     assert written_summary["artifacts"]["training_surface_record_json"] == str(
         (smoke_run_dir / "training_surface_record.json").resolve()
+    )
+    assert written_summary["artifacts"]["gradient_history_jsonl"] == str(
+        (smoke_run_dir / "gradient_history.jsonl").resolve()
+    )
+    assert written_summary["artifacts"]["telemetry_json"] == str(
+        (smoke_run_dir / "telemetry.json").resolve()
     )
     assert written_summary["tab_foundry"]["checkpoint_diagnostics"]["failed_checkpoint_count"] == 1
     written_bundle = json.loads((out_root / "benchmark_tasks.json").read_text(encoding="utf-8"))

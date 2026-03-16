@@ -177,6 +177,7 @@ uv run tab-foundry validate-export \
 These artifacts are the minimum handoff surface for reviewable runs:
 
 - `train_history.jsonl`
+- `gradient_history.jsonl`
 - `telemetry.json`
 - `summary.md`
 - `loss_curve.png`
@@ -486,6 +487,24 @@ Recommended loop:
      runtime.output_dir=<run_dir>
    ```
 
+   Use a fresh rerun directory such as
+   `outputs/staged_ladder/<run_id>_diag_v1/train`. The completed first-pass
+   `sd_binary_md_v1_*` outputs under `outputs/staged_ladder/` should be treated
+   as baseline evidence and left unchanged.
+
+1. Audit the existing first-pass scalar histories before selecting reruns:
+
+   ```bash
+   uv run python -m tab_foundry.bench.instability_audit \
+     --staged-ladder-root outputs/staged_ladder \
+     --sweep-id binary_md_v1
+   ```
+
+   This writes
+   `outputs/staged_ladder/reports/binary_md_v1_instability_audit.{json,md}` by
+   ranking the existing `sd_binary_md_v1_*/train/train_history.jsonl` runs and
+   joining any available benchmark summaries and result cards.
+
 1. Benchmark the run on the canonical binary surface:
 
    ```bash
@@ -528,12 +547,20 @@ Recommended loop:
 Every completed benchmark-facing row should leave behind:
 
 - `train_history.jsonl`
+- `gradient_history.jsonl`
+- `telemetry.json`
 - checkpoint snapshots
 - `comparison_summary.json`
 - `benchmark_run_record.json`
 - `comparison_curve.png`
 - `training_surface_record.json`
 - `outputs/staged_ladder/research/<sweep_id>/<delta_id>/result_card.md`
+
+For queue reruns used to debug instability, `train_history.jsonl` now includes
+additive `train_loss_delta`, `train_loss_ema`, `grad_clip_threshold`, and
+`grad_clip_triggered` fields. `comparison_summary.json["artifacts"]` also
+surfaces additive `gradient_history_jsonl` and `telemetry_json` paths when the
+run directory contains those files.
 
 Historical note:
 
