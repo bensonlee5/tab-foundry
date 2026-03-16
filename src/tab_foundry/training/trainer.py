@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 import math
-import os
 from pathlib import Path
 import time
-from typing import Any, Literal, cast
+from typing import Any, cast
 
 from accelerate import Accelerator
 import torch
@@ -35,6 +34,7 @@ from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
 from .schedule import build_stage_configs, stage_base_lr
 from .surface import write_training_surface_record
+from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
 
 def _cycle(loader: DataLoader[TaskBatch]) -> Iterator[TaskBatch]:
@@ -156,44 +156,6 @@ def _evaluate_loader(
     return {"val_loss": val_loss, metric_name: val_score}
 
 
-def _wandb_init(cfg: DictConfig, *, enabled: bool) -> Any | None:
-    if not enabled:
-        return None
-    try:
-        import wandb
-    except Exception:
-        return None
-
-    api_key = _resolve_wandb_api_key()
-    mode: Literal["online", "offline"] = "online" if api_key else "offline"
-    cfg_payload = cast(dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
-    return wandb.init(
-        project=str(cfg.logging.project),
-        name=str(cfg.logging.run_name),
-        mode=mode,
-        config=cfg_payload,
-    )
-
-
-def _resolve_wandb_api_key() -> str | None:
-    value = os.getenv("WANDB_API_KEY")
-    if value is not None:
-        normalized = value.strip()
-        if normalized:
-            return normalized
-
-    file_override = os.getenv("WANDB_API_KEY_FILE")
-    candidate = Path(file_override).expanduser() if file_override else Path("~/.wandb/wandb_api_key.txt").expanduser()
-    try:
-        normalized = candidate.read_text(encoding="utf-8").strip()
-    except OSError:
-        return None
-    if not normalized:
-        return None
-    os.environ["WANDB_API_KEY"] = normalized
-    return normalized
-
-
 def _resolve_grad_accum_steps(cfg: DictConfig) -> int:
     value = int(getattr(cfg, "grad_accum_steps", 1))
     if value <= 0:
@@ -277,6 +239,56 @@ def _expected_metric_keys(task: str) -> set[str]:
     return {"rmse", "grad_norm"}
 
 
+def _trainer_summary_payload(
+    *,
+    output_dir: Path,
+    optimizer_requested_name: str,
+    optimizer_resolved_name: str,
+    optimizer_fallback_reason: str | None,
+    global_step: int,
+    best_checkpoint: Path | None,
+    latest_checkpoint: Path | None,
+    best_val: float,
+    best_val_step: float,
+    last_val_metrics: dict[str, float] | None,
+    final_grad_norm: float,
+    grad_norm_sum: float,
+    grad_norm_count: int,
+    max_grad_norm: float,
+    train_elapsed_seconds: float,
+    wall_elapsed_seconds: float,
+    error: BaseException | None = None,
+) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "optimizer": {
+            "requested_name": optimizer_requested_name,
+            "resolved_name": optimizer_resolved_name,
+            "fallback_reason": optimizer_fallback_reason,
+        },
+        "run": {
+            "output_dir": str(output_dir),
+            "global_step": int(global_step),
+            "best_checkpoint": None if best_checkpoint is None else str(best_checkpoint.resolve()),
+            "latest_checkpoint": None if latest_checkpoint is None else str(latest_checkpoint.resolve()),
+        },
+        "metrics": {
+            "best_val_loss": float(best_val),
+            "best_val_step": float(best_val_step) if best_val_step > 0 else None,
+            "final_val_loss": None
+            if last_val_metrics is None
+            else float(last_val_metrics["val_loss"]),
+            "final_grad_norm": float(final_grad_norm),
+            "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
+            "max_grad_norm": float(max_grad_norm),
+            "train_elapsed_seconds": float(train_elapsed_seconds),
+            "wall_elapsed_seconds": float(wall_elapsed_seconds),
+        },
+    }
+    if error is not None:
+        summary["error"] = {"type": type(error).__name__, "message": str(error)}
+    return summary
+
+
 def train(cfg: DictConfig) -> TrainResult:
     """Train from config."""
 
@@ -341,7 +353,10 @@ def train(cfg: DictConfig) -> TrainResult:
             run_dir=output_dir,
         )
 
-    run = _wandb_init(cfg, enabled=bool(cfg.logging.use_wandb and accelerator.is_main_process))
+    run = init_wandb_run(
+        cfg,
+        enabled=bool(getattr(cfg.logging, "use_wandb", False) and accelerator.is_main_process),
+    )
 
     raw_stages = cast(list[dict[str, object]], OmegaConf.to_container(cfg.schedule.stages, resolve=True))
     stage_configs = build_stage_configs(raw_stages)
@@ -371,8 +386,6 @@ def train(cfg: DictConfig) -> TrainResult:
             f"[optimizer] requested={optimizer_sel.requested_name} "
             f"resolved={optimizer_sel.resolved_name} fallback={optimizer_sel.fallback_reason}"
         )
-    if run is not None and accelerator.is_main_process:
-        run.log({"optimizer/fallback": 1.0 if optimizer_sel.fallback_reason else 0.0}, step=0)
 
     prepared_opts: list[tuple[str, torch.optim.Optimizer]] = []
     lr_scales: dict[str, list[float]] = {}
@@ -399,140 +412,98 @@ def train(cfg: DictConfig) -> TrainResult:
     previous_train_loss: float | None = None
     loss_ema: float | None = None
 
-    for stage in stage_configs:
-        _set_optimizer_training_mode(prepared_opts, training=True)
+    try:
+        for stage in stage_configs:
+            _set_optimizer_training_mode(prepared_opts, training=True)
 
-        for stage_step in range(1, stage.steps + 1):
-            model.train()
-            current_base_lr = stage_base_lr(
-                stage,
-                step=stage_step,
-                lr_min=float(cfg.optimizer.min_lr),
-            )
-            for opt_name, opt in prepared_opts:
-                _set_optimizer_base_lr(
-                    opt,
-                    base_lr=current_base_lr,
-                    scales=lr_scales[opt_name],
+            for stage_step in range(1, stage.steps + 1):
+                model.train()
+                current_base_lr = stage_base_lr(
+                    stage,
+                    step=stage_step,
+                    lr_min=float(cfg.optimizer.min_lr),
                 )
-            for _opt_name, opt in prepared_opts:
-                opt.zero_grad(set_to_none=True)
-            train_loss_sum = 0.0
-            train_loss_count = 0
-            train_metric_sums: dict[str, float] = {}
-            train_metric_counts: dict[str, int] = {}
-            step_train_start = time.perf_counter()
-            for _micro_step in range(grad_accum_steps):
-                batch = move_batch(next(train_iter), accelerator.device)
-                with accelerator.accumulate(model):
-                    with accelerator.autocast():
-                        output = model(batch)
-                        loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-                    accelerator.backward(loss)
-                train_loss_sum += float(loss.detach().item())
-                train_loss_count += 1
-                for key, value in metrics.items():
-                    train_metric_sums[key] = train_metric_sums.get(key, 0.0) + float(value)
-                    train_metric_counts[key] = train_metric_counts.get(key, 0) + 1
-
-            local_grad_norm = total_grad_norm(model.parameters())
-            if float(cfg.runtime.grad_clip) > 0:
-                clipped = accelerator.clip_grad_norm_(model.parameters(), float(cfg.runtime.grad_clip))
-                local_grad_norm = normalize_grad_norm_value(clipped, fallback=local_grad_norm)
-            train_metric_sums["grad_norm"] = train_metric_sums.get("grad_norm", 0.0) + float(local_grad_norm)
-            train_metric_counts["grad_norm"] = train_metric_counts.get("grad_norm", 0) + 1
-
-            for _opt_name, opt in prepared_opts:
-                opt.step()
-
-            train_elapsed_seconds += time.perf_counter() - step_train_start
-            global_step += 1
-            metric_keys = sorted(set(train_metric_sums) | expected_keys)
-            # Pack loss + metric sums/counts into one tensor for a single all-reduce.
-            # Layout: [loss_sum, loss_count, key0_sum, key0_count, ...]
-            n_metrics = len(metric_keys)
-            packed = torch.zeros(
-                2 + 2 * n_metrics,
-                device=accelerator.device,
-                dtype=_reduction_float_dtype(accelerator.device),
-            )
-            packed[0] = train_loss_sum
-            packed[1] = train_loss_count
-            for i, key in enumerate(metric_keys):
-                packed[2 + 2 * i] = train_metric_sums.get(key, 0.0)
-                packed[2 + 2 * i + 1] = train_metric_counts.get(key, 0)
-            reduced = accelerator.reduce(packed, reduction="sum")
-
-            g_loss_sum = reduced[0].item()
-            g_loss_count = reduced[1].item()
-            train_loss = g_loss_sum / g_loss_count if g_loss_count > 0 else 0.0
-
-            lr_values = {name: float(opt.param_groups[0]["lr"]) for name, opt in prepared_opts}
-            first_lr = next(iter(lr_values.values()))
-            grad_norm_value = float("nan")
-            train_log: dict[str, float | str] = {
-                "train/loss": train_loss,
-                "train/lr": first_lr,
-                "stage": stage.name,
-                "step": float(global_step),
-            }
-            for name, value in lr_values.items():
-                train_log[f"train/lr_{name}"] = value
-            for i, key in enumerate(metric_keys):
-                g_sum = reduced[2 + 2 * i].item()
-                g_count = reduced[2 + 2 * i + 1].item()
-                metric_mean = g_sum / g_count if g_count > 0 else float("nan")
-                if math.isfinite(metric_mean):
-                    train_log[f"train/{key}"] = metric_mean
-                    if key == "grad_norm":
-                        grad_norm_value = float(metric_mean)
-                        grad_norm_sum += grad_norm_value
-                        grad_norm_count += 1
-                        max_grad_norm = max(max_grad_norm, grad_norm_value)
-                        final_grad_norm = grad_norm_value
-
-            if run is not None and accelerator.is_main_process:
-                run.log(train_log, step=global_step)
-
-            history_val_metrics: dict[str, float] | None = None
-            if global_step % int(cfg.runtime.eval_every) == 0:
-                _set_optimizer_training_mode(prepared_opts, training=False)
-                val_metrics = _evaluate_loader(
-                    model,
-                    val_loader,
-                    accelerator=accelerator,
-                    task=task,
-                    max_batches=int(cfg.runtime.val_batches),
-                )
-                if run is not None and accelerator.is_main_process:
-                    run.log({f"val/{k}": v for k, v in val_metrics.items()}, step=global_step)
-                history_val_metrics = val_metrics
-                last_val_metrics = val_metrics
-
-                if val_metrics["val_loss"] < best_val:
-                    best_val = val_metrics["val_loss"]
-                    best_val_step = float(global_step)
-                    best_checkpoint = output_dir / "checkpoints" / "best.pt"
-                    if accelerator.is_main_process:
-                        save_checkpoint(
-                            best_checkpoint,
-                            model_state=accelerator.get_state_dict(model),
-                            global_step=global_step,
-                            cfg=cfg,
-                        )
-                _set_optimizer_training_mode(prepared_opts, training=True)
-
-            if checkpoint_every is not None and global_step % checkpoint_every == 0:
-                snapshot_checkpoint = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
-                if accelerator.is_main_process:
-                    save_checkpoint(
-                        snapshot_checkpoint,
-                        model_state=accelerator.get_state_dict(model),
-                        global_step=global_step,
-                        cfg=cfg,
+                for opt_name, opt in prepared_opts:
+                    _set_optimizer_base_lr(
+                        opt,
+                        base_lr=current_base_lr,
+                        scales=lr_scales[opt_name],
                     )
+                for _opt_name, opt in prepared_opts:
+                    opt.zero_grad(set_to_none=True)
+                train_loss_sum = 0.0
+                train_loss_count = 0
+                train_metric_sums: dict[str, float] = {}
+                train_metric_counts: dict[str, int] = {}
+                step_train_start = time.perf_counter()
+                for _micro_step in range(grad_accum_steps):
+                    batch = move_batch(next(train_iter), accelerator.device)
+                    with accelerator.accumulate(model):
+                        with accelerator.autocast():
+                            output = model(batch)
+                            loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
+                        accelerator.backward(loss)
+                    train_loss_sum += float(loss.detach().item())
+                    train_loss_count += 1
+                    for key, value in metrics.items():
+                        train_metric_sums[key] = train_metric_sums.get(key, 0.0) + float(value)
+                        train_metric_counts[key] = train_metric_counts.get(key, 0) + 1
 
-            if history_path is not None and accelerator.is_main_process:
+                local_grad_norm = total_grad_norm(model.parameters())
+                if float(cfg.runtime.grad_clip) > 0:
+                    clipped = accelerator.clip_grad_norm_(model.parameters(), float(cfg.runtime.grad_clip))
+                    local_grad_norm = normalize_grad_norm_value(clipped, fallback=local_grad_norm)
+                train_metric_sums["grad_norm"] = train_metric_sums.get("grad_norm", 0.0) + float(local_grad_norm)
+                train_metric_counts["grad_norm"] = train_metric_counts.get("grad_norm", 0) + 1
+
+                for _opt_name, opt in prepared_opts:
+                    opt.step()
+
+                train_elapsed_seconds += time.perf_counter() - step_train_start
+                global_step += 1
+                metric_keys = sorted(set(train_metric_sums) | expected_keys)
+                # Pack loss + metric sums/counts into one tensor for a single all-reduce.
+                # Layout: [loss_sum, loss_count, key0_sum, key0_count, ...]
+                n_metrics = len(metric_keys)
+                packed = torch.zeros(
+                    2 + 2 * n_metrics,
+                    device=accelerator.device,
+                    dtype=_reduction_float_dtype(accelerator.device),
+                )
+                packed[0] = train_loss_sum
+                packed[1] = train_loss_count
+                for i, key in enumerate(metric_keys):
+                    packed[2 + 2 * i] = train_metric_sums.get(key, 0.0)
+                    packed[2 + 2 * i + 1] = train_metric_counts.get(key, 0)
+                reduced = accelerator.reduce(packed, reduction="sum")
+
+                g_loss_sum = reduced[0].item()
+                g_loss_count = reduced[1].item()
+                train_loss = g_loss_sum / g_loss_count if g_loss_count > 0 else 0.0
+
+                lr_values = {name: float(opt.param_groups[0]["lr"]) for name, opt in prepared_opts}
+                first_lr = next(iter(lr_values.values()))
+                grad_norm_value = float("nan")
+                train_log: dict[str, Any] = {
+                    "train/loss": train_loss,
+                    "train/lr": first_lr,
+                    "train/stage": stage.name,
+                }
+                for name, value in lr_values.items():
+                    train_log[f"train/lr_{name}"] = value
+                for i, key in enumerate(metric_keys):
+                    g_sum = reduced[2 + 2 * i].item()
+                    g_count = reduced[2 + 2 * i + 1].item()
+                    metric_mean = g_sum / g_count if g_count > 0 else float("nan")
+                    if math.isfinite(metric_mean):
+                        train_log[f"train/{key}"] = metric_mean
+                        if key == "grad_norm":
+                            grad_norm_value = float(metric_mean)
+                            grad_norm_sum += grad_norm_value
+                            grad_norm_count += 1
+                            max_grad_norm = max(max_grad_norm, grad_norm_value)
+                            final_grad_norm = grad_norm_value
+
                 current_train_loss = float(train_loss)
                 loss_delta_value = train_loss_delta(
                     current_train_loss,
@@ -540,83 +511,184 @@ def train(cfg: DictConfig) -> TrainResult:
                 )
                 loss_ema = update_loss_ema(current_train_loss, previous_ema=loss_ema)
                 previous_train_loss = current_train_loss
-                train_metrics_for_history = {
-                    key.removeprefix("train/"): float(value)
-                    for key, value in train_log.items()
-                    if key.startswith("train/")
-                    and isinstance(value, (int, float))
-                    and key != "train/lr"
-                    and math.isfinite(float(value))
-                }
-                append_history_record(
-                    history_path,
-                    history_record(
-                        global_step=global_step,
-                        stage_name=stage.name,
-                        train_loss=float(train_loss),
-                        train_metrics=train_metrics_for_history,
-                        lr=float(first_lr),
-                        grad_norm=None if not math.isfinite(grad_norm_value) else float(grad_norm_value),
-                        elapsed_seconds=time.perf_counter() - train_start,
-                        train_elapsed_seconds=train_elapsed_seconds,
-                        val_metrics=history_val_metrics,
-                        train_loss_delta=loss_delta_value,
-                        train_loss_ema=loss_ema,
-                        grad_clip_threshold=float(cfg.runtime.grad_clip),
-                        grad_clip_triggered=bool(
-                            float(cfg.runtime.grad_clip) > 0
-                            and math.isfinite(grad_norm_value)
-                            and float(grad_norm_value) > float(cfg.runtime.grad_clip)
-                        ),
-                    ),
+                elapsed_seconds = time.perf_counter() - train_start
+                grad_clip_threshold = float(cfg.runtime.grad_clip)
+                grad_clip_triggered = bool(
+                    grad_clip_threshold > 0
+                    and math.isfinite(grad_norm_value)
+                    and float(grad_norm_value) > grad_clip_threshold
                 )
+                train_log["train/loss_delta"] = loss_delta_value
+                train_log["train/loss_ema"] = loss_ema
+                train_log["train/elapsed_seconds"] = elapsed_seconds
+                train_log["train/train_elapsed_seconds"] = train_elapsed_seconds
+                train_log["train/grad_clip_threshold"] = grad_clip_threshold
+                train_log["train/grad_clip_triggered"] = grad_clip_triggered
+                log_wandb_metrics(run, train_log, step=global_step)
 
-            if max_steps is not None and global_step >= max_steps:
-                stop_requested = True
-            if target_train_seconds is not None and train_elapsed_seconds >= target_train_seconds:
-                stop_requested = True
+                history_val_metrics: dict[str, float] | None = None
+                if global_step % int(cfg.runtime.eval_every) == 0:
+                    _set_optimizer_training_mode(prepared_opts, training=False)
+                    val_metrics = _evaluate_loader(
+                        model,
+                        val_loader,
+                        accelerator=accelerator,
+                        task=task,
+                        max_batches=int(cfg.runtime.val_batches),
+                    )
+                    log_wandb_metrics(
+                        run,
+                        {f"val/{k}": v for k, v in val_metrics.items()},
+                        step=global_step,
+                    )
+                    history_val_metrics = val_metrics
+                    last_val_metrics = val_metrics
+
+                    if val_metrics["val_loss"] < best_val:
+                        best_val = val_metrics["val_loss"]
+                        best_val_step = float(global_step)
+                        best_checkpoint = output_dir / "checkpoints" / "best.pt"
+                        if accelerator.is_main_process:
+                            save_checkpoint(
+                                best_checkpoint,
+                                model_state=accelerator.get_state_dict(model),
+                                global_step=global_step,
+                                cfg=cfg,
+                            )
+                    _set_optimizer_training_mode(prepared_opts, training=True)
+
+                if checkpoint_every is not None and global_step % checkpoint_every == 0:
+                    snapshot_checkpoint = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
+                    if accelerator.is_main_process:
+                        save_checkpoint(
+                            snapshot_checkpoint,
+                            model_state=accelerator.get_state_dict(model),
+                            global_step=global_step,
+                            cfg=cfg,
+                        )
+
+                if history_path is not None and accelerator.is_main_process:
+                    train_metrics_for_history = {
+                        key.removeprefix("train/"): float(value)
+                        for key, value in train_log.items()
+                        if key.startswith("train/")
+                        and isinstance(value, (int, float))
+                        and key != "train/lr"
+                        and math.isfinite(float(value))
+                    }
+                    append_history_record(
+                        history_path,
+                        history_record(
+                            global_step=global_step,
+                            stage_name=stage.name,
+                            train_loss=float(train_loss),
+                            train_metrics=train_metrics_for_history,
+                            lr=float(first_lr),
+                            grad_norm=None if not math.isfinite(grad_norm_value) else float(grad_norm_value),
+                            elapsed_seconds=elapsed_seconds,
+                            train_elapsed_seconds=train_elapsed_seconds,
+                            val_metrics=history_val_metrics,
+                            train_loss_delta=loss_delta_value,
+                            train_loss_ema=loss_ema,
+                            grad_clip_threshold=grad_clip_threshold,
+                            grad_clip_triggered=grad_clip_triggered,
+                        ),
+                    )
+
+                if max_steps is not None and global_step >= max_steps:
+                    stop_requested = True
+                if target_train_seconds is not None and train_elapsed_seconds >= target_train_seconds:
+                    stop_requested = True
+                if stop_requested:
+                    break
+
+            latest_checkpoint = output_dir / "checkpoints" / f"latest_{stage.name}.pt"
+            if accelerator.is_main_process:
+                save_checkpoint(
+                    latest_checkpoint,
+                    model_state=accelerator.get_state_dict(model),
+                    global_step=global_step,
+                    cfg=cfg,
+                )
             if stop_requested:
                 break
 
-        latest_checkpoint = output_dir / "checkpoints" / f"latest_{stage.name}.pt"
-        if accelerator.is_main_process:
-            save_checkpoint(
-                latest_checkpoint,
-                model_state=accelerator.get_state_dict(model),
+        accelerator.wait_for_everyone()
+
+        wall_elapsed_seconds = time.perf_counter() - train_start
+        if best_checkpoint is None and latest_checkpoint is not None:
+            best_checkpoint = output_dir / "checkpoints" / "best.pt"
+            if accelerator.is_main_process:
+                save_checkpoint(
+                    best_checkpoint,
+                    model_state=accelerator.get_state_dict(model),
+                    global_step=global_step,
+                    cfg=cfg,
+                )
+
+        result = TrainResult(
+            output_dir=output_dir,
+            best_checkpoint=best_checkpoint,
+            latest_checkpoint=latest_checkpoint,
+            global_step=global_step,
+            metrics={
+                "best_val_loss": float(best_val),
+                "best_val_step": float(best_val_step),
+                "final_val_loss": float(last_val_metrics["val_loss"])
+                if last_val_metrics is not None
+                else float(best_val),
+                "final_grad_norm": float(final_grad_norm),
+                "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
+                "max_grad_norm": float(max_grad_norm),
+                "train_elapsed_seconds": float(train_elapsed_seconds),
+                "wall_elapsed_seconds": float(wall_elapsed_seconds),
+            },
+        )
+        update_wandb_summary(
+            run,
+            _trainer_summary_payload(
+                output_dir=output_dir,
+                optimizer_requested_name=optimizer_sel.requested_name,
+                optimizer_resolved_name=optimizer_sel.resolved_name,
+                optimizer_fallback_reason=optimizer_sel.fallback_reason,
                 global_step=global_step,
-                cfg=cfg,
-            )
-        if stop_requested:
-            break
-
-    accelerator.wait_for_everyone()
-    if run is not None and accelerator.is_main_process:
-        run.finish()
-
-    wall_elapsed_seconds = time.perf_counter() - train_start
-    if best_checkpoint is None and latest_checkpoint is not None:
-        best_checkpoint = output_dir / "checkpoints" / "best.pt"
-        if accelerator.is_main_process:
-            save_checkpoint(
-                best_checkpoint,
-                model_state=accelerator.get_state_dict(model),
+                best_checkpoint=best_checkpoint,
+                latest_checkpoint=latest_checkpoint,
+                best_val=best_val,
+                best_val_step=best_val_step,
+                last_val_metrics=last_val_metrics,
+                final_grad_norm=final_grad_norm,
+                grad_norm_sum=grad_norm_sum,
+                grad_norm_count=grad_norm_count,
+                max_grad_norm=max_grad_norm,
+                train_elapsed_seconds=train_elapsed_seconds,
+                wall_elapsed_seconds=wall_elapsed_seconds,
+            ),
+        )
+        return result
+    except Exception as exc:
+        update_wandb_summary(
+            run,
+            _trainer_summary_payload(
+                output_dir=output_dir,
+                optimizer_requested_name=optimizer_sel.requested_name,
+                optimizer_resolved_name=optimizer_sel.resolved_name,
+                optimizer_fallback_reason=optimizer_sel.fallback_reason,
                 global_step=global_step,
-                cfg=cfg,
-            )
-
-    return TrainResult(
-        output_dir=output_dir,
-        best_checkpoint=best_checkpoint,
-        latest_checkpoint=latest_checkpoint,
-        global_step=global_step,
-        metrics={
-            "best_val_loss": float(best_val),
-            "best_val_step": float(best_val_step),
-            "final_val_loss": float(last_val_metrics["val_loss"]) if last_val_metrics is not None else float(best_val),
-            "final_grad_norm": float(final_grad_norm),
-            "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
-            "max_grad_norm": float(max_grad_norm),
-            "train_elapsed_seconds": float(train_elapsed_seconds),
-            "wall_elapsed_seconds": float(wall_elapsed_seconds),
-        },
-    )
+                best_checkpoint=best_checkpoint,
+                latest_checkpoint=latest_checkpoint,
+                best_val=best_val,
+                best_val_step=best_val_step,
+                last_val_metrics=last_val_metrics,
+                final_grad_norm=final_grad_norm,
+                grad_norm_sum=grad_norm_sum,
+                grad_norm_count=grad_norm_count,
+                max_grad_norm=max_grad_norm,
+                train_elapsed_seconds=train_elapsed_seconds,
+                wall_elapsed_seconds=time.perf_counter() - train_start,
+                error=exc,
+            ),
+        )
+        raise
+    finally:
+        finish_wandb_run(run)
