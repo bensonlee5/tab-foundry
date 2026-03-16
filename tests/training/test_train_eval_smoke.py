@@ -228,6 +228,10 @@ def test_train_smoke_writes_history_jsonl(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert records[0]["grad_norm"] >= 0.0
     assert records[0]["elapsed_seconds"] >= 0.0
     assert records[0]["train_elapsed_seconds"] >= 0.0
+    assert records[0]["train_loss_delta"] is None
+    assert records[0]["train_loss_ema"] >= 0.0
+    assert records[0]["grad_clip_threshold"] == pytest.approx(1.0)
+    assert isinstance(records[0]["grad_clip_triggered"], bool)
 
 
 def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

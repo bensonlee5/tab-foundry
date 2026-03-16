@@ -9,8 +9,78 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from tab_foundry.data.validation import assert_no_non_finite_values
 from tab_foundry.types import TaskBatch
+
+
+@dataclass(slots=True, frozen=True)
+class PriorDumpDatasetMissingness:
+    """Non-finite summary for one dataset inside a prior-dump batch."""
+
+    dataset_index: int
+    non_finite_feature_count: int
+    non_finite_label_count: int
+
+    def to_dict(self) -> dict[str, int]:
+        return {
+            "dataset_index": int(self.dataset_index),
+            "non_finite_feature_count": int(self.non_finite_feature_count),
+            "non_finite_label_count": int(self.non_finite_label_count),
+        }
+
+
+@dataclass(slots=True, frozen=True)
+class PriorDumpBatchMissingness:
+    """Non-finite summary for one training batch from the prior dump."""
+
+    step_index: int
+    dataset_indices: tuple[int, ...]
+    non_finite_feature_count: int
+    non_finite_label_count: int
+    affected_datasets: tuple[PriorDumpDatasetMissingness, ...]
+
+    @property
+    def affected_batch_count(self) -> int:
+        return 0 if not self.affected_datasets else 1
+
+    @property
+    def affected_dataset_count(self) -> int:
+        return int(len(self.affected_datasets))
+
+    @property
+    def affected_dataset_indices(self) -> tuple[int, ...]:
+        return tuple(dataset.dataset_index for dataset in self.affected_datasets)
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "step_index": int(self.step_index),
+            "dataset_indices": [int(index) for index in self.dataset_indices],
+            "non_finite_feature_count": int(self.non_finite_feature_count),
+            "non_finite_label_count": int(self.non_finite_label_count),
+            "affected_batch_count": int(self.affected_batch_count),
+            "affected_dataset_count": int(self.affected_dataset_count),
+            "affected_dataset_indices": [int(index) for index in self.affected_dataset_indices],
+            "affected_datasets": [dataset.to_dict() for dataset in self.affected_datasets],
+        }
+
+
+class PriorDumpNonFiniteInputError(RuntimeError):
+    """Raised when one prior-dump batch contains unsupported non-finite values."""
+
+    def __init__(
+        self,
+        *,
+        path: Path,
+        summary: PriorDumpBatchMissingness,
+    ) -> None:
+        self.path = path.expanduser().resolve()
+        self.summary = summary
+        super().__init__(
+            "prior dump batch contains NaN or Inf while allow_missing_values=False: "
+            f"path={self.path}, step_index={summary.step_index}, "
+            f"affected_dataset_indices={summary.affected_dataset_indices}, "
+            f"non_finite_feature_count={summary.non_finite_feature_count}, "
+            f"non_finite_label_count={summary.non_finite_label_count}"
+        )
 
 
 @dataclass(slots=True, frozen=True)
@@ -23,6 +93,11 @@ class PriorDumpStep:
     tasks: tuple[TaskBatch, ...]
     x_batch: torch.Tensor | None = None
     y_batch: torch.Tensor | None = None
+    missingness: PriorDumpBatchMissingness | None = None
+
+
+def _non_finite_count(array: np.ndarray) -> int:
+    return int(np.count_nonzero(~np.isfinite(array)))
 
 
 class PriorDumpTaskBatchReader:
@@ -97,18 +172,10 @@ class PriorDumpTaskBatchReader:
                         dtype=np.float32,
                     )
                 )
-                if not self.allow_missing_values:
-                    assert_no_non_finite_values(
-                        {
-                            "x_batch": x_batch.numpy(),
-                            "y_batch": y_batch.numpy(),
-                        },
-                        context=(
-                            "prior dump batch "
-                            f"path={self.path}, dataset_indices={batch_dataset_indices}"
-                        ),
-                    )
                 tasks: list[TaskBatch] = []
+                affected_datasets: list[PriorDumpDatasetMissingness] = []
+                batch_non_finite_feature_count = 0
+                batch_non_finite_label_count = 0
                 for local_index, dataset_index in enumerate(batch_dataset_indices):
                     n_features = int(num_features[local_index])
                     n_datapoints = int(num_datapoints[local_index])
@@ -131,15 +198,28 @@ class PriorDumpTaskBatchReader:
                         x_ds[dataset_index, :n_datapoints, :n_features],
                         dtype=np.float32,
                     )
-                    y = np.asarray(
+                    raw_y = np.asarray(
                         y_ds[dataset_index, :n_datapoints],
-                        dtype=np.int64,
+                        dtype=np.float32,
                     )
-                    if y.shape[0] != n_datapoints:
+                    if raw_y.shape[0] != n_datapoints:
                         raise RuntimeError(
                             f"prior dump dataset {dataset_index} label shape mismatch: "
-                            f"expected {n_datapoints}, got {y.shape[0]}"
+                            f"expected {n_datapoints}, got {raw_y.shape[0]}"
                         )
+                    non_finite_feature_count = _non_finite_count(x)
+                    non_finite_label_count = _non_finite_count(raw_y)
+                    batch_non_finite_feature_count += non_finite_feature_count
+                    batch_non_finite_label_count += non_finite_label_count
+                    if non_finite_feature_count > 0 or non_finite_label_count > 0:
+                        affected_datasets.append(
+                            PriorDumpDatasetMissingness(
+                                dataset_index=int(dataset_index),
+                                non_finite_feature_count=int(non_finite_feature_count),
+                                non_finite_label_count=int(non_finite_label_count),
+                            )
+                        )
+                    y = raw_y.astype(np.int64)
                     if np.any((y < 0) | (y > 1)):
                         raise RuntimeError(
                             f"phase 1 prior-dump training requires binary labels in {{0,1}}, "
@@ -165,6 +245,17 @@ class PriorDumpTaskBatchReader:
                         )
                     )
 
+                missingness = PriorDumpBatchMissingness(
+                    step_index=int(step_index),
+                    dataset_indices=batch_dataset_indices,
+                    non_finite_feature_count=int(batch_non_finite_feature_count),
+                    non_finite_label_count=int(batch_non_finite_label_count),
+                    affected_datasets=tuple(affected_datasets),
+                )
+                if missingness.non_finite_label_count > 0:
+                    raise PriorDumpNonFiniteInputError(path=self.path, summary=missingness)
+                if not self.allow_missing_values and missingness.non_finite_feature_count > 0:
+                    raise PriorDumpNonFiniteInputError(path=self.path, summary=missingness)
                 yield PriorDumpStep(
                     step_index=step_index,
                     dataset_indices=batch_dataset_indices,
@@ -172,6 +263,7 @@ class PriorDumpTaskBatchReader:
                     tasks=tuple(tasks),
                     x_batch=x_batch,
                     y_batch=y_batch,
+                    missingness=missingness,
                 )
 
                 pointer += self.batch_size

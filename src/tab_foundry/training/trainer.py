@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 import math
-from numbers import Real
 import os
 from pathlib import Path
 import time
@@ -30,6 +29,7 @@ from .artifacts import (
 )
 from .batching import move_batch
 from .distributed import _global_mean_from_local, _reduction_float_dtype
+from .instability import normalize_grad_norm_value, total_grad_norm, train_loss_delta, update_loss_ema
 from .losses import classification_loss, hierarchical_nll_loss, quantile_pinball_loss
 from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
@@ -277,35 +277,6 @@ def _expected_metric_keys(task: str) -> set[str]:
     return {"rmse", "grad_norm"}
 
 
-def _total_grad_norm(parameters: Iterable[torch.nn.Parameter]) -> float:
-    total_sq = 0.0
-    found_grad = False
-    for parameter in parameters:
-        if parameter.grad is None:
-            continue
-        grad = parameter.grad.detach()
-        if grad.is_sparse:
-            grad = grad.coalesce().values()
-        norm = float(torch.linalg.vector_norm(grad).item())
-        total_sq += norm * norm
-        found_grad = True
-    if not found_grad:
-        return 0.0
-    return math.sqrt(total_sq)
-
-
-def _normalize_grad_norm_value(value: object, *, fallback: float) -> float:
-    if value is None:
-        return float(fallback)
-    if isinstance(value, torch.Tensor):
-        value_f = float(value.detach().item())
-        return value_f if math.isfinite(value_f) else float(fallback)
-    if isinstance(value, Real):
-        value_f = float(value)
-        return value_f if math.isfinite(value_f) else float(fallback)
-    return float(fallback)
-
-
 def train(cfg: DictConfig) -> TrainResult:
     """Train from config."""
 
@@ -425,6 +396,8 @@ def train(cfg: DictConfig) -> TrainResult:
     grad_norm_count = 0
     max_grad_norm = 0.0
     final_grad_norm = 0.0
+    previous_train_loss: float | None = None
+    loss_ema: float | None = None
 
     for stage in stage_configs:
         _set_optimizer_training_mode(prepared_opts, training=True)
@@ -462,10 +435,10 @@ def train(cfg: DictConfig) -> TrainResult:
                     train_metric_sums[key] = train_metric_sums.get(key, 0.0) + float(value)
                     train_metric_counts[key] = train_metric_counts.get(key, 0) + 1
 
-            local_grad_norm = _total_grad_norm(model.parameters())
+            local_grad_norm = total_grad_norm(model.parameters())
             if float(cfg.runtime.grad_clip) > 0:
                 clipped = accelerator.clip_grad_norm_(model.parameters(), float(cfg.runtime.grad_clip))
-                local_grad_norm = _normalize_grad_norm_value(clipped, fallback=local_grad_norm)
+                local_grad_norm = normalize_grad_norm_value(clipped, fallback=local_grad_norm)
             train_metric_sums["grad_norm"] = train_metric_sums.get("grad_norm", 0.0) + float(local_grad_norm)
             train_metric_counts["grad_norm"] = train_metric_counts.get("grad_norm", 0) + 1
 
@@ -560,6 +533,13 @@ def train(cfg: DictConfig) -> TrainResult:
                     )
 
             if history_path is not None and accelerator.is_main_process:
+                current_train_loss = float(train_loss)
+                loss_delta_value = train_loss_delta(
+                    current_train_loss,
+                    previous_train_loss=previous_train_loss,
+                )
+                loss_ema = update_loss_ema(current_train_loss, previous_ema=loss_ema)
+                previous_train_loss = current_train_loss
                 train_metrics_for_history = {
                     key.removeprefix("train/"): float(value)
                     for key, value in train_log.items()
@@ -580,6 +560,14 @@ def train(cfg: DictConfig) -> TrainResult:
                         elapsed_seconds=time.perf_counter() - train_start,
                         train_elapsed_seconds=train_elapsed_seconds,
                         val_metrics=history_val_metrics,
+                        train_loss_delta=loss_delta_value,
+                        train_loss_ema=loss_ema,
+                        grad_clip_threshold=float(cfg.runtime.grad_clip),
+                        grad_clip_triggered=bool(
+                            float(cfg.runtime.grad_clip) > 0
+                            and math.isfinite(grad_norm_value)
+                            and float(grad_norm_value) > float(cfg.runtime.grad_clip)
+                        ),
                     ),
                 )
 

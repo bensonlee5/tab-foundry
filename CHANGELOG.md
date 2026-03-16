@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Prior-dump queue reruns now emit additive instability-debug artifacts:
+  `gradient_history.jsonl` for module-level gradient traces and
+  `telemetry.json` for run summaries, checkpoint snapshots, missingness
+  diagnostics, and failure context. `train_history.jsonl` also gained additive
+  `train_loss_delta`, `train_loss_ema`, `grad_clip_threshold`, and
+  `grad_clip_triggered` fields.
+
+- `comparison_summary.json["artifacts"]` now surfaces additive
+  `gradient_history_jsonl` and `telemetry_json` pointers when those run-level
+  artifacts are present, without changing the benchmark registry schema.
+
+- Added an instability-audit entry point under
+  `tab_foundry.bench.instability_audit` that scans the existing first-pass
+  `outputs/staged_ladder/sd_binary_md_v1_*/train/train_history.jsonl` runs,
+  joins available benchmark summaries and result cards, and writes ranked audit
+  reports under `outputs/staged_ladder/reports/`.
+
 - Added explicit no-missing mainline guardrails for benchmark-facing manifests,
   manifest-backed datasets, prior-dump training inputs, and benchmark bundle
   loading. `tab-foundry build-manifest` now accepts

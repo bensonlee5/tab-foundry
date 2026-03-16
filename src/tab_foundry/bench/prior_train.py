@@ -6,35 +6,47 @@ import argparse
 import random
 import time
 from pathlib import Path
-from typing import Sequence, cast
+from typing import Any, Sequence, cast
 
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
 import torch
 
 from tab_foundry.bench.nanotabpfn import resolve_device
-from tab_foundry.bench.prior_dump import PriorDumpTaskBatchReader
+from tab_foundry.bench.prior_dump import (
+    PriorDumpBatchMissingness,
+    PriorDumpNonFiniteInputError,
+    PriorDumpTaskBatchReader,
+)
 from tab_foundry.config import compose_config
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
 from tab_foundry.training.artifacts import (
+    append_jsonl_record,
     append_history_record,
     assert_clean_training_output,
+    gradient_history_record,
     history_path_from_cfg,
     history_record,
     save_checkpoint,
+)
+from tab_foundry.training.instability import (
+    build_training_telemetry,
+    gradient_history_path,
+    module_grad_norms,
+    normalize_grad_norm_value,
+    telemetry_path,
+    total_grad_norm,
+    train_loss_delta,
+    update_loss_ema,
+    write_training_telemetry,
 )
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import build_optimizer
 from tab_foundry.training.surface import write_training_surface_record
 from tab_foundry.training.schedule import build_stage_configs, stage_base_lr, StageConfig
-from tab_foundry.training.trainer import (
-    _normalize_grad_norm_value,
-    _set_optimizer_base_lr,
-    _set_optimizer_training_mode,
-    _total_grad_norm,
-)
+from tab_foundry.training.trainer import _set_optimizer_base_lr, _set_optimizer_training_mode
 from tab_foundry.types import TrainResult
 
 
@@ -198,6 +210,44 @@ def _save_eval_mode_checkpoint(
         _set_optimizer_training_mode(prepared_opts, training=True)
 
 
+def _initial_missingness_summary(prior_dump_path: Path) -> dict[str, Any]:
+    return {
+        "prior_dump": {
+            "path": str(prior_dump_path.expanduser().resolve()),
+            "allow_missing_values": False,
+            "batches_seen": 0,
+            "affected_batch_count": 0,
+            "affected_dataset_indices": [],
+            "non_finite_feature_count": 0,
+            "non_finite_label_count": 0,
+            "last_batch": None,
+        }
+    }
+
+
+def _accumulate_missingness(
+    summary: dict[str, Any],
+    *,
+    batch_missingness: PriorDumpBatchMissingness,
+) -> None:
+    prior_dump = cast(dict[str, Any], summary["prior_dump"])
+    prior_dump["batches_seen"] = int(prior_dump["batches_seen"]) + 1
+    prior_dump["non_finite_feature_count"] = int(prior_dump["non_finite_feature_count"]) + int(
+        batch_missingness.non_finite_feature_count
+    )
+    prior_dump["non_finite_label_count"] = int(prior_dump["non_finite_label_count"]) + int(
+        batch_missingness.non_finite_label_count
+    )
+    if batch_missingness.affected_batch_count > 0:
+        prior_dump["affected_batch_count"] = int(prior_dump["affected_batch_count"]) + 1
+        known_dataset_indices = {
+            int(dataset_index) for dataset_index in prior_dump["affected_dataset_indices"]
+        }
+        known_dataset_indices.update(int(index) for index in batch_missingness.affected_dataset_indices)
+        prior_dump["affected_dataset_indices"] = sorted(known_dataset_indices)
+        prior_dump["last_batch"] = batch_missingness.to_dict()
+
+
 def train_tabfoundry_simple_prior(
     cfg: DictConfig,
     *,
@@ -226,6 +276,8 @@ def train_tabfoundry_simple_prior(
     output_dir.mkdir(parents=True, exist_ok=True)
     history_path = history_path_from_cfg(cfg)
     assert_clean_training_output(output_dir, history_path=history_path)
+    gradient_path = gradient_history_path(output_dir)
+    telemetry_output_path = telemetry_path(output_dir)
 
     max_steps = _resolve_positive_int(getattr(cfg.runtime, "max_steps", None), name="runtime.max_steps")
     eval_every = _resolve_positive_int(getattr(cfg.runtime, "eval_every", None), name="runtime.eval_every")
@@ -243,11 +295,24 @@ def train_tabfoundry_simple_prior(
     model.to(device)
     model.train()
     raw_cfg = cast(dict[str, object], OmegaConf.to_container(cfg, resolve=True))
-    write_training_surface_record(
-        output_dir / "training_surface_record.json",
+    training_surface_path = output_dir / "training_surface_record.json"
+    training_surface_payload = write_training_surface_record(
+        training_surface_path,
         raw_cfg=raw_cfg,
         run_dir=output_dir,
     )
+    artifacts: dict[str, Any] = {
+        "train_history_jsonl": None if history_path is None else str(history_path),
+        "gradient_history_jsonl": str(gradient_path),
+        "telemetry_json": str(telemetry_output_path),
+        "training_surface_record_json": str(training_surface_path.resolve()),
+        "checkpoints_dir": str((output_dir / "checkpoints").resolve()),
+        "latest_checkpoint": None,
+    }
+    history_records: list[dict[str, Any]] = []
+    gradient_records: list[dict[str, Any]] = []
+    checkpoint_snapshots: list[dict[str, Any]] = []
+    missingness_summary = _initial_missingness_summary(prior_dump_path)
 
     prior_stage = _resolve_prior_schedule(cfg, max_steps=max_steps, lr_min=lr_min)
     initial_lr = (
@@ -276,7 +341,7 @@ def train_tabfoundry_simple_prior(
         raise RuntimeError(
             "exact-parity prior-dump training expects exactly one optimizer instance, "
             f"got {len(optimizer_selection.optimizers)}"
-    )
+        )
     optimizer = optimizer_selection.optimizers[0][1]
     prepared_opts = [("schedulefree_adamw", optimizer)]
     _set_optimizer_training_mode(prepared_opts, training=True)
@@ -297,126 +362,202 @@ def train_tabfoundry_simple_prior(
     max_grad_norm = 0.0
     train_start = time.perf_counter()
     train_elapsed_seconds = 0.0
+    previous_train_loss: float | None = None
+    loss_ema: float | None = None
     reader = PriorDumpTaskBatchReader(
         prior_dump_path,
         num_steps=max_steps,
         batch_size=batch_size,
     )
 
-    for prior_step in reader:
-        optimizer.zero_grad(set_to_none=True)
-        step_train_start = time.perf_counter()
-        if prior_stage is not None:
-            current_base_lr = float(
-                stage_base_lr(prior_stage, step=int(prior_step.step_index), lr_min=lr_min)
+    try:
+        for prior_step in reader:
+            if prior_step.missingness is not None:
+                _accumulate_missingness(
+                    missingness_summary,
+                    batch_missingness=prior_step.missingness,
+                )
+            optimizer.zero_grad(set_to_none=True)
+            step_train_start = time.perf_counter()
+            if prior_stage is not None:
+                current_base_lr = float(
+                    stage_base_lr(prior_stage, step=int(prior_step.step_index), lr_min=lr_min)
+                )
+                _set_optimizer_base_lr(
+                    optimizer,
+                    base_lr=current_base_lr,
+                    scales=lr_scales,
+                )
+            forward_batched = getattr(model, "forward_batched", None)
+            if not callable(forward_batched):
+                raise RuntimeError(
+                    "prior-dump training requires a model with forward_batched()"
+                )
+            x_batch, y_train_batch, y_all_batch = _stack_prior_step(prior_step, device=device)
+            logits = forward_batched(
+                x_all=x_batch,
+                y_train=y_train_batch,
+                train_test_split_index=prior_step.train_test_split_index,
             )
-            _set_optimizer_base_lr(
-                optimizer,
-                base_lr=current_base_lr,
-                scales=lr_scales,
+            if not isinstance(logits, torch.Tensor):
+                raise RuntimeError("prior-dump training requires tensor logits")
+            targets = y_all_batch[:, prior_step.train_test_split_index:].reshape(-1).to(torch.int64)
+            loss = classification_loss(
+                logits.reshape(-1, int(logits.shape[-1])),
+                targets,
             )
-        forward_batched = getattr(model, "forward_batched", None)
-        if not callable(forward_batched):
-            raise RuntimeError(
-                "prior-dump training requires a model with forward_batched()"
-            )
-        x_batch, y_train_batch, y_all_batch = _stack_prior_step(prior_step, device=device)
-        logits = forward_batched(
-            x_all=x_batch,
-            y_train=y_train_batch,
-            train_test_split_index=prior_step.train_test_split_index,
-        )
-        if not isinstance(logits, torch.Tensor):
-            raise RuntimeError("prior-dump training requires tensor logits")
-        targets = y_all_batch[:, prior_step.train_test_split_index:].reshape(-1).to(torch.int64)
-        loss = classification_loss(
-            logits.reshape(-1, int(logits.shape[-1])),
-            targets,
-        )
-        loss.backward()
-        history_step_loss = float(loss.detach().item())
-        history_step_acc = float(
-            (
-                logits.argmax(dim=-1)
-                == y_all_batch[:, prior_step.train_test_split_index:].to(torch.int64)
-            )
-            .float()
-            .mean()
-            .item()
-        )
-
-        local_grad_norm = _total_grad_norm(model.parameters())
-        clipped = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-        local_grad_norm = _normalize_grad_norm_value(clipped, fallback=local_grad_norm)
-
-        optimizer.step()
-        step_train_duration = time.perf_counter() - step_train_start
-        train_elapsed_seconds += step_train_duration
-        global_step = int(prior_step.step_index)
-
-        final_grad_norm = float(local_grad_norm)
-        grad_norm_sum += final_grad_norm
-        grad_norm_count += 1
-        max_grad_norm = max(max_grad_norm, final_grad_norm)
-
-        if history_path is not None:
-            append_history_record(
-                history_path,
-                history_record(
-                    global_step=global_step,
-                    stage_name=_PRIOR_STAGE_NAME,
-                    train_loss=history_step_loss,
-                    train_metrics={"acc": history_step_acc},
-                    lr=float(optimizer.param_groups[0]["lr"]),
-                    grad_norm=final_grad_norm,
-                    elapsed_seconds=time.perf_counter() - train_start,
-                    train_elapsed_seconds=train_elapsed_seconds,
-                    val_metrics=None,
-                ),
+            loss.backward()
+            history_step_loss = float(loss.detach().item())
+            history_step_acc = float(
+                (
+                    logits.argmax(dim=-1)
+                    == y_all_batch[:, prior_step.train_test_split_index:].to(torch.int64)
+                )
+                .float()
+                .mean()
+                .item()
             )
 
-        if global_step % checkpoint_every == 0:
-            _save_eval_mode_checkpoint(
-                optimizer,
-                path=output_dir / "checkpoints" / f"step_{global_step:06d}.pt",
-                model=model,
+            pre_clip_module_grad_norms = module_grad_norms(model)
+            local_grad_norm = total_grad_norm(model.parameters())
+            clipped = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            local_grad_norm = normalize_grad_norm_value(clipped, fallback=local_grad_norm)
+            grad_clip_triggered = bool(local_grad_norm > grad_clip)
+
+            optimizer.step()
+            step_train_duration = time.perf_counter() - step_train_start
+            train_elapsed_seconds += step_train_duration
+            global_step = int(prior_step.step_index)
+
+            final_grad_norm = float(local_grad_norm)
+            grad_norm_sum += final_grad_norm
+            grad_norm_count += 1
+            max_grad_norm = max(max_grad_norm, final_grad_norm)
+
+            loss_delta_value = train_loss_delta(
+                history_step_loss,
+                previous_train_loss=previous_train_loss,
+            )
+            loss_ema = update_loss_ema(history_step_loss, previous_ema=loss_ema)
+            previous_train_loss = history_step_loss
+            elapsed_seconds = time.perf_counter() - train_start
+            history_payload = history_record(
                 global_step=global_step,
-                cfg=cfg,
-                restore_training=True,
+                stage_name=_PRIOR_STAGE_NAME,
+                train_loss=history_step_loss,
+                train_metrics={"acc": history_step_acc},
+                lr=float(optimizer.param_groups[0]["lr"]),
+                grad_norm=final_grad_norm,
+                elapsed_seconds=elapsed_seconds,
+                train_elapsed_seconds=train_elapsed_seconds,
+                val_metrics=None,
+                train_loss_delta=loss_delta_value,
+                train_loss_ema=loss_ema,
+                grad_clip_threshold=float(grad_clip),
+                grad_clip_triggered=grad_clip_triggered,
             )
-        if global_step % eval_every == 0:
-            print(
-                f"time {train_elapsed_seconds:7.1f}s | "
-                f"step {global_step:4d} | "
-                f"loss {history_step_loss:7.4f} | "
-                f"acc {history_step_acc:7.4f}"
-            )
+            history_records.append(history_payload)
+            if history_path is not None:
+                append_history_record(history_path, history_payload)
 
-    latest_checkpoint = output_dir / "checkpoints" / "latest.pt"
-    _save_eval_mode_checkpoint(
-        optimizer,
-        path=latest_checkpoint,
-        model=model,
-        global_step=global_step,
-        cfg=cfg,
-        restore_training=False,
-    )
-    wall_elapsed_seconds = time.perf_counter() - train_start
-    return TrainResult(
-        output_dir=output_dir,
-        best_checkpoint=None,
-        latest_checkpoint=latest_checkpoint,
-        global_step=global_step,
-        metrics={
-            "final_train_loss": float(history_step_loss),
-            "final_train_acc": float(history_step_acc),
-            "final_grad_norm": float(final_grad_norm),
-            "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
-            "max_grad_norm": float(max_grad_norm),
-            "train_elapsed_seconds": float(train_elapsed_seconds),
-            "wall_elapsed_seconds": float(wall_elapsed_seconds),
-        },
-    )
+            gradient_payload = gradient_history_record(
+                global_step=global_step,
+                stage_name=_PRIOR_STAGE_NAME,
+                train_loss=history_step_loss,
+                train_acc=history_step_acc,
+                lr=float(optimizer.param_groups[0]["lr"]),
+                global_grad_norm=final_grad_norm,
+                module_grad_norms=pre_clip_module_grad_norms,
+                elapsed_seconds=elapsed_seconds,
+                train_elapsed_seconds=train_elapsed_seconds,
+                grad_clip_threshold=float(grad_clip),
+                grad_clip_triggered=grad_clip_triggered,
+            )
+            gradient_records.append(gradient_payload)
+            append_jsonl_record(gradient_path, gradient_payload)
+
+            if global_step % checkpoint_every == 0:
+                checkpoint_path = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
+                _save_eval_mode_checkpoint(
+                    optimizer,
+                    path=checkpoint_path,
+                    model=model,
+                    global_step=global_step,
+                    cfg=cfg,
+                    restore_training=True,
+                )
+                checkpoint_snapshots.append(
+                    {
+                        "step": int(global_step),
+                        "path": str(checkpoint_path.resolve()),
+                        "elapsed_seconds": float(train_elapsed_seconds),
+                        "train_elapsed_seconds": float(train_elapsed_seconds),
+                    }
+                )
+            if global_step % eval_every == 0:
+                print(
+                    f"time {train_elapsed_seconds:7.1f}s | "
+                    f"step {global_step:4d} | "
+                    f"loss {history_step_loss:7.4f} | "
+                    f"acc {history_step_acc:7.4f}"
+                )
+
+        latest_checkpoint = output_dir / "checkpoints" / "latest.pt"
+        _save_eval_mode_checkpoint(
+            optimizer,
+            path=latest_checkpoint,
+            model=model,
+            global_step=global_step,
+            cfg=cfg,
+            restore_training=False,
+        )
+        artifacts["latest_checkpoint"] = str(latest_checkpoint.resolve())
+        wall_elapsed_seconds = time.perf_counter() - train_start
+        telemetry_payload = build_training_telemetry(
+            run_dir=output_dir,
+            success=True,
+            artifacts=artifacts,
+            checkpoint_snapshots=checkpoint_snapshots,
+            history_records=history_records,
+            gradient_records=gradient_records,
+            missingness=missingness_summary,
+            training_surface_record=training_surface_payload,
+        )
+        write_training_telemetry(telemetry_output_path, telemetry_payload)
+        return TrainResult(
+            output_dir=output_dir,
+            best_checkpoint=None,
+            latest_checkpoint=latest_checkpoint,
+            global_step=global_step,
+            metrics={
+                "final_train_loss": float(history_step_loss),
+                "final_train_acc": float(history_step_acc),
+                "final_grad_norm": float(final_grad_norm),
+                "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
+                "max_grad_norm": float(max_grad_norm),
+                "train_elapsed_seconds": float(train_elapsed_seconds),
+                "wall_elapsed_seconds": float(wall_elapsed_seconds),
+            },
+        )
+    except Exception as exc:
+        if isinstance(exc, PriorDumpNonFiniteInputError):
+            _accumulate_missingness(
+                missingness_summary,
+                batch_missingness=exc.summary,
+            )
+        telemetry_payload = build_training_telemetry(
+            run_dir=output_dir,
+            success=False,
+            artifacts=artifacts,
+            checkpoint_snapshots=checkpoint_snapshots,
+            history_records=history_records,
+            gradient_records=gradient_records,
+            missingness=missingness_summary,
+            training_surface_record=training_surface_payload,
+            error=exc,
+        )
+        write_training_telemetry(telemetry_output_path, telemetry_payload)
+        raise
 
 
 def build_parser() -> argparse.ArgumentParser:

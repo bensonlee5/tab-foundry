@@ -22,6 +22,8 @@ Supporting metrics are:
 - `final_minus_best`
 - training-time deltas versus the anchor
 - manifest and preprocessing surface deltas recorded in `training_surface_record.json`
+- loss/gradient instability evidence from `train_history.jsonl`,
+  `gradient_history.jsonl`, and `telemetry.json`
 
 `best_roc_auc` is a tie-breaker and diagnostic, not the main score.
 
@@ -143,6 +145,21 @@ record is the system-surface evidence source for:
 - dataset-characteristic summaries
 - preprocessing surface labels and explicit overrides
 
+Queue reruns for instability debugging must also produce:
+
+- `train_history.jsonl` as the canonical scalar timeline
+- `gradient_history.jsonl` with module-level gradient traces
+- `telemetry.json` with run summary, artifact pointers, checkpoint snapshots,
+  missingness diagnostics, and failure context
+
+Treat the completed first-pass `binary_md_v1` outputs under
+`outputs/staged_ladder/sd_binary_md_v1_*` as read-only baseline evidence. Do
+not overwrite those run directories when adding instability instrumentation.
+Use fresh rerun roots such as
+`outputs/staged_ladder/<run_id>_diag_v1/train`. Historical runs can only be
+audited from their scalar histories; true module-level traces only exist for
+new reruns.
+
 ## Execution Loop
 
 For each queue row:
@@ -153,11 +170,22 @@ For each queue row:
 4. Train on the locked anchor surface, changing only the declared dimension.
 5. Benchmark on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
 6. Register the benchmark-facing run in `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its `sweep_id`.
-7. Ensure the run has `training_surface_record.json`.
+7. Ensure the run has `training_surface_record.json`,
+   `gradient_history.jsonl`, and `telemetry.json`.
 8. Write `result_card.md`.
 9. Rerender `reference/system_delta_sweeps/<sweep_id>/matrix.md`.
 10. Regenerate the top-level alias files if and only if this is the active sweep.
 11. Update the queue row status, run ids, interpretation, and next action.
+
+To rank the existing first-pass `binary_md_v1` outputs before rerunning,
+generate the scalar instability audit report under
+`outputs/staged_ladder/reports/` with:
+
+```bash
+uv run python -m tab_foundry.bench.instability_audit \
+  --staged-ladder-root outputs/staged_ladder \
+  --sweep-id binary_md_v1
+```
 
 This pass is attribution-first. No row becomes the new base during the sweep.
 
