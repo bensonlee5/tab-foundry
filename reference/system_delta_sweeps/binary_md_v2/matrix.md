@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/binary_md_v2/queue.yam
 ## Sweep
 
 - Sweep id: `binary_md_v2`
-- Sweep status: `active`
+- Sweep status: `completed`
 - Parent sweep id: `binary_md_v1`
 - Complexity level: `binary_md`
 
@@ -137,7 +137,8 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Notes:
   - wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/fedytzgt
   - final_train_loss=0.452, mean_grad_norm=0.182, max_grad_norm=4.208
-- Follow-up run ids: `[]`
+  - Promoted to canonical follow-on anchor `01_shared_norm_post_ln_binary_medium_v1` for subsequent feature-testing sweeps.
+- Follow-up run ids: `['01_shared_norm_post_ln_binary_medium_v1']`
 - Result card path: `outputs/staged_ladder/research/binary_md_v2/delta_shared_feature_norm_with_post_layernorm/result_card.md`
 - Benchmark metrics:
   - Best ROC AUC: `0.7670` (step 2075)

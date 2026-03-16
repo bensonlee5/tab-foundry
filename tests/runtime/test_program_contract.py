@@ -9,6 +9,22 @@ from omegaconf import OmegaConf
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _active_sweep_payload() -> tuple[str, dict[str, object]]:
+    index_payload = OmegaConf.to_container(
+        OmegaConf.load(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml"),
+        resolve=True,
+    )
+    assert isinstance(index_payload, dict)
+    active_sweep_id = index_payload.get("active_sweep_id")
+    assert isinstance(active_sweep_id, str) and active_sweep_id.strip()
+    sweep_payload = OmegaConf.to_container(
+        OmegaConf.load(REPO_ROOT / "reference" / "system_delta_sweeps" / active_sweep_id / "sweep.yaml"),
+        resolve=True,
+    )
+    assert isinstance(sweep_payload, dict)
+    return active_sweep_id, sweep_payload
+
+
 def test_program_contract_has_required_policy_sections() -> None:
     contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
 
@@ -41,11 +57,12 @@ def test_program_contract_has_required_policy_sections() -> None:
 
 def test_program_contract_required_repo_paths_exist() -> None:
     contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
+    active_sweep_id, _ = _active_sweep_payload()
     required_repo_paths = [
         "reference/system_delta_catalog.yaml",
         "reference/system_delta_sweeps/index.yaml",
-        "reference/system_delta_sweeps/binary_md_v2/queue.yaml",
-        "reference/system_delta_sweeps/binary_md_v2/matrix.md",
+        f"reference/system_delta_sweeps/{active_sweep_id}/queue.yaml",
+        f"reference/system_delta_sweeps/{active_sweep_id}/matrix.md",
         "reference/system_delta_queue.yaml",
         "reference/system_delta_matrix.md",
         "reference/system_delta_campaign_template.md",
@@ -62,20 +79,22 @@ def test_program_contract_anchor_is_resolved_via_registry() -> None:
     contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
     registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
+    _, sweep_payload = _active_sweep_payload()
 
-    anchor_run_id = "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
-    expected_run_dir = "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
-    expected_benchmark_dir = "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1"
+    anchor_run_id = sweep_payload.get("anchor_run_id")
+    assert isinstance(anchor_run_id, str) and anchor_run_id.strip()
 
     assert f"`{anchor_run_id}`" in contents
-    assert f"`{expected_run_dir}`" in contents
-    assert f"`{expected_benchmark_dir}`" in contents
     assert "Resolve canonical identity through" in contents
     assert "They may be absent in a fresh clone or CI" in contents
 
     runs = registry["runs"]
     assert anchor_run_id in runs
     artifacts = runs[anchor_run_id]["artifacts"]
+    expected_run_dir = artifacts["run_dir"]
+    expected_benchmark_dir = artifacts["benchmark_dir"]
+    assert f"`{expected_run_dir}`" in contents
+    assert f"`{expected_benchmark_dir}`" in contents
     assert artifacts["run_dir"] == expected_run_dir
     assert artifacts["benchmark_dir"] == expected_benchmark_dir
 

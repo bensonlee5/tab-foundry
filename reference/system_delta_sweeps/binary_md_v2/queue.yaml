@@ -119,7 +119,8 @@ rows:
   - If the row is mixed, inspect whether activation-scale stabilization improves drift
     even when final ROC AUC is neutral.
   run_id: fedytzgt
-  followup_run_ids: []
+  followup_run_ids:
+  - 01_shared_norm_post_ln_binary_medium_v1
   benchmark_metrics:
     best_roc_auc: 0.7670
     best_step: 2075
@@ -137,6 +138,8 @@ rows:
   notes:
   - 'wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/fedytzgt'
   - final_train_loss=0.452, mean_grad_norm=0.182, max_grad_norm=4.208
+  - Promoted to canonical follow-on anchor `01_shared_norm_post_ln_binary_medium_v1`
+    for subsequent feature-testing sweeps.
 - order: 4
   delta_ref: delta_shared_feature_norm_with_post_rmsnorm
   status: completed

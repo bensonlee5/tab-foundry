@@ -55,24 +55,24 @@ def _anchor_dimension_anchor_text(sweep: dict[str, object], *, dimension: str) -
     return value
 
 
-def test_active_sweep_materializes_binary_md_v2() -> None:
+def test_active_sweep_materializes_current_active_sweep() -> None:
     index = load_system_delta_index(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
+    active_sweep_id = str(index["active_sweep_id"])
     sweep = load_system_delta_sweep(
-        "binary_md_v2",
+        active_sweep_id,
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
     )
     queue = load_system_delta_queue(
-        sweep_id="binary_md_v2",
+        sweep_id=active_sweep_id,
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
 
-    assert index["active_sweep_id"] == "binary_md_v2"
-    assert sweep["sweep_id"] == "binary_md_v2"
-    assert queue["sweep_id"] == "binary_md_v2"
-    assert queue["generated_from_sweep_id"] == "binary_md_v2"
+    assert sweep["sweep_id"] == active_sweep_id
+    assert queue["sweep_id"] == active_sweep_id
+    assert queue["generated_from_sweep_id"] == active_sweep_id
     assert "prior_constant_lr" in _anchor_dimension_anchor_text(sweep, dimension="training recipe")
-    expected_next_ready = next(row for row in queue["rows"] if row["status"] == "ready")
+    expected_next_ready = next((row for row in queue["rows"] if row["status"] == "ready"), None)
     assert next_ready_row(queue) == expected_next_ready
 
 
