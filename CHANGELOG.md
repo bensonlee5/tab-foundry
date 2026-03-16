@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-03-16
+
+### Changed
+
+- Standalone checkpoint evaluation now uses the shared internal Weights &
+  Biases helper when `logging.use_wandb=true`, logging the existing computed
+  `eval/loss` plus task-specific `eval/acc` or `eval/rmse` scalars and a
+  compact summary payload without changing CLI flags or evaluation result
+  schemas.
+
+- Main trainer wandb summaries now retain the final already-computed training
+  loss state, including additive `metrics/final_train_loss`,
+  `metrics/final_train_loss_ema`, and task-specific
+  `metrics/final_train_acc` or `metrics/final_train_rmse`, without changing
+  `train_history.jsonl` or `TrainResult`.
+
 ## [0.6.5] - 2026-03-16
 
 ### Changed

@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 
 import tab_foundry.training.evaluate as evaluate_module
 import tab_foundry.training.trainer as trainer_module
-from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
+from tab_foundry.model.architectures.tabfoundry import ClassificationOutput, RegressionOutput
 from tab_foundry.training.schedule import build_stage_configs
 from tab_foundry.types import TaskBatch
 
@@ -83,6 +83,28 @@ class _FakeTaskDataset(Dataset[TaskBatch]):
         )
 
 
+class _FakeRegressionTaskDataset(Dataset[TaskBatch]):
+    def __init__(self, *_args: object, **_kwargs: object) -> None:
+        super().__init__()
+
+    def __len__(self) -> int:
+        return 2
+
+    def __getitem__(self, index: int) -> TaskBatch:
+        seed = int(index) + 11
+        torch.manual_seed(seed)
+        x_train = torch.randn(6, 4)
+        y_train = torch.linspace(0.0, 1.0, steps=6, dtype=torch.float32)
+        return TaskBatch(
+            x_train=x_train,
+            y_train=y_train,
+            x_test=torch.randn(3, 4),
+            y_test=torch.linspace(0.2, 0.8, steps=3, dtype=torch.float32),
+            metadata={"dataset_index": index},
+            num_classes=None,
+        )
+
+
 class _TinyClassifier(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -92,6 +114,17 @@ class _TinyClassifier(nn.Module):
         return ClassificationOutput(
             logits=self.linear(batch.x_test),
             num_classes=3,
+        )
+
+
+class _TinyRegressor(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = nn.Linear(4, 999)
+
+    def forward(self, batch: TaskBatch) -> RegressionOutput:
+        return RegressionOutput(
+            quantiles=self.linear(batch.x_test),
         )
 
 
@@ -143,6 +176,12 @@ def _classification_cfg(tmp_path: Path) -> object:
     )
 
 
+def _regression_cfg(tmp_path: Path) -> object:
+    cfg = _classification_cfg(tmp_path)
+    cfg.task = "regression"
+    return cfg
+
+
 def _install_classification_fakes(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_spec = SimpleNamespace(task="classification")
     monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: _FakeTaskDataset())
@@ -166,6 +205,39 @@ def _install_classification_fakes(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(trainer_module, "build_model_from_spec", lambda _spec: _TinyClassifier())
     monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _TinyClassifier())
+
+
+def _install_regression_fakes(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_spec = SimpleNamespace(task="regression")
+    monkeypatch.setattr(
+        trainer_module,
+        "build_task_dataset",
+        lambda *_args, **_kwargs: _FakeRegressionTaskDataset(),
+    )
+    monkeypatch.setattr(
+        evaluate_module,
+        "build_task_dataset",
+        lambda *_args, **_kwargs: _FakeRegressionTaskDataset(),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    monkeypatch.setattr(
+        evaluate_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(trainer_module, "model_build_spec_from_mappings", lambda **_kwargs: fake_spec)
+    monkeypatch.setattr(
+        evaluate_module,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(trainer_module, "build_model_from_spec", lambda _spec: _TinyRegressor())
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _TinyRegressor())
 
 
 def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -367,5 +439,91 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert fake_run.summary["run/best_checkpoint"] == str(result.best_checkpoint.resolve())
     assert fake_run.summary["run/latest_checkpoint"] == str(result.latest_checkpoint.resolve())
     assert fake_run.summary["metrics/best_val_loss"] >= 0.0
+    assert fake_run.summary["metrics/final_train_loss"] >= 0.0
+    assert 0.0 <= fake_run.summary["metrics/final_train_acc"] <= 1.0
+    assert fake_run.summary["metrics/final_train_loss_ema"] >= 0.0
     assert fake_run.summary["metrics/final_grad_norm"] >= 0.0
     assert fake_run.summary["metrics/wall_elapsed_seconds"] >= 0.0
+
+
+def test_evaluate_checkpoint_logs_wandb_metrics_for_classification(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    cfg.logging.use_wandb = True
+    checkpoint = tmp_path / "tiny_cls.pt"
+    model = _TinyClassifier()
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "config": {"task": "classification", "model": {}},
+            "global_step": 17,
+        },
+        checkpoint,
+    )
+    cfg.eval.checkpoint = str(checkpoint)
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(evaluate_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+
+    result = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert result.checkpoint == checkpoint.resolve()
+    assert fake_run.logged == [
+        (
+            {
+                "eval/loss": result.metrics["loss"],
+                "eval/acc": result.metrics["acc"],
+            },
+            17,
+        )
+    ]
+    assert fake_run.summary["run/checkpoint"] == str(checkpoint.resolve())
+    assert fake_run.summary["run/split"] == "val"
+    assert fake_run.summary["run/global_step"] == 17
+    assert fake_run.summary["eval/max_batches"] == 1
+    assert fake_run.summary["metrics/loss"] == result.metrics["loss"]
+    assert fake_run.summary["metrics/acc"] == result.metrics["acc"]
+    assert fake_run.finished is True
+
+
+def test_evaluate_checkpoint_logs_wandb_metrics_for_regression(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_regression_fakes(monkeypatch)
+    cfg = _regression_cfg(tmp_path)
+    cfg.logging.use_wandb = True
+    checkpoint = tmp_path / "tiny_reg.pt"
+    model = _TinyRegressor()
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "config": {"task": "regression", "model": {}},
+        },
+        checkpoint,
+    )
+    cfg.eval.checkpoint = str(checkpoint)
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(evaluate_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+
+    result = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert result.checkpoint == checkpoint.resolve()
+    assert fake_run.logged == [
+        (
+            {
+                "eval/loss": result.metrics["loss"],
+                "eval/rmse": result.metrics["rmse"],
+            },
+            0,
+        )
+    ]
+    assert fake_run.summary["run/checkpoint"] == str(checkpoint.resolve())
+    assert fake_run.summary["run/split"] == "val"
+    assert fake_run.summary["run/global_step"] == 0
+    assert fake_run.summary["eval/max_batches"] == 1
+    assert fake_run.summary["metrics/loss"] == result.metrics["loss"]
+    assert fake_run.summary["metrics/rmse"] == result.metrics["rmse"]
+    assert fake_run.finished is True
