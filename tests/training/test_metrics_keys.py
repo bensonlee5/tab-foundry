@@ -71,6 +71,29 @@ def test_regression_uses_normalized_quantiles_for_loss_but_raw_quantiles_for_rms
     assert metrics["rmse"] == pytest.approx(10.0)
 
 
+def test_regression_zero_variance_support_uses_unit_scale_for_normalized_loss() -> None:
+    output = RegressionOutput(
+        quantiles=torch.full((2, 999), 2.0, dtype=torch.float32),
+        quantile_levels=torch.full((999,), 0.5, dtype=torch.float32),
+        normalized_quantiles=torch.zeros(2, 999),
+        target_mean=torch.tensor([2.0], dtype=torch.float32),
+        target_std=torch.tensor([1.0], dtype=torch.float32),
+    )
+    batch = TaskBatch(
+        x_train=torch.randn(3, 4),
+        y_train=torch.full((3,), 2.0, dtype=torch.float32),
+        x_test=torch.randn(2, 4),
+        y_test=torch.tensor([2.0, 4.0], dtype=torch.float32),
+        metadata={},
+        num_classes=None,
+    )
+
+    loss, metrics = _compute_loss_and_metrics(output, batch, task="regression")
+
+    assert torch.isclose(loss, torch.tensor(0.5), atol=1e-6)
+    assert metrics["rmse"] == pytest.approx(2.0**0.5)
+
+
 def test_manyclass_path_metrics_do_not_require_acc() -> None:
     output = ClassificationOutput(
         logits=None,

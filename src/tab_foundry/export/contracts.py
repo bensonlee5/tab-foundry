@@ -328,7 +328,7 @@ class ExportManifest:
 
     def to_dict(self) -> dict[str, Any]:
         model_payload = self.model.to_dict()
-        if self.schema_version == SCHEMA_VERSION_V3:
+        if self.schema_version != SCHEMA_VERSION_V4:
             model_payload.pop("stage_label", None)
             model_payload.pop("module_overrides", None)
         payload: dict[str, Any] = {

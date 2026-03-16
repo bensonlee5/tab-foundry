@@ -120,9 +120,10 @@ def _inference_config(task: str, model_spec: ExportModelSpec) -> InferenceConfig
 
 
 def _requires_v4_model_contract(model_spec: ExportModelSpec) -> bool:
+    has_module_overrides = bool(model_spec.module_overrides)
     return (
         model_spec.arch == "tabfoundry_staged"
-        and (model_spec.stage_label is not None or model_spec.module_overrides is not None)
+        and (model_spec.stage_label is not None or has_module_overrides)
     )
 
 

@@ -875,7 +875,12 @@ class TabFoundryStagedRegressor(_TabFoundryStagedBase):
         y_train: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mean = y_train.mean(dim=1, keepdim=True)
-        std = y_train.std(dim=1, keepdim=True, unbiased=False).clamp_min(self._target_scale_eps)
+        raw_std = y_train.std(dim=1, keepdim=True, unbiased=False)
+        std = torch.where(
+            raw_std < self._target_scale_eps,
+            torch.ones_like(raw_std),
+            raw_std,
+        )
         return (y_train - mean) / std, mean, std
 
     @staticmethod

@@ -424,7 +424,7 @@ def test_staged_regressor_constant_targets_stay_finite() -> None:
 
     assert torch.isfinite(out.quantiles).all()
     assert out.target_std is not None
-    assert float(out.target_std.item()) > 0.0
+    assert float(out.target_std.item()) == pytest.approx(1.0)
 
 
 def test_module_overrides_surface_stage_label_and_row_pool_hyperparameters() -> None:

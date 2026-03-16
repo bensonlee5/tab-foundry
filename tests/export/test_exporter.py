@@ -554,6 +554,44 @@ def test_export_bundle_rejects_legacy_schema_for_staged_override_checkpoint(
         )
 
 
+@pytest.mark.parametrize("artifact_version", [SCHEMA_VERSION_V2, SCHEMA_VERSION_V3])
+def test_export_bundle_allows_legacy_schema_for_empty_staged_overrides(
+    tmp_path: Path,
+    artifact_version: str,
+) -> None:
+    checkpoint = tmp_path / f"ckpt_empty_override_{artifact_version}.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="regression",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "row_cls_pool",
+            "module_overrides": {},
+            "d_icl": 96,
+            "many_class_base": 4,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+    )
+
+    out_dir = tmp_path / f"export_empty_override_{artifact_version}"
+    result = export_checkpoint(
+        checkpoint,
+        out_dir,
+        artifact_version=artifact_version,
+    )
+
+    assert result.schema_version == artifact_version
+    manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert isinstance(manifest, dict)
+    model_payload = manifest["model"]
+    assert isinstance(model_payload, dict)
+    assert "module_overrides" not in model_payload
+    assert validate_export_bundle(out_dir).manifest.schema_version == artifact_version
+
+
 def test_validate_export_rejects_tabfoundry_simple_manifest_that_breaks_constructor_invariants(
     tmp_path: Path,
 ) -> None:
