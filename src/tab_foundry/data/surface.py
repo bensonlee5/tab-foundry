@@ -21,6 +21,7 @@ class DataSurfaceConfig:
     source: str
     manifest_path: Path | None
     filter_policy: str | None
+    allow_missing_values: bool
     train_row_cap: int | None
     test_row_cap: int | None
     dagzoo_provenance: dict[str, Any] | None
@@ -53,6 +54,10 @@ def resolve_data_surface(data_cfg: Mapping[str, Any] | None) -> DataSurfaceConfi
     if filter_policy_raw is None:
         filter_policy_raw = cfg.get("filter_policy")
     filter_policy = None if filter_policy_raw is None else str(filter_policy_raw).strip()
+    allow_missing_values_raw = overrides.get("allow_missing_values")
+    if allow_missing_values_raw is None:
+        allow_missing_values_raw = cfg.get("allow_missing_values")
+    allow_missing_values = bool(allow_missing_values_raw) if allow_missing_values_raw is not None else False
     dagzoo_provenance_raw = overrides.get("dagzoo_provenance")
     if dagzoo_provenance_raw is None:
         dagzoo_provenance_raw = cfg.get("dagzoo_provenance")
@@ -80,6 +85,7 @@ def resolve_data_surface(data_cfg: Mapping[str, Any] | None) -> DataSurfaceConfi
         source=source,
         manifest_path=manifest_path,
         filter_policy=filter_policy,
+        allow_missing_values=allow_missing_values,
         train_row_cap=None if train_row_cap_raw is None else int(train_row_cap_raw),
         test_row_cap=None if test_row_cap_raw is None else int(test_row_cap_raw),
         dagzoo_provenance=dagzoo_provenance,

@@ -337,6 +337,23 @@ def test_checked_in_binary_medium_bundle_loads() -> None:
     assert all(int(task["n_classes"]) == 2 for task in bundle["tasks"])
 
 
+def test_checked_in_binary_large_bundle_requires_explicit_missing_value_opt_in() -> None:
+    bundle_path = (
+        Path(__file__).resolve().parents[2]
+        / "src"
+        / "tab_foundry"
+        / "bench"
+        / "nanotabpfn_openml_binary_large_v1.json"
+    )
+
+    with pytest.raises(RuntimeError, match="permits missing-valued inputs"):
+        _ = benchmark_module.load_benchmark_bundle(bundle_path)
+
+    bundle = benchmark_module.load_benchmark_bundle(bundle_path, allow_missing_values=True)
+
+    assert bundle["name"] == "nanotabpfn_openml_binary_large"
+
+
 def test_load_openml_benchmark_datasets_accepts_checked_in_multiclass_bundle(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

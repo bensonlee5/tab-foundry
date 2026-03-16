@@ -144,6 +144,24 @@ def test_grouped_tokenizer_guard_is_captured_in_catalog_and_materialized_queue()
     assert "genuinely isolatable tokenization experiment" in grouped_row["next_action"]
 
 
+def test_missingness_rows_are_deferred_from_the_main_campaign() -> None:
+    queue = load_system_delta_queue(
+        sweep_id="binary_md_v1",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+    )
+
+    impute_row = next(row for row in queue["rows"] if row["delta_id"] == "delta_preproc_impute_missing_off")
+    fill_row = next(row for row in queue["rows"] if row["delta_id"] == "delta_preproc_all_nan_fill_nonzero")
+
+    assert impute_row["status"] == "deferred_separate_workstream"
+    assert impute_row["interpretation_status"] == "blocked"
+    assert "main no-missing campaign" in impute_row["next_action"]
+    assert fill_row["status"] == "deferred_separate_workstream"
+    assert fill_row["interpretation_status"] == "blocked"
+    assert "missingness workstream" in fill_row["next_action"]
+
+
 def test_active_alias_queue_matches_materialized_active_sweep() -> None:
     materialized = load_system_delta_queue(
         sweep_id="binary_md_v1",

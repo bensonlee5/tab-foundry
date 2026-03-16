@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from tab_foundry.data.validation import assert_no_non_finite_values
 from tab_foundry.types import TaskBatch
 
 
@@ -33,10 +34,12 @@ class PriorDumpTaskBatchReader:
         *,
         num_steps: int,
         batch_size: int,
+        allow_missing_values: bool = False,
     ) -> None:
         self.path = path.expanduser().resolve()
         self.num_steps = int(num_steps)
         self.batch_size = int(batch_size)
+        self.allow_missing_values = bool(allow_missing_values)
         if self.num_steps <= 0:
             raise ValueError(f"num_steps must be >= 1, got {self.num_steps}")
         if self.batch_size <= 0:
@@ -94,6 +97,17 @@ class PriorDumpTaskBatchReader:
                         dtype=np.float32,
                     )
                 )
+                if not self.allow_missing_values:
+                    assert_no_non_finite_values(
+                        {
+                            "x_batch": x_batch.numpy(),
+                            "y_batch": y_batch.numpy(),
+                        },
+                        context=(
+                            "prior dump batch "
+                            f"path={self.path}, dataset_indices={batch_dataset_indices}"
+                        ),
+                    )
                 tasks: list[TaskBatch] = []
                 for local_index, dataset_index in enumerate(batch_dataset_indices):
                     n_features = int(num_features[local_index])

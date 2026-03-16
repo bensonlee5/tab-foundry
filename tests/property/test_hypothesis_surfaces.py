@@ -118,6 +118,8 @@ def test_normalize_benchmark_bundle_rejects_task_id_order_drift(
     override_filter_policy=st.one_of(st.none(), _LABEL_TEXT),
     top_surface_label=st.one_of(st.none(), _LABEL_TEXT),
     override_surface_label=st.one_of(st.none(), _LABEL_TEXT),
+    top_allow_missing_values=st.one_of(st.none(), st.booleans()),
+    override_allow_missing_values=st.one_of(st.none(), st.booleans()),
     top_train_row_cap=st.one_of(st.none(), st.integers(min_value=1, max_value=50_000)),
     override_train_row_cap=st.one_of(st.none(), st.integers(min_value=1, max_value=50_000)),
     top_test_row_cap=st.one_of(st.none(), st.integers(min_value=1, max_value=50_000)),
@@ -140,6 +142,8 @@ def test_resolve_data_surface_respects_override_precedence(
     override_filter_policy: str | None,
     top_surface_label: str | None,
     override_surface_label: str | None,
+    top_allow_missing_values: bool | None,
+    override_allow_missing_values: bool | None,
     top_train_row_cap: int | None,
     override_train_row_cap: int | None,
     top_test_row_cap: int | None,
@@ -152,6 +156,7 @@ def test_resolve_data_surface_respects_override_precedence(
         "manifest_path": top_manifest,
         "filter_policy": top_filter_policy,
         "surface_label": top_surface_label,
+        "allow_missing_values": top_allow_missing_values,
         "train_row_cap": top_train_row_cap,
         "test_row_cap": top_test_row_cap,
         "dagzoo_provenance": top_provenance,
@@ -162,6 +167,7 @@ def test_resolve_data_surface_respects_override_precedence(
                 "manifest_path": override_manifest,
                 "filter_policy": override_filter_policy,
                 "surface_label": override_surface_label,
+                "allow_missing_values": override_allow_missing_values,
                 "train_row_cap": override_train_row_cap,
                 "test_row_cap": override_test_row_cap,
                 "dagzoo_provenance": override_provenance,
@@ -177,6 +183,13 @@ def test_resolve_data_surface_respects_override_precedence(
         None if override_filter_policy is None and top_filter_policy is None else str(override_filter_policy or top_filter_policy).strip()
     )
     expected_surface_label = str(top_surface_label or override_surface_label or expected_source).strip()
+    expected_allow_missing_values = (
+        override_allow_missing_values
+        if override_allow_missing_values is not None
+        else top_allow_missing_values
+        if top_allow_missing_values is not None
+        else False
+    )
     expected_train_row_cap = override_train_row_cap if override_train_row_cap is not None else top_train_row_cap
     expected_test_row_cap = override_test_row_cap if override_test_row_cap is not None else top_test_row_cap
     expected_provenance = override_provenance if override_provenance is not None else top_provenance
@@ -184,6 +197,7 @@ def test_resolve_data_surface_respects_override_precedence(
     assert resolved.source == expected_source
     assert resolved.surface_label == expected_surface_label
     assert resolved.filter_policy == expected_filter_policy
+    assert resolved.allow_missing_values is expected_allow_missing_values
     assert resolved.train_row_cap == expected_train_row_cap
     assert resolved.test_row_cap == expected_test_row_cap
     assert resolved.dagzoo_provenance == expected_provenance

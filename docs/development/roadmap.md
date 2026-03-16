@@ -73,7 +73,7 @@ for traceability.
 | Rank | Roadmap ID | Item | Status | Milestone | Tracker Links |
 | ---- | ---------- | ---- | ------ | --------- | ------------- |
 | 0 | TF-RD-002 | Repo foundation and dagzoo-style organization | implemented | Implemented | `BL-175 -> BL-177 -> BL-178 -> BL-179 -> BL-180` |
-| 1 | TF-RD-001 | Canonical control baseline and experiment trust | partial | Now | `BL-152 -> BL-155 -> BL-156 -> BL-157 -> BL-158 -> BL-159` |
+| 1 | TF-RD-001 | Canonical control baseline and experiment trust | partial | Now | `BL-152 -> BL-155 -> BL-156 -> BL-157 -> BL-158 -> BL-159 -> BL-199` |
 | 2 | TF-RD-014 | Stable dagzoo handoff and corpus provenance | planned | Now | `BL-195 -> BL-196 -> BL-197 -> BL-198` |
 | 3 | TF-RD-012 | Shared preprocessing and export-contract fidelity | planned | Now | `no active issue yet; open BL preprocessing chain after TF-RD-014` |
 | 4 | TF-RD-003 | Literature-first references and external baseline borrowing | partial | Now | `BL-154 -> BL-170 -> BL-173` |
@@ -93,8 +93,8 @@ for traceability.
 | --- | --- | --- | --- | --- |
 | Manifest-backed packed-shard training on `dagzoo` outputs | `implemented` | Manifest build flow, manifest-backed train/eval CLI, export/load contract, and packed-shard dataset handling are present in the canonical workflow | Source and prior modularity beyond the manifest path is not yet implemented | `TF-RD-004`, `TF-RD-011` |
 | Corpus provenance and split-safe dagzoo handoff | `planned` | Manifest-backed build flow and dagzoo filter metadata already exist in the canonical workflow | Handoff ingestion, path-independent corpus IDs, and request-run-aware split assignment are not complete | `TF-RD-014`, `TF-RD-001` |
-| Short-run reproducible experiment loop with smoke coverage | `partial` | GitHub Actions quality gate, Iris smoke, dagzoo smoke, persisted run artifacts, and pinned benchmark-bundle discipline are implemented | Repeated-run stability evaluation, checkpoint-selection diagnostics, and leaderboard output are incomplete | `TF-RD-001`, `TF-RD-007` |
-| Benchmark-facing comparison against `nanoTabPFN` | `partial` | Env bootstrap and comparison harnesses exist, and the benchmark remains the selection surface for shortlist validation | Canonical promoted external-baseline configs and benchmark-trust discipline are not complete | `TF-RD-001`, `TF-RD-003`, `TF-RD-007` |
+| Short-run reproducible experiment loop with smoke coverage | `partial` | GitHub Actions quality gate, Iris smoke, dagzoo smoke, persisted run artifacts, and pinned benchmark-bundle discipline are implemented | Repeated-run stability evaluation, checkpoint-selection diagnostics, durable per-task traces, and leaderboard output are incomplete | `TF-RD-001`, `TF-RD-007` |
+| Benchmark-facing comparison against `nanoTabPFN` | `partial` | Env bootstrap and comparison harnesses exist, and the benchmark remains the selection surface for shortlist validation | Canonical promoted external-baseline configs and benchmark-trust discipline are not complete, and the mainline comparison lane still needs an explicit no-missing evaluation boundary | `TF-RD-001`, `TF-RD-003`, `TF-RD-007` |
 | Scaling-oriented architecture planning | `partial` | Architecture guidance, literature references, and evidence mapping are now first-class planning artifacts | Neutral registry, modular backbones, and canonical scaling-law measurement are not complete | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006` |
 | Export-grade preprocessing fidelity | `partial` | Shared preprocessing code now exists and v3 bundles persist fitted feature fill values, label values, and model `input_normalization` | The fitted preprocessing surface is not yet promoted as the settled producer contract across every downstream workflow and tracker lane | `TF-RD-012` |
 | Separate-runtime handoff readiness | `partial` | The repo now ships a v3 reference consumer plus golden bundle conformance fixtures while keeping runtime ownership out of this package | Separate-repo adoption, broader conformance reuse, and downstream stabilization are still unfinished | `TF-RD-013` |
@@ -155,12 +155,14 @@ surface. Use the canonical docs instead:
 - Goal: make benchmark-facing experiment results reproducible, comparable, and
   reviewable enough that scaling conclusions can be trusted.
 - Linear tracking:
-  `BL-152 -> BL-155 -> BL-156 -> BL-157 -> BL-158 -> BL-159`
+  `BL-152 -> BL-155 -> BL-156 -> BL-157 -> BL-158 -> BL-159 -> BL-199`
 - Repo touchpoints:
   - `.github/workflows/test.yml`
   - `src/tab_foundry/bench/dagzoo_smoke.py`
   - `src/tab_foundry/bench/iris_smoke.py`
   - `src/tab_foundry/bench/checkpoint.py`
+  - `src/tab_foundry/bench/bounce_diagnosis.py`
+  - `src/tab_foundry/bench/nanotabpfn.py`
   - `scripts/configure_repo_protection.sh`
 - Current state:
   - The benchmark-facing control is named and documented as
@@ -169,15 +171,24 @@ surface. Use the canonical docs instead:
     artifacts.
   - The canonical benchmark bundle is now pinned in-repo, and the comparison
     flow fails fast on benchmark-input drift.
+  - Mainline benchmark interpretation now needs an explicit no-missing boundary;
+    missing-valued surfaces are a separate research track rather than the
+    current explanation for delta-queue bounce.
   - Benchmark-facing trust remains incomplete until the dagzoo training-data
     seam becomes path-independent and split-safe under `TF-RD-014`.
-  - Repeated-run trust, checkpoint-selection diagnostics, and leaderboard
-    output are not yet fully codified.
+  - Repeated-run trust, checkpoint-level benchmark diagnostics, durable
+    per-task traces, uncertainty estimates for near-anchor rows, and
+    leaderboard output are not yet fully codified.
 - Exit criteria:
   - One frozen canonical control run is documented and preserved.
   - Benchmark inputs are pinned and drift-checked.
+  - Mainline benchmark-facing interpretation is explicitly bounded to the
+    no-missing evaluation surface.
   - Repeated-run stability evaluation exists for the benchmark-facing workflow.
-  - Checkpoint-selection diagnostics appear in benchmark summaries.
+  - Checkpoint-level diagnostics, per-task traces, and uncertainty-aware
+    benchmark summaries appear in benchmark summaries.
+  - Missingness work is tracked as a separate follow-on research lane rather
+    than as the current explanation for benchmark-facing delta-queue bounce.
   - Research and confirmatory runs can land in one canonical leaderboard-style
     output.
 
@@ -592,8 +603,10 @@ surface. Use the canonical docs instead:
 
 ## Dependencies and Sequencing
 
-- `TF-RD-001` must mature before deeper benchmark-facing interpretation work can
-  be trusted.
+- `TF-RD-001` must mature before deeper benchmark-facing interpretation work or
+  control-promotion claims can be trusted, including the no-missing evaluation
+  boundary and checkpoint-level benchmark diagnostics used to read delta-queue
+  behavior.
 - `TF-RD-014` should land before stronger benchmark-facing interpretation or
   control-promotion claims rely on the current dagzoo corpora.
 - `TF-RD-002` should stay ahead of deeper architecture expansion so repo growth
@@ -608,6 +621,9 @@ surface. Use the canonical docs instead:
   surface to make scaling measurements comparable.
 - `TF-RD-007` comes before `TF-RD-008`; the current architecture should be tuned
   before architectural ablations are used to explain benchmark gaps.
+- `TF-RD-001` constrains the interpretation layer for `TF-RD-007`, so
+  control-promotion decisions rely on no-missing measurement evidence before
+  missingness or new mechanism work is used to explain benchmark variance.
 - `TF-RD-008` and the later architecture decision should complete before Goal 2
   becomes the main driver.
 - `TF-RD-013` depends on `TF-RD-012` and should stabilize the separate-runtime
