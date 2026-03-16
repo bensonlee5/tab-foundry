@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Training runs now use a shared internal Weights & Biases helper module, and
+  both the main trainer and exact-prior trainer emit richer additive wandb
+  scalar telemetry and end-of-run summaries without changing the logging config
+  surface or uploading artifact files.
+
 - Prior-dump queue reruns now emit additive instability-debug artifacts:
   `gradient_history.jsonl` for module-level gradient traces and
   `telemetry.json` for run summaries, checkpoint snapshots, missingness
