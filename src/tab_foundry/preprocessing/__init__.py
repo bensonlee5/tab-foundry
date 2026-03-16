@@ -1,11 +1,15 @@
 """Shared preprocessing surfaces."""
 
 from .state import (
+    CATEGORICAL_FEATURE_TYPE,
+    CATEGORICAL_VALUE_POLICY_OOV_BUCKET,
+    NUMERIC_FEATURE_TYPE,
     CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
     DTYPE_POLICY,
     FEATURE_ORDER_POLICY_POSITIONAL,
     MISSING_VALUE_STRATEGY_TRAIN_MEAN,
     UNSEEN_TEST_LABEL_POLICY_FILTER,
+    CategoricalFeaturePolicyState,
     ClassificationLabelPolicyState,
     FittedPreprocessorState,
     MissingValuePolicyState,
@@ -24,7 +28,11 @@ from .tabular import (
 )
 
 __all__ = [
+    "CATEGORICAL_FEATURE_TYPE",
+    "CATEGORICAL_VALUE_POLICY_OOV_BUCKET",
+    "NUMERIC_FEATURE_TYPE",
     "CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP",
+    "CategoricalFeaturePolicyState",
     "DTYPE_POLICY",
     "FEATURE_ORDER_POLICY_POSITIONAL",
     "MISSING_VALUE_STRATEGY_TRAIN_MEAN",

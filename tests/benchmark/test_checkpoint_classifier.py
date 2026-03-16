@@ -226,6 +226,68 @@ def test_tab_foundry_classifier_uses_external_normalization_for_staged_shared_no
     assert np.allclose(model.last_batch.x_test.cpu().numpy(), expected_test, atol=1.0e-6)
 
 
+def test_tab_foundry_classifier_supports_categorical_feature_types(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _CapturingClassifier()
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_staged",
+        stage="shared_norm",
+        input_normalization="train_zscore_clip",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    checkpoint = tmp_path / "staged_shared_norm_categorical.pt"
+    torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
+
+    x_train = np.asarray(
+        [
+            [1.0, 10.0],
+            [3.0, 10.0],
+            [5.0, 20.0],
+        ],
+        dtype=np.float32,
+    )
+    x_test = np.asarray(
+        [
+            [7.0, 20.0],
+            [9.0, 30.0],
+        ],
+        dtype=np.float32,
+    )
+
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    classifier.fit(x_train, np.asarray([0, 1, 0], dtype=np.int64), feature_types=["num", "cat"])
+    _ = classifier.predict_proba(x_test)
+
+    expected_train_num, expected_test_num = normalize_train_test_arrays(
+        x_train[:, [0]],
+        x_test[:, [0]],
+        mode="train_zscore_clip",
+    )
+    assert model.last_batch is not None
+    assert np.allclose(
+        model.last_batch.x_train.cpu().numpy(),
+        np.concatenate([expected_train_num, np.asarray([[0.0], [0.0], [1.0]], dtype=np.float32)], axis=1),
+        atol=1.0e-6,
+    )
+    assert np.allclose(
+        model.last_batch.x_test.cpu().numpy(),
+        np.concatenate([expected_test_num, np.asarray([[1.0], [2.0]], dtype=np.float32)], axis=1),
+        atol=1.0e-6,
+    )
+    assert model.last_batch.feature_state is not None
+    assert model.last_batch.feature_state.categorical_mask.tolist() == [False, True]
+    assert model.last_batch.feature_state.categorical_cardinalities.tolist() == [0, 2]
+
+
 def test_load_checkpoint_classifier_model_rejects_legacy_grouped_weights_without_override(
     tmp_path: Path,
 ) -> None:

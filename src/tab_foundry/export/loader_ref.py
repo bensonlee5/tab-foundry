@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 from safetensors.torch import load_file
@@ -86,6 +86,7 @@ def _reference_batch(
     x_train: Any,
     y_train: Any,
     x_test: Any,
+    feature_types: Sequence[str] | None = None,
 ) -> TaskBatch:
     manifest = bundle.validated.manifest
     policy = _require_preprocessor_policy(bundle)
@@ -95,6 +96,7 @@ def _reference_batch(
         y_train=y_train,
         x_test=x_test,
         y_test=None,
+        feature_types=feature_types,
     )
     if manifest.task == "classification":
         y_train_tensor = torch.from_numpy(np.asarray(processed.y_train, dtype=np.int64))
@@ -115,6 +117,9 @@ def _reference_batch(
         y_test=y_test_tensor,
         metadata={"preprocessor_policy": policy.to_dict()},
         num_classes=num_classes,
+        feature_state=None
+        if processed.feature_state is None
+        else processed.feature_state.to_task_feature_state(),
     )
 
 
@@ -124,6 +129,7 @@ def run_reference_consumer(
     x_train: Any,
     y_train: Any,
     x_test: Any,
+    feature_types: Sequence[str] | None = None,
 ) -> ReferenceConsumerOutput:
     """Execute the reference-only inference path for one exported bundle."""
 
@@ -133,6 +139,7 @@ def run_reference_consumer(
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
+        feature_types=feature_types,
     )
     with torch.no_grad():
         output = bundle.model(batch)

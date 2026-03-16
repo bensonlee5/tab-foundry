@@ -8,6 +8,8 @@ from typing import Any
 
 import torch
 
+from tab_foundry.feature_state import TaskFeatureState
+
 
 @dataclass(slots=True)
 class TaskBatch:
@@ -19,6 +21,7 @@ class TaskBatch:
     y_test: torch.Tensor
     metadata: dict[str, Any]
     num_classes: int | None = None
+    feature_state: TaskFeatureState | None = None
 
 
 @dataclass(slots=True)

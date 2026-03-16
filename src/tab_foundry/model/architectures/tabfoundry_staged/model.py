@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import math
 from typing import cast
 
 import torch
 from torch import nn
 
+from tab_foundry.feature_state import TaskFeatureState
 from tab_foundry.input_normalization import (
     InputNormalizationMode,
     SUPPORTED_INPUT_NORMALIZATION_MODES,
@@ -217,10 +219,42 @@ class TabFoundryStagedClassifier(nn.Module):
         return int(batch.y_train.max().item()) + 1
 
     @staticmethod
-    def _prepare_task_inputs(batch: TaskBatch) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+    def _validate_feature_state(batch: TaskBatch) -> None:
+        feature_state = batch.feature_state
+        if feature_state is None:
+            return
+        feature_count = int(batch.x_train.shape[1])
+        expected_train_shape = (int(batch.x_train.shape[0]), feature_count)
+        expected_test_shape = (int(batch.x_test.shape[0]), feature_count)
+        if tuple(feature_state.categorical_mask.shape) != (feature_count,):
+            raise RuntimeError(
+                "feature_state.categorical_mask shape mismatch: "
+                f"expected={(feature_count,)}, got={tuple(feature_state.categorical_mask.shape)}"
+            )
+        if tuple(feature_state.categorical_cardinalities.shape) != (feature_count,):
+            raise RuntimeError(
+                "feature_state.categorical_cardinalities shape mismatch: "
+                f"expected={(feature_count,)}, got={tuple(feature_state.categorical_cardinalities.shape)}"
+            )
+        if tuple(feature_state.x_train_categorical_ids.shape) != expected_train_shape:
+            raise RuntimeError(
+                "feature_state.x_train_categorical_ids shape mismatch: "
+                f"expected={expected_train_shape}, got={tuple(feature_state.x_train_categorical_ids.shape)}"
+            )
+        if tuple(feature_state.x_test_categorical_ids.shape) != expected_test_shape:
+            raise RuntimeError(
+                "feature_state.x_test_categorical_ids shape mismatch: "
+                f"expected={expected_test_shape}, got={tuple(feature_state.x_test_categorical_ids.shape)}"
+            )
+
+    @staticmethod
+    def _prepare_task_inputs(
+        batch: TaskBatch,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
         train_test_split_index = int(batch.x_train.shape[0])
         if train_test_split_index <= 0:
             raise RuntimeError("tabfoundry_staged requires at least one training row")
+        TabFoundryStagedClassifier._validate_feature_state(batch)
         x_all = torch.cat([batch.x_train, batch.x_test], dim=0).to(torch.float32).unsqueeze(0)
         y_train = batch.y_train.to(torch.int64).unsqueeze(0)
         y_test = batch.y_test.to(torch.int64).unsqueeze(0)
@@ -246,22 +280,68 @@ class TabFoundryStagedClassifier(nn.Module):
         if int(y_train.shape[1]) != train_test_split_index:
             raise ValueError("y_train length must match train_test_split_index")
 
-    def _normalize_x_all(self, x_all: torch.Tensor, *, train_test_split_index: int) -> torch.Tensor:
+    @staticmethod
+    def _numeric_feature_view(
+        x_all: torch.Tensor,
+        *,
+        feature_state: TaskFeatureState | None = None,
+    ) -> torch.Tensor:
+        if feature_state is None:
+            return x_all
+        categorical_mask = feature_state.categorical_mask.to(
+            device=x_all.device,
+            dtype=torch.bool,
+        )
+        if not bool(torch.any(categorical_mask)):
+            return x_all
+        numeric_view = x_all.clone()
+        numeric_view[..., categorical_mask] = 0.0
+        return numeric_view
+
+    def _normalize_x_all(
+        self,
+        x_all: torch.Tensor,
+        *,
+        train_test_split_index: int,
+        feature_state: TaskFeatureState | None = None,
+    ) -> torch.Tensor:
         if self.surface.normalization_mode != "shared":
             return x_all
         x_train = x_all[:, :train_test_split_index, :]
         x_test = x_all[:, train_test_split_index:, :]
         train_parts: list[torch.Tensor] = []
         test_parts: list[torch.Tensor] = []
-        for batch_idx in range(int(x_all.shape[0])):
-            train_norm, test_norm = normalize_train_test_tensors(
-                x_train[batch_idx],
-                x_test[batch_idx],
-                mode=cast(
-                    InputNormalizationMode,
-                    self.input_normalization,
-                ),
+        categorical_mask: torch.Tensor | None = None
+        if feature_state is not None:
+            categorical_mask = feature_state.categorical_mask.to(
+                device=x_all.device,
+                dtype=torch.bool,
             )
+        for batch_idx in range(int(x_all.shape[0])):
+            if categorical_mask is None or not bool(torch.any(categorical_mask)):
+                train_norm, test_norm = normalize_train_test_tensors(
+                    x_train[batch_idx],
+                    x_test[batch_idx],
+                    mode=cast(
+                        InputNormalizationMode,
+                        self.input_normalization,
+                    ),
+                )
+            else:
+                numeric_mask = ~categorical_mask
+                train_norm = torch.zeros_like(x_train[batch_idx])
+                test_norm = torch.zeros_like(x_test[batch_idx])
+                if bool(torch.any(numeric_mask)):
+                    train_numeric, test_numeric = normalize_train_test_tensors(
+                        x_train[batch_idx][:, numeric_mask],
+                        x_test[batch_idx][:, numeric_mask],
+                        mode=cast(
+                            InputNormalizationMode,
+                            self.input_normalization,
+                        ),
+                    )
+                    train_norm[:, numeric_mask] = train_numeric
+                    test_norm[:, numeric_mask] = test_numeric
             train_parts.append(train_norm)
             test_parts.append(test_norm)
         return torch.cat(
@@ -280,15 +360,87 @@ class TabFoundryStagedClassifier(nn.Module):
         y_test: torch.Tensor | None,
         train_test_split_index: int,
         num_classes: int,
+        feature_state: TaskFeatureState | None = None,
     ) -> RawInputState:
         self._validate_batched_inputs(x_all, y_train, train_test_split_index)
+        numeric_x_all = self._numeric_feature_view(x_all, feature_state=feature_state)
         return RawInputState(
-            x_all=self._normalize_x_all(x_all, train_test_split_index=train_test_split_index),
+            x_all=self._normalize_x_all(
+                numeric_x_all,
+                train_test_split_index=train_test_split_index,
+                feature_state=feature_state,
+            ),
             y_train=y_train,
             y_test=y_test,
             train_test_split_index=train_test_split_index,
             num_classes=num_classes,
+            feature_state=feature_state,
         )
+
+    @staticmethod
+    def _split_embedding_widths(total_width: int, parts: int) -> list[int]:
+        base = total_width // parts
+        remainder = total_width % parts
+        return [base + (1 if index < remainder else 0) for index in range(parts)]
+
+    @staticmethod
+    def _sinusoidal_scalar_embedding(values: torch.Tensor, width: int) -> torch.Tensor:
+        if width <= 0:
+            return values.new_zeros(*values.shape, 0)
+        pair_count = max(1, (width + 1) // 2)
+        index = torch.arange(pair_count, device=values.device, dtype=torch.float32)
+        if pair_count == 1:
+            scales = torch.ones((1,), device=values.device, dtype=torch.float32)
+        else:
+            scales = torch.exp(-math.log(10000.0) * index / float(pair_count - 1))
+        angles = values.unsqueeze(-1).to(torch.float32) * scales
+        embedding = torch.cat([torch.sin(angles), torch.cos(angles)], dim=-1)
+        return embedding[..., :width]
+
+    def _categorical_residual(self, raw_state: RawInputState) -> torch.Tensor | None:
+        feature_state = raw_state.feature_state
+        if feature_state is None:
+            return None
+        categorical_mask = feature_state.categorical_mask.to(
+            device=raw_state.x_all.device,
+            dtype=torch.bool,
+        )
+        if not bool(torch.any(categorical_mask)):
+            return None
+        categorical_ids_all = torch.cat(
+            [
+                feature_state.x_train_categorical_ids,
+                feature_state.x_test_categorical_ids,
+            ],
+            dim=0,
+        ).to(device=raw_state.x_all.device, dtype=torch.int64).unsqueeze(0)
+        categorical_cardinalities = feature_state.categorical_cardinalities.to(
+            device=raw_state.x_all.device,
+            dtype=torch.int64,
+        ).view(1, 1, -1)
+        mask_float = categorical_mask.to(torch.float32).view(1, 1, -1)
+        widths = self._split_embedding_widths(self.d_icl, 4)
+        id_embed = self._sinusoidal_scalar_embedding(
+            categorical_ids_all.to(torch.float32),
+            widths[0],
+        )
+        cardinality_embed = self._sinusoidal_scalar_embedding(
+            torch.log1p(categorical_cardinalities.to(torch.float32)).expand_as(
+                categorical_ids_all.to(torch.float32)
+            ),
+            widths[1],
+        )
+        oov_embed = self._sinusoidal_scalar_embedding(
+            (categorical_ids_all == categorical_cardinalities).to(torch.float32),
+            widths[2],
+        )
+        type_embed = self._sinusoidal_scalar_embedding(
+            mask_float.expand_as(categorical_ids_all.to(torch.float32)),
+            widths[3],
+        )
+        residual = torch.cat([id_embed, cardinality_embed, oov_embed, type_embed], dim=-1)
+        residual = residual * mask_float.unsqueeze(-1)
+        return residual.to(raw_state.x_all.dtype)
 
     def _feature_cells(self, raw_state: RawInputState) -> torch.Tensor:
         tokenized_x, _token_padding_mask = self.tokenizer(raw_state.x_all)
@@ -296,6 +448,9 @@ class TabFoundryStagedClassifier(nn.Module):
             feature_cells = self.feature_encoder(raw_state.x_all, raw_state.train_test_split_index)
         else:
             feature_cells = self.feature_encoder(tokenized_x)
+        categorical_residual = self._categorical_residual(raw_state)
+        if categorical_residual is not None:
+            feature_cells = feature_cells + categorical_residual
         self.trace_activation("post_feature_encoder", feature_cells)
         return feature_cells
 
@@ -324,6 +479,22 @@ class TabFoundryStagedClassifier(nn.Module):
         )
         return self._build_table_tokens_from_raw(raw_state)
 
+    def _build_batch_raw_input_state(
+        self,
+        batch: TaskBatch,
+        *,
+        num_classes: int,
+    ) -> RawInputState:
+        x_all, y_train, y_test, train_test_split_index = self._prepare_task_inputs(batch)
+        return self._build_raw_input_state(
+            x_all=x_all,
+            y_train=y_train,
+            y_test=y_test,
+            train_test_split_index=train_test_split_index,
+            num_classes=num_classes,
+            feature_state=batch.feature_state,
+        )
+
     def _encode_table_batched(
         self,
         x_all: torch.Tensor,
@@ -345,22 +516,19 @@ class TabFoundryStagedClassifier(nn.Module):
         return cells
 
     def _build_table_tokens(self, batch: TaskBatch) -> tuple[torch.Tensor, int]:
-        x_all, y_train, _y_test, train_test_split_index = self._prepare_task_inputs(batch)
-        table = self._build_table_tokens_batched(
-            x_all,
-            y_train,
-            train_test_split_index=train_test_split_index,
+        raw_state = self._build_batch_raw_input_state(
+            batch,
+            num_classes=max(2, self._task_num_classes(batch)),
         )
-        return table.squeeze(0), train_test_split_index
+        return self._build_table_tokens_from_raw(raw_state).squeeze(0), raw_state.train_test_split_index
 
     def _encode_table(self, batch: TaskBatch) -> tuple[torch.Tensor, int]:
-        x_all, y_train, _y_test, train_test_split_index = self._prepare_task_inputs(batch)
-        encoded = self._encode_table_batched(
-            x_all,
-            y_train,
-            train_test_split_index=train_test_split_index,
+        raw_state = self._build_batch_raw_input_state(
+            batch,
+            num_classes=max(2, self._task_num_classes(batch)),
         )
-        return encoded.squeeze(0), train_test_split_index
+        encoded = self._encode_to_cell_state(raw_state).cells
+        return encoded.squeeze(0), raw_state.train_test_split_index
 
     def _encode_to_cell_state(self, raw_state: RawInputState) -> CellTableState:
         cells = self._build_table_tokens_from_raw(raw_state)
@@ -703,14 +871,8 @@ class TabFoundryStagedClassifier(nn.Module):
     def forward(self, batch: TaskBatch) -> ClassificationOutput:
         num_classes = self._task_num_classes(batch)
         self._validate_num_classes(num_classes)
-        x_all, y_train, y_test, train_test_split_index = self._prepare_task_inputs(batch)
-        raw_state = self._build_raw_input_state(
-            x_all=x_all,
-            y_train=y_train,
-            y_test=y_test,
-            train_test_split_index=train_test_split_index,
-            num_classes=num_classes,
-        )
+        raw_state = self._build_batch_raw_input_state(batch, num_classes=num_classes)
+        train_test_split_index = raw_state.train_test_split_index
         if self.surface.head == "many_class" and num_classes > self.many_class_base:
             return self._forward_many_class(raw_state)
 

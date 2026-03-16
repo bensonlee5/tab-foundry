@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 import torch
 
+from tab_foundry.feature_state import TaskFeatureState
+
 
 @dataclass(slots=True)
 class RawInputState:
@@ -16,6 +18,7 @@ class RawInputState:
     y_test: torch.Tensor | None
     train_test_split_index: int
     num_classes: int
+    feature_state: TaskFeatureState | None
 
 
 @dataclass(slots=True)
@@ -43,4 +46,3 @@ class HeadOutputState:
     rows: torch.Tensor
     train_test_split_index: int
     num_classes: int
-

@@ -77,6 +77,16 @@ Required keys:
   persist dataset-specific fitted preprocessing values.
 - Runtime preprocessing is always derived from the incoming support set
   (`x_train`, `y_train`) before applying the model.
+- Runtime callers may optionally provide `feature_types` alongside the support
+  set to declare mixed numeric/categorical tables. Supported values are
+  `num`, `cat`, and `categorical` (normalized to `cat`).
+- Categorical columns are assumed to be numeric-coded already. Raw string or
+  object category adapters remain out of scope for this repo.
+- For categorical columns, runtime preprocessing fits the per-column train-set
+  vocabulary and cardinality from `x_train`, remaps train/test values to
+  contiguous ids, and sends unseen or missing test values to a per-column OOV
+  bucket. This is support-set-derived runtime state only; the export schema
+  does not change.
 - The bundled `preprocessor` section is used for invariant contract checks and
   conformance, not as a cache of export-time train statistics.
 - `manifest_sha256` protects the embedded `model`, `inference`,
@@ -115,7 +125,8 @@ This repo includes a reference-only executable consumer in
 
 Scope:
 
-- dense numeric matrices in
+- dense numeric matrices in, with optional numeric-coded categorical columns
+  declared via `feature_types`
 - persisted checksum and schema validation
 - runtime-derived preprocessing using the support set
 - model-native outputs out (`class_probs` for classification,
@@ -127,6 +138,14 @@ Out of scope here:
 - dataframe adapters
 - long-lived runtime ownership
 - generalized production inference policy beyond the separate-repo handoff
+
+Python helper surface:
+
+- `tab_foundry.export.loader_ref.run_reference_consumer(..., feature_types=...)`
+  accepts the optional runtime feature schema for mixed-type tables.
+- `tab_foundry.bench.checkpoint.TabFoundryClassifier.fit(..., feature_types=...)`
+  accepts the same optional schema and reuses it for later `predict()` and
+  `predict_proba()` calls.
 
 ## Compatibility Policy
 

@@ -145,6 +145,7 @@ def _subsample_rows(
 class _LoadedManifestTaskRecord:
     record: dict[str, Any]
     metadata: dict[str, Any]
+    feature_types: list[str] | None
     x_train: np.ndarray
     y_train: np.ndarray
     x_test: np.ndarray
@@ -200,6 +201,14 @@ def _load_manifest_task_record(
         raise RuntimeError(
             f"metadata record missing object payload at key 'metadata': path={metadata_path}"
         )
+    raw_feature_types = metadata_record.get("feature_types")
+    feature_types: list[str] | None = None
+    if raw_feature_types is not None:
+        if not isinstance(raw_feature_types, list):
+            raise RuntimeError(
+                f"metadata record feature_types must be a list when present: path={metadata_path}"
+            )
+        feature_types = [str(value) for value in raw_feature_types]
 
     expected_n_train = int(record.get("n_train", -1))
     expected_n_test = int(record.get("n_test", -1))
@@ -225,6 +234,7 @@ def _load_manifest_task_record(
     return _LoadedManifestTaskRecord(
         record=record,
         metadata=metadata,
+        feature_types=feature_types,
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
@@ -296,6 +306,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         x_test = loaded.x_test
         y_test = loaded.y_test
         metadata = loaded.metadata
+        feature_types = loaded.feature_types
         if not self.allow_missing_values:
             assert_no_non_finite_values(
                 {
@@ -329,6 +340,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             y_train=y_train,
             x_test=x_test,
             y_test=y_test,
+            feature_types=feature_types,
             impute_missing=self.impute_missing,
             all_nan_fill=self.all_nan_fill,
             label_mapping=self.label_mapping,
@@ -367,4 +379,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             y_test=y_test_t,
             metadata=metadata_out,
             num_classes=num_classes,
+            feature_state=None
+            if processed.feature_state is None
+            else processed.feature_state.to_task_feature_state(),
         )
