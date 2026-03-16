@@ -13,6 +13,7 @@ import pyarrow.parquet as pq
 import torch
 from torch.utils.data import Dataset
 
+from tab_foundry.data.validation import assert_no_non_finite_values
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
@@ -246,6 +247,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         all_nan_fill: float = 0.0,
         label_mapping: str = "train_only_remap",
         unseen_test_label_policy: str = "filter",
+        allow_missing_values: bool = False,
         seed: int = 0,
     ) -> None:
         self.manifest_path = manifest_path.expanduser().resolve()
@@ -257,6 +259,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         self.all_nan_fill = float(all_nan_fill)
         self.label_mapping = str(label_mapping)
         self.unseen_test_label_policy = str(unseen_test_label_policy)
+        self.allow_missing_values = bool(allow_missing_values)
         self.seed = int(seed)
 
         table = pq.read_table(self.manifest_path)
@@ -274,6 +277,14 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
 
     def __getitem__(self, index: int) -> TaskBatch:
         record = self.records[index]
+        if (
+            not self.allow_missing_values
+            and str(record.get("missing_value_status", "")).strip() == "contains_nan_or_inf"
+        ):
+            raise RuntimeError(
+                "manifest record contains NaN or Inf while allow_missing_values=False: "
+                f"dataset_id={record.get('dataset_id')!r}, manifest_path={self.manifest_path}"
+            )
         loaded = _load_manifest_task_record(
             self.manifest_path,
             split=self.split,
@@ -285,6 +296,19 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         x_test = loaded.x_test
         y_test = loaded.y_test
         metadata = loaded.metadata
+        if not self.allow_missing_values:
+            assert_no_non_finite_values(
+                {
+                    "x_train": x_train,
+                    "y_train": y_train,
+                    "x_test": x_test,
+                    "y_test": y_test,
+                },
+                context=(
+                    "manifest-backed task dataset "
+                    f"dataset_id={record.get('dataset_id')!r}"
+                ),
+            )
 
         x_train, y_train = _subsample_rows(
             x_train,

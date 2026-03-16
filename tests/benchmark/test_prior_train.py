@@ -128,6 +128,20 @@ def test_prior_dump_reader_rejects_non_binary_dump(tmp_path: Path) -> None:
         _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=1)))
 
 
+def test_prior_dump_reader_rejects_nan_or_inf_inputs_by_default(tmp_path: Path) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_nonfinite.h5",
+        x=np.asarray([[[1.0, np.nan], [2.0, 3.0], [4.0, np.inf]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+
+    with pytest.raises(RuntimeError, match="contains NaN or Inf"):
+        _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=1)))
+
+
 @lru_cache(maxsize=1)
 def _nanotabpfn_module():
     model_path = Path("~/dev/nanoTabPFN/model.py").expanduser()

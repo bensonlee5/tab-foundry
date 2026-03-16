@@ -16,13 +16,16 @@ def _run(args: argparse.Namespace) -> int:
         train_ratio=args.train_ratio,
         val_ratio=args.val_ratio,
         filter_policy=str(args.filter_policy),
+        missing_value_policy=str(args.missing_value_policy),
     )
     print(
         "Manifest built:",
         f"path={summary.out_path}",
         f"filter_policy={summary.filter_policy}",
+        f"missing_value_policy={summary.missing_value_policy}",
         f"discovered={summary.discovered_records}",
         f"excluded={summary.excluded_records}",
+        f"excluded_for_missing_values={summary.excluded_for_missing_values}",
         f"total={summary.total_records}",
         f"train={summary.train_records}",
         f"val={summary.val_records}",
@@ -33,6 +36,11 @@ def _run(args: argparse.Namespace) -> int:
             f"{status}={count}" for status, count in summary.filter_status_counts.items()
         )
         print("Filter status counts:", counts)
+    if summary.missing_value_status_counts:
+        counts = ", ".join(
+            f"{status}={count}" for status, count in summary.missing_value_status_counts.items()
+        )
+        print("Missing-value status counts:", counts)
     for warning in summary.warnings:
         print("Warning:", warning)
     return 0
@@ -58,5 +66,10 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         default="include_all",
         help="Dataset selection policy based on dagzoo filter metadata",
     )
+    parser.add_argument(
+        "--missing-value-policy",
+        choices=("allow_any", "forbid_any"),
+        default="allow_any",
+        help="Dataset selection policy for NaN/Inf-containing inputs",
+    )
     parser.set_defaults(func=_run)
-

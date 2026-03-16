@@ -52,8 +52,8 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | 13 | `delta_data_filter_policy_accepted_only` | provenance | yes | blocked_on_artifacts | none | Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor. | Materialize the accepted-only manifest and attach its provenance before scheduling training. |
 | 14 | `delta_data_manifest_root_curated_dagzoo` | provenance | yes | blocked_on_artifacts | none | Point training at a curated dagzoo manifest root with explicit dagzoo command provenance. | Capture the dagzoo generation/filter lineage first. |
 | 15 | `delta_data_manifest_source_binary_iris` | source | yes | ready | none | Swap the training manifest to the small binary iris support surface while keeping the model and preprocessing anchored. | Run only after the matrix explicitly records the anchor-versus-iris manifest characteristics. |
-| 16 | `delta_preproc_impute_missing_off` | missing_values | yes | ready | none | Disable runtime mean imputation while keeping the fitted label-remap path intact. | Run once the matrix records the anchor manifest's missingness expectations. |
-| 17 | `delta_preproc_all_nan_fill_nonzero` | missing_values | yes | ready | none | Keep imputation on but change the all-NaN fallback fill value from 0.0 to 1.0. | Run after the no-imputation row so missing-value sensitivity has context. |
+| 16 | `delta_preproc_impute_missing_off` | missing_values | yes | deferred_separate_workstream | none | Disable runtime mean imputation while keeping the fitted label-remap path intact. | Do not run on the main no-missing campaign; revisit only in a dedicated missingness workstream with explicit missing-valued training and evaluation inputs. |
+| 17 | `delta_preproc_all_nan_fill_nonzero` | missing_values | yes | deferred_separate_workstream | none | Keep imputation on but change the all-NaN fallback fill value from 0.0 to 1.0. | Do not run on the main no-missing campaign; revisit only in a dedicated missingness workstream with explicit missing-valued training and evaluation inputs. |
 | 18 | `delta_preproc_label_mapping_surface` | label_mapping | yes | blocked_on_policy_impl | none | Compare the current train-only remap/filter label policy against an alternate surfaced label-mapping policy. | Add a second supported label policy before activating this row. |
 
 ## Detailed Rows
@@ -555,7 +555,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 16. `delta_preproc_impute_missing_off`
 
 - Dimension family: `preprocessing`
-- Status: `ready`
+- Status: `deferred_separate_workstream`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Disable runtime mean imputation while keeping the fitted label-remap path intact.
@@ -570,7 +570,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - If the result is weak, note whether the benchmark tasks actually contain meaningful missingness on the support side.
 - Adequacy knobs to dimension explicitly:
   - Interpret against manifest missingness prevalence where available.
-- Interpretation status: `pending`
+- Interpretation status: `blocked`
 - Decision: `None`
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_preproc_impute_missing_off/result_card.md`
@@ -579,7 +579,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 17. `delta_preproc_all_nan_fill_nonzero`
 
 - Dimension family: `preprocessing`
-- Status: `ready`
+- Status: `deferred_separate_workstream`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Keep imputation on but change the all-NaN fallback fill value from 0.0 to 1.0.
@@ -594,7 +594,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Interpret near-zero movement as expected if the surface rarely exercises this branch.
 - Adequacy knobs to dimension explicitly:
   - Report whether all-NaN columns are actually present in the compared manifests.
-- Interpretation status: `pending`
+- Interpretation status: `blocked`
 - Decision: `None`
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_preproc_all_nan_fill_nonzero/result_card.md`

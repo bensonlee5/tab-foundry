@@ -21,6 +21,12 @@ from tab_foundry.model.factory import build_model
 from tab_foundry.preprocessing import apply_fitted_preprocessor, fit_fitted_preprocessor
 
 
+def _manifest_summary_metadata(path: Path) -> dict[str, Any]:
+    metadata = pq.ParquetFile(path).schema_arrow.metadata or {}
+    raw = metadata[b"tab_foundry_manifest_summary"]
+    return json.loads(raw.decode("utf-8"))
+
+
 def _classification_metadata(
     *,
     n_features: int,
@@ -177,16 +183,24 @@ def test_manifest_and_dataset_loading(tmp_path: Path) -> None:
     assert summary.total_records == 1
     assert summary.discovered_records == 1
     assert summary.excluded_records == 0
+    assert summary.excluded_for_missing_values == 0
+    assert summary.missing_value_policy == "allow_any"
     assert summary.filter_status_counts == {"not_run": 1}
+    assert summary.missing_value_status_counts == {"clean": 1}
     assert summary.warnings
 
     table = pq.read_table(manifest_path)
     row = table.to_pylist()[0]
+    persisted_summary = _manifest_summary_metadata(manifest_path)
     split = row["split"]
     assert row["source_shard_relpath"] == "shard_00000"
     assert row["filter_mode"] == "deferred"
     assert row["filter_status"] == "not_run"
     assert row["filter_accepted"] is None
+    assert row["missing_value_policy"] == "allow_any"
+    assert row["missing_value_status"] == "clean"
+    assert persisted_summary["missing_value_policy"] == "allow_any"
+    assert persisted_summary["missing_value_status_counts"] == {"clean": 1}
 
     ds = PackedParquetTaskDataset(manifest_path, split=split, task="classification")
     sample = ds[0]
@@ -226,6 +240,65 @@ def test_manifest_accepted_only_excludes_unaccepted_records(tmp_path: Path) -> N
     assert len(rows) == 1
     assert rows[0]["dataset_index"] == 0
     assert rows[0]["filter_status"] == "accepted"
+
+
+def test_manifest_forbid_any_excludes_datasets_with_nan_or_inf(tmp_path: Path) -> None:
+    root = tmp_path / "run"
+    clean_x_train, clean_y_train, clean_x_test, clean_y_test = _classification_arrays(seed=7)
+    dirty_x_train, dirty_y_train, dirty_x_test, dirty_y_test = _classification_arrays(seed=11)
+    dirty_x_train[0, 0] = np.nan
+    dirty_x_test[1, 1] = np.inf
+    datasets = [
+        {
+            "dataset_index": 0,
+            "x_train": clean_x_train,
+            "y_train": clean_y_train,
+            "x_test": clean_x_test,
+            "y_test": clean_y_test,
+            "feature_types": ["num"] * clean_x_train.shape[1],
+            "metadata": _classification_metadata(
+                n_features=clean_x_train.shape[1],
+                seed=7,
+                filter_status="accepted",
+                filter_accepted=True,
+            ),
+        },
+        {
+            "dataset_index": 1,
+            "x_train": dirty_x_train,
+            "y_train": dirty_y_train,
+            "x_test": dirty_x_test,
+            "y_test": dirty_y_test,
+            "feature_types": ["num"] * dirty_x_train.shape[1],
+            "metadata": _classification_metadata(
+                n_features=dirty_x_train.shape[1],
+                seed=11,
+                filter_status="accepted",
+                filter_accepted=True,
+            ),
+        },
+    ]
+    _ = _write_packed_shard(root / "shard_00000", datasets=datasets)
+
+    manifest_path = tmp_path / "manifest.parquet"
+    summary = build_manifest(
+        [root],
+        manifest_path,
+        filter_policy="accepted_only",
+        missing_value_policy="forbid_any",
+    )
+    rows = pq.read_table(manifest_path).to_pylist()
+    persisted_summary = _manifest_summary_metadata(manifest_path)
+
+    assert summary.discovered_records == 2
+    assert summary.total_records == 1
+    assert summary.excluded_records == 1
+    assert summary.excluded_for_missing_values == 1
+    assert summary.missing_value_status_counts == {"clean": 1, "contains_nan_or_inf": 1}
+    assert rows[0]["dataset_index"] == 0
+    assert rows[0]["missing_value_status"] == "clean"
+    assert persisted_summary["missing_value_policy"] == "forbid_any"
+    assert persisted_summary["excluded_for_missing_values"] == 1
 
 
 def test_manifest_accepted_only_requires_at_least_one_record(tmp_path: Path) -> None:
@@ -343,6 +416,7 @@ def test_dataset_keeps_nan_features_when_impute_missing_is_false_but_still_remap
         split=str(row["split"]),
         task="classification",
         impute_missing=False,
+        allow_missing_values=True,
     )
     sample = ds[0]
 
@@ -351,6 +425,38 @@ def test_dataset_keeps_nan_features_when_impute_missing_is_false_but_still_remap
     assert sample.y_train.tolist() == [0, 1, 0]
     assert sample.y_test.tolist() == [1]
     assert sample.num_classes == 2
+
+
+def test_dataset_rejects_missing_inputs_by_default(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    dataset = {
+        "dataset_index": 0,
+        "x_train": np.array([[1.0, np.nan], [2.0, 3.0], [3.0, 4.0]], dtype=np.float32),
+        "y_train": np.array([0, 1, 0], dtype=np.int64),
+        "x_test": np.array([[4.0, 5.0], [6.0, np.inf]], dtype=np.float32),
+        "y_test": np.array([1, 0], dtype=np.int64),
+        "feature_types": ["num", "num"],
+        "metadata": _classification_metadata(
+            n_features=2,
+            n_classes=2,
+            seed=7,
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
+    }
+    _ = _write_packed_shard(shard_dir, datasets=[dataset])
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    row = pq.read_table(manifest_path).to_pylist()[0]
+    ds = PackedParquetTaskDataset(
+        manifest_path=manifest_path,
+        split=str(row["split"]),
+        task="classification",
+    )
+
+    with pytest.raises(RuntimeError, match="contains NaN or Inf"):
+        _ = ds[0]
 
 
 def test_cli_parser_rejects_removed_preprocessor_state_surface() -> None:
@@ -401,6 +507,7 @@ def test_dataset_and_reference_consumer_share_runtime_preprocessing_semantics(
         manifest_path=manifest_path,
         split=str(row["split"]),
         task="classification",
+        allow_missing_values=True,
     )
     sample = ds[0]
 

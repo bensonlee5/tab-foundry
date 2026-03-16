@@ -19,11 +19,15 @@ from tab_foundry.bench.control_baseline import (
 from tab_foundry.bench.nanotabpfn import (
     default_benchmark_bundle_path,
     build_comparison_summary,
+    DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
+    DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES,
+    DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
     evaluate_tab_foundry_run,
-    load_benchmark_bundle,
+    load_benchmark_bundle_for_execution,
     load_openml_benchmark_datasets,
     plot_comparison_curve,
     save_dataset_cache,
+    summarize_checkpoint_curve,
 )
 
 
@@ -152,7 +156,9 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         if config.benchmark_bundle_path is None
         else config.benchmark_bundle_path.expanduser().resolve()
     )
-    benchmark_bundle = load_benchmark_bundle(benchmark_bundle_path)
+    benchmark_bundle, allow_missing_values = load_benchmark_bundle_for_execution(
+        benchmark_bundle_path
+    )
     benchmark_selection = cast(dict[str, Any], benchmark_bundle["selection"])
     benchmark_new_instances = int(benchmark_selection["new_instances"])
     control_baseline = None
@@ -165,6 +171,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     datasets, benchmark_tasks = load_openml_benchmark_datasets(
         new_instances=benchmark_new_instances,
         benchmark_bundle_path=benchmark_bundle_path,
+        allow_missing_values=allow_missing_values,
     )
     write_json(benchmark_tasks_path, benchmark_bundle)
     save_dataset_cache(dataset_cache_path, datasets)
@@ -173,6 +180,17 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         tab_foundry_run_dir,
         datasets=datasets,
         device=config.device,
+        allow_checkpoint_failures=True,
+        allow_missing_values=allow_missing_values,
+    )
+    tab_foundry_records = cast(
+        list[dict[str, Any]],
+        summarize_checkpoint_curve(
+            tab_foundry_records,
+            bootstrap_samples=DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES,
+            bootstrap_confidence=DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
+            bootstrap_seed=DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
+        )["records"],
     )
     write_jsonl(tab_foundry_curve_path, tab_foundry_records)
 

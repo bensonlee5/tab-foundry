@@ -9,11 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Added explicit no-missing mainline guardrails for benchmark-facing manifests,
+  manifest-backed datasets, prior-dump training inputs, and benchmark bundle
+  loading. `tab-foundry build-manifest` now accepts
+  `--missing-value-policy {allow_any,forbid_any}`, manifest parquet files
+  persist missingness metadata, and the mainline benchmark helpers reject
+  bundles or inputs that allow NaN/Inf unless a future research path opts in
+  explicitly.
+
+- Restored explicit large-bundle benchmark compatibility for compare and bounce
+  diagnosis entry points by auto-opting into missing-valued inputs when the
+  explicitly selected bundle metadata allows them. User-facing note:
+  `training_surface_record.json` now emits
+  `data.manifest.characteristics.all_records_no_missing = null` for legacy
+  manifests that predate missingness annotations instead of incorrectly
+  reporting `true`.
+
+- Mainline bounce diagnosis no longer defaults to the larger
+  `nanotabpfn_openml_binary_large_v1.json` confirmation bundle because that
+  bundle permits missing-valued inputs. The default diagnosis path now stays on
+  the primary no-missing bundle unless a separate confirmation bundle is passed
+  explicitly.
+
 - Added a dedicated benchmark-bounce diagnosis runner and script that benchmark
   completed runs on both the primary and a larger confirmation bundle, writes
   task-bootstrap checkpoint traces, and classifies likely causes such as
   benchmark noise, checkpoint aliasing, optimization instability, and
   concentrated per-dataset tradeoffs.
+
+- `comparison_summary.json` now carries additive checkpoint-level benchmark
+  diagnostics for tab-foundry runs, including best-to-final drift, per-task
+  deltas, task-bootstrap confidence intervals, explicit failed-checkpoint
+  metadata, and the mainline no-missing benchmark-bundle policy used to produce
+  the summary.
 
 - Added a repo-tracked large binary confirmation benchmark bundle for diagnosis
   work under `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.

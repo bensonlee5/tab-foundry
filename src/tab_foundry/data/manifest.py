@@ -10,8 +10,19 @@ import os
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+
+from tab_foundry.data.validation import (
+    MISSING_VALUE_STATUS_CLEAN,
+    MISSING_VALUE_STATUS_CONTAINS_NAN_OR_INF,
+    SUPPORTED_MISSING_VALUE_POLICIES,
+    missing_value_status,
+)
+
+
+_MANIFEST_SUMMARY_METADATA_KEY = b"tab_foundry_manifest_summary"
 
 
 @dataclass(slots=True)
@@ -26,7 +37,10 @@ class ManifestSummary:
     train_records: int
     val_records: int
     test_records: int
+    missing_value_policy: str = "allow_any"
+    excluded_for_missing_values: int = 0
     filter_status_counts: dict[str, int] = field(default_factory=dict)
+    missing_value_status_counts: dict[str, int] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
 
@@ -138,8 +152,10 @@ def _is_record_selected(
 def _build_manifest_warnings(
     *,
     filter_policy: str,
+    missing_value_policy: str,
     selected_records: int,
     excluded_records: int,
+    excluded_for_missing_values: int,
     filter_status_counts: Counter[str],
 ) -> list[str]:
     warnings: list[str] = []
@@ -158,6 +174,12 @@ def _build_manifest_warnings(
     elif excluded_records > 0:
         warnings.append(
             f"Excluded {excluded_records} dataset(s) under filter_policy={filter_policy}."
+        )
+    if missing_value_policy == "forbid_any" and excluded_for_missing_values > 0:
+        warnings.append(
+            "Excluded "
+            f"{excluded_for_missing_values} dataset(s) containing NaN or Inf under "
+            "missing_value_policy=forbid_any."
         )
 
     if selected_records <= 0:
@@ -225,6 +247,50 @@ def _coerce_optional_int(value: Any, *, default: int, context: str) -> int:
         raise RuntimeError(f"{context} must be int-compatible or null, got {value!r}") from exc
 
 
+def _missing_value_status_by_dataset(split_path: Path) -> dict[int, str]:
+    """Summarize non-finite status for each dataset_index in one packed split parquet."""
+
+    try:
+        table = pq.read_table(split_path, columns=["dataset_index", "x", "y"])
+    except Exception as exc:  # pragma: no cover - pyarrow error typing is backend-specific
+        raise RuntimeError(f"failed to scan packed split for missing values: {split_path}") from exc
+
+    if table.num_rows <= 0:
+        return {}
+
+    dataset_indices = table["dataset_index"].to_pylist()
+    x_rows = table["x"].to_pylist()
+    y_values = table["y"].to_pylist()
+    status_by_dataset: dict[int, str] = {}
+    for dataset_index, x_row, y_value in zip(dataset_indices, x_rows, y_values, strict=False):
+        key = int(dataset_index)
+        if status_by_dataset.get(key) == MISSING_VALUE_STATUS_CONTAINS_NAN_OR_INF:
+            continue
+        current = missing_value_status(
+            {"x": x_row, "y": np.asarray([y_value])},
+            context=f"packed split {split_path} dataset_index={key}",
+        )
+        status_by_dataset[key] = current
+    return status_by_dataset
+
+
+def _manifest_schema_metadata(*, summary: ManifestSummary) -> dict[bytes, bytes]:
+    payload = {
+        "filter_policy": summary.filter_policy,
+        "missing_value_policy": summary.missing_value_policy,
+        "discovered_records": int(summary.discovered_records),
+        "excluded_records": int(summary.excluded_records),
+        "excluded_for_missing_values": int(summary.excluded_for_missing_values),
+        "total_records": int(summary.total_records),
+        "train_records": int(summary.train_records),
+        "val_records": int(summary.val_records),
+        "test_records": int(summary.test_records),
+        "filter_status_counts": dict(summary.filter_status_counts),
+        "missing_value_status_counts": dict(summary.missing_value_status_counts),
+    }
+    return {_MANIFEST_SUMMARY_METADATA_KEY: json.dumps(payload, sort_keys=True).encode("utf-8")}
+
+
 def build_manifest(
     data_roots: list[Path],
     out_path: Path,
@@ -232,6 +298,7 @@ def build_manifest(
     train_ratio: float = 0.90,
     val_ratio: float = 0.05,
     filter_policy: str = "include_all",
+    missing_value_policy: str = "allow_any",
 ) -> ManifestSummary:
     """Scan parquet roots and persist manifest parquet."""
 
@@ -243,6 +310,11 @@ def build_manifest(
         raise ValueError(
             f"filter_policy must be one of {SUPPORTED_FILTER_POLICIES}, got {filter_policy!r}"
         )
+    if missing_value_policy not in SUPPORTED_MISSING_VALUE_POLICIES:
+        raise ValueError(
+            "missing_value_policy must be one of "
+            f"{SUPPORTED_MISSING_VALUE_POLICIES}, got {missing_value_policy!r}"
+        )
 
     out_path = out_path.expanduser().resolve()
     manifest_dir = out_path.parent
@@ -251,6 +323,8 @@ def build_manifest(
     records: list[dict[str, Any]] = []
     discovered_records = 0
     status_counts: Counter[str] = Counter()
+    missing_value_status_counts: Counter[str] = Counter()
+    excluded_for_missing_values = 0
     for root in roots:
         if not root.exists():
             continue
@@ -261,6 +335,8 @@ def build_manifest(
             metadata_path = shard_dir / "metadata.ndjson"
             if not (train_path.exists() and test_path.exists() and metadata_path.exists()):
                 continue
+            train_missing_status = _missing_value_status_by_dataset(train_path)
+            test_missing_status = _missing_value_status_by_dataset(test_path)
 
             shard_id = _extract_shard_id(shard_dir)
             for offset, size, record_sha256, record in _read_metadata_records(metadata_path):
@@ -286,6 +362,27 @@ def build_manifest(
                     filter_status=filter_status,
                     filter_accepted=filter_accepted,
                 ):
+                    continue
+                train_missing_value_status = train_missing_status.get(
+                    dataset_index,
+                    MISSING_VALUE_STATUS_CLEAN,
+                )
+                test_missing_value_status = test_missing_status.get(
+                    dataset_index,
+                    MISSING_VALUE_STATUS_CLEAN,
+                )
+                record_missing_value_status = (
+                    MISSING_VALUE_STATUS_CLEAN
+                    if train_missing_value_status == MISSING_VALUE_STATUS_CLEAN
+                    and test_missing_value_status == MISSING_VALUE_STATUS_CLEAN
+                    else MISSING_VALUE_STATUS_CONTAINS_NAN_OR_INF
+                )
+                missing_value_status_counts[record_missing_value_status] += 1
+                if (
+                    missing_value_policy == "forbid_any"
+                    and record_missing_value_status != MISSING_VALUE_STATUS_CLEAN
+                ):
+                    excluded_for_missing_values += 1
                     continue
 
                 dsid = _dataset_id(
@@ -327,6 +424,8 @@ def build_manifest(
                         "filter_mode": filter_mode,
                         "filter_status": filter_status,
                         "filter_accepted": filter_accepted,
+                        "missing_value_policy": missing_value_policy,
+                        "missing_value_status": record_missing_value_status,
                     }
                 )
 
@@ -334,7 +433,9 @@ def build_manifest(
         raise RuntimeError("no datasets discovered while building manifest")
     if not records:
         raise RuntimeError(
-            f"no datasets matched filter_policy={filter_policy!r} while building manifest"
+            "no datasets matched "
+            f"filter_policy={filter_policy!r} and missing_value_policy={missing_value_policy!r} "
+            "while building manifest"
         )
 
     records.sort(
@@ -348,27 +449,34 @@ def build_manifest(
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    table = pa.Table.from_pylist(records)
-    pq.write_table(table, out_path, compression="zstd")
-
     train_records = sum(1 for record in records if record["split"] == "train")
     val_records = sum(1 for record in records if record["split"] == "val")
     test_records = sum(1 for record in records if record["split"] == "test")
     excluded_records = discovered_records - len(records)
-    return ManifestSummary(
+    summary = ManifestSummary(
         out_path=out_path,
         filter_policy=filter_policy,
+        missing_value_policy=missing_value_policy,
         discovered_records=discovered_records,
         excluded_records=excluded_records,
+        excluded_for_missing_values=excluded_for_missing_values,
         total_records=len(records),
         train_records=train_records,
         val_records=val_records,
         test_records=test_records,
         filter_status_counts=dict(sorted(status_counts.items())),
+        missing_value_status_counts=dict(sorted(missing_value_status_counts.items())),
         warnings=_build_manifest_warnings(
             filter_policy=filter_policy,
+            missing_value_policy=missing_value_policy,
             selected_records=len(records),
             excluded_records=excluded_records,
+            excluded_for_missing_values=excluded_for_missing_values,
             filter_status_counts=status_counts,
         ),
     )
+    table = pa.Table.from_pylist(records).replace_schema_metadata(
+        _manifest_schema_metadata(summary=summary)
+    )
+    pq.write_table(table, out_path, compression="zstd")
+    return summary

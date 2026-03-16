@@ -19,11 +19,15 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, LabelEncoder, OrdinalEncoder
 
+from tab_foundry.data.validation import assert_no_non_finite_values
 from tab_foundry.bench.artifacts import checkpoint_snapshots_from_history
 
 
 BENCHMARK_BUNDLE_FILENAME = "nanotabpfn_openml_binary_medium_v1.json"
 _BUNDLE_SELECTION_TASK_TYPE = "supervised_classification"
+DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES = 2000
+DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE = 0.95
+DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED = 0
 
 _SKF = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
 
@@ -38,6 +42,17 @@ class PreparedOpenMLBenchmarkTask:
     y: np.ndarray
     observed_task: dict[str, Any]
     qualities: dict[str, float]
+
+
+class BenchmarkDatasetEvaluationError(RuntimeError):
+    """One benchmark dataset failed within a checkpoint evaluation."""
+
+    def __init__(self, dataset_name: str, cause: Exception) -> None:
+        self.dataset_name = str(dataset_name)
+        self.error_type = type(cause).__name__
+        super().__init__(
+            f"benchmark evaluation failed for dataset {self.dataset_name!r}: {cause}"
+        )
 
 
 def get_feature_preprocessor(x: np.ndarray | pd.DataFrame) -> ColumnTransformer:
@@ -222,16 +237,72 @@ def normalize_benchmark_bundle(payload: Any) -> dict[str, Any]:
     return normalized_bundle
 
 
-def load_benchmark_bundle(path: Path | None = None) -> dict[str, Any]:
+def _validate_bundle_missing_value_policy(
+    bundle: Mapping[str, Any],
+    *,
+    allow_missing_values: bool,
+    source_path: Path,
+) -> None:
+    if allow_missing_values:
+        return
+    selection = cast(dict[str, Any], bundle["selection"])
+    max_missing_pct = float(selection["max_missing_pct"])
+    if max_missing_pct > 0.0:
+        raise RuntimeError(
+            "benchmark bundle permits missing-valued inputs while allow_missing_values=False: "
+            f"path={source_path}, max_missing_pct={max_missing_pct}"
+        )
+
+
+def _assert_finite_benchmark_datasets(
+    datasets: Mapping[str, tuple[np.ndarray, np.ndarray]],
+    *,
+    context: str,
+) -> None:
+    for dataset_name, (x, y) in datasets.items():
+        assert_no_non_finite_values(
+            {"x": x, "y": y},
+            context=f"{context} dataset={dataset_name!r}",
+        )
+
+
+def benchmark_bundle_allows_missing_values(bundle: Mapping[str, Any]) -> bool:
+    """Return whether the bundle contract permits missing-valued inputs."""
+
+    selection = cast(dict[str, Any], bundle["selection"])
+    raw_max_missing_pct = selection.get("max_missing_pct")
+    if not isinstance(raw_max_missing_pct, (int, float)):
+        return False
+    return bool(float(raw_max_missing_pct) > 0.0)
+
+
+def load_benchmark_bundle(
+    path: Path | None = None,
+    *,
+    allow_missing_values: bool = False,
+) -> dict[str, Any]:
     """Load and validate the canonical benchmark bundle metadata."""
 
     bundle_path = (path or default_benchmark_bundle_path()).expanduser().resolve()
     with bundle_path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     try:
-        return normalize_benchmark_bundle(payload)
+        bundle = normalize_benchmark_bundle(payload)
     except RuntimeError as exc:
         raise RuntimeError(f"{exc}: {bundle_path}") from exc
+    _validate_bundle_missing_value_policy(
+        bundle,
+        allow_missing_values=bool(allow_missing_values),
+        source_path=bundle_path,
+    )
+    return bundle
+
+
+def load_benchmark_bundle_for_execution(path: Path | None = None) -> tuple[dict[str, Any], bool]:
+    """Load a bundle and resolve whether execution should allow missing values."""
+
+    bundle = load_benchmark_bundle(path, allow_missing_values=True)
+    return bundle, benchmark_bundle_allows_missing_values(bundle)
 
 
 def benchmark_bundle_summary(
@@ -242,12 +313,26 @@ def benchmark_bundle_summary(
     """Build compact bundle metadata for run summaries."""
 
     task_ids = [int(task_id) for task_id in cast(list[Any], bundle["task_ids"])]
+    selection_raw = bundle.get("selection")
+    selection = (
+        cast(dict[str, Any], json.loads(json.dumps(selection_raw, sort_keys=True)))
+        if isinstance(selection_raw, Mapping)
+        else None
+    )
+    allow_missing_values = (
+        None
+        if not isinstance(selection_raw, Mapping)
+        else benchmark_bundle_allows_missing_values(bundle)
+    )
     return {
         "name": str(bundle["name"]),
         "version": int(bundle["version"]),
         "source_path": str(source_path.expanduser().resolve()),
         "task_count": int(len(task_ids)),
         "task_ids": task_ids,
+        "selection": selection,
+        "allow_missing_values": allow_missing_values,
+        "all_tasks_no_missing": None if allow_missing_values is None else (not allow_missing_values),
     }
 
 
@@ -336,10 +421,14 @@ def load_openml_benchmark_datasets(
     *,
     new_instances: int = 200,
     benchmark_bundle_path: Path | None = None,
+    allow_missing_values: bool = False,
 ) -> tuple[dict[str, tuple[np.ndarray, np.ndarray]], list[dict[str, Any]]]:
     """Load the nanoTabPFN OpenML benchmark suite."""
 
-    bundle = load_benchmark_bundle(benchmark_bundle_path)
+    bundle = load_benchmark_bundle(
+        benchmark_bundle_path,
+        allow_missing_values=allow_missing_values,
+    )
     selection = cast(dict[str, Any], bundle["selection"])
     expected_new_instances = int(selection["new_instances"])
     if new_instances != expected_new_instances:
@@ -395,6 +484,11 @@ def load_openml_benchmark_datasets(
             "benchmark bundle drift: "
             f"task count mismatch expected={len(expected_tasks)}, actual={len(benchmark_tasks)}"
         )
+    if not allow_missing_values:
+        _assert_finite_benchmark_datasets(
+            datasets,
+            context=f"benchmark bundle {bundle['name']!r}",
+        )
     return datasets, benchmark_tasks
 
 
@@ -430,29 +524,40 @@ def load_dataset_cache(path: Path) -> dict[str, tuple[np.ndarray, np.ndarray]]:
 def evaluate_classifier(
     classifier: Any,
     datasets: Mapping[str, tuple[np.ndarray, np.ndarray]],
+    *,
+    allow_missing_values: bool = False,
 ) -> dict[str, float]:
     """Evaluate a sklearn-style classifier on the cached benchmark suite."""
 
+    if not allow_missing_values:
+        _assert_finite_benchmark_datasets(datasets, context="benchmark evaluation inputs")
     metrics: dict[str, float] = {}
     for dataset_name, (x, y) in datasets.items():
-        targets: list[np.ndarray] = []
-        probabilities: list[np.ndarray] = []
-        for train_idx, test_idx in _SKF.split(x, y):
-            x_train, x_test = x[train_idx], x[test_idx]
-            y_train, y_test = y[train_idx], y[test_idx]
-            targets.append(y_test)
-            classifier.fit(x_train, y_train)
-            y_proba = classifier.predict_proba(x_test)
-            if y_proba.shape[1] == 2:
-                probabilities.append(np.asarray(y_proba[:, 1], dtype=np.float64))
-            else:
-                probabilities.append(np.asarray(y_proba, dtype=np.float64))
+        try:
+            targets: list[np.ndarray] = []
+            probabilities: list[np.ndarray] = []
+            for train_idx, test_idx in _SKF.split(x, y):
+                x_train, x_test = x[train_idx], x[test_idx]
+                y_train, y_test = y[train_idx], y[test_idx]
+                targets.append(y_test)
+                classifier.fit(x_train, y_train)
+                y_proba = classifier.predict_proba(x_test)
+                if y_proba.shape[1] == 2:
+                    probabilities.append(np.asarray(y_proba[:, 1], dtype=np.float64))
+                else:
+                    probabilities.append(np.asarray(y_proba, dtype=np.float64))
 
-        target_array = np.concatenate(targets, axis=0)
-        probability_array = np.concatenate(probabilities, axis=0)
-        metrics[f"{dataset_name}/ROC AUC"] = float(
-            roc_auc_score(target_array, probability_array, multi_class="ovr")
-        )
+            target_array = np.concatenate(targets, axis=0)
+            probability_array = np.concatenate(probabilities, axis=0)
+            assert_no_non_finite_values(
+                {"probabilities": probability_array},
+                context=f"benchmark classifier outputs dataset={dataset_name!r}",
+            )
+            metrics[f"{dataset_name}/ROC AUC"] = float(
+                roc_auc_score(target_array, probability_array, multi_class="ovr")
+            )
+        except Exception as exc:
+            raise BenchmarkDatasetEvaluationError(str(dataset_name), exc) from exc
 
     roc_auc_values = [value for key, value in metrics.items() if key.endswith("/ROC AUC")]
     metrics["ROC AUC"] = float(np.mean(roc_auc_values))
@@ -531,6 +636,179 @@ def annotate_curve_records_with_task_statistics(
             enriched["roc_auc_task_bootstrap_ci"] = bootstrap_interval
         annotated.append(enriched)
     return annotated
+
+
+def _interval_overlap(interval_a: Mapping[str, Any], interval_b: Mapping[str, Any]) -> bool:
+    return float(interval_a["lower"]) <= float(interval_b["upper"]) and float(
+        interval_b["lower"]
+    ) <= float(interval_a["upper"])
+
+
+def _is_successful_curve_record(record: Mapping[str, Any]) -> bool:
+    raw_roc_auc = record.get("roc_auc")
+    if raw_roc_auc is None:
+        return False
+    try:
+        return math.isfinite(float(raw_roc_auc))
+    except (TypeError, ValueError):
+        return False
+
+
+def curve_adjacent_ci_overlap_fraction(records: list[dict[str, Any]]) -> float | None:
+    """Estimate how often adjacent checkpoint CIs overlap."""
+
+    sorted_records = sorted(
+        [dict(record) for record in records if _is_successful_curve_record(record)],
+        key=lambda record: int(record["step"]),
+    )
+    overlaps = 0
+    pairs = 0
+    for previous, current in zip(sorted_records, sorted_records[1:], strict=False):
+        prev_ci = previous.get("roc_auc_task_bootstrap_ci")
+        curr_ci = current.get("roc_auc_task_bootstrap_ci")
+        if not isinstance(prev_ci, Mapping) or not isinstance(curr_ci, Mapping):
+            continue
+        pairs += 1
+        if _interval_overlap(prev_ci, curr_ci):
+            overlaps += 1
+    if pairs <= 0:
+        return None
+    return float(overlaps) / float(pairs)
+
+
+def curve_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize one checkpoint curve after task statistics are attached."""
+
+    successful_records = sorted(
+        [dict(record) for record in records if _is_successful_curve_record(record)],
+        key=lambda record: int(record["step"]),
+    )
+    if not successful_records:
+        return {
+            "checkpoint_count": 0,
+            "task_count": 0,
+            "best_step": 0,
+            "best_roc_auc": float("nan"),
+            "final_step": 0,
+            "final_roc_auc": float("nan"),
+            "adjacent_ci_overlap_fraction": None,
+        }
+    best_record = max(successful_records, key=lambda record: float(record["roc_auc"]))
+    final_record = successful_records[-1]
+    task_count = max(
+        int(
+            record.get(
+                "dataset_count",
+                len(record["dataset_roc_auc"])
+                if isinstance(record.get("dataset_roc_auc"), Mapping)
+                else 0,
+            )
+        )
+        for record in successful_records
+    )
+    return {
+        "checkpoint_count": int(len(successful_records)),
+        "task_count": int(task_count),
+        "best_step": int(best_record["step"]),
+        "best_roc_auc": float(best_record["roc_auc"]),
+        "final_step": int(final_record["step"]),
+        "final_roc_auc": float(final_record["roc_auc"]),
+        "adjacent_ci_overlap_fraction": curve_adjacent_ci_overlap_fraction(successful_records),
+    }
+
+
+def summarize_checkpoint_curve(
+    records: list[dict[str, Any]],
+    *,
+    bootstrap_samples: int = 0,
+    bootstrap_confidence: float = 0.95,
+    bootstrap_seed: int = 0,
+) -> dict[str, Any]:
+    """Build one checkpoint-trace summary with failure and CI metadata."""
+
+    successful_records = [
+        dict(record)
+        for record in records
+        if _is_successful_curve_record(record)
+    ]
+    failed_records = [
+        dict(record)
+        for record in records
+        if not _is_successful_curve_record(record)
+    ]
+    annotated_successful_records = annotate_curve_records_with_task_statistics(
+        successful_records,
+        bootstrap_samples=int(bootstrap_samples),
+        bootstrap_confidence=float(bootstrap_confidence),
+        bootstrap_seed=int(bootstrap_seed),
+    )
+    sorted_successful_records = sorted(
+        annotated_successful_records,
+        key=lambda record: int(record["step"]),
+    )
+    trace_summary = curve_summary(sorted_successful_records)
+    best_record = (
+        None
+        if not sorted_successful_records
+        else max(sorted_successful_records, key=lambda record: float(record["roc_auc"]))
+    )
+    final_record = None if not sorted_successful_records else sorted_successful_records[-1]
+    best_checkpoint_path = (
+        None
+        if best_record is None or best_record.get("checkpoint_path") is None
+        else str(best_record["checkpoint_path"])
+    )
+    final_checkpoint_path = (
+        None
+        if final_record is None or final_record.get("checkpoint_path") is None
+        else str(final_record["checkpoint_path"])
+    )
+    sorted_records = sorted(
+        [dict(record) for record in sorted_successful_records + failed_records],
+        key=lambda record: int(record["step"]),
+    )
+    for record in sorted_records:
+        checkpoint_path = (
+            None if record.get("checkpoint_path") is None else str(record["checkpoint_path"])
+        )
+        record["is_best_checkpoint"] = bool(
+            checkpoint_path is not None and checkpoint_path == best_checkpoint_path
+        )
+        record["is_final_checkpoint"] = bool(
+            checkpoint_path is not None and checkpoint_path == final_checkpoint_path
+        )
+    return {
+        "records": sorted_records,
+        "successful_records": sorted_successful_records,
+        "failed_records": sorted(
+            [dict(record) for record in failed_records],
+            key=lambda record: int(record["step"]),
+        ),
+        "summary": trace_summary,
+        "checkpoint_count": int(len(sorted_records)),
+        "successful_checkpoint_count": int(len(sorted_successful_records)),
+        "failed_checkpoint_count": int(len(failed_records)),
+        "best_record": None if best_record is None else dict(best_record),
+        "final_record": None if final_record is None else dict(final_record),
+        "best_checkpoint_path": best_checkpoint_path,
+        "final_checkpoint_path": final_checkpoint_path,
+        "last_attempted_step": 0 if not sorted_records else int(sorted_records[-1]["step"]),
+        "last_attempted_checkpoint_path": (
+            None
+            if not sorted_records or sorted_records[-1].get("checkpoint_path") is None
+            else str(sorted_records[-1]["checkpoint_path"])
+        ),
+        "best_to_final_roc_auc_delta": (
+            None
+            if best_record is None or final_record is None
+            else float(final_record["roc_auc"]) - float(best_record["roc_auc"])
+        ),
+        "bootstrap": {
+            "samples": int(bootstrap_samples),
+            "confidence": float(bootstrap_confidence),
+            "seed": int(bootstrap_seed),
+        },
+    }
 
 
 def resolve_device(device: str) -> str:
@@ -630,6 +908,7 @@ def evaluate_tab_foundry_run(
     datasets: Mapping[str, tuple[np.ndarray, np.ndarray]],
     device: str,
     allow_checkpoint_failures: bool = False,
+    allow_missing_values: bool = False,
 ) -> list[dict[str, Any]]:
     """Evaluate smoke-run checkpoints on the notebook benchmark suite."""
 
@@ -641,16 +920,27 @@ def evaluate_tab_foundry_run(
         checkpoint_path = Path(str(snapshot["path"]))
         try:
             classifier = TabFoundryClassifier(checkpoint_path, device=resolved_device)
-            metrics = evaluate_classifier(classifier, datasets)
+            metrics = evaluate_classifier(
+                classifier,
+                datasets,
+                allow_missing_values=allow_missing_values,
+            )
         except Exception as exc:
             if not allow_checkpoint_failures:
                 raise
+            failed_dataset = None
+            error_type = type(exc).__name__
+            if isinstance(exc, BenchmarkDatasetEvaluationError):
+                failed_dataset = exc.dataset_name
+                error_type = str(exc.error_type)
             curve_records.append(
                 {
                     "checkpoint_path": str(checkpoint_path),
                     "step": int(snapshot["step"]),
                     "training_time": float(snapshot["elapsed_seconds"]),
                     "evaluation_error": str(exc),
+                    "evaluation_error_type": error_type,
+                    "failed_dataset": failed_dataset,
                 }
             )
             continue
@@ -829,6 +1119,20 @@ def build_comparison_summary(
             if values
         }
 
+    def _dataset_delta_summary(
+        records: list[dict[str, Any]],
+        *,
+        from_step: float,
+        to_step: float,
+    ) -> dict[str, float]:
+        from_metrics = _dataset_summary(records, step=from_step)
+        to_metrics = _dataset_summary(records, step=to_step)
+        shared_dataset_names = sorted(set(from_metrics) & set(to_metrics))
+        return {
+            dataset_name: float(to_metrics[dataset_name]) - float(from_metrics[dataset_name])
+            for dataset_name in shared_dataset_names
+        }
+
     def _identity(records: list[dict[str, Any]]) -> dict[str, str | None]:
         if not records:
             return {
@@ -845,6 +1149,17 @@ def build_comparison_summary(
             else str(first["benchmark_profile"]),
         }
 
+    tab_foundry_curve = summarize_checkpoint_curve(
+        tab_foundry_records,
+        bootstrap_samples=DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES,
+        bootstrap_confidence=DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
+        bootstrap_seed=DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
+    )
+    tab_foundry_successful_records = cast(
+        list[dict[str, Any]],
+        tab_foundry_curve["successful_records"],
+    )
+    tab_foundry_curve_summary = cast(dict[str, Any], tab_foundry_curve["summary"])
     summary = {
         "dataset_count": int(len(benchmark_tasks)),
         "benchmark_bundle": benchmark_bundle_summary(
@@ -852,9 +1167,22 @@ def build_comparison_summary(
             source_path=benchmark_bundle_path,
         ),
         "tab_foundry": {
-            **_summary_metrics(tab_foundry_records),
+            "best_step": float(tab_foundry_curve_summary["best_step"]),
+            "best_training_time": float(
+                0.0
+                if tab_foundry_curve["best_record"] is None
+                else cast(dict[str, Any], tab_foundry_curve["best_record"])["training_time"]
+            ),
+            "best_roc_auc": float(tab_foundry_curve_summary["best_roc_auc"]),
+            "final_step": float(tab_foundry_curve_summary["final_step"]),
+            "final_training_time": float(
+                0.0
+                if tab_foundry_curve["final_record"] is None
+                else cast(dict[str, Any], tab_foundry_curve["final_record"])["training_time"]
+            ),
+            "final_roc_auc": float(tab_foundry_curve_summary["final_roc_auc"]),
             "run_dir": str(tab_foundry_run_dir.expanduser().resolve()),
-            **_identity(tab_foundry_records),
+            **_identity(tab_foundry_successful_records),
         },
         "nanotabpfn": {
             **_summary_metrics(nanotabpfn_records),
@@ -866,13 +1194,39 @@ def build_comparison_summary(
     tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
     nanotabpfn_summary = cast(dict[str, Any], summary["nanotabpfn"])
     tab_foundry_summary["best_dataset_roc_auc"] = _dataset_summary(
-        tab_foundry_records,
+        tab_foundry_successful_records,
         step=float(tab_foundry_summary["best_step"]),
     )
     tab_foundry_summary["final_dataset_roc_auc"] = _dataset_summary(
-        tab_foundry_records,
+        tab_foundry_successful_records,
         step=float(tab_foundry_summary["final_step"]),
     )
+    tab_foundry_summary["best_to_final_dataset_roc_auc_delta"] = _dataset_delta_summary(
+        tab_foundry_successful_records,
+        from_step=float(tab_foundry_summary["best_step"]),
+        to_step=float(tab_foundry_summary["final_step"]),
+    )
+    tab_foundry_summary["best_to_final_roc_auc_delta"] = tab_foundry_curve[
+        "best_to_final_roc_auc_delta"
+    ]
+    tab_foundry_summary["checkpoint_diagnostics"] = {
+        "checkpoint_count": int(tab_foundry_curve["checkpoint_count"]),
+        "successful_checkpoint_count": int(tab_foundry_curve["successful_checkpoint_count"]),
+        "failed_checkpoint_count": int(tab_foundry_curve["failed_checkpoint_count"]),
+        "task_count": int(tab_foundry_curve_summary["task_count"]),
+        "adjacent_ci_overlap_fraction": tab_foundry_curve_summary[
+            "adjacent_ci_overlap_fraction"
+        ],
+        "best_checkpoint_path": tab_foundry_curve["best_checkpoint_path"],
+        "final_checkpoint_path": tab_foundry_curve["final_checkpoint_path"],
+        "last_attempted_step": int(tab_foundry_curve["last_attempted_step"]),
+        "last_attempted_checkpoint_path": tab_foundry_curve["last_attempted_checkpoint_path"],
+        "bootstrap": dict(cast(dict[str, Any], tab_foundry_curve["bootstrap"])),
+        "best_checkpoint": tab_foundry_curve["best_record"],
+        "final_checkpoint": tab_foundry_curve["final_record"],
+        "checkpoints": cast(list[dict[str, Any]], tab_foundry_curve["records"]),
+        "failed_checkpoints": cast(list[dict[str, Any]], tab_foundry_curve["failed_records"]),
+    }
     nanotabpfn_summary["best_dataset_roc_auc"] = _dataset_summary(
         nanotabpfn_records,
         step=float(nanotabpfn_summary["best_step"]),
@@ -881,6 +1235,14 @@ def build_comparison_summary(
         nanotabpfn_records,
         step=float(nanotabpfn_summary["final_step"]),
     )
+    nanotabpfn_summary["best_to_final_dataset_roc_auc_delta"] = _dataset_delta_summary(
+        nanotabpfn_records,
+        from_step=float(nanotabpfn_summary["best_step"]),
+        to_step=float(nanotabpfn_summary["final_step"]),
+    )
+    nanotabpfn_summary["best_to_final_roc_auc_delta"] = float(
+        nanotabpfn_summary["final_roc_auc"]
+    ) - float(nanotabpfn_summary["best_roc_auc"])
     if math.isnan(float(tab_foundry_summary["final_roc_auc"])):
         raise RuntimeError("tab-foundry benchmark produced no ROC AUC values")
     if math.isnan(float(nanotabpfn_summary["final_roc_auc"])):

@@ -565,8 +565,8 @@ deltas:
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
     legacy_stage_alias: none
-    default_initial_status: ready
-    default_initial_interpretation_status: pending
+    default_initial_status: deferred_separate_workstream
+    default_initial_interpretation_status: blocked
     default_effective_surface:
       model:
         stage_label: anchor_model
@@ -576,7 +576,7 @@ deltas:
         surface_label: runtime_no_impute
         overrides:
           impute_missing: false
-    default_next_action: Run once the matrix records the anchor manifest's missingness expectations.
+    default_next_action: Do not run on the main no-missing campaign; revisit only in a dedicated missingness workstream with explicit missing-valued training and evaluation inputs.
     applicability_guards: []
 
   delta_preproc_all_nan_fill_nonzero:
@@ -597,8 +597,8 @@ deltas:
         - adequacy_plan_complete
         - clearly_worse_without_offsetting_benefit
     legacy_stage_alias: none
-    default_initial_status: ready
-    default_initial_interpretation_status: pending
+    default_initial_status: deferred_separate_workstream
+    default_initial_interpretation_status: blocked
     default_effective_surface:
       model:
         stage_label: anchor_model
@@ -608,7 +608,7 @@ deltas:
         surface_label: runtime_all_nan_fill_one
         overrides:
           all_nan_fill: 1.0
-    default_next_action: Run after the no-imputation row so missing-value sensitivity has context.
+    default_next_action: Do not run on the main no-missing campaign; revisit only in a dedicated missingness workstream with explicit missing-valued training and evaluation inputs.
     applicability_guards: []
 
   delta_preproc_label_mapping_surface:

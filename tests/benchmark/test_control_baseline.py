@@ -33,6 +33,7 @@ def _write_comparison_summary(
     run_dir: Path,
     benchmark_bundle_source_path: str,
     final_roc_auc: float = 0.83,
+    include_diagnostics: bool = False,
 ) -> Path:
     payload = {
         "dataset_count": 1,
@@ -42,6 +43,16 @@ def _write_comparison_summary(
             "source_path": benchmark_bundle_source_path,
             "task_count": 1,
             "task_ids": [1],
+            "selection": {
+                "new_instances": 6,
+                "task_type": "supervised_classification",
+                "max_features": 10,
+                "max_classes": 2,
+                "max_missing_pct": 0.0,
+                "min_minority_class_pct": 2.5,
+            },
+            "allow_missing_values": False,
+            "all_tasks_no_missing": True,
         },
         "tab_foundry": {
             "best_step": 25.0,
@@ -64,6 +75,90 @@ def _write_comparison_summary(
             "num_seeds": 2,
         },
     }
+    if include_diagnostics:
+        payload["tab_foundry"]["best_to_final_roc_auc_delta"] = float(final_roc_auc) - 0.81
+        payload["tab_foundry"]["checkpoint_diagnostics"] = {
+            "checkpoint_count": 2,
+            "successful_checkpoint_count": 1,
+            "failed_checkpoint_count": 1,
+            "task_count": 1,
+            "adjacent_ci_overlap_fraction": None,
+            "best_checkpoint_path": "/tmp/step_000025.pt",
+            "final_checkpoint_path": "/tmp/step_000025.pt",
+            "last_attempted_step": 50,
+            "last_attempted_checkpoint_path": "/tmp/step_000050.pt",
+            "bootstrap": {"samples": 2000, "confidence": 0.95, "seed": 0},
+            "best_checkpoint": {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "dataset_roc_auc": {"toy": 0.81},
+                "dataset_count": 1,
+                "roc_auc_task_bootstrap_ci": {
+                    "samples": 2000,
+                    "confidence": 0.95,
+                    "lower": 0.81,
+                    "upper": 0.81,
+                },
+                "is_best_checkpoint": True,
+                "is_final_checkpoint": True,
+            },
+            "final_checkpoint": {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "dataset_roc_auc": {"toy": 0.81},
+                "dataset_count": 1,
+                "roc_auc_task_bootstrap_ci": {
+                    "samples": 2000,
+                    "confidence": 0.95,
+                    "lower": 0.81,
+                    "upper": 0.81,
+                },
+                "is_best_checkpoint": True,
+                "is_final_checkpoint": True,
+            },
+            "checkpoints": [
+                {
+                    "checkpoint_path": "/tmp/step_000025.pt",
+                    "step": 25,
+                    "training_time": 1.2,
+                    "roc_auc": 0.81,
+                    "dataset_roc_auc": {"toy": 0.81},
+                    "dataset_count": 1,
+                    "roc_auc_task_bootstrap_ci": {
+                        "samples": 2000,
+                        "confidence": 0.95,
+                        "lower": 0.81,
+                        "upper": 0.81,
+                    },
+                    "is_best_checkpoint": True,
+                    "is_final_checkpoint": True,
+                },
+                {
+                    "checkpoint_path": "/tmp/step_000050.pt",
+                    "step": 50,
+                    "training_time": 2.4,
+                    "evaluation_error": "benchmark evaluation failed for dataset 'toy': Input contains NaN.",
+                    "evaluation_error_type": "ValueError",
+                    "failed_dataset": "toy",
+                    "is_best_checkpoint": False,
+                    "is_final_checkpoint": False,
+                },
+            ],
+            "failed_checkpoints": [
+                {
+                    "checkpoint_path": "/tmp/step_000050.pt",
+                    "step": 50,
+                    "training_time": 2.4,
+                    "evaluation_error": "benchmark evaluation failed for dataset 'toy': Input contains NaN.",
+                    "evaluation_error_type": "ValueError",
+                    "failed_dataset": "toy",
+                }
+            ],
+        }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
@@ -181,6 +276,53 @@ def test_freeze_control_baseline_validates_summary_run_dir(
             comparison_summary_path=summary_path,
             registry_path=registry_path,
         )
+
+
+def test_freeze_control_baseline_accepts_richer_checkpoint_diagnostics_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    registry_path = repo_root / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
+    run_dir = repo_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v2" / "train"
+    manifest_path = repo_root / "data" / "manifests" / "default.parquet"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_bytes(b"manifest")
+    benchmark_bundle_path = (
+        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_binary_medium_v1.json"
+    )
+    benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
+    _ = _write_checkpoint(
+        run_dir / "checkpoints" / "best.pt",
+        manifest_path="data/manifests/default.parquet",
+        seed=11,
+    )
+    summary_path = repo_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v2" / "benchmark" / "comparison_summary.json"
+    _ = _write_comparison_summary(
+        summary_path,
+        run_dir=run_dir,
+        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        include_diagnostics=True,
+    )
+    monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
+
+    frozen = control_baseline_module.freeze_control_baseline(
+        baseline_id="cls_benchmark_linear_v2",
+        experiment="cls_benchmark_linear",
+        config_profile="cls_benchmark_linear",
+        budget_class="short-run",
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        registry_path=registry_path,
+    )
+
+    assert frozen["baseline"]["benchmark_bundle"]["source_path"] == (
+        "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
+    )
+    assert frozen["baseline"]["seed_set"] == [11]
+    assert frozen["baseline"]["tab_foundry_metrics"]["best_roc_auc"] == pytest.approx(0.81)
+    assert frozen["baseline"]["tab_foundry_metrics"]["final_roc_auc"] == pytest.approx(0.83)
 
 
 def test_checked_in_control_baseline_registry_preserves_v1_and_adds_v2() -> None:

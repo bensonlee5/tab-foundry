@@ -22,12 +22,13 @@ from tab_foundry.bench.benchmark_run_registry import (
     resolve_registry_path_value,
 )
 from tab_foundry.bench.nanotabpfn import (
-    annotate_curve_records_with_task_statistics,
     benchmark_bundle_summary,
+    curve_summary,
     default_benchmark_bundle_path,
     evaluate_tab_foundry_run,
-    load_benchmark_bundle,
+    load_benchmark_bundle_for_execution,
     load_openml_benchmark_datasets,
+    summarize_checkpoint_curve,
 )
 from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.trainer import train
@@ -52,13 +53,6 @@ class BenchmarkBounceDiagnosisConfig:
     dense_run_dir: Path | None = None
     rerun_mode: RerunMode = "none"
     run_id: str | None = None
-
-
-def default_confirmation_benchmark_bundle_path() -> Path:
-    """Return the repo-tracked large confirmation bundle path."""
-
-    return Path(__file__).resolve().with_name("nanotabpfn_openml_binary_large_v1.json")
-
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -199,63 +193,24 @@ def _run_dense_checkpoint_rerun(config: BenchmarkBounceDiagnosisConfig) -> Path:
     return dense_output_dir
 
 
-def _interval_overlap(interval_a: Mapping[str, Any], interval_b: Mapping[str, Any]) -> bool:
-    return float(interval_a["lower"]) <= float(interval_b["upper"]) and float(interval_b["lower"]) <= float(interval_a["upper"])
-
-
-def _adjacent_ci_overlap_fraction(records: list[dict[str, Any]]) -> float | None:
-    sorted_records = sorted(records, key=lambda record: int(record["step"]))
-    overlaps = 0
-    pairs = 0
-    for previous, current in zip(sorted_records, sorted_records[1:], strict=False):
-        prev_ci = previous.get("roc_auc_task_bootstrap_ci")
-        curr_ci = current.get("roc_auc_task_bootstrap_ci")
-        if not isinstance(prev_ci, Mapping) or not isinstance(curr_ci, Mapping):
-            continue
-        pairs += 1
-        if _interval_overlap(prev_ci, curr_ci):
-            overlaps += 1
-    if pairs <= 0:
-        return None
-    return float(overlaps) / float(pairs)
-
-
-def _curve_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
-    if not records:
-        return {
-            "checkpoint_count": 0,
-            "task_count": 0,
-            "best_step": 0,
-            "best_roc_auc": float("nan"),
-            "final_step": 0,
-            "final_roc_auc": float("nan"),
-            "adjacent_ci_overlap_fraction": None,
-        }
-    sorted_records = sorted(records, key=lambda record: int(record["step"]))
-    best_record = max(sorted_records, key=lambda record: float(record["roc_auc"]))
-    final_record = sorted_records[-1]
-    return {
-        "checkpoint_count": int(len(sorted_records)),
-        "task_count": int(sorted_records[0].get("dataset_count", 0)),
-        "best_step": int(best_record["step"]),
-        "best_roc_auc": float(best_record["roc_auc"]),
-        "final_step": int(final_record["step"]),
-        "final_roc_auc": float(final_record["roc_auc"]),
-        "adjacent_ci_overlap_fraction": _adjacent_ci_overlap_fraction(sorted_records),
-    }
-
-
 def _shared_bundle_analysis(
     primary_records: list[dict[str, Any]],
-    confirmation_records: list[dict[str, Any]],
+    confirmation_records: list[dict[str, Any]] | None,
 ) -> dict[str, Any]:
     primary_by_step = {int(record["step"]): record for record in primary_records}
-    confirmation_by_step = {int(record["step"]): record for record in confirmation_records}
+    confirmation_by_step = (
+        {}
+        if confirmation_records is None
+        else {int(record["step"]): record for record in confirmation_records}
+    )
     shared_steps = sorted(set(primary_by_step) & set(confirmation_by_step))
-    primary_summary = _curve_summary(primary_records)
-    confirmation_summary = _curve_summary(confirmation_records)
+    primary_summary = curve_summary(primary_records)
+    confirmation_summary = (
+        None if confirmation_records is None else curve_summary(confirmation_records)
+    )
     best_step_changed = bool(
         int(primary_summary["checkpoint_count"]) > 0
+        and confirmation_summary is not None
         and int(confirmation_summary["checkpoint_count"]) > 0
         and int(primary_summary["best_step"]) != int(confirmation_summary["best_step"])
     )
@@ -263,6 +218,7 @@ def _shared_bundle_analysis(
         best_step_changed
         and primary_summary["adjacent_ci_overlap_fraction"] is not None
         and float(primary_summary["adjacent_ci_overlap_fraction"]) >= 0.5
+        and confirmation_summary is not None
         and int(confirmation_summary["task_count"]) > int(primary_summary["task_count"])
     )
     return {
@@ -273,6 +229,12 @@ def _shared_bundle_analysis(
         "confirmation": confirmation_summary,
         "likely_benchmark_noise": likely_benchmark_noise,
     }
+
+
+def _curve_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compatibility wrapper around the shared checkpoint-curve summary helper."""
+
+    return curve_summary(records)
 
 
 def _history_variance(values: list[float]) -> float | None:
@@ -398,8 +360,8 @@ def _checkpoint_aliasing_signal(
             "available": False,
             "likely_checkpoint_aliasing": False,
         }
-    coarse_summary = _curve_summary(coarse_records)
-    dense_summary = _curve_summary(dense_records)
+    coarse_summary = curve_summary(coarse_records)
+    dense_summary = curve_summary(dense_records)
     coarse_steps = {int(record["step"]) for record in coarse_records}
     dense_best_step = int(dense_summary["best_step"])
     likely_aliasing = bool(
@@ -484,43 +446,37 @@ def _evaluate_one_bundle(
     bootstrap_samples: int,
     bootstrap_confidence: float,
 ) -> dict[str, Any]:
-    bundle = load_benchmark_bundle(bundle_path)
+    bundle, allow_missing_values = load_benchmark_bundle_for_execution(bundle_path)
     selection = cast(dict[str, Any], bundle["selection"])
     datasets, benchmark_tasks = load_openml_benchmark_datasets(
         new_instances=int(selection["new_instances"]),
         benchmark_bundle_path=bundle_path,
+        allow_missing_values=allow_missing_values,
     )
     raw_records = evaluate_tab_foundry_run(
         run_dir,
         datasets=datasets,
         device=device,
         allow_checkpoint_failures=True,
+        allow_missing_values=allow_missing_values,
     )
-    successful_records = [
-        dict(record)
-        for record in raw_records
-        if record.get("roc_auc") is not None
-    ]
-    failed_records = [
-        dict(record)
-        for record in raw_records
-        if record.get("evaluation_error") is not None
-    ]
-    records = annotate_curve_records_with_task_statistics(
-        successful_records,
+    diagnostics = summarize_checkpoint_curve(
+        raw_records,
         bootstrap_samples=int(bootstrap_samples),
         bootstrap_confidence=float(bootstrap_confidence),
     )
+    records = cast(list[dict[str, Any]], diagnostics["successful_records"])
+    failed_records = cast(list[dict[str, Any]], diagnostics["failed_records"])
     write_jsonl(
         out_path,
-        sorted(records + failed_records, key=lambda record: int(record["step"])),
+        cast(list[dict[str, Any]], diagnostics["records"]),
     )
     return {
         "bundle": benchmark_bundle_summary(bundle, source_path=bundle_path),
         "benchmark_tasks": benchmark_tasks,
         "records": records,
         "records_path": str(out_path.resolve()),
-        "summary": _curve_summary(records),
+        "summary": curve_summary(records),
         "failure_count": int(len(failed_records)),
         "failed_checkpoints": failed_records,
     }
@@ -545,11 +501,6 @@ def run_benchmark_bounce_diagnosis(config: BenchmarkBounceDiagnosisConfig) -> di
         if config.benchmark_bundle_path is None
         else config.benchmark_bundle_path.expanduser().resolve()
     )
-    confirmation_bundle_path = (
-        default_confirmation_benchmark_bundle_path()
-        if config.confirmation_benchmark_bundle_path is None
-        else config.confirmation_benchmark_bundle_path.expanduser().resolve()
-    )
 
     primary = _evaluate_one_bundle(
         run_dir=run_dir,
@@ -559,14 +510,16 @@ def run_benchmark_bounce_diagnosis(config: BenchmarkBounceDiagnosisConfig) -> di
         bootstrap_samples=bootstrap_samples,
         bootstrap_confidence=bootstrap_confidence,
     )
-    confirmation = _evaluate_one_bundle(
-        run_dir=run_dir,
-        bundle_path=confirmation_bundle_path,
-        device=config.device,
-        out_path=out_root / "confirmation_bundle_curve.jsonl",
-        bootstrap_samples=bootstrap_samples,
-        bootstrap_confidence=bootstrap_confidence,
-    )
+    confirmation: dict[str, Any] | None = None
+    if config.confirmation_benchmark_bundle_path is not None:
+        confirmation = _evaluate_one_bundle(
+            run_dir=run_dir,
+            bundle_path=config.confirmation_benchmark_bundle_path.expanduser().resolve(),
+            device=config.device,
+            out_path=out_root / "confirmation_bundle_curve.jsonl",
+            bootstrap_samples=bootstrap_samples,
+            bootstrap_confidence=bootstrap_confidence,
+        )
 
     dense_run_dir: Path | None = None
     dense_confirmation: dict[str, Any] | None = None
@@ -575,9 +528,14 @@ def run_benchmark_bounce_diagnosis(config: BenchmarkBounceDiagnosisConfig) -> di
     elif config.dense_checkpoint_every is not None:
         dense_run_dir = _run_dense_checkpoint_rerun(config)
     if dense_run_dir is not None:
+        dense_bundle_path = (
+            benchmark_bundle_path
+            if confirmation is None
+            else Path(str(cast(dict[str, Any], confirmation["bundle"])["source_path"]))
+        )
         dense_confirmation = _evaluate_one_bundle(
             run_dir=dense_run_dir,
-            bundle_path=confirmation_bundle_path,
+            bundle_path=dense_bundle_path,
             device=config.device,
             out_path=out_root / "dense_confirmation_bundle_curve.jsonl",
             bootstrap_samples=bootstrap_samples,
@@ -591,23 +549,38 @@ def run_benchmark_bounce_diagnosis(config: BenchmarkBounceDiagnosisConfig) -> di
     )
     bundle_analysis = _shared_bundle_analysis(
         cast(list[dict[str, Any]], primary["records"]),
-        cast(list[dict[str, Any]], confirmation["records"]),
+        None if confirmation is None else cast(list[dict[str, Any]], confirmation["records"]),
     )
     training_signal = _training_signal(
         history=history,
-        curve_records=cast(list[dict[str, Any]], confirmation["records"]),
+        curve_records=(
+            cast(list[dict[str, Any]], primary["records"])
+            if confirmation is None
+            else cast(list[dict[str, Any]], confirmation["records"])
+        ),
     )
     task_tradeoff_signal = _task_tradeoff_signal(
-        cast(list[dict[str, Any]], confirmation["records"]),
+        (
+            cast(list[dict[str, Any]], primary["records"])
+            if confirmation is None
+            else cast(list[dict[str, Any]], confirmation["records"])
+        ),
     )
     checkpoint_aliasing_signal = _checkpoint_aliasing_signal(
-        coarse_records=cast(list[dict[str, Any]], confirmation["records"]),
+        coarse_records=(
+            cast(list[dict[str, Any]], primary["records"])
+            if confirmation is None
+            else cast(list[dict[str, Any]], confirmation["records"])
+        ),
         dense_records=None if dense_confirmation is None else cast(list[dict[str, Any]], dense_confirmation["records"]),
     )
     evaluation_failures = {
-        "failure_count": int(primary.get("failure_count", 0)) + int(confirmation.get("failure_count", 0)),
+        "failure_count": int(primary.get("failure_count", 0))
+        + (0 if confirmation is None else int(confirmation.get("failure_count", 0))),
         "primary_bundle_failures": list(primary.get("failed_checkpoints", [])),
-        "confirmation_bundle_failures": list(confirmation.get("failed_checkpoints", [])),
+        "confirmation_bundle_failures": []
+        if confirmation is None
+        else list(confirmation.get("failed_checkpoints", [])),
     }
     classification = _classify_causes(
         bundle_analysis=bundle_analysis,
@@ -624,7 +597,9 @@ def run_benchmark_bounce_diagnosis(config: BenchmarkBounceDiagnosisConfig) -> di
         "run_dir": str(run_dir),
         "artifacts": {
             "primary_bundle_curve_jsonl": primary["records_path"],
-            "confirmation_bundle_curve_jsonl": confirmation["records_path"],
+            "confirmation_bundle_curve_jsonl": None
+            if confirmation is None
+            else confirmation["records_path"],
             "dense_confirmation_bundle_curve_jsonl": None
             if dense_confirmation is None
             else dense_confirmation["records_path"],
@@ -634,7 +609,9 @@ def run_benchmark_bounce_diagnosis(config: BenchmarkBounceDiagnosisConfig) -> di
                 "benchmark_bundle": primary["bundle"],
                 "summary": primary["summary"],
             },
-            "confirmation": {
+            "confirmation": None
+            if confirmation is None
+            else {
                 "benchmark_bundle": confirmation["bundle"],
                 "summary": confirmation["summary"],
             },
@@ -681,7 +658,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--confirmation-benchmark-bundle-path",
         default=None,
-        help="Larger confirmation benchmark bundle path",
+        help="Optional confirmation benchmark bundle path; omit to stay on the primary no-missing bundle only",
     )
     parser.add_argument(
         "--bootstrap-samples",

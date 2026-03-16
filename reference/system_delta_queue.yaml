@@ -1125,7 +1125,7 @@ rows:
   notes: []
 - order: 16
   delta_id: delta_preproc_impute_missing_off
-  status: ready
+  status: deferred_separate_workstream
   dimension_family: preprocessing
   family: missing_values
   binary_applicable: true
@@ -1171,13 +1171,14 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: pending
+  interpretation_status: blocked
   confounders: []
-  next_action: Run once the matrix records the anchor manifest's missingness expectations.
+  next_action: Do not run on the main no-missing campaign; revisit only in a dedicated
+    missingness workstream with explicit missing-valued training and evaluation inputs.
   notes: []
 - order: 17
   delta_id: delta_preproc_all_nan_fill_nonzero
-  status: ready
+  status: deferred_separate_workstream
   dimension_family: preprocessing
   family: missing_values
   binary_applicable: true
@@ -1222,9 +1223,10 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: pending
+  interpretation_status: blocked
   confounders: []
-  next_action: Run after the no-imputation row so missing-value sensitivity has context.
+  next_action: Do not run on the main no-missing campaign; revisit only in a dedicated
+    missingness workstream with explicit missing-valued training and evaluation inputs.
   notes: []
 - order: 18
   delta_id: delta_preproc_label_mapping_surface

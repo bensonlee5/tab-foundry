@@ -33,6 +33,8 @@ def _write_manifest(path: Path) -> Path:
                 "filter_mode": "curated",
                 "filter_status": "accepted",
                 "filter_accepted": True,
+                "missing_value_policy": "forbid_any",
+                "missing_value_status": "clean",
             },
             {
                 "dataset_id": "root_a/shard_0/dataset_000002",
@@ -55,7 +57,41 @@ def _write_manifest(path: Path) -> Path:
                 "filter_mode": "curated",
                 "filter_status": "accepted",
                 "filter_accepted": True,
+                "missing_value_policy": "forbid_any",
+                "missing_value_status": "clean",
             },
+        ]
+    )
+    pq.write_table(table, path)
+    return path
+
+
+def _write_legacy_manifest(path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    table = pa.Table.from_pylist(
+        [
+            {
+                "dataset_id": "root_a/shard_0/dataset_000001",
+                "source_root_id": "root_a",
+                "source_shard_relpath": "shard_0",
+                "split": "train",
+                "task": "classification",
+                "dataset_index": 1,
+                "train_path": "train.parquet",
+                "test_path": "test.parquet",
+                "metadata_path": "metadata.ndjson",
+                "metadata_offset_bytes": 0,
+                "metadata_size_bytes": 16,
+                "metadata_sha256": "0" * 64,
+                "n_train": 24,
+                "n_test": 8,
+                "n_features": 6,
+                "n_classes": 2,
+                "seed": 1,
+                "filter_mode": "curated",
+                "filter_status": "accepted",
+                "filter_accepted": True,
+            }
         ]
     )
     pq.write_table(table, path)
@@ -115,10 +151,86 @@ def test_build_training_surface_record_captures_model_data_and_preprocessing_sur
     assert record["model"]["module_hyperparameters"]["row_pool"]["n_heads"] == 2
     assert record["data"]["manifest"]["characteristics"]["record_count"] == 2
     assert record["data"]["manifest"]["characteristics"]["split_counts"] == {"train": 1, "val": 1}
+    assert record["data"]["manifest"]["characteristics"]["missing_value_policy"] == "forbid_any"
+    assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is True
+    assert record["data"]["allow_missing_values"] is False
     assert record["data"]["filter_policy"] == "accepted_only"
     assert record["data"]["dagzoo_provenance"]["commands"] == ["dagzoo filter --curated-out ..."]
     assert record["preprocessing"]["impute_missing"] is False
     assert record["preprocessing"]["all_nan_fill"] == 1.0
+
+
+def test_build_training_surface_record_marks_missing_inputs_when_manifest_is_dirty(
+    tmp_path: Path,
+) -> None:
+    manifest_path = tmp_path / "manifest_dirty.parquet"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    table = pa.Table.from_pylist(
+        [
+            {
+                "dataset_id": "root_a/shard_0/dataset_000001",
+                "source_root_id": "root_a",
+                "source_shard_relpath": "shard_0",
+                "split": "train",
+                "task": "classification",
+                "dataset_index": 1,
+                "train_path": "train.parquet",
+                "test_path": "test.parquet",
+                "metadata_path": "metadata.ndjson",
+                "metadata_offset_bytes": 0,
+                "metadata_size_bytes": 16,
+                "metadata_sha256": "0" * 64,
+                "n_train": 24,
+                "n_test": 8,
+                "n_features": 6,
+                "n_classes": 2,
+                "seed": 1,
+                "filter_mode": "curated",
+                "filter_status": "accepted",
+                "filter_accepted": True,
+                "missing_value_policy": "allow_any",
+                "missing_value_status": "contains_nan_or_inf",
+            }
+        ]
+    )
+    pq.write_table(table, manifest_path)
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry"},
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+        },
+        run_dir=tmp_path / "run_dirty",
+    )
+
+    assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is False
+
+
+def test_build_training_surface_record_marks_legacy_manifest_missingness_as_unknown(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_legacy_manifest(tmp_path / "manifest_legacy.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry"},
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+        },
+        run_dir=tmp_path / "run_legacy",
+    )
+
+    assert record["data"]["manifest"]["characteristics"]["missing_value_status_counts"] == {
+        "missing": 1
+    }
+    assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is None
 
 
 def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_values(
