@@ -113,7 +113,18 @@ def _compute_loss_and_metrics(
     levels = output.quantile_levels
     if levels is None:
         levels = torch.arange(1, 1000, device=target.device, dtype=torch.float32) / 1000.0
-    loss = quantile_pinball_loss(output.quantiles, target, quantile_levels=levels)
+    pred_quantiles = output.quantiles
+    loss_target = target
+    if output.normalized_quantiles is not None:
+        if output.target_mean is None or output.target_std is None:
+            raise RuntimeError(
+                "regression output with normalized_quantiles requires target_mean and target_std"
+            )
+        pred_quantiles = output.normalized_quantiles
+        target_mean = output.target_mean.to(device=target.device, dtype=target.dtype)
+        target_std = output.target_std.to(device=target.device, dtype=target.dtype)
+        loss_target = (target - target_mean) / target_std
+    loss = quantile_pinball_loss(pred_quantiles, loss_target, quantile_levels=levels)
     pred_mean = output.quantiles.mean(dim=-1)
     rmse = torch.sqrt(torch.mean((pred_mean - target) ** 2)).item()
     return loss, {"rmse": float(rmse)}

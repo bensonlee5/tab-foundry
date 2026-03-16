@@ -94,6 +94,37 @@ class LabelTokenTargetConditioner(nn.Module):
         return torch.cat([train_embed, test_embed], dim=1).unsqueeze(2)
 
 
+class ContinuousValueTargetConditioner(nn.Module):
+    """Continuous-value train targets plus a learned test token."""
+
+    def __init__(self, embedding_size: int) -> None:
+        super().__init__()
+        self.project = nn.Linear(1, embedding_size)
+        self.test_token = nn.Parameter(torch.randn(1, 1, embedding_size) * 0.02)
+
+    def forward(self, y_train: torch.Tensor, *, num_rows: int) -> torch.Tensor:
+        if y_train.ndim == 2:
+            y_train = y_train.unsqueeze(-1)
+        train_embed = self.project(y_train.to(torch.float32))
+        n_train = int(train_embed.shape[1])
+        n_test = num_rows - n_train
+        test_embed = self.test_token.expand(int(train_embed.shape[0]), n_test, -1)
+        return torch.cat([train_embed, test_embed], dim=1).unsqueeze(2)
+
+
+class ContinuousValueContextProjector(nn.Module):
+    """Project continuous train targets into context embeddings."""
+
+    def __init__(self, embedding_size: int) -> None:
+        super().__init__()
+        self.project = nn.Linear(1, embedding_size)
+
+    def forward(self, y_train: torch.Tensor) -> torch.Tensor:
+        if y_train.ndim == 1:
+            y_train = y_train.unsqueeze(0)
+        return self.project(y_train.to(torch.float32).unsqueeze(-1))
+
+
 class NanoPostNormBlock(nn.Module):
     """Exact nanoTabPFN post-norm block."""
 
@@ -352,6 +383,17 @@ class NanoBinaryHead(nn.Module):
         return self.decoder(rows)
 
 
+class NanoQuantileHead(nn.Module):
+    """Nano-style decoder for quantile regression."""
+
+    def __init__(self, embedding_size: int, hidden_size: int, num_outputs: int) -> None:
+        super().__init__()
+        self.decoder = NanoDecoder(embedding_size, hidden_size, num_outputs)
+
+    def forward(self, rows: torch.Tensor) -> torch.Tensor:
+        return self.decoder(rows)
+
+
 class DirectClassifierHead(nn.Module):
     """Generic small-class MLP head."""
 
@@ -368,13 +410,33 @@ class DirectClassifierHead(nn.Module):
         return self.net(rows)
 
 
+class DirectRegressionHead(nn.Module):
+    """Generic small-class-style MLP for quantile regression."""
+
+    def __init__(self, embedding_size: int, hidden_size: int, output_width: int) -> None:
+        super().__init__()
+        self.output_width = output_width
+        self.net = nn.Sequential(
+            nn.Linear(embedding_size, hidden_size),
+            nn.GELU(),
+            nn.Linear(hidden_size, output_width),
+        )
+
+    def forward(self, rows: torch.Tensor) -> torch.Tensor:
+        return self.net(rows)
+
+
 __all__ = [
+    "ContinuousValueContextProjector",
+    "ContinuousValueTargetConditioner",
     "DirectClassifierHead",
+    "DirectRegressionHead",
     "IdentityColumnEncoder",
     "LabelTokenTargetConditioner",
     "MeanPaddedLinearTargetConditioner",
     "NanoBinaryHead",
     "NanoFeatureEncoder",
+    "NanoQuantileHead",
     "NanoPostNormBlock",
     "PostEncoderNorm",
     "RowCLSPool",

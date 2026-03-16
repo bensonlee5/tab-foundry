@@ -17,7 +17,8 @@ from tab_foundry.model.spec import ModelBuildSpec, checkpoint_model_build_spec_f
 
 from .checksums import sha256_file
 from .contracts import (
-    compute_v3_manifest_sha256,
+    compute_embedded_manifest_sha256,
+    EMBEDDED_MANIFEST_SCHEMA_VERSIONS,
     ExportClassificationLabelPolicy,
     ExportFiles,
     ExportManifest,
@@ -28,7 +29,7 @@ from .contracts import (
     InferenceConfig,
     LegacyPreprocessorState,
     ProducerInfo,
-    SCHEMA_VERSION_V3,
+    SCHEMA_VERSION_V4,
     SUPPORTED_SCHEMA_VERSIONS,
     ValidatedBundle,
     read_json_dict,
@@ -118,6 +119,13 @@ def _inference_config(task: str, model_spec: ExportModelSpec) -> InferenceConfig
     )
 
 
+def _requires_v4_model_contract(model_spec: ExportModelSpec) -> bool:
+    return (
+        model_spec.arch == "tabfoundry_staged"
+        and (model_spec.stage_label is not None or model_spec.module_overrides is not None)
+    )
+
+
 def _preprocessor_state_v2() -> LegacyPreprocessorState:
     return LegacyPreprocessorState(
         feature_order_policy="lexicographic_f_columns",
@@ -173,7 +181,7 @@ def export_checkpoint(
     checkpoint_path: Path,
     out_dir: Path,
     *,
-    artifact_version: str = SCHEMA_VERSION_V3,
+    artifact_version: str = SCHEMA_VERSION_V4,
 ) -> ExportResult:
     """Export one training checkpoint as an inference bundle."""
 
@@ -194,6 +202,11 @@ def export_checkpoint(
     state_dict = _normalize_state_dict(payload["model"])
     model_build_spec = _checkpoint_model_spec(cfg, task=task, state_dict=state_dict)
     model_spec = ExportModelSpec.from_build_spec(model_build_spec)
+    if artifact_version != SCHEMA_VERSION_V4 and _requires_v4_model_contract(model_spec):
+        raise ValueError(
+            f"{artifact_version} cannot encode staged model.stage_label or "
+            f"model.module_overrides; export this checkpoint with {SCHEMA_VERSION_V4}"
+        )
 
     bundle_dir = out_dir.expanduser().resolve()
     bundle_dir.mkdir(parents=True, exist_ok=True)
@@ -205,7 +218,7 @@ def export_checkpoint(
 
     save_file(state_dict, str(weights_path))
 
-    if artifact_version == SCHEMA_VERSION_V3:
+    if artifact_version in EMBEDDED_MANIFEST_SCHEMA_VERSIONS:
         manifest = ExportManifest(
             schema_version=artifact_version,
             producer=_producer_info(),
@@ -219,7 +232,7 @@ def export_checkpoint(
                 sha256=sha256_file(weights_path),
             ),
         )
-        manifest.manifest_sha256 = compute_v3_manifest_sha256(manifest.to_dict())
+        manifest.manifest_sha256 = compute_embedded_manifest_sha256(manifest.to_dict())
     else:
         inference_name = "inference_config.json"
         preproc_name = "preprocessor_state.json"
@@ -266,12 +279,17 @@ def validate_export_bundle(bundle_dir: Path) -> ValidatedBundle:
     manifest_dict = read_json_dict(manifest_path)
     manifest: ExportManifest = validate_manifest_dict(manifest_dict)
 
-    if manifest.schema_version == SCHEMA_VERSION_V3:
+    if manifest.schema_version in EMBEDDED_MANIFEST_SCHEMA_VERSIONS:
         if manifest.inference is None or manifest.preprocessor is None or manifest.weights is None:
-            raise RuntimeError("v3 bundle validation requires embedded inference, preprocessor, and weights")
+            raise RuntimeError(
+                f"{manifest.schema_version} bundle validation requires embedded inference, "
+                "preprocessor, and weights"
+            )
         if manifest.manifest_sha256 is None:
-            raise RuntimeError("v3 bundle validation requires manifest.manifest_sha256")
-        expected_manifest_sha256 = compute_v3_manifest_sha256(manifest_dict)
+            raise RuntimeError(
+                f"{manifest.schema_version} bundle validation requires manifest.manifest_sha256"
+            )
+        expected_manifest_sha256 = compute_embedded_manifest_sha256(manifest_dict)
         if expected_manifest_sha256 != manifest.manifest_sha256:
             raise ValueError(
                 "manifest.manifest_sha256 mismatch: bundle metadata was modified after export; "

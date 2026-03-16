@@ -53,6 +53,9 @@ class RegressionOutput:
 
     quantiles: torch.Tensor
     quantile_levels: torch.Tensor | None = None
+    normalized_quantiles: torch.Tensor | None = None
+    target_mean: torch.Tensor | None = None
+    target_std: torch.Tensor | None = None
 
 
 class _TabFoundryBackbone(nn.Module):

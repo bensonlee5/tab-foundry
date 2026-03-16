@@ -270,6 +270,34 @@ def test_build_training_surface_record_marks_legacy_manifest_missingness_as_unkn
     assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is None
 
 
+def test_build_training_surface_record_supports_staged_regression(tmp_path: Path) -> None:
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "regression",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "qass_context",
+                "stage_label": "regression_qass_context",
+                "d_icl": 96,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 4,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
+            },
+            "data": {
+                "source": "prior_dump",
+            },
+        },
+        run_dir=tmp_path / "run_regression",
+    )
+
+    assert record["labels"]["model"] == "regression_qass_context"
+    assert record["model"]["arch"] == "tabfoundry_staged"
+    assert record["model"]["stage"] == "qass_context"
+    assert record["model"]["module_selection"]["context_encoder"] == "qass"
+
+
 def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_values(
     tmp_path: Path,
 ) -> None:

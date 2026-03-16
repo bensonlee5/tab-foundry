@@ -1,5 +1,5 @@
 """Staged tabfoundry architecture family."""
 
-from .model import TabFoundryStagedClassifier
+from .model import TabFoundryStagedClassifier, TabFoundryStagedRegressor
 
-__all__ = ["TabFoundryStagedClassifier"]
+__all__ = ["TabFoundryStagedClassifier", "TabFoundryStagedRegressor"]

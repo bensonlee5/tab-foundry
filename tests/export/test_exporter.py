@@ -16,7 +16,9 @@ from tab_foundry.export.contracts import (
     ExportPreprocessorState,
     SCHEMA_VERSION_V2,
     SCHEMA_VERSION_V3,
+    SCHEMA_VERSION_V4,
     compute_v3_manifest_sha256,
+    compute_v4_manifest_sha256,
 )
 from tab_foundry.export.exporter import export_checkpoint, validate_export_bundle
 from tab_foundry.export.loader_ref import load_export_bundle, run_reference_consumer
@@ -63,6 +65,19 @@ def _regression_reference_arrays() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 def _export_v3_checkpoint(checkpoint: Path, out_dir: Path) -> object:
     return export_checkpoint(checkpoint, out_dir)
+
+
+def _export_legacy_v3_checkpoint(checkpoint: Path, out_dir: Path) -> object:
+    return export_checkpoint(checkpoint, out_dir, artifact_version=SCHEMA_VERSION_V3)
+
+
+def _compute_embedded_manifest_sha256(payload: dict[str, object]) -> str:
+    schema_version = payload.get("schema_version")
+    if schema_version == SCHEMA_VERSION_V3:
+        return compute_v3_manifest_sha256(payload)
+    if schema_version == SCHEMA_VERSION_V4:
+        return compute_v4_manifest_sha256(payload)
+    raise ValueError(f"Unsupported embedded schema: {schema_version!r}")
 
 
 def _make_config(
@@ -139,6 +154,74 @@ def _load_fixture(name: str) -> dict[str, object]:
     return payload
 
 
+def _classification_batch() -> TaskBatch:
+    return TaskBatch(
+        x_train=torch.tensor(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=torch.tensor([0, 1, 0], dtype=torch.int64),
+        x_test=torch.tensor(
+            [
+                [0.5, 1.5, 2.5],
+                [3.5, 4.5, 5.5],
+            ],
+            dtype=torch.float32,
+        ),
+        y_test=torch.tensor([0, 1], dtype=torch.int64),
+        metadata={},
+        num_classes=2,
+    )
+
+
+def _regression_batch() -> TaskBatch:
+    return TaskBatch(
+        x_train=torch.tensor(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=torch.tensor([1.5, 2.5, 3.5], dtype=torch.float32),
+        x_test=torch.tensor(
+            [
+                [0.5, 1.5, 2.5],
+                [3.5, 4.5, 5.5],
+            ],
+            dtype=torch.float32,
+        ),
+        y_test=torch.tensor([2.0, 4.0], dtype=torch.float32),
+        metadata={},
+        num_classes=None,
+    )
+
+
+def _assert_staged_roundtrip_matches_source(
+    *,
+    source_model: torch.nn.Module,
+    loaded_model: torch.nn.Module,
+    batch: TaskBatch,
+    task: str,
+) -> None:
+    source_model.eval()
+    loaded_model.eval()
+    with torch.no_grad():
+        source_output = source_model(batch)
+        loaded_output = loaded_model(batch)
+    if task == "classification":
+        assert source_output.logits is not None
+        assert loaded_output.logits is not None
+        assert torch.allclose(source_output.logits, loaded_output.logits)
+        return
+    assert torch.allclose(source_output.quantiles, loaded_output.quantiles)
+
+
 def _rewrite_json(path: Path, payload: dict[str, object]) -> None:
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2, sort_keys=True)
@@ -155,7 +238,7 @@ def _update_v2_checksum(out_dir: Path, *, key: str, file_name: str) -> None:
     _rewrite_json(manifest_path, manifest)
 
 
-def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path) -> None:
+def test_export_bundle_defaults_to_v4_and_embeds_single_manifest(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(
         checkpoint,
@@ -165,14 +248,16 @@ def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path)
     out_dir = tmp_path / "export_cls"
 
     result = _export_v3_checkpoint(checkpoint, out_dir)
-    assert result.schema_version == SCHEMA_VERSION_V3
+    assert result.schema_version == SCHEMA_VERSION_V4
 
     with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
 
-    assert manifest["schema_version"] == SCHEMA_VERSION_V3
+    assert manifest["schema_version"] == SCHEMA_VERSION_V4
     assert manifest["model"]["arch"] == "tabfoundry"
     assert manifest["model"]["input_normalization"] == "train_zscore"
+    assert "stage_label" not in manifest["model"]
+    assert "module_overrides" not in manifest["model"]
     assert isinstance(manifest["manifest_sha256"], str)
     assert len(manifest["manifest_sha256"]) == 64
     assert manifest["inference"]["model_arch"] == "tabfoundry"
@@ -187,6 +272,25 @@ def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path)
     validated = validate_export_bundle(out_dir)
     assert isinstance(validated.preprocessor_state, ExportPreprocessorState)
     assert validated.manifest.model.input_normalization == "train_zscore"
+
+
+def test_export_bundle_supports_explicit_v3_embedded_manifest(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore",
+    )
+    out_dir = tmp_path / "export_cls_v3"
+
+    result = _export_legacy_v3_checkpoint(checkpoint, out_dir)
+    assert result.schema_version == SCHEMA_VERSION_V3
+
+    with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+
+    assert manifest["schema_version"] == SCHEMA_VERSION_V3
+    assert validate_export_bundle(out_dir).manifest.schema_version == SCHEMA_VERSION_V3
 
 
 def test_export_bundle_supports_explicit_v2(tmp_path: Path) -> None:
@@ -340,6 +444,116 @@ def test_export_bundle_round_trips_staged_arch_and_stage(tmp_path: Path) -> None
     assert loaded.validated.manifest.inference.model_stage == "nano_exact"
 
 
+def test_export_bundle_round_trips_staged_regression_arch_and_stage(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_staged_reg.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="regression",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "qass_context",
+            "d_icl": 96,
+            "many_class_base": 4,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+    )
+
+    out_dir = tmp_path / "export_staged_reg"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+    loaded = load_export_bundle(out_dir)
+
+    assert loaded.validated.manifest.model.arch == "tabfoundry_staged"
+    assert loaded.validated.manifest.model.stage == "qass_context"
+    assert loaded.validated.manifest.inference is not None
+    assert loaded.validated.manifest.inference.model_arch == "tabfoundry_staged"
+    assert loaded.validated.manifest.inference.model_stage == "qass_context"
+
+
+@pytest.mark.parametrize("task", ["classification", "regression"])
+@pytest.mark.parametrize(
+    ("module_overrides", "stage_label"),
+    [
+        ({"post_encoder_norm": "layernorm"}, "delta_post_encoder_norm"),
+        ({"allow_test_self_attention": False}, "delta_no_test_self"),
+    ],
+)
+def test_export_bundle_round_trips_staged_override_metadata_and_outputs(
+    tmp_path: Path,
+    task: str,
+    module_overrides: dict[str, object],
+    stage_label: str,
+) -> None:
+    checkpoint = tmp_path / f"ckpt_{task}_override.pt"
+    source_model = _write_checkpoint(
+        checkpoint,
+        task=task,
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "row_cls_pool",
+            "stage_label": stage_label,
+            "module_overrides": module_overrides,
+            "d_icl": 96,
+            "many_class_base": 4 if task == "regression" else 2,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+        seed=2468,
+    )
+    out_dir = tmp_path / f"export_{task}_override"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+    loaded = load_export_bundle(out_dir)
+
+    assert loaded.validated.manifest.schema_version == SCHEMA_VERSION_V4
+    assert loaded.validated.manifest.model.arch == "tabfoundry_staged"
+    assert loaded.validated.manifest.model.stage == "row_cls_pool"
+    assert loaded.validated.manifest.model.stage_label == stage_label
+    assert loaded.validated.manifest.model.module_overrides == module_overrides
+
+    batch = _classification_batch() if task == "classification" else _regression_batch()
+    _assert_staged_roundtrip_matches_source(
+        source_model=source_model,
+        loaded_model=loaded.model,
+        batch=batch,
+        task=task,
+    )
+
+
+@pytest.mark.parametrize("artifact_version", [SCHEMA_VERSION_V2, SCHEMA_VERSION_V3])
+def test_export_bundle_rejects_legacy_schema_for_staged_override_checkpoint(
+    tmp_path: Path,
+    artifact_version: str,
+) -> None:
+    checkpoint = tmp_path / "ckpt_override.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="regression",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "row_cls_pool",
+            "stage_label": "delta_post_encoder_norm",
+            "module_overrides": {"post_encoder_norm": "layernorm"},
+            "d_icl": 96,
+            "many_class_base": 4,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+    )
+
+    with pytest.raises(ValueError, match=SCHEMA_VERSION_V4):
+        _ = export_checkpoint(
+            checkpoint,
+            tmp_path / f"export_{artifact_version}",
+            artifact_version=artifact_version,
+        )
+
+
 def test_validate_export_rejects_tabfoundry_simple_manifest_that_breaks_constructor_invariants(
     tmp_path: Path,
 ) -> None:
@@ -441,7 +655,7 @@ def test_validate_export_accepts_tabfoundry_staged_manifest_when_feature_group_s
     assert isinstance(inference_payload, dict)
     model_payload["feature_group_size"] = 2
     inference_payload["feature_group_size"] = 2
-    manifest["manifest_sha256"] = compute_v3_manifest_sha256(manifest)
+    manifest["manifest_sha256"] = _compute_embedded_manifest_sha256(manifest)
     _rewrite_json(manifest_path, manifest)
 
     validated = validate_export_bundle(out_dir)
@@ -753,7 +967,7 @@ def test_validate_export_rejects_manifest_preprocessor_tamper_with_stale_manifes
         _ = validate_export_bundle(out_dir)
 
 
-def test_validate_export_requires_manifest_sha256_for_v3(tmp_path: Path) -> None:
+def test_validate_export_requires_manifest_sha256_for_v4(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
@@ -767,11 +981,11 @@ def test_validate_export_requires_manifest_sha256_for_v3(tmp_path: Path) -> None
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
 
-    with pytest.raises(ValueError, match="older v3 bundles must be regenerated"):
+    with pytest.raises(ValueError, match=SCHEMA_VERSION_V4):
         _ = validate_export_bundle(out_dir)
 
 
-def test_validate_export_rejects_malformed_manifest_sha256_for_v3(tmp_path: Path) -> None:
+def test_validate_export_rejects_malformed_manifest_sha256_for_v4(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
     out_dir = tmp_path / "export_cls"
@@ -866,6 +1080,79 @@ def test_reference_loader_round_trip_regression_quantiles(tmp_path: Path) -> Non
         dst_out = loaded.model(batch)
 
     assert torch.allclose(src_out.quantiles, dst_out.quantiles)
+
+
+def test_reference_loader_round_trip_staged_regression_quantiles(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_staged_reg.pt"
+    source_model = _write_checkpoint(
+        checkpoint,
+        task="regression",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "row_cls_pool",
+            "d_icl": 96,
+            "many_class_base": 4,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+        seed=2468,
+    )
+    source_model.eval()
+    out_dir = tmp_path / "export_staged_reg"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    loaded = load_export_bundle(out_dir)
+
+    torch.manual_seed(789)
+    batch = TaskBatch(
+        x_train=torch.randn(10, 6),
+        y_train=torch.randn(10),
+        x_test=torch.randn(4, 6),
+        y_test=torch.randn(4),
+        metadata={},
+        num_classes=None,
+    )
+    with torch.no_grad():
+        src_out = source_model(batch)
+        dst_out = loaded.model(batch)
+
+    assert torch.allclose(src_out.quantiles, dst_out.quantiles)
+
+
+def test_reference_consumer_supports_staged_regression_bundle(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_reference_staged_reg.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="regression",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "qass_context",
+            "d_icl": 96,
+            "many_class_base": 4,
+            "tficl_n_heads": 4,
+            "tficl_n_layers": 3,
+            "head_hidden_dim": 192,
+        },
+        seed=4321,
+    )
+    out_dir = tmp_path / "export_reference_staged_reg"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    x_train, y_train, x_test = _regression_reference_arrays()
+    output = run_reference_consumer(
+        out_dir,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+    )
+
+    assert output.quantiles is not None
+    assert output.quantiles.shape == (1, 999)
+    assert output.quantile_levels is not None
+    assert output.quantile_levels.shape == (999,)
 
 
 def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -> None:
@@ -1047,7 +1334,7 @@ def test_reference_consumer_rejects_v2_bundle(tmp_path: Path) -> None:
     _ = export_checkpoint(checkpoint, out_dir, artifact_version=SCHEMA_VERSION_V2)
     x_train, y_train, x_test = _classification_reference_arrays()
 
-    with pytest.raises(ValueError, match="only executes tab-foundry-export-v3 bundles"):
+    with pytest.raises(ValueError, match="only executes embedded tab-foundry-export-v3/v4 bundles"):
         _ = run_reference_consumer(out_dir, x_train=x_train, y_train=y_train, x_test=x_test)
 
 

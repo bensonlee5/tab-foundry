@@ -6,7 +6,10 @@ from torch import nn
 
 from .architectures.tabfoundry import TabFoundryClassifier, TabFoundryRegressor
 from .architectures.tabfoundry_simple import TabFoundrySimpleClassifier
-from .architectures.tabfoundry_staged import TabFoundryStagedClassifier
+from .architectures.tabfoundry_staged import (
+    TabFoundryStagedClassifier,
+    TabFoundryStagedRegressor,
+)
 from .spec import ModelBuildSpec
 
 
@@ -124,34 +127,57 @@ def build_model(
             use_digit_position_embed=use_digit_position_embed,
         )
     if normalized_arch == "tabfoundry_staged":
-        if task != "classification":
-            raise ValueError(
-                "tabfoundry_staged only supports task='classification' in this branch; "
-                f"got {task!r}"
+        if task == "classification":
+            return TabFoundryStagedClassifier(
+                stage=stage,
+                stage_label=stage_label,
+                module_overrides=module_overrides,
+                d_col=d_col,
+                d_icl=d_icl,
+                input_normalization=input_normalization,
+                feature_group_size=feature_group_size,
+                many_class_train_mode=many_class_train_mode,
+                max_mixed_radix_digits=max_mixed_radix_digits,
+                norm_type=norm_type,
+                tfcol_n_heads=tfcol_n_heads,
+                tfcol_n_layers=tfcol_n_layers,
+                tfcol_n_inducing=tfcol_n_inducing,
+                tfrow_n_heads=tfrow_n_heads,
+                tfrow_n_layers=tfrow_n_layers,
+                tfrow_cls_tokens=tfrow_cls_tokens,
+                tfrow_norm=tfrow_norm,
+                tficl_n_heads=tficl_n_heads,
+                tficl_n_layers=tficl_n_layers,
+                tficl_ff_expansion=tficl_ff_expansion,
+                many_class_base=many_class_base,
+                head_hidden_dim=head_hidden_dim,
+                use_digit_position_embed=use_digit_position_embed,
             )
-        return TabFoundryStagedClassifier(
-            stage=stage,
-            stage_label=stage_label,
-            module_overrides=module_overrides,
-            d_col=d_col,
-            d_icl=d_icl,
-            input_normalization=input_normalization,
-            feature_group_size=feature_group_size,
-            many_class_train_mode=many_class_train_mode,
-            max_mixed_radix_digits=max_mixed_radix_digits,
-            norm_type=norm_type,
-            tfcol_n_heads=tfcol_n_heads,
-            tfcol_n_layers=tfcol_n_layers,
-            tfcol_n_inducing=tfcol_n_inducing,
-            tfrow_n_heads=tfrow_n_heads,
-            tfrow_n_layers=tfrow_n_layers,
-            tfrow_cls_tokens=tfrow_cls_tokens,
-            tfrow_norm=tfrow_norm,
-            tficl_n_heads=tficl_n_heads,
-            tficl_n_layers=tficl_n_layers,
-            tficl_ff_expansion=tficl_ff_expansion,
-            many_class_base=many_class_base,
-            head_hidden_dim=head_hidden_dim,
-            use_digit_position_embed=use_digit_position_embed,
-        )
+        if task == "regression":
+            return TabFoundryStagedRegressor(
+                stage=stage,
+                stage_label=stage_label,
+                module_overrides=module_overrides,
+                d_col=d_col,
+                d_icl=d_icl,
+                input_normalization=input_normalization,
+                feature_group_size=feature_group_size,
+                many_class_train_mode=many_class_train_mode,
+                max_mixed_radix_digits=max_mixed_radix_digits,
+                norm_type=norm_type,
+                tfcol_n_heads=tfcol_n_heads,
+                tfcol_n_layers=tfcol_n_layers,
+                tfcol_n_inducing=tfcol_n_inducing,
+                tfrow_n_heads=tfrow_n_heads,
+                tfrow_n_layers=tfrow_n_layers,
+                tfrow_cls_tokens=tfrow_cls_tokens,
+                tfrow_norm=tfrow_norm,
+                tficl_n_heads=tficl_n_heads,
+                tficl_n_layers=tficl_n_layers,
+                tficl_ff_expansion=tficl_ff_expansion,
+                many_class_base=many_class_base,
+                head_hidden_dim=head_hidden_dim,
+                use_digit_position_embed=use_digit_position_embed,
+            )
+        raise ValueError(f"Unsupported task for tabfoundry_staged: {task!r}")
     raise ValueError(f"Unsupported model arch: {arch!r}")

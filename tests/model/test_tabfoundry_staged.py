@@ -3,7 +3,10 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
+from tab_foundry.model.architectures.tabfoundry_staged.model import (
+    TabFoundryStagedClassifier,
+    TabFoundryStagedRegressor,
+)
 from tab_foundry.model.architectures.tabfoundry_staged.recipes import STAGE_RECIPE_REGISTRY
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     staged_surface_uses_internal_benchmark_normalization,
@@ -51,6 +54,20 @@ def _staged(stage: str, **overrides: object) -> TabFoundryStagedClassifier:
     return TabFoundryStagedClassifier(**kwargs)
 
 
+def _staged_regressor(stage: str, **overrides: object) -> TabFoundryStagedRegressor:
+    kwargs = {
+        "stage": stage,
+        "d_icl": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 4,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3,
+        "head_hidden_dim": 192,
+    }
+    kwargs.update(overrides)
+    return TabFoundryStagedRegressor(**kwargs)
+
+
 def _simple(**overrides: object) -> TabFoundrySimpleClassifier:
     kwargs = {
         "d_icl": 96,
@@ -62,6 +79,33 @@ def _simple(**overrides: object) -> TabFoundrySimpleClassifier:
     }
     kwargs.update(overrides)
     return TabFoundrySimpleClassifier(**kwargs)
+
+
+def _reg_batch(*, constant_targets: bool = False) -> TaskBatch:
+    y_train = torch.tensor([1.5, 2.5, 3.5], dtype=torch.float32)
+    if constant_targets:
+        y_train = torch.full_like(y_train, 2.0)
+    return TaskBatch(
+        x_train=torch.tensor(
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=y_train,
+        x_test=torch.tensor(
+            [
+                [0.5, 1.5, 2.5],
+                [3.5, 4.5, 5.5],
+            ],
+            dtype=torch.float32,
+        ),
+        y_test=torch.tensor([2.0, 4.0], dtype=torch.float32),
+        metadata={},
+        num_classes=None,
+    )
 
 
 def test_stage_recipe_registry_covers_public_stage_enum() -> None:
@@ -316,6 +360,71 @@ def test_many_class_stage_accepts_full_probs_in_train_mode() -> None:
     assert out.path_logits is None
     assert out.path_targets is None
     assert out.path_sample_counts is None
+
+
+def test_staged_regressor_rejects_many_class_stage() -> None:
+    with pytest.raises(ValueError, match="classification-only"):
+        _ = _staged_regressor("many_class")
+
+
+@pytest.mark.parametrize("stage", ["nano_exact", "row_cls_pool", "qass_context"])
+def test_staged_regressor_forward_shapes(stage: str) -> None:
+    model = _staged_regressor(stage)
+
+    out = model(_reg_batch())
+
+    assert out.quantiles.shape == (2, 999)
+    assert out.quantile_levels is not None
+    assert out.quantile_levels.shape == (999,)
+    assert out.normalized_quantiles is not None
+    assert out.normalized_quantiles.shape == (2, 999)
+    assert out.target_mean is not None
+    assert out.target_mean.shape == (1,)
+    assert out.target_std is not None
+    assert out.target_std.shape == (1,)
+
+
+def test_staged_regressor_forward_batched_inverse_transforms_quantiles(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = _staged_regressor("qass_context")
+
+    def _zeros(rows: torch.Tensor) -> torch.Tensor:
+        return torch.zeros((*rows.shape[:2], 999), device=rows.device, dtype=rows.dtype)
+
+    monkeypatch.setattr(model.direct_head, "forward", _zeros)
+
+    x_all = torch.tensor(
+        [
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0],
+                [0.5, 1.5, 2.5],
+                [3.5, 4.5, 5.5],
+            ]
+        ],
+        dtype=torch.float32,
+    )
+    y_train = torch.tensor([[2.0, 4.0, 6.0]], dtype=torch.float32)
+
+    observed = model.forward_batched(
+        x_all=x_all,
+        y_train=y_train,
+        train_test_split_index=3,
+    )
+
+    assert torch.allclose(observed, torch.full((1, 2, 999), 4.0))
+
+
+def test_staged_regressor_constant_targets_stay_finite() -> None:
+    model = _staged_regressor("row_cls_pool")
+
+    out = model(_reg_batch(constant_targets=True))
+
+    assert torch.isfinite(out.quantiles).all()
+    assert out.target_std is not None
+    assert float(out.target_std.item()) > 0.0
 
 
 def test_module_overrides_surface_stage_label_and_row_pool_hyperparameters() -> None:

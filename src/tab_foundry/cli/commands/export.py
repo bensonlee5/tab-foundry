@@ -40,7 +40,7 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     export_parser.add_argument("--out-dir", required=True, help="Output bundle directory")
     export_parser.add_argument(
         "--artifact-version",
-        default="tab-foundry-export-v3",
+        default="tab-foundry-export-v4",
         help="Inference artifact schema version",
     )
     export_parser.set_defaults(func=_run_export)

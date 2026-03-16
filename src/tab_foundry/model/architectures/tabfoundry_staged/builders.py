@@ -4,14 +4,20 @@ from __future__ import annotations
 
 from torch import nn
 
+from tab_foundry.model.architectures.tabfoundry import DEFAULT_REGRESSION_QUANTILES
+
 from .resolved import ResolvedStageSurface
 from .subsystems import (
+    ContinuousValueContextProjector,
+    ContinuousValueTargetConditioner,
     DirectClassifierHead,
+    DirectRegressionHead,
     IdentityColumnEncoder,
     LabelTokenTargetConditioner,
     MeanPaddedLinearTargetConditioner,
     NanoBinaryHead,
     NanoFeatureEncoder,
+    NanoQuantileHead,
     NanoPostNormBlock,
     PostEncoderNorm,
     PreNormCellBlock,
@@ -48,12 +54,15 @@ def build_feature_encoder(
 def build_target_conditioner(
     surface: ResolvedStageSurface,
     *,
+    task: str,
     d_icl: int,
     many_class_base: int,
 ) -> nn.Module:
     if surface.target_conditioner == "mean_padded_linear":
         return MeanPaddedLinearTargetConditioner(d_icl)
     if surface.target_conditioner == "label_token":
+        if task == "regression":
+            return ContinuousValueTargetConditioner(d_icl)
         return LabelTokenTargetConditioner(many_class_base, d_icl)
     raise RuntimeError(f"Unsupported target conditioner variant: {surface.target_conditioner!r}")
 
@@ -132,9 +141,14 @@ def build_context_encoder(surface: ResolvedStageSurface, *, d_icl: int) -> Seque
 def build_context_label_embed(
     surface: ResolvedStageSurface,
     *,
+    task: str,
     d_icl: int,
     many_class_base: int,
-) -> nn.Embedding | None:
+) -> nn.Module | None:
+    if task == "regression":
+        if surface.context_encoder == "none":
+            return None
+        return ContinuousValueContextProjector(d_icl)
     if surface.context_encoder != "none" or surface.head == "many_class":
         return nn.Embedding(many_class_base, d_icl)
     return None
@@ -155,10 +169,15 @@ def build_digit_position_embed(
 def build_direct_head(
     surface: ResolvedStageSurface,
     *,
+    task: str,
     d_icl: int,
     head_hidden_dim: int,
     many_class_base: int,
 ) -> nn.Module:
+    if task == "regression":
+        if surface.head == "binary_direct":
+            return NanoQuantileHead(d_icl, head_hidden_dim, DEFAULT_REGRESSION_QUANTILES)
+        return DirectRegressionHead(d_icl, head_hidden_dim, DEFAULT_REGRESSION_QUANTILES)
     if surface.head == "binary_direct":
         return NanoBinaryHead(d_icl, head_hidden_dim)
     return DirectClassifierHead(d_icl, head_hidden_dim, many_class_base)

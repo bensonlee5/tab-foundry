@@ -1,4 +1,4 @@
-"""Resolved-surface staged tabfoundry classifier."""
+"""Resolved-surface staged tabfoundry architectures."""
 
 from __future__ import annotations
 
@@ -12,7 +12,11 @@ from tab_foundry.input_normalization import (
     SUPPORTED_INPUT_NORMALIZATION_MODES,
     normalize_train_test_tensors,
 )
-from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
+from tab_foundry.model.architectures.tabfoundry import (
+    ClassificationOutput,
+    DEFAULT_REGRESSION_QUANTILES,
+    RegressionOutput,
+)
 from tab_foundry.model.components.many_class import (
     HierNode,
     balanced_bases,
@@ -45,12 +49,13 @@ from .resolved import resolve_staged_surface
 from .states import CellTableState, HeadOutputState, RawInputState, RowState
 
 
-class TabFoundryStagedClassifier(nn.Module):
-    """Staged classification architecture that resolves to an explicit surface."""
+class _TabFoundryStagedBase(nn.Module):
+    """Shared staged family implementation used by classifier and regressor."""
 
     def __init__(
         self,
         *,
+        task: str,
         stage: str | None = None,
         stage_label: str | None = None,
         module_overrides: dict[str, object] | None = None,
@@ -77,7 +82,7 @@ class TabFoundryStagedClassifier(nn.Module):
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
-            task="classification",
+            task=task,
             arch="tabfoundry_staged",
             stage=stage,
             stage_label=stage_label,
@@ -104,6 +109,11 @@ class TabFoundryStagedClassifier(nn.Module):
             use_digit_position_embed=use_digit_position_embed,
         )
         self.surface = resolve_staged_surface(self.model_spec)
+        if self.model_spec.task == "regression" and self.surface.head == "many_class":
+            raise ValueError(
+                "stage='many_class' is classification-only and is not supported for "
+                "task='regression'"
+            )
         self.recipe = recipe_for_stage(ModelStage(self.surface.stage))
         self.stage = self.surface.stage
         self.stage_label = self.surface.stage_label
@@ -142,11 +152,12 @@ class TabFoundryStagedClassifier(nn.Module):
         ):
             if value <= 0:
                 raise ValueError(f"{name} must be positive, got {value}")
-        if self.surface.head != "many_class" and self.many_class_train_mode != "path_nll":
-            raise ValueError(
-                f"stage={self.stage!r} only supports many_class_train_mode='path_nll', "
-                f"got {self.many_class_train_mode!r}"
-            )
+        if self.model_spec.task == "classification" and self.surface.head != "many_class":
+            if self.many_class_train_mode != "path_nll":
+                raise ValueError(
+                    f"stage={self.stage!r} only supports many_class_train_mode='path_nll', "
+                    f"got {self.many_class_train_mode!r}"
+                )
 
         self.tokenizer = build_tokenizer(self.surface)
         self.feature_encoder = build_feature_encoder(
@@ -156,6 +167,7 @@ class TabFoundryStagedClassifier(nn.Module):
         )
         self.target_conditioner = build_target_conditioner(
             self.surface,
+            task=self.model_spec.task,
             d_icl=self.d_icl,
             many_class_base=self.many_class_base,
         )
@@ -167,6 +179,7 @@ class TabFoundryStagedClassifier(nn.Module):
         self.context_encoder = build_context_encoder(self.surface, d_icl=self.d_icl)
         self.context_label_embed = build_context_label_embed(
             self.surface,
+            task=self.model_spec.task,
             d_icl=self.d_icl,
             many_class_base=self.many_class_base,
         )
@@ -179,6 +192,7 @@ class TabFoundryStagedClassifier(nn.Module):
         )
         self.direct_head = build_direct_head(
             self.surface,
+            task=self.model_spec.task,
             d_icl=self.d_icl,
             head_hidden_dim=self.head_hidden_dim,
             many_class_base=self.many_class_base,
@@ -194,9 +208,7 @@ class TabFoundryStagedClassifier(nn.Module):
     def trace_activation(self, name: str, tensor: torch.Tensor) -> None:
         if self._activation_trace is None:
             return
-        trace_value = float(
-            tensor.detach().to(torch.float32).square().mean().sqrt().item()
-        )
+        trace_value = float(tensor.detach().to(torch.float32).square().mean().sqrt().item())
         self._activation_trace.setdefault(name, []).append(trace_value)
 
     def flush_activation_trace(self) -> dict[str, float] | None:
@@ -208,22 +220,20 @@ class TabFoundryStagedClassifier(nn.Module):
         self._activation_trace = {}
         return snapshot
 
-    @staticmethod
-    def _task_num_classes(batch: TaskBatch) -> int:
-        if batch.num_classes is not None:
-            return int(batch.num_classes)
-        if batch.y_train.numel() == 0:
-            raise RuntimeError("tabfoundry_staged requires at least one training label")
-        return int(batch.y_train.max().item()) + 1
-
-    @staticmethod
-    def _prepare_task_inputs(batch: TaskBatch) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+    def _prepare_task_inputs(
+        self,
+        batch: TaskBatch,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
         train_test_split_index = int(batch.x_train.shape[0])
         if train_test_split_index <= 0:
             raise RuntimeError("tabfoundry_staged requires at least one training row")
         x_all = torch.cat([batch.x_train, batch.x_test], dim=0).to(torch.float32).unsqueeze(0)
-        y_train = batch.y_train.to(torch.int64).unsqueeze(0)
-        y_test = batch.y_test.to(torch.int64).unsqueeze(0)
+        if self.model_spec.task == "classification":
+            y_train = batch.y_train.to(torch.int64).unsqueeze(0)
+            y_test = batch.y_test.to(torch.int64).unsqueeze(0)
+        else:
+            y_train = batch.y_train.to(torch.float32).unsqueeze(0)
+            y_test = batch.y_test.to(torch.float32).unsqueeze(0)
         return x_all, y_train, y_test, train_test_split_index
 
     @staticmethod
@@ -271,6 +281,11 @@ class TabFoundryStagedClassifier(nn.Module):
             ],
             dim=1,
         )
+
+    def _batched_state_num_classes(self, y_train: torch.Tensor) -> int:
+        if self.model_spec.task == "classification":
+            return max(2, int(y_train.max().item()) + 1)
+        return 1
 
     def _build_raw_input_state(
         self,
@@ -320,7 +335,7 @@ class TabFoundryStagedClassifier(nn.Module):
             y_train=y_train,
             y_test=None,
             train_test_split_index=train_test_split_index,
-            num_classes=max(2, int(y_train.max().item()) + 1),
+            num_classes=self._batched_state_num_classes(y_train),
         )
         return self._build_table_tokens_from_raw(raw_state)
 
@@ -410,7 +425,9 @@ class TabFoundryStagedClassifier(nn.Module):
 
     def _context_train_embeddings(self, y_train: torch.Tensor) -> torch.Tensor:
         assert self.context_label_embed is not None
-        return self.context_label_embed(y_train.clamp(max=self.many_class_base - 1))
+        if self.model_spec.task == "classification":
+            return self.context_label_embed(y_train.clamp(max=self.many_class_base - 1))
+        return self.context_label_embed(y_train.to(torch.float32))
 
     def _build_direct_head_state(self, raw_state: RawInputState) -> HeadOutputState:
         cell_state = self._encode_to_cell_state(raw_state)
@@ -426,6 +443,76 @@ class TabFoundryStagedClassifier(nn.Module):
             train_target_embeddings=self._context_train_embeddings(raw_state.y_train),
         )
 
+    def _direct_head_outputs(self, raw_state: RawInputState) -> torch.Tensor:
+        head_state = self._build_direct_head_state(raw_state)
+        return self.direct_head(head_state.rows[:, raw_state.train_test_split_index :, :])
+
+
+class TabFoundryStagedClassifier(_TabFoundryStagedBase):
+    """Staged classification architecture that resolves to an explicit surface."""
+
+    def __init__(
+        self,
+        *,
+        stage: str | None = None,
+        stage_label: str | None = None,
+        module_overrides: dict[str, object] | None = None,
+        d_col: int = 128,
+        d_icl: int = 512,
+        input_normalization: str = "none",
+        feature_group_size: int = 1,
+        many_class_train_mode: str = "path_nll",
+        max_mixed_radix_digits: int = 64,
+        norm_type: str = "layernorm",
+        tfcol_n_heads: int = 8,
+        tfcol_n_layers: int = 3,
+        tfcol_n_inducing: int = 128,
+        tfrow_n_heads: int = 8,
+        tfrow_n_layers: int = 3,
+        tfrow_cls_tokens: int = 4,
+        tfrow_norm: str = "layernorm",
+        tficl_n_heads: int = 8,
+        tficl_n_layers: int = 12,
+        tficl_ff_expansion: int = 2,
+        many_class_base: int = 10,
+        head_hidden_dim: int = 1024,
+        use_digit_position_embed: bool = True,
+    ) -> None:
+        super().__init__(
+            task="classification",
+            stage=stage,
+            stage_label=stage_label,
+            module_overrides=module_overrides,
+            d_col=d_col,
+            d_icl=d_icl,
+            input_normalization=input_normalization,
+            feature_group_size=feature_group_size,
+            many_class_train_mode=many_class_train_mode,
+            max_mixed_radix_digits=max_mixed_radix_digits,
+            norm_type=norm_type,
+            tfcol_n_heads=tfcol_n_heads,
+            tfcol_n_layers=tfcol_n_layers,
+            tfcol_n_inducing=tfcol_n_inducing,
+            tfrow_n_heads=tfrow_n_heads,
+            tfrow_n_layers=tfrow_n_layers,
+            tfrow_cls_tokens=tfrow_cls_tokens,
+            tfrow_norm=tfrow_norm,
+            tficl_n_heads=tficl_n_heads,
+            tficl_n_layers=tficl_n_layers,
+            tficl_ff_expansion=tficl_ff_expansion,
+            many_class_base=many_class_base,
+            head_hidden_dim=head_hidden_dim,
+            use_digit_position_embed=use_digit_position_embed,
+        )
+
+    @staticmethod
+    def _task_num_classes(batch: TaskBatch) -> int:
+        if batch.num_classes is not None:
+            return int(batch.num_classes)
+        if batch.y_train.numel() == 0:
+            raise RuntimeError("tabfoundry_staged requires at least one training label")
+        return int(batch.y_train.max().item()) + 1
+
     def forward_batched(
         self,
         *,
@@ -440,11 +527,9 @@ class TabFoundryStagedClassifier(nn.Module):
             y_train=y_train.to(torch.int64),
             y_test=None,
             train_test_split_index=train_test_split_index,
-            num_classes=max(2, int(y_train.max().item()) + 1),
+            num_classes=self._batched_state_num_classes(y_train.to(torch.int64)),
         )
-        head_state = self._build_direct_head_state(raw_state)
-        test_rows = head_state.rows[:, train_test_split_index:, :]
-        return self.direct_head(test_rows)
+        return self._direct_head_outputs(raw_state)
 
     def _node_train_indices(self, *, node: HierNode, y_train: torch.Tensor) -> torch.Tensor:
         node_classes = node.node_classes_tensor(y_train.device)
@@ -686,8 +771,8 @@ class TabFoundryStagedClassifier(nn.Module):
                 limit = self.surface.task_contract.max_classes
                 if limit == self.many_class_base:
                     raise RuntimeError(
-                        f"stage={self.stage!r} only supports num_classes <= many_class_base={self.many_class_base}, "
-                        f"got {num_classes}"
+                        f"stage={self.stage!r} only supports num_classes <= "
+                        f"many_class_base={self.many_class_base}, got {num_classes}"
                     )
                 raise RuntimeError(
                     f"stage={self.stage!r} only supports num_classes <= "
@@ -696,8 +781,8 @@ class TabFoundryStagedClassifier(nn.Module):
             raise RuntimeError(f"stage={self.stage!r} does not support num_classes={num_classes}")
         if self.surface.head != "many_class" and num_classes > self.many_class_base:
             raise RuntimeError(
-                f"stage={self.stage!r} only supports num_classes <= many_class_base={self.many_class_base}, "
-                f"got {num_classes}"
+                f"stage={self.stage!r} only supports num_classes <= "
+                f"many_class_base={self.many_class_base}, got {num_classes}"
             )
 
     def forward(self, batch: TaskBatch) -> ClassificationOutput:
@@ -714,10 +799,138 @@ class TabFoundryStagedClassifier(nn.Module):
         if self.surface.head == "many_class" and num_classes > self.many_class_base:
             return self._forward_many_class(raw_state)
 
-        head_state = self._build_direct_head_state(raw_state)
-        logits = self.direct_head(head_state.rows[:, train_test_split_index:, :]).squeeze(0)
+        logits = self._direct_head_outputs(raw_state).squeeze(0)
         return ClassificationOutput(
             logits=logits,
             num_classes=num_classes,
             class_probs=None,
+        )
+
+
+class TabFoundryStagedRegressor(_TabFoundryStagedBase):
+    """Staged regression architecture with support-set target standardization."""
+
+    _target_scale_eps = 1.0e-6
+
+    def __init__(
+        self,
+        *,
+        stage: str | None = None,
+        stage_label: str | None = None,
+        module_overrides: dict[str, object] | None = None,
+        d_col: int = 128,
+        d_icl: int = 512,
+        input_normalization: str = "none",
+        feature_group_size: int = 1,
+        many_class_train_mode: str = "path_nll",
+        max_mixed_radix_digits: int = 64,
+        norm_type: str = "layernorm",
+        tfcol_n_heads: int = 8,
+        tfcol_n_layers: int = 3,
+        tfcol_n_inducing: int = 128,
+        tfrow_n_heads: int = 8,
+        tfrow_n_layers: int = 3,
+        tfrow_cls_tokens: int = 4,
+        tfrow_norm: str = "layernorm",
+        tficl_n_heads: int = 8,
+        tficl_n_layers: int = 12,
+        tficl_ff_expansion: int = 2,
+        many_class_base: int = 10,
+        head_hidden_dim: int = 1024,
+        use_digit_position_embed: bool = True,
+    ) -> None:
+        super().__init__(
+            task="regression",
+            stage=stage,
+            stage_label=stage_label,
+            module_overrides=module_overrides,
+            d_col=d_col,
+            d_icl=d_icl,
+            input_normalization=input_normalization,
+            feature_group_size=feature_group_size,
+            many_class_train_mode=many_class_train_mode,
+            max_mixed_radix_digits=max_mixed_radix_digits,
+            norm_type=norm_type,
+            tfcol_n_heads=tfcol_n_heads,
+            tfcol_n_layers=tfcol_n_layers,
+            tfcol_n_inducing=tfcol_n_inducing,
+            tfrow_n_heads=tfrow_n_heads,
+            tfrow_n_layers=tfrow_n_layers,
+            tfrow_cls_tokens=tfrow_cls_tokens,
+            tfrow_norm=tfrow_norm,
+            tficl_n_heads=tficl_n_heads,
+            tficl_n_layers=tficl_n_layers,
+            tficl_ff_expansion=tficl_ff_expansion,
+            many_class_base=many_class_base,
+            head_hidden_dim=head_hidden_dim,
+            use_digit_position_embed=use_digit_position_embed,
+        )
+        q = torch.arange(
+            1, DEFAULT_REGRESSION_QUANTILES + 1, dtype=torch.float32
+        ) / float(DEFAULT_REGRESSION_QUANTILES + 1)
+        self.register_buffer("quantile_levels", q, persistent=False)
+
+    def _normalize_train_targets(
+        self,
+        y_train: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        mean = y_train.mean(dim=1, keepdim=True)
+        std = y_train.std(dim=1, keepdim=True, unbiased=False).clamp_min(self._target_scale_eps)
+        return (y_train - mean) / std, mean, std
+
+    @staticmethod
+    def _inverse_transform_quantiles(
+        normalized_quantiles: torch.Tensor,
+        *,
+        target_mean: torch.Tensor,
+        target_std: torch.Tensor,
+    ) -> torch.Tensor:
+        return normalized_quantiles * target_std.unsqueeze(-1) + target_mean.unsqueeze(-1)
+
+    def forward_batched(
+        self,
+        *,
+        x_all: torch.Tensor,
+        y_train: torch.Tensor,
+        train_test_split_index: int,
+    ) -> torch.Tensor:
+        normalized_y_train, target_mean, target_std = self._normalize_train_targets(
+            y_train.to(torch.float32)
+        )
+        raw_state = self._build_raw_input_state(
+            x_all=x_all,
+            y_train=normalized_y_train,
+            y_test=None,
+            train_test_split_index=train_test_split_index,
+            num_classes=1,
+        )
+        normalized_quantiles = self._direct_head_outputs(raw_state)
+        return self._inverse_transform_quantiles(
+            normalized_quantiles,
+            target_mean=target_mean,
+            target_std=target_std,
+        )
+
+    def forward(self, batch: TaskBatch) -> RegressionOutput:
+        x_all, y_train, y_test, train_test_split_index = self._prepare_task_inputs(batch)
+        normalized_y_train, target_mean, target_std = self._normalize_train_targets(y_train)
+        raw_state = self._build_raw_input_state(
+            x_all=x_all,
+            y_train=normalized_y_train,
+            y_test=y_test,
+            train_test_split_index=train_test_split_index,
+            num_classes=1,
+        )
+        normalized_quantiles = self._direct_head_outputs(raw_state)
+        quantiles = self._inverse_transform_quantiles(
+            normalized_quantiles,
+            target_mean=target_mean,
+            target_std=target_std,
+        )
+        return RegressionOutput(
+            quantiles=quantiles.squeeze(0),
+            quantile_levels=cast(torch.Tensor, self.quantile_levels),
+            normalized_quantiles=normalized_quantiles.squeeze(0),
+            target_mean=target_mean.squeeze(0),
+            target_std=target_std.squeeze(0),
         )

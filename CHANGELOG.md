@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-16
+
+### Changed
+
+- Export bundles now default to the new embedded `tab-foundry-export-v4`
+  schema. User-facing note: `v4` preserves staged `model.stage_label` and
+  `model.module_overrides` metadata so overridden `tabfoundry_staged`
+  checkpoints round-trip exactly through export and reload, while explicit
+  `tab-foundry-export-v2`/`v3` exports reject staged checkpoints that require
+  that metadata.
+
+## [0.6.6] - 2026-03-16
+
+### Changed
+
+- Added `TabFoundryStagedRegressor` on the existing staged model surface so
+  regression can use staged recipes from `nano_exact` through `qass_context`
+  without changing staged arch/stage metadata, export bundle contracts, or
+  top-level telemetry module names. User-facing note: staged regression keeps
+  the existing 999-quantile inference/export contract and the `many_class`
+  stage remains classification-only.
+
 ## [0.6.5] - 2026-03-16
 
 ### Changed

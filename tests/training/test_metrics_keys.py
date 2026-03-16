@@ -48,6 +48,29 @@ def test_regression_uses_output_quantile_levels() -> None:
     assert torch.isclose(loss, torch.tensor(0.9), atol=1e-4)
 
 
+def test_regression_uses_normalized_quantiles_for_loss_but_raw_quantiles_for_rmse() -> None:
+    output = RegressionOutput(
+        quantiles=torch.zeros(6, 999),
+        quantile_levels=torch.full((999,), 0.5, dtype=torch.float32),
+        normalized_quantiles=torch.zeros(6, 999),
+        target_mean=torch.tensor([10.0], dtype=torch.float32),
+        target_std=torch.tensor([2.0], dtype=torch.float32),
+    )
+    batch = TaskBatch(
+        x_train=torch.randn(8, 4),
+        y_train=torch.randn(8),
+        x_test=torch.randn(6, 4),
+        y_test=torch.full((6,), 10.0, dtype=torch.float32),
+        metadata={},
+        num_classes=None,
+    )
+
+    loss, metrics = _compute_loss_and_metrics(output, batch, task="regression")
+
+    assert torch.isclose(loss, torch.tensor(0.0), atol=1e-6)
+    assert metrics["rmse"] == pytest.approx(10.0)
+
+
 def test_manyclass_path_metrics_do_not_require_acc() -> None:
     output = ClassificationOutput(
         logits=None,

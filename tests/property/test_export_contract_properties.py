@@ -50,6 +50,17 @@ def _exportable_model_spec(
         stage = draw(st.one_of(st.none(), st.sampled_from([stage.value for stage in ModelStage])))
         if stage is not None:
             primary["stage"] = stage
+        stage_label = draw(st.one_of(st.none(), st.just("delta_post_encoder_norm")))
+        if stage_label is not None:
+            primary["stage_label"] = stage_label
+        module_overrides = draw(
+            st.one_of(
+                st.none(),
+                st.just({"post_encoder_norm": "layernorm"}),
+            )
+        )
+        if module_overrides is not None:
+            primary["module_overrides"] = module_overrides
     spec = model_build_spec_from_mappings(task=task, primary=primary)
     return task, spec
 

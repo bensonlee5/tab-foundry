@@ -39,7 +39,9 @@ from tab_foundry.preprocessing import (
 
 SCHEMA_VERSION_V2 = "tab-foundry-export-v2"
 SCHEMA_VERSION_V3 = "tab-foundry-export-v3"
-SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V2, SCHEMA_VERSION_V3)
+SCHEMA_VERSION_V4 = "tab-foundry-export-v4"
+EMBEDDED_MANIFEST_SCHEMA_VERSIONS = (SCHEMA_VERSION_V3, SCHEMA_VERSION_V4)
+SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V2, *EMBEDDED_MANIFEST_SCHEMA_VERSIONS)
 SUPPORTED_TASKS = ("classification", "regression")
 SUPPORTED_MANY_CLASS_INFERENCE_MODES = ("full_probs",)
 EXPECTED_GROUP_SHIFTS = [0, 1, 3]
@@ -88,6 +90,11 @@ class _ManifestModelPayloadV2(_ContractsPayloadModel):
 
 class _ManifestModelPayloadV3(_ManifestModelPayloadV2):
     input_normalization: StrictStr
+
+
+class _ManifestModelPayloadV4(_ManifestModelPayloadV3):
+    stage_label: StrictStr | None = None
+    module_overrides: dict[StrictStr, Any] | None = None
 
 
 class _InferenceConfigPayload(_ContractsPayloadModel):
@@ -147,6 +154,8 @@ class ExportModelSpec:
     many_class_base: int
     head_hidden_dim: int
     use_digit_position_embed: bool
+    stage_label: str | None = None
+    module_overrides: dict[str, Any] | None = None
 
     @classmethod
     def from_build_spec(
@@ -158,6 +167,8 @@ class ExportModelSpec:
         return cls(
             arch=str(spec.arch if arch is None else arch),
             stage=None if spec.stage is None else str(spec.stage),
+            stage_label=None if spec.stage_label is None else str(spec.stage_label),
+            module_overrides=spec.module_overrides,
             d_col=int(spec.d_col),
             d_icl=int(spec.d_icl),
             input_normalization=str(spec.input_normalization),
@@ -186,6 +197,8 @@ class ExportModelSpec:
             primary={
                 "arch": self.arch,
                 "stage": self.stage,
+                "stage_label": self.stage_label,
+                "module_overrides": self.module_overrides,
                 "d_col": self.d_col,
                 "d_icl": self.d_icl,
                 "input_normalization": self.input_normalization,
@@ -213,6 +226,10 @@ class ExportModelSpec:
         payload = dict(asdict(self))
         if self.stage is None:
             payload.pop("stage", None)
+        if self.stage_label is None:
+            payload.pop("stage_label", None)
+        if self.module_overrides is None:
+            payload.pop("module_overrides", None)
         return payload
 
 
@@ -310,16 +327,22 @@ class ExportManifest:
     checksums: dict[str, str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
+        model_payload = self.model.to_dict()
+        if self.schema_version == SCHEMA_VERSION_V3:
+            model_payload.pop("stage_label", None)
+            model_payload.pop("module_overrides", None)
         payload: dict[str, Any] = {
             "schema_version": self.schema_version,
             "producer": self.producer.to_dict(),
             "task": self.task,
-            "model": self.model.to_dict(),
+            "model": model_payload,
             "created_at_utc": self.created_at_utc,
         }
-        if self.schema_version == SCHEMA_VERSION_V3:
+        if self.schema_version in EMBEDDED_MANIFEST_SCHEMA_VERSIONS:
             if self.inference is None or self.preprocessor is None or self.weights is None:
-                raise RuntimeError("v3 manifest requires inference, preprocessor, and weights")
+                raise RuntimeError(
+                    f"{self.schema_version} manifest requires inference, preprocessor, and weights"
+                )
             payload["inference"] = self.inference.to_dict()
             payload["preprocessor"] = self.preprocessor.to_dict()
             payload["weights"] = self.weights.to_dict()
@@ -348,11 +371,12 @@ def read_json_dict(path: Path) -> dict[str, Any]:
     return payload
 
 
-def canonicalize_v3_manifest_payload(payload: dict[str, Any]) -> bytes:
+def canonicalize_embedded_manifest_payload(payload: dict[str, Any]) -> bytes:
     schema_version = _as_str(payload.get("schema_version"), context="manifest.schema_version")
-    if schema_version != SCHEMA_VERSION_V3:
+    if schema_version not in EMBEDDED_MANIFEST_SCHEMA_VERSIONS:
         raise ValueError(
-            "canonicalize_v3_manifest_payload requires a tab-foundry-export-v3 payload, "
+            "canonicalize_embedded_manifest_payload requires a tab-foundry-export-v3 or "
+            "tab-foundry-export-v4 payload, "
             f"got {schema_version!r}"
         )
     canonical_payload = dict(payload)
@@ -368,8 +392,36 @@ def canonicalize_v3_manifest_payload(payload: dict[str, Any]) -> bytes:
         raise ValueError("v3 manifest contains non-canonical JSON values") from exc
 
 
+def compute_embedded_manifest_sha256(payload: dict[str, Any]) -> str:
+    return sha256(canonicalize_embedded_manifest_payload(payload)).hexdigest()
+
+
+def canonicalize_v3_manifest_payload(payload: dict[str, Any]) -> bytes:
+    schema_version = _as_str(payload.get("schema_version"), context="manifest.schema_version")
+    if schema_version != SCHEMA_VERSION_V3:
+        raise ValueError(
+            "canonicalize_v3_manifest_payload requires a tab-foundry-export-v3 payload, "
+            f"got {schema_version!r}"
+        )
+    return canonicalize_embedded_manifest_payload(payload)
+
+
 def compute_v3_manifest_sha256(payload: dict[str, Any]) -> str:
     return sha256(canonicalize_v3_manifest_payload(payload)).hexdigest()
+
+
+def canonicalize_v4_manifest_payload(payload: dict[str, Any]) -> bytes:
+    schema_version = _as_str(payload.get("schema_version"), context="manifest.schema_version")
+    if schema_version != SCHEMA_VERSION_V4:
+        raise ValueError(
+            "canonicalize_v4_manifest_payload requires a tab-foundry-export-v4 payload, "
+            f"got {schema_version!r}"
+        )
+    return canonicalize_embedded_manifest_payload(payload)
+
+
+def compute_v4_manifest_sha256(payload: dict[str, Any]) -> str:
+    return sha256(canonicalize_v4_manifest_payload(payload)).hexdigest()
 
 
 def _require_keys(
@@ -463,6 +515,13 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
     }
     if "stage" in model_raw:
         primary["stage"] = model_raw["stage"]
+    if "stage_label" in model_raw:
+        primary["stage_label"] = _as_str(
+            model_raw["stage_label"],
+            context="manifest.model.stage_label",
+        )
+    if "module_overrides" in model_raw:
+        primary["module_overrides"] = model_raw["module_overrides"]
     optional_fields: tuple[tuple[str, str], ...] = (
         ("input_normalization", "manifest.model.input_normalization"),
         ("norm_type", "manifest.model.norm_type"),
@@ -547,20 +606,27 @@ def _validate_model_spec(
         "head_hidden_dim",
         "use_digit_position_embed",
     }
-    if schema_version == SCHEMA_VERSION_V3:
+    if schema_version in EMBEDDED_MANIFEST_SCHEMA_VERSIONS:
         required_model_keys.add("input_normalization")
+    if schema_version == SCHEMA_VERSION_V4:
+        optional_model_keys.update({"stage_label", "module_overrides"})
+    payload_model: (
+        type[_ManifestModelPayloadV2]
+        | type[_ManifestModelPayloadV3]
+        | type[_ManifestModelPayloadV4]
+    )
+    if schema_version == SCHEMA_VERSION_V4:
+        payload_model = _ManifestModelPayloadV4
+    elif schema_version == SCHEMA_VERSION_V3:
+        payload_model = _ManifestModelPayloadV3
     else:
         optional_model_keys.add("input_normalization")
+        payload_model = _ManifestModelPayloadV2
     _require_keys(
         payload,
         keys=required_model_keys,
         context="manifest.model",
         optional_keys=optional_model_keys,
-    )
-    payload_model = (
-        _ManifestModelPayloadV3
-        if schema_version == SCHEMA_VERSION_V3
-        else _ManifestModelPayloadV2
     )
     validated_payload = _validate_payload_model(
         payload_model,
@@ -597,11 +663,10 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
         raise ValueError(f"Unsupported schema version: {schema_version!r}")
 
     common_keys = {"schema_version", "producer", "task", "model", "created_at_utc"}
-    if schema_version == SCHEMA_VERSION_V3:
+    if schema_version in EMBEDDED_MANIFEST_SCHEMA_VERSIONS:
         if "manifest_sha256" not in payload:
             raise ValueError(
-                "manifest.manifest_sha256 is required for tab-foundry-export-v3 bundles; "
-                "older v3 bundles must be regenerated"
+                f"manifest.manifest_sha256 is required for {schema_version} bundles"
             )
         _require_keys(
             payload,
@@ -623,7 +688,7 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
     created_at_utc = _validate_created_at_utc(payload["created_at_utc"])
     manifest_sha256: str | None = None
 
-    if schema_version == SCHEMA_VERSION_V3:
+    if schema_version in EMBEDDED_MANIFEST_SCHEMA_VERSIONS:
         manifest_sha256 = _validate_hex_digest(
             payload["manifest_sha256"],
             context="manifest.manifest_sha256",
@@ -649,7 +714,9 @@ def validate_manifest_dict(payload: dict[str, Any]) -> ExportManifest:
             task=task,
         )
         if not isinstance(preprocessor, ExportPreprocessorState):
-            raise RuntimeError("v3 manifest preprocessor must validate to export preprocessor state")
+            raise RuntimeError(
+                f"{schema_version} manifest preprocessor must validate to export preprocessor state"
+            )
         weights_raw = payload["weights"]
         if not isinstance(weights_raw, dict):
             raise ValueError("manifest.weights must be object")
@@ -1034,6 +1101,6 @@ def validate_preprocessor_state_dict(
 ) -> LegacyPreprocessorState | ExportPreprocessorState:
     if schema_version == SCHEMA_VERSION_V2:
         return _validate_v2_preprocessor_state(payload)
-    if schema_version == SCHEMA_VERSION_V3:
+    if schema_version in EMBEDDED_MANIFEST_SCHEMA_VERSIONS:
         return _validate_v3_preprocessor_state(payload, task=task)
     raise ValueError(f"Unsupported schema version: {schema_version!r}")

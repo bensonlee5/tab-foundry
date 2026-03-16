@@ -11,6 +11,8 @@ from tab_foundry.export.contracts import (
     LegacyPreprocessorState,
     SCHEMA_VERSION_V2,
     SCHEMA_VERSION_V3,
+    SCHEMA_VERSION_V4,
+    compute_v4_manifest_sha256,
     validate_inference_config_dict,
     validate_manifest_dict,
     validate_preprocessor_state_dict,
@@ -61,6 +63,27 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     assert build_spec.input_normalization == "train_zscore"
     assert build_spec.norm_type == "layernorm"
     assert build_spec.tfrow_norm == "layernorm"
+
+
+def test_manifest_v4_fixture_validates_and_roundtrips_staged_override_sections() -> None:
+    payload = _load_fixture("manifest_v4.json")
+    manifest = validate_manifest_dict(payload)
+    assert manifest.schema_version == SCHEMA_VERSION_V4
+    assert manifest.manifest_sha256 is not None
+    assert compute_v4_manifest_sha256(payload) == payload["manifest_sha256"]
+    assert manifest.model.arch == "tabfoundry_staged"
+    assert manifest.model.stage == "row_cls_pool"
+    assert manifest.model.stage_label == "delta_post_encoder_norm"
+    assert manifest.model.module_overrides == {"post_encoder_norm": "layernorm"}
+    assert manifest.inference is not None
+    assert manifest.inference.model_stage == "row_cls_pool"
+
+    build_spec = manifest.model.to_build_spec(task=manifest.task)
+    roundtrip = ExportModelSpec.from_build_spec(build_spec)
+
+    assert roundtrip.to_dict() == manifest.model.to_dict()
+    assert build_spec.stage_label == "delta_post_encoder_norm"
+    assert build_spec.module_overrides == {"post_encoder_norm": "layernorm"}
 
 
 def test_manifest_v2_validation_applies_model_defaults_via_canonical_spec() -> None:
@@ -195,6 +218,40 @@ def test_v3_section_validation_supports_classification_and_regression_policies()
     assert reg_preprocessor.classification_label_policy is None
 
 
+def test_v4_section_validation_supports_classification_and_regression_policies() -> None:
+    manifest_payload = _load_fixture("manifest_v4.json")
+    cls_inference = validate_inference_config_dict(manifest_payload["inference"])
+    cls_preprocessor = validate_preprocessor_state_dict(
+        manifest_payload["preprocessor"],
+        schema_version=SCHEMA_VERSION_V4,
+        task="classification",
+    )
+    reg_preprocessor = validate_preprocessor_state_dict(
+        {
+            "feature_order_policy": "positional_feature_ids",
+            "missing_value_policy": {
+                "strategy": "train_mean",
+                "all_nan_fill": 0.0,
+            },
+            "classification_label_policy": None,
+            "dtype_policy": {
+                "features": "float32",
+                "classification_labels": "int64",
+                "regression_targets": "float32",
+            },
+        },
+        schema_version=SCHEMA_VERSION_V4,
+        task="regression",
+    )
+
+    assert cls_inference.many_class_inference_mode == "full_probs"
+    assert isinstance(cls_preprocessor, ExportPreprocessorState)
+    assert cls_preprocessor.classification_label_policy is not None
+    assert cls_preprocessor.classification_label_policy.unseen_test_label == "filter"
+    assert isinstance(reg_preprocessor, ExportPreprocessorState)
+    assert reg_preprocessor.classification_label_policy is None
+
+
 def test_manifest_validation_rejects_old_model_arch() -> None:
     payload = _load_fixture("manifest_v3.json")
     model_payload = dict(payload["model"])
@@ -235,3 +292,28 @@ def test_manifest_validation_accepts_additive_staged_model_stage_fields() -> Non
     assert manifest.model.stage == "nano_exact"
     assert manifest.inference is not None
     assert manifest.inference.model_stage == "nano_exact"
+
+
+def test_manifest_v4_validation_rejects_stage_label_on_non_staged_arch() -> None:
+    payload = _load_fixture("manifest_v4.json")
+    model_payload = dict(payload["model"])
+    model_payload["arch"] = "tabfoundry"
+    model_payload.pop("stage", None)
+    model_payload["stage_label"] = "delta_stage_label"
+    payload["model"] = model_payload
+
+    with pytest.raises(ValueError, match="stage_label"):
+        validate_manifest_dict(payload)
+
+
+def test_manifest_v4_validation_rejects_module_overrides_on_non_staged_arch() -> None:
+    payload = _load_fixture("manifest_v4.json")
+    model_payload = dict(payload["model"])
+    model_payload["arch"] = "tabfoundry"
+    model_payload.pop("stage", None)
+    model_payload.pop("stage_label", None)
+    model_payload["module_overrides"] = {"post_encoder_norm": "layernorm"}
+    payload["model"] = model_payload
+
+    with pytest.raises(ValueError, match="module_overrides"):
+        validate_manifest_dict(payload)

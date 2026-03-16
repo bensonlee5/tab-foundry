@@ -4,6 +4,7 @@ import pytest
 import torch
 
 from tab_foundry.model.factory import build_model
+from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedRegressor
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import (
     ModelBuildSpec,
@@ -43,6 +44,22 @@ def test_build_model_supports_tabfoundry_simple_classification() -> None:
     )
 
     assert isinstance(model, TabFoundrySimpleClassifier)
+
+
+def test_build_model_supports_tabfoundry_staged_regression() -> None:
+    model = build_model(
+        task="regression",
+        arch="tabfoundry_staged",
+        stage="qass_context",
+        d_icl=96,
+        input_normalization="train_zscore_clip",
+        many_class_base=4,
+        tficl_n_heads=4,
+        tficl_n_layers=3,
+        head_hidden_dim=192,
+    )
+
+    assert isinstance(model, TabFoundryStagedRegressor)
 
 
 def test_build_model_rejects_tabfoundry_simple_regression() -> None:
