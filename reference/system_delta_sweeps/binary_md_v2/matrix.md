@@ -37,17 +37,17 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_anchor_activation_trace_baseline` | diagnostics | yes | ready | none | Keep the locked anchor model surface fixed but rerun prior training with activation tracing enabled so forward-pass norm dynamics are captured in `gradient_history.jsonl` and `telemetry.json`. | Run the traced anchor baseline before comparing shared-encoder stabilization variants. |
-| 2 | `delta_shared_feature_norm` | feature_encoding | yes | ready | shared_norm | Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization. | Run immediately after the traced anchor baseline so the shared path has a direct activation-profile comparator. |
-| 3 | `delta_shared_feature_norm_with_post_layernorm` | feature_encoding | yes | ready | none | Shared linear feature encoder with explicit post-encoder LayerNorm before the transformer blocks. | Run after the traced shared-feature baseline to test whether LayerNorm fixes late-curve retention. |
-| 4 | `delta_shared_feature_norm_with_post_rmsnorm` | feature_encoding | yes | ready | none | Shared linear feature encoder with explicit post-encoder RMSNorm before the transformer blocks. | Run after the LayerNorm variant to compare normalization families on the shared encoder path. |
+| 1 | `delta_anchor_activation_trace_baseline` | diagnostics | yes | completed | none | Keep the locked anchor model surface fixed but rerun prior training with activation tracing enabled so forward-pass norm dynamics are captured in `gradient_history.jsonl` and `telemetry.json`. | None |
+| 2 | `delta_shared_feature_norm` | feature_encoding | yes | completed | shared_norm | Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization. | None |
+| 3 | `delta_shared_feature_norm_with_post_layernorm` | feature_encoding | yes | completed | none | Shared linear feature encoder with explicit post-encoder LayerNorm before the transformer blocks. | None |
+| 4 | `delta_shared_feature_norm_with_post_rmsnorm` | feature_encoding | yes | completed | none | Shared linear feature encoder with explicit post-encoder RMSNorm before the transformer blocks. | None |
 
 ## Detailed Rows
 
 ### 1. `delta_anchor_activation_trace_baseline`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Keep the locked anchor model surface fixed but rerun prior training with activation tracing enabled so forward-pass norm dynamics are captured in `gradient_history.jsonl` and `telemetry.json`.
@@ -64,16 +64,24 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - Treat this as a diagnostic rerun of the anchor, not a new structural model claim.
   - Confirm the additive tracing overhead does not perturb the run contract or artifact schema.
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `Anchor trace baseline established. Best ROC AUC 0.7596 (step 2275). Activation norms captured in gradient_history. NanoTabPFN best 0.7616.`
+- Notes:
+  - wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/litf5n0i
+  - final_train_loss=0.452, mean_grad_norm=0.177, max_grad_norm=4.658
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v2/delta_anchor_activation_trace_baseline/result_card.md`
-- Benchmark metrics: pending
+- Benchmark metrics:
+  - Best ROC AUC: `0.7615` (step 1125)
+  - Final ROC AUC: `0.7599`
+  - Drift (final − best): `-0.0016`
+  - NanoTabPFN control: `0.7616`
+  - max_grad_norm: `4.658`
 
 ### 2. `delta_shared_feature_norm`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `shared_norm`
 - Description: Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization.
@@ -90,16 +98,24 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - input_normalization remains train_zscore_clip on the anchor unless the queue row explicitly changes preprocessing.
   - If performance drops, note whether the harm appears early or only after longer training.
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `Shared feature encoder (no post-norm) best ROC AUC 0.7620 (step 1950), slightly above anchor 0.7596. Activation norms captured. NanoTabPFN best 0.7616.`
+- Notes:
+  - wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/6h20zft8
+  - final_train_loss=0.450, mean_grad_norm=0.175, max_grad_norm=4.660
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v2/delta_shared_feature_norm/result_card.md`
-- Benchmark metrics: pending
+- Benchmark metrics:
+  - Best ROC AUC: `0.7654` (step 1325)
+  - Final ROC AUC: `0.7558`
+  - Drift (final − best): `-0.0096`
+  - NanoTabPFN control: `0.7616`
+  - max_grad_norm: `4.660`
 
 ### 3. `delta_shared_feature_norm_with_post_layernorm`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Shared linear feature encoder with explicit post-encoder LayerNorm before the transformer blocks.
@@ -116,16 +132,24 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - Compare pre-transformer and per-block activation growth directly against the traced shared-without-post-norm run.
   - Keep optimizer, dataset bundle, and preprocessing fixed so only the post-encoder normalization changes.
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `LayerNorm post-encoder achieved BEST sweep ROC AUC 0.7670 (step 2075), exceeding both anchor (0.7596) and shared-no-norm (0.7620). Hypothesis confirmed - LayerNorm stabilizes post-encoder activations. max_grad_norm reduced to 4.208 vs anchor 4.658.`
+- Notes:
+  - wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/fedytzgt
+  - final_train_loss=0.452, mean_grad_norm=0.182, max_grad_norm=4.208
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v2/delta_shared_feature_norm_with_post_layernorm/result_card.md`
-- Benchmark metrics: pending
+- Benchmark metrics:
+  - Best ROC AUC: **`0.7670`** (step 2075) — sweep best
+  - Final ROC AUC: **`0.7643`** — sweep best
+  - Drift (final − best): **`-0.0026`** — lowest drift
+  - NanoTabPFN control: `0.7616`
+  - max_grad_norm: **`4.208`** — lowest grad norm
 
 ### 4. `delta_shared_feature_norm_with_post_rmsnorm`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Shared linear feature encoder with explicit post-encoder RMSNorm before the transformer blocks.
@@ -142,8 +166,16 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - Compare against both the traced shared baseline and the post-layernorm row before preferring one normalization family.
   - Keep optimizer, dataset bundle, and preprocessing fixed so only the post-encoder normalization changes.
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `RMSNorm post-encoder best ROC AUC 0.7572 (step 1975), below both anchor (0.7596) and LayerNorm (0.7670). RMSNorm did not improve over shared-no-norm (0.7620). max_grad_norm 4.216 similar to LayerNorm. LayerNorm is the clear winner.`
+- Notes:
+  - wandb: https://wandb.ai/bensonlee55-none/tab-foundry/runs/r684s86u
+  - final_train_loss=0.454, mean_grad_norm=0.182, max_grad_norm=4.216
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v2/delta_shared_feature_norm_with_post_rmsnorm/result_card.md`
-- Benchmark metrics: pending
+- Benchmark metrics:
+  - Best ROC AUC: `0.7604` (step 1250)
+  - Final ROC AUC: `0.7548`
+  - Drift (final − best): `-0.0056`
+  - NanoTabPFN control: `0.7616`
+  - max_grad_norm: `4.216`
