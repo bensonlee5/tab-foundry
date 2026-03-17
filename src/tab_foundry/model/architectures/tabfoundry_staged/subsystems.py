@@ -49,7 +49,7 @@ class SharedLinearFeatureEncoder(nn.Module):
 
     def __init__(self, token_dim: int, embedding_size: int) -> None:
         super().__init__()
-        self.linear = nn.Linear(token_dim, embedding_size)
+        self.linear = nn.Linear(token_dim, embedding_size, bias=False)
 
     def forward(self, tokenized_x: torch.Tensor) -> torch.Tensor:
         return self.linear(tokenized_x)
@@ -86,7 +86,9 @@ class LabelTokenTargetConditioner(nn.Module):
         self.test_token = nn.Parameter(torch.randn(1, 1, embedding_size) * 0.02)
 
     def forward(self, y_train: torch.Tensor, *, num_rows: int) -> torch.Tensor:
-        y_train_i64 = y_train.to(torch.int64).clamp(max=self.embedding.num_embeddings - 1)
+        y_train_i64 = y_train.to(torch.int64).clamp(
+            max=self.embedding.num_embeddings - 1
+        )
         train_embed = self.embedding(y_train_i64)
         n_train = int(train_embed.shape[1])
         n_test = num_rows - n_train
@@ -117,7 +119,9 @@ class NanoPostNormBlock(nn.Module):
             norm_type=norm_type,
         )
 
-    def forward(self, cells: torch.Tensor, *, train_test_split_index: int) -> torch.Tensor:
+    def forward(
+        self, cells: torch.Tensor, *, train_test_split_index: int
+    ) -> torch.Tensor:
         return self.block(cells, train_test_split_index=train_test_split_index)
 
 
@@ -148,8 +152,8 @@ class PreNormCellBlock(nn.Module):
         self.feature_norm = build_norm(norm_type, embedding_size)
         self.row_norm = build_norm(norm_type, embedding_size)
         self.ff_norm = build_norm(norm_type, embedding_size)
-        self.linear1 = Linear(embedding_size, mlp_hidden_size)
-        self.linear2 = Linear(mlp_hidden_size, embedding_size)
+        self.linear1 = Linear(embedding_size, mlp_hidden_size, bias=True)
+        self.linear2 = Linear(mlp_hidden_size, embedding_size, bias=True)
 
     def _row_attention_mask(
         self,
@@ -168,14 +172,22 @@ class PreNormCellBlock(nn.Module):
             mask[diag, diag] = 0.0
         return mask
 
-    def forward(self, cells: torch.Tensor, *, train_test_split_index: int) -> torch.Tensor:
+    def forward(
+        self, cells: torch.Tensor, *, train_test_split_index: int
+    ) -> torch.Tensor:
         batch_size, rows_size, col_size, embedding_size = cells.shape
         feat_in = cells.reshape(batch_size * rows_size, col_size, embedding_size)
         feat_norm = self.feature_norm(feat_in)
-        feat_out = self.self_attention_between_features(feat_norm, feat_norm, feat_norm)[0]
-        cells = (feat_in + feat_out).reshape(batch_size, rows_size, col_size, embedding_size)
+        feat_out = self.self_attention_between_features(
+            feat_norm, feat_norm, feat_norm
+        )[0]
+        cells = (feat_in + feat_out).reshape(
+            batch_size, rows_size, col_size, embedding_size
+        )
 
-        row_in = cells.transpose(1, 2).reshape(batch_size * col_size, rows_size, embedding_size)
+        row_in = cells.transpose(1, 2).reshape(
+            batch_size * col_size, rows_size, embedding_size
+        )
         row_norm = self.row_norm(row_in)
         row_mask = self._row_attention_mask(
             n_total=rows_size,
@@ -189,7 +201,9 @@ class PreNormCellBlock(nn.Module):
             attn_mask=row_mask,
         )[0]
         row_residual = row_in + row_out
-        cells = row_residual.reshape(batch_size, col_size, rows_size, embedding_size).transpose(2, 1)
+        cells = row_residual.reshape(
+            batch_size, col_size, rows_size, embedding_size
+        ).transpose(2, 1)
 
         ff_norm = self.ff_norm(cells)
         return self.linear2(F.gelu(self.linear1(ff_norm))) + cells
@@ -225,9 +239,13 @@ class SetColumnEncoder(nn.Module):
 
     def forward(self, cells: torch.Tensor) -> torch.Tensor:
         batch_size, rows_size, col_size, embedding_size = cells.shape
-        flat = cells.permute(0, 2, 1, 3).reshape(batch_size * col_size, rows_size, embedding_size)
+        flat = cells.permute(0, 2, 1, 3).reshape(
+            batch_size * col_size, rows_size, embedding_size
+        )
         encoded = self.encoder(flat)
-        return encoded.reshape(batch_size, col_size, rows_size, embedding_size).permute(0, 2, 1, 3)
+        return encoded.reshape(batch_size, col_size, rows_size, embedding_size).permute(
+            0, 2, 1, 3
+        )
 
 
 class TargetColumnPool(nn.Module):
@@ -338,7 +356,9 @@ class SequenceContextEncoder(nn.Module):
             n_train=train_test_split_index,
             device=seq.device,
         )
-        return self.encoder(seq, allowed_mask=allowed_mask, n_context=train_test_split_index)
+        return self.encoder(
+            seq, allowed_mask=allowed_mask, n_context=train_test_split_index
+        )
 
 
 class NanoBinaryHead(nn.Module):
@@ -355,7 +375,9 @@ class NanoBinaryHead(nn.Module):
 class DirectClassifierHead(nn.Module):
     """Generic small-class MLP head."""
 
-    def __init__(self, embedding_size: int, hidden_size: int, output_width: int) -> None:
+    def __init__(
+        self, embedding_size: int, hidden_size: int, output_width: int
+    ) -> None:
         super().__init__()
         self.output_width = output_width
         self.net = nn.Sequential(

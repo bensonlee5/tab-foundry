@@ -113,7 +113,9 @@ class _TransformerEncoderLayer(nn.Module):
 class _Decoder(nn.Module):
     """Exact nanoTabPFN decoder."""
 
-    def __init__(self, embedding_size: int, mlp_hidden_size: int, num_outputs: int) -> None:
+    def __init__(
+        self, embedding_size: int, mlp_hidden_size: int, num_outputs: int
+    ) -> None:
         super().__init__()
         self.linear1 = nn.Linear(embedding_size, mlp_hidden_size)
         self.linear2 = nn.Linear(mlp_hidden_size, num_outputs)
@@ -152,7 +154,9 @@ class TabFoundrySimpleClassifier(nn.Module):
         super().__init__()
         self._require_default("d_col", int(d_col), 128)
         self._require_default("feature_group_size", int(feature_group_size), 1)
-        self._require_default("many_class_train_mode", str(many_class_train_mode), "path_nll")
+        self._require_default(
+            "many_class_train_mode", str(many_class_train_mode), "path_nll"
+        )
         self._require_default("max_mixed_radix_digits", int(max_mixed_radix_digits), 64)
         self._require_default("tfcol_n_heads", int(tfcol_n_heads), 8)
         self._require_default("tfcol_n_layers", int(tfcol_n_layers), 3)
@@ -160,8 +164,12 @@ class TabFoundrySimpleClassifier(nn.Module):
         self._require_default("tfrow_n_heads", int(tfrow_n_heads), 8)
         self._require_default("tfrow_n_layers", int(tfrow_n_layers), 3)
         self._require_default("tfrow_cls_tokens", int(tfrow_cls_tokens), 4)
-        self._require_default("tfrow_norm", str(tfrow_norm).strip().lower(), "layernorm")
-        self._require_default("use_digit_position_embed", bool(use_digit_position_embed), True)
+        self._require_default(
+            "tfrow_norm", str(tfrow_norm).strip().lower(), "layernorm"
+        )
+        self._require_default(
+            "use_digit_position_embed", bool(use_digit_position_embed), True
+        )
 
         self.d_icl = int(d_icl)
         if self.d_icl <= 0:
@@ -232,11 +240,17 @@ class TabFoundrySimpleClassifier(nn.Module):
         return int(batch.y_train.max().item()) + 1
 
     @staticmethod
-    def _prepare_task_inputs(batch: TaskBatch) -> tuple[torch.Tensor, torch.Tensor, int]:
+    def _prepare_task_inputs(
+        batch: TaskBatch,
+    ) -> tuple[torch.Tensor, torch.Tensor, int]:
         train_test_split_index = int(batch.x_train.shape[0])
         if train_test_split_index <= 0:
             raise RuntimeError("tabfoundry_simple requires at least one training row")
-        x_all = torch.cat([batch.x_train, batch.x_test], dim=0).to(torch.float32).unsqueeze(0)
+        x_all = (
+            torch.cat([batch.x_train, batch.x_test], dim=0)
+            .to(torch.float32)
+            .unsqueeze(0)
+        )
         y_train = batch.y_train.to(torch.float32).unsqueeze(0)
         return x_all, y_train, train_test_split_index
 
@@ -247,7 +261,9 @@ class TabFoundrySimpleClassifier(nn.Module):
         train_test_split_index: int,
     ) -> None:
         if x_all.ndim != 3:
-            raise ValueError(f"x_all must have shape [B, R, C], got {tuple(x_all.shape)}")
+            raise ValueError(
+                f"x_all must have shape [B, R, C], got {tuple(x_all.shape)}"
+            )
         if y_train.ndim not in {2, 3}:
             raise ValueError(
                 f"y_train must have shape [B, R_train] or [B, R_train, 1], got {tuple(y_train.shape)}"

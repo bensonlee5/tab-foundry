@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-03-16
+
+### Changed
+
+- Removed bias from all linear layers behind pre-norm in QASS attention
+  projections, QASS scaler MLPs, QASS transformer feedforward layers, and the
+  shared feature encoder, reducing redundant parameters that LayerNorm/RMSNorm
+  already subsumes.
+
+- Retained explicit `bias=True` on the pre-norm cell block feedforward layers
+  where the bias sits after normalization and contributes to representational
+  capacity.
+
+- Added the `delta_global_rmsnorm` row to the `binary_md_v3` system delta
+  sweep queue, testing global RMSNorm combined with bias removal against the
+  promoted shared+LayerNorm anchor.
+
 ## [0.6.6] - 2026-03-16
 
 ### Changed

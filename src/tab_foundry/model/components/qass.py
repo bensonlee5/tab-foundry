@@ -19,18 +19,17 @@ class QASSScaler(nn.Module):
         self.n_heads = n_heads
         self.d_head = d_head
         self.mlp_base = nn.Sequential(
-            nn.Linear(1, hidden_dim),
+            nn.Linear(1, hidden_dim, bias=False),
             nn.GELU(),
-            nn.Linear(hidden_dim, n_heads * d_head),
+            nn.Linear(hidden_dim, n_heads * d_head, bias=False),
         )
         self.mlp_gate = nn.Sequential(
-            nn.Linear(d_head, hidden_dim),
+            nn.Linear(d_head, hidden_dim, bias=False),
             nn.GELU(),
-            nn.Linear(hidden_dim, d_head),
+            nn.Linear(hidden_dim, d_head, bias=False),
         )
         final_layer = cast(nn.Linear, self.mlp_gate[-1])
         nn.init.zeros_(final_layer.weight)
-        nn.init.zeros_(final_layer.bias)
 
     def forward(self, q: torch.Tensor, n_context: int) -> torch.Tensor:
         """Scale query tensor of shape [B, H, N, D]."""
@@ -63,10 +62,10 @@ class QASSMultiheadAttention(nn.Module):
         self.d_head = d_model // n_heads
         self.use_qass = use_qass
 
-        self.q_proj = nn.Linear(d_model, d_model)
-        self.k_proj = nn.Linear(d_model, d_model)
-        self.v_proj = nn.Linear(d_model, d_model)
-        self.out_proj = nn.Linear(d_model, d_model)
+        self.q_proj = nn.Linear(d_model, d_model, bias=False)
+        self.k_proj = nn.Linear(d_model, d_model, bias=False)
+        self.v_proj = nn.Linear(d_model, d_model, bias=False)
+        self.out_proj = nn.Linear(d_model, d_model, bias=False)
         self.dropout = nn.Dropout(dropout)
         self.scaler = QASSScaler(n_heads=n_heads, d_head=self.d_head)
 
@@ -100,7 +99,11 @@ class QASSMultiheadAttention(nn.Module):
         attn = torch.softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, v)
-        out = out.permute(0, 2, 1, 3).contiguous().view(query.shape[0], query.shape[1], self.d_model)
+        out = (
+            out.permute(0, 2, 1, 3)
+            .contiguous()
+            .view(query.shape[0], query.shape[1], self.d_model)
+        )
         return self.out_proj(out)
 
 
@@ -120,13 +123,15 @@ class QASSTransformerLayer(nn.Module):
         super().__init__()
         self.norm1 = build_norm(norm_type, d_model)
         self.norm2 = build_norm(norm_type, d_model)
-        self.attn = QASSMultiheadAttention(d_model, n_heads, dropout=dropout, use_qass=use_qass)
+        self.attn = QASSMultiheadAttention(
+            d_model, n_heads, dropout=dropout, use_qass=use_qass
+        )
         ff_hidden = d_model * ff_expansion
         self.ff = nn.Sequential(
-            nn.Linear(d_model, ff_hidden),
+            nn.Linear(d_model, ff_hidden, bias=False),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(ff_hidden, d_model),
+            nn.Linear(ff_hidden, d_model, bias=False),
             nn.Dropout(dropout),
         )
 
@@ -190,5 +195,7 @@ class QASSTransformerEncoder(nn.Module):
         force_qass: bool | None = None,
     ) -> torch.Tensor:
         for layer in self.layers:
-            x = layer(x, allowed_mask=allowed_mask, n_context=n_context, force_qass=force_qass)
+            x = layer(
+                x, allowed_mask=allowed_mask, n_context=n_context, force_qass=force_qass
+            )
         return self.final_norm(x)
