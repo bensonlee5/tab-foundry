@@ -3,7 +3,7 @@ sweep_id: stability_ladder
 rows:
 - order: 1
   delta_ref: prenorm_baseline
-  status: ready
+  status: done
   rationale: >-
     Baseline prenorm block configuration with all defaults. No stability mechanisms
     enabled. This establishes the prenorm performance floor.
@@ -26,26 +26,32 @@ rows:
   training:
     surface_label: prior_constant_lr
     overrides: {}
-  run_id: null
+  run_id: stability-ladder-A
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: accept_as_evidence
+  interpretation_status: complete
+  interpretation: >-
+    Confirms hypothesis: prenorm without warmup exhibits a large early-step loss
+    spike (max loss 2.23, max grad norm 13.16, max loss delta 1.39). The spike
+    resolves by ~step 100 but the early instability is undesirable. Final loss
+    0.4729 matches later rungs, confirming the spike does not permanently harm
+    convergence at this scale, but would likely cause divergence at higher LR or
+    longer training.
   confounders: []
-  next_action: Train prenorm baseline and establish stability metrics.
+  next_action: null
 
 - order: 2
   delta_ref: warmup_grad_clip
-  status: ready
+  status: done
   rationale: >-
-    Add cosine warmup (5% of steps) and gradient clipping (max norm 1.0) to the
-    prenorm baseline. These are the most common early-step stability interventions.
+    Add cosine warmup (5% of steps) to the prenorm baseline. This is the most
+    common early-step stability intervention.
   hypothesis: >-
-    Warmup prevents early large-LR steps from destabilizing the model. Grad clip
-    bounds the magnitude of parameter updates. Together they should reduce early
-    loss spikes.
+    Warmup prevents early large-LR steps from destabilizing the model. Combined
+    with the base config's grad_clip=1.0, it should reduce early loss spikes.
   anchor_delta: >-
-    Adds warmup_ratio: 0.05 to the schedule and grad_clip: 1.0 to runtime.
-    Model architecture remains identical to row A.
+    Adds warmup_ratio: 0.05 to the schedule. Model architecture remains identical
+    to row A. Grad clip 1.0 is already in the base config for both rows.
   model:
     stage_label: warmup_grad_clip
     module_overrides:
@@ -61,17 +67,24 @@ rows:
     overrides:
       warmup_ratio: 0.05
       grad_clip: 1.0
-  run_id: null
+  run_id: stability-ladder-B
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: promote
+  interpretation_status: complete
+  interpretation: >-
+    Warmup is the dominant stabilizer. Max grad norm drops 4.8x (13.16 -> 2.75),
+    max loss delta drops 6.3x (1.39 -> 0.22), max train loss drops from 2.23 to
+    0.76 (initial value, no spike), and loss variance halves (0.0031 -> 0.0015).
+    Final loss is equivalent (0.4727 vs 0.4729). Warmup with cosine schedule
+    should be the default for prenorm block training.
   confounders:
-    - Warmup and grad clip are applied simultaneously; cannot isolate their individual contributions.
-  next_action: Train with warmup+clip and compare stability metrics against row A.
+    - Grad clip 1.0 is present in both A and B via the base config, so the A->B
+      comparison isolates warmup alone, not warmup+clip as the matrix naming implies.
+  next_action: Promote prenorm+cosine warmup as the new training default.
 
 - order: 3
   delta_ref: shared_dropout
-  status: ready
+  status: done
   rationale: >-
     Add unified staged_dropout=0.1 to all model components. This eliminates the
     hidden dropout variance where different components default to different rates.
@@ -99,17 +112,24 @@ rows:
     overrides:
       warmup_ratio: 0.05
       grad_clip: 1.0
-  run_id: null
+  run_id: stability-ladder-C
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: accept_as_evidence
+  interpretation_status: complete
+  interpretation: >-
+    Dropout has negligible marginal stability effect at 2500 steps on clean
+    prior-dump data. Grad norms, loss variance, and loss delta are statistically
+    indistinguishable from row B. Final loss slightly higher (0.4742 vs 0.4727).
+    Dropout remains a reasonable defense-in-depth default but is not a primary
+    stability mechanism for this surface.
   confounders:
     - Dropout interacts with warmup; the warmup period effectively trains without dropout benefit.
-  next_action: Train with dropout and compare against rows A and B.
+    - 2500 steps may be too short for dropout's regularization benefit to manifest.
+  next_action: null
 
 - order: 4
   delta_ref: pre_encoder_guard
-  status: ready
+  status: done
   rationale: >-
     Add pre_encoder_clip=10.0 to clamp input values before the feature encoder.
     This guards against extreme input values that can cause attention score overflow.
@@ -137,10 +157,16 @@ rows:
     overrides:
       warmup_ratio: 0.05
       grad_clip: 1.0
-  run_id: null
+  run_id: stability-ladder-D
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: accept_as_evidence
+  interpretation_status: complete
+  interpretation: >-
+    Input clip has negligible marginal effect on clean prior-dump data. All stability
+    metrics are indistinguishable from row C. This is expected since the synthetic
+    prior-dump data has no extreme input values. Pre-encoder clip is a defense-in-depth
+    mechanism for real-world data with outliers, not a stability driver on this surface.
   confounders:
     - Input clipping may interact with the shared normalization already applied upstream.
-  next_action: Train full stability stack and compare against all prior rows.
+    - Clean synthetic prior-dump data has no extreme values to clip, limiting the mechanism's testability.
+  next_action: null

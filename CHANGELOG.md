@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.9] - 2026-03-17
+
+### Added
+
+- Completed the `stability_ladder` sweep (4 rungs) isolating the marginal
+  contribution of each stability mechanism on prenorm blocks trained against
+  the nanoTabPFN prior dump.
+
+- Rung A (baseline) shows an early-step loss spike to 2.23 and a max gradient
+  norm of 13.16, confirming that prenorm blocks without warmup are unstable in
+  the first few steps.
+
+- Rung B (cosine warmup 5%) eliminates the spike entirely: max train loss stays
+  at the initial 0.76, max gradient norm drops to 2.75 (4.8x reduction), max
+  loss delta drops from 1.39 to 0.22 (6.3x), and loss variance halves from
+  0.0031 to 0.0015. Warmup is the dominant stabilizer.
+
+- Rungs C (dropout 0.1) and D (input clip 10.0) show negligible marginal
+  stability effect on clean prior-dump data at 2500 steps, confirming that
+  dropout and input clipping are defense-in-depth mechanisms rather than
+  primary stability drivers for this training surface.
+
+### Changed
+
+- Promoted prenorm blocks with cosine warmup as the new default training
+  surface for prior-dump experiments. `compact_binary_prior.yaml` now sets
+  `training.apply_schedule=true` with a single-stage cosine schedule
+  (`warmup_ratio=0.05`, `lr_schedule=cosine`) and the training surface label
+  changed from `prior_constant_lr` to `prior_cosine_warmup`.
+
 ## [0.6.8] - 2026-03-17
 
 ### Added

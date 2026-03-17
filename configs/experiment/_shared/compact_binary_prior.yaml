@@ -28,6 +28,14 @@ optimizer:
   muon_lr_scale_base: 0.2
   muon_partition_non2d: true
 training:
-  surface_label: prior_constant_lr
+  surface_label: prior_cosine_warmup
+  apply_schedule: true
+schedule:
+  stages:
+    - name: prior_dump
+      steps: 2500
+      lr_max: 4.0e-3
+      lr_schedule: cosine
+      warmup_ratio: 0.05
 logging:
   history_jsonl_path: ${runtime.output_dir}/train_history.jsonl
