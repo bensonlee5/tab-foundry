@@ -57,6 +57,7 @@ class NanoTabPFNBenchmarkConfig:
     control_baseline_registry: Path | None = None
     benchmark_bundle_path: Path | None = None
     reuse_nanotabpfn_curve_path: Path | None = None
+    compile_model: bool = False
 
 
 def _default_out_root() -> Path:
@@ -183,6 +184,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         device=config.device,
         allow_checkpoint_failures=True,
         allow_missing_values=allow_missing_values,
+        compile_model=config.compile_model,
     )
     tab_foundry_records = cast(
         list[dict[str, Any]],
@@ -328,6 +330,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional repo-tracked OpenML benchmark bundle JSON path",
     )
+    parser.add_argument(
+        "--compile-model",
+        action="store_true",
+        default=False,
+        help="Use torch.compile for faster repeated inference (requires PyTorch 2.0+)",
+    )
     return parser
 
 
@@ -356,6 +364,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.benchmark_bundle_path
                 else None
             ),
+            compile_model=bool(args.compile_model),
         )
     )
     print("nanoTabPFN comparison complete:")

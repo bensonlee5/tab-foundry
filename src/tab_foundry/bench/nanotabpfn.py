@@ -564,6 +564,110 @@ def evaluate_classifier(
     return metrics
 
 
+def _evaluate_classifier_fast(
+    model: Any,
+    model_spec: Any,
+    device: Any,
+    datasets: Mapping[str, tuple[np.ndarray, np.ndarray]],
+    *,
+    allow_missing_values: bool = False,
+) -> dict[str, float]:
+    """Evaluate a tab-foundry model on the benchmark suite with reduced overhead.
+
+    Inlines the fit/predict_proba logic to avoid per-call overhead: enters
+    torch.no_grad() once, pre-resolves normalization mode once, and uses
+    torch.from_numpy for zero-copy tensor creation.
+    """
+    import torch
+    import torch.nn.functional as F
+    from tab_foundry.input_normalization import (
+        InputNormalizationMode,
+        normalize_train_test_arrays,
+    )
+    from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
+        staged_surface_uses_internal_benchmark_normalization,
+    )
+    from tab_foundry.types import TaskBatch
+
+    if not allow_missing_values:
+        _assert_finite_benchmark_datasets(datasets, context="benchmark evaluation inputs")
+
+    model_arch = str(getattr(model_spec, "arch", "tabfoundry")).strip().lower()
+    normalization_mode: InputNormalizationMode = cast(
+        InputNormalizationMode,
+        str(getattr(model_spec, "input_normalization", "none")).strip().lower(),
+    )
+    internal_normalization = model_arch == "tabfoundry_simple"
+    if model_arch == "tabfoundry_staged":
+        internal_normalization = staged_surface_uses_internal_benchmark_normalization(
+            model_spec,
+        )
+    skip_normalization = internal_normalization or normalization_mode == "none"
+
+    metrics: dict[str, float] = {}
+    with torch.no_grad():
+        for dataset_name, (x, y) in datasets.items():
+            try:
+                targets: list[np.ndarray] = []
+                probabilities: list[np.ndarray] = []
+                for train_idx, test_idx in _SKF.split(x, y):
+                    x_train, x_test = x[train_idx], x[test_idx]
+                    y_train, y_test = y[train_idx], y[test_idx]
+                    targets.append(y_test)
+
+                    classes, encoded = np.unique(y_train, return_inverse=True)
+                    num_classes = int(classes.size)
+                    x_train_f = np.ascontiguousarray(x_train, dtype=np.float32)
+                    y_train_enc = encoded.astype(np.int64, copy=False)
+                    x_test_f = np.ascontiguousarray(x_test, dtype=np.float32)
+
+                    if skip_normalization:
+                        x_train_norm, x_test_norm = x_train_f, x_test_f
+                    else:
+                        x_train_norm, x_test_norm = normalize_train_test_arrays(
+                            x_train_f, x_test_f, mode=normalization_mode,
+                        )
+
+                    batch = TaskBatch(
+                        x_train=torch.from_numpy(np.ascontiguousarray(x_train_norm)).to(device),
+                        y_train=torch.from_numpy(np.ascontiguousarray(y_train_enc)).to(device),
+                        x_test=torch.from_numpy(np.ascontiguousarray(x_test_norm)).to(device),
+                        y_test=torch.zeros(x_test_norm.shape[0], dtype=torch.int64, device=device),
+                        metadata={"dataset": "external_benchmark"},
+                        num_classes=num_classes,
+                    )
+
+                    output = model(batch)
+                    if output.logits is not None:
+                        probs = F.softmax(output.logits[:, :num_classes], dim=-1)
+                    elif output.class_probs is not None:
+                        probs = output.class_probs[:, :num_classes]
+                    else:
+                        raise RuntimeError("checkpoint output does not expose logits or class probabilities")
+
+                    y_proba = probs.cpu().numpy()
+                    if y_proba.shape[1] == 2:
+                        probabilities.append(np.asarray(y_proba[:, 1], dtype=np.float64))
+                    else:
+                        probabilities.append(np.asarray(y_proba, dtype=np.float64))
+
+                target_array = np.concatenate(targets, axis=0)
+                probability_array = np.concatenate(probabilities, axis=0)
+                assert_no_non_finite_values(
+                    {"probabilities": probability_array},
+                    context=f"benchmark classifier outputs dataset={dataset_name!r}",
+                )
+                metrics[f"{dataset_name}/ROC AUC"] = float(
+                    roc_auc_score(target_array, probability_array, multi_class="ovr")
+                )
+            except Exception as exc:
+                raise BenchmarkDatasetEvaluationError(str(dataset_name), exc) from exc
+
+    roc_auc_values = [value for key, value in metrics.items() if key.endswith("/ROC AUC")]
+    metrics["ROC AUC"] = float(np.mean(roc_auc_values))
+    return metrics
+
+
 def dataset_roc_auc_metrics(metrics: Mapping[str, float]) -> dict[str, float]:
     """Extract per-dataset ROC AUC values from a benchmark metrics dict."""
 
@@ -909,22 +1013,49 @@ def evaluate_tab_foundry_run(
     device: str,
     allow_checkpoint_failures: bool = False,
     allow_missing_values: bool = False,
+    compile_model: bool = False,
 ) -> list[dict[str, Any]]:
     """Evaluate smoke-run checkpoints on the notebook benchmark suite."""
+
+    import torch as _torch
 
     from tab_foundry.bench.checkpoint import TabFoundryClassifier
 
     resolved_device = resolve_device(device)
     curve_records: list[dict[str, Any]] = []
+    classifier: TabFoundryClassifier | None = None
+    use_fast_path = False
+    compiled = False
     for snapshot in collect_checkpoint_snapshots(run_dir):
         checkpoint_path = Path(str(snapshot["path"]))
         try:
-            classifier = TabFoundryClassifier(checkpoint_path, device=resolved_device)
-            metrics = evaluate_classifier(
-                classifier,
-                datasets,
-                allow_missing_values=allow_missing_values,
-            )
+            if classifier is None:
+                classifier = TabFoundryClassifier(checkpoint_path, device=resolved_device)
+                use_fast_path = isinstance(getattr(classifier, "model", None), _torch.nn.Module)
+                if compile_model and not compiled and use_fast_path:
+                    try:
+                        classifier.model = _torch.compile(classifier.model)  # type: ignore[assignment]
+                        compiled = True
+                    except Exception:
+                        pass
+            elif hasattr(classifier, "reload_weights"):
+                classifier.reload_weights(checkpoint_path)
+            else:
+                classifier = TabFoundryClassifier(checkpoint_path, device=resolved_device)
+            if use_fast_path:
+                metrics = _evaluate_classifier_fast(
+                    classifier.model,
+                    classifier.model_spec,
+                    classifier.device,
+                    datasets,
+                    allow_missing_values=allow_missing_values,
+                )
+            else:
+                metrics = evaluate_classifier(
+                    classifier,
+                    datasets,
+                    allow_missing_values=allow_missing_values,
+                )
         except Exception as exc:
             if not allow_checkpoint_failures:
                 raise
@@ -943,6 +1074,7 @@ def evaluate_tab_foundry_run(
                     "failed_dataset": failed_dataset,
                 }
             )
+            classifier = None
             continue
         model_arch = str(getattr(classifier.model_spec, "arch", "tabfoundry")).strip().lower()
         model_stage_raw = getattr(classifier.model_spec, "stage", None)

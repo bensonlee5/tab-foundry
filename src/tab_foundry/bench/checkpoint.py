@@ -89,6 +89,19 @@ class TabFoundryClassifier:
         self._x_train: np.ndarray | None = None
         self._y_train: np.ndarray | None = None
 
+    def reload_weights(self, checkpoint_path: Path) -> None:
+        """Reload weights from a different checkpoint without rebuilding the model."""
+        self.checkpoint_path = checkpoint_path.expanduser().resolve()
+        payload = torch.load(self.checkpoint_path, map_location="cpu", weights_only=False)
+        if not isinstance(payload, dict):
+            raise RuntimeError("checkpoint payload must be a mapping")
+        self.model.load_state_dict(payload["model"])
+        self.model.to(self.device)
+        self.model.eval()
+        self._classes = None
+        self._x_train = None
+        self._y_train = None
+
     def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "TabFoundryClassifier":
         classes, encoded = np.unique(np.asarray(y_train), return_inverse=True)
         if classes.size < 2:
