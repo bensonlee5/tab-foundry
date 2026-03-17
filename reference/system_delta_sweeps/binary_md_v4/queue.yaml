@@ -1,0 +1,251 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: binary_md_v4
+rows:
+- order: 1
+  delta_ref: delta_preproc_norm_zscore
+  status: ready
+  rationale: Contextualize `delta_preproc_norm_zscore` against anchor `01_shared_norm_post_ln_binary_medium_v1`
+    for sweep `binary_md_v4`.
+  hypothesis: ''
+  anchor_delta: 'TODO: describe how `delta_preproc_norm_zscore` differs from the locked
+    anchor `01_shared_norm_post_ln_binary_medium_v1`.'
+  model:
+    stage_label: delta_preproc_norm_zscore
+    input_normalization: train_zscore
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: rmsnorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare ROC AUC and loss curves against the anchor (no normalization).
+  - Check whether normalization helps more on high-variance-feature tasks.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run and compare against the anchor and other normalization rows.
+  notes: []
+- order: 2
+  delta_ref: delta_preproc_norm_rankgauss
+  status: ready
+  rationale: Contextualize `delta_preproc_norm_rankgauss` against anchor `01_shared_norm_post_ln_binary_medium_v1`
+    for sweep `binary_md_v4`.
+  hypothesis: ''
+  anchor_delta: 'TODO: describe how `delta_preproc_norm_rankgauss` differs from the
+    locked anchor `01_shared_norm_post_ln_binary_medium_v1`.'
+  model:
+    stage_label: delta_preproc_norm_rankgauss
+    input_normalization: train_rankgauss
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: rmsnorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare ROC AUC and loss curves against the anchor (no normalization).
+  - Look for per-task lift on skewed or heavy-tailed feature distributions.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run and compare against the anchor and other normalization rows.
+  notes: []
+- order: 3
+  delta_ref: delta_preproc_norm_robust
+  status: ready
+  rationale: Contextualize `delta_preproc_norm_robust` against anchor `01_shared_norm_post_ln_binary_medium_v1`
+    for sweep `binary_md_v4`.
+  hypothesis: ''
+  anchor_delta: 'TODO: describe how `delta_preproc_norm_robust` differs from the locked
+    anchor `01_shared_norm_post_ln_binary_medium_v1`.'
+  model:
+    stage_label: delta_preproc_norm_robust
+    input_normalization: train_robust
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: rmsnorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare ROC AUC and loss curves against the anchor (no normalization).
+  - Check whether robust scaling helps on tasks with outlier-heavy columns.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run and compare against the anchor and other normalization rows.
+  notes: []
+- order: 4
+  delta_ref: delta_preproc_norm_winsorize_zscore
+  status: ready
+  rationale: Contextualize `delta_preproc_norm_winsorize_zscore` against anchor `01_shared_norm_post_ln_binary_medium_v1`
+    for sweep `binary_md_v4`.
+  hypothesis: ''
+  anchor_delta: 'TODO: describe how `delta_preproc_norm_winsorize_zscore` differs
+    from the locked anchor `01_shared_norm_post_ln_binary_medium_v1`.'
+  model:
+    stage_label: delta_preproc_norm_winsorize_zscore
+    input_normalization: train_winsorize_zscore
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: rmsnorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare ROC AUC and loss curves against the anchor (no normalization).
+  - Verify that winsorization bounds match expected 1st/99th percentile range.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run and compare against the anchor and other normalization rows.
+  notes: []
+- order: 5
+  delta_ref: delta_preproc_norm_zscore
+  status: ready
+  rationale: Contextualize `delta_preproc_norm_zscore` with LayerNorm post-encoder against
+    anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
+  hypothesis: ''
+  anchor_delta: Changes input_normalization from train_zscore_clip to train_zscore
+    while keeping the anchor LayerNorm post-encoder norm.
+  model:
+    stage_label: delta_preproc_norm_zscore
+    input_normalization: train_zscore
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare ROC AUC and loss curves against the anchor (no normalization).
+  - Check whether normalization helps more on high-variance-feature tasks.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run and compare against the anchor and other normalization rows.
+  notes: []
+- order: 6
+  delta_ref: delta_preproc_norm_rankgauss
+  status: ready
+  rationale: Contextualize `delta_preproc_norm_rankgauss` with LayerNorm post-encoder against
+    anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
+  hypothesis: ''
+  anchor_delta: Changes input_normalization from train_zscore_clip to train_rankgauss
+    while keeping the anchor LayerNorm post-encoder norm.
+  model:
+    stage_label: delta_preproc_norm_rankgauss
+    input_normalization: train_rankgauss
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare ROC AUC and loss curves against the anchor (no normalization).
+  - Look for per-task lift on skewed or heavy-tailed feature distributions.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run and compare against the anchor and other normalization rows.
+  notes: []
+- order: 7
+  delta_ref: delta_preproc_norm_robust
+  status: ready
+  rationale: Contextualize `delta_preproc_norm_robust` with LayerNorm post-encoder against
+    anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
+  hypothesis: ''
+  anchor_delta: Changes input_normalization from train_zscore_clip to train_robust
+    while keeping the anchor LayerNorm post-encoder norm.
+  model:
+    stage_label: delta_preproc_norm_robust
+    input_normalization: train_robust
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare ROC AUC and loss curves against the anchor (no normalization).
+  - Check whether robust scaling helps on tasks with outlier-heavy columns.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run and compare against the anchor and other normalization rows.
+  notes: []
+- order: 8
+  delta_ref: delta_preproc_norm_winsorize_zscore
+  status: ready
+  rationale: Contextualize `delta_preproc_norm_winsorize_zscore` with LayerNorm post-encoder
+    against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
+  hypothesis: ''
+  anchor_delta: Changes input_normalization from train_zscore_clip to train_winsorize_zscore
+    while keeping the anchor LayerNorm post-encoder norm.
+  model:
+    stage_label: delta_preproc_norm_winsorize_zscore
+    input_normalization: train_winsorize_zscore
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare ROC AUC and loss curves against the anchor (no normalization).
+  - Verify that winsorization bounds match expected 1st/99th percentile range.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run and compare against the anchor and other normalization rows.
+  notes: []

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-03-17
+
+### Added
+
+- Three new input normalization modes: `train_rankgauss` (quantile-to-Gaussian
+  via erfinv), `train_robust` (median/IQR scaling), and `train_winsorize_zscore`
+  (1st/99th percentile clip then z-score). Both numpy and torch paths implemented.
+
+- Four `delta_preproc_norm_*` catalog entries in the `input_normalization` family
+  covering all four non-trivial normalization strategies.
+
+- `binary_md_v4` system delta sweep (8 rows) testing input normalization modes
+  crossed with RMSNorm and LayerNorm post-encoder norms against the v3 anchor.
+
+- Unit and property tests for the new normalization modes, including rank-gauss
+  boundedness, robust median/IQR verification, and winsorize percentile checks.
+
+### Changed
+
+- Extended `InputNormalizationMode` and `SUPPORTED_INPUT_NORMALIZATION_MODES` to
+  include the three new modes.
+
 ## [0.6.7] - 2026-03-16
 
 ### Changed
