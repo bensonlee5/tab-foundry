@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Training checkpoints, `training_surface_record.json`,
+  `benchmark_run_record.json`, and export manifests now persist additive
+  producer provenance with `git_sha`, `git_dirty`, and optional dirty-worktree
+  patch metadata. Dirty training/export runs now also persist a `source.patch`
+  artifact so source state can be reconstructed exactly.
+
+- Benchmark comparison no longer warns and skips benchmark-record derivation for
+  legacy checkpoint metadata. User-facing break: `benchmark_nanotabpfn.py` now
+  fails fast when a run cannot produce the current canonical
+  `benchmark_run_record.json` or `training_surface_record.json`.
+
 ## [0.6.7] - 2026-03-16
 
 ### Changed

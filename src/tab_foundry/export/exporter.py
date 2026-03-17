@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-import importlib.metadata
 import json
 from pathlib import Path
-import subprocess
 from typing import Any
 
 from safetensors.torch import save_file
@@ -16,6 +14,7 @@ import torch
 from tab_foundry.model.missingness import validate_missingness_runtime_policy
 from tab_foundry.model.spec import ModelBuildSpec, checkpoint_model_build_spec_from_mappings
 from tab_foundry.preprocessing import resolve_preprocessing_surface
+from tab_foundry.provenance import resolve_current_producer
 
 from .checksums import sha256_file
 from .contracts import (
@@ -26,12 +25,11 @@ from .contracts import (
     ExportMissingValuePolicy,
     ExportModelSpec,
     ExportPreprocessorState,
-    ExportWeights,
     InferenceConfig,
     LegacyPreprocessorState,
-    ProducerInfo,
     SCHEMA_VERSION_V3,
     SUPPORTED_SCHEMA_VERSIONS,
+    ExportWeights,
     ValidatedBundle,
     read_json_dict,
     validate_inference_config_dict,
@@ -49,31 +47,6 @@ class ExportResult:
     bundle_dir: Path
     manifest_path: Path
     schema_version: str
-
-
-def _git_sha() -> str | None:
-    try:
-        output = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception:
-        return None
-    value = output.strip()
-    return value or None
-
-
-def _producer_info() -> ProducerInfo:
-    try:
-        version = importlib.metadata.version("tab-foundry")
-    except Exception:
-        version = "0.0.0"
-    return ProducerInfo(
-        name="tab-foundry",
-        version=version,
-        git_sha=_git_sha(),
-    )
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -211,6 +184,10 @@ def export_checkpoint(
 
     bundle_dir = out_dir.expanduser().resolve()
     bundle_dir.mkdir(parents=True, exist_ok=True)
+    producer = resolve_current_producer(
+        artifact_dir=bundle_dir,
+        patch_path_mode="relative",
+    )
 
     weights_name = "weights.safetensors"
     manifest_name = "manifest.json"
@@ -222,7 +199,7 @@ def export_checkpoint(
     if artifact_version == SCHEMA_VERSION_V3:
         manifest = ExportManifest(
             schema_version=artifact_version,
-            producer=_producer_info(),
+            producer=producer,
             task=task,
             model=model_spec,
             created_at_utc=datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -251,7 +228,7 @@ def export_checkpoint(
         )
         manifest = ExportManifest(
             schema_version=artifact_version,
-            producer=_producer_info(),
+            producer=producer,
             task=task,
             model=model_spec,
             created_at_utc=datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z"),

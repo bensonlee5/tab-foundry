@@ -24,6 +24,7 @@ def _write_checkpoint(
     arch: str | None = "tabfoundry_staged",
     stage: str | None = "nano_exact",
     training_cfg: dict[str, object] | None = None,
+    producer: dict[str, object] | None = None,
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     model_cfg: dict[str, object] = {
@@ -57,31 +58,31 @@ def _write_checkpoint(
         "label_mapping": "train_only_remap",
         "unseen_test_label_policy": "filter",
     }
-    torch.save(
-        {
-            "model": {},
-            "config": {
-                "task": "classification",
-                "data": checkpoint_data_cfg,
-                "preprocessing": preprocessing_cfg,
-                "runtime": {"seed": int(seed)},
-                "model": model_cfg,
-                **({} if training_cfg is None else {"training": training_cfg}),
-                "schedule": {
-                    "stages": [
-                        {
-                            "name": "stage1",
-                            "steps": 400,
-                            "lr_max": 8.0e-4,
-                            "lr_schedule": "linear",
-                            "warmup_ratio": 0.05,
-                        }
-                    ]
-                },
+    checkpoint_payload: dict[str, object] = {
+        "model": {},
+        "config": {
+            "task": "classification",
+            "data": checkpoint_data_cfg,
+            "preprocessing": preprocessing_cfg,
+            "runtime": {"seed": int(seed)},
+            "model": model_cfg,
+            **({} if training_cfg is None else {"training": training_cfg}),
+            "schedule": {
+                "stages": [
+                    {
+                        "name": "stage1",
+                        "steps": 400,
+                        "lr_max": 8.0e-4,
+                        "lr_schedule": "linear",
+                        "warmup_ratio": 0.05,
+                    }
+                ]
             },
         },
-        path,
-    )
+    }
+    if producer is not None:
+        checkpoint_payload["producer"] = producer
+    torch.save(checkpoint_payload, path)
     return path
 
 
@@ -245,9 +246,45 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     )
     assert record["surface_labels"]["model"] == "nano_exact"
     assert "training" not in record["surface_labels"]
+    assert "producer" not in record
     assert record["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
     )
+
+
+def test_derive_benchmark_run_record_copies_checkpoint_producer(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    producer = {
+        "name": "tab-foundry",
+        "version": "0.6.8",
+        "git_sha": "abc123",
+        "git_dirty": True,
+        "source_patch_sha256": "f" * 64,
+        "source_patch_path": "/tmp/run/source.patch",
+    }
+    run_dir, summary_path = _prepare_run(repo_root, run_name="stage_producer")
+    _write_checkpoint(
+        run_dir / "checkpoints" / "best.pt",
+        manifest_path="data/manifests/default.parquet",
+        seed=1,
+        producer=producer,
+    )
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    assert record["producer"] == producer
+    training_surface = json.loads(
+        (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
+    )
+    assert training_surface["producer"] == producer
 
 
 def test_derive_benchmark_run_record_captures_optional_training_surface_label(
@@ -446,10 +483,12 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
     assert child_record["artifacts"]["training_surface_record_path"] == (
         "outputs/label_token/benchmark/training_surface_record.json"
     )
+    assert "producer" not in child_record
 
     registry = registry_module.load_benchmark_run_registry(registry_path)
     assert set(registry["runs"]) == {"00_simple_anchor", "01_nano_exact"}
     assert registry["runs"]["01_nano_exact"]["comparisons"]["vs_anchor"]["final_roc_auc_delta"] == pytest.approx(0.04)
+    assert "producer" not in registry["runs"]["01_nano_exact"]
 
 
 def test_register_benchmark_run_rejects_unknown_parent(

@@ -20,6 +20,7 @@ from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.missingness import validate_missingness_runtime_policy
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import resolve_preprocessing_surface
+from tab_foundry.provenance import ProducerInfo, resolve_current_producer
 from tab_foundry.types import TaskBatch, TrainResult
 
 from .artifacts import (
@@ -388,6 +389,12 @@ def train(cfg: DictConfig) -> TrainResult:
         impute_missing=preprocessing_surface.impute_missing,
         context="train",
     )
+    producer: ProducerInfo | None = None
+    if accelerator.is_main_process:
+        producer = resolve_current_producer(
+            artifact_dir=output_dir,
+            patch_path_mode="absolute",
+        )
     model = build_model_from_spec(model_spec)
     model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
     if accelerator.is_main_process:
@@ -396,6 +403,7 @@ def train(cfg: DictConfig) -> TrainResult:
             output_dir / "training_surface_record.json",
             raw_cfg=raw_cfg,
             run_dir=output_dir,
+            producer=producer,
         )
 
     run = init_wandb_run(
@@ -602,22 +610,26 @@ def train(cfg: DictConfig) -> TrainResult:
                         best_val_step = float(global_step)
                         best_checkpoint = output_dir / "checkpoints" / "best.pt"
                         if accelerator.is_main_process:
+                            assert producer is not None
                             save_checkpoint(
                                 best_checkpoint,
                                 model_state=accelerator.get_state_dict(model),
                                 global_step=global_step,
                                 cfg=cfg,
+                                producer=producer,
                             )
                     _set_optimizer_training_mode(prepared_opts, training=True)
 
                 if checkpoint_every is not None and global_step % checkpoint_every == 0:
                     snapshot_checkpoint = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
                     if accelerator.is_main_process:
+                        assert producer is not None
                         save_checkpoint(
                             snapshot_checkpoint,
                             model_state=accelerator.get_state_dict(model),
                             global_step=global_step,
                             cfg=cfg,
+                            producer=producer,
                         )
 
                 if history_path is not None and accelerator.is_main_process:
@@ -657,11 +669,13 @@ def train(cfg: DictConfig) -> TrainResult:
 
             latest_checkpoint = output_dir / "checkpoints" / f"latest_{stage.name}.pt"
             if accelerator.is_main_process:
+                assert producer is not None
                 save_checkpoint(
                     latest_checkpoint,
                     model_state=accelerator.get_state_dict(model),
                     global_step=global_step,
                     cfg=cfg,
+                    producer=producer,
                 )
             if stop_requested:
                 break
@@ -672,11 +686,13 @@ def train(cfg: DictConfig) -> TrainResult:
         if best_checkpoint is None and latest_checkpoint is not None:
             best_checkpoint = output_dir / "checkpoints" / "best.pt"
             if accelerator.is_main_process:
+                assert producer is not None
                 save_checkpoint(
                     best_checkpoint,
                     model_state=accelerator.get_state_dict(model),
                     global_step=global_step,
                     cfg=cfg,
+                    producer=producer,
                 )
 
         result = TrainResult(

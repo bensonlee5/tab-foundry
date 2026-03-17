@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from tab_foundry.export.contracts import (
+    compute_v3_manifest_sha256,
     ExportModelSpec,
     ExportPreprocessorState,
     LegacyPreprocessorState,
@@ -65,6 +66,38 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     assert build_spec.input_normalization == "train_zscore"
     assert build_spec.norm_type == "layernorm"
     assert build_spec.tfrow_norm == "layernorm"
+
+
+def test_manifest_v3_validation_accepts_dirty_producer_patch_metadata() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    payload["producer"] = {
+        "name": "tab-foundry",
+        "version": "0.6.8",
+        "git_sha": "abc123",
+        "git_dirty": True,
+        "source_patch_sha256": "f" * 64,
+        "source_patch_path": "source.patch",
+    }
+    payload["manifest_sha256"] = compute_v3_manifest_sha256(payload)
+
+    manifest = validate_manifest_dict(payload)
+
+    assert manifest.producer.git_dirty is True
+    assert manifest.producer.source_patch_path == "source.patch"
+
+
+def test_manifest_v3_validation_rejects_partial_dirty_producer_patch_metadata() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    payload["producer"] = {
+        "name": "tab-foundry",
+        "version": "0.6.8",
+        "git_sha": "abc123",
+        "git_dirty": True,
+        "source_patch_sha256": "f" * 64,
+    }
+
+    with pytest.raises(ValueError, match="source_patch_sha256 and .*source_patch_path must both be set"):
+        validate_manifest_dict(payload)
 
 
 def test_manifest_v2_validation_accepts_legacy_sparse_model_payload() -> None:

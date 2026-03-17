@@ -799,13 +799,62 @@ def test_run_nanotabpfn_benchmark_explicit_large_bundle_allows_missing_inputs(
     monkeypatch.setattr(
         compare_module,
         "derive_benchmark_run_record",
-        lambda **_kwargs: (_ for _ in ()).throw(
-            RuntimeError(
-                "checkpoint config must include explicit model.arch metadata for benchmark "
-                "registration; legacy checkpoints without persisted model.arch cannot be "
-                "registered"
-            )
-        ),
+        lambda **_kwargs: {
+            "manifest_path": "data/manifests/large_bundle.parquet",
+            "seed_set": [1],
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "nano_exact",
+                "benchmark_profile": "nano_exact",
+                "d_icl": 96,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+            },
+            "benchmark_bundle": {
+                "name": "large_bundle",
+                "version": 1,
+                "source_path": str(large_bundle_path.resolve()),
+                "task_count": 1,
+                "task_ids": [1],
+            },
+            "artifacts": {
+                "run_dir": str(smoke_run_dir.resolve()),
+                "benchmark_dir": str(out_root.resolve()),
+                "prior_dir": None,
+                "history_path": str((smoke_run_dir / "train_history.jsonl").resolve()),
+                "best_checkpoint_path": str((smoke_run_dir / "checkpoints" / "best.pt").resolve()),
+                "comparison_summary_path": str((out_root / "comparison_summary.json").resolve()),
+                "comparison_curve_path": str((out_root / "comparison_curve.png").resolve()),
+                "benchmark_run_record_path": str((out_root / "benchmark_run_record.json").resolve()),
+                "training_surface_record_path": str(
+                    (smoke_run_dir / "training_surface_record.json").resolve()
+                ),
+            },
+            "tab_foundry_metrics": {
+                "best_step": 25.0,
+                "best_training_time": 1.2,
+                "best_roc_auc": 0.81,
+                "final_step": 25.0,
+                "final_training_time": 1.2,
+                "final_roc_auc": 0.81,
+            },
+            "training_diagnostics": {
+                "best_val_loss": 0.2,
+                "final_val_loss": 0.21,
+                "best_val_step": 25.0,
+                "post_warmup_train_loss_var": 0.01,
+                "mean_grad_norm": 0.4,
+                "max_grad_norm": 0.5,
+                "final_grad_norm": 0.45,
+                "train_elapsed_seconds": 1.2,
+                "wall_elapsed_seconds": 1.3,
+            },
+            "model_size": {"total_params": 1234, "trainable_params": 1234},
+            "generated_at_utc": "2026-03-13T00:00:00Z",
+        },
     )
 
     summary = compare_module.run_nanotabpfn_benchmark(
@@ -1019,27 +1068,9 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
     assert written_bundle == benchmark_bundle
 
 
-@pytest.mark.parametrize(
-    ("legacy_error", "warning_snippet"),
-    [
-        (
-            "checkpoint config must include explicit model.arch metadata for benchmark "
-            "registration; legacy checkpoints without persisted model.arch cannot be "
-            "registered",
-            "persisted model.arch",
-        ),
-        (
-            "data.allow_missing_values must be explicitly configured",
-            "data.allow_missing_values must be explicitly configured",
-        ),
-    ],
-)
-def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
+def test_run_nanotabpfn_benchmark_fails_fast_on_legacy_record_derivation_failure(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-    legacy_error: str,
-    warning_snippet: str,
 ) -> None:
     smoke_run_dir = tmp_path / "smoke_run"
     smoke_run_dir.mkdir()
@@ -1098,7 +1129,11 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     monkeypatch.setattr(
         compare_module,
         "derive_benchmark_run_record",
-        lambda **_kwargs: (_ for _ in ()).throw(RuntimeError(legacy_error)),
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError(
+                "training surface record requires cfg.preprocessing to be a mapping"
+            )
+        ),
     )
 
     def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
@@ -1120,24 +1155,21 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
 
     monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
 
-    summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
-            tab_foundry_run_dir=smoke_run_dir,
-            out_root=out_root,
-            nanotabpfn_root=nanotab_root,
-            nanotab_prior_dump=prior_dump,
+    with pytest.raises(
+        RuntimeError,
+        match="training surface record requires cfg.preprocessing to be a mapping",
+    ):
+        compare_module.run_nanotabpfn_benchmark(
+            compare_module.NanoTabPFNBenchmarkConfig(
+                tab_foundry_run_dir=smoke_run_dir,
+                out_root=out_root,
+                nanotabpfn_root=nanotab_root,
+                nanotab_prior_dump=prior_dump,
+            )
         )
-    )
 
-    written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
-    assert summary["artifacts"]["benchmark_run_record_json"] is None
-    assert written_summary["artifacts"]["benchmark_run_record_json"] is None
-    assert summary["artifacts"]["training_surface_record_json"] is None
-    assert written_summary["artifacts"]["training_surface_record_json"] is None
-    assert warning_snippet in summary["tab_foundry"]["benchmark_run_record_warning"]
-    assert warning_snippet in written_summary["tab_foundry"]["benchmark_run_record_warning"]
     assert not (out_root / "benchmark_run_record.json").exists()
-    assert "Skipping benchmark_run_record.json derivation" in capsys.readouterr().err
+    assert not (out_root / "comparison_summary.json").exists()
 
 
 def test_explicit_benchmark_bundle_paths_accept_checked_in_legacy_and_medium_binary_bundles() -> None:

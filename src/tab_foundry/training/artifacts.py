@@ -10,6 +10,8 @@ from typing import Any, Mapping
 from omegaconf import DictConfig, OmegaConf
 import torch
 
+from tab_foundry.provenance import ProducerInfo, source_patch_artifact_path
+
 from .instability import gradient_history_path, telemetry_path
 
 
@@ -37,6 +39,7 @@ def assert_clean_training_output(output_dir: Path, *, history_path: Path | None)
         "gradient_history": gradient_history_path(output_dir),
         "telemetry": telemetry_path(output_dir),
         "training_surface_record": output_dir / "training_surface_record.json",
+        "source_patch": source_patch_artifact_path(output_dir),
     }
     dirty_extras = {
         name: path
@@ -187,6 +190,7 @@ def checkpoint_payload(
     model_state: Mapping[str, Any],
     global_step: int,
     cfg: DictConfig,
+    producer: ProducerInfo,
 ) -> dict[str, Any]:
     """Build the standard checkpoint payload used by train/eval/export."""
 
@@ -194,6 +198,7 @@ def checkpoint_payload(
         "model": dict(model_state),
         "global_step": int(global_step),
         "config": OmegaConf.to_container(cfg, resolve=True),
+        "producer": producer.to_dict(),
     }
 
 
@@ -203,6 +208,7 @@ def save_checkpoint(
     model_state: Mapping[str, Any],
     global_step: int,
     cfg: DictConfig,
+    producer: ProducerInfo,
 ) -> None:
     """Write a standard checkpoint payload to disk."""
 
@@ -212,6 +218,7 @@ def save_checkpoint(
             model_state=model_state,
             global_step=global_step,
             cfg=cfg,
+            producer=producer,
         ),
         path,
     )

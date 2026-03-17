@@ -188,6 +188,8 @@ These artifacts are the minimum handoff surface for reviewable runs:
 - `comparison_curve.png`
 
 Smoke and benchmark-style runs may also persist generated datasets, manifests, and checkpoint snapshots.
+Dirty git worktrees also persist `source.patch` and record its path plus
+SHA-256 in the new producer provenance metadata.
 
 ## Smoke Workflows
 
@@ -276,7 +278,9 @@ The comparison flow is pinned to the repo-tracked benchmark bundle at
 `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`. Runs fail fast
 if the live OpenML-resolved selection thresholds or task metadata drift from
 that bundle. Older ad hoc bundle files without the full `selection` schema now
-fail to load.
+fail to load. Comparison also fails fast if the run checkpoint metadata is too
+legacy to derive the current canonical `benchmark_run_record.json` and
+`training_surface_record.json`; there is no legacy skip path.
 
 The pinned medium-size binary bundle is now the canonical binary benchmark
 surface for current sweep runs. The canonical control baseline is
@@ -560,6 +564,9 @@ Every completed benchmark-facing row should leave behind:
 - `comparison_curve.png`
 - `training_surface_record.json`
 - `outputs/staged_ladder/research/<sweep_id>/<delta_id>/result_card.md`
+
+If the run came from a dirty git worktree, it should also leave behind
+`source.patch`.
 
 For queue reruns used to debug instability, `train_history.jsonl` now includes
 additive `train_loss_delta`, `train_loss_ema`, `grad_clip_threshold`, and

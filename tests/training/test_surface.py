@@ -5,6 +5,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from tab_foundry.provenance import ProducerInfo
 from tab_foundry.training.surface import build_training_surface_record
 
 
@@ -180,6 +181,7 @@ def test_build_training_surface_record_captures_model_data_and_preprocessing_sur
     assert record["data"]["dagzoo_provenance"]["commands"] == ["dagzoo filter --curated-out ..."]
     assert record["preprocessing"]["impute_missing"] is False
     assert record["preprocessing"]["all_nan_fill"] == 1.0
+    assert "producer" not in record
 
 
 def test_build_training_surface_record_marks_missing_inputs_when_manifest_is_dirty(
@@ -377,3 +379,36 @@ def test_build_training_surface_record_includes_optional_training_surface(
     assert record["training"]["optimizer_name"] == "schedulefree_adamw"
     assert record["training"]["optimizer_min_lr"] == 4.0e-4
     assert record["training"]["schedule_stages"][0]["warmup_ratio"] == 0.05
+
+
+def test_build_training_surface_record_includes_optional_producer(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_with_producer.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry"},
+            "data": _data_cfg(manifest_path),
+            "preprocessing": _preprocessing_cfg(),
+        },
+        run_dir=tmp_path / "run_with_producer",
+        producer=ProducerInfo(
+            name="tab-foundry",
+            version="0.6.8",
+            git_sha="abc123",
+            git_dirty=True,
+            source_patch_sha256="f" * 64,
+            source_patch_path="/tmp/run/source.patch",
+        ),
+    )
+
+    assert record["producer"] == {
+        "name": "tab-foundry",
+        "version": "0.6.8",
+        "git_sha": "abc123",
+        "git_dirty": True,
+        "source_patch_sha256": "f" * 64,
+        "source_patch_path": "/tmp/run/source.patch",
+    }

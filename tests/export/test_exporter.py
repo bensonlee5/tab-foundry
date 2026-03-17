@@ -21,6 +21,7 @@ from tab_foundry.export.contracts import (
 from tab_foundry.export.exporter import export_checkpoint, validate_export_bundle
 from tab_foundry.export.loader_ref import load_export_bundle, run_reference_consumer
 from tab_foundry.model.factory import build_model
+from tab_foundry.provenance import ProducerInfo
 from tab_foundry.types import TaskBatch
 
 
@@ -174,6 +175,20 @@ def _update_v2_checksum(out_dir: Path, *, key: str, file_name: str) -> None:
     _rewrite_json(manifest_path, manifest)
 
 
+@pytest.fixture(autouse=True)
+def _stable_export_producer(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        exporter_module,
+        "resolve_current_producer",
+        lambda **_kwargs: ProducerInfo(
+            name="tab-foundry",
+            version="0.6.8",
+            git_sha="abc123",
+            git_dirty=False,
+        ),
+    )
+
+
 def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(
@@ -209,6 +224,43 @@ def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path)
     validated = validate_export_bundle(out_dir)
     assert isinstance(validated.preprocessor_state, ExportPreprocessorState)
     assert validated.manifest.model.input_normalization == "train_zscore"
+
+
+def test_export_bundle_embeds_dirty_source_patch_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_dirty.pt"
+    _ = _write_checkpoint(checkpoint, task="classification")
+    out_dir = tmp_path / "export_dirty"
+    source_patch = out_dir / "source.patch"
+    source_patch.parent.mkdir(parents=True, exist_ok=True)
+    source_patch.write_text("diff --git a/foo b/foo\n", encoding="utf-8")
+    patch_sha = hashlib.sha256(source_patch.read_bytes()).hexdigest()
+    monkeypatch.setattr(
+        exporter_module,
+        "resolve_current_producer",
+        lambda **_kwargs: ProducerInfo(
+            name="tab-foundry",
+            version="0.6.8",
+            git_sha="def456",
+            git_dirty=True,
+            source_patch_sha256=patch_sha,
+            source_patch_path="source.patch",
+        ),
+    )
+
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["producer"] == {
+        "name": "tab-foundry",
+        "version": "0.6.8",
+        "git_sha": "def456",
+        "git_dirty": True,
+        "source_patch_sha256": patch_sha,
+        "source_patch_path": "source.patch",
+    }
 
 
 def test_export_bundle_supports_explicit_v2(tmp_path: Path) -> None:

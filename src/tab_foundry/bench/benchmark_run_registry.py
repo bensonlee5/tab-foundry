@@ -14,6 +14,7 @@ from pydantic import (
     ConfigDict,
     Field,
     FiniteFloat,
+    StrictBool,
     StrictInt,
     StrictStr,
     ValidationError,
@@ -33,6 +34,7 @@ from tab_foundry.model.spec import (
     checkpoint_model_build_spec_from_mappings,
     ModelBuildSpec,
 )
+from tab_foundry.provenance import ProducerInfo
 from tab_foundry.training.surface import write_training_surface_record
 from tab_foundry.training.schedule import build_stage_configs, warmup_steps_for_stage
 
@@ -153,6 +155,15 @@ class _SurfaceLabelsPayload(_RegistryPayloadModel):
     training: StrictStr | None = None
 
 
+class _ProducerPayload(_RegistryPayloadModel):
+    name: StrictStr
+    version: StrictStr
+    git_sha: StrictStr | None = None
+    git_dirty: StrictBool | None = None
+    source_patch_sha256: StrictStr | None = None
+    source_patch_path: StrictStr | None = None
+
+
 class _SweepPayload(_RegistryPayloadModel):
     sweep_id: StrictStr
     delta_id: StrictStr
@@ -171,6 +182,7 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     training_diagnostics: _TrainingDiagnosticsPayload
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None
+    producer: _ProducerPayload | None = None
     sweep: _SweepPayload | None = None
     generated_at_utc: StrictStr
 
@@ -191,6 +203,7 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     training_diagnostics: _TrainingDiagnosticsPayload
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None
+    producer: _ProducerPayload | None = None
     sweep: _SweepPayload | None = None
     comparisons: _ComparisonsPayload
     decision: Literal["keep", "reject", "defer"]
@@ -382,6 +395,10 @@ def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, 
 def _load_comparison_summary(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
+    return _load_comparison_summary_payload(payload, path=path)
+
+
+def _load_comparison_summary_payload(payload: Any, *, path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError(f"comparison summary must be a JSON object: {path}")
     benchmark_bundle = payload.get("benchmark_bundle")
@@ -556,6 +573,7 @@ def _training_surface_record(
     raw_cfg: dict[str, Any],
     raw_state_dict: dict[str, Any] | None,
     benchmark_run_record_path: Path | None,
+    producer: ProducerInfo | None,
 ) -> tuple[dict[str, Any] | None, Path | None]:
     run_record_path = run_dir.expanduser().resolve() / "training_surface_record.json"
     if run_record_path.exists():
@@ -572,6 +590,7 @@ def _training_surface_record(
         raw_cfg=raw_cfg,
         run_dir=run_dir,
         state_dict=raw_state_dict,
+        producer=producer,
     )
     return payload, derived_path
 
@@ -621,6 +640,7 @@ def derive_benchmark_run_record(
     comparison_summary_path: Path,
     prior_dir: Path | None = None,
     benchmark_run_record_path: Path | None = None,
+    comparison_summary_payload: Mapping[str, Any] | None = None,
     sweep_id: str | None = None,
     delta_id: str | None = None,
     parent_sweep_id: str | None = None,
@@ -631,7 +651,14 @@ def derive_benchmark_run_record(
 
     resolved_run_dir = run_dir.expanduser().resolve()
     resolved_summary_path = comparison_summary_path.expanduser().resolve()
-    summary = _load_comparison_summary(resolved_summary_path)
+    summary = (
+        _load_comparison_summary(resolved_summary_path)
+        if comparison_summary_payload is None
+        else _load_comparison_summary_payload(
+            comparison_summary_payload,
+            path=resolved_summary_path,
+        )
+    )
     tab_foundry = _ensure_mapping(summary["tab_foundry"], context="comparison_summary.tab_foundry")
     summary_run_dir = resolve_registry_path_value(
         _ensure_non_empty_string(
@@ -659,6 +686,16 @@ def derive_benchmark_run_record(
     raw_state_dict = checkpoint_payload.get("model")
     if raw_state_dict is not None and not isinstance(raw_state_dict, dict):
         raise RuntimeError(f"checkpoint model state_dict must be a mapping: {best_checkpoint_path}")
+    raw_producer = checkpoint_payload.get("producer")
+    producer = None
+    if raw_producer is not None:
+        try:
+            producer = ProducerInfo.from_mapping(
+                raw_producer,
+                context=f"checkpoint producer metadata {best_checkpoint_path}",
+            )
+        except ValueError as exc:
+            raise RuntimeError(str(exc)) from exc
     data_cfg = raw_cfg.get("data")
     runtime_cfg = raw_cfg.get("runtime")
     if not isinstance(data_cfg, dict) or not isinstance(runtime_cfg, dict):
@@ -697,6 +734,7 @@ def derive_benchmark_run_record(
         raw_cfg=raw_cfg,
         raw_state_dict=raw_state_dict,
         benchmark_run_record_path=benchmark_run_record_path,
+        producer=producer,
     )
 
     record = {
@@ -749,6 +787,8 @@ def derive_benchmark_run_record(
         ),
         "generated_at_utc": _utc_now(),
     }
+    if producer is not None:
+        record["producer"] = producer.to_dict()
     _validate_record_payload(record)
     return record
 
@@ -897,6 +937,8 @@ def derive_benchmark_run_entry(
         "conclusion": normalized_conclusion,
         "registered_at_utc": _utc_now(),
     }
+    if record.get("producer") is not None:
+        entry["producer"] = record["producer"]
     _validate_run_entry(entry, run_id=normalized_run_id)
     return entry
 

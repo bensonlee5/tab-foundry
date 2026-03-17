@@ -37,7 +37,11 @@ An export bundle is a directory containing:
 Required keys:
 
 - `schema_version`
-- `producer`: `{name, version, git_sha}` (`git_sha` may be `null`)
+- `producer`: `{name, version, git_sha, git_dirty}` where `git_sha` and
+  `git_dirty` may be `null` when the bundle is produced outside a git checkout
+  - dirty checkouts also include additive `source_patch_sha256` and
+    `source_patch_path` fields, and `source_patch_path` points to the bundled
+    `source.patch`
 - `task`: `classification | regression`
 - `manifest_sha256`: SHA-256 of the canonical UTF-8 JSON encoding of the full
   manifest with `manifest_sha256` omitted; validators reject stale or missing
@@ -142,6 +146,8 @@ Out of scope here:
 - Export bundles are the cross-repo inference handoff contract.
 - `tab-foundry-export-v3` is the default export format and the only executable
   reference-consumer contract in this repo.
+- Producer provenance fields may grow additively. Current bundles emit
+  `git_sha`, `git_dirty`, and dirty-worktree patch metadata when available.
 - Existing v3 bundles produced with sidecar metadata are intentionally obsolete
   after the single-manifest redesign and must be regenerated.
 - Existing single-manifest v3 bundles without `manifest_sha256` are

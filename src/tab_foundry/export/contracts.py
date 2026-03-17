@@ -39,6 +39,7 @@ from tab_foundry.preprocessing import (
     MISSING_VALUE_STRATEGY_TRAIN_MEAN,
     UNSEEN_TEST_LABEL_POLICY_FILTER,
 )
+from tab_foundry.provenance import ProducerInfo
 
 
 SCHEMA_VERSION_V2 = "tab-foundry-export-v2"
@@ -132,16 +133,6 @@ def _validate_payload_model(
         return payload_model.model_validate(payload)
     except ValidationError as exc:
         raise ValueError(f"{context} is invalid: {exc}") from exc
-
-
-@dataclass(slots=True)
-class ProducerInfo:
-    name: str
-    version: str
-    git_sha: str | None
-
-    def to_dict(self) -> dict[str, Any]:
-        return dict(asdict(self))
 
 
 @dataclass(slots=True)
@@ -536,15 +527,12 @@ def _validate_producer_info(payload: Any) -> ProducerInfo:
         payload,
         keys={"name", "version", "git_sha"},
         context="manifest.producer",
+        optional_keys={"git_dirty", "source_patch_sha256", "source_patch_path"},
     )
-    git_sha_raw = payload["git_sha"]
-    if git_sha_raw is not None and not isinstance(git_sha_raw, str):
-        raise ValueError("manifest.producer.git_sha must be string or null")
-    return ProducerInfo(
-        name=_as_str(payload["name"], context="manifest.producer.name"),
-        version=_as_str(payload["version"], context="manifest.producer.version"),
-        git_sha=git_sha_raw,
-    )
+    try:
+        return ProducerInfo.from_mapping(payload, context="manifest.producer")
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def _validate_model_spec(

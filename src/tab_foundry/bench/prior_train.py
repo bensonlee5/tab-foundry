@@ -22,6 +22,7 @@ from tab_foundry.config import compose_config
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
+from tab_foundry.provenance import ProducerInfo, resolve_current_producer
 from tab_foundry.training.artifacts import (
     append_jsonl_record,
     append_history_record,
@@ -218,6 +219,7 @@ def _save_eval_mode_checkpoint(
     model: torch.nn.Module,
     global_step: int,
     cfg: DictConfig,
+    producer: ProducerInfo,
     restore_training: bool,
 ) -> None:
     prepared_opts = [("schedulefree_adamw", optimizer)]
@@ -227,6 +229,7 @@ def _save_eval_mode_checkpoint(
         model_state=model.state_dict(),
         global_step=global_step,
         cfg=cfg,
+        producer=producer,
     )
     if restore_training:
         _set_optimizer_training_mode(prepared_opts, training=True)
@@ -392,11 +395,16 @@ def train_tabfoundry_simple_prior(
     model.to(device)
     model.train()
     raw_cfg = cast(dict[str, object], OmegaConf.to_container(cfg, resolve=True))
+    producer = resolve_current_producer(
+        artifact_dir=output_dir,
+        patch_path_mode="absolute",
+    )
     training_surface_path = output_dir / "training_surface_record.json"
     training_surface_payload = write_training_surface_record(
         training_surface_path,
         raw_cfg=raw_cfg,
         run_dir=output_dir,
+        producer=producer,
     )
     run = init_wandb_run(
         cfg,
@@ -605,6 +613,7 @@ def train_tabfoundry_simple_prior(
                     model=model,
                     global_step=global_step,
                     cfg=cfg,
+                    producer=producer,
                     restore_training=True,
                 )
                 checkpoint_snapshots.append(
@@ -630,6 +639,7 @@ def train_tabfoundry_simple_prior(
             model=model,
             global_step=global_step,
             cfg=cfg,
+            producer=producer,
             restore_training=False,
         )
         artifacts["latest_checkpoint"] = str(latest_checkpoint.resolve())

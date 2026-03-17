@@ -20,6 +20,7 @@ from tab_foundry.bench.nanotabpfn import evaluate_tab_foundry_run
 from tab_foundry.bench.prior_dump import PriorDumpNonFiniteInputError, PriorDumpTaskBatchReader
 from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
+from tab_foundry.provenance import ProducerInfo
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import OptimizerSelection
 
@@ -544,13 +545,36 @@ def test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode(
             fallback_reason=None,
         ),
     )
+    monkeypatch.setattr(
+        prior_train_module,
+        "resolve_current_producer",
+        lambda **_kwargs: ProducerInfo(
+            name="tab-foundry",
+            version="0.6.8",
+            git_sha="abc123",
+            git_dirty=False,
+        ),
+    )
 
     original_save_checkpoint = prior_train_module.save_checkpoint
 
-    def _recording_save_checkpoint(path: Path, *, model_state, global_step: int, cfg) -> None:
-        _ = (model_state, global_step, cfg)
+    def _recording_save_checkpoint(
+        path: Path,
+        *,
+        model_state,
+        global_step: int,
+        cfg,
+        producer: ProducerInfo,
+    ) -> None:
+        _ = (model_state, global_step, cfg, producer)
         save_events.append(path.name)
-        original_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
+        original_save_checkpoint(
+            path,
+            model_state=model_state,
+            global_step=global_step,
+            cfg=cfg,
+            producer=producer,
+        )
 
     monkeypatch.setattr(prior_train_module, "save_checkpoint", _recording_save_checkpoint)
 

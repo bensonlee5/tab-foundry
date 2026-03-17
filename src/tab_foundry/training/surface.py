@@ -18,6 +18,7 @@ from tab_foundry.model.spec import (
     model_build_spec_from_mappings,
 )
 from tab_foundry.preprocessing import resolve_preprocessing_surface
+from tab_foundry.provenance import ProducerInfo
 
 
 TRAINING_SURFACE_SCHEMA = "tab-foundry-training-surface-v1"
@@ -138,6 +139,7 @@ def build_training_surface_record(
     raw_cfg: Mapping[str, Any],
     run_dir: Path,
     state_dict: Mapping[str, Any] | None = None,
+    producer: ProducerInfo | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build one machine-readable training-surface record."""
 
@@ -248,6 +250,13 @@ def build_training_surface_record(
             "overrides": preprocessing_surface.overrides,
         },
     }
+    if producer is not None:
+        normalized_producer = (
+            producer
+            if isinstance(producer, ProducerInfo)
+            else ProducerInfo.from_mapping(producer, context="training_surface_record.producer")
+        )
+        payload["producer"] = normalized_producer.to_dict()
     if training_cfg is not None:
         training_label = str(training_cfg.get("surface_label", "training_default"))
         labels["training"] = training_label
@@ -274,6 +283,7 @@ def write_training_surface_record(
     raw_cfg: Mapping[str, Any],
     run_dir: Path,
     state_dict: Mapping[str, Any] | None = None,
+    producer: ProducerInfo | Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Write one training-surface record and return the payload."""
 
@@ -281,6 +291,7 @@ def write_training_surface_record(
         raw_cfg=raw_cfg,
         run_dir=run_dir,
         state_dict=state_dict,
+        producer=producer,
     )
     resolved_path = path.expanduser().resolve()
     resolved_path.parent.mkdir(parents=True, exist_ok=True)
