@@ -260,6 +260,9 @@ def build_training_surface_record(
         payload["training"] = {
             "surface_label": training_label,
             "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
+            "prior_dump_non_finite_policy": str(
+                training_cfg.get("prior_dump_non_finite_policy", "error")
+            ),
             "optimizer_name": None
             if optimizer_cfg is None or optimizer_cfg.get("name") is None
             else str(optimizer_cfg["name"]),

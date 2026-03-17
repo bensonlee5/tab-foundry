@@ -14,6 +14,10 @@ from torch import nn
 
 LOSS_EMA_ALPHA = 0.1
 TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v1"
+_WINDOW_EARLY = "early_1_25"
+_WINDOW_POST_WARMUP = "post_warmup_100"
+_WINDOW_FINAL = "final_10pct"
+_TRACKED_ACTIVATIONS = ("post_feature_encoder", "pre_transformer")
 
 _TOP_LEVEL_GRADIENT_MODULES = (
     "tokenizer",
@@ -190,6 +194,186 @@ def _mapping_value_history(
     return history
 
 
+def _mean_or_none(values: Sequence[float]) -> float | None:
+    if not values:
+        return None
+    return float(sum(values) / float(len(values)))
+
+
+def _ratio_or_none(numerator: float | None, denominator: float | None) -> float | None:
+    if numerator is None or denominator is None or denominator == 0.0:
+        return None
+    return float(numerator / denominator)
+
+
+def _sorted_records(records: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    return sorted(records, key=lambda record: int(record.get("step", 0)))
+
+
+def _warmup_end_step(training_surface_record: Mapping[str, Any] | None) -> int:
+    if not isinstance(training_surface_record, Mapping):
+        return 0
+    raw_training = training_surface_record.get("training")
+    if not isinstance(raw_training, Mapping):
+        return 0
+    raw_stages = raw_training.get("schedule_stages")
+    if not isinstance(raw_stages, list) or not raw_stages:
+        return 0
+    first_stage = raw_stages[0]
+    if not isinstance(first_stage, Mapping):
+        return 0
+    steps_raw = first_stage.get("steps")
+    warmup_ratio_raw = first_stage.get("warmup_ratio", 0.0)
+    if not isinstance(steps_raw, int):
+        return 0
+    if not isinstance(warmup_ratio_raw, (int, float)):
+        return 0
+    steps = int(steps_raw)
+    warmup_ratio = float(warmup_ratio_raw)
+    if steps <= 1 or warmup_ratio <= 0.0:
+        return 0
+    return min(steps - 1, max(1, int(math.ceil(float(steps) * warmup_ratio))))
+
+
+def _windowed_gradient_records(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    warmup_end_step: int,
+) -> dict[str, list[Mapping[str, Any]]]:
+    ordered = _sorted_records(records)
+    early = [record for record in ordered if 1 <= int(record.get("step", 0)) <= 25]
+    post_warmup = [record for record in ordered if int(record.get("step", 0)) > warmup_end_step][:100]
+    final_count = 0 if not ordered else max(1, int(math.ceil(float(len(ordered)) * 0.1)))
+    final_window = [] if final_count <= 0 else ordered[-final_count:]
+    return {
+        _WINDOW_EARLY: early,
+        _WINDOW_POST_WARMUP: post_warmup,
+        _WINDOW_FINAL: final_window,
+    }
+
+
+def _module_balance_summary(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    warmup_end_step: int,
+) -> dict[str, Any]:
+    windows = _windowed_gradient_records(records, warmup_end_step=warmup_end_step)
+    window_summaries: dict[str, Any] = {}
+    for window_name, window_records in windows.items():
+        feature_values: list[float] = []
+        head_values: list[float] = []
+        for record in window_records:
+            raw_modules = record.get("module_grad_norms")
+            if not isinstance(raw_modules, Mapping):
+                continue
+            feature_raw = raw_modules.get("feature_encoder")
+            head_raw = raw_modules.get("direct_head")
+            if feature_raw is None or head_raw is None:
+                continue
+            feature_value = float(feature_raw)
+            head_value = float(head_raw)
+            if not math.isfinite(feature_value) or not math.isfinite(head_value):
+                continue
+            feature_values.append(feature_value)
+            head_values.append(head_value)
+        feature_mean = _mean_or_none(feature_values)
+        head_mean = _mean_or_none(head_values)
+        window_summaries[window_name] = {
+            "record_count": int(len(window_records)),
+            "paired_record_count": int(len(feature_values)),
+            "feature_encoder_mean_grad_norm": feature_mean,
+            "direct_head_mean_grad_norm": head_mean,
+            "feature_encoder_to_direct_head_mean_ratio": _ratio_or_none(feature_mean, head_mean),
+            "direct_head_to_feature_encoder_mean_ratio": _ratio_or_none(head_mean, feature_mean),
+        }
+    return {
+        "warmup_end_step": int(warmup_end_step),
+        "windows": window_summaries,
+    }
+
+
+def _activation_summary(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    warmup_end_step: int,
+) -> dict[str, Any]:
+    windows = _windowed_gradient_records(records, warmup_end_step=warmup_end_step)
+    tracked: dict[str, Any] = {}
+    for activation_name in _TRACKED_ACTIVATIONS:
+        window_summaries: dict[str, Any] = {}
+        for window_name, window_records in windows.items():
+            values: list[float] = []
+            for record in window_records:
+                raw_activations = record.get("activation_norms")
+                if not isinstance(raw_activations, Mapping):
+                    continue
+                raw_value = raw_activations.get(activation_name)
+                if raw_value is None:
+                    continue
+                value = float(raw_value)
+                if math.isfinite(value):
+                    values.append(value)
+            mean_value = _mean_or_none(values)
+            final_value = None if not values else float(values[-1])
+            window_summaries[window_name] = {
+                "record_count": int(len(values)),
+                "mean": mean_value,
+                "max": None if not values else float(max(values)),
+                "final": final_value,
+            }
+        early_mean = window_summaries[_WINDOW_EARLY]["mean"]
+        final_mean = window_summaries[_WINDOW_FINAL]["mean"]
+        tracked[activation_name] = {
+            "windows": window_summaries,
+            "early_to_final_mean_delta": None
+            if early_mean is None or final_mean is None
+            else float(final_mean - early_mean),
+            "early_to_final_mean_ratio": _ratio_or_none(final_mean, early_mean),
+        }
+    return {
+        "warmup_end_step": int(warmup_end_step),
+        "tracked_activations": tracked,
+    }
+
+
+def diagnostics_summary(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    training_surface_record: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Summarize clipped-step, module-balance, and activation-window diagnostics."""
+
+    ordered = _sorted_records(records)
+    clipped_step_count = sum(1 for record in ordered if bool(record.get("grad_clip_triggered", False)))
+    warmup_end_step = _warmup_end_step(training_surface_record)
+    window_records = _windowed_gradient_records(ordered, warmup_end_step=warmup_end_step)
+    return {
+        "windowing": {
+            "warmup_end_step": int(warmup_end_step),
+            "window_record_counts": {
+                window_name: int(len(window)) for window_name, window in window_records.items()
+            },
+        },
+        "grad_clip": {
+            "record_count": int(len(ordered)),
+            "clipped_step_count": int(clipped_step_count),
+            "clipped_step_fraction": 0.0
+            if not ordered
+            else float(clipped_step_count / float(len(ordered))),
+        },
+        "module_balance": {
+            "feature_encoder_vs_direct_head": _module_balance_summary(
+                ordered,
+                warmup_end_step=warmup_end_step,
+            )
+        },
+        "activation_windows": _activation_summary(
+            ordered,
+            warmup_end_step=warmup_end_step,
+        ),
+    }
+
+
 def gradient_trace_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     """Summarize global and module-level gradients from gradient-history records."""
 
@@ -293,6 +477,10 @@ def build_training_telemetry(
         ],
         "loss_summary": history_loss_summary(history_records),
         "gradient_summary": gradient_trace_summary(gradient_records),
+        "diagnostics": diagnostics_summary(
+            gradient_records,
+            training_surface_record=training_surface_record,
+        ),
         "missingness": None if missingness is None else _normalize_payload_values(missingness),
         "training_surface_context": training_surface_context,
     }

@@ -13,11 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 import torch
 
 from tab_foundry.bench.nanotabpfn import resolve_device
-from tab_foundry.bench.prior_dump import (
-    PriorDumpBatchMissingness,
-    PriorDumpNonFiniteInputError,
-    PriorDumpTaskBatchReader,
-)
+from tab_foundry.bench.prior_dump import PriorDumpBatchMissingness, PriorDumpTaskBatchReader
 from tab_foundry.config import compose_config
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
@@ -140,6 +136,22 @@ def _resolve_prior_missingness_config(cfg: DictConfig) -> dict[str, Any] | None:
         "min_rate": min_rate,
         "max_rate": max_rate,
     }
+
+
+def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> str:
+    training_cfg = getattr(cfg, "training", None)
+    raw_value = (
+        "error"
+        if training_cfg is None
+        else getattr(training_cfg, "prior_dump_non_finite_policy", "error")
+    )
+    normalized = str(raw_value).strip().lower()
+    if normalized not in {"error", "skip"}:
+        raise ValueError(
+            "training.prior_dump_non_finite_policy must be one of {'error', 'skip'}, "
+            f"got {raw_value!r}"
+        )
+    return normalized
 
 
 def _resolve_lr(cfg: DictConfig) -> float:
@@ -267,7 +279,7 @@ def _stack_prior_step(
 
 
 def _save_eval_mode_checkpoint(
-    optimizer: torch.optim.Optimizer,
+    prepared_opts: list[tuple[str, torch.optim.Optimizer]],
     *,
     path: Path,
     model: torch.nn.Module,
@@ -275,7 +287,6 @@ def _save_eval_mode_checkpoint(
     cfg: DictConfig,
     restore_training: bool,
 ) -> None:
-    prepared_opts = [("schedulefree_adamw", optimizer)]
     _set_optimizer_training_mode(prepared_opts, training=False)
     save_checkpoint(
         path,
@@ -291,18 +302,25 @@ def _initial_missingness_summary(
     prior_dump_path: Path,
     *,
     prior_missingness_config: dict[str, Any] | None,
+    prior_dump_non_finite_policy: str,
 ) -> dict[str, Any]:
     synthetic_enabled = prior_missingness_config is not None
     return {
         "prior_dump": {
             "path": str(prior_dump_path.expanduser().resolve()),
             "allow_missing_values": False,
+            "non_finite_policy": str(prior_dump_non_finite_policy),
             "batches_seen": 0,
             "affected_batch_count": 0,
             "affected_dataset_indices": [],
             "non_finite_feature_count": 0,
             "non_finite_label_count": 0,
             "last_batch": None,
+            "skipped_batch_count": 0,
+            "skipped_dataset_indices": [],
+            "skipped_non_finite_feature_count": 0,
+            "skipped_non_finite_label_count": 0,
+            "last_skipped_batch": None,
         },
         "synthetic_prior": {
             "enabled": synthetic_enabled,
@@ -321,6 +339,7 @@ def _accumulate_missingness(
     summary: dict[str, Any],
     *,
     batch_missingness: PriorDumpBatchMissingness,
+    skipped: bool = False,
 ) -> None:
     prior_dump = cast(dict[str, Any], summary["prior_dump"])
     prior_dump["batches_seen"] = int(prior_dump["batches_seen"]) + 1
@@ -338,6 +357,20 @@ def _accumulate_missingness(
         known_dataset_indices.update(int(index) for index in batch_missingness.affected_dataset_indices)
         prior_dump["affected_dataset_indices"] = sorted(known_dataset_indices)
         prior_dump["last_batch"] = batch_missingness.to_dict()
+    if skipped:
+        prior_dump["skipped_batch_count"] = int(prior_dump["skipped_batch_count"]) + 1
+        prior_dump["skipped_non_finite_feature_count"] = int(
+            prior_dump["skipped_non_finite_feature_count"]
+        ) + int(batch_missingness.non_finite_feature_count)
+        prior_dump["skipped_non_finite_label_count"] = int(
+            prior_dump["skipped_non_finite_label_count"]
+        ) + int(batch_missingness.non_finite_label_count)
+        skipped_dataset_indices = {
+            int(dataset_index) for dataset_index in prior_dump["skipped_dataset_indices"]
+        }
+        skipped_dataset_indices.update(int(index) for index in batch_missingness.affected_dataset_indices)
+        prior_dump["skipped_dataset_indices"] = sorted(skipped_dataset_indices)
+        prior_dump["last_skipped_batch"] = batch_missingness.to_dict()
 
 
 def _accumulate_synthetic_missingness(
@@ -467,18 +500,24 @@ def _prior_wandb_summary_payload(
         "gradient_summary": {
             "global": gradient_global,
         },
+        "diagnostics": telemetry_payload.get("diagnostics"),
     }
     if isinstance(prior_dump_missingness, dict) or isinstance(synthetic_prior_missingness, dict):
         summary["missingness"] = {}
         if isinstance(prior_dump_missingness, dict):
             summary["missingness"]["prior_dump"] = {
                 "batches_seen": prior_dump_missingness.get("batches_seen"),
+                "non_finite_policy": prior_dump_missingness.get("non_finite_policy"),
                 "affected_batch_count": prior_dump_missingness.get("affected_batch_count"),
                 "affected_dataset_count": len(affected_indices)
                 if isinstance(affected_indices, list)
                 else None,
                 "non_finite_feature_count": prior_dump_missingness.get("non_finite_feature_count"),
                 "non_finite_label_count": prior_dump_missingness.get("non_finite_label_count"),
+                "skipped_batch_count": prior_dump_missingness.get("skipped_batch_count"),
+                "skipped_dataset_count": len(prior_dump_missingness.get("skipped_dataset_indices", []))
+                if isinstance(prior_dump_missingness.get("skipped_dataset_indices"), list)
+                else None,
             }
         if isinstance(synthetic_prior_missingness, dict):
             summary["missingness"]["synthetic_prior"] = {
@@ -573,9 +612,11 @@ def train_tabfoundry_simple_prior(
     gradient_records: list[dict[str, Any]] = []
     checkpoint_snapshots: list[dict[str, Any]] = []
     prior_missingness_config = _resolve_prior_missingness_config(cfg)
+    prior_dump_non_finite_policy = _resolve_prior_dump_non_finite_policy(cfg)
     missingness_summary = _initial_missingness_summary(
         prior_dump_path,
         prior_missingness_config=prior_missingness_config,
+        prior_dump_non_finite_policy=prior_dump_non_finite_policy,
     )
 
     prior_stage = _resolve_prior_schedule(cfg, max_steps=max_steps, lr_min=lr_min)
@@ -596,9 +637,9 @@ def train_tabfoundry_simple_prior(
         muon_lr_scale_base=float(getattr(cfg.optimizer, "muon_lr_scale_base", 0.2)),
         muon_partition_non2d=bool(getattr(cfg.optimizer, "muon_partition_non2d", True)),
     )
-    if optimizer_selection.resolved_name != "schedulefree_adamw":
+    if optimizer_selection.resolved_name not in {"schedulefree_adamw", "adamw"}:
         raise RuntimeError(
-            "exact-parity prior-dump training requires optimizer 'schedulefree_adamw', "
+            "exact-parity prior-dump training requires optimizer 'schedulefree_adamw' or 'adamw', "
             f"resolved {optimizer_selection.resolved_name!r}"
         )
     if len(optimizer_selection.optimizers) != 1:
@@ -606,8 +647,8 @@ def train_tabfoundry_simple_prior(
             "exact-parity prior-dump training expects exactly one optimizer instance, "
             f"got {len(optimizer_selection.optimizers)}"
         )
-    optimizer = optimizer_selection.optimizers[0][1]
-    prepared_opts = [("schedulefree_adamw", optimizer)]
+    prepared_opts = list(optimizer_selection.optimizers)
+    optimizer = prepared_opts[0][1]
     _set_optimizer_training_mode(prepared_opts, training=True)
     lr_scales = [1.0 for _ in optimizer.param_groups]
     _set_optimizer_base_lr(
@@ -624,6 +665,7 @@ def train_tabfoundry_simple_prior(
     grad_norm_sum = 0.0
     grad_norm_count = 0
     max_grad_norm = 0.0
+    clipped_step_count = 0
     train_start = time.perf_counter()
     train_elapsed_seconds = 0.0
     previous_train_loss: float | None = None
@@ -633,10 +675,19 @@ def train_tabfoundry_simple_prior(
         prior_missingness_generator = torch.Generator(device="cpu")
         prior_missingness_generator.manual_seed(seed)
 
+    def _record_non_finite_batch(batch_missingness: PriorDumpBatchMissingness) -> None:
+        _accumulate_missingness(
+            missingness_summary,
+            batch_missingness=batch_missingness,
+            skipped=prior_dump_non_finite_policy == "skip",
+        )
+
     reader = PriorDumpTaskBatchReader(
         prior_dump_path,
         num_steps=max_steps,
         batch_size=batch_size,
+        non_finite_policy=prior_dump_non_finite_policy,
+        on_non_finite_batch=_record_non_finite_batch,
     )
 
     try:
@@ -705,6 +756,8 @@ def train_tabfoundry_simple_prior(
             clipped = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             local_grad_norm = normalize_grad_norm_value(clipped, fallback=local_grad_norm)
             grad_clip_triggered = bool(local_grad_norm > grad_clip)
+            if grad_clip_triggered:
+                clipped_step_count += 1
 
             optimizer.step()
             step_train_duration = time.perf_counter() - step_train_start
@@ -723,6 +776,8 @@ def train_tabfoundry_simple_prior(
             loss_ema = update_loss_ema(history_step_loss, previous_ema=loss_ema)
             previous_train_loss = history_step_loss
             elapsed_seconds = time.perf_counter() - train_start
+            prior_dump_missingness = cast(dict[str, Any], missingness_summary["prior_dump"])
+            synthetic_prior_missingness = cast(dict[str, Any], missingness_summary["synthetic_prior"])
             train_log: dict[str, Any] = {
                 "train/loss": float(history_step_loss),
                 "train/acc": float(history_step_acc),
@@ -734,10 +789,25 @@ def train_tabfoundry_simple_prior(
                 "train/train_elapsed_seconds": float(train_elapsed_seconds),
                 "train/grad_clip_threshold": float(grad_clip),
                 "train/grad_clip_triggered": grad_clip_triggered,
+                "train/grad_clip_count_so_far": int(clipped_step_count),
+                "train/grad_clip_fraction_so_far": float(clipped_step_count / global_step),
+                "train/prior_dump_skipped_batch_count": int(prior_dump_missingness["skipped_batch_count"]),
+                "train/prior_dump_non_finite_feature_count": int(prior_dump_missingness["non_finite_feature_count"]),
+                "train/prior_dump_non_finite_label_count": int(prior_dump_missingness["non_finite_label_count"]),
+                "train/synthetic_prior_masked_feature_count": int(synthetic_prior_missingness["masked_feature_count"]),
                 "train/stage": _PRIOR_STAGE_NAME,
             }
             for module_name, module_value in pre_clip_module_grad_norms.items():
                 train_log[f"train/module_grad_norm/{module_name}"] = float(module_value)
+            feature_grad = pre_clip_module_grad_norms.get("feature_encoder")
+            head_grad = pre_clip_module_grad_norms.get("direct_head")
+            if feature_grad is not None and float(feature_grad) > 0.0 and head_grad is not None:
+                train_log["train/module_balance/direct_head_to_feature_encoder"] = float(head_grad) / float(feature_grad)
+            if head_grad is not None and float(head_grad) > 0.0 and feature_grad is not None:
+                train_log["train/module_balance/feature_encoder_to_direct_head"] = float(feature_grad) / float(head_grad)
+            if activation_norms is not None:
+                for activation_name, activation_value in activation_norms.items():
+                    train_log[f"train/activation_norm/{activation_name}"] = float(activation_value)
             log_wandb_metrics(run, train_log, step=global_step)
             history_payload = history_record(
                 global_step=global_step,
@@ -778,7 +848,7 @@ def train_tabfoundry_simple_prior(
             if global_step % checkpoint_every == 0:
                 checkpoint_path = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
                 _save_eval_mode_checkpoint(
-                    optimizer,
+                    prepared_opts,
                     path=checkpoint_path,
                     model=model,
                     global_step=global_step,
@@ -803,7 +873,7 @@ def train_tabfoundry_simple_prior(
 
         latest_checkpoint = output_dir / "checkpoints" / "latest.pt"
         _save_eval_mode_checkpoint(
-            optimizer,
+            prepared_opts,
             path=latest_checkpoint,
             model=model,
             global_step=global_step,
@@ -847,11 +917,6 @@ def train_tabfoundry_simple_prior(
             },
         )
     except Exception as exc:
-        if isinstance(exc, PriorDumpNonFiniteInputError):
-            _accumulate_missingness(
-                missingness_summary,
-                batch_missingness=exc.summary,
-            )
         telemetry_payload = build_training_telemetry(
             run_dir=output_dir,
             success=False,

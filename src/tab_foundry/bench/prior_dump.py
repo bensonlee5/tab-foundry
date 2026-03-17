@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+import math
 from pathlib import Path
+from typing import Literal, cast
 
 import numpy as np
 import torch
 
 from tab_foundry.types import TaskBatch
+
+
+PriorDumpNonFinitePolicy = Literal["error", "skip"]
 
 
 @dataclass(slots=True, frozen=True)
@@ -115,6 +120,23 @@ def _non_finite_padded_label_count(batch_y: np.ndarray, *, n_datapoints: int) ->
     return _non_finite_count(batch_y[n_datapoints:])
 
 
+def _resolve_non_finite_policy(value: PriorDumpNonFinitePolicy | str) -> PriorDumpNonFinitePolicy:
+    normalized = str(value).strip().lower()
+    if normalized not in {"error", "skip"}:
+        raise ValueError(
+            "prior dump non-finite policy must be one of {'error', 'skip'}, "
+            f"got {value!r}"
+        )
+    return cast(PriorDumpNonFinitePolicy, normalized)
+
+
+def _advance_pointer(pointer: int, *, batch_size: int, dataset_count: int) -> int:
+    next_pointer = int(pointer) + int(batch_size)
+    if next_pointer >= int(dataset_count):
+        return 0
+    return next_pointer
+
+
 class PriorDumpTaskBatchReader:
     """Iterate a nanoTabPFN prior dump with the notebook's batching semantics."""
 
@@ -125,11 +147,15 @@ class PriorDumpTaskBatchReader:
         num_steps: int,
         batch_size: int,
         allow_missing_values: bool = False,
+        non_finite_policy: PriorDumpNonFinitePolicy = "error",
+        on_non_finite_batch: Callable[[PriorDumpBatchMissingness], None] | None = None,
     ) -> None:
         self.path = path.expanduser().resolve()
         self.num_steps = int(num_steps)
         self.batch_size = int(batch_size)
         self.allow_missing_values = bool(allow_missing_values)
+        self.non_finite_policy = _resolve_non_finite_policy(non_finite_policy)
+        self.on_non_finite_batch = on_non_finite_batch
         if self.num_steps <= 0:
             raise ValueError(f"num_steps must be >= 1, got {self.num_steps}")
         if self.batch_size <= 0:
@@ -161,7 +187,11 @@ class PriorDumpTaskBatchReader:
             if dataset_count <= 0:
                 raise RuntimeError("prior dump contains no datasets")
 
-            for step_index in range(1, self.num_steps + 1):
+            batches_per_cycle = max(1, int(math.ceil(float(dataset_count) / float(self.batch_size))))
+            successful_step_index = 0
+            skipped_in_current_cycle = 0
+
+            while successful_step_index < self.num_steps:
                 end = min(pointer + self.batch_size, dataset_count)
                 if end <= pointer:
                     raise RuntimeError("prior dump batch selection produced no datasets")
@@ -267,17 +297,35 @@ class PriorDumpTaskBatchReader:
                         )
                     )
 
+                step_index = int(successful_step_index + 1)
                 missingness = PriorDumpBatchMissingness(
-                    step_index=int(step_index),
+                    step_index=step_index,
                     dataset_indices=batch_dataset_indices,
                     non_finite_feature_count=int(batch_non_finite_feature_count),
                     non_finite_label_count=int(batch_non_finite_label_count),
                     affected_datasets=tuple(affected_datasets),
                 )
-                if missingness.non_finite_label_count > 0:
-                    raise PriorDumpNonFiniteInputError(path=self.path, summary=missingness)
-                if not self.allow_missing_values and missingness.non_finite_feature_count > 0:
-                    raise PriorDumpNonFiniteInputError(path=self.path, summary=missingness)
+                has_invalid_batch = (
+                    missingness.non_finite_label_count > 0
+                    or (
+                        not self.allow_missing_values
+                        and missingness.non_finite_feature_count > 0
+                    )
+                )
+                if has_invalid_batch:
+                    if self.on_non_finite_batch is not None:
+                        self.on_non_finite_batch(missingness)
+                    if self.non_finite_policy == "error":
+                        raise PriorDumpNonFiniteInputError(path=self.path, summary=missingness)
+                    pointer = _advance_pointer(pointer, batch_size=self.batch_size, dataset_count=dataset_count)
+                    skipped_in_current_cycle += 1
+                    if skipped_in_current_cycle >= batches_per_cycle:
+                        raise RuntimeError(
+                            "prior dump scan yielded no valid batch during a full pass under "
+                            "non_finite_policy='skip'"
+                        )
+                    continue
+
                 yield PriorDumpStep(
                     step_index=step_index,
                     dataset_indices=batch_dataset_indices,
@@ -288,9 +336,9 @@ class PriorDumpTaskBatchReader:
                     missingness=missingness,
                 )
 
-                pointer += self.batch_size
-                if pointer >= dataset_count:
-                    pointer = 0
+                successful_step_index += 1
+                skipped_in_current_cycle = 0
+                pointer = _advance_pointer(pointer, batch_size=self.batch_size, dataset_count=dataset_count)
 
     def __len__(self) -> int:
         return self.num_steps

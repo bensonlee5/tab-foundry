@@ -1,71 +1,51 @@
 # Stability Follow-Up Comparison Matrix
 
-| Row | Delta Ref | Training Surface | Max Steps | Warmup | Grad Clip | Row Pool | Status |
-|-----|-----------|------------------|-----------|--------|-----------|----------|--------|
-| A | horizon_10000_baseline | prior_cosine_warmup | 10000 | 0.05 | 1.0 | target_column | ready |
-| B | schedule_linear_decay_prenorm | prior_linear_decay | 2500 | 0.00 | 1.0 | target_column | ready |
-| C | schedule_linear_warmup_decay_prenorm | prior_linear_warmup_decay | 2500 | 0.05 | 1.0 | target_column | ready |
-| D | rowpool_row_cls_cls2 | prior_cosine_warmup | 2500 | 0.05 | 1.0 | row_cls | ready |
+Source files:
 
-## Design
+- `reference/system_delta_sweeps/stability_followup/sweep.yaml`
+- `reference/system_delta_sweeps/stability_followup/queue.yaml`
+- `reference/system_delta_catalog.yaml`
 
-This follow-up stays on the stabilized prenorm foundation and asks only the
-remaining high-signal questions.
+This follow-up is a `delta_prenorm_block` bridge sweep, not a continuation of the stronger post-norm `binary_md_v3` surface.
+The queue is intentionally expanded to 11 rows so hyperparameters can be calibrated on the prenorm bridge surface before any later larger-model work.
 
-- **A** confirms the frozen baseline at `10000` steps and forces explicit
-  encoder/head gradient-ratio reporting over steps `1-25`, the first `100`
-  logged steps after warmup ends, and the final `10%` of the run.
-- **B** tests plain `linear_decay` on prenorm to see whether decay alone fixes
-  best-checkpoint drift.
-- **C** tests `linear_warmup_decay` on prenorm to see whether decay can help
-  without surrendering the warmup stability win.
-- **D** revisits `row_cls` with the old cleanest `cls_tokens=2` seed and ranks
-  it benchmark-first on the stabilized surface.
+## Anchor
 
-Dropout and dagzoo are retired from this sweep. The remaining training-dynamics
-work is schedule closure plus long-horizon adequacy, and the only architecture
-revisit is one controlled RowPool row.
+- Stage: `nano_exact`
+- Locked bridge overrides: `table_block_style=prenorm`, `allow_test_self_attention=false`
+- Feature encoder: `nano`
+- Target conditioning: `mean_padded_linear`
+- Default readout for rows 1-10: `target_column`
+- Baseline training recipe: `prior_cosine_warmup`, `grad_clip=1.0`, `max_steps=2500`, `trace_activations=true`
+- Prior-dump policy for the whole queue: `training.prior_dump_non_finite_policy=skip`
 
-## Concern #3 Telemetry
+## Diagnostics
 
-Use the existing `gradient_history.jsonl` module telemetry for
-`feature_encoder` and `direct_head`.
+Every row must report the same training-dynamics diagnostics in both `telemetry.json` and wandb:
 
-- Report the encoder/head gradient ratio over steps `1-25`.
-- Report the same ratio for the first `100` logged steps after warmup ends.
-- Report the same ratio for the final `10%` of each run.
+- clipped-step fraction
+- encoder/head gradient ratio windows: `early_1_25`, `post_warmup_100`, `final_10pct`
+- activation windows for `post_feature_encoder` and `pre_transformer`
 
-Treat this as diagnostic evidence. Benchmark quality and checkpoint drift remain
-higher priority than module-gradient balance by itself.
+## Rows
 
-## Acceptance
+| Order | Row | Purpose | Key Change |
+| --- | --- | --- | --- |
+| 1 | `dpnb_baseline_cosine_warmup_2500` | Bridge baseline | Cosine warmup on `delta_prenorm_block` |
+| 2 | `dpnb_linear_decay_lr4e3` | Decay-only check | `prior_linear_decay`, no warmup |
+| 3 | `dpnb_linear_warmup_decay_lr4e3_warm5` | Center schedule candidate | `prior_linear_warmup_decay`, `lr_max=0.004`, `warmup_ratio=0.05` |
+| 4 | `dpnb_linear_warmup_decay_lr3e3_warm5` | Low-LR neighbor | `lr_max=0.003` |
+| 5 | `dpnb_linear_warmup_decay_lr5e3_warm5` | High-LR neighbor | `lr_max=0.005` |
+| 6 | `dpnb_linear_warmup_decay_lr4e3_warm2` | Short warmup | `warmup_ratio=0.02` |
+| 7 | `dpnb_linear_warmup_decay_lr4e3_warm10` | Long warmup | `warmup_ratio=0.10` |
+| 8 | `dpnb_linear_warmup_decay_lr4e3_warm5_clip05` | Tight clip probe | `grad_clip=0.5` |
+| 9 | `dpnb_linear_warmup_decay_lr4e3_warm5_wd5e4` | Small weight decay | `weight_decay=5e-4` |
+| 10 | `dpnb_linear_warmup_decay_lr4e3_warm5_adamw` | Optimizer-family comparator | `optimizer.name=adamw` |
+| 11 | `dpnb_row_cls_cls2_linear_warmup_decay` | Bounded RowPool revisit | `row_pool=row_cls`, `tfrow_cls_tokens=2` |
 
-- **Long-horizon baseline**
-  - Accept the frozen baseline as horizon-adequate only if the run stays finite
-    and does not enter a new late-run variance or gradient regime.
-  - If this row fails, reopen horizon stabilization as a separate follow-up
-    rather than broadening this sweep.
-- **Linear schedules**
-  - Rank schedule rows by benchmark best ROC AUC first, final ROC AUC second,
-    and drift third.
-  - Promote a linear row only if final ROC AUC stays within `0.002` of the
-    cosine-warmup anchor and drift improves materially.
-  - Use post-warmup loss variance and encoder/head gradient ratio as supporting
-    diagnostics, not as promotion criteria by themselves.
-- **RowPool revisit**
-  - Rank the `row_cls` row by benchmark ROC AUC first, drift second, and
-    stability diagnostics third.
-  - Treat a clear benchmark miss with no drift win as renewed negative evidence
-    for RowPool on the stabilized surface.
+## Interpretation
 
-## Anchor Surface
-
-All rows share the same frozen staged baseline unless the row explicitly changes
-schedule or row pooling.
-
-- `arch: tabfoundry_staged`, `stage: prenorm_block`
-- `feature_encoder: shared`, `post_encoder_norm: layernorm`
-- `table_block_style: prenorm`, `head: binary_direct`
-- `tokenizer: scalar_per_feature`, `row_pool: target_column`
-- `context_encoder: none`, `column_encoder: none`
-- `training.surface_label: prior_cosine_warmup`
+- Rows 1-10 are training-dynamics calibration rows. Rank by best ROC AUC first, final ROC AUC second, drift third.
+- Row 3 is the center of the local calibration neighborhood. Rows 4-10 should be interpreted relative to it.
+- Row 11 is benchmark-first and provisional. If `row_cls` is still clearly negative here, keep it parked on the bridge surface.
+- Input normalization and long-horizon claims are intentionally out of scope for this queue.

@@ -5,8 +5,23 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
+from tab_foundry.research.system_delta import load_system_delta_queue
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+EXPECTED_ROWS = [
+    "dpnb_baseline_cosine_warmup_2500",
+    "dpnb_linear_decay_lr4e3",
+    "dpnb_linear_warmup_decay_lr4e3_warm5",
+    "dpnb_linear_warmup_decay_lr3e3_warm5",
+    "dpnb_linear_warmup_decay_lr5e3_warm5",
+    "dpnb_linear_warmup_decay_lr4e3_warm2",
+    "dpnb_linear_warmup_decay_lr4e3_warm10",
+    "dpnb_linear_warmup_decay_lr4e3_warm5_clip05",
+    "dpnb_linear_warmup_decay_lr4e3_warm5_wd5e4",
+    "dpnb_linear_warmup_decay_lr4e3_warm5_adamw",
+    "dpnb_row_cls_cls2_linear_warmup_decay",
+]
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -38,7 +53,7 @@ def test_stability_followup_is_registered_but_not_active() -> None:
     }
 
 
-def test_stability_followup_metadata_and_rows_match_the_retargeted_plan() -> None:
+def test_stability_followup_metadata_and_rows_match_the_delta_prenorm_bridge_plan() -> None:
     sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / "stability_followup"
     sweep = _load_yaml(sweep_root / "sweep.yaml")
     queue = _load_yaml(sweep_root / "queue.yaml")
@@ -47,14 +62,15 @@ def test_stability_followup_metadata_and_rows_match_the_retargeted_plan() -> Non
     assert sweep["parent_sweep_id"] == "stability_ladder"
     assert sweep["status"] == "draft"
     assert sweep["anchor_context"]["model"]["arch"] == "tabfoundry_staged"
-    assert sweep["anchor_context"]["model"]["stage"] == "prenorm_block"
+    assert sweep["anchor_context"]["model"]["stage"] == "nano_exact"
+    assert sweep["anchor_context"]["model"]["stage_label"] == "delta_prenorm_block"
     assert sweep["anchor_context"]["model"]["module_selection"] == {
         "allow_test_self_attention": False,
         "column_encoder": "none",
         "context_encoder": "none",
-        "feature_encoder": "shared",
+        "feature_encoder": "nano",
         "head": "binary_direct",
-        "post_encoder_norm": "layernorm",
+        "post_encoder_norm": "none",
         "row_pool": "target_column",
         "table_block_style": "prenorm",
         "target_conditioner": "mean_padded_linear",
@@ -64,81 +80,80 @@ def test_stability_followup_metadata_and_rows_match_the_retargeted_plan() -> Non
 
     rows = queue["rows"]
     assert isinstance(rows, list)
-    assert [row["delta_ref"] for row in rows] == [
-        "horizon_10000_baseline",
-        "schedule_linear_decay_prenorm",
-        "schedule_linear_warmup_decay_prenorm",
-        "rowpool_row_cls_cls2",
-    ]
-    assert [row["status"] for row in rows] == ["ready", "ready", "ready", "ready"]
+    assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
+    assert [row["status"] for row in rows] == ["ready"] * len(EXPECTED_ROWS)
+    assert all(row["training"]["prior_dump_non_finite_policy"] == "skip" for row in rows)
+    assert all(row["training"]["overrides"]["runtime"]["trace_activations"] is True for row in rows)
 
-    horizon_row = _row_by_ref(queue, "horizon_10000_baseline")
-    assert horizon_row["training"]["surface_label"] == "prior_cosine_warmup"
-    assert horizon_row["training"]["overrides"]["apply_schedule"] is True
-    assert horizon_row["training"]["overrides"]["runtime"] == {"grad_clip": 1.0, "max_steps": 10000}
-    assert horizon_row["training"]["overrides"]["schedule"]["stages"] == [
+    baseline = _row_by_ref(queue, "dpnb_baseline_cosine_warmup_2500")
+    assert baseline["model"] == {
+        "stage": "nano_exact",
+        "stage_label": "dpnb_baseline_cosine_warmup_2500",
+        "module_overrides": {
+            "table_block_style": "prenorm",
+            "allow_test_self_attention": False,
+        },
+    }
+    assert baseline["training"]["surface_label"] == "prior_cosine_warmup"
+    assert baseline["training"]["overrides"]["runtime"] == {
+        "grad_clip": 1.0,
+        "max_steps": 2500,
+        "trace_activations": True,
+    }
+
+    canonical = _row_by_ref(queue, "dpnb_linear_warmup_decay_lr4e3_warm5")
+    assert canonical["training"]["surface_label"] == "prior_linear_warmup_decay"
+    assert canonical["training"]["overrides"]["optimizer"] == {"min_lr": 0.0004}
+    assert canonical["training"]["overrides"]["schedule"]["stages"] == [
         {
             "name": "prior_dump",
-            "steps": 10000,
+            "steps": 2500,
             "lr_max": 0.004,
-            "lr_schedule": "cosine",
+            "lr_schedule": "linear",
             "warmup_ratio": 0.05,
         }
     ]
 
-    linear_row = _row_by_ref(queue, "schedule_linear_decay_prenorm")
-    assert linear_row["training"]["surface_label"] == "prior_linear_decay"
-    assert linear_row["training"]["overrides"] == {
-        "apply_schedule": True,
-        "optimizer": {"min_lr": 0.0004},
-        "runtime": {"grad_clip": 1.0, "max_steps": 2500},
-        "schedule": {
-            "stages": [
-                {
-                    "name": "prior_dump",
-                    "steps": 2500,
-                    "lr_max": 0.004,
-                    "lr_schedule": "linear",
-                    "warmup_ratio": 0.0,
-                }
-            ]
-        },
+    low_lr = _row_by_ref(queue, "dpnb_linear_warmup_decay_lr3e3_warm5")
+    assert low_lr["training"]["overrides"]["optimizer"] == {"min_lr": 0.0003}
+    assert low_lr["training"]["overrides"]["schedule"]["stages"][0]["lr_max"] == 0.003
+
+    clip_row = _row_by_ref(queue, "dpnb_linear_warmup_decay_lr4e3_warm5_clip05")
+    assert clip_row["training"]["overrides"]["runtime"]["grad_clip"] == 0.5
+
+    wd_row = _row_by_ref(queue, "dpnb_linear_warmup_decay_lr4e3_warm5_wd5e4")
+    assert wd_row["training"]["overrides"]["optimizer"] == {
+        "min_lr": 0.0004,
+        "weight_decay": 0.0005,
     }
 
-    linear_warmup_row = _row_by_ref(queue, "schedule_linear_warmup_decay_prenorm")
-    assert linear_warmup_row["training"]["surface_label"] == "prior_linear_warmup_decay"
-    assert linear_warmup_row["training"]["overrides"] == {
-        "apply_schedule": True,
-        "optimizer": {"min_lr": 0.0004},
-        "runtime": {"grad_clip": 1.0, "max_steps": 2500},
-        "schedule": {
-            "stages": [
-                {
-                    "name": "prior_dump",
-                    "steps": 2500,
-                    "lr_max": 0.004,
-                    "lr_schedule": "linear",
-                    "warmup_ratio": 0.05,
-                }
-            ]
-        },
+    adamw_row = _row_by_ref(queue, "dpnb_linear_warmup_decay_lr4e3_warm5_adamw")
+    assert adamw_row["training"]["overrides"]["optimizer"] == {
+        "name": "adamw",
+        "min_lr": 0.0004,
+        "weight_decay": 0.0,
     }
 
-    rowpool_row = _row_by_ref(queue, "rowpool_row_cls_cls2")
-    assert rowpool_row["training"]["surface_label"] == "prior_cosine_warmup"
+    rowpool_row = _row_by_ref(queue, "dpnb_row_cls_cls2_linear_warmup_decay")
     assert rowpool_row["model"]["tfrow_n_heads"] == 8
     assert rowpool_row["model"]["tfrow_n_layers"] == 3
     assert rowpool_row["model"]["tfrow_cls_tokens"] == 2
     assert rowpool_row["model"]["tfrow_norm"] == "layernorm"
     assert rowpool_row["model"]["module_overrides"] == {
-        "feature_encoder": "shared",
-        "post_encoder_norm": "layernorm",
-        "row_pool": "row_cls",
         "table_block_style": "prenorm",
+        "allow_test_self_attention": False,
+        "row_pool": "row_cls",
     }
 
+    materialized = load_system_delta_queue(
+        sweep_id="stability_followup",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+    )
+    assert [row["delta_id"] for row in materialized["rows"]] == EXPECTED_ROWS
 
-def test_stability_followup_matrix_records_gradient_ratio_schedule_rows_and_rowpool() -> None:
+
+def test_stability_followup_matrix_records_the_expanded_bridge_queue() -> None:
     matrix = (
         REPO_ROOT
         / "reference"
@@ -148,10 +163,12 @@ def test_stability_followup_matrix_records_gradient_ratio_schedule_rows_and_rowp
     ).read_text(encoding="utf-8")
 
     assert "# Stability Follow-Up Comparison Matrix" in matrix
-    assert "encoder/head gradient ratio" in matrix
-    assert "steps `1-25`" in matrix
-    assert "prior_linear_decay" in matrix
-    assert "prior_linear_warmup_decay" in matrix
-    assert "rowpool_row_cls_cls2" in matrix
-    assert "--handoff-root" not in matrix
-    assert "pre_encoder_clip=10.0" not in matrix
+    assert "delta_prenorm_block" in matrix
+    assert "early_1_25" in matrix
+    assert "post_warmup_100" in matrix
+    assert "final_10pct" in matrix
+    assert "dpnb_linear_warmup_decay_lr4e3_warm5_adamw" in matrix
+    assert "dpnb_linear_warmup_decay_lr4e3_warm5_wd5e4" in matrix
+    assert "dpnb_row_cls_cls2_linear_warmup_decay" in matrix
+    assert "Dagzoo" not in matrix
+    assert "10000-step horizon" not in matrix
