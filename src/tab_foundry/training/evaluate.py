@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Mapping
 
 from omegaconf import DictConfig, OmegaConf
 import torch
@@ -23,6 +23,7 @@ from .batching import move_batch
 from .distributed import _global_mean_from_local
 from .runtime import build_accelerator_from_runtime
 from .trainer import _compute_loss_and_metrics
+from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
 
 def _checkpoint_preprocessing_settings(
@@ -49,7 +50,7 @@ def _checkpoint_model_settings(
 ) -> ModelBuildSpec:
     cfg_payload = payload.get("config")
     checkpoint_cfg = cfg_payload if isinstance(cfg_payload, dict) else {}
-    task_raw = checkpoint_cfg.get("task")
+    task_raw = checkpoint_cfg.get("task", cfg.task)
     task = str(task_raw).strip().lower()
     if task not in {"classification", "regression"}:
         raise RuntimeError(f"Unsupported checkpoint task value: {task!r}")
@@ -81,6 +82,46 @@ def _checkpoint_model_settings(
     )
 
 
+def _resolved_checkpoint_step(payload: Mapping[str, Any]) -> int:
+    raw_value = payload.get("global_step")
+    if raw_value is None:
+        return 0
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return 0
+    return max(value, 0)
+
+
+def _evaluation_summary_payload(
+    *,
+    checkpoint: Path,
+    split: str,
+    max_batches: int,
+    global_step: int,
+    metrics: Mapping[str, float] | None = None,
+    error: BaseException | None = None,
+) -> dict[str, Any]:
+    summary: dict[str, Any] = {
+        "run": {
+            "checkpoint": str(checkpoint),
+            "split": split,
+            "global_step": int(global_step),
+        },
+        "eval": {
+            "max_batches": int(max_batches),
+        },
+    }
+    if metrics is not None:
+        summary["metrics"] = {
+            str(key): float(value)
+            for key, value in metrics.items()
+        }
+    if error is not None:
+        summary["error"] = {"type": type(error).__name__, "message": str(error)}
+    return summary
+
+
 def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     """Evaluate a saved checkpoint."""
 
@@ -92,13 +133,18 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     model_spec = _checkpoint_model_settings(payload, cfg)
     preprocessing_cfg = _checkpoint_preprocessing_settings(payload, cfg)
     raw_data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
-    data_surface = resolve_data_surface(
-        cast(dict[str, Any] | None, raw_data_cfg if isinstance(raw_data_cfg, dict) else None)
+    data_cfg = None if not isinstance(raw_data_cfg, dict) else {str(key): value for key, value in raw_data_cfg.items()}
+    data_surface = resolve_data_surface(data_cfg)
+    raw_preprocessing_cfg = (
+        None if preprocessing_cfg is None else OmegaConf.to_container(preprocessing_cfg, resolve=True)
+    )
+    preprocessing_cfg_payload = (
+        None
+        if not isinstance(raw_preprocessing_cfg, dict)
+        else {str(key): value for key, value in raw_preprocessing_cfg.items()}
     )
     preprocessing_surface = resolve_preprocessing_surface(
-        None
-        if preprocessing_cfg is None
-        else cast(dict[str, Any] | None, OmegaConf.to_container(preprocessing_cfg, resolve=True))
+        preprocessing_cfg_payload
     )
     validate_missingness_runtime_policy(
         missingness_mode=getattr(model_spec, "missingness_mode", "none"),
@@ -107,10 +153,12 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         context="evaluate_checkpoint",
     )
     task = model_spec.task
+    eval_step = _resolved_checkpoint_step(payload)
     model = build_model_from_spec(model_spec)
     model.load_state_dict(payload["model"])
 
     split = str(cfg.eval.split)
+    max_batches = int(cfg.eval.max_batches)
     ds = build_task_dataset(
         cfg.data,
         split=split,
@@ -128,6 +176,12 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     accelerator = build_accelerator_from_runtime(cfg.runtime)
     model, loader = accelerator.prepare(model, loader)
     model.eval()
+    logging_cfg = cfg.get("logging")
+    use_wandb = bool(getattr(logging_cfg, "use_wandb", False)) if logging_cfg is not None else False
+    run = init_wandb_run(
+        cfg,
+        enabled=bool(use_wandb and accelerator.is_main_process),
+    )
 
     loss_sum = 0.0
     score_sum = 0.0
@@ -135,29 +189,60 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
 
     metric_name = "acc" if task == "classification" else "rmse"
 
-    with torch.no_grad():
-        for i, batch in enumerate(loader):
-            if i >= int(cfg.eval.max_batches):
-                break
-            batch = move_batch(batch, accelerator.device)
-            with accelerator.autocast():
-                output = model(batch)
-                loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-            loss_sum += float(loss.item())
-            score_sum += metrics.get(metric_name, 0.0)
-            count += 1
+    try:
+        with torch.no_grad():
+            for i, batch in enumerate(loader):
+                if i >= max_batches:
+                    break
+                batch = move_batch(batch, accelerator.device)
+                with accelerator.autocast():
+                    output = model(batch)
+                    loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
+                loss_sum += float(loss.item())
+                score_sum += metrics.get(metric_name, 0.0)
+                count += 1
 
-    dev = accelerator.device
-    loss_value = _global_mean_from_local(
-        accelerator, local_sum=loss_sum, local_count=count, device=dev, default=float("inf"),
-    )
-    metric_value = _global_mean_from_local(
-        accelerator, local_sum=score_sum, local_count=count, device=dev, default=0.0,
-    )
-    return EvalResult(
-        checkpoint=checkpoint,
-        metrics={
+        dev = accelerator.device
+        loss_value = _global_mean_from_local(
+            accelerator, local_sum=loss_sum, local_count=count, device=dev, default=float("inf"),
+        )
+        metric_value = _global_mean_from_local(
+            accelerator, local_sum=score_sum, local_count=count, device=dev, default=0.0,
+        )
+        result_metrics = {
             "loss": loss_value,
             metric_name: metric_value,
-        },
-    )
+        }
+        log_wandb_metrics(
+            run,
+            {f"eval/{key}": value for key, value in result_metrics.items()},
+            step=eval_step,
+        )
+        update_wandb_summary(
+            run,
+            _evaluation_summary_payload(
+                checkpoint=checkpoint,
+                split=split,
+                max_batches=max_batches,
+                global_step=eval_step,
+                metrics=result_metrics,
+            ),
+        )
+        return EvalResult(
+            checkpoint=checkpoint,
+            metrics=result_metrics,
+        )
+    except Exception as exc:
+        update_wandb_summary(
+            run,
+            _evaluation_summary_payload(
+                checkpoint=checkpoint,
+                split=split,
+                max_batches=max_batches,
+                global_step=eval_step,
+                error=exc,
+            ),
+        )
+        raise
+    finally:
+        finish_wandb_run(run)

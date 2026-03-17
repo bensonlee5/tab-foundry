@@ -7,48 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] - 2026-03-16
-
-### Changed
-
-- Checkpoint, export, and manifest reconstruction now fail fast when required
-  model metadata is missing or ambiguous instead of silently backfilling fields
-  from current repo defaults. Explicit user override surfaces remain available
-  only where the caller opts into them.
-
-- Data and preprocessing surface resolution now requires explicit configuration
-  for user-facing fields such as `source`, `surface_label`,
-  `allow_missing_values`, `impute_missing`, and `all_nan_fill` instead of
-  synthesizing runtime defaults inside the resolver layer.
-
-- Optimizer selection now requires the requested optimizer by default.
-  Downgrades such as `muon -> adamw` or `schedulefree_adamw -> adamw` are now
-  opt-in only through `optimizer.require_requested=false`.
-
 ## [0.6.6] - 2026-03-16
 
 ### Changed
 
-- Added `model.missingness_mode` with `none`, `explicit_token`, and
-  `feature_mask` options across the shared model-spec, checkpoint/export
-  reconstruction, and training metadata surfaces. Missing values are now
-  treated as any non-finite feature value (`NaN` or `Inf`), and
-  `feature_mask` concatenates one learned-visible 0/1 indicator per feature.
+- Standalone checkpoint evaluation now uses the shared internal Weights &
+  Biases helper when `logging.use_wandb=true`, logging the existing computed
+  `eval/loss` plus task-specific `eval/acc` or `eval/rmse` scalars and a
+  compact summary payload without changing CLI flags or evaluation result
+  schemas.
 
-- Added model-native missing-value handling for train/test numeric preparation.
-  When missing-aware modes are enabled, the model now fills missing numeric
-  values with train-only observed means, falls back to `0.0` for all-missing
-  train columns, and preserves a separate missing mask for downstream
-  tokenization. `tabfoundry_simple` keeps exact nanoTabPFN parity when
-  `missingness_mode=none` and only deviates when a non-default missingness mode
-  is selected.
-
-- User-facing runtime contract change: non-default `missingness_mode` values now
-  require raw missing values to reach the model, which means
-  `data.allow_missing_values=true` and `preprocessing.impute_missing=false`.
-  Export bundles now persist additive `missingness_mode` and preprocessor
-  `impute_missing` metadata, and the reference consumer preserves raw missing
-  values accordingly.
+- Main trainer wandb summaries now retain the final already-computed training
+  loss state, including additive `metrics/final_train_loss`,
+  `metrics/final_train_loss_ema`, and task-specific
+  `metrics/final_train_acc` or `metrics/final_train_rmse`, without changing
+  `train_history.jsonl` or `TrainResult`.
 
 ## [0.6.5] - 2026-03-16
 

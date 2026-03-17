@@ -6,7 +6,7 @@ from collections.abc import Iterator
 import math
 from pathlib import Path
 import time
-from typing import Any, cast
+from typing import Any, Mapping, cast
 
 from accelerate import Accelerator
 import torch
@@ -253,6 +253,9 @@ def _trainer_summary_payload(
     latest_checkpoint: Path | None,
     best_val: float,
     best_val_step: float,
+    final_train_loss: float | None,
+    final_train_loss_ema: float | None,
+    last_train_metrics: Mapping[str, float] | None,
     last_val_metrics: dict[str, float] | None,
     final_grad_norm: float,
     grad_norm_sum: float,
@@ -262,6 +265,34 @@ def _trainer_summary_payload(
     wall_elapsed_seconds: float,
     error: BaseException | None = None,
 ) -> dict[str, Any]:
+    def _summary_float(value: float | None) -> float | None:
+        if value is None:
+            return None
+        value_f = float(value)
+        return value_f if math.isfinite(value_f) else None
+
+    metrics_payload: dict[str, float | None] = {
+        "best_val_loss": float(best_val),
+        "best_val_step": float(best_val_step) if best_val_step > 0 else None,
+        "final_train_loss": _summary_float(final_train_loss),
+        "final_train_loss_ema": _summary_float(final_train_loss_ema),
+        "final_val_loss": None
+        if last_val_metrics is None
+        else _summary_float(last_val_metrics.get("val_loss")),
+        "final_grad_norm": float(final_grad_norm),
+        "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
+        "max_grad_norm": float(max_grad_norm),
+        "train_elapsed_seconds": float(train_elapsed_seconds),
+        "wall_elapsed_seconds": float(wall_elapsed_seconds),
+    }
+    if last_train_metrics is not None:
+        final_train_acc = _summary_float(last_train_metrics.get("acc"))
+        if final_train_acc is not None:
+            metrics_payload["final_train_acc"] = final_train_acc
+        final_train_rmse = _summary_float(last_train_metrics.get("rmse"))
+        if final_train_rmse is not None:
+            metrics_payload["final_train_rmse"] = final_train_rmse
+
     summary: dict[str, Any] = {
         "optimizer": {
             "requested_name": optimizer_requested_name,
@@ -274,18 +305,7 @@ def _trainer_summary_payload(
             "best_checkpoint": None if best_checkpoint is None else str(best_checkpoint.resolve()),
             "latest_checkpoint": None if latest_checkpoint is None else str(latest_checkpoint.resolve()),
         },
-        "metrics": {
-            "best_val_loss": float(best_val),
-            "best_val_step": float(best_val_step) if best_val_step > 0 else None,
-            "final_val_loss": None
-            if last_val_metrics is None
-            else float(last_val_metrics["val_loss"]),
-            "final_grad_norm": float(final_grad_norm),
-            "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
-            "max_grad_norm": float(max_grad_norm),
-            "train_elapsed_seconds": float(train_elapsed_seconds),
-            "wall_elapsed_seconds": float(wall_elapsed_seconds),
-        },
+        "metrics": metrics_payload,
     }
     if error is not None:
         summary["error"] = {"type": type(error).__name__, "message": str(error)}
@@ -436,6 +456,9 @@ def train(cfg: DictConfig) -> TrainResult:
     final_grad_norm = 0.0
     previous_train_loss: float | None = None
     loss_ema: float | None = None
+    final_train_loss: float | None = None
+    final_train_loss_ema: float | None = None
+    last_train_metrics: dict[str, float] | None = None
 
     try:
         for stage in stage_configs:
@@ -516,11 +539,13 @@ def train(cfg: DictConfig) -> TrainResult:
                 }
                 for name, value in lr_values.items():
                     train_log[f"train/lr_{name}"] = value
+                current_train_metrics: dict[str, float] = {}
                 for i, key in enumerate(metric_keys):
                     g_sum = reduced[2 + 2 * i].item()
                     g_count = reduced[2 + 2 * i + 1].item()
                     metric_mean = g_sum / g_count if g_count > 0 else float("nan")
                     if math.isfinite(metric_mean):
+                        current_train_metrics[key] = float(metric_mean)
                         train_log[f"train/{key}"] = metric_mean
                         if key == "grad_norm":
                             grad_norm_value = float(metric_mean)
@@ -549,6 +574,9 @@ def train(cfg: DictConfig) -> TrainResult:
                 train_log["train/train_elapsed_seconds"] = train_elapsed_seconds
                 train_log["train/grad_clip_threshold"] = grad_clip_threshold
                 train_log["train/grad_clip_triggered"] = grad_clip_triggered
+                final_train_loss = current_train_loss
+                final_train_loss_ema = loss_ema
+                last_train_metrics = current_train_metrics
                 log_wandb_metrics(run, train_log, step=global_step)
 
                 history_val_metrics: dict[str, float] | None = None
@@ -681,6 +709,9 @@ def train(cfg: DictConfig) -> TrainResult:
                 latest_checkpoint=latest_checkpoint,
                 best_val=best_val,
                 best_val_step=best_val_step,
+                final_train_loss=final_train_loss,
+                final_train_loss_ema=final_train_loss_ema,
+                last_train_metrics=last_train_metrics,
                 last_val_metrics=last_val_metrics,
                 final_grad_norm=final_grad_norm,
                 grad_norm_sum=grad_norm_sum,
@@ -704,6 +735,9 @@ def train(cfg: DictConfig) -> TrainResult:
                 latest_checkpoint=latest_checkpoint,
                 best_val=best_val,
                 best_val_step=best_val_step,
+                final_train_loss=final_train_loss,
+                final_train_loss_ema=final_train_loss_ema,
+                last_train_metrics=last_train_metrics,
                 last_val_metrics=last_val_metrics,
                 final_grad_norm=final_grad_norm,
                 grad_norm_sum=grad_norm_sum,

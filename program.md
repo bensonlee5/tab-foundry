@@ -10,7 +10,7 @@ and the interpretation policy.
 ## Objective
 
 Optimize for attributable evidence against the locked anchor
-`01_nano_exact_md_prior_parity_fix_binary_medium_v1`, not for rapid base
+`01_shared_norm_post_ln_binary_medium_v1`, not for rapid base
 promotion.
 
 The primary score remains `final_roc_auc` on the canonical benchmark bundle
@@ -32,16 +32,16 @@ Supporting metrics are:
 Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
-- anchor run id: `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
-- anchor prior run: `outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`
-- anchor benchmark: `outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1`
+- anchor run id: `01_shared_norm_post_ln_binary_medium_v1`
+- anchor prior run: `outputs/staged_ladder/research/binary_md_v2/delta_shared_feature_norm_with_post_layernorm/train`
+- anchor benchmark: `outputs/staged_ladder/research/binary_md_v2/delta_shared_feature_norm_with_post_layernorm/benchmark`
 - canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - canonical control baseline id: `cls_benchmark_linear_v2`
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
-- canonical sweep queue: `reference/system_delta_sweeps/binary_md_v2/queue.yaml`
-- canonical sweep matrix: `reference/system_delta_sweeps/binary_md_v2/matrix.md`
+- canonical sweep queue: `reference/system_delta_sweeps/binary_md_v3/queue.yaml`
+- canonical sweep matrix: `reference/system_delta_sweeps/binary_md_v3/matrix.md`
 - active queue alias: `reference/system_delta_queue.yaml`
 - active matrix alias: `reference/system_delta_matrix.md`
 - research template: `reference/system_delta_campaign_template.md`
