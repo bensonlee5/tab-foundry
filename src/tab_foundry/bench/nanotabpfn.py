@@ -574,9 +574,10 @@ def _evaluate_classifier_fast(
 ) -> dict[str, float]:
     """Evaluate a tab-foundry model on the benchmark suite with reduced overhead.
 
-    Inlines the fit/predict_proba logic to avoid per-call overhead: enters
-    torch.no_grad() once, pre-resolves normalization mode once, and uses
-    torch.from_numpy for zero-copy tensor creation.
+    Mirrors the logic of ``evaluate_classifier`` + ``TabFoundryClassifier.predict_proba``
+    but inlines it to avoid per-call overhead: enters torch.no_grad() once,
+    pre-resolves normalization mode once, and uses torch.from_numpy for
+    zero-copy tensor creation.  Keep in sync with those two implementations.
     """
     import torch
     import torch.nn.functional as F
@@ -629,9 +630,9 @@ def _evaluate_classifier_fast(
                         )
 
                     batch = TaskBatch(
-                        x_train=torch.from_numpy(np.ascontiguousarray(x_train_norm)).to(device),
-                        y_train=torch.from_numpy(np.ascontiguousarray(y_train_enc)).to(device),
-                        x_test=torch.from_numpy(np.ascontiguousarray(x_test_norm)).to(device),
+                        x_train=torch.from_numpy(x_train_norm).to(device),
+                        y_train=torch.from_numpy(y_train_enc).to(device),
+                        x_test=torch.from_numpy(x_test_norm).to(device),
                         y_test=torch.zeros(x_test_norm.shape[0], dtype=torch.int64, device=device),
                         metadata={"dataset": "external_benchmark"},
                         num_classes=num_classes,
@@ -1036,8 +1037,13 @@ def evaluate_tab_foundry_run(
                     try:
                         classifier.model = _torch.compile(classifier.model)  # type: ignore[assignment]
                         compiled = True
-                    except Exception:
-                        pass
+                    except Exception as compile_exc:
+                        import sys
+
+                        print(
+                            f"[benchmark] torch.compile failed, falling back to eager: {compile_exc}",
+                            file=sys.stderr,
+                        )
             elif hasattr(classifier, "reload_weights"):
                 classifier.reload_weights(checkpoint_path)
             else:
