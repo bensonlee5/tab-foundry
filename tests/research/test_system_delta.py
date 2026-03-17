@@ -68,6 +68,7 @@ def test_active_sweep_materializes_current_active_sweep() -> None:
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
 
+    assert active_sweep_id == "binary_md_v2"
     assert sweep["sweep_id"] == active_sweep_id
     assert queue["sweep_id"] == active_sweep_id
     assert queue["generated_from_sweep_id"] == active_sweep_id
@@ -163,6 +164,72 @@ def test_missingness_rows_are_deferred_from_the_main_campaign() -> None:
     assert fill_row["status"] == "deferred_separate_workstream"
     assert fill_row["interpretation_status"] == "blocked"
     assert "missingness workstream" in fill_row["next_action"]
+
+
+def test_binary_md_v3_is_draft_missingness_workstream() -> None:
+    index = load_system_delta_index(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
+    sweep = load_system_delta_sweep(
+        "binary_md_v3",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+    )
+    queue = load_system_delta_queue(
+        sweep_id="binary_md_v3",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+    )
+
+    assert index["sweeps"]["binary_md_v3"]["status"] == "draft"
+    assert sweep["status"] == "draft"
+    assert (
+        sweep["benchmark_bundle_path"]
+        == "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_missing_v1.json"
+    )
+    assert sweep["control_baseline_id"] == "cls_benchmark_linear_v3"
+    assert [row["delta_id"] for row in queue["rows"]] == [
+        "delta_preproc_impute_missing_off",
+        "delta_model_missingness_feature_mask",
+        "delta_model_missingness_explicit_token",
+        "delta_preproc_all_nan_fill_nonzero",
+        "delta_data_missing_manifest_forbid_any",
+        "delta_data_missing_manifest_accepted_only",
+    ]
+    assert all(row["status"] == "blocked_on_artifacts" for row in queue["rows"])
+    assert all(row["interpretation_status"] == "blocked" for row in queue["rows"])
+    assert all("cls_benchmark_linear_v3" in row["next_action"] for row in queue["rows"])
+    assert all(
+        "01_shared_norm_post_ln_binary_medium_missing_v1" in row["next_action"]
+        for row in queue["rows"]
+    )
+    assert all("system_delta_binary_medium_missing_v1" in row["next_action"] for row in queue["rows"])
+
+    feature_mask_row = next(
+        row for row in queue["rows"] if row["delta_id"] == "delta_model_missingness_feature_mask"
+    )
+    assert feature_mask_row["model"]["missingness_mode"] == "feature_mask"
+    assert feature_mask_row["data"]["surface_label"] == "missing_manifest_default"
+    assert feature_mask_row["data"]["surface_overrides"]["allow_missing_values"] is True
+    assert feature_mask_row["preprocessing"]["surface_label"] == "runtime_no_impute"
+    assert feature_mask_row["preprocessing"]["overrides"]["impute_missing"] is False
+
+    explicit_token_row = next(
+        row for row in queue["rows"] if row["delta_id"] == "delta_model_missingness_explicit_token"
+    )
+    assert explicit_token_row["model"]["missingness_mode"] == "explicit_token"
+    assert explicit_token_row["preprocessing"]["surface_label"] == "runtime_no_impute"
+
+    forbid_row = next(
+        row for row in queue["rows"] if row["delta_id"] == "delta_data_missing_manifest_forbid_any"
+    )
+    assert forbid_row["data"]["surface_label"] == "missing_manifest_forbid_any"
+    assert forbid_row["data"]["surface_overrides"]["missing_value_policy"] == "forbid_any"
+    assert forbid_row["data"]["surface_overrides"]["allow_missing_values"] is False
+
+    accepted_only_row = next(
+        row for row in queue["rows"] if row["delta_id"] == "delta_data_missing_manifest_accepted_only"
+    )
+    assert accepted_only_row["data"]["surface_label"] == "missing_manifest_accepted_only"
+    assert accepted_only_row["data"]["surface_overrides"]["filter_policy"] == "accepted_only"
+    assert accepted_only_row["data"]["surface_overrides"]["allow_missing_values"] is True
 
 
 def test_active_alias_queue_matches_materialized_active_sweep() -> None:

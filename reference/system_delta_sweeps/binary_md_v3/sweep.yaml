@@ -1,23 +1,28 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: binary_md_v3
 parent_sweep_id: binary_md_v2
-status: active
+status: draft
 complexity_level: binary_md
 anchor_run_id: 01_shared_norm_post_ln_binary_medium_v1
-benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
-control_baseline_id: cls_benchmark_linear_v2
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_missing_v1.json
+control_baseline_id: cls_benchmark_linear_v3
 comparison_policy: anchor_only
 upstream_reference:
   name: nanoTabPFN
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-  - The locked anchor is benchmark registry run `01_shared_norm_post_ln_binary_medium_v1`
-    on bundle `nanotabpfn_openml_binary_medium` (10 tasks).
-  - The anchor model surface is taken from the registry-resolved staged selection
-    labeled `delta_shared_norm_post_ln`.
-  - Data and preprocessing remain part of the comparison surface and must stay fixed
-    unless the queue row declares that exact dimension.
+  - The promoted Shared+LayerNorm run `01_shared_norm_post_ln_binary_medium_v1`
+    remains the no-missing predecessor for this draft workstream; it is not the
+    final missingness anchor.
+  - Before any row moves to `ready`, freeze `cls_benchmark_linear_v3` on bundle
+    `nanotabpfn_openml_binary_medium_missing`, register
+    `01_shared_norm_post_ln_binary_medium_missing_v1`, and materialize the
+    `missing_manifest_default`, `missing_manifest_forbid_any`, and
+    `missing_manifest_accepted_only` surfaces.
+  - Reserve benchmark-facing track `system_delta_binary_medium_missing_v1` for
+    this workstream so missingness experiments never land under the no-missing
+    `system_delta_binary_medium_v2` track.
   dimension_table:
   - dimension: feature encoder
     upstream: Scalar feature linear encoder with internal train/test z-score+clip
@@ -28,20 +33,23 @@ anchor_surface:
   - dimension: target conditioning
     upstream: Mean-padded linear target encoder on the direct binary path.
     anchor: Same mean-padded linear target conditioner.
-    interpretation: The anchor preserves the upstream label-conditioning mechanism.
+    interpretation: The draft missingness sweep preserves the promoted label-conditioning
+      path while isolating missingness handling.
   - dimension: cell transformer block
     upstream: Post-norm nanoTabPFN block with feature attention then row attention.
     anchor: Same nano post-norm cell transformer block.
-    interpretation: This keeps the strongest structural tie to upstream nanoTabPFN.
+    interpretation: Transformer-block changes remain out of scope for this follow-on
+      missingness workstream.
   - dimension: tokenizer
     upstream: One scalar token per feature.
     anchor: Same scalar-per-feature tokenizer.
-    interpretation: Tokenization remains aligned with upstream parity.
+    interpretation: Tokenization stays fixed so missingness-mode rows isolate only
+      missing-value representation choices.
   - dimension: column encoder
     upstream: None on the upstream direct path.
     anchor: No column-set encoder on the anchor path.
-    interpretation: Column-set modeling remains absent and should not explain anchor
-      behavior.
+    interpretation: Column-set modeling remains absent and should not explain any
+      missingness findings.
   - dimension: row readout
     upstream: Target-column readout from the final cell tensor.
     anchor: Same target-column row pool.
@@ -49,30 +57,31 @@ anchor_surface:
   - dimension: context encoder
     upstream: None on the upstream direct path.
     anchor: None on the anchor path.
-    interpretation: Context encoding remains absent; later context rows will change
-      both depth and label-flow semantics.
+    interpretation: Context encoding remains absent; this workstream is about
+      missingness surfaces, not deeper table structure.
   - dimension: prediction head
     upstream: Direct binary logits head.
     anchor: Direct binary logits head.
-    interpretation: The prediction head remains on the narrow upstream-style binary
+    interpretation: The prediction head stays on the narrow upstream-style binary
       path.
   - dimension: training data surface
     upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
       manifest contract.
-    anchor: Benchmark bundle `nanotabpfn_openml_binary_medium` (10 tasks) with data
-      surface label `manifest_default`.
-    interpretation: Bundle and training-data changes are first-class sweep rows and
-      should not be inherited from parent sweep prose.
+    anchor: Draft missingness bundle `nanotabpfn_openml_binary_medium_missing`
+      with data surface label `missing_manifest_default`.
+    interpretation: Missing-manifest alternatives are first-class queue rows and
+      stay blocked until their artifacts exist.
   - dimension: preprocessing
     upstream: Notebook preprocessing inside the benchmark helper.
-    anchor: Benchmark preprocessing surface label `runtime_default`.
-    interpretation: Preprocessing changes can alter the effective task definition
-      and must be tracked explicitly.
+    anchor: Benchmark preprocessing surface label `runtime_default`, with raw-missing
+      rows switching explicitly to `runtime_no_impute`.
+    interpretation: Missingness rows must carry their required runtime policy in
+      the surfaced preprocessing labels instead of inheriting it silently.
   - dimension: training recipe
     upstream: No repo-local prior-dump training-surface contract.
     anchor: Training surface label `prior_constant_lr`.
-    interpretation: Optimizer and schedule changes are first-class sweep rows, not
-      background recipe assumptions.
+    interpretation: Training remains fixed while missingness model, data, and preprocessing
+      surfaces are isolated.
 anchor_context:
   run_id: 01_shared_norm_post_ln_binary_medium_v1
   experiment: cls_benchmark_staged_prior
@@ -94,7 +103,7 @@ anchor_context:
       target_conditioner: mean_padded_linear
       tokenizer: scalar_per_feature
   surface_labels:
-    data: manifest_default
+    data: missing_manifest_default
     model: delta_shared_norm_post_ln
     preprocessing: runtime_default
     training: prior_constant_lr

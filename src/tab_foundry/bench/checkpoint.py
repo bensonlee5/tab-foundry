@@ -15,6 +15,7 @@ from tab_foundry.input_normalization import (
     normalize_train_test_arrays,
 )
 from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.missingness import missingness_mode_requires_raw_missing_values
 from tab_foundry.model.spec import (
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
@@ -120,12 +121,15 @@ class TabFoundryClassifier:
             InputNormalizationMode,
             str(getattr(self.model_spec, "input_normalization", "none")).strip().lower(),
         )
+        raw_missing_values_required = missingness_mode_requires_raw_missing_values(
+            getattr(self.model_spec, "missingness_mode", "none"),
+        )
         internal_normalization = model_arch == "tabfoundry_simple"
         if model_arch == "tabfoundry_staged":
             internal_normalization = staged_surface_uses_internal_benchmark_normalization(
                 self.model_spec,
             )
-        if internal_normalization or normalization_mode == "none":
+        if internal_normalization or raw_missing_values_required or normalization_mode == "none":
             x_train_norm, x_test_norm = self._x_train, raw_x_test
         else:
             x_train_norm, x_test_norm = normalize_train_test_arrays(

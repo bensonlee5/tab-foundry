@@ -117,6 +117,46 @@ def test_classification_preprocessing_can_skip_imputation_and_still_remap_labels
     assert processed.num_classes == 2
 
 
+def test_preprocessing_imputes_all_nonfinite_values_from_finite_train_means() -> None:
+    x_train = np.asarray(
+        [
+            [1.0, np.nan, np.inf, -np.inf],
+            [3.0, 5.0, 7.0, np.nan],
+            [np.inf, 7.0, 9.0, np.inf],
+        ],
+        dtype=np.float32,
+    )
+    y_train = np.asarray([10, 20, 10], dtype=np.int64)
+    x_test = np.asarray([[np.nan, -np.inf, np.inf, 4.0]], dtype=np.float32)
+
+    state = fit_fitted_preprocessor(
+        task="classification",
+        x_train=x_train,
+        y_train=y_train,
+        all_nan_fill=-1.0,
+    )
+
+    assert state.missing_value_policy.fill_values == [2.0, 6.0, 8.0, -1.0]
+
+    processed = apply_fitted_preprocessor(
+        task="classification",
+        state=state,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        y_test=np.asarray([10], dtype=np.int64),
+    )
+
+    assert np.isfinite(processed.x_train).all()
+    assert np.isfinite(processed.x_test).all()
+    assert processed.x_train.tolist() == [
+        [1.0, 6.0, 8.0, -1.0],
+        [3.0, 5.0, 7.0, -1.0],
+        [2.0, 7.0, 9.0, -1.0],
+    ]
+    assert processed.x_test.tolist() == [[2.0, 6.0, 8.0, 4.0]]
+
+
 def test_classification_preprocessing_rejects_misaligned_train_rows() -> None:
     with pytest.raises(RuntimeError, match="x_train row count must match y_train"):
         _ = fit_fitted_preprocessor(

@@ -329,7 +329,10 @@ def validate_export_bundle(bundle_dir: Path) -> ValidatedBundle:
 
     inference_dict = read_json_dict(inference_path)
     preproc_dict = read_json_dict(preproc_path)
-    inference = validate_inference_config_dict(inference_dict)
+    inference = validate_inference_config_dict(
+        inference_dict,
+        schema_version=manifest.schema_version,
+    )
     preprocessor_state = validate_preprocessor_state_dict(
         preproc_dict,
         schema_version=manifest.schema_version,

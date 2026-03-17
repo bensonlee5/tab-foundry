@@ -230,6 +230,60 @@ def test_export_bundle_supports_explicit_v2(tmp_path: Path) -> None:
     assert preprocessor_state["classification_label_policy"]["mapping"] == "train_only_remap"
 
 
+def test_validate_export_bundle_accepts_legacy_sparse_v2_sidecars(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_legacy_v2.pt"
+    _ = _write_checkpoint(checkpoint, task="classification")
+    out_dir = tmp_path / "export_legacy_v2"
+
+    _ = export_checkpoint(checkpoint, out_dir, artifact_version=SCHEMA_VERSION_V2)
+
+    manifest_path = out_dir / "manifest.json"
+    inference_path = out_dir / "inference_config.json"
+    preprocessor_path = out_dir / "preprocessor_state.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    inference = json.loads(inference_path.read_text(encoding="utf-8"))
+    preprocessor = json.loads(preprocessor_path.read_text(encoding="utf-8"))
+    assert isinstance(manifest, dict)
+    assert isinstance(inference, dict)
+    assert isinstance(preprocessor, dict)
+
+    manifest_model = manifest["model"]
+    assert isinstance(manifest_model, dict)
+    for key in (
+        "input_normalization",
+        "missingness_mode",
+        "norm_type",
+        "tfcol_n_heads",
+        "tfcol_n_layers",
+        "tfcol_n_inducing",
+        "tfrow_n_heads",
+        "tfrow_n_layers",
+        "tfrow_cls_tokens",
+        "tfrow_norm",
+        "tficl_n_heads",
+        "tficl_n_layers",
+        "tficl_ff_expansion",
+        "many_class_base",
+        "head_hidden_dim",
+        "use_digit_position_embed",
+    ):
+        manifest_model.pop(key, None)
+    inference.pop("missingness_mode", None)
+    preprocessor.pop("impute_missing", None)
+
+    _rewrite_json(manifest_path, manifest)
+    _rewrite_json(inference_path, inference)
+    _rewrite_json(preprocessor_path, preprocessor)
+    _update_v2_checksum(out_dir, key="inference_config", file_name="inference_config.json")
+    _update_v2_checksum(out_dir, key="preprocessor_state", file_name="preprocessor_state.json")
+
+    validated = validate_export_bundle(out_dir)
+
+    assert validated.manifest.model.input_normalization == "none"
+    assert validated.inference_config.missingness_mode == "none"
+    assert validated.preprocessor_state.impute_missing is True
+
+
 def test_export_bundle_round_trips_missingness_mode_and_raw_missing_policy(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt_missingness.pt"
     _ = _write_checkpoint(
@@ -1105,4 +1159,36 @@ def test_reference_consumer_derives_preprocessing_from_runtime_support_set(tmp_p
     assert torch.allclose(
         output.batch.x_test,
         torch.tensor([[3.0, 11.0]], dtype=torch.float32),
+    )
+
+
+def test_reference_consumer_imputes_nonfinite_runtime_support_values(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_nonfinite.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=11)
+    out_dir = tmp_path / "export_runtime_nonfinite"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    output = run_reference_consumer(
+        out_dir,
+        x_train=np.asarray(
+            [
+                [1.0, np.inf, np.nan],
+                [3.0, 5.0, 7.0],
+                [np.nan, 7.0, -np.inf],
+            ],
+            dtype=np.float32,
+        ),
+        y_train=np.asarray([100, 200, 100], dtype=np.int64),
+        x_test=np.asarray([[np.inf, -np.inf, 11.0]], dtype=np.float32),
+    )
+
+    assert torch.isfinite(output.batch.x_train).all()
+    assert torch.isfinite(output.batch.x_test).all()
+    assert torch.allclose(
+        output.batch.x_train,
+        torch.tensor([[1.0, 6.0, 7.0], [3.0, 5.0, 7.0], [2.0, 7.0, 7.0]], dtype=torch.float32),
+    )
+    assert torch.allclose(
+        output.batch.x_test,
+        torch.tensor([[2.0, 6.0, 11.0]], dtype=torch.float32),
     )

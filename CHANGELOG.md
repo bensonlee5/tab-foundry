@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-03-16
+
+### Changed
+
+- Restored backward-compatible `tab-foundry-export-v2` bundle validation when
+  legacy manifests omit the newer additive model, `inference_config`, or
+  `preprocessor_state` missingness fields. `tab-foundry-export-v3` remains
+  strict.
+
+- Benchmark comparison now treats missing `data.allow_missing_values` metadata
+  the same way as other legacy benchmark-registration gaps, warning and
+  skipping `benchmark_run_record.json` derivation instead of hard-failing older
+  checkpoints.
+
+- Added the draft missingness benchmark bundle
+  `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_missing_v1.json` and
+  repurposed `binary_md_v3` into a blocked-on-artifacts missingness sweep
+  scaffold while keeping `binary_md_v2` as the active public system-delta
+  sweep. User-facing note: the reserved follow-on run track is
+  `system_delta_binary_medium_missing_v1`.
+
 ## [0.6.6] - 2026-03-16
 
 ### Changed

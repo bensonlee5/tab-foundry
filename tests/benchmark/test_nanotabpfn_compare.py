@@ -1019,10 +1019,27 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
     assert written_bundle == benchmark_bundle
 
 
+@pytest.mark.parametrize(
+    ("legacy_error", "warning_snippet"),
+    [
+        (
+            "checkpoint config must include explicit model.arch metadata for benchmark "
+            "registration; legacy checkpoints without persisted model.arch cannot be "
+            "registered",
+            "persisted model.arch",
+        ),
+        (
+            "data.allow_missing_values must be explicitly configured",
+            "data.allow_missing_values must be explicitly configured",
+        ),
+    ],
+)
 def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
+    legacy_error: str,
+    warning_snippet: str,
 ) -> None:
     smoke_run_dir = tmp_path / "smoke_run"
     smoke_run_dir.mkdir()
@@ -1081,13 +1098,7 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     monkeypatch.setattr(
         compare_module,
         "derive_benchmark_run_record",
-        lambda **_kwargs: (_ for _ in ()).throw(
-            RuntimeError(
-                "checkpoint config must include explicit model.arch metadata for benchmark "
-                "registration; legacy checkpoints without persisted model.arch cannot be "
-                "registered"
-            )
-        ),
+        lambda **_kwargs: (_ for _ in ()).throw(RuntimeError(legacy_error)),
     )
 
     def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
@@ -1123,8 +1134,8 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     assert written_summary["artifacts"]["benchmark_run_record_json"] is None
     assert summary["artifacts"]["training_surface_record_json"] is None
     assert written_summary["artifacts"]["training_surface_record_json"] is None
-    assert "persisted model.arch" in summary["tab_foundry"]["benchmark_run_record_warning"]
-    assert "persisted model.arch" in written_summary["tab_foundry"]["benchmark_run_record_warning"]
+    assert warning_snippet in summary["tab_foundry"]["benchmark_run_record_warning"]
+    assert warning_snippet in written_summary["tab_foundry"]["benchmark_run_record_warning"]
     assert not (out_root / "benchmark_run_record.json").exists()
     assert "Skipping benchmark_run_record.json derivation" in capsys.readouterr().err
 

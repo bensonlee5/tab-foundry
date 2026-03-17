@@ -78,8 +78,11 @@ def _fit_fill_values(
     *,
     all_nan_fill: float,
 ) -> list[float]:
-    means = np.nanmean(x_train, axis=0)
-    means = np.where(np.isnan(means), float(all_nan_fill), means)
+    finite_mask = np.isfinite(x_train)
+    finite_sums = np.where(finite_mask, x_train, 0.0).sum(axis=0, dtype=np.float64)
+    finite_counts = finite_mask.sum(axis=0)
+    means = np.full((x_train.shape[1],), float(all_nan_fill), dtype=np.float64)
+    np.divide(finite_sums, finite_counts, out=means, where=finite_counts > 0)
     return [float(value) for value in means.astype(np.float32, copy=False).tolist()]
 
 
@@ -161,13 +164,13 @@ def _apply_feature_preprocessing(
     if not impute_missing:
         return train, test
 
-    train_nan = np.isnan(train)
-    if np.any(train_nan):
-        train[train_nan] = np.take(fill_values, np.where(train_nan)[1])
+    train_missing = ~np.isfinite(train)
+    if np.any(train_missing):
+        train[train_missing] = np.take(fill_values, np.where(train_missing)[1])
 
-    test_nan = np.isnan(test)
-    if np.any(test_nan):
-        test[test_nan] = np.take(fill_values, np.where(test_nan)[1])
+    test_missing = ~np.isfinite(test)
+    if np.any(test_missing):
+        test[test_missing] = np.take(fill_values, np.where(test_missing)[1])
 
     return train, test
 

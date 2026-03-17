@@ -749,6 +749,172 @@ deltas:
     default_next_action: Do not run on the main no-missing campaign; revisit only in a dedicated missingness workstream with explicit missing-valued training and evaluation inputs.
     applicability_guards: []
 
+  delta_model_missingness_feature_mask:
+    dimension_family: model
+    family: missingness_encoding
+    binary_applicable: true
+    description: Switch the model missingness surface from `none` to `feature_mask` while carrying the required raw-missing runtime policy with the row.
+    upstream_delta: Upstream nanoTabPFN binary runs do not benchmark a surfaced feature-mask missingness policy as a separate queue axis.
+    expected_effect: Feature-mask doubling may expose missingness structure directly to the encoder, with risk of widening the effective input surface too aggressively.
+    adequacy_knobs:
+      - Compare only against a missingness-specific anchor on the same bundle and manifests.
+      - Keep the raw-missing runtime policy attached to the row; it is required enablement, not a separate axis.
+    parameter_adequacy_policy:
+      default_plan:
+        - Freeze the missingness anchor, control baseline, and manifests before running.
+        - Interpret jointly with the explicit-token row before preferring one encoding family.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_artifacts
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage_label: delta_model_missingness_feature_mask
+        missingness_mode: feature_mask
+      data:
+        surface_label: missing_manifest_default
+        surface_overrides:
+          source: manifest
+          filter_policy: include_all
+          missing_value_policy: allow_any
+          allow_missing_values: true
+      preprocessing:
+        surface_label: runtime_no_impute
+        overrides:
+          impute_missing: false
+      training:
+        surface_label: prior_constant_lr
+        overrides: {}
+    default_next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`, register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the missing-manifest surfaces, and reserve `system_delta_binary_medium_missing_v1` before scheduling training.
+    applicability_guards: []
+
+  delta_model_missingness_explicit_token:
+    dimension_family: model
+    family: missingness_encoding
+    binary_applicable: true
+    description: Switch the model missingness surface from `none` to `explicit_token` while carrying the required raw-missing runtime policy with the row.
+    upstream_delta: Upstream nanoTabPFN binary runs do not benchmark a surfaced explicit-token missingness policy as a separate queue axis.
+    expected_effect: A learned missing token may preserve missingness semantics more compactly than feature-mask doubling, with risk that the token under-communicates sparse patterns.
+    adequacy_knobs:
+      - Compare only against a missingness-specific anchor on the same bundle and manifests.
+      - Keep the raw-missing runtime policy attached to the row; it is required enablement, not a separate axis.
+    parameter_adequacy_policy:
+      default_plan:
+        - Freeze the missingness anchor, control baseline, and manifests before running.
+        - Interpret jointly with the feature-mask row before preferring one encoding family.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_artifacts
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage_label: delta_model_missingness_explicit_token
+        missingness_mode: explicit_token
+      data:
+        surface_label: missing_manifest_default
+        surface_overrides:
+          source: manifest
+          filter_policy: include_all
+          missing_value_policy: allow_any
+          allow_missing_values: true
+      preprocessing:
+        surface_label: runtime_no_impute
+        overrides:
+          impute_missing: false
+      training:
+        surface_label: prior_constant_lr
+        overrides: {}
+    default_next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`, register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the missing-manifest surfaces, and reserve `system_delta_binary_medium_missing_v1` before scheduling training.
+    applicability_guards: []
+
+  delta_data_missing_manifest_forbid_any:
+    dimension_family: data
+    family: missing_values
+    binary_applicable: true
+    description: Rebuild the missingness manifest surface to exclude any dataset containing NaN or Inf while keeping model and preprocessing fixed.
+    upstream_delta: Not applicable; this is a repo-local training-manifest policy axis.
+    expected_effect: Potentially cleaner optimization, but at the cost of removing the missing-valued structure the workstream is meant to study.
+    adequacy_knobs:
+      - Report dataset-count and missingness-distribution shifts versus `missing_manifest_default`.
+      - Do not interpret gains without characterizing how much data was removed.
+    parameter_adequacy_policy:
+      default_plan:
+        - Materialize the forbid-any manifest and compare its characteristics against the default missing manifest first.
+        - Treat any result as ambiguous until the missingness anchor/control pair is frozen on the same track.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_artifacts
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: missing_manifest_forbid_any
+        surface_overrides:
+          source: manifest
+          filter_policy: include_all
+          missing_value_policy: forbid_any
+          allow_missing_values: false
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_constant_lr
+        overrides: {}
+    default_next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`, register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the missing-manifest surfaces, and reserve `system_delta_binary_medium_missing_v1` before scheduling training.
+    applicability_guards: []
+
+  delta_data_missing_manifest_accepted_only:
+    dimension_family: data
+    family: missing_values
+    binary_applicable: true
+    description: Rebuild the missingness manifest surface under accepted-only filtering while preserving missing-valued records that pass curation.
+    upstream_delta: Not applicable; this is a repo-local training-manifest policy axis.
+    expected_effect: Cleaner curation may improve signal quality without erasing the missingness structure needed for the model and preprocessing rows.
+    adequacy_knobs:
+      - Report dataset-count, accepted-filter coverage, and missingness-distribution shifts versus `missing_manifest_default`.
+      - Keep missing values enabled so the row stays a data-policy comparison, not a hidden preprocessing change.
+    parameter_adequacy_policy:
+      default_plan:
+        - Materialize the accepted-only missing manifest and compare its characteristics against the default missing manifest first.
+        - Treat any result as ambiguous until the missingness anchor/control pair is frozen on the same track.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_artifacts
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: missing_manifest_accepted_only
+        surface_overrides:
+          source: manifest
+          filter_policy: accepted_only
+          missing_value_policy: allow_any
+          allow_missing_values: true
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_constant_lr
+        overrides: {}
+    default_next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`, register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the missing-manifest surfaces, and reserve `system_delta_binary_medium_missing_v1` before scheduling training.
+    applicability_guards: []
+
   delta_preproc_label_mapping_surface:
     dimension_family: preprocessing
     family: label_mapping

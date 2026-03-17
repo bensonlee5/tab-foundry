@@ -50,7 +50,9 @@ def _checkpoint_model_settings(
 ) -> ModelBuildSpec:
     cfg_payload = payload.get("config")
     checkpoint_cfg = cfg_payload if isinstance(cfg_payload, dict) else {}
-    task_raw = checkpoint_cfg.get("task", cfg.task)
+    task_raw = checkpoint_cfg.get("task")
+    if task_raw is None:
+        task_raw = cfg.get("task")
     task = str(task_raw).strip().lower()
     if task not in {"classification", "regression"}:
         raise RuntimeError(f"Unsupported checkpoint task value: {task!r}")

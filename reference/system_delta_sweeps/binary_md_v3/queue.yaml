@@ -3,17 +3,23 @@ sweep_id: binary_md_v3
 rows:
 - order: 1
   delta_ref: delta_preproc_impute_missing_off
-  status: deferred_separate_workstream
-  rationale: Keep the missingness-only placeholder attached to the promoted shared+LayerNorm
-    anchor while missingness work proceeds on a separate branch.
-  hypothesis: Missingness-specific conclusions should wait for a dedicated workstream
-    with explicit missing-valued training and evaluation inputs.
-  anchor_delta: Changes only preprocessing by disabling runtime mean imputation while
-    keeping the shared+LayerNorm anchor model, data surface, and training recipe fixed.
+  status: blocked_on_artifacts
+  rationale: Benchmark the promoted Shared+LayerNorm surface on the draft missingness
+    bundle with runtime imputation disabled, but only after the missingness-specific
+    anchor artifacts exist.
+  hypothesis: Raw-missing support tensors may improve attribution for genuinely
+    missing-valued tasks once the missingness manifests and anchor are frozen.
+  anchor_delta: Changes only preprocessing by switching the draft missingness
+    surface from `runtime_default` to `runtime_no_impute`.
   model:
     stage_label: anchor_model
   data:
-    surface_label: anchor_manifest_default
+    surface_label: missing_manifest_default
+    surface_overrides:
+      source: manifest
+      filter_policy: include_all
+      missing_value_policy: allow_any
+      allow_missing_values: true
   preprocessing:
     surface_label: runtime_no_impute
     overrides:
@@ -22,15 +28,232 @@ rows:
     surface_label: prior_constant_lr
     overrides: {}
   parameter_adequacy_plan:
-  - If the result is weak, note whether the benchmark tasks actually contain meaningful
-    missingness on the support side.
+  - Confirm the finalized missingness bundle actually exercises support-side missing
+    values before interpreting the row.
+  - Compare against the frozen missingness anchor rather than the no-missing predecessor.
   run_id: null
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
   confounders: []
-  next_action: Do not run on the main no-missing campaign; revisit only in a dedicated
-    missingness workstream with explicit missing-valued training and evaluation inputs.
+  next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`,
+    register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the
+    `missing_manifest_default`, `missing_manifest_forbid_any`, and `missing_manifest_accepted_only`
+    artifacts, and reserve track `system_delta_binary_medium_missing_v1` before
+    moving this row to `ready`.
   notes:
-  - Placeholder row only on this branch; missingness implementation lives on a separate
-    branch.
+  - Required runtime raw-missing policy is encoded in the surfaced preprocessing
+    label, not implied by the queue prose.
+- order: 2
+  delta_ref: delta_model_missingness_feature_mask
+  status: blocked_on_artifacts
+  rationale: Test feature-mask missingness encoding on the promoted Shared+LayerNorm
+    model path without introducing a separate preprocessing or data axis.
+  hypothesis: Feature-mask doubling may help the shared encoder exploit missingness
+    structure on the missingness bundle once raw-missing execution is available.
+  anchor_delta: Changes only `model.missingness_mode` to `feature_mask`; the required
+    raw-missing runtime policy travels with the row surface.
+  model:
+    stage_label: delta_model_missingness_feature_mask
+    missingness_mode: feature_mask
+  data:
+    surface_label: missing_manifest_default
+    surface_overrides:
+      source: manifest
+      filter_policy: include_all
+      missing_value_policy: allow_any
+      allow_missing_values: true
+  preprocessing:
+    surface_label: runtime_no_impute
+    overrides:
+      impute_missing: false
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Verify the frozen missingness anchor and this row share the same bundle, manifest,
+    and training recipe.
+  - Treat any movement as ambiguous until the missingness-specific anchor/control
+    pair is registered on the new track.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`,
+    register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the
+    `missing_manifest_default`, `missing_manifest_forbid_any`, and `missing_manifest_accepted_only`
+    artifacts, and reserve track `system_delta_binary_medium_missing_v1` before
+    moving this row to `ready`.
+  notes:
+  - "`data.allow_missing_values=true` and `preprocessing.impute_missing=false` are
+    required enablement for non-`none` missingness modes and are intentionally part
+    of this surfaced row."
+- order: 3
+  delta_ref: delta_model_missingness_explicit_token
+  status: blocked_on_artifacts
+  rationale: Compare explicit-token missingness encoding against the same promoted
+    Shared+LayerNorm backbone on the missingness bundle.
+  hypothesis: An explicit learned missing token may outperform feature-mask doubling
+    if the missingness signal is sparse but semantically informative.
+  anchor_delta: Changes only `model.missingness_mode` to `explicit_token`; the required
+    raw-missing runtime policy travels with the row surface.
+  model:
+    stage_label: delta_model_missingness_explicit_token
+    missingness_mode: explicit_token
+  data:
+    surface_label: missing_manifest_default
+    surface_overrides:
+      source: manifest
+      filter_policy: include_all
+      missing_value_policy: allow_any
+      allow_missing_values: true
+  preprocessing:
+    surface_label: runtime_no_impute
+    overrides:
+      impute_missing: false
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Keep bundle, manifest, and optimizer fixed relative to the missingness anchor.
+  - Interpret the row jointly with the feature-mask result before preferring one
+    missingness encoding family.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`,
+    register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the
+    `missing_manifest_default`, `missing_manifest_forbid_any`, and `missing_manifest_accepted_only`
+    artifacts, and reserve track `system_delta_binary_medium_missing_v1` before
+    moving this row to `ready`.
+  notes:
+  - "`data.allow_missing_values=true` and `preprocessing.impute_missing=false` are
+    required enablement for non-`none` missingness modes and are intentionally part
+    of this surfaced row."
+- order: 4
+  delta_ref: delta_preproc_all_nan_fill_nonzero
+  status: blocked_on_artifacts
+  rationale: Measure whether the all-NaN fallback fill value matters once the draft
+    missingness workstream has a real raw-missing anchor and manifests.
+  hypothesis: The fill-value branch should matter only when the missingness manifests
+    include fully missing columns or groups.
+  anchor_delta: Keeps imputation enabled but changes the all-NaN fallback from
+    `0.0` to `1.0` on the missingness bundle.
+  model:
+    stage_label: anchor_model
+  data:
+    surface_label: missing_manifest_default
+    surface_overrides:
+      source: manifest
+      filter_policy: include_all
+      missing_value_policy: allow_any
+      allow_missing_values: true
+  preprocessing:
+    surface_label: runtime_all_nan_fill_one
+    overrides:
+      all_nan_fill: 1.0
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Report whether the materialized manifests actually contain any all-NaN columns
+    before interpreting a flat result.
+  - Compare only after the missingness anchor and control baseline are frozen on
+    the missingness track.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`,
+    register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the
+    `missing_manifest_default`, `missing_manifest_forbid_any`, and `missing_manifest_accepted_only`
+    artifacts, and reserve track `system_delta_binary_medium_missing_v1` before
+    moving this row to `ready`.
+  notes:
+  - This row stays in the missingness workstream even though imputation remains
+    enabled.
+- order: 5
+  delta_ref: delta_data_missing_manifest_forbid_any
+  status: blocked_on_artifacts
+  rationale: Rebuild the missingness bundle manifests to forbid any NaN/Inf rows
+    while leaving model and preprocessing on the draft anchor surface.
+  hypothesis: Forbidding missing-valued records may simplify optimization but could
+    erase exactly the structure this workstream is meant to measure.
+  anchor_delta: Changes only the training data manifest policy from `missing_manifest_default`
+    to `missing_manifest_forbid_any`.
+  model:
+    stage_label: anchor_model
+  data:
+    surface_label: missing_manifest_forbid_any
+    surface_overrides:
+      source: manifest
+      filter_policy: include_all
+      missing_value_policy: forbid_any
+      allow_missing_values: false
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Record dataset-count and missingness-distribution shifts versus `missing_manifest_default`
+    before running.
+  - Treat any performance gain as ambiguous unless the manifest contraction is
+    explicitly characterized.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`,
+    register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the
+    `missing_manifest_default`, `missing_manifest_forbid_any`, and `missing_manifest_accepted_only`
+    artifacts, and reserve track `system_delta_binary_medium_missing_v1` before
+    moving this row to `ready`.
+  notes:
+  - This row is the explicit data-policy ablation for removing missing-valued records.
+- order: 6
+  delta_ref: delta_data_missing_manifest_accepted_only
+  status: blocked_on_artifacts
+  rationale: Rebuild the missingness manifests under accepted-only filtering while
+    preserving missing-valued records that pass curation.
+  hypothesis: Accepted-only curation may improve data quality without erasing the
+    missingness structure needed for the model/preprocessing comparisons.
+  anchor_delta: Changes only the training data manifest policy from `missing_manifest_default`
+    to `missing_manifest_accepted_only`.
+  model:
+    stage_label: anchor_model
+  data:
+    surface_label: missing_manifest_accepted_only
+    surface_overrides:
+      source: manifest
+      filter_policy: accepted_only
+      missing_value_policy: allow_any
+      allow_missing_values: true
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  parameter_adequacy_plan:
+  - Record dataset-count, accepted-filter coverage, and missingness-distribution
+    shifts versus `missing_manifest_default` before running.
+  - Interpret only after the accepted-only manifest lineage is frozen alongside
+    the missingness anchor.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Freeze `cls_benchmark_linear_v3` on `nanotabpfn_openml_binary_medium_missing_v1`,
+    register `01_shared_norm_post_ln_binary_medium_missing_v1`, materialize the
+    `missing_manifest_default`, `missing_manifest_forbid_any`, and `missing_manifest_accepted_only`
+    artifacts, and reserve track `system_delta_binary_medium_missing_v1` before
+    moving this row to `ready`.
+  notes:
+  - This row keeps missing values but tightens curation so data-quality and missingness
+    effects can be separated later.

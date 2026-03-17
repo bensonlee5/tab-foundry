@@ -290,6 +290,11 @@ widens the TabArena v0.1 source set from binary-only to small multiclass while
 preserving the same row-count, feature-count, missingness, and minority-class
 filters.
 
+The draft missingness follow-on queue uses
+`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_missing_v1.json` and
+reserves track `system_delta_binary_medium_missing_v1`. Do not register runs on
+that track until the missingness-specific anchor/control artifacts are frozen.
+
 Regenerate the canonical medium binary bundle with:
 
 ```bash

@@ -67,7 +67,7 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     assert build_spec.tfrow_norm == "layernorm"
 
 
-def test_manifest_v2_validation_requires_explicit_model_reconstruction_fields() -> None:
+def test_manifest_v2_validation_accepts_legacy_sparse_model_payload() -> None:
     payload = _load_fixture("manifest_v2.json")
     model_raw = payload["model"]
     assert isinstance(model_raw, dict)
@@ -92,8 +92,12 @@ def test_manifest_v2_validation_requires_explicit_model_reconstruction_fields() 
         model_payload.pop(key, None)
     payload["model"] = model_payload
 
-    with pytest.raises(ValueError, match="manifest.model keys mismatch"):
-        validate_manifest_dict(payload)
+    manifest = validate_manifest_dict(payload)
+
+    assert manifest.model.input_normalization == "none"
+    assert manifest.model.missingness_mode == "none"
+    assert manifest.model.norm_type == "layernorm"
+    assert manifest.model.tfrow_norm == "layernorm"
 
 
 def test_manifest_v3_validation_requires_input_normalization() -> None:
@@ -152,9 +156,26 @@ def test_v2_section_fixtures_validate() -> None:
     assert v2_state.classification_label_policy["unseen_test_label"] == "filter"
 
 
+def test_v2_sections_accept_legacy_missingness_field_omissions() -> None:
+    v2_inference_payload = _load_fixture("inference_config_classification_v2.json")
+    v2_preproc_payload = _load_fixture("preprocessor_state_v2.json")
+    v2_inference_payload.pop("missingness_mode", None)
+    v2_preproc_payload.pop("impute_missing", None)
+
+    v2_cfg = validate_inference_config_dict(v2_inference_payload)
+    v2_state = validate_preprocessor_state_dict(v2_preproc_payload, schema_version=SCHEMA_VERSION_V2)
+
+    assert v2_cfg.missingness_mode == "none"
+    assert isinstance(v2_state, LegacyPreprocessorState)
+    assert v2_state.impute_missing is True
+
+
 def test_v3_section_validation_supports_classification_and_regression_policies() -> None:
     manifest_payload = _load_fixture("manifest_v3.json")
-    cls_inference = validate_inference_config_dict(manifest_payload["inference"])
+    cls_inference = validate_inference_config_dict(
+        manifest_payload["inference"],
+        schema_version=SCHEMA_VERSION_V3,
+    )
     cls_preprocessor = validate_preprocessor_state_dict(
         manifest_payload["preprocessor"],
         schema_version=SCHEMA_VERSION_V3,
@@ -187,6 +208,26 @@ def test_v3_section_validation_supports_classification_and_regression_policies()
     assert cls_preprocessor.classification_label_policy.unseen_test_label == "filter"
     assert isinstance(reg_preprocessor, ExportPreprocessorState)
     assert reg_preprocessor.classification_label_policy is None
+
+
+def test_manifest_v3_validation_requires_inference_missingness_mode() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    inference_payload = dict(payload["inference"])
+    inference_payload.pop("missingness_mode", None)
+    payload["inference"] = inference_payload
+
+    with pytest.raises(ValueError, match="inference_config keys mismatch"):
+        validate_manifest_dict(payload)
+
+
+def test_manifest_v3_validation_requires_preprocessor_impute_missing() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    preprocessor_payload = dict(payload["preprocessor"])
+    preprocessor_payload.pop("impute_missing", None)
+    payload["preprocessor"] = preprocessor_payload
+
+    with pytest.raises(ValueError, match="preprocessor_state keys mismatch"):
+        validate_manifest_dict(payload)
 
 
 def test_manifest_validation_rejects_old_model_arch() -> None:

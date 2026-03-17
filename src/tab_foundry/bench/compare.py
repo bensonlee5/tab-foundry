@@ -86,6 +86,7 @@ def _is_legacy_benchmark_record_compat_error(exc: Exception) -> bool:
         "persisted model.arch" in message
         or "missing required reconstruction fields" in message
         or "ambiguous across multiple tabfoundry layouts" in message
+        or "data.allow_missing_values must be explicitly configured" in message
     )
 
 

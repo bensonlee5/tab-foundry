@@ -1,5 +1,5 @@
 schema: tab-foundry-system-delta-sweep-index-v1
-active_sweep_id: binary_md_v3
+active_sweep_id: binary_md_v2
 sweeps:
   binary_md_v1:
     parent_sweep_id: null
@@ -17,8 +17,8 @@ sweeps:
     control_baseline_id: cls_benchmark_linear_v2
   binary_md_v3:
     parent_sweep_id: binary_md_v2
-    status: active
+    status: draft
     anchor_run_id: 01_shared_norm_post_ln_binary_medium_v1
     complexity_level: binary_md
-    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
-    control_baseline_id: cls_benchmark_linear_v2
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_missing_v1.json
+    control_baseline_id: cls_benchmark_linear_v3
