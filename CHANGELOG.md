@@ -7,27 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.11] - 2026-03-17
+## [0.6.10] - 2026-03-17
 
 ### Added
+
+- Added the staged missingness-aware tokenizer `scalar_per_feature_nan_mask`, preserving raw NaN/Inf signals through benchmark evaluation and converting each feature token into `value + missingness bit` without changing token count.
 
 - Added exact-prior training support for `training.prior_dump_non_finite_policy=skip`, allowing local prior-dump runs to skip non-finite source batches without spending optimizer steps while recording additive skipped-batch telemetry.
 
 - Added focused training-dynamics diagnostics to exact-prior telemetry and wandb reporting: clipped-step fractions, `feature_encoder` versus `direct_head` gradient-balance windows, and `post_feature_encoder` / `pre_transformer` activation windows.
 
 - Added expanded research and benchmark coverage for the re-anchored `stability_followup` bridge sweep, prior-dump skip handling, plain `adamw` exact-prior training, and wandb-visible diagnostics.
-
-### Changed
-
-- Re-anchored `stability_followup` on the old `delta_prenorm_block` surface and expanded it to an 11-row training-dynamics calibration queue covering schedule shape, LR, warmup length, clip, weight decay, optimizer family, and one bounded `row_cls` revisit.
-
-- Exact-prior training now emits the new diagnostics to wandb directly via per-step logs and flattened final summaries so queue interpretation no longer depends on one-off offline scripts.
-
-## [0.6.10] - 2026-03-17
-
-### Added
-
-- Added the staged missingness-aware tokenizer `scalar_per_feature_nan_mask`, preserving raw NaN/Inf signals through benchmark evaluation and converting each feature token into `value + missingness bit` without changing token count.
 
 - Added synthetic prior missingness injection for exact prior-dump training via `training.overrides.prior_missingness`, with additive telemetry and wandb summary reporting under `missingness.synthetic_prior`.
 
@@ -37,7 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Retargeted `stability_followup` from the earlier five-row warmup/clip-plus-dagzoo draft toward prenorm linear schedule follow-up, explicit encoder/head gradient-ratio analysis, and one benchmark-first `row_cls` revisit.
+- Retargeted `stability_followup` from the earlier five-row warmup/clip-plus-dagzoo draft toward a `delta_prenorm_block`-anchored 11-row training-dynamics calibration queue covering schedule shape, LR, warmup length, clip, weight decay, optimizer family, and one bounded `row_cls` revisit.
+
+- Exact-prior training now emits the new clipped-step, module-balance, activation-window, and skipped-batch diagnostics directly to wandb via per-step logs and flattened final summaries, so queue interpretation no longer depends on one-off offline scripts.
 
 - Standalone staged checkpoint evaluation now keeps benchmark normalization internal for the missingness-aware tokenizer path so raw missing values survive to tokenization instead of being erased by external preprocessing.
 

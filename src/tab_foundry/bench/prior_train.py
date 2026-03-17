@@ -13,7 +13,11 @@ from omegaconf import DictConfig, OmegaConf
 import torch
 
 from tab_foundry.bench.nanotabpfn import resolve_device
-from tab_foundry.bench.prior_dump import PriorDumpBatchMissingness, PriorDumpTaskBatchReader
+from tab_foundry.bench.prior_dump import (
+    PriorDumpBatchMissingness,
+    PriorDumpNonFinitePolicy,
+    PriorDumpTaskBatchReader,
+)
 from tab_foundry.config import compose_config
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
@@ -138,7 +142,7 @@ def _resolve_prior_missingness_config(cfg: DictConfig) -> dict[str, Any] | None:
     }
 
 
-def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> str:
+def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> PriorDumpNonFinitePolicy:
     training_cfg = getattr(cfg, "training", None)
     raw_value = (
         "error"
@@ -151,7 +155,7 @@ def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> str:
             "training.prior_dump_non_finite_policy must be one of {'error', 'skip'}, "
             f"got {raw_value!r}"
         )
-    return normalized
+    return cast(PriorDumpNonFinitePolicy, normalized)
 
 
 def _resolve_lr(cfg: DictConfig) -> float:
