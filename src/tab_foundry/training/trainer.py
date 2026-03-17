@@ -260,6 +260,7 @@ def _trainer_summary_payload(
     max_grad_norm: float,
     train_elapsed_seconds: float,
     wall_elapsed_seconds: float,
+    nan_skip_count: int = 0,
     error: BaseException | None = None,
 ) -> dict[str, Any]:
     def _summary_float(value: float | None) -> float | None:
@@ -281,6 +282,7 @@ def _trainer_summary_payload(
         "max_grad_norm": float(max_grad_norm),
         "train_elapsed_seconds": float(train_elapsed_seconds),
         "wall_elapsed_seconds": float(wall_elapsed_seconds),
+        "nan_skip_count": float(nan_skip_count),
     }
     if last_train_metrics is not None:
         final_train_acc = _summary_float(last_train_metrics.get("acc"))
@@ -429,6 +431,7 @@ def train(cfg: DictConfig) -> TrainResult:
     grad_norm_count = 0
     max_grad_norm = 0.0
     final_grad_norm = 0.0
+    nan_skip_count = 0
     previous_train_loss: float | None = None
     loss_ema: float | None = None
     final_train_loss: float | None = None
@@ -471,6 +474,47 @@ def train(cfg: DictConfig) -> TrainResult:
                     for key, value in metrics.items():
                         train_metric_sums[key] = train_metric_sums.get(key, 0.0) + float(value)
                         train_metric_counts[key] = train_metric_counts.get(key, 0) + 1
+
+                nan_detected = not math.isfinite(train_loss_sum)
+                if nan_detected:
+                    nan_skip_count += 1
+                    for _opt_name, opt in prepared_opts:
+                        opt.zero_grad(set_to_none=True)
+                    train_elapsed_seconds += time.perf_counter() - step_train_start
+                    global_step += 1
+                    nan_log: dict[str, Any] = {
+                        "train/nan_guard_triggered": True,
+                        "train/nan_skip_count": float(nan_skip_count),
+                    }
+                    log_wandb_metrics(run, nan_log, step=global_step)
+                    if history_path is not None and accelerator.is_main_process:
+                        append_history_record(
+                            history_path,
+                            history_record(
+                                global_step=global_step,
+                                stage_name=stage.name,
+                                train_loss=float("nan"),
+                                train_metrics={"nan_guard_triggered": 1.0},
+                                lr=float(next(iter(
+                                    {name: float(opt.param_groups[0]["lr"]) for name, opt in prepared_opts}.values()
+                                ))),
+                                grad_norm=None,
+                                elapsed_seconds=time.perf_counter() - train_start,
+                                train_elapsed_seconds=train_elapsed_seconds,
+                                val_metrics=None,
+                                train_loss_delta=None,
+                                train_loss_ema=loss_ema,
+                                grad_clip_threshold=float(cfg.runtime.grad_clip),
+                                grad_clip_triggered=False,
+                            ),
+                        )
+                    if max_steps is not None and global_step >= max_steps:
+                        stop_requested = True
+                    if target_train_seconds is not None and train_elapsed_seconds >= target_train_seconds:
+                        stop_requested = True
+                    if stop_requested:
+                        break
+                    continue
 
                 local_grad_norm = total_grad_norm(model.parameters())
                 if float(cfg.runtime.grad_clip) > 0:
@@ -670,6 +714,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 "max_grad_norm": float(max_grad_norm),
                 "train_elapsed_seconds": float(train_elapsed_seconds),
                 "wall_elapsed_seconds": float(wall_elapsed_seconds),
+                "nan_skip_count": float(nan_skip_count),
             },
         )
         update_wandb_summary(
@@ -694,6 +739,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 max_grad_norm=max_grad_norm,
                 train_elapsed_seconds=train_elapsed_seconds,
                 wall_elapsed_seconds=wall_elapsed_seconds,
+                nan_skip_count=nan_skip_count,
             ),
         )
         return result
@@ -720,6 +766,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 max_grad_norm=max_grad_norm,
                 train_elapsed_seconds=train_elapsed_seconds,
                 wall_elapsed_seconds=time.perf_counter() - train_start,
+                nan_skip_count=nan_skip_count,
                 error=exc,
             ),
         )

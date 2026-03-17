@@ -74,6 +74,8 @@ class TabFoundryStagedClassifier(nn.Module):
         many_class_base: int = 10,
         head_hidden_dim: int = 1024,
         use_digit_position_embed: bool = True,
+        staged_dropout: float = 0.0,
+        pre_encoder_clip: float | None = None,
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
@@ -102,6 +104,8 @@ class TabFoundryStagedClassifier(nn.Module):
             many_class_base=many_class_base,
             head_hidden_dim=head_hidden_dim,
             use_digit_position_embed=use_digit_position_embed,
+            staged_dropout=staged_dropout,
+            pre_encoder_clip=pre_encoder_clip,
         )
         self.surface = resolve_staged_surface(self.model_spec)
         self.recipe = recipe_for_stage(ModelStage(self.surface.stage))
@@ -132,6 +136,7 @@ class TabFoundryStagedClassifier(nn.Module):
                 f"{SUPPORTED_MANY_CLASS_TRAIN_MODES}, got {self.many_class_train_mode!r}"
             )
         self.use_digit_position_embed = bool(self.model_spec.use_digit_position_embed)
+        self.pre_encoder_clip = self.model_spec.pre_encoder_clip
         for name, value in (
             ("d_icl", self.d_icl),
             ("tficl_n_heads", self.tficl_n_heads),
@@ -282,8 +287,11 @@ class TabFoundryStagedClassifier(nn.Module):
         num_classes: int,
     ) -> RawInputState:
         self._validate_batched_inputs(x_all, y_train, train_test_split_index)
+        normalized = self._normalize_x_all(x_all, train_test_split_index=train_test_split_index)
+        if self.pre_encoder_clip is not None:
+            normalized = normalized.clamp(-self.pre_encoder_clip, self.pre_encoder_clip)
         return RawInputState(
-            x_all=self._normalize_x_all(x_all, train_test_split_index=train_test_split_index),
+            x_all=normalized,
             y_train=y_train,
             y_test=y_test,
             train_test_split_index=train_test_split_index,

@@ -1,0 +1,55 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: stability_ladder
+parent_sweep_id: binary_md_v3
+status: draft
+complexity_level: binary_md
+anchor_run_id: null
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+anchor_surface:
+  notes:
+  - The stability ladder builds on the binary_md_v3 anchor with prenorm block style
+    to isolate stability mechanisms.
+  - Each row adds one stability mechanism to the previous row, forming a cumulative
+    ladder from A (baseline) through D (full stack).
+  - The anchor uses shared feature encoder with external benchmark normalization and
+    prenorm cell transformer blocks.
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Shared feature encoder path with benchmark-external normalization.
+    interpretation: Feature encoder swaps change both the representation path and
+      where normalization lives.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Pre-norm cell block with feature and row attention, separate norm layers.
+    interpretation: Pre-norm provides more stable gradient flow for deeper models.
+  - dimension: stability mechanisms
+    upstream: No explicit stability mechanisms.
+    anchor: Cumulative ladder of warmup, dropout, and input clipping.
+    interpretation: Each rung isolates the marginal contribution of one mechanism.
+anchor_context:
+  run_id: null
+  experiment: stability_ladder
+  config_profile: stability_ladder
+  model:
+    arch: tabfoundry_staged
+    stage: prenorm_block
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: shared
+      head: binary_direct
+      post_encoder_norm: layernorm
+      row_pool: target_column
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: prenorm_baseline
+    preprocessing: runtime_default
+    training: prior_constant_lr

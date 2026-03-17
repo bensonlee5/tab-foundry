@@ -153,6 +153,7 @@ class ResolvedStageSurface:
     row_pool_config: RowPoolSurfaceSpec
     context_encoder_config: ContextEncoderSurfaceSpec
     post_encoder_norm_config: PostEncoderNormSurfaceSpec
+    staged_dropout: float = 0.0
 
     def module_selection(self) -> dict[str, Any]:
         return {
@@ -175,6 +176,7 @@ class ResolvedStageSurface:
             "row_pool": self.row_pool_config.to_dict(),
             "context_encoder": self.context_encoder_config.to_dict(),
             "post_encoder_norm": self.post_encoder_norm_config.to_dict(),
+            "staged_dropout": self.staged_dropout,
         }
 
 
@@ -311,6 +313,7 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         context_encoder=context_encoder,
         head=head,
         task_contract=_task_contract_for_head(head, many_class_base=int(spec.many_class_base)),
+        staged_dropout=float(spec.staged_dropout),
         table_block=TableBlockSurfaceSpec(
             style=table_block_style,
             allow_test_self_attention=allow_test_self_attention,

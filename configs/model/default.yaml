@@ -22,3 +22,5 @@ tficl_ff_expansion: 2
 many_class_base: 10
 head_hidden_dim: 1024
 use_digit_position_embed: true
+staged_dropout: 0.0
+pre_encoder_clip: null

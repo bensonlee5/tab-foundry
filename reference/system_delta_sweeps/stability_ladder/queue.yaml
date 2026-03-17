@@ -1,0 +1,146 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: stability_ladder
+rows:
+- order: 1
+  delta_ref: prenorm_baseline
+  status: ready
+  rationale: >-
+    Baseline prenorm block configuration with all defaults. No stability mechanisms
+    enabled. This establishes the prenorm performance floor.
+  hypothesis: >-
+    Prenorm blocks provide better gradient flow than postnorm, but may still exhibit
+    early-step instability without warmup or dropout.
+  anchor_delta: >-
+    Uses prenorm table_block_style with all other anchor surfaces fixed. No warmup,
+    no dropout, no input clipping.
+  model:
+    stage_label: prenorm_baseline
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      table_block_style: prenorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides: {}
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Train prenorm baseline and establish stability metrics.
+
+- order: 2
+  delta_ref: warmup_grad_clip
+  status: ready
+  rationale: >-
+    Add cosine warmup (5% of steps) and gradient clipping (max norm 1.0) to the
+    prenorm baseline. These are the most common early-step stability interventions.
+  hypothesis: >-
+    Warmup prevents early large-LR steps from destabilizing the model. Grad clip
+    bounds the magnitude of parameter updates. Together they should reduce early
+    loss spikes.
+  anchor_delta: >-
+    Adds warmup_ratio: 0.05 to the schedule and grad_clip: 1.0 to runtime.
+    Model architecture remains identical to row A.
+  model:
+    stage_label: warmup_grad_clip
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      table_block_style: prenorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides:
+      warmup_ratio: 0.05
+      grad_clip: 1.0
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+    - Warmup and grad clip are applied simultaneously; cannot isolate their individual contributions.
+  next_action: Train with warmup+clip and compare stability metrics against row A.
+
+- order: 3
+  delta_ref: shared_dropout
+  status: ready
+  rationale: >-
+    Add unified staged_dropout=0.1 to all model components. This eliminates the
+    hidden dropout variance where different components default to different rates.
+  hypothesis: >-
+    Consistent dropout across all attention and FF layers provides mild regularization
+    and reduces overfitting to individual training batches, improving generalization
+    stability.
+  anchor_delta: >-
+    Adds staged_dropout: 0.1 to the model config. All prenorm blocks, column encoders,
+    row pools, and context encoders receive the same dropout rate. Training overrides
+    from row B are retained.
+  model:
+    stage_label: shared_dropout
+    staged_dropout: 0.1
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      table_block_style: prenorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides:
+      warmup_ratio: 0.05
+      grad_clip: 1.0
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+    - Dropout interacts with warmup; the warmup period effectively trains without dropout benefit.
+  next_action: Train with dropout and compare against rows A and B.
+
+- order: 4
+  delta_ref: pre_encoder_guard
+  status: ready
+  rationale: >-
+    Add pre_encoder_clip=10.0 to clamp input values before the feature encoder.
+    This guards against extreme input values that can cause attention score overflow.
+  hypothesis: >-
+    Input clipping prevents pathological activations from propagating through the
+    network. Combined with warmup, grad clip, and dropout, this forms the full
+    stability stack.
+  anchor_delta: >-
+    Adds pre_encoder_clip: 10.0 to the model config. All other settings from row C
+    are retained.
+  model:
+    stage_label: pre_encoder_guard
+    staged_dropout: 0.1
+    pre_encoder_clip: 10.0
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      table_block_style: prenorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr
+    overrides:
+      warmup_ratio: 0.05
+      grad_clip: 1.0
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+    - Input clipping may interact with the shared normalization already applied upstream.
+  next_action: Train full stability stack and compare against all prior rows.

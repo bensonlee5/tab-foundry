@@ -145,6 +145,8 @@ class ModelBuildSpec:
     many_class_base: int = 10
     head_hidden_dim: int = 1024
     use_digit_position_embed: bool = True
+    staged_dropout: float = 0.0
+    pre_encoder_clip: float | None = None
 
     def __post_init__(self) -> None:
         task = str(self.task).strip().lower()
@@ -242,6 +244,18 @@ class ModelBuildSpec:
         )
         object.__setattr__(self, "use_digit_position_embed", use_digit_position_embed)
 
+        staged_dropout = float(self.staged_dropout)
+        if not 0.0 <= staged_dropout <= 0.5:
+            raise ValueError(f"staged_dropout must be in [0.0, 0.5], got {staged_dropout}")
+        object.__setattr__(self, "staged_dropout", staged_dropout)
+
+        pre_encoder_clip = self.pre_encoder_clip
+        if pre_encoder_clip is not None:
+            pre_encoder_clip = float(pre_encoder_clip)
+            if pre_encoder_clip <= 0:
+                raise ValueError(f"pre_encoder_clip must be > 0 when set, got {pre_encoder_clip}")
+            object.__setattr__(self, "pre_encoder_clip", pre_encoder_clip)
+
     def to_dict(self) -> dict[str, Any]:
         return dict(asdict(self))
 
@@ -293,6 +307,8 @@ def model_build_spec_from_mappings(
             _pick("use_digit_position_embed", True),
             context="use_digit_position_embed",
         ),
+        staged_dropout=float(_pick("staged_dropout", 0.0)),
+        pre_encoder_clip=_pick("pre_encoder_clip", None),
     )
 
 
