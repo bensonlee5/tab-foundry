@@ -495,9 +495,7 @@ def train(cfg: DictConfig) -> TrainResult:
                                 stage_name=stage.name,
                                 train_loss=float("nan"),
                                 train_metrics={"nan_guard_triggered": 1.0},
-                                lr=float(next(iter(
-                                    {name: float(opt.param_groups[0]["lr"]) for name, opt in prepared_opts}.values()
-                                ))),
+                                lr=float(prepared_opts[0][1].param_groups[0]["lr"]),
                                 grad_norm=None,
                                 elapsed_seconds=time.perf_counter() - train_start,
                                 train_elapsed_seconds=train_elapsed_seconds,

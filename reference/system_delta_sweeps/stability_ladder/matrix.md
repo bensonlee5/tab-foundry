@@ -19,6 +19,7 @@ cumulative ladder. This design isolates the marginal contribution of each mechan
 ## Anchor Surface
 
 All rows share the same base architecture:
+
 - `arch: tabfoundry_staged`, `stage: prenorm_block`
 - `feature_encoder: shared`, `post_encoder_norm: layernorm`
 - `table_block_style: prenorm`, `head: binary_direct`

@@ -166,17 +166,17 @@ new reruns.
 For each queue row:
 
 1. Select the active sweep from `reference/system_delta_sweeps/index.yaml`, or pass an explicit `--sweep-id`.
-2. Select the next `status=ready` row from `reference/system_delta_sweeps/<sweep_id>/queue.yaml`.
-3. Write or update `research_card.md` and `campaign.yaml`.
-4. Train on the locked anchor surface, changing only the declared dimension.
-5. Benchmark on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
-6. Register the benchmark-facing run in `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its `sweep_id`.
-7. Ensure the run has `training_surface_record.json`,
+1. Select the next `status=ready` row from `reference/system_delta_sweeps/<sweep_id>/queue.yaml`.
+1. Write or update `research_card.md` and `campaign.yaml`.
+1. Train on the locked anchor surface, changing only the declared dimension.
+1. Benchmark on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
+1. Register the benchmark-facing run in `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its `sweep_id`.
+1. Ensure the run has `training_surface_record.json`,
    `gradient_history.jsonl`, and `telemetry.json`.
-8. Write `result_card.md`.
-9. Rerender `reference/system_delta_sweeps/<sweep_id>/matrix.md`.
-10. Regenerate the top-level alias files if and only if this is the active sweep.
-11. Update the queue row status, run ids, interpretation, and next action.
+1. Write `result_card.md`.
+1. Rerender `reference/system_delta_sweeps/<sweep_id>/matrix.md`.
+1. Regenerate the top-level alias files if and only if this is the active sweep.
+1. Update the queue row status, run ids, interpretation, and next action.
 
 To rank the existing first-pass `binary_md_v1` outputs before rerunning,
 generate the scalar instability audit report under

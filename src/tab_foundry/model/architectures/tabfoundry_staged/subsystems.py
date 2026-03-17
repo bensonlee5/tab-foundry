@@ -144,13 +144,11 @@ class PreNormCellBlock(nn.Module):
             embedding_size,
             nhead,
             batch_first=True,
-            dropout=dropout,
         )
         self.self_attention_between_datapoints = MultiheadAttention(
             embedding_size,
             nhead,
             batch_first=True,
-            dropout=dropout,
         )
         self.feature_norm = build_norm(norm_type, embedding_size)
         self.row_norm = build_norm(norm_type, embedding_size)

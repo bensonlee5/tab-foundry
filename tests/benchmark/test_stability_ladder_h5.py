@@ -60,8 +60,6 @@ def _build_ladder_model(rung: str) -> "TabFoundryStagedClassifier":
         "head_hidden_dim": 192,
         "module_overrides": {"table_block_style": "prenorm"},
     }
-    if rung in ("B", "C", "D"):
-        pass  # warmup/grad_clip are training-level, not model-level
     if rung in ("C", "D"):
         base_kwargs["staged_dropout"] = 0.1
     if rung == "D":
