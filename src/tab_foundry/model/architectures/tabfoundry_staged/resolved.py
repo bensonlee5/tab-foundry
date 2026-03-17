@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -14,7 +15,7 @@ from .recipes import StageTaskContract, recipe_for_stage
 SUPPORTED_FEATURE_ENCODERS = ("nano", "shared")
 SUPPORTED_POST_ENCODER_NORMS = ("none", "layernorm", "rmsnorm")
 SUPPORTED_TARGET_CONDITIONERS = ("mean_padded_linear", "label_token")
-SUPPORTED_TOKENIZERS = ("scalar_per_feature", "shifted_grouped")
+SUPPORTED_TOKENIZERS = ("scalar_per_feature", "scalar_per_feature_nan_mask", "shifted_grouped")
 SUPPORTED_COLUMN_ENCODERS = ("none", "tfcol")
 SUPPORTED_ROW_POOLS = ("target_column", "row_cls")
 SUPPORTED_CONTEXT_ENCODERS = ("none", "plain", "qass")
@@ -357,9 +358,15 @@ def staged_surface_uses_internal_benchmark_normalization(spec: ModelBuildSpec | 
     """Whether a staged model keeps benchmark normalization internal."""
 
     if not isinstance(spec, ModelBuildSpec):
+        raw_overrides = getattr(spec, "module_overrides", None)
+        if isinstance(raw_overrides, Mapping):
+            tokenizer = raw_overrides.get("tokenizer")
+            if isinstance(tokenizer, str) and tokenizer.strip().lower() == "scalar_per_feature_nan_mask":
+                return True
         stage_raw = getattr(spec, "stage", None)
         normalized_stage = ModelStage(
             str(stage_raw).strip().lower() if stage_raw is not None else ModelStage.NANO_EXACT.value
         )
         return recipe_for_stage(normalized_stage).constraints.normalization_mode == "internal"
-    return resolve_staged_surface(spec).normalization_mode == "internal"
+    surface = resolve_staged_surface(spec)
+    return surface.normalization_mode == "internal" or surface.tokenizer == "scalar_per_feature_nan_mask"

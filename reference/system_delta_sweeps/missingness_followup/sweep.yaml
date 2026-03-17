@@ -1,0 +1,54 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: missingness_followup
+parent_sweep_id: stability_ladder
+status: draft
+complexity_level: binary_md
+anchor_run_id: null
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+anchor_surface:
+  notes:
+  - This follow-up isolates explicit missingness handling on the stabilized prenorm foundation.
+  - Input normalization remains fixed at the promoted default; this is not an input-normalization sweep.
+  - The large binary bundle is used because it already permits up to 5 percent missingness.
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip handling.
+    anchor: Shared feature encoder path with benchmark-external normalization.
+    interpretation: The representation path stays fixed so the sweep isolates missingness handling rather than broader architecture changes.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Same scalar-per-feature tokenizer.
+    interpretation: Both rows swap in a fixed-width `value + missingness bit` tokenizer without changing token count.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump missingness contract.
+    anchor: Training surface label `prior_cosine_warmup` with the stabilized prenorm recipe.
+    interpretation: Row B adds synthetic missingness during prior training so the explicit missingness path is actually trained.
+  - dimension: benchmark surface
+    upstream: Medium binary bundle with no missing-valued tasks.
+    anchor: Large binary bundle with `allow_missing_values=true`.
+    interpretation: Missingness evidence should come from a benchmark surface that actually contains missing-valued inputs.
+anchor_context:
+  run_id: null
+  experiment: missingness_followup
+  config_profile: cls_benchmark_staged_prior
+  model:
+    arch: tabfoundry_staged
+    stage: prenorm_block
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: shared
+      head: binary_direct
+      post_encoder_norm: layernorm
+      row_pool: target_column
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: benchmark_large_allow_missing
+    model: missingness_token
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

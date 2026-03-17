@@ -266,6 +266,7 @@ class TabFoundryStagedClassifier(nn.Module):
                     InputNormalizationMode,
                     self.input_normalization,
                 ),
+                preserve_non_finite=self.surface.tokenizer == "scalar_per_feature_nan_mask",
             )
             train_parts.append(train_norm)
             test_parts.append(test_norm)

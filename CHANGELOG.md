@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.10] - 2026-03-17
+
+### Added
+
+- Added the staged missingness-aware tokenizer `scalar_per_feature_nan_mask`, preserving raw NaN/Inf signals through benchmark evaluation and converting each feature token into `value + missingness bit` without changing token count.
+
+- Added synthetic prior missingness injection for exact prior-dump training via `training.overrides.prior_missingness`, with additive telemetry and wandb summary reporting under `missingness.synthetic_prior`.
+
+- Added the non-active `missingness_followup` draft sweep plus focused research tests covering the large-bundle missingness tokenizer rows and fixed-normalization sweep contract.
+
+- Kept a repo-tracked binary-only dagzoo pilot config at `reference/system_delta_sweeps/stability_followup/dagzoo_binary_pilot.yaml` so the sibling `../dagzoo` checkout can still materialize that pilot when needed.
+
+### Changed
+
+- Retargeted `stability_followup` from the earlier five-row warmup/clip-plus-dagzoo draft toward prenorm linear schedule follow-up, explicit encoder/head gradient-ratio analysis, and one benchmark-first `row_cls` revisit.
+
+- Standalone staged checkpoint evaluation now keeps benchmark normalization internal for the missingness-aware tokenizer path so raw missing values survive to tokenization instead of being erased by external preprocessing.
+
+- Updated focused research coverage so `stability_followup` asserts the retargeted four-row queue and `missingness_followup` is registered as a separate non-active draft sweep.
+
 ## [0.6.9] - 2026-03-17
 
 ### Added

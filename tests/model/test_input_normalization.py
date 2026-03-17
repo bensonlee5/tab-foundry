@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import torch
 
-from tab_foundry.input_normalization import _tensor_stats_dtype, normalize_train_test_arrays
+from tab_foundry.input_normalization import (
+    _tensor_stats_dtype,
+    normalize_train_test_arrays,
+    normalize_train_test_tensors,
+)
 
 
 def test_train_zscore_clip_normalizes_from_train_only_and_clips() -> None:
@@ -77,3 +82,24 @@ def test_train_winsorize_zscore_clips_at_percentiles() -> None:
     std_c0 = clipped_train[:, 0].std()
     expected = (clipped_test_col0 - mean_c0) / std_c0
     np.testing.assert_allclose(float(test_norm[0, 0]), expected, atol=1e-4)
+
+
+def test_preserve_non_finite_normalizes_only_finite_values() -> None:
+    x_train = torch.tensor([[1.0, float("nan")], [3.0, 5.0]], dtype=torch.float32)
+    x_test = torch.tensor([[5.0, float("nan")], [float("nan"), 7.0]], dtype=torch.float32)
+
+    train_norm, test_norm = normalize_train_test_tensors(
+        x_train,
+        x_test,
+        mode="train_zscore_clip",
+        preserve_non_finite=True,
+    )
+
+    assert torch.isnan(train_norm[0, 1])
+    assert torch.isnan(test_norm[0, 1])
+    assert torch.isnan(test_norm[1, 0])
+    assert train_norm[0, 0].item() == pytest.approx(-1.0)
+    assert train_norm[1, 0].item() == pytest.approx(1.0)
+    assert test_norm[0, 0].item() == pytest.approx(3.0)
+    assert train_norm[1, 1].item() == pytest.approx(0.0)
+    assert test_norm[1, 1].item() == pytest.approx(2.0)

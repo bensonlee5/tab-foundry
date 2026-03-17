@@ -9,7 +9,7 @@ from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     staged_surface_uses_internal_benchmark_normalization,
 )
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
-from tab_foundry.model.spec import ModelStage
+from tab_foundry.model.spec import ModelBuildSpec, ModelStage
 from tab_foundry.types import TaskBatch
 
 
@@ -466,3 +466,60 @@ def test_module_overrides_allow_many_class_head_with_context_encoder() -> None:
 
     assert model.surface.head == "many_class"
     assert model.surface.context_encoder == "qass"
+
+
+def test_prenorm_missingness_tokenizer_produces_finite_logits() -> None:
+    model = _staged(
+        "prenorm_block",
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=1,
+        head_hidden_dim=64,
+        module_overrides={
+            "feature_encoder": "shared",
+            "post_encoder_norm": "layernorm",
+            "table_block_style": "prenorm",
+            "tokenizer": "scalar_per_feature_nan_mask",
+        },
+    )
+    model.eval()
+    batch = TaskBatch(
+        x_train=torch.tensor(
+            [
+                [1.0, float("nan"), 3.0],
+                [4.0, 5.0, float("nan")],
+                [7.0, 8.0, 9.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=torch.tensor([0, 1, 0], dtype=torch.int64),
+        x_test=torch.tensor(
+            [
+                [0.5, float("nan"), 2.5],
+                [3.5, 4.5, 5.5],
+            ],
+            dtype=torch.float32,
+        ),
+        y_test=torch.tensor([0, 1], dtype=torch.int64),
+        metadata={},
+        num_classes=2,
+    )
+
+    with torch.no_grad():
+        out = model(batch)
+
+    assert out.logits is not None
+    assert tuple(out.logits.shape) == (2, 2)
+    assert torch.isfinite(out.logits).all()
+
+
+def test_missingness_tokenizer_uses_internal_benchmark_normalization() -> None:
+    spec = ModelBuildSpec(
+        task="classification",
+        arch="tabfoundry_staged",
+        stage="shared_norm",
+        input_normalization="train_zscore_clip",
+        module_overrides={"tokenizer": "scalar_per_feature_nan_mask"},
+    )
+
+    assert staged_surface_uses_internal_benchmark_normalization(spec) is True

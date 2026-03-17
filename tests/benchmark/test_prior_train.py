@@ -234,6 +234,27 @@ class _ConstantLogitModel(nn.Module):
         return self.bias.view(1, 1, 2).expand(int(x_all.shape[0]), n_test, 2)
 
 
+
+class _CapturingConstantLogitModel(_ConstantLogitModel):
+    def __init__(self) -> None:
+        super().__init__()
+        self.last_x_all: torch.Tensor | None = None
+
+    def forward_batched(
+        self,
+        *,
+        x_all: torch.Tensor,
+        y_train: torch.Tensor,
+        train_test_split_index: int,
+    ) -> torch.Tensor:
+        self.last_x_all = x_all.detach().cpu().clone()
+        return super().forward_batched(
+            x_all=x_all,
+            y_train=y_train,
+            train_test_split_index=train_test_split_index,
+        )
+
+
 class _CountingOptimizer:
     def __init__(self) -> None:
         self.step_count = 0
@@ -1849,3 +1870,67 @@ def test_tabfoundry_staged_nano_exact_matches_simple_prior_batch_loss() -> None:
     )
 
     assert staged_loss.item() == pytest.approx(simple_loss.item(), rel=1.0e-6, abs=1.0e-6)
+
+
+def test_train_tabfoundry_simple_prior_injects_synthetic_missingness(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_synthetic_missingness.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    model = _CapturingConstantLogitModel()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = _prior_cfg(
+        tmp_path,
+        max_steps=1,
+        training_cfg={
+            "surface_label": "prior_cosine_warmup",
+            "apply_schedule": True,
+            "overrides": {
+                "prior_missingness": {
+                    "enabled": True,
+                    "min_rate": 1.0,
+                    "max_rate": 1.0,
+                }
+            },
+        },
+        schedule_cfg={
+            "stages": [
+                {
+                    "name": "prior_dump",
+                    "steps": 1,
+                    "lr_max": 4.0e-3,
+                    "lr_schedule": "cosine",
+                    "warmup_ratio": 0.0,
+                }
+            ]
+        },
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(cfg, prior_dump_path=path, batch_size=1)
+
+    assert model.last_x_all is not None
+    assert torch.isnan(model.last_x_all[0, :, :]).all()
+    telemetry = json.loads((tmp_path / "train_out" / "telemetry.json").read_text(encoding="utf-8"))
+    synthetic = telemetry["missingness"]["synthetic_prior"]
+    assert synthetic["enabled"] is True
+    assert synthetic["batches_seen"] == 1
+    assert synthetic["affected_batch_count"] == 1
+    assert synthetic["masked_feature_count"] == 6
+    assert synthetic["affected_dataset_indices"] == [0]

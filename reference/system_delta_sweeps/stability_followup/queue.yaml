@@ -1,0 +1,218 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: stability_followup
+rows:
+- order: 1
+  delta_ref: horizon_10000_baseline
+  status: ready
+  rationale: >-
+    Confirm the frozen prenorm plus cosine warmup baseline at a longer horizon
+    before promoting any alternate decay shape.
+  hypothesis: >-
+    The stabilized baseline should stay finite and remain in the same late-run
+    variance and gradient regime at 10000 steps.
+  anchor_delta: >-
+    Keeps the frozen baseline unchanged except for extending max_steps and the
+    schedule stage length from 2500 to 10000.
+  parameter_adequacy_plan:
+  - Accept the baseline as horizon-adequate only if the run stays finite.
+  - Report the feature_encoder/direct_head gradient ratio over steps 1-25, the first 100 logged steps after warmup ends, and the final 10 percent of the run.
+  - If this row fails, reopen horizon stabilization as a separate follow-up rather than broadening this sweep.
+  model:
+    stage_label: horizon_10000_baseline
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      table_block_style: prenorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      apply_schedule: true
+      runtime:
+        grad_clip: 1.0
+        max_steps: 10000
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 10000
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Run the frozen baseline to 10000 steps and compare late-run finiteness,
+    best-to-final drift, and encoder/head gradient ratios against the current
+    2500-step envelope.
+  notes:
+  - Dropout remains fixed at 0.0 for this sweep.
+
+- order: 2
+  delta_ref: schedule_linear_decay_prenorm
+  status: ready
+  rationale: >-
+    Test whether plain linear decay closes the best-checkpoint drift on the
+    stabilized prenorm surface.
+  hypothesis: >-
+    Decaying the LR to 0.0004 without warmup should reduce best-to-final drift,
+    but may reopen some early-step instability relative to cosine warmup.
+  anchor_delta: >-
+    Keeps the frozen prenorm model and data surfaces while swapping the training
+    surface to `prior_linear_decay`.
+  parameter_adequacy_plan:
+  - Rank rows by benchmark best ROC AUC first, final ROC AUC second, and drift third.
+  - Report post-warmup train-loss variance, global grad norms, and the feature_encoder/direct_head gradient ratio as diagnostics.
+  - Promote only if final ROC AUC stays within 0.002 of the cosine-warmup anchor and drift improves materially.
+  model:
+    stage_label: schedule_linear_decay_prenorm
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      table_block_style: prenorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_decay
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.0
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Compare this row against the cosine-warmup anchor on benchmark best/final
+    ROC AUC, drift, post-warmup variance, and the encoder/head gradient ratio.
+  notes:
+  - Interpret early-step regressions as evidence about warmup necessity, not row-readout quality.
+
+- order: 3
+  delta_ref: schedule_linear_warmup_decay_prenorm
+  status: ready
+  rationale: >-
+    Test whether linear decay plus short warmup preserves the warmup stability
+    win while reducing best-checkpoint drift.
+  hypothesis: >-
+    A 5 percent warmup with linear decay to 0.0004 should be the closest clean
+    test of whether decay shape fixes the remaining drift on prenorm blocks.
+  anchor_delta: >-
+    Keeps the frozen prenorm model and data surfaces while swapping the training
+    surface to `prior_linear_warmup_decay`.
+  parameter_adequacy_plan:
+  - Rank rows by benchmark best ROC AUC first, final ROC AUC second, and drift third.
+  - Report post-warmup train-loss variance, global grad norms, and the feature_encoder/direct_head gradient ratio as diagnostics.
+  - Promote only if final ROC AUC stays within 0.002 of the cosine-warmup anchor and drift improves materially.
+  model:
+    stage_label: schedule_linear_warmup_decay_prenorm
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      table_block_style: prenorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Compare this row against both the cosine-warmup anchor and the no-warmup
+    linear-decay row on benchmark best/final ROC AUC, drift, variance, and the
+    encoder/head gradient ratio.
+  notes:
+  - This is the preferred schedule row if decay helps without reopening early instability.
+
+- order: 4
+  delta_ref: rowpool_row_cls_cls2
+  status: ready
+  rationale: >-
+    Revisit RowPool on the stabilized prenorm surface with the old cleanest
+    `cls_tokens=2` seed rather than the original larger row-CLS configuration.
+  hypothesis: >-
+    If RowPool still misses badly here, the readout bottleneck remains negative
+    evidence even after cleaning the training dynamics surface.
+  anchor_delta: >-
+    Keeps the frozen prenorm plus cosine warmup recipe but swaps the row readout
+    from target-column pooling to `row_cls` with `tfrow_cls_tokens=2`.
+  parameter_adequacy_plan:
+  - Rank this row by benchmark ROC AUC first, drift second, and stability diagnostics third.
+  - Treat a clear benchmark miss with no drift win as renewed negative evidence for RowPool on the stabilized surface.
+  - Do not broaden the RowPool matrix inside this sweep unless this exact row shows a clear upside.
+  model:
+    stage_label: rowpool_row_cls_cls2
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      row_pool: row_cls
+      table_block_style: prenorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      apply_schedule: true
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Run this row benchmark-first and compare ROC AUC, drift, and stability
+    against the frozen target-column anchor before considering any broader
+    RowPool revisit.
+  notes:
+  - Keep tokenizer, context encoder, and target conditioning fixed while revisiting row pooling.

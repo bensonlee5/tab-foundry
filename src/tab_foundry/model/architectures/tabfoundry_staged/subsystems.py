@@ -26,6 +26,18 @@ class ScalarPerFeatureTokenizer(nn.Module):
         return x_all.unsqueeze(-1), None
 
 
+class ScalarPerFeatureMissingnessTokenizer(nn.Module):
+    """One per-feature token with explicit missingness flag."""
+
+    token_dim = 2
+
+    def forward(self, x_all: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
+        missing = ~torch.isfinite(x_all)
+        filled = torch.nan_to_num(x_all, nan=0.0, posinf=0.0, neginf=0.0)
+        tokenized = torch.stack([filled, missing.to(torch.float32)], dim=-1)
+        return tokenized, None
+
+
 class ShiftedGroupedTokenizer(nn.Module):
     """Shifted feature tokenizer using the shared (0, 1, 3) offsets."""
 
