@@ -2,21 +2,35 @@
 
 from __future__ import annotations
 
+import math
 from typing import Literal
 
 import numpy as np
 import torch
 
 
-InputNormalizationMode = Literal["none", "train_zscore", "train_zscore_clip"]
+InputNormalizationMode = Literal[
+    "none",
+    "train_zscore",
+    "train_zscore_clip",
+    "train_rankgauss",
+    "train_robust",
+    "train_winsorize_zscore",
+]
 SUPPORTED_INPUT_NORMALIZATION_MODES: tuple[InputNormalizationMode, ...] = (
     "none",
     "train_zscore",
     "train_zscore_clip",
+    "train_rankgauss",
+    "train_robust",
+    "train_winsorize_zscore",
 )
 
 _EPS = 1.0e-8
 _CLIP_VALUE = 100.0
+_WINSORIZE_LO = 1.0
+_WINSORIZE_HI = 99.0
+_SQRT2 = math.sqrt(2.0)
 
 
 def _tensor_stats_dtype(device: torch.device) -> torch.dtype:
@@ -24,6 +38,60 @@ def _tensor_stats_dtype(device: torch.device) -> torch.dtype:
 
     return torch.float32 if device.type == "mps" else torch.float64
 
+
+# ---------------------------------------------------------------------------
+# Rank-Gauss helpers
+# ---------------------------------------------------------------------------
+
+def _rankgauss_train_np(col: np.ndarray) -> np.ndarray:
+    """Rank-Gauss transform for a single train column (numpy)."""
+    n = len(col)
+    order = np.argsort(np.argsort(col))  # ordinal ranks 0..n-1
+    quantiles = (order + 0.5) / n  # open (0, 1)
+    q_t = torch.as_tensor(quantiles, dtype=torch.float64)
+    gauss = (_SQRT2 * torch.erfinv(2.0 * q_t - 1.0)).numpy()
+    return gauss
+
+
+def _rankgauss_test_np(
+    train_sorted: np.ndarray,
+    train_gauss_sorted: np.ndarray,
+    n_train: int,
+    col: np.ndarray,
+) -> np.ndarray:
+    """Map test column through the train rank-gauss mapping (numpy)."""
+    # fractional position in train
+    insert_idx = np.searchsorted(train_sorted, col, side="right")  # 0..n_train
+    quantiles = (insert_idx + 0.5) / (n_train + 1)  # keep in (0,1)
+    quantiles = np.clip(quantiles, 1e-7, 1.0 - 1e-7)
+    q_t = torch.as_tensor(quantiles, dtype=torch.float64)
+    gauss = (_SQRT2 * torch.erfinv(2.0 * q_t - 1.0)).numpy()
+    return gauss
+
+
+def _rankgauss_train_torch(col: torch.Tensor) -> torch.Tensor:
+    """Rank-Gauss transform for a single train column (torch)."""
+    n = col.shape[0]
+    order = torch.argsort(torch.argsort(col))
+    quantiles = (order.to(col.dtype) + 0.5) / n
+    return _SQRT2 * torch.erfinv(2.0 * quantiles - 1.0)
+
+
+def _rankgauss_test_torch(
+    train_sorted: torch.Tensor,
+    n_train: int,
+    col: torch.Tensor,
+) -> torch.Tensor:
+    """Map test column through the train rank-gauss mapping (torch)."""
+    insert_idx = torch.searchsorted(train_sorted, col, right=True)
+    quantiles = (insert_idx.to(col.dtype) + 0.5) / (n_train + 1)
+    quantiles = quantiles.clamp(1e-7, 1.0 - 1e-7)
+    return _SQRT2 * torch.erfinv(2.0 * quantiles - 1.0)
+
+
+# ---------------------------------------------------------------------------
+# Public API — numpy
+# ---------------------------------------------------------------------------
 
 def normalize_train_test_arrays(
     x_train: np.ndarray,
@@ -41,20 +109,64 @@ def normalize_train_test_arrays(
     if normalized_mode == "none":
         return train, test
 
-    mean = train_stats.mean(axis=0, dtype=np.float64)
-    std = train_stats.std(axis=0, dtype=np.float64)
-    std = np.where(std < _EPS, 1.0, std)
-    train_norm = (train_stats - mean) / std
-    test_norm = (test_stats - mean) / std
-    if normalized_mode == "train_zscore":
+    # --- z-score based modes ---
+    if normalized_mode in ("train_zscore", "train_zscore_clip", "train_winsorize_zscore"):
+        if normalized_mode == "train_winsorize_zscore":
+            lo = np.percentile(train_stats, _WINSORIZE_LO, axis=0)
+            hi = np.percentile(train_stats, _WINSORIZE_HI, axis=0)
+            train_stats = np.clip(train_stats, lo, hi)
+            test_stats = np.clip(test_stats, lo, hi)
+
+        mean = train_stats.mean(axis=0, dtype=np.float64)
+        std = train_stats.std(axis=0, dtype=np.float64)
+        std = np.where(std < _EPS, 1.0, std)
+        train_norm = (train_stats - mean) / std
+        test_norm = (test_stats - mean) / std
+
+        if normalized_mode == "train_zscore_clip":
+            return (
+                np.clip(train_norm, -_CLIP_VALUE, _CLIP_VALUE).astype(np.float32, copy=False),
+                np.clip(test_norm, -_CLIP_VALUE, _CLIP_VALUE).astype(np.float32, copy=False),
+            )
         return train_norm.astype(np.float32, copy=False), test_norm.astype(np.float32, copy=False)
-    if normalized_mode == "train_zscore_clip":
-        return (
-            np.clip(train_norm, -_CLIP_VALUE, _CLIP_VALUE).astype(np.float32, copy=False),
-            np.clip(test_norm, -_CLIP_VALUE, _CLIP_VALUE).astype(np.float32, copy=False),
-        )
+
+    # --- rank-gauss ---
+    if normalized_mode == "train_rankgauss":
+        n_cols = train_stats.shape[1]
+        train_out = np.empty_like(train_stats)
+        test_out = np.empty_like(test_stats)
+        for c in range(n_cols):
+            col_std = train_stats[:, c].std()
+            if col_std < _EPS:
+                train_out[:, c] = 0.0
+                test_out[:, c] = 0.0
+                continue
+            train_out[:, c] = _rankgauss_train_np(train_stats[:, c])
+            sorted_idx = np.argsort(train_stats[:, c])
+            train_sorted = train_stats[sorted_idx, c]
+            train_gauss_sorted = train_out[sorted_idx, c]
+            test_out[:, c] = _rankgauss_test_np(
+                train_sorted, train_gauss_sorted, len(train_stats), test_stats[:, c],
+            )
+        return train_out.astype(np.float32, copy=False), test_out.astype(np.float32, copy=False)
+
+    # --- robust (median / IQR) ---
+    if normalized_mode == "train_robust":
+        median = np.median(train_stats, axis=0)
+        q25 = np.percentile(train_stats, 25.0, axis=0)
+        q75 = np.percentile(train_stats, 75.0, axis=0)
+        iqr = q75 - q25
+        iqr = np.where(iqr < _EPS, 1.0, iqr)
+        train_norm = (train_stats - median) / iqr
+        test_norm = (test_stats - median) / iqr
+        return train_norm.astype(np.float32, copy=False), test_norm.astype(np.float32, copy=False)
+
     raise ValueError(f"Unsupported input_normalization mode: {mode!r}")
 
+
+# ---------------------------------------------------------------------------
+# Public API — torch
+# ---------------------------------------------------------------------------
 
 def normalize_train_test_tensors(
     x_train: torch.Tensor,
@@ -73,16 +185,54 @@ def normalize_train_test_tensors(
     if normalized_mode == "none":
         return train, test
 
-    mean = train_stats.mean(dim=0, keepdim=False)
-    std = train_stats.std(dim=0, keepdim=False, unbiased=False)
-    std = torch.where(std < _EPS, torch.ones_like(std), std)
-    train_norm = ((train_stats - mean) / std).to(torch.float32)
-    test_norm = ((test_stats - mean) / std).to(torch.float32)
-    if normalized_mode == "train_zscore":
+    # --- z-score based modes ---
+    if normalized_mode in ("train_zscore", "train_zscore_clip", "train_winsorize_zscore"):
+        if normalized_mode == "train_winsorize_zscore":
+            lo = torch.quantile(train_stats, _WINSORIZE_LO / 100.0, dim=0)
+            hi = torch.quantile(train_stats, _WINSORIZE_HI / 100.0, dim=0)
+            train_stats = train_stats.clamp(min=lo, max=hi)
+            test_stats = test_stats.clamp(min=lo, max=hi)
+
+        mean = train_stats.mean(dim=0, keepdim=False)
+        std = train_stats.std(dim=0, keepdim=False, unbiased=False)
+        std = torch.where(std < _EPS, torch.ones_like(std), std)
+        train_norm = ((train_stats - mean) / std).to(torch.float32)
+        test_norm = ((test_stats - mean) / std).to(torch.float32)
+
+        if normalized_mode == "train_zscore_clip":
+            return train_norm.clamp(min=-_CLIP_VALUE, max=_CLIP_VALUE), test_norm.clamp(
+                min=-_CLIP_VALUE,
+                max=_CLIP_VALUE,
+            )
         return train_norm, test_norm
-    if normalized_mode == "train_zscore_clip":
-        return train_norm.clamp(min=-_CLIP_VALUE, max=_CLIP_VALUE), test_norm.clamp(
-            min=-_CLIP_VALUE,
-            max=_CLIP_VALUE,
-        )
+
+    # --- rank-gauss ---
+    if normalized_mode == "train_rankgauss":
+        n_cols = train_stats.shape[1]
+        train_out = torch.empty_like(train_stats)
+        test_out = torch.empty_like(test_stats)
+        for c in range(n_cols):
+            col_std = train_stats[:, c].std(unbiased=False)
+            if col_std < _EPS:
+                train_out[:, c] = 0.0
+                test_out[:, c] = 0.0
+                continue
+            train_out[:, c] = _rankgauss_train_torch(train_stats[:, c])
+            train_sorted, _ = train_stats[:, c].sort()
+            test_out[:, c] = _rankgauss_test_torch(
+                train_sorted, train_stats.shape[0], test_stats[:, c],
+            )
+        return train_out.to(torch.float32), test_out.to(torch.float32)
+
+    # --- robust (median / IQR) ---
+    if normalized_mode == "train_robust":
+        median = torch.quantile(train_stats, 0.5, dim=0)
+        q25 = torch.quantile(train_stats, 0.25, dim=0)
+        q75 = torch.quantile(train_stats, 0.75, dim=0)
+        iqr = q75 - q25
+        iqr = torch.where(iqr < _EPS, torch.ones_like(iqr), iqr)
+        train_norm = ((train_stats - median) / iqr).to(torch.float32)
+        test_norm = ((test_stats - median) / iqr).to(torch.float32)
+        return train_norm, test_norm
+
     raise ValueError(f"Unsupported input_normalization mode: {mode!r}")

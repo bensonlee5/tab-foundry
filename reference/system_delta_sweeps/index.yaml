@@ -22,3 +22,10 @@ sweeps:
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+  binary_md_v4:
+    parent_sweep_id: binary_md_v3
+    status: draft
+    anchor_run_id: 01_shared_norm_post_ln_binary_medium_v1
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2

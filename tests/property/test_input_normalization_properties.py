@@ -22,6 +22,14 @@ _FLOAT32S = st.floats(
     width=32,
 )
 
+_MODES_WITH_TRAIN_STATS = (
+    "train_zscore",
+    "train_zscore_clip",
+    "train_rankgauss",
+    "train_robust",
+    "train_winsorize_zscore",
+)
+
 
 @st.composite
 def _train_test_arrays(draw: st.DrawFn) -> tuple[np.ndarray, np.ndarray]:
@@ -101,7 +109,7 @@ def test_none_mode_matches_float32_cast_only(data: tuple[np.ndarray, np.ndarray]
 @settings(deadline=None, max_examples=40)
 @given(
     case=_train_and_two_tests(),
-    mode=st.sampled_from(("train_zscore", "train_zscore_clip")),
+    mode=st.sampled_from(_MODES_WITH_TRAIN_STATS),
 )
 def test_train_normalization_depends_only_on_train_split(
     case: tuple[np.ndarray, np.ndarray, np.ndarray],
@@ -116,7 +124,7 @@ def test_train_normalization_depends_only_on_train_split(
 
 
 @settings(deadline=None, max_examples=40)
-@given(case=_constant_column_case(), mode=st.sampled_from(("train_zscore", "train_zscore_clip")))
+@given(case=_constant_column_case(), mode=st.sampled_from(_MODES_WITH_TRAIN_STATS))
 def test_constant_train_columns_normalize_to_zero(
     case: tuple[np.ndarray, np.ndarray, int],
     mode: str,
@@ -156,3 +164,31 @@ def test_numpy_and_torch_normalizers_agree(
 
     np.testing.assert_allclose(train_np, train_t.numpy(), atol=1.0e-5, rtol=1.0e-5)
     np.testing.assert_allclose(test_np, test_t.numpy(), atol=1.0e-5, rtol=1.0e-5)
+
+
+@settings(deadline=None, max_examples=40)
+@given(data=_train_test_arrays())
+def test_rankgauss_output_bounded(data: tuple[np.ndarray, np.ndarray]) -> None:
+    x_train, x_test = data
+
+    train_np, test_np = normalize_train_test_arrays(x_train, x_test, mode="train_rankgauss")
+
+    assert np.all(np.isfinite(train_np))
+    assert np.all(np.isfinite(test_np))
+    # erfinv maps (0,1) quantiles to roughly [-5,5] for practical sample sizes
+    assert float(np.max(np.abs(train_np))) < 10.0
+    assert float(np.max(np.abs(test_np))) < 10.0
+
+
+@settings(deadline=None, max_examples=40)
+@given(data=_train_test_arrays())
+def test_winsorize_clips_within_train_percentiles(data: tuple[np.ndarray, np.ndarray]) -> None:
+    x_train, x_test = data
+
+    train_norm, test_norm = normalize_train_test_arrays(
+        x_train, x_test, mode="train_winsorize_zscore",
+    )
+
+    # Output should be finite (no NaN/Inf from division)
+    assert np.all(np.isfinite(train_norm))
+    assert np.all(np.isfinite(test_norm))
