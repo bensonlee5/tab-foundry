@@ -136,6 +136,7 @@ class PreNormCellBlock(nn.Module):
         *,
         allow_test_self_attention: bool,
         norm_type: str,
+        dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.allow_test_self_attention = allow_test_self_attention
@@ -152,6 +153,8 @@ class PreNormCellBlock(nn.Module):
         self.feature_norm = build_norm(norm_type, embedding_size)
         self.row_norm = build_norm(norm_type, embedding_size)
         self.ff_norm = build_norm(norm_type, embedding_size)
+        self.attn_dropout = nn.Dropout(dropout)
+        self.ff_dropout = nn.Dropout(dropout)
         self.linear1 = Linear(embedding_size, mlp_hidden_size, bias=True)
         self.linear2 = Linear(mlp_hidden_size, embedding_size, bias=True)
 
@@ -181,6 +184,7 @@ class PreNormCellBlock(nn.Module):
         feat_out = self.self_attention_between_features(
             feat_norm, feat_norm, feat_norm
         )[0]
+        feat_out = self.attn_dropout(feat_out)
         cells = (feat_in + feat_out).reshape(
             batch_size, rows_size, col_size, embedding_size
         )
@@ -200,13 +204,14 @@ class PreNormCellBlock(nn.Module):
             row_norm,
             attn_mask=row_mask,
         )[0]
+        row_out = self.attn_dropout(row_out)
         row_residual = row_in + row_out
         cells = row_residual.reshape(
             batch_size, col_size, rows_size, embedding_size
         ).transpose(2, 1)
 
         ff_norm = self.ff_norm(cells)
-        return self.linear2(F.gelu(self.linear1(ff_norm))) + cells
+        return self.ff_dropout(self.linear2(F.gelu(self.linear1(ff_norm)))) + cells
 
 
 class IdentityColumnEncoder(nn.Module):
@@ -227,6 +232,7 @@ class SetColumnEncoder(nn.Module):
         n_layers: int,
         n_inducing: int,
         norm_type: str,
+        dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.encoder = TFColEncoder(
@@ -235,6 +241,7 @@ class SetColumnEncoder(nn.Module):
             n_layers=n_layers,
             n_inducing=n_inducing,
             norm_type=norm_type,
+            dropout=dropout,
         )
 
     def forward(self, cells: torch.Tensor) -> torch.Tensor:
@@ -272,6 +279,7 @@ class RowCLSPool(nn.Module):
         n_layers: int,
         cls_tokens: int,
         norm_type: str,
+        dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.encoder = TFRowEncoder(
@@ -281,6 +289,7 @@ class RowCLSPool(nn.Module):
             cls_tokens=cls_tokens,
             d_out=embedding_size,
             norm_type=norm_type,
+            dropout=dropout,
         )
 
     def forward(
@@ -308,6 +317,7 @@ class SequenceContextEncoder(nn.Module):
         use_qass: bool,
         allow_test_self_attention: bool,
         norm_type: str,
+        dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.allow_test_self_attention = allow_test_self_attention
@@ -316,6 +326,7 @@ class SequenceContextEncoder(nn.Module):
             n_heads=n_heads,
             n_layers=n_layers,
             ff_expansion=ff_expansion,
+            dropout=dropout,
             use_qass=use_qass,
             norm_type=norm_type,
         )

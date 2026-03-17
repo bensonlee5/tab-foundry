@@ -17,7 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--out-path", required=True, help="Output JSONL path")
     parser.add_argument("--device", default="auto", help="Device override")
     parser.add_argument("--steps", type=int, default=2500, help="Training steps")
-    parser.add_argument("--eval-every", type=int, default=25, help="Evaluation cadence in steps")
+    parser.add_argument("--eval-every", type=int, default=250, help="Evaluation cadence in steps")
     parser.add_argument("--seeds", type=int, default=2, help="Number of random seeds")
     parser.add_argument("--batch-size", type=int, default=32, help="Prior batch size")
     parser.add_argument("--lr", type=float, default=4.0e-3, help="Learning rate")

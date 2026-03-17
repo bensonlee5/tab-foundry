@@ -83,6 +83,7 @@ class TFColEncoder(nn.Module):
         n_layers: int = 3,
         n_inducing: int = 128,
         norm_type: str = "layernorm",
+        dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.blocks = nn.ModuleList(
@@ -92,6 +93,7 @@ class TFColEncoder(nn.Module):
                     n_heads=n_heads,
                     n_inducing=n_inducing,
                     norm_type=norm_type,
+                    dropout=dropout,
                 )
                 for _ in range(n_layers)
             ]
@@ -118,6 +120,7 @@ class TFRowEncoder(nn.Module):
         d_out: int = 512,
         ff_expansion: int = 2,
         norm_type: str = "layernorm",
+        dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.cls_tokens = cls_tokens
@@ -131,6 +134,7 @@ class TFRowEncoder(nn.Module):
             batch_first=True,
             activation="gelu",
             norm_first=True,
+            dropout=dropout,
         )
         setattr(encoder_layer, "norm1", build_norm(norm_type, d_model))
         setattr(encoder_layer, "norm2", build_norm(norm_type, d_model))

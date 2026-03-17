@@ -39,7 +39,14 @@ def stage_base_lr(stage: StageConfig, *, step: int, lr_min: float) -> float:
         return float(stage.lr_max)
 
     if stage.lr_schedule == "cosine":
-        progress = float(step - 1) / float(stage.steps - 1)
+        warmup_steps = warmup_steps_for_stage(stage)
+        if warmup_steps > 0 and step <= warmup_steps:
+            return float(stage.lr_max) * (float(step) / float(warmup_steps))
+        decay_start = warmup_steps + 1
+        decay_total = stage.steps - warmup_steps
+        if decay_total <= 1:
+            return float(stage.lr_max)
+        progress = float(step - decay_start) / float(decay_total - 1)
         cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
         return float(lr_min) + (float(stage.lr_max) - float(lr_min)) * cosine
 

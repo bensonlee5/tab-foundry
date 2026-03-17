@@ -43,6 +43,8 @@ def build_model(
     many_class_base: int = 10,
     head_hidden_dim: int = 1024,
     use_digit_position_embed: bool = True,
+    staged_dropout: float = 0.0,
+    pre_encoder_clip: float | None = None,
 ) -> nn.Module:
     """Instantiate model for task."""
 
@@ -153,5 +155,7 @@ def build_model(
             many_class_base=many_class_base,
             head_hidden_dim=head_hidden_dim,
             use_digit_position_embed=use_digit_position_embed,
+            staged_dropout=staged_dropout,
+            pre_encoder_clip=pre_encoder_clip,
         )
     raise ValueError(f"Unsupported model arch: {arch!r}")
