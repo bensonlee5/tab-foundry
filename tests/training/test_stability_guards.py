@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import math
 
-import pytest
-
 from tab_foundry.training.schedule import StageConfig, stage_base_lr, warmup_steps_for_stage
 
 

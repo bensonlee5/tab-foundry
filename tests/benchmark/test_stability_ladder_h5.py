@@ -21,7 +21,7 @@ def h5_file() -> Path:
     return H5_PATH
 
 
-def _make_batch_from_h5(h5_path: Path, idx: int = 0) -> "TaskBatch":
+def _make_batch_from_h5(h5_path: Path, idx: int = 0):
     """Load one task from the H5 file and return a TaskBatch."""
     import h5py
     from tab_foundry.types import TaskBatch
@@ -47,7 +47,7 @@ def _make_batch_from_h5(h5_path: Path, idx: int = 0) -> "TaskBatch":
     )
 
 
-def _build_ladder_model(rung: str) -> "TabFoundryStagedClassifier":
+def _build_ladder_model(rung: str):
     from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
 
     base_kwargs: dict[str, object] = {
