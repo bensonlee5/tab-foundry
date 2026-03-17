@@ -28,6 +28,9 @@ into the canonical library modules.
 - `src/tab_foundry/preprocessing/`: explicit preprocessing-surface resolution
   and fitted-state helpers. This is now a live first-class package area rather
   than an implicit training detail.
+- `src/tab_foundry/provenance.py`: shared source/build provenance helpers used
+  when checkpoints, benchmark records, or export bundles need reproducible
+  producer metadata.
 - `src/tab_foundry/model/`: model namespace package. Direct imports should
   target `tab_foundry.model.factory`, `tab_foundry.model.spec`, or concrete
   family modules under `tab_foundry.model.architectures`.

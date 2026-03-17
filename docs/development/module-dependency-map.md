@@ -14,19 +14,22 @@ section factual and keep design intent in the policy section below it.
 - `tab_foundry.__main__` depends on `tab_foundry.cli`.
 - `tab_foundry.bench` depends on `tab_foundry.config`,
   `tab_foundry.data`, `tab_foundry.input_normalization`,
-  `tab_foundry.model`, `tab_foundry.training`, and `tab_foundry.types`.
+  `tab_foundry.model`, `tab_foundry.provenance`,
+  `tab_foundry.training`, and `tab_foundry.types`.
 - `tab_foundry.cli` depends on `tab_foundry.config`,
   `tab_foundry.data`, `tab_foundry.export`, and `tab_foundry.training`.
 - `tab_foundry.data` depends on `tab_foundry.preprocessing` and
   `tab_foundry.types`.
 - `tab_foundry.export` depends on `tab_foundry.input_normalization`,
-  `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
+  `tab_foundry.model`, `tab_foundry.preprocessing`,
+  `tab_foundry.provenance`, and `tab_foundry.types`.
 - `tab_foundry.model` depends on `tab_foundry.input_normalization` and
   `tab_foundry.types`.
 - `tab_foundry.research` depends on `tab_foundry.bench` and
   `tab_foundry.model`.
 - `tab_foundry.training` depends on `tab_foundry.data`,
-  `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
+  `tab_foundry.model`, `tab_foundry.preprocessing`,
+  `tab_foundry.provenance`, and `tab_foundry.types`.
 
 <!-- module-graph:end -->
 
@@ -38,6 +41,9 @@ Observed cycle status:
 
 - `tab_foundry.config`, `tab_foundry.types`, and
   `tab_foundry.input_normalization` should remain dependency-light helpers.
+- `tab_foundry.provenance` should remain a dependency-light shared-helper
+  module for source/build metadata capture that can be used by `training`,
+  `export`, and `bench` without taking on workflow orchestration.
 - `tab_foundry.model` should stay independent of `bench`, `research`,
   `training`, and `export`.
 - `tab_foundry.preprocessing` should remain a leaf-style utility package that
@@ -45,13 +51,15 @@ Observed cycle status:
   logic of its own.
 - `tab_foundry.data` may depend on `preprocessing` helpers and shared types,
   but it should not depend on `training`, `bench`, or `research`.
-- `tab_foundry.training` may depend on `data`, `model`, `preprocessing`, and
-  shared helpers, but it should not depend on `bench` or `research`.
-- `tab_foundry.export` may depend on `model`, `preprocessing`, and shared
-  helpers, but it should not depend on `bench`, `research`, or `training`.
+- `tab_foundry.training` may depend on `data`, `model`, `preprocessing`,
+  `provenance`, and other shared helpers, but it should not depend on `bench`
+  or `research`.
+- `tab_foundry.export` may depend on `model`, `preprocessing`, `provenance`,
+  and other shared helpers, but it should not depend on `bench`, `research`,
+  or `training`.
 - `tab_foundry.bench` is the benchmark and harness layer. It may depend on
-  `config`, `data`, `model`, `training`, and shared helpers, but lower layers
-  should not depend on it.
+  `config`, `data`, `model`, `training`, `provenance`, and other shared
+  helpers, but lower layers should not depend on it.
 - `tab_foundry.research` is the sweep-management layer. It may depend on
   `bench` and `model`, but lower layers should not depend on it.
 - `scripts/` should remain thin wrapper entrypoints over `bench/`, `research/`,
