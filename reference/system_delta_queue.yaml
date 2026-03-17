@@ -105,30 +105,32 @@ anchor_context:
     training: prior_constant_lr
 rows:
 - order: 1
-  delta_id: delta_preproc_impute_missing_off
-  status: deferred_separate_workstream
-  dimension_family: preprocessing
-  family: missing_values
+  delta_id: delta_global_rmsnorm
+  status: ready
+  dimension_family: model
+  family: normalization
   binary_applicable: true
-  description: Disable runtime mean imputation while keeping the fitted label-remap
-    path intact.
-  rationale: Keep the missingness-only placeholder attached to the promoted shared+LayerNorm
-    anchor while missingness work proceeds on a separate branch.
-  hypothesis: Missingness-specific conclusions should wait for a dedicated workstream
-    with explicit missing-valued training and evaluation inputs.
-  upstream_delta: Upstream notebook preprocessing imputes as part of its benchmark
-    helper path.
-  anchor_delta: Changes only preprocessing by disabling runtime mean imputation while
-    keeping the shared+LayerNorm anchor model, data surface, and training recipe fixed.
+  description: Keep the anchor structure fixed but switch the staged/global LayerNorm
+    family to RMSNorm, including the row-pool norm override for completeness.
+  rationale: Test bias removal (baked into QASS and shared encoder layers) combined
+    with global RMSNorm on the promoted shared+LayerNorm anchor.
+  hypothesis: RMSNorm may improve optimization stability, and bias removal provides
+    mild regularization by eliminating redundant parameters behind pre-norm layers.
+  upstream_delta: Upstream nanoTabPFN uses LayerNorm in its exact transformer blocks.
+  anchor_delta: Changes the global norm family from LayerNorm to RMSNorm (norm_type
+    and tfrow_norm) while keeping the shared feature encoder, post-encoder LayerNorm,
+    nano-postnorm block style, and all other anchor surfaces fixed.
   entangled_legacy_stage: none
-  expected_effect: Cleaner attribution around imputation usefulness, but possibly
-    brittle feature tensors on some datasets.
+  expected_effect: Potentially smoother optimization or lower gradient spikes, with
+    the risk that RMSNorm only shifts calibration or late-curve behavior.
   adequacy_knobs:
-  - Interpret against manifest missingness prevalence where available.
+  - model.norm_type
+  - model.tfrow_norm
   parameter_adequacy_policy:
     default_plan:
-    - If the result is weak, note whether the benchmark tasks actually contain meaningful
-      missingness on the support side.
+    - Compare best/final ROC AUC and training stability against the constant anchor
+      surface.
+    - Distinguish early-step stabilization from true end-of-run quality improvements.
     default_negative_decision: defer
     reject_requires:
     - isolated_change
@@ -136,27 +138,32 @@ rows:
     - clearly_worse_without_offsetting_benefit
   applicability_guards: []
   model:
-    stage_label: anchor_model
+    stage_label: delta_global_rmsnorm
+    norm_type: rmsnorm
+    tfrow_norm: rmsnorm
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
   data:
     surface_label: anchor_manifest_default
   preprocessing:
-    surface_label: runtime_no_impute
-    overrides:
-      impute_missing: false
+    surface_label: runtime_default
   training:
     surface_label: prior_constant_lr
     overrides: {}
   parameter_adequacy_plan:
-  - If the result is weak, note whether the benchmark tasks actually contain meaningful
-    missingness on the support side.
+  - Compare best/final ROC AUC and training stability against the v3 anchor.
+  - Distinguish early-step stabilization from true end-of-run quality improvements.
+  - "Note the bias-removal confound \u2014 this run tests both changes simultaneously."
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
-  confounders: []
-  next_action: Do not run on the main no-missing campaign; revisit only in a dedicated
-    missingness workstream with explicit missing-valued training and evaluation inputs.
+  interpretation_status: pending
+  confounders:
+  - Bias removal is baked into the code; cannot isolate RMSNorm from bias removal.
+  next_action: Train on the locked medium binary surface and benchmark against the
+    v3 anchor.
   notes:
-  - Placeholder row only on this branch; missingness implementation lives on a separate
-    branch.
+  - The v1 RMSNorm run (sd_binary_md_v1_10_delta_global_rmsnorm_v1) scored 0.7601
+    best ROC AUC on the nano-only anchor.
   benchmark_metrics: null
