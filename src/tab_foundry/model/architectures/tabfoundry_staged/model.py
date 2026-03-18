@@ -257,24 +257,19 @@ class TabFoundryStagedClassifier(nn.Module):
             return x_all
         x_train = x_all[:, :train_test_split_index, :]
         x_test = x_all[:, train_test_split_index:, :]
-        train_parts: list[torch.Tensor] = []
-        test_parts: list[torch.Tensor] = []
-        for batch_idx in range(int(x_all.shape[0])):
-            train_norm, test_norm = normalize_train_test_tensors(
-                x_train[batch_idx],
-                x_test[batch_idx],
-                mode=cast(
-                    InputNormalizationMode,
-                    self.input_normalization,
-                ),
-                preserve_non_finite=self.surface.tokenizer == "scalar_per_feature_nan_mask",
-            )
-            train_parts.append(train_norm)
-            test_parts.append(test_norm)
+        train_norm, test_norm = normalize_train_test_tensors(
+            x_train,
+            x_test,
+            mode=cast(
+                InputNormalizationMode,
+                self.input_normalization,
+            ),
+            preserve_non_finite=self.surface.tokenizer == "scalar_per_feature_nan_mask",
+        )
         return torch.cat(
             [
-                torch.stack(train_parts, dim=0),
-                torch.stack(test_parts, dim=0),
+                train_norm,
+                test_norm,
             ],
             dim=1,
         )
@@ -646,6 +641,12 @@ class TabFoundryStagedClassifier(nn.Module):
 
     def _forward_many_class(self, raw_state: RawInputState) -> ClassificationOutput:
         assert raw_state.y_test is not None
+        if int(raw_state.x_all.shape[0]) != 1:
+            raise RuntimeError(
+                "staged many_class currently requires a single task (batch dimension 1); "
+                "task-level training already uses batch_size=1 and tensor-batched many_class "
+                "execution is not implemented"
+            )
         cell_state = self._encode_to_cell_state(raw_state)
         row_state = self._pool_rows(cell_state)
         digit_conditioned = self._digit_conditioned_rows(row_state, raw_state.y_train[0])

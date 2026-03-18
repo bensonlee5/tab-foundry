@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 import torch
 
+from tab_foundry.input_normalization import normalize_train_test_tensors
 from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
 from tab_foundry.model.architectures.tabfoundry_staged.recipes import STAGE_RECIPE_REGISTRY
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
@@ -321,6 +322,23 @@ def test_many_class_stage_accepts_full_probs_in_train_mode() -> None:
     assert out.path_sample_counts is None
 
 
+def test_many_class_stage_rejects_tensor_batched_internal_path() -> None:
+    model = _staged("many_class", many_class_base=4, input_normalization="none")
+    x_all = torch.randn(2, 8, 12)
+    y_train = torch.randint(0, 6, (2, 5), dtype=torch.int64)
+    y_test = torch.randint(0, 12, (2, 3), dtype=torch.int64)
+    raw_state = model._build_raw_input_state(
+        x_all=x_all,
+        y_train=y_train,
+        y_test=y_test,
+        train_test_split_index=5,
+        num_classes=12,
+    )
+
+    with pytest.raises(RuntimeError, match="staged many_class currently requires a single task"):
+        _ = model._forward_many_class(raw_state)
+
+
 def test_module_overrides_surface_stage_label_and_row_pool_hyperparameters() -> None:
     model = _staged(
         "nano_exact",
@@ -425,6 +443,62 @@ def test_activation_trace_uses_shape_normalized_rms() -> None:
     assert second_snapshot is not None
     assert first_snapshot["constant"] == pytest.approx(2.0)
     assert second_snapshot["constant"] == pytest.approx(2.0)
+
+
+def test_shared_normalization_matches_stacked_2d_behavior_for_batched_forward_inputs() -> None:
+    model = _staged(
+        "small_class_head",
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=1,
+        head_hidden_dim=64,
+    )
+    x_all = torch.tensor(
+        [
+            [
+                [1.0, 2.0, 3.0],
+                [4.0, 5.0, 6.0],
+                [7.0, 8.0, 9.0],
+                [10.0, 11.0, 12.0],
+                [13.0, 14.0, 15.0],
+                [16.0, 17.0, 18.0],
+                [19.0, 20.0, 21.0],
+            ],
+            [
+                [2.0, 3.0, 4.0],
+                [5.0, 6.0, 7.0],
+                [8.0, 9.0, 10.0],
+                [11.0, 12.0, 13.0],
+                [14.0, 15.0, 16.0],
+                [17.0, 18.0, 19.0],
+                [20.0, 21.0, 22.0],
+            ],
+        ],
+        dtype=torch.float32,
+    )
+    x_train = x_all[:, :5, :]
+    x_test = x_all[:, 5:, :]
+    expected_train_parts: list[torch.Tensor] = []
+    expected_test_parts: list[torch.Tensor] = []
+    for batch_idx in range(int(x_all.shape[0])):
+        train_norm, test_norm = normalize_train_test_tensors(
+            x_train[batch_idx],
+            x_test[batch_idx],
+            mode=model.input_normalization,
+        )
+        expected_train_parts.append(train_norm)
+        expected_test_parts.append(test_norm)
+
+    observed = model._normalize_x_all(x_all, train_test_split_index=5)
+    expected = torch.cat(
+        [
+            torch.stack(expected_train_parts, dim=0),
+            torch.stack(expected_test_parts, dim=0),
+        ],
+        dim=1,
+    )
+
+    torch.testing.assert_close(observed, expected, atol=1.0e-6, rtol=1.0e-6)
 
 
 def test_stage_labels_do_not_trigger_legacy_constraint_enforcement() -> None:
