@@ -290,6 +290,14 @@ widens the TabArena v0.1 source set from binary-only to small multiclass while
 preserving the same row-count, feature-count, missingness, and minority-class
 filters.
 
+The missing-permitting large binary bundle at
+`src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json` remains reserved
+for missingness-oriented work such as `missingness_followup`. The opt-in
+no-missing larger binary surface lives separately at
+`src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json` so
+current medium-bundle comparisons and missingness sweeps keep their existing
+contracts.
+
 Regenerate the canonical medium binary bundle with:
 
 ```bash
@@ -316,6 +324,40 @@ uv run tab-foundry bench bundle build-openml \
   --new-instances 200 \
   --max-features 10 \
   --max-classes auto \
+  --max-missing-pct 0.0 \
+  --min-minority-class-pct 2.5
+```
+
+Discover a fresh no-missing large binary candidate surface with:
+
+```bash
+uv run python scripts/build_openml_benchmark_bundle.py \
+  --out-path /tmp/nanotabpfn_openml_binary_large_no_missing_candidate.json \
+  --bundle-name nanotabpfn_openml_binary_large_no_missing_candidate \
+  --version 1 \
+  --discover-from-openml \
+  --task-type supervised_classification \
+  --new-instances 200 \
+  --min-instances 200 \
+  --min-task-count 50 \
+  --max-features 50 \
+  --max-classes 2 \
+  --max-missing-pct 0.0 \
+  --min-minority-class-pct 2.5
+```
+
+Rebuild the checked-in reviewed no-missing large bundle exactly with:
+
+```bash
+uv run python scripts/build_openml_benchmark_bundle.py \
+  --out-path src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json \
+  --bundle-name nanotabpfn_openml_binary_large_no_missing \
+  --version 1 \
+  --task-source binary_large_no_missing_v1 \
+  --task-type supervised_classification \
+  --new-instances 200 \
+  --max-features 50 \
+  --max-classes 2 \
   --max-missing-pct 0.0 \
   --min-minority-class-pct 2.5
 ```
