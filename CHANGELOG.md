@@ -15,7 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added the opt-in repo-tracked benchmark artifact `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json` for larger binary no-missing comparisons, while leaving the existing missing-permitting large bundle in place for missingness-focused sweeps.
 
+- Added system-delta queue and result-card coverage for log-loss-first classification benchmarking, including persisted `final_log_loss`, `final_brier_score`, and anchor delta fields such as `delta_final_log_loss`.
+
 ### Changed
+
+- Changed classification curve ranking so benchmark best-step selection now follows `log_loss` before ROC AUC, keeping ROC AUC as a diagnostic rather than the primary promotion metric.
+
+- Refreshed the active `input_norm_followup` and `input_norm_none_followup` sweep state around the rerun anchor `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`, and recorded the unclipped `none` follow-up rerun `sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2` against that log-loss-capable anchor.
+
+- Tightened wandb-backed research execution so the new benchmarking reruns are captured and promotable under the current benchmark contract instead of relying on the earlier ROC-only sweep state.
 
 - User-facing note: the benchmark bundle builder now supports direct OpenML discovery for supervised-classification bundles, and the package version is now `0.7.1`.
 

@@ -75,7 +75,7 @@ def test_promoted_bridge_baseline_stays_aligned_across_config_and_sweeps() -> No
     assert anchor_replay_row["training"] == expected_training
     assert input_norm_sweep["anchor_context"]["experiment"] == "cls_benchmark_staged_prior"
     assert input_norm_sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged_prior"
-    assert input_norm_sweep["anchor_run_id"] == "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
+    assert input_norm_sweep["anchor_run_id"] == "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
     assert input_norm_sweep["anchor_context"]["model"]["stage_label"] == "dpnb_input_norm_anchor_replay_batch64_sqrt"
     assert input_norm_sweep["anchor_context"]["surface_labels"]["training"] == payload["training"]["surface_label"]
 

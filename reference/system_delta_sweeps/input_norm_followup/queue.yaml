@@ -509,9 +509,9 @@ rows:
           lr_max: 0.004
           lr_schedule: linear
           warmup_ratio: 0.05
-  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
   followup_run_ids: []
-  decision: keep
+  decision: defer
   interpretation_status: completed
   confounders: []
   next_action: Use this run as the canonical anchor for future binary_md follow-ups;
@@ -524,15 +524,34 @@ rows:
     pending full sweep interpretation.
   - This row is promoted as the canonical anchor because it matched row 9 while keeping
     `train_zscore_clip`, which is the less invasive preprocessing choice on this implementation.
+  - Supersedes historical queue run `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   benchmark_metrics:
-    best_roc_auc: 0.763769595842719
-    best_step: 2200
-    final_roc_auc: 0.763449888408113
-    drift: -0.00031970743460596474
-    nanotabpfn_best: 0.7540710196545419
-    nanotabpfn_final: 0.7466291551363653
+    best_step: 2500
     max_grad_norm: 2.682995080947876
     clipped_step_fraction: 0.0072
+    best_log_loss: 0.39718748852964125
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.39718748852964125
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.13074733328243912
+    nanotabpfn_best_brier_score: 0.14642705664899075
+    final_brier_score: 0.13074733328243912
+    nanotabpfn_final_brier_score: 0.14745454546536443
+    best_roc_auc: 0.763449888408113
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.763449888408113
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_roc_auc: 0.0
 - order: 8
   delta_ref: dpnb_input_norm_zscore_tanh_batch16_sqrt
   status: completed

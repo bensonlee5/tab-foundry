@@ -11,11 +11,11 @@ This file is rendered from `reference/system_delta_sweeps/input_norm_followup/qu
 
 ## Locked Surface
 
-- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
+- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
-- Anchor metrics: best ROC AUC `0.7638`, final ROC AUC `0.7634`, final training time `257.0s`
+- Anchor metrics: final log loss `0.3972`, final Brier score `0.1307`, best ROC AUC `0.7634`, final ROC AUC `0.7634`, final training time `257.5s`
 
 ## Anchor Comparison
 
@@ -77,7 +77,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Row 7 improved final ROC AUC by 0.0068 on the same clipped normalization family, so this row remains evidence rather than the live anchor.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/result_card.md`
-- Registered run: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-114.0s`
+- Registered run: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0068`, delta final training time `-114.5s`
 
 ### 2. `dpnb_input_norm_zscore`
 
@@ -109,7 +109,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - CUDA rerun recorded the canonical batch32 comparison, but batch-size evidence later dominated the sweep so this row remains supporting evidence only.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/result_card.md`
-- Registered run: `sd_input_norm_followup_02_dpnb_input_norm_zscore_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-115.7s`
+- Registered run: `sd_input_norm_followup_02_dpnb_input_norm_zscore_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0068`, delta final training time `-116.3s`
 
 ### 3. `dpnb_input_norm_winsorize_zscore`
 
@@ -141,7 +141,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - CUDA rerun recorded the canonical batch32 comparison, but the row remains supporting evidence only after row 7 established the better systems surface.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/result_card.md`
-- Registered run: `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-115.7s`
+- Registered run: `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0068`, delta final training time `-116.2s`
 
 ### 4. `dpnb_input_norm_zscore_tanh`
 
@@ -170,7 +170,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - This row tied the batch32 clipped baseline but did not create its own lift; the only winning smooth-tail result required the same batch64 systems change as row 7.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/result_card.md`
-- Registered run: `sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-115.6s`
+- Registered run: `sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0068`, delta final training time `-116.1s`
 
 ### 5. `dpnb_input_norm_robust_tanh`
 
@@ -199,7 +199,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Robust smooth-tail preprocessing produced no measurable upside on the locked bundle, so it stays below the promoted clipped batch64 surface.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/result_card.md`
-- Registered run: `sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-111.7s`
+- Registered run: `sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0068`, delta final training time `-112.2s`
 
 ### 6. `dpnb_input_norm_anchor_replay_batch16_sqrt`
 
@@ -232,7 +232,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Batch size 16 hurt final ROC AUC relative to both the batch32 reference and the promoted batch64 surface.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/result_card.md`
-- Registered run: `sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1` with best ROC AUC `0.7595`, final ROC AUC `0.7557`, final-minus-best `-0.0039`, delta final ROC AUC `-0.0078`, delta drift `-0.0036`, delta final training time `-149.3s`
+- Registered run: `sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1` with best ROC AUC `0.7595`, final ROC AUC `0.7557`, final-minus-best `-0.0039`, delta final ROC AUC `-0.0078`, delta drift `-0.0039`, delta final training time `-149.8s`
 
 ### 7. `dpnb_input_norm_anchor_replay_batch64_sqrt`
 
@@ -257,15 +257,18 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - schedule.stages[0].lr_max
   - optimizer.min_lr
 - Interpretation status: `completed`
-- Decision: `keep`
+- Decision: `defer`
 - Notes:
   - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about 0.005657 and effective min_lr is about 0.000566.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`.
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.
   - This row is promoted as the canonical anchor because it matched row 9 while keeping `train_zscore_clip`, which is the less invasive preprocessing choice on this implementation.
+  - Supersedes historical queue run `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/result_card.md`
-- Registered run: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1` with best ROC AUC `0.7638`, final ROC AUC `0.7634`, final-minus-best `-0.0003`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `+0.0s`
+- Registered run: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2` with final log loss `0.3972`, delta final log loss `+0.0000`, final Brier score `0.1307`, delta final Brier score `+0.0000`, best ROC AUC `0.7634`, final ROC AUC `0.7634`, final-minus-best `+0.0000`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `+0.0s`
 
 ### 8. `dpnb_input_norm_zscore_tanh_batch16_sqrt`
 
@@ -297,7 +300,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - The batch16 smooth-tail variant reproduced the same degradation as row 6, so the batch-size effect is not a tanh-specific mechanism.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/result_card.md`
-- Registered run: `sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1` with best ROC AUC `0.7595`, final ROC AUC `0.7557`, final-minus-best `-0.0039`, delta final ROC AUC `-0.0078`, delta drift `-0.0036`, delta final training time `-149.1s`
+- Registered run: `sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1` with best ROC AUC `0.7595`, final ROC AUC `0.7557`, final-minus-best `-0.0039`, delta final ROC AUC `-0.0078`, delta drift `-0.0039`, delta final training time `-149.6s`
 
 ### 9. `dpnb_input_norm_zscore_tanh_batch64_sqrt`
 
@@ -329,4 +332,4 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Row 9 matched row 7 on final ROC AUC, but `train_zscore_tanh` is more interventionist than the effectively no-op `train_zscore_clip` bound at +/-100.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/result_card.md`
-- Registered run: `sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1` with best ROC AUC `0.7638`, final ROC AUC `0.7634`, final-minus-best `-0.0003`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `+0.2s`
+- Registered run: `sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1` with best ROC AUC `0.7638`, final ROC AUC `0.7634`, final-minus-best `-0.0003`, delta final ROC AUC `+0.0000`, delta drift `-0.0003`, delta final training time `-0.3s`
