@@ -20,10 +20,11 @@ EXPECTED_ROWS = [
     "dpnb_input_norm_zscore_tanh_batch16_sqrt",
     "dpnb_input_norm_zscore_tanh_batch64_sqrt",
 ]
-ANCHOR_RUN_ID = "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
-ANCHOR_BEST_ROC_AUC = 0.7634285072744538
-ANCHOR_FINAL_ROC_AUC = 0.7566546311647561
-ANCHOR_DRIFT = -0.006773876109697707
+ANCHOR_RUN_ID = "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
+BASELINE_RUN_ID = "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+BASELINE_BEST_ROC_AUC = 0.7634285072744538
+BASELINE_FINAL_ROC_AUC = 0.7566546311647561
+BASELINE_DRIFT = -0.006773876109697707
 BATCH16_BEST_ROC_AUC = 0.7595457209489976
 BATCH16_FINAL_ROC_AUC = 0.7556520172640854
 BATCH16_DRIFT = -0.003893703684912264
@@ -44,16 +45,16 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     return next(row for row in rows if row["delta_ref"] == delta_ref)
 
 
-def test_input_norm_followup_is_registered_and_active() -> None:
+def test_input_norm_followup_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "input_norm_followup"
+    assert index["active_sweep_id"] == "input_norm_none_followup"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps["input_norm_followup"] == {
         "parent_sweep_id": "stability_followup",
-        "status": "active",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -68,12 +69,13 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
 
     assert sweep["sweep_id"] == "input_norm_followup"
     assert sweep["parent_sweep_id"] == "stability_followup"
-    assert sweep["status"] == "active"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged_prior"
     assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged_prior"
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
-    assert sweep["anchor_context"]["model"]["stage_label"] == "dpnb_row_cls_cls2_linear_warmup_decay"
+    assert sweep["anchor_context"]["model"]["stage_label"] == "dpnb_input_norm_anchor_replay_batch64_sqrt"
+    assert sweep["anchor_context"]["model"]["benchmark_profile"] == "dpnb_input_norm_anchor_replay_batch64_sqrt"
     assert sweep["anchor_context"]["model"]["module_selection"] == {
         "allow_test_self_attention": False,
         "column_encoder": "none",
@@ -87,10 +89,7 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
         "tokenizer": "scalar_per_feature",
     }
     assert sweep["anchor_context"]["surface_labels"]["training"] == "prior_linear_warmup_decay"
-    assert any(
-        "local anchor" in note.lower() or "localized" in note.lower()
-        for note in sweep["anchor_surface"]["notes"]
-    )
+    assert any("row 7" in note.lower() or "batch64" in note.lower() for note in sweep["anchor_surface"]["notes"])
 
     rows = queue["rows"]
     assert isinstance(rows, list)
@@ -115,38 +114,41 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
             "warmup_ratio": 0.05,
         }
     ]
-    assert baseline["run_id"] == ANCHOR_RUN_ID
-    assert baseline["decision"] == "keep"
+    assert baseline["run_id"] == BASELINE_RUN_ID
+    assert baseline["decision"] == "defer"
     assert baseline["interpretation_status"] == "completed"
-    assert baseline["benchmark_metrics"]["best_roc_auc"] == ANCHOR_BEST_ROC_AUC
-    assert baseline["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
-    assert baseline["benchmark_metrics"]["drift"] == ANCHOR_DRIFT
+    assert baseline["benchmark_metrics"]["best_roc_auc"] == BASELINE_BEST_ROC_AUC
+    assert baseline["benchmark_metrics"]["final_roc_auc"] == BASELINE_FINAL_ROC_AUC
+    assert baseline["benchmark_metrics"]["drift"] == BASELINE_DRIFT
+    assert "promoted canonical anchor" in baseline["next_action"]
 
     zscore = _row_by_ref(queue, "dpnb_input_norm_zscore")
     assert zscore["model"]["input_normalization"] == "train_zscore"
     assert zscore["run_id"] == "sd_input_norm_followup_02_dpnb_input_norm_zscore_v2"
     assert zscore["decision"] == "defer"
     assert zscore["interpretation_status"] == "completed"
-    assert zscore["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
+    assert zscore["benchmark_metrics"]["final_roc_auc"] == BASELINE_FINAL_ROC_AUC
+    assert "normalization-family wash" in zscore["next_action"]
 
     winsor = _row_by_ref(queue, "dpnb_input_norm_winsorize_zscore")
     assert winsor["model"]["input_normalization"] == "train_winsorize_zscore"
     assert winsor["run_id"] == "sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2"
     assert winsor["decision"] == "defer"
     assert winsor["interpretation_status"] == "completed"
-    assert winsor["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
+    assert winsor["benchmark_metrics"]["final_roc_auc"] == BASELINE_FINAL_ROC_AUC
 
     zscore_tanh = _row_by_ref(queue, "dpnb_input_norm_zscore_tanh")
     assert zscore_tanh["model"]["input_normalization"] == "train_zscore_tanh"
     assert zscore_tanh["status"] == "completed"
     assert zscore_tanh["run_id"] == "sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1"
-    assert zscore_tanh["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
+    assert zscore_tanh["benchmark_metrics"]["final_roc_auc"] == BASELINE_FINAL_ROC_AUC
+    assert "smooth-tail comparator" in zscore_tanh["next_action"]
 
     robust_tanh = _row_by_ref(queue, "dpnb_input_norm_robust_tanh")
     assert robust_tanh["model"]["input_normalization"] == "train_robust_tanh"
     assert robust_tanh["status"] == "completed"
     assert robust_tanh["run_id"] == "sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1"
-    assert robust_tanh["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
+    assert robust_tanh["benchmark_metrics"]["final_roc_auc"] == BASELINE_FINAL_ROC_AUC
 
     batch16 = _row_by_ref(queue, "dpnb_input_norm_anchor_replay_batch16_sqrt")
     assert batch16["training"]["prior_dump_batch_size"] == 16
@@ -166,6 +168,8 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     assert batch64["benchmark_metrics"]["best_roc_auc"] == BATCH64_BEST_ROC_AUC
     assert batch64["benchmark_metrics"]["final_roc_auc"] == BATCH64_FINAL_ROC_AUC
     assert batch64["benchmark_metrics"]["drift"] == BATCH64_DRIFT
+    assert batch64["decision"] == "keep"
+    assert "canonical anchor" in batch64["next_action"]
     assert "1.4142" in batch64["notes"][0]
 
     batch16_tanh = _row_by_ref(queue, "dpnb_input_norm_zscore_tanh_batch16_sqrt")
@@ -179,6 +183,7 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     assert batch64_tanh["training"]["prior_dump_batch_size"] == 64
     assert batch64_tanh["run_id"] == "sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1"
     assert batch64_tanh["benchmark_metrics"]["final_roc_auc"] == BATCH64_FINAL_ROC_AUC
+    assert "less invasive preprocessing" in batch64_tanh["next_action"]
 
     materialized = load_system_delta_queue(
         sweep_id="input_norm_followup",

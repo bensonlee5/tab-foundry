@@ -10,7 +10,7 @@ and the interpretation policy.
 ## Objective
 
 Optimize for attributable evidence against the locked anchor
-`sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`, not for rapid base
+`sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`, not for rapid base
 promotion.
 
 The primary score remains `final_roc_auc` on the canonical benchmark bundle
@@ -32,17 +32,17 @@ Supporting metrics are:
 Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
-- active sweep id: `input_norm_followup`
-- anchor run id: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`
-- anchor prior run: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/train`
-- anchor benchmark: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/benchmark`
+- active sweep id: `input_norm_none_followup`
+- anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
+- anchor prior run: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/train`
+- anchor benchmark: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/benchmark`
 - canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - canonical control baseline id: `cls_benchmark_linear_v2`
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
-- canonical sweep queue: `reference/system_delta_sweeps/input_norm_followup/queue.yaml`
-- canonical sweep matrix: `reference/system_delta_sweeps/input_norm_followup/matrix.md`
+- canonical sweep queue: `reference/system_delta_sweeps/input_norm_none_followup/queue.yaml`
+- canonical sweep matrix: `reference/system_delta_sweeps/input_norm_none_followup/matrix.md`
 - active queue alias: `reference/system_delta_queue.yaml`
 - active matrix alias: `reference/system_delta_matrix.md`
 - research template: `reference/system_delta_campaign_template.md`
