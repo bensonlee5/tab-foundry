@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import shlex
 import sys
@@ -20,7 +21,6 @@ from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.config import compose_config
 from tab_foundry.research import system_delta
 from tab_foundry.research.system_delta_promote import PromotionPaths, promote_anchor
-from tab_foundry.training.instability import diagnostics_summary
 
 
 DEFAULT_PRIOR_DUMP = Path("/workspace/nanoTabPFN/300k_150x5_2.h5")
@@ -187,12 +187,21 @@ def _compose_cfg(*, row: Mapping[str, Any], run_dir: Path, device: str) -> DictC
     return cfg
 
 
+def _clipped_step_fraction(records: list[dict[str, Any]]) -> float:
+    ordered_records = sorted(records, key=lambda record: int(record.get("step", 0)))
+    if not ordered_records:
+        return 0.0
+    clipped_steps = sum(1 for record in ordered_records if bool(record.get("grad_clip_triggered", False)))
+    return float(clipped_steps / float(len(ordered_records)))
+
+
 def _queue_metrics(summary: Mapping[str, Any], *, run_dir: Path) -> dict[str, Any]:
     tab_foundry = cast(dict[str, Any], summary["tab_foundry"])
     nanotabpfn = cast(dict[str, Any], summary["nanotabpfn"])
     gradient_records = _read_jsonl(run_dir / "gradient_history.jsonl")
-    training_surface_record = _read_json(run_dir / "training_surface_record.json")
-    diagnostics = diagnostics_summary(gradient_records, training_surface_record=training_surface_record)
+    max_grad_norm = float(cast(dict[str, Any], tab_foundry["training_diagnostics"])["max_grad_norm"])
+    if not math.isfinite(max_grad_norm):
+        raise RuntimeError("benchmark summary reported a non-finite max_grad_norm")
     return {
         "best_roc_auc": float(tab_foundry["best_roc_auc"]),
         "best_step": int(float(tab_foundry["best_step"])),
@@ -200,8 +209,8 @@ def _queue_metrics(summary: Mapping[str, Any], *, run_dir: Path) -> dict[str, An
         "drift": float(tab_foundry["best_to_final_roc_auc_delta"]),
         "nanotabpfn_best": float(nanotabpfn["best_roc_auc"]),
         "nanotabpfn_final": float(nanotabpfn["final_roc_auc"]),
-        "max_grad_norm": float(cast(dict[str, Any], tab_foundry["training_diagnostics"])["max_grad_norm"]),
-        "clipped_step_fraction": float(cast(dict[str, Any], diagnostics["grad_clip"])["clipped_step_fraction"]),
+        "max_grad_norm": max_grad_norm,
+        "clipped_step_fraction": _clipped_step_fraction(gradient_records),
     }
 
 
