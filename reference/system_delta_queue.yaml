@@ -8,7 +8,7 @@ sweep_id: cuda_capacity_pilot
 parent_sweep_id: input_norm_followup
 sweep_status: active
 complexity_level: binary_md
-anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1
+anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 comparison_policy: anchor_only
@@ -22,8 +22,9 @@ anchor_surface:
     systems surface.
   - Row 1 establishes the first large CUDA-sized bridge baseline; rows 2 and 3 probe
     width and depth separately rather than fitting a mixed-family scaling curve.
-  - '`input_norm_none_followup` is closed out as unsuccessful evidence, so input normalization
-    stays fixed at `train_zscore_clip` on this branch.'
+  - '`input_norm_none_followup` completed on the same systems surface and did not
+    justify removing explicit clipping, so input normalization stays fixed at
+    `train_zscore_clip` on this branch.'
   - Training-budget changes are intentionally excluded from this sweep and move to
     the draft `cuda_budget_followup` scaffold.
   dimension_table:
@@ -45,7 +46,7 @@ anchor_surface:
     upstream: The completed normalization follow-up promoted the clipped batch64 row,
       and the no-normalization follow-up underperformed on the same systems surface.
     anchor: Keep `train_zscore_clip` fixed across this pilot because `input_norm_none_followup`
-      was rejected.
+      underperformed and did not justify removing explicit clipping.
     interpretation: Any movement in this sweep should not be attributed to preprocessing
       changes.
   - dimension: training recipe
@@ -56,7 +57,7 @@ anchor_surface:
     interpretation: Longer-budget adequacy checks belong in `cuda_budget_followup`,
       not in this capacity readout.
 anchor_context:
-  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
   experiment: cls_benchmark_staged_prior
   config_profile: cls_benchmark_staged_prior
   model:

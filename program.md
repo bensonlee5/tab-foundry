@@ -10,7 +10,7 @@ and the interpretation policy.
 ## Objective
 
 Optimize for attributable evidence against the locked anchor
-`sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`, not for rapid base
+`sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`, not for rapid base
 promotion.
 
 The primary score remains `final_log_loss` on the canonical binary benchmark
@@ -43,9 +43,9 @@ Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
 - active sweep id: `cuda_capacity_pilot`
-- anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
-- anchor prior run: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/train`
-- anchor benchmark: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/benchmark`
+- anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
+- anchor prior run: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/train`
+- anchor benchmark: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/benchmark`
 - canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - canonical control baseline id: `cls_benchmark_linear_v2`
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`

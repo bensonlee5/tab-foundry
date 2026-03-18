@@ -6093,6 +6093,187 @@
         "wall_elapsed_seconds": 268.9794870838523
       }
     },
+    "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/train/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.00031970743460596474,
+          "best_training_time_delta": 31.503668695688248,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": null,
+          "final_crps_delta": null,
+          "final_log_loss_delta": null,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": 0.5311175435781479,
+          "reference_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.00031970743460596474,
+          "best_training_time_delta": 31.503668695688248,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": null,
+          "final_crps_delta": null,
+          "final_log_loss_delta": null,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": 0.5311175435781479,
+          "reference_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_anchor_replay_batch64_sqrt",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_anchor_replay_batch64_sqrt",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T21:03:41Z",
+      "run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_anchor_replay_batch64_sqrt",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_anchor_replay_batch64_sqrt",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 7,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.13074733328243912,
+        "best_crps": null,
+        "best_log_loss": 0.39718748852964125,
+        "best_picp_90": null,
+        "best_roc_auc": 0.763449888408113,
+        "best_step": 2500.0,
+        "best_training_time": 257.4984657242894,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.13074733328243912,
+        "final_crps": null,
+        "final_log_loss": 0.39718748852964125,
+        "final_picp_90": null,
+        "final_roc_auc": 0.763449888408113,
+        "final_step": 2500.0,
+        "final_training_time": 257.4984657242894
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.15857146680355072,
+        "final_val_loss": null,
+        "max_grad_norm": 2.682995080947876,
+        "mean_grad_norm": 0.1550184147283435,
+        "post_warmup_train_loss_var": 0.000977860143356816,
+        "train_elapsed_seconds": 257.4984657242894,
+        "wall_elapsed_seconds": 270.8002701997757
+      }
+    },
     "sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/benchmark",
@@ -6574,6 +6755,187 @@
         "post_warmup_train_loss_var": 0.000988222958631186,
         "train_elapsed_seconds": 256.23736744374037,
         "wall_elapsed_seconds": 268.23096542432904
+      }
+    },
+    "sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2/train/checkpoints/step_001975.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.0037136025059488764,
+          "best_training_time_delta": -53.195060674101114,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0024911279435832767,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.00802589363008882,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.004823171215435518,
+          "final_training_time_delta": 0.6587491296231747,
+          "reference_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.0037136025059488764,
+          "best_training_time_delta": -53.195060674101114,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0024911279435832767,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.00802589363008882,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.004823171215435518,
+          "final_training_time_delta": 0.6587491296231747,
+          "reference_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_none_batch64_sqrt",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "none",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_none_batch64_sqrt",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T21:14:50Z",
+      "run_id": "sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_none_batch64_sqrt",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_none_batch64_sqrt",
+        "parent_sweep_id": "input_norm_followup",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_none_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.13316426389715366,
+        "best_crps": null,
+        "best_log_loss": 0.40393956228046407,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7597362859021641,
+        "best_step": 1975.0,
+        "best_training_time": 204.3034050501883,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.1332384612260224,
+        "final_crps": null,
+        "final_log_loss": 0.4052133821597301,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7586267171926775,
+        "final_step": 2500.0,
+        "final_training_time": 258.1572148539126
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.16257886588573456,
+        "final_val_loss": null,
+        "max_grad_norm": 3.1922013759613037,
+        "mean_grad_norm": 0.15416124635636808,
+        "post_warmup_train_loss_var": 0.000988222958631186,
+        "train_elapsed_seconds": 258.1572148539126,
+        "wall_elapsed_seconds": 272.201015740633
       }
     }
   },

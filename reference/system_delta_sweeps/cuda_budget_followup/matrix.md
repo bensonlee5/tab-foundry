@@ -11,11 +11,11 @@ This file is rendered from `reference/system_delta_sweeps/cuda_budget_followup/q
 
 ## Locked Surface
 
-- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
+- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
-- Anchor metrics: best ROC AUC `0.7638`, final ROC AUC `0.7634`, final training time `257.0s`
+- Anchor metrics: best ROC AUC `0.7634`, final ROC AUC `0.7634`, final training time `257.5s`
 
 ## Anchor Comparison
 
@@ -25,7 +25,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | --- | --- | --- | --- |
 | bridge architecture | The capacity pilot will choose between the large anchor, width, and depth probes. | Use the provisional large-anchor model surface for now, then re-anchor this sweep to the winning capacity row before execution. | Architecture choice must be settled before any budget result is interpreted. |
 | training budget | The capacity pilot fixes `2500` steps across all rows. | This follow-up isolates `5000` and `10000` steps with the same optimizer and schedule family. | Budget wins indicate undertraining of the chosen architecture, not a new architecture family. |
-| input normalization | The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up was rejected on that same systems surface. | Keep `train_zscore_clip` fixed until new evidence reopens preprocessing. | Budget rows must not be conflated with preprocessing experiments. |
+| input normalization | The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up underperformed on that same systems surface. | Keep `train_zscore_clip` fixed until new evidence reopens preprocessing. | Budget rows must not be conflated with preprocessing experiments. |
 
 ## Queue Summary
 

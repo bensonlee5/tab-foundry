@@ -20,7 +20,7 @@ EXPECTED_ROWS = [
     "dpnb_input_norm_zscore_tanh_batch16_sqrt",
     "dpnb_input_norm_zscore_tanh_batch64_sqrt",
 ]
-ANCHOR_RUN_ID = "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
+ANCHOR_RUN_ID = "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
 BASELINE_RUN_ID = "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
 BASELINE_BEST_ROC_AUC = 0.7634285072744538
 BASELINE_FINAL_ROC_AUC = 0.7566546311647561
@@ -28,9 +28,9 @@ BASELINE_DRIFT = -0.006773876109697707
 BATCH16_BEST_ROC_AUC = 0.7595457209489976
 BATCH16_FINAL_ROC_AUC = 0.7556520172640854
 BATCH16_DRIFT = -0.003893703684912264
-BATCH64_BEST_ROC_AUC = 0.763769595842719
+BATCH64_BEST_ROC_AUC = 0.763449888408113
 BATCH64_FINAL_ROC_AUC = 0.763449888408113
-BATCH64_DRIFT = -0.00031970743460596474
+BATCH64_DRIFT = 0.0
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -164,11 +164,11 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     assert batch64["training"]["prior_dump_batch_size"] == 64
     assert batch64["training"]["prior_dump_lr_scale_rule"] == "sqrt"
     assert batch64["training"]["prior_dump_batch_reference_size"] == 32
-    assert batch64["run_id"] == "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
+    assert batch64["run_id"] == "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
     assert batch64["benchmark_metrics"]["best_roc_auc"] == BATCH64_BEST_ROC_AUC
     assert batch64["benchmark_metrics"]["final_roc_auc"] == BATCH64_FINAL_ROC_AUC
     assert batch64["benchmark_metrics"]["drift"] == BATCH64_DRIFT
-    assert batch64["decision"] == "keep"
+    assert batch64["decision"] == "defer"
     assert "canonical anchor" in batch64["next_action"]
     assert "1.4142" in batch64["notes"][0]
 

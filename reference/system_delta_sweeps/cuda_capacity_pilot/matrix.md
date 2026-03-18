@@ -11,11 +11,11 @@ This file is rendered from `reference/system_delta_sweeps/cuda_capacity_pilot/qu
 
 ## Locked Surface
 
-- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
+- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
-- Anchor metrics: best ROC AUC `0.7638`, final ROC AUC `0.7634`, final training time `257.0s`
+- Anchor metrics: best ROC AUC `0.7634`, final ROC AUC `0.7634`, final training time `257.5s`
 
 ## Anchor Comparison
 
@@ -25,7 +25,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | --- | --- | --- | --- |
 | bridge architecture | The registered anchor remains the promoted prenorm plus row-cls bridge recipe from the completed follow-up. | Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `tfrow_cls_tokens=2`, and `post_encoder_norm=none` fixed. | Capacity rows should be read as model-size probes on the bridge surface, not as reopened module-selection experiments. |
 | model capacity | The promoted anchor run keeps the compact bridge width while moving to the batch64 sqrt-scaled training surface. | Row 1 moves to the large CUDA base `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, `head_hidden_dim=1024`. | Rows 2 and 3 should be compared against row 1 first so width and depth evidence stays attributable. |
-| input normalization | The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up underperformed on the same systems surface. | Keep `train_zscore_clip` fixed across this pilot because `input_norm_none_followup` was rejected. | Any movement in this sweep should not be attributed to preprocessing changes. |
+| input normalization | The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up underperformed on the same systems surface. | Keep `train_zscore_clip` fixed across this pilot because `input_norm_none_followup` underperformed and did not justify removing explicit clipping. | Any movement in this sweep should not be attributed to preprocessing changes. |
 | training recipe | The registered anchor already uses the promoted `prior_linear_warmup_decay` recipe with batch size 64 and sqrt LR scaling. | Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=64`, `prior_dump_lr_scale_rule=sqrt`, `prior_dump_batch_reference_size=32`, and `2500` steps fixed. | Longer-budget adequacy checks belong in `cuda_budget_followup`, not in this capacity readout. |
 
 ## Queue Summary
