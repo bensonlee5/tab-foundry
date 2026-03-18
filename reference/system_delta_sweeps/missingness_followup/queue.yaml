@@ -1,0 +1,115 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: missingness_followup
+rows:
+- order: 1
+  delta_ref: nan_token_no_prior_missingness
+  status: ready
+  rationale: >-
+    Test whether an explicit missingness-aware tokenizer is enough on its own on
+    the missing-valued large benchmark bundle.
+  hypothesis: >-
+    The value-plus-mask tokenizer should make missing cells representable, but it
+    may still underperform if prior training never sees missingness.
+  anchor_delta: >-
+    Keeps the stabilized prenorm recipe but swaps in the fixed-width
+    `scalar_per_feature_nan_mask` tokenizer and evaluates on the large bundle
+    with missing values allowed.
+  parameter_adequacy_plan:
+  - Rank rows by benchmark ROC AUC on the large bundle first, then divergence or non-finite incidence, then drift/stability diagnostics.
+  - Treat weak performance here as evidence that explicit missingness representation still needs missingness-aware prior exposure.
+  - Keep input_normalization fixed at the promoted default and do not add normalization variants inside this sweep.
+  model:
+    stage_label: nan_token_no_prior_missingness
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      table_block_style: prenorm
+      tokenizer: scalar_per_feature_nan_mask
+  data:
+    surface_label: benchmark_large_allow_missing
+    surface_overrides:
+      allow_missing_values: true
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      apply_schedule: true
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Run this row first to establish whether the tokenizer alone is viable on the
+    missing-valued large bundle before adding synthetic prior missingness.
+  notes:
+  - This row intentionally keeps prior training free of synthetic missingness.
+
+- order: 2
+  delta_ref: nan_token_prior_missingness_005
+  status: ready
+  rationale: >-
+    Train the explicit missingness tokenizer under the same stabilized recipe but
+    with fixed 5 percent synthetic prior missingness.
+  hypothesis: >-
+    If the missingness path needs training exposure, this row should improve over
+    the tokenizer-only row on the large missing-valued benchmark bundle.
+  anchor_delta: >-
+    Keeps the same missingness-aware tokenizer as row A and adds a fixed 5 percent
+    synthetic missingness policy through `training.overrides.prior_missingness`.
+  parameter_adequacy_plan:
+  - Rank rows by benchmark ROC AUC on the large bundle first, then divergence or non-finite incidence, then drift/stability diagnostics.
+  - Promote only if this row materially improves over row A without introducing new instability.
+  - If both rows remain weak, treat the result as evidence that missingness needs a broader dedicated workstream rather than more normalization variants.
+  model:
+    stage_label: nan_token_prior_missingness_005
+    module_overrides:
+      feature_encoder: shared
+      post_encoder_norm: layernorm
+      table_block_style: prenorm
+      tokenizer: scalar_per_feature_nan_mask
+  data:
+    surface_label: benchmark_large_allow_missing
+    surface_overrides:
+      allow_missing_values: true
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    overrides:
+      apply_schedule: true
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+      prior_missingness:
+        enabled: true
+        min_rate: 0.05
+        max_rate: 0.05
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Compare this row against row A on the large bundle to decide whether the
+    explicit missingness tokenizer needs missingness-aware prior exposure.
+  notes:
+  - Synthetic missingness is fixed at 5 percent to mirror the large bundle's missingness allowance.

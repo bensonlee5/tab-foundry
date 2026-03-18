@@ -16,6 +16,7 @@ from .subsystems import (
     PostEncoderNorm,
     PreNormCellBlock,
     RowCLSPool,
+    ScalarPerFeatureMissingnessTokenizer,
     ScalarPerFeatureTokenizer,
     SequenceContextEncoder,
     SetColumnEncoder,
@@ -28,6 +29,8 @@ from .subsystems import (
 def build_tokenizer(surface: ResolvedStageSurface) -> nn.Module:
     if surface.tokenizer == "scalar_per_feature":
         return ScalarPerFeatureTokenizer()
+    if surface.tokenizer == "scalar_per_feature_nan_mask":
+        return ScalarPerFeatureMissingnessTokenizer()
     if surface.tokenizer == "shifted_grouped":
         return ShiftedGroupedTokenizer()
     raise RuntimeError(f"Unsupported tokenizer variant: {surface.tokenizer!r}")

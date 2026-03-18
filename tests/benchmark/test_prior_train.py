@@ -17,7 +17,11 @@ from torch import nn
 import tab_foundry.bench.checkpoint as checkpoint_module
 import tab_foundry.bench.prior_train as prior_train_module
 from tab_foundry.bench.nanotabpfn import evaluate_tab_foundry_run
-from tab_foundry.bench.prior_dump import PriorDumpNonFiniteInputError, PriorDumpTaskBatchReader
+from tab_foundry.bench.prior_dump import (
+    PriorDumpBatchMissingness,
+    PriorDumpNonFiniteInputError,
+    PriorDumpTaskBatchReader,
+)
 from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.training.losses import classification_loss
@@ -201,6 +205,61 @@ def test_prior_dump_reader_reports_inf_labels_as_nonfinite(tmp_path: Path) -> No
     assert exc_info.value.summary.affected_dataset_indices == (0,)
 
 
+def test_prior_dump_reader_skips_nonfinite_batches_when_requested(tmp_path: Path) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_skip_nonfinite.h5",
+        x=np.asarray(
+            [
+                [[1.0, np.nan], [2.0, 3.0], [4.0, 5.0]],
+                [[6.0, 7.0], [8.0, 9.0], [10.0, 11.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray([[0, 1, 0], [1, 0, 1]], dtype=np.int64),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([3, 3], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+    seen: list[object] = []
+
+    reader = PriorDumpTaskBatchReader(
+        path,
+        num_steps=1,
+        batch_size=1,
+        non_finite_policy="skip",
+        on_non_finite_batch=seen.append,
+    )
+    step = next(iter(reader))
+
+    assert step.step_index == 1
+    assert step.dataset_indices == (1,)
+    assert len(seen) == 1
+    summary = seen[0]
+    assert isinstance(summary, PriorDumpBatchMissingness)
+    assert getattr(summary, "affected_dataset_indices") == (0,)
+    assert getattr(summary, "non_finite_feature_count") == 1
+
+
+def test_prior_dump_reader_skip_policy_errors_when_full_cycle_is_nonfinite(tmp_path: Path) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_skip_all_bad.h5",
+        x=np.asarray([[[1.0, np.nan], [2.0, 3.0], [4.0, 5.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+
+    reader = PriorDumpTaskBatchReader(
+        path,
+        num_steps=1,
+        batch_size=1,
+        non_finite_policy="skip",
+    )
+    with pytest.raises(RuntimeError, match="yielded no valid batch during a full pass"):
+        _ = next(iter(reader))
+
+
 @lru_cache(maxsize=1)
 def _nanotabpfn_module():
     model_path = Path("~/dev/nanoTabPFN/model.py").expanduser()
@@ -232,6 +291,47 @@ class _ConstantLogitModel(nn.Module):
         _ = (y_train,)
         n_test = int(x_all.shape[1]) - train_test_split_index
         return self.bias.view(1, 1, 2).expand(int(x_all.shape[0]), n_test, 2)
+
+
+
+class _CapturingConstantLogitModel(_ConstantLogitModel):
+    def __init__(self) -> None:
+        super().__init__()
+        self.last_x_all: torch.Tensor | None = None
+
+    def forward_batched(
+        self,
+        *,
+        x_all: torch.Tensor,
+        y_train: torch.Tensor,
+        train_test_split_index: int,
+    ) -> torch.Tensor:
+        self.last_x_all = x_all.detach().cpu().clone()
+        return super().forward_batched(
+            x_all=x_all,
+            y_train=y_train,
+            train_test_split_index=train_test_split_index,
+        )
+
+
+class _TracingConstantLogitModel(_ConstantLogitModel):
+    def __init__(self) -> None:
+        super().__init__()
+        self._trace_enabled = False
+        self._trace_step = 0
+
+    def enable_activation_trace(self) -> None:
+        self._trace_enabled = True
+
+    def flush_activation_trace(self) -> dict[str, float] | None:
+        if not self._trace_enabled:
+            return None
+        self._trace_step += 1
+        step = float(self._trace_step)
+        return {
+            "post_feature_encoder": 1.0 + (0.1 * step),
+            "pre_transformer": 2.0 + (0.2 * step),
+        }
 
 
 class _CountingOptimizer:
@@ -1594,6 +1694,21 @@ def test_train_tabfoundry_simple_prior_writes_failure_telemetry_for_nonfinite_la
     assert telemetry["missingness"]["prior_dump"]["non_finite_label_count"] == 1
 
 
+def test_resolve_prior_wandb_run_name_uses_stability_followup_output_slug(tmp_path: Path) -> None:
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+    cfg.logging.run_name = "cls-benchmark-staged-prior"
+    cfg.model.stage_label = "linear_warmup_decay_lr4e3_warm10"
+    cfg.runtime.output_dir = str(
+        tmp_path
+        / "outputs"
+        / "staged_ladder"
+        / "sd_stability_followup_dpnb_12_row_cls_cls2_linear_warmup_decay_warm10_v1"
+        / "train"
+    )
+
+    assert prior_train_module._resolve_prior_wandb_run_name(cfg) == "dpnb_row_cls_cls2_linear_warmup_decay_warm10"
+
+
 def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1619,7 +1734,7 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
         single_eval_pos=np.asarray([2, 2], dtype=np.int64),
     )
     fake_run = _FakeWandbRun()
-    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _TracingConstantLogitModel())
     monkeypatch.setattr(
         prior_train_module,
         "build_optimizer",
@@ -1633,13 +1748,29 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
     monkeypatch.setattr(
         prior_train_module,
         "module_grad_norms",
-        lambda _model: {"decoder": 0.25},
+        lambda _model: {"feature_encoder": 0.5, "direct_head": 2.0, "decoder": 0.25},
     )
     monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
-    cfg = _prior_cfg(tmp_path, max_steps=2)
+    cfg = _prior_cfg(
+        tmp_path,
+        max_steps=2,
+        training_cfg={"surface_label": "prior_linear_warmup_decay", "apply_schedule": True},
+        schedule_cfg={
+            "stages": [
+                {
+                    "name": "prior_dump",
+                    "steps": 2,
+                    "lr_max": 4.0e-3,
+                    "lr_schedule": "linear",
+                    "warmup_ratio": 0.5,
+                }
+            ]
+        },
+    )
     cfg.logging.use_wandb = True
     cfg.logging.project = "test-project"
     cfg.logging.run_name = "prior-wandb"
+    cfg.runtime.trace_activations = True
 
     _ = prior_train_module.train_tabfoundry_simple_prior(
         cfg,
@@ -1661,7 +1792,14 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
     assert "train/train_elapsed_seconds" in train_logs[1][0]
     assert "train/grad_clip_threshold" in train_logs[1][0]
     assert "train/grad_clip_triggered" in train_logs[1][0]
+    assert "train/grad_clip_count_so_far" in train_logs[1][0]
+    assert "train/grad_clip_fraction_so_far" in train_logs[1][0]
     assert train_logs[1][0]["train/module_grad_norm/decoder"] == pytest.approx(0.25)
+    assert train_logs[1][0]["train/module_balance/direct_head_to_feature_encoder"] == pytest.approx(4.0)
+    assert train_logs[1][0]["train/module_balance/feature_encoder_to_direct_head"] == pytest.approx(0.25)
+    assert train_logs[1][0]["train/activation_norm/post_feature_encoder"] == pytest.approx(1.2)
+    assert train_logs[1][0]["train/activation_norm/pre_transformer"] == pytest.approx(2.4)
+    assert train_logs[1][0]["train/prior_dump_skipped_batch_count"] == 0
     assert fake_run.finished is True
     assert fake_run.summary["run/output_dir"] == str((tmp_path / "train_out").resolve())
     assert fake_run.summary["run/global_step"] == 2
@@ -1670,6 +1808,13 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
     assert fake_run.summary["artifacts/latest_checkpoint"].endswith("latest.pt")
     assert fake_run.summary["loss_summary/final_train_loss"] >= 0.0
     assert fake_run.summary["gradient_summary/global/final_grad_norm"] >= 0.0
+    assert fake_run.summary["diagnostics/grad_clip/clipped_step_fraction"] >= 0.0
+    assert fake_run.summary[
+        "diagnostics/module_balance/feature_encoder_vs_direct_head/windows/early_1_25/direct_head_to_feature_encoder_mean_ratio"
+    ] == pytest.approx(4.0)
+    assert fake_run.summary[
+        "diagnostics/activation_windows/tracked_activations/post_feature_encoder/early_to_final_mean_delta"
+    ] > 0.0
     assert fake_run.summary["missingness/prior_dump/non_finite_feature_count"] == 0
 
 
@@ -1715,6 +1860,92 @@ def test_train_tabfoundry_simple_prior_logs_wandb_failure_summary(
     assert fake_run.summary["error/type"] == "PriorDumpNonFiniteInputError"
     assert "contains NaN or Inf" in str(fake_run.summary["error/message"])
     assert fake_run.summary["missingness/prior_dump/affected_batch_count"] == 1
+
+
+def test_train_tabfoundry_simple_prior_skip_policy_preserves_successful_step_budget(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_skip_runtime.h5",
+        x=np.asarray(
+            [
+                [[1.0, np.nan], [2.0, 3.0], [4.0, 5.0]],
+                [[6.0, 7.0], [8.0, 9.0], [10.0, 11.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray([[0, 1, 0], [1, 0, 1]], dtype=np.int64),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([3, 3], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+    optimizer = _CountingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+    cfg.training = OmegaConf.create({"prior_dump_non_finite_policy": "skip"})
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=1,
+    )
+
+    telemetry = json.loads((tmp_path / "train_out" / "telemetry.json").read_text(encoding="utf-8"))
+    assert result.global_step == 1
+    assert optimizer.step_count == 1
+    assert telemetry["success"] is True
+    assert telemetry["missingness"]["prior_dump"]["non_finite_policy"] == "skip"
+    assert telemetry["missingness"]["prior_dump"]["skipped_batch_count"] == 1
+    assert telemetry["missingness"]["prior_dump"]["skipped_dataset_indices"] == [0]
+    assert telemetry["missingness"]["prior_dump"]["skipped_non_finite_feature_count"] == 1
+
+
+def test_train_tabfoundry_simple_prior_accepts_plain_adamw(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_adamw.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    optimizer = _CountingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("adamw", optimizer)],
+            requested_name="adamw",
+            resolved_name="adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+    cfg.optimizer.name = "adamw"
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=1,
+    )
+
+    assert result.global_step == 1
+    assert optimizer.step_count == 1
 
 
 def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(
@@ -1849,3 +2080,67 @@ def test_tabfoundry_staged_nano_exact_matches_simple_prior_batch_loss() -> None:
     )
 
     assert staged_loss.item() == pytest.approx(simple_loss.item(), rel=1.0e-6, abs=1.0e-6)
+
+
+def test_train_tabfoundry_simple_prior_injects_synthetic_missingness(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_synthetic_missingness.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    model = _CapturingConstantLogitModel()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", _CountingOptimizer())],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = _prior_cfg(
+        tmp_path,
+        max_steps=1,
+        training_cfg={
+            "surface_label": "prior_cosine_warmup",
+            "apply_schedule": True,
+            "overrides": {
+                "prior_missingness": {
+                    "enabled": True,
+                    "min_rate": 1.0,
+                    "max_rate": 1.0,
+                }
+            },
+        },
+        schedule_cfg={
+            "stages": [
+                {
+                    "name": "prior_dump",
+                    "steps": 1,
+                    "lr_max": 4.0e-3,
+                    "lr_schedule": "cosine",
+                    "warmup_ratio": 0.0,
+                }
+            ]
+        },
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(cfg, prior_dump_path=path, batch_size=1)
+
+    assert model.last_x_all is not None
+    assert torch.isnan(model.last_x_all[0, :, :]).all()
+    telemetry = json.loads((tmp_path / "train_out" / "telemetry.json").read_text(encoding="utf-8"))
+    synthetic = telemetry["missingness"]["synthetic_prior"]
+    assert synthetic["enabled"] is True
+    assert synthetic["batches_seen"] == 1
+    assert synthetic["affected_batch_count"] == 1
+    assert synthetic["masked_feature_count"] == 6
+    assert synthetic["affected_dataset_indices"] == [0]

@@ -1,0 +1,63 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: stability_followup
+parent_sweep_id: stability_ladder
+status: draft
+complexity_level: binary_md
+anchor_run_id: null
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+  - This follow-up no longer builds off the post-norm `binary_md_v3` benchmark winner.
+  - It is a bridge sweep anchored on the old `delta_prenorm_block` contract so schedule evidence is attributable to prenorm itself.
+  - The queue is intentionally wider than the earlier four-row draft because the goal is hyperparameter calibration, not only one binary schedule choice.
+  - Concern #3 is promoted to first-class telemetry in wandb and `telemetry.json` via clipped-step, module-balance, and activation-window diagnostics.
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Same nano feature encoder path with internal benchmark normalization.
+    anchor: Nano feature encoder stays locked while the cell block is switched to prenorm.
+    interpretation: Training-dynamics rows should not be interpreted as shared-encoder evidence.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target conditioning.
+    anchor: Same mean-padded linear target conditioning.
+    interpretation: The queue avoids the newer `label_token` surface so prenorm is isolated cleanly.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with no test self attention.
+    anchor: Pre-norm block with `allow_test_self_attention=false` on the `nano_exact` stage.
+    interpretation: This is the exact bridge surface from the old `delta_prenorm_block` row.
+  - dimension: training recipe
+    upstream: Exact-prior constant LR without warmup.
+    anchor: 2500-step cosine warmup baseline with trace activations enabled and `prior_dump_non_finite_policy=skip`.
+    interpretation: The queue calibrates decay shape, LR, warmup length, clip, weight decay, and one optimizer-family comparator.
+  - dimension: row readout
+    upstream: Target-column readout from the final table token.
+    anchor: Same target-column readout for rows 1-10.
+    interpretation: Row 11 is a bounded row-cls probe only after the training rows are calibrated.
+anchor_context:
+  run_id: null
+  experiment: stability_followup
+  config_profile: stability_followup
+  model:
+    arch: tabfoundry_staged
+    stage: nano_exact
+    stage_label: delta_prenorm_block
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: nano
+      head: binary_direct
+      post_encoder_norm: none
+      row_pool: target_column
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: delta_prenorm_block
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

@@ -36,3 +36,17 @@ sweeps:
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+  stability_followup:
+    parent_sweep_id: stability_ladder
+    status: draft
+    anchor_run_id: null
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+  missingness_followup:
+    parent_sweep_id: stability_ladder
+    status: draft
+    anchor_run_id: null
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
+    control_baseline_id: cls_benchmark_linear_v2

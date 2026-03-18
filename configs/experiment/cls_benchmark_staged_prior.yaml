@@ -7,7 +7,29 @@ defaults:
 model:
   arch: tabfoundry_staged
   stage: nano_exact
+  stage_label: dpnb_row_cls_cls2_linear_warmup_decay
+  module_overrides:
+    table_block_style: prenorm
+    allow_test_self_attention: false
+    row_pool: row_cls
+  tfrow_n_heads: 8
+  tfrow_n_layers: 3
+  tfrow_cls_tokens: 2
+  tfrow_norm: layernorm
+optimizer:
+  min_lr: 4.0e-4
+training:
+  surface_label: prior_linear_warmup_decay
+  prior_dump_non_finite_policy: skip
 runtime:
   output_dir: outputs/cls_benchmark_staged_prior
+  trace_activations: true
+schedule:
+  stages:
+    - name: prior_dump
+      steps: 2500
+      lr_max: 4.0e-3
+      lr_schedule: linear
+      warmup_ratio: 0.05
 logging:
-  run_name: cls-benchmark-staged-prior
+  run_name: dpnb_row_cls_cls2_linear_warmup_decay

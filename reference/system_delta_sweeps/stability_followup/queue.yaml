@@ -1,0 +1,617 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: stability_followup
+rows:
+- order: 1
+  delta_ref: dpnb_baseline_cosine_warmup_2500
+  status: ready
+  rationale: >-
+    Establish the clean 2500-step cosine-warmup baseline on the `delta_prenorm_block`
+    bridge surface before comparing any schedule or optimizer changes.
+  hypothesis: >-
+    The reprised delta-prenorm baseline should remain finite, show a low clipped-step fraction,
+    and provide the correct comparator for the wider calibration queue.
+  anchor_delta: >-
+    Re-anchors `stability_followup` on the old `delta_prenorm_block` contract and keeps a
+    2500-step cosine warmup recipe with trace activations enabled.
+  parameter_adequacy_plan:
+  - Use this row as the baseline comparator for every later row in the sweep.
+  - Report benchmark ROC, best-to-final drift, clipped-step fraction, encoder/head gradient ratio windows, and activation windows.
+  - Do not treat this row as a new benchmark ceiling; it is the bridge baseline for future prenorm work.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_baseline_cosine_warmup_2500
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Run this row first and keep it as the calibration baseline for rows 2-12.
+  notes:
+  - This row replaces the blocked 10000-step horizon probe.
+
+- order: 2
+  delta_ref: dpnb_linear_decay_lr4e3
+  status: ready
+  rationale: >-
+    Test whether plain linear decay reduces prenorm drift without any warmup.
+  hypothesis: >-
+    Decay may improve checkpoint retention, but it can also reopen early clipped steps on the prenorm bridge surface.
+  anchor_delta: >-
+    Keeps the bridge model fixed while switching to single-stage linear decay at lr_max=0.004 with no warmup.
+  parameter_adequacy_plan:
+  - Compare best ROC first, final ROC second, and drift third against row 1.
+  - Treat clipped-step fraction and module balance as diagnostics for warmup necessity.
+  - If this row regresses early, prefer the warmup-decay family rather than concluding decay is bad globally.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_linear_decay_lr4e3
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.0
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Compare directly against row 1 and row 3 to decide whether warmup is still necessary under decay.
+  notes: []
+
+- order: 3
+  delta_ref: dpnb_linear_warmup_decay_lr4e3_warm5
+  status: ready
+  rationale: >-
+    This is the primary replacement candidate for the old cosine-warmup default.
+  hypothesis: >-
+    Linear warmup decay at lr_max=0.004 with warmup_ratio=0.05 should preserve early stability while reducing drift.
+  anchor_delta: >-
+    Keeps the bridge model fixed while using the canonical linear warmup decay recipe.
+  parameter_adequacy_plan:
+  - Use this row as the center of the LR, warmup-length, clip, weight-decay, and optimizer-family probes.
+  - If this row wins clearly, treat the nearby rows as local calibration evidence rather than independent promotions.
+  - Keep benchmark ROC primary and telemetry diagnostic.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_linear_warmup_decay_lr4e3_warm5
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Use this row as the local reference for rows 4-10 and as the schedule anchor for the row-cls confirmation row.
+  notes: []
+
+- order: 4
+  delta_ref: dpnb_linear_warmup_decay_lr3e3_warm5
+  status: ready
+  rationale: >-
+    Probe whether lr_max=0.003 is a better prenorm neighborhood than the inherited 0.004 setting.
+  hypothesis: >-
+    A slightly lower peak LR may reduce residual clipping and improve final retention if the bridge surface is still over-driven.
+  anchor_delta: >-
+    Changes only lr_max/min_lr relative to row 3.
+  parameter_adequacy_plan:
+  - Compare locally against row 3 on both benchmark quality and clipped-step fraction.
+  - Do not promote solely on cleaner telemetry if benchmark quality regresses materially.
+  - Use the result to bound the LR search before larger-model prenorm work.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_linear_warmup_decay_lr3e3_warm5
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0003
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.003
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Interpret as the low-LR neighbor of row 3.
+  notes: []
+
+- order: 5
+  delta_ref: dpnb_linear_warmup_decay_lr5e3_warm5
+  status: ready
+  rationale: >-
+    Probe whether prenorm quality is currently peak-LR limited on the bridge surface.
+  hypothesis: >-
+    A slightly higher peak LR may recover benchmark quality if row 3 is under-driving the bridge surface.
+  anchor_delta: >-
+    Changes only lr_max/min_lr relative to row 3.
+  parameter_adequacy_plan:
+  - Compare locally against row 3 for quality gains versus clipped-step regressions.
+  - Treat a large clipped-step jump as evidence that the bridge surface still dislikes this LR.
+  - Use rows 4 and 5 together to bracket the useful LR range.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_linear_warmup_decay_lr5e3_warm5
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0005
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.005
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Interpret as the high-LR neighbor of row 3.
+  notes: []
+
+- order: 6
+  delta_ref: dpnb_linear_warmup_decay_lr4e3_warm2
+  status: ready
+  rationale: >-
+    Shorten warmup to test whether 5 percent is longer than necessary on the bridge surface.
+  hypothesis: >-
+    A 2 percent warmup may preserve most of the stability benefit while yielding slightly stronger late optimization.
+  anchor_delta: >-
+    Changes only warmup_ratio relative to row 3.
+  parameter_adequacy_plan:
+  - Compare rows 6, 3, and 7 together as the warmup-length bracket.
+  - Use early clipped-step diagnostics to determine whether the shorter warmup is too aggressive.
+  - Prefer the shortest warmup that does not materially reopen early instability or hurt benchmark quality.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_linear_warmup_decay_lr4e3_warm2
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.02
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Interpret as the short-warmup neighbor of row 3.
+  notes: []
+
+- order: 7
+  delta_ref: dpnb_linear_warmup_decay_lr4e3_warm10
+  status: ready
+  rationale: >-
+    Lengthen warmup to test whether the bridge surface wants more protection in the earliest steps.
+  hypothesis: >-
+    A 10 percent warmup may further reduce clipping, though it risks under-training the fixed 2500-step budget.
+  anchor_delta: >-
+    Changes only warmup_ratio relative to row 3.
+  parameter_adequacy_plan:
+  - Compare rows 6, 3, and 7 together as the warmup-length bracket.
+  - Treat a quality drop with cleaner telemetry as evidence of excessive warmup budget, not a new default.
+  - Prefer this row only if it wins both quality and early stability jointly.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_linear_warmup_decay_lr4e3_warm10
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.10
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Interpret as the long-warmup neighbor of row 3.
+  notes: []
+
+- order: 8
+  delta_ref: dpnb_linear_warmup_decay_lr4e3_warm5_clip05
+  status: ready
+  rationale: >-
+    Tighten the clip to test whether residual early spikes are still harming the bridge surface.
+  hypothesis: >-
+    A 0.5 clip may improve stability if occasional spikes remain, but it can also overconstrain useful updates.
+  anchor_delta: >-
+    Changes only runtime.grad_clip relative to row 3.
+  parameter_adequacy_plan:
+  - Use this as a bounded clip probe only.
+  - Prefer it only if benchmark quality is competitive and clipped-step fraction falls meaningfully.
+  - Do not generalize from this row if it only trades quality for cleanliness.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_linear_warmup_decay_lr4e3_warm5_clip05
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 0.5
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Interpret as a bounded clip probe around row 3, not a broad new regularization workstream.
+  notes: []
+
+- order: 9
+  delta_ref: dpnb_linear_warmup_decay_lr4e3_warm5_wd5e4
+  status: ready
+  rationale: >-
+    Add a small weight decay probe to test whether the bridge surface benefits from mild parameter damping.
+  hypothesis: >-
+    Weight decay at 5e-4 may stabilize late retention or activation scale without materially harming quality.
+  anchor_delta: >-
+    Changes only optimizer.weight_decay relative to row 3.
+  parameter_adequacy_plan:
+  - Treat this as a small regularization probe only.
+  - Prefer it only if it improves quality or drift without a clear optimization tax.
+  - If neutral, keep weight decay at zero for later prenorm work.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_linear_warmup_decay_lr4e3_warm5_wd5e4
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+        weight_decay: 0.0005
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Interpret as the small weight-decay neighbor of row 3.
+  notes: []
+
+- order: 10
+  delta_ref: dpnb_linear_warmup_decay_lr4e3_warm5_adamw
+  status: ready
+  rationale: >-
+    Compare plain AdamW against the schedule-free default on the calibrated bridge recipe.
+  hypothesis: >-
+    AdamW may produce a cleaner or easier-to-interpret prenorm optimization path even if quality is similar.
+  anchor_delta: >-
+    Changes only optimizer.name relative to row 3 while keeping weight decay at zero.
+  parameter_adequacy_plan:
+  - Treat this row as an optimizer-family comparator, not a broad optimizer sweep.
+  - Prefer it only if it is benchmark-competitive and materially cleaner or easier to retain.
+  - If neutral, keep schedulefree AdamW as the cheaper default assumption.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_linear_warmup_decay_lr4e3_warm5_adamw
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: adamw
+        min_lr: 0.0004
+        weight_decay: 0.0
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Interpret as the optimizer-family comparator for the calibrated warmup-decay row.
+  notes: []
+
+- order: 11
+  delta_ref: dpnb_row_cls_cls2_linear_warmup_decay
+  status: ready
+  rationale: >-
+    Revisit row-cls only after the training rows have been calibrated on the same bridge surface.
+  hypothesis: >-
+    If row-cls still misses badly with the bounded cls2 seed here, it should remain parked for later larger-model work.
+  anchor_delta: >-
+    Keeps the bridge surface and row 3 schedule, but swaps the readout to row-cls with the old cleanest cls2 seed.
+  parameter_adequacy_plan:
+  - Rank this row benchmark-first, with drift second and stability diagnostics third.
+  - Treat it as a bounded row-pool probe only, not a reopened architecture workstream.
+  - If it is clearly negative, keep target-column pooling for the bridge surface.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_row_cls_cls2_linear_warmup_decay
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Run this row only after the schedule rows so row-pool interpretation is not mixed with unsettled training dynamics.
+  notes: []
+
+- order: 12
+  delta_ref: dpnb_row_cls_cls2_linear_warmup_decay_warm10
+  status: ready
+  rationale: >-
+    Confirm the promotion decision by combining the strongest schedule signal from row 7 with the strongest architecture signal from row 11.
+  hypothesis: >-
+    If row-cls is genuinely reopened on the bridge surface, pairing it with the 10 percent warmup schedule should preserve the row-cls benchmark gain while retaining the best target-column drift behavior.
+  anchor_delta: >-
+    Keeps the bounded row-cls cls2 seed from row 11 and changes only warmup_ratio relative to that row from 0.05 to 0.10.
+  parameter_adequacy_plan:
+  - Use this row as the single promotion confirmation row before changing the bridge-surface default.
+  - Compare directly against row 7 and row 11 on final ROC first, drift second, and stability diagnostics third.
+  - Promote only if row-cls remains clearly ahead on final ROC without reintroducing material drift.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_row_cls_cls2_linear_warmup_decay_warm10
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.10
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: >-
+    Run this row after row 11 and treat it as the promotion gate for whether row-cls becomes the new bridge-surface default.
+  notes: []

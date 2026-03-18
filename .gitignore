@@ -54,3 +54,5 @@ benchmarks/results/
 
 # Reference PDFs (large binary files)
 *.pdf
+
+*.swp
