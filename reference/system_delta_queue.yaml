@@ -8,7 +8,7 @@ sweep_id: input_norm_followup
 parent_sweep_id: stability_followup
 sweep_status: active
 complexity_level: binary_md
-anchor_run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1
+anchor_run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 comparison_policy: anchor_only
@@ -19,7 +19,7 @@ anchor_surface:
   notes:
   - This follow-up is anchored on the promoted `dpnb_row_cls_cls2_linear_warmup_decay`
     bridge surface rather than the older post-layernorm canonical anchor.
-  - Row 1 localized that bridge baseline on this machine as `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`,
+  - Row 1 localized that bridge baseline on this machine as `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`,
     so later rows now compare against a real same-machine anchor.
   - The queue isolates input normalization first, then adds bounded batch-size sidecars
     with explicit sqrt LR scaling around the reference batch size of 32.
@@ -47,7 +47,7 @@ anchor_surface:
     interpretation: Batch-size rows are interaction probes, not a new mainline sweep
       family.
 anchor_context:
-  run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1
+  run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2
   experiment: cls_benchmark_staged_prior
   config_profile: cls_benchmark_staged_prior
   model:
@@ -66,7 +66,7 @@ anchor_context:
       target_conditioner: mean_padded_linear
       tokenizer: scalar_per_feature
   surface_labels:
-    data: manifest_default
+    data: anchor_manifest_default
     model: dpnb_row_cls_cls2_linear_warmup_decay
     preprocessing: runtime_default
     training: prior_linear_warmup_decay
@@ -147,7 +147,7 @@ rows:
     windows.
   - Do not treat this replay as canonical anchor registration; the remote winning
     artifacts are still unsynced locally.
-  run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1
+  run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2
   followup_run_ids: []
   decision: keep
   interpretation_status: completed
@@ -160,14 +160,19 @@ rows:
     and is not canonical for this sweep.
   - The accepted local replay used the exact prior-train CPU fallback for requested
     `mps` multi-layer `row_cls` runs.
+  - Supersedes historical queue run `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`;
+    that registry entry is retained as history only.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`.
+  - CUDA rerun establishes the same-machine anchor for input_norm_followup and supersedes
+    the earlier v1 queue reference.
   benchmark_metrics:
-    best_roc_auc: 0.7618365535919085
-    best_step: 1725
-    final_roc_auc: 0.7581824725133723
-    drift: -0.0036540810785361533
-    nanotabpfn_best: 0.7615725414848853
-    nanotabpfn_final: 0.7605936128636401
-    max_grad_norm: 2.1847355365753174
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
     clipped_step_fraction: 0.0056
 - order: 2
   delta_id: dpnb_input_norm_zscore
@@ -241,7 +246,7 @@ rows:
   parameter_adequacy_plan:
   - Compare directly against row 1 before reading the smoother-tail rows.
   - Use benchmark quality first; treat telemetry changes as explanatory evidence only.
-  run_id: sd_input_norm_followup_02_dpnb_input_norm_zscore_v1
+  run_id: sd_input_norm_followup_02_dpnb_input_norm_zscore_v2
   followup_run_ids: []
   decision: defer
   interpretation_status: completed
@@ -255,14 +260,19 @@ rows:
     bundle, so plain z-score looks viable but not clearly superior.
   - Clean telemetry means the tie is informative rather than a masked instability
     result.
+  - Supersedes historical queue run `sd_input_norm_followup_02_dpnb_input_norm_zscore_v1`;
+    that registry entry is retained as history only.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_02_dpnb_input_norm_zscore_v2`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
   benchmark_metrics:
-    best_roc_auc: 0.7618365535919085
-    best_step: 1725
-    final_roc_auc: 0.7581824725133723
-    drift: -0.0036540810785361533
-    nanotabpfn_best: 0.7615725414848853
-    nanotabpfn_final: 0.7605936128636401
-    max_grad_norm: 2.1847355365753174
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
     clipped_step_fraction: 0.0056
 - order: 3
   delta_id: dpnb_input_norm_winsorize_zscore
@@ -336,7 +346,7 @@ rows:
     helping or hurting.
   - Treat this row as a bounded outlier-robust alternative, not as the main smooth-tail
     candidate.
-  run_id: sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v1
+  run_id: sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2
   followup_run_ids: []
   decision: defer
   interpretation_status: completed
@@ -352,18 +362,23 @@ rows:
   - The row was slower than the clipped anchor and plain z-score while delivering
     no benchmark lift, which lowers its priority relative to the upcoming smooth-tail
     rows.
+  - Supersedes historical queue run `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v1`;
+    that registry entry is retained as history only.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
   benchmark_metrics:
-    best_roc_auc: 0.7618365535919085
-    best_step: 1725
-    final_roc_auc: 0.7581824725133723
-    drift: -0.0036540810785361533
-    nanotabpfn_best: 0.7615725414848853
-    nanotabpfn_final: 0.7605936128636401
-    max_grad_norm: 2.1847355365753174
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
     clipped_step_fraction: 0.0056
 - order: 4
   delta_id: dpnb_input_norm_zscore_tanh
-  status: ready
+  status: completed
   dimension_family: preprocessing
   family: input_normalization
   binary_applicable: true
@@ -433,18 +448,29 @@ rows:
     it wins locally.
   - Promote batch-size interaction checks only if this row is at least competitive
     with the anchor replay.
-  run_id: null
+  run_id: sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: If this row is competitive, treat it as the smooth-tail candidate for
     rows 8 and 9.
-  notes: []
-  benchmark_metrics: null
+  notes:
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  benchmark_metrics:
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
+    clipped_step_fraction: 0.0056
 - order: 5
   delta_id: dpnb_input_norm_robust_tanh
-  status: ready
+  status: completed
   dimension_family: preprocessing
   family: input_normalization
   binary_applicable: true
@@ -514,17 +540,28 @@ rows:
   - Compare primarily against row 4 so the smooth-tail family is separated cleanly
     from the batch-size sidecars.
   - Prefer the simpler z-score family unless this row shows clear benchmark upside.
-  run_id: null
+  run_id: sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Use this as the robust smooth-tail comparator to row 4.
-  notes: []
-  benchmark_metrics: null
+  notes:
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  benchmark_metrics:
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
+    clipped_step_fraction: 0.0056
 - order: 6
   delta_id: dpnb_input_norm_anchor_replay_batch16_sqrt
-  status: ready
+  status: completed
   dimension_family: training
   family: batch_size
   binary_applicable: true
@@ -598,19 +635,30 @@ rows:
     changes.
   - Treat the effective LR change as part of the row definition, not as a separate
     confound.
-  run_id: null
+  run_id: sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Compare against row 1 before interpreting rows 8 and 9.
   notes:
   - Effective LR scaling factor is approximately 0.7071, so effective lr_max is about
     0.002828 and effective min_lr is about 0.000283.
-  benchmark_metrics: null
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  benchmark_metrics:
+    best_roc_auc: 0.7595457209489976
+    best_step: 2000
+    final_roc_auc: 0.7556520172640854
+    drift: -0.003893703684912264
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.7146334648132324
+    clipped_step_fraction: 0.0072
 - order: 7
   delta_id: dpnb_input_norm_anchor_replay_batch64_sqrt
-  status: ready
+  status: completed
   dimension_family: training
   family: batch_size
   binary_applicable: true
@@ -684,19 +732,30 @@ rows:
     changes.
   - Treat the effective LR change as part of the row definition, not as a separate
     confound.
-  run_id: null
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Compare against row 1 before interpreting rows 8 and 9.
   notes:
   - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about
     0.005657 and effective min_lr is about 0.000566.
-  benchmark_metrics: null
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  benchmark_metrics:
+    best_roc_auc: 0.763769595842719
+    best_step: 2200
+    final_roc_auc: 0.763449888408113
+    drift: -0.00031970743460596474
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.682995080947876
+    clipped_step_fraction: 0.0072
 - order: 8
   delta_id: dpnb_input_norm_zscore_tanh_batch16_sqrt
-  status: ready
+  status: completed
   dimension_family: training
   family: batch_size
   binary_applicable: true
@@ -770,20 +829,31 @@ rows:
   - Compare first against row 4 and only second against row 1.
   - Use this row to decide whether batch size is part of the smooth-tail mechanism
     or merely a separate systems effect.
-  run_id: null
+  run_id: sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Compare against row 4 before concluding that batch size is part of
     the effect.
   notes:
   - Effective LR scaling factor is approximately 0.7071, so effective lr_max is about
     0.002828 and effective min_lr is about 0.000283.
-  benchmark_metrics: null
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  benchmark_metrics:
+    best_roc_auc: 0.7595457209489976
+    best_step: 2000
+    final_roc_auc: 0.7556520172640854
+    drift: -0.003893703684912264
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.7146334648132324
+    clipped_step_fraction: 0.0072
 - order: 9
   delta_id: dpnb_input_norm_zscore_tanh_batch64_sqrt
-  status: ready
+  status: completed
   dimension_family: training
   family: batch_size
   binary_applicable: true
@@ -857,14 +927,25 @@ rows:
   - Compare first against row 4 and only second against row 1.
   - Use this row to decide whether batch size is part of the smooth-tail mechanism
     or merely a separate systems effect.
-  run_id: null
+  run_id: sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Compare against row 4 before concluding that batch size is part of
-    the effect.
+  next_action: Review rows 1-9 together before redefining the default normalization
+    or opening a new follow-up sweep.
   notes:
   - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about
     0.005657 and effective min_lr is about 0.000566.
-  benchmark_metrics: null
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  benchmark_metrics:
+    best_roc_auc: 0.763769595842719
+    best_step: 2200
+    final_roc_auc: 0.763449888408113
+    drift: -0.00031970743460596474
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.682995080947876
+    clipped_step_fraction: 0.0072

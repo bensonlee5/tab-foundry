@@ -4656,6 +4656,155 @@
         "wall_elapsed_seconds": 2027.2378550830763
       }
     },
+    "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/train/checkpoints/step_000750.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "CUDA rerun establishes the same-machine anchor for input_norm_followup and supersedes the earlier v1 queue reference.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_row_cls_cls2_linear_warmup_decay",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_row_cls_cls2_linear_warmup_decay",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T17:00:26Z",
+      "run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_row_cls_cls2_linear_warmup_decay",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_anchor_replay",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7634285072744538,
+        "best_step": 750.0,
+        "best_training_time": 42.9622799269855,
+        "final_roc_auc": 0.7566546311647561,
+        "final_step": 2500.0,
+        "final_training_time": 142.9522338397801
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.19606970250606537,
+        "final_val_loss": null,
+        "max_grad_norm": 2.1847352981567383,
+        "mean_grad_norm": 0.17915509298443794,
+        "post_warmup_train_loss_var": 0.001756687610745787,
+        "train_elapsed_seconds": 142.9522338397801,
+        "wall_elapsed_seconds": 150.3553258292377
+      }
+    },
     "sd_input_norm_followup_02_dpnb_input_norm_zscore_v1": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/benchmark",
@@ -4817,6 +4966,167 @@
         "wall_elapsed_seconds": 2016.9892348750727
       }
     },
+    "sd_input_norm_followup_02_dpnb_input_norm_zscore_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/sd_input_norm_followup_02_dpnb_input_norm_zscore_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/sd_input_norm_followup_02_dpnb_input_norm_zscore_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/sd_input_norm_followup_02_dpnb_input_norm_zscore_v2/train/checkpoints/step_000750.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/sd_input_norm_followup_02_dpnb_input_norm_zscore_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/sd_input_norm_followup_02_dpnb_input_norm_zscore_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/sd_input_norm_followup_02_dpnb_input_norm_zscore_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/sd_input_norm_followup_02_dpnb_input_norm_zscore_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/sd_input_norm_followup_02_dpnb_input_norm_zscore_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": -0.2873404957354069,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": -1.7203186862170696,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": -0.2873404957354069,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": -1.7203186862170696,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        }
+      },
+      "conclusion": "CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_zscore",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_zscore",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T17:09:25Z",
+      "run_id": "sd_input_norm_followup_02_dpnb_input_norm_zscore_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_zscore",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_zscore",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7634285072744538,
+        "best_step": 750.0,
+        "best_training_time": 42.674939431250095,
+        "final_roc_auc": 0.7566546311647561,
+        "final_step": 2500.0,
+        "final_training_time": 141.23191515356302
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.19606970250606537,
+        "final_val_loss": null,
+        "max_grad_norm": 2.1847352981567383,
+        "mean_grad_norm": 0.17915509298443794,
+        "post_warmup_train_loss_var": 0.001756687610745787,
+        "train_elapsed_seconds": 141.23191515356302,
+        "wall_elapsed_seconds": 148.433991022408
+      }
+    },
     "sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v1": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/benchmark",
@@ -4976,6 +5286,1133 @@
         "post_warmup_train_loss_var": 0.0017580969900308483,
         "train_elapsed_seconds": 2084.2796250129736,
         "wall_elapsed_seconds": 2092.753406584
+      }
+    },
+    "sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2/train/checkpoints/step_000750.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": -0.2772832289338112,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": -1.7005091458559036,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": -0.2772832289338112,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": -1.7005091458559036,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        }
+      },
+      "conclusion": "CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_winsorize_zscore",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_winsorize_zscore",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_winsorize_zscore",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T17:17:16Z",
+      "run_id": "sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_winsorize_zscore",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_winsorize_zscore",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7634285072744538,
+        "best_step": 750.0,
+        "best_training_time": 42.68499669805169,
+        "final_roc_auc": 0.7566546311647561,
+        "final_step": 2500.0,
+        "final_training_time": 141.2517246939242
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.19606970250606537,
+        "final_val_loss": null,
+        "max_grad_norm": 2.1847352981567383,
+        "mean_grad_norm": 0.17915509298443794,
+        "post_warmup_train_loss_var": 0.001756687610745787,
+        "train_elapsed_seconds": 141.2517246939242,
+        "wall_elapsed_seconds": 148.54839700832963
+      }
+    },
+    "sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1/train/checkpoints/step_000750.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": -0.6946360133588314,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": -1.574936356395483,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": -0.6946360133588314,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": -1.574936356395483,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        }
+      },
+      "conclusion": "CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_zscore_tanh",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_tanh",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_zscore_tanh",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T17:23:18Z",
+      "run_id": "sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_zscore_tanh",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_zscore_tanh",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 4,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7634285072744538,
+        "best_step": 750.0,
+        "best_training_time": 42.26764391362667,
+        "final_roc_auc": 0.7566546311647561,
+        "final_step": 2500.0,
+        "final_training_time": 141.3772974833846
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.19606970250606537,
+        "final_val_loss": null,
+        "max_grad_norm": 2.1847352981567383,
+        "mean_grad_norm": 0.17915509298443794,
+        "post_warmup_train_loss_var": 0.001756687610745787,
+        "train_elapsed_seconds": 141.3772974833846,
+        "wall_elapsed_seconds": 148.32081482931972
+      }
+    },
+    "sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1/train/checkpoints/step_000750.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": 0.021547067910432816,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": 2.29924837872386,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.0,
+          "best_training_time_delta": 0.021547067910432816,
+          "final_roc_auc_delta": 0.0,
+          "final_training_time_delta": 2.29924837872386,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        }
+      },
+      "conclusion": "CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_robust_tanh",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_robust_tanh",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_robust_tanh",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T17:29:27Z",
+      "run_id": "sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_robust_tanh",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_robust_tanh",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 5,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7634285072744538,
+        "best_step": 750.0,
+        "best_training_time": 42.983826994895935,
+        "final_roc_auc": 0.7566546311647561,
+        "final_step": 2500.0,
+        "final_training_time": 145.25148221850395
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.19606970250606537,
+        "final_val_loss": null,
+        "max_grad_norm": 2.1847352981567383,
+        "mean_grad_norm": 0.17915509298443794,
+        "post_warmup_train_loss_var": 0.001756687610745787,
+        "train_elapsed_seconds": 145.25148221850395,
+        "wall_elapsed_seconds": 153.0136641524732
+      }
+    },
+    "sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1/train/checkpoints/step_002000.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.0038827863254561334,
+          "best_training_time_delta": 43.37972789257765,
+          "final_roc_auc_delta": -0.0010026139006706902,
+          "final_training_time_delta": -35.26931359618902,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.0038827863254561334,
+          "best_training_time_delta": 43.37972789257765,
+          "final_roc_auc_delta": -0.0010026139006706902,
+          "final_training_time_delta": -35.26931359618902,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        }
+      },
+      "conclusion": "CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_anchor_replay_batch16_sqrt",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_anchor_replay_batch16_sqrt",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T17:34:55Z",
+      "run_id": "sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_anchor_replay_batch16_sqrt",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_anchor_replay_batch16_sqrt",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 6,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7595457209489976,
+        "best_step": 2000.0,
+        "best_training_time": 86.34200781956315,
+        "final_roc_auc": 0.7556520172640854,
+        "final_step": 2500.0,
+        "final_training_time": 107.68292024359107
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.13819468021392822,
+        "final_val_loss": null,
+        "max_grad_norm": 2.7146334648132324,
+        "mean_grad_norm": 0.22405438390672208,
+        "post_warmup_train_loss_var": 0.0030129970174531534,
+        "train_elapsed_seconds": 107.68292024359107,
+        "wall_elapsed_seconds": 117.69847026839852
+      }
+    },
+    "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/train/checkpoints/step_002200.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.00034108856826520206,
+          "best_training_time_delta": 183.03251710161567,
+          "final_roc_auc_delta": 0.006795257243356945,
+          "final_training_time_delta": 114.01511434093118,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.00034108856826520206,
+          "best_training_time_delta": 183.03251710161567,
+          "final_roc_auc_delta": 0.006795257243356945,
+          "final_training_time_delta": 114.01511434093118,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        }
+      },
+      "conclusion": "CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_anchor_replay_batch64_sqrt",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_anchor_replay_batch64_sqrt",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T17:42:40Z",
+      "run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_anchor_replay_batch64_sqrt",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_anchor_replay_batch64_sqrt",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 7,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.763769595842719,
+        "best_step": 2200.0,
+        "best_training_time": 225.99479702860117,
+        "final_roc_auc": 0.763449888408113,
+        "final_step": 2500.0,
+        "final_training_time": 256.96734818071127
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.15857146680355072,
+        "final_val_loss": null,
+        "max_grad_norm": 2.682995080947876,
+        "mean_grad_norm": 0.1550184147283435,
+        "post_warmup_train_loss_var": 0.000977860143356816,
+        "train_elapsed_seconds": 256.96734818071127,
+        "wall_elapsed_seconds": 268.9794870838523
+      }
+    },
+    "sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/train/checkpoints/step_002000.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.0038827863254561334,
+          "best_training_time_delta": 43.21267407014966,
+          "final_roc_auc_delta": -0.0010026139006706902,
+          "final_training_time_delta": -35.05064578726888,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.0038827863254561334,
+          "best_training_time_delta": 43.21267407014966,
+          "final_roc_auc_delta": -0.0010026139006706902,
+          "final_training_time_delta": -35.05064578726888,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        }
+      },
+      "conclusion": "CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_zscore_tanh_batch16_sqrt",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_tanh",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_zscore_tanh_batch16_sqrt",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T17:48:13Z",
+      "run_id": "sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_zscore_tanh_batch16_sqrt",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_zscore_tanh_batch16_sqrt",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 8,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.7595457209489976,
+        "best_step": 2000.0,
+        "best_training_time": 86.17495399713516,
+        "final_roc_auc": 0.7556520172640854,
+        "final_step": 2500.0,
+        "final_training_time": 107.90158805251122
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.13819468021392822,
+        "final_val_loss": null,
+        "max_grad_norm": 2.7146334648132324,
+        "mean_grad_norm": 0.22405438390672208,
+        "post_warmup_train_loss_var": 0.0030129970174531534,
+        "train_elapsed_seconds": 107.90158805251122,
+        "wall_elapsed_seconds": 118.16019137203693
+      }
+    },
+    "sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/train/checkpoints/step_002200.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.00034108856826520206,
+          "best_training_time_delta": 183.42649641260505,
+          "final_roc_auc_delta": 0.006795257243356945,
+          "final_training_time_delta": 114.25773627310991,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.00034108856826520206,
+          "best_training_time_delta": 183.42649641260505,
+          "final_roc_auc_delta": 0.006795257243356945,
+          "final_training_time_delta": 114.25773627310991,
+          "reference_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+        }
+      },
+      "conclusion": "CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.",
+      "config_profile": "cls_benchmark_staged_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "dpnb_input_norm_zscore_tanh_batch64_sqrt",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_tanh",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 2,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_style": "prenorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "dpnb_input_norm_zscore_tanh_batch64_sqrt",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 599330,
+        "trainable_params": 599330
+      },
+      "registered_at_utc": "2026-03-18T17:56:18Z",
+      "run_id": "sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "dpnb_input_norm_zscore_tanh_batch64_sqrt",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "dpnb_input_norm_zscore_tanh_batch64_sqrt",
+        "parent_sweep_id": "stability_followup",
+        "queue_order": 9,
+        "run_kind": "primary",
+        "sweep_id": "input_norm_followup"
+      },
+      "tab_foundry_metrics": {
+        "best_roc_auc": 0.763769595842719,
+        "best_step": 2200.0,
+        "best_training_time": 226.38877633959055,
+        "final_roc_auc": 0.763449888408113,
+        "final_step": 2500.0,
+        "final_training_time": 257.20997011289
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.15857146680355072,
+        "final_val_loss": null,
+        "max_grad_norm": 2.682995080947876,
+        "mean_grad_norm": 0.1550184147283435,
+        "post_warmup_train_loss_var": 0.000977860143356816,
+        "train_elapsed_seconds": 257.20997011289,
+        "wall_elapsed_seconds": 269.5990152955055
       }
     }
   },

@@ -20,6 +20,16 @@ EXPECTED_ROWS = [
     "dpnb_input_norm_zscore_tanh_batch16_sqrt",
     "dpnb_input_norm_zscore_tanh_batch64_sqrt",
 ]
+ANCHOR_RUN_ID = "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+ANCHOR_BEST_ROC_AUC = 0.7634285072744538
+ANCHOR_FINAL_ROC_AUC = 0.7566546311647561
+ANCHOR_DRIFT = -0.006773876109697707
+BATCH16_BEST_ROC_AUC = 0.7595457209489976
+BATCH16_FINAL_ROC_AUC = 0.7556520172640854
+BATCH16_DRIFT = -0.003893703684912264
+BATCH64_BEST_ROC_AUC = 0.763769595842719
+BATCH64_FINAL_ROC_AUC = 0.763449888408113
+BATCH64_DRIFT = -0.00031970743460596474
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -44,7 +54,7 @@ def test_input_norm_followup_is_registered_and_active() -> None:
     assert sweeps["input_norm_followup"] == {
         "parent_sweep_id": "stability_followup",
         "status": "active",
-        "anchor_run_id": "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1",
+        "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         "control_baseline_id": "cls_benchmark_linear_v2",
@@ -59,10 +69,10 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     assert sweep["sweep_id"] == "input_norm_followup"
     assert sweep["parent_sweep_id"] == "stability_followup"
     assert sweep["status"] == "active"
-    assert sweep["anchor_run_id"] == "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1"
+    assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged_prior"
     assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged_prior"
-    assert sweep["anchor_context"]["run_id"] == "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1"
+    assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["model"]["stage_label"] == "dpnb_row_cls_cls2_linear_warmup_decay"
     assert sweep["anchor_context"]["model"]["module_selection"] == {
         "allow_test_self_attention": False,
@@ -85,7 +95,7 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["completed", "completed", "completed"] + ["ready"] * 6
+    assert [row["status"] for row in rows] == ["completed"] * 9
     assert all(row["training"]["prior_dump_non_finite_policy"] == "skip" for row in rows)
     assert all(row["training"]["overrides"]["runtime"]["trace_activations"] is True for row in rows)
 
@@ -105,53 +115,70 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
             "warmup_ratio": 0.05,
         }
     ]
-    assert baseline["run_id"] == "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1"
+    assert baseline["run_id"] == ANCHOR_RUN_ID
     assert baseline["decision"] == "keep"
     assert baseline["interpretation_status"] == "completed"
-    assert baseline["benchmark_metrics"]["best_roc_auc"] == 0.7618365535919085
-    assert baseline["benchmark_metrics"]["final_roc_auc"] == 0.7581824725133723
+    assert baseline["benchmark_metrics"]["best_roc_auc"] == ANCHOR_BEST_ROC_AUC
+    assert baseline["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
+    assert baseline["benchmark_metrics"]["drift"] == ANCHOR_DRIFT
 
     zscore = _row_by_ref(queue, "dpnb_input_norm_zscore")
     assert zscore["model"]["input_normalization"] == "train_zscore"
-    assert zscore["run_id"] == "sd_input_norm_followup_02_dpnb_input_norm_zscore_v1"
+    assert zscore["run_id"] == "sd_input_norm_followup_02_dpnb_input_norm_zscore_v2"
     assert zscore["decision"] == "defer"
     assert zscore["interpretation_status"] == "completed"
+    assert zscore["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
 
     winsor = _row_by_ref(queue, "dpnb_input_norm_winsorize_zscore")
     assert winsor["model"]["input_normalization"] == "train_winsorize_zscore"
-    assert winsor["run_id"] == "sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v1"
+    assert winsor["run_id"] == "sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2"
     assert winsor["decision"] == "defer"
     assert winsor["interpretation_status"] == "completed"
+    assert winsor["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
 
     zscore_tanh = _row_by_ref(queue, "dpnb_input_norm_zscore_tanh")
     assert zscore_tanh["model"]["input_normalization"] == "train_zscore_tanh"
-    assert zscore_tanh["status"] == "ready"
-    assert zscore_tanh["run_id"] is None
+    assert zscore_tanh["status"] == "completed"
+    assert zscore_tanh["run_id"] == "sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1"
+    assert zscore_tanh["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
 
     robust_tanh = _row_by_ref(queue, "dpnb_input_norm_robust_tanh")
     assert robust_tanh["model"]["input_normalization"] == "train_robust_tanh"
-    assert robust_tanh["status"] == "ready"
-    assert robust_tanh["run_id"] is None
+    assert robust_tanh["status"] == "completed"
+    assert robust_tanh["run_id"] == "sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1"
+    assert robust_tanh["benchmark_metrics"]["final_roc_auc"] == ANCHOR_FINAL_ROC_AUC
 
     batch16 = _row_by_ref(queue, "dpnb_input_norm_anchor_replay_batch16_sqrt")
     assert batch16["training"]["prior_dump_batch_size"] == 16
     assert batch16["training"]["prior_dump_lr_scale_rule"] == "sqrt"
     assert batch16["training"]["prior_dump_batch_reference_size"] == 32
+    assert batch16["run_id"] == "sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1"
+    assert batch16["benchmark_metrics"]["best_roc_auc"] == BATCH16_BEST_ROC_AUC
+    assert batch16["benchmark_metrics"]["final_roc_auc"] == BATCH16_FINAL_ROC_AUC
+    assert batch16["benchmark_metrics"]["drift"] == BATCH16_DRIFT
     assert "0.7071" in batch16["notes"][0]
 
     batch64 = _row_by_ref(queue, "dpnb_input_norm_anchor_replay_batch64_sqrt")
     assert batch64["training"]["prior_dump_batch_size"] == 64
     assert batch64["training"]["prior_dump_lr_scale_rule"] == "sqrt"
     assert batch64["training"]["prior_dump_batch_reference_size"] == 32
+    assert batch64["run_id"] == "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
+    assert batch64["benchmark_metrics"]["best_roc_auc"] == BATCH64_BEST_ROC_AUC
+    assert batch64["benchmark_metrics"]["final_roc_auc"] == BATCH64_FINAL_ROC_AUC
+    assert batch64["benchmark_metrics"]["drift"] == BATCH64_DRIFT
     assert "1.4142" in batch64["notes"][0]
 
     batch16_tanh = _row_by_ref(queue, "dpnb_input_norm_zscore_tanh_batch16_sqrt")
     assert batch16_tanh["model"]["input_normalization"] == "train_zscore_tanh"
     assert batch16_tanh["training"]["prior_dump_batch_size"] == 16
+    assert batch16_tanh["run_id"] == "sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1"
+    assert batch16_tanh["benchmark_metrics"]["final_roc_auc"] == BATCH16_FINAL_ROC_AUC
 
     batch64_tanh = _row_by_ref(queue, "dpnb_input_norm_zscore_tanh_batch64_sqrt")
     assert batch64_tanh["model"]["input_normalization"] == "train_zscore_tanh"
     assert batch64_tanh["training"]["prior_dump_batch_size"] == 64
+    assert batch64_tanh["run_id"] == "sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1"
+    assert batch64_tanh["benchmark_metrics"]["final_roc_auc"] == BATCH64_FINAL_ROC_AUC
 
     materialized = load_system_delta_queue(
         sweep_id="input_norm_followup",
@@ -171,7 +198,9 @@ def test_input_norm_followup_matrix_records_the_bridge_norm_and_batch_queue() ->
     ).read_text(encoding="utf-8")
 
     assert "# System Delta Matrix" in matrix
-    assert "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1" in matrix
+    assert ANCHOR_RUN_ID in matrix
+    assert "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1" in matrix
+    assert "sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1" in matrix
     assert "dpnb_row_cls_cls2_linear_warmup_decay" in matrix
     assert "train_zscore_tanh" in matrix
     assert "0.7071" in matrix
