@@ -9,7 +9,7 @@ from tab_foundry.research.system_delta import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ANCHOR_RUN_ID = "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
+ANCHOR_RUN_ID = "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
 EXPECTED_ROWS = [
     "dpnb_cuda_budget_5k",
     "dpnb_cuda_budget_10k",

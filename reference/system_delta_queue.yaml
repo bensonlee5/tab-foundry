@@ -23,8 +23,8 @@ anchor_surface:
   - Row 1 establishes the first large CUDA-sized bridge baseline; rows 2 and 3 probe
     width and depth separately rather than fitting a mixed-family scaling curve.
   - '`input_norm_none_followup` completed on the same systems surface and did not
-    justify removing explicit clipping, so input normalization stays fixed at
-    `train_zscore_clip` on this branch.'
+    justify removing explicit clipping, so input normalization stays fixed at `train_zscore_clip`
+    on this branch.'
   - Training-budget changes are intentionally excluded from this sweep and move to
     the draft `cuda_budget_followup` scaffold.
   dimension_table:

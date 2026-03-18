@@ -15,7 +15,7 @@ This file is rendered from `reference/system_delta_sweeps/cuda_capacity_pilot/qu
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
-- Anchor metrics: best ROC AUC `0.7634`, final ROC AUC `0.7634`, final training time `257.5s`
+- Anchor metrics: final log loss `0.3972`, final Brier score `0.1307`, best ROC AUC `0.7634`, final ROC AUC `0.7634`, final training time `257.5s`
 
 ## Anchor Comparison
 
