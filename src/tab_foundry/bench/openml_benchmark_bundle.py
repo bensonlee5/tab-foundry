@@ -31,6 +31,7 @@ class OpenMLBenchmarkBundleConfig:
     bundle_name: str
     version: int
     task_source: str = DEFAULT_OPENML_TASK_SOURCE
+    task_type: str = "supervised_classification"
     new_instances: int = 200
     max_features: int = 10
     max_classes: int | None = 2
@@ -52,27 +53,38 @@ class OpenMLBenchmarkTaskCandidate:
 
     task_id: int
     number_of_features: float
-    number_of_classes: float
+    number_of_classes: float | None
     missing_pct: float
-    minority_class_pct: float
+    minority_class_pct: float | None
+
+
+def _task_type_value(task_type: TaskType | int) -> int:
+    return int(task_type.value) if isinstance(task_type, TaskType) else int(task_type)
 
 
 def _bundle_selection_payload(config: OpenMLBenchmarkBundleConfig, *, max_classes: int) -> dict[str, Any]:
-    return {
+    payload = {
         "new_instances": int(config.new_instances),
-        "task_type": "supervised_classification",
+        "task_type": str(config.task_type),
         "max_features": int(config.max_features),
-        "max_classes": int(max_classes),
         "max_missing_pct": float(config.max_missing_pct),
-        "min_minority_class_pct": float(config.min_minority_class_pct),
     }
+    if config.task_type == "supervised_classification":
+        payload["max_classes"] = int(max_classes)
+        payload["min_minority_class_pct"] = float(config.min_minority_class_pct)
+    return payload
 
 
 def _collect_task_candidates(config: OpenMLBenchmarkBundleConfig) -> list[OpenMLBenchmarkTaskCandidate]:
     candidates: list[OpenMLBenchmarkTaskCandidate] = []
     for task_id in config.resolved_task_ids():
         task = openml.tasks.get_task(int(task_id), download_splits=False)
-        if task.task_type_id != TaskType.SUPERVISED_CLASSIFICATION:
+        expected_task_type = (
+            TaskType.SUPERVISED_CLASSIFICATION
+            if config.task_type == "supervised_classification"
+            else TaskType.SUPERVISED_REGRESSION
+        )
+        if _task_type_value(task.task_type_id) != _task_type_value(expected_task_type):
             continue
         task_any: Any = task
         dataset = task_any.get_dataset(download_data=False)
@@ -85,27 +97,41 @@ def _collect_task_candidates(config: OpenMLBenchmarkBundleConfig) -> list[OpenML
                 task_id=int(task_id),
                 quality_name="NumberOfFeatures",
             ),
-            number_of_classes=read_required_openml_quality(
-                raw_qualities,
-                task_id=int(task_id),
-                quality_name="NumberOfClasses",
+            number_of_classes=(
+                None
+                if config.task_type != "supervised_classification"
+                else read_required_openml_quality(
+                    raw_qualities,
+                    task_id=int(task_id),
+                    quality_name="NumberOfClasses",
+                )
             ),
             missing_pct=read_required_openml_quality(
                 raw_qualities,
                 task_id=int(task_id),
                 quality_name="PercentageOfInstancesWithMissingValues",
             ),
-            minority_class_pct=read_required_openml_quality(
-                raw_qualities,
-                task_id=int(task_id),
-                quality_name="MinorityClassPercentage",
+            minority_class_pct=(
+                None
+                if config.task_type != "supervised_classification"
+                else read_required_openml_quality(
+                    raw_qualities,
+                    task_id=int(task_id),
+                    quality_name="MinorityClassPercentage",
+                )
             ),
         )
-        if (
+        keep_candidate = (
             candidate.number_of_features <= float(config.max_features)
             and candidate.missing_pct <= float(config.max_missing_pct)
-            and candidate.minority_class_pct >= float(config.min_minority_class_pct)
-        ):
+        )
+        if config.task_type == "supervised_classification":
+            keep_candidate = (
+                keep_candidate
+                and candidate.minority_class_pct is not None
+                and candidate.minority_class_pct >= float(config.min_minority_class_pct)
+            )
+        if keep_candidate:
             candidates.append(candidate)
     return candidates
 
@@ -118,19 +144,32 @@ def _resolve_selected_tasks(
         raise RuntimeError("OpenML benchmark bundle produced no eligible tasks")
 
     effective_max_classes = (
-        max(int(candidate.number_of_classes) for candidate in eligible_candidates)
-        if config.max_classes is None
-        else int(config.max_classes)
+        0
+        if config.task_type != "supervised_classification"
+        else (
+            max(int(candidate.number_of_classes) for candidate in eligible_candidates if candidate.number_of_classes is not None)
+            if config.max_classes is None
+            else int(config.max_classes)
+        )
     )
-    selected_candidates = [
-        candidate
-        for candidate in eligible_candidates
-        if int(candidate.number_of_classes) <= effective_max_classes
-    ]
+    selected_candidates = (
+        eligible_candidates
+        if config.task_type != "supervised_classification"
+        else [
+            candidate
+            for candidate in eligible_candidates
+            if candidate.number_of_classes is not None
+            and int(candidate.number_of_classes) <= effective_max_classes
+        ]
+    )
     if not selected_candidates:
-        raise RuntimeError("OpenML benchmark bundle produced no tasks after max_classes filtering")
+        raise RuntimeError("OpenML benchmark bundle produced no tasks after task-type filtering")
     selected_tasks = [
-        prepare_openml_benchmark_task(int(candidate.task_id), new_instances=int(config.new_instances))
+        prepare_openml_benchmark_task(
+            int(candidate.task_id),
+            new_instances=int(config.new_instances),
+            task_type=str(config.task_type),
+        )
         for candidate in selected_candidates
     ]
     return sorted(selected_tasks, key=lambda prepared: int(prepared.task_id)), int(effective_max_classes)
@@ -179,6 +218,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--new-instances", type=int, default=200, help="Subsampled row count used by the benchmark")
     parser.add_argument(
+        "--task-type",
+        default="supervised_classification",
+        choices=("supervised_classification", "supervised_regression"),
+        help="OpenML task type used when building the benchmark bundle",
+    )
+    parser.add_argument(
         "--max-features",
         type=int,
         default=10,
@@ -211,6 +256,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         bundle_name=str(args.bundle_name),
         version=int(args.version),
         task_source=str(args.task_source),
+        task_type=str(args.task_type),
         new_instances=int(args.new_instances),
         max_features=int(args.max_features),
         max_classes=_parse_max_classes_arg(str(args.max_classes)),

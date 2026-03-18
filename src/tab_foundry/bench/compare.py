@@ -17,6 +17,7 @@ from tab_foundry.bench.control_baseline import (
     load_control_baseline_entry,
 )
 from tab_foundry.bench.nanotabpfn import (
+    benchmark_bundle_task_type,
     default_benchmark_bundle_path,
     build_comparison_summary,
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
@@ -118,14 +119,21 @@ def _nanotabpfn_helper_command(
     ]
 
 
-def _validate_config(config: NanoTabPFNBenchmarkConfig) -> tuple[Path, Path, Path]:
+def _validate_config(
+    config: NanoTabPFNBenchmarkConfig,
+    *,
+    require_external_control: bool,
+) -> tuple[Path, Path | None, Path | None]:
     tab_foundry_run_dir = config.tab_foundry_run_dir.expanduser().resolve()
-    nanotabpfn_root = config.nanotabpfn_root.expanduser().resolve()
-    nanotabpfn_python = _nanotabpfn_python(nanotabpfn_root)
-    prior_dump = _nanotabpfn_prior_dump(nanotabpfn_root, config.nanotab_prior_dump)
 
     if not tab_foundry_run_dir.exists():
         raise RuntimeError(f"tab-foundry run dir does not exist: {tab_foundry_run_dir}")
+    if not require_external_control:
+        return tab_foundry_run_dir, None, None
+
+    nanotabpfn_root = config.nanotabpfn_root.expanduser().resolve()
+    nanotabpfn_python = _nanotabpfn_python(nanotabpfn_root)
+    prior_dump = _nanotabpfn_prior_dump(nanotabpfn_root, config.nanotab_prior_dump)
     if not nanotabpfn_root.exists():
         raise RuntimeError(f"nanoTabPFN root does not exist: {nanotabpfn_root}")
     if not nanotabpfn_python.exists():
@@ -140,7 +148,20 @@ def _validate_config(config: NanoTabPFNBenchmarkConfig) -> tuple[Path, Path, Pat
 def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any]:
     """Run the notebook-style tab-foundry vs nanoTabPFN comparison."""
 
-    tab_foundry_run_dir, nanotabpfn_root, _prior_dump = _validate_config(config)
+    benchmark_bundle_path = (
+        default_benchmark_bundle_path()
+        if config.benchmark_bundle_path is None
+        else config.benchmark_bundle_path.expanduser().resolve()
+    )
+    benchmark_bundle, allow_missing_values = load_benchmark_bundle_for_execution(
+        benchmark_bundle_path
+    )
+    task_type = benchmark_bundle_task_type(benchmark_bundle)
+    require_external_control = task_type != "supervised_regression"
+    tab_foundry_run_dir, nanotabpfn_root, _prior_dump = _validate_config(
+        config,
+        require_external_control=require_external_control,
+    )
     out_root = config.out_root.expanduser().resolve()
     out_root.mkdir(parents=True, exist_ok=True)
 
@@ -152,14 +173,6 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     comparison_summary_path = out_root / "comparison_summary.json"
     benchmark_run_record_path = out_root / "benchmark_run_record.json"
     training_surface_record_path = out_root / "training_surface_record.json"
-    benchmark_bundle_path = (
-        default_benchmark_bundle_path()
-        if config.benchmark_bundle_path is None
-        else config.benchmark_bundle_path.expanduser().resolve()
-    )
-    benchmark_bundle, allow_missing_values = load_benchmark_bundle_for_execution(
-        benchmark_bundle_path
-    )
     benchmark_selection = cast(dict[str, Any], benchmark_bundle["selection"])
     benchmark_new_instances = int(benchmark_selection["new_instances"])
     control_baseline = None
@@ -180,6 +193,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     tab_foundry_records = evaluate_tab_foundry_run(
         tab_foundry_run_dir,
         datasets=datasets,
+        task_type=task_type,
         device=config.device,
         allow_checkpoint_failures=True,
         allow_missing_values=allow_missing_values,
@@ -195,30 +209,33 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     )
     write_jsonl(tab_foundry_curve_path, tab_foundry_records)
 
-    nanotabpfn_records: list[dict[str, Any]]
-    if config.reuse_nanotabpfn_curve_path is not None:
-        reuse_path = config.reuse_nanotabpfn_curve_path.expanduser().resolve()
-        nanotabpfn_records = load_jsonl(reuse_path)
-        if not nanotabpfn_records:
-            raise RuntimeError(f"reused nanoTabPFN curve is empty: {reuse_path}")
-        write_jsonl(nanotabpfn_curve_path, nanotabpfn_records)
-    else:
-        subprocess.run(
-            _nanotabpfn_helper_command(
-                config=config,
-                dataset_cache=dataset_cache_path,
-                out_path=nanotabpfn_curve_path,
-            ),
-            cwd=nanotabpfn_root,
-            check=True,
-        )
-        nanotabpfn_records = load_jsonl(nanotabpfn_curve_path)
-        if not nanotabpfn_records:
-            raise RuntimeError("nanoTabPFN benchmark produced no curve records")
+    nanotabpfn_records: list[dict[str, Any]] = []
+    if require_external_control:
+        if config.reuse_nanotabpfn_curve_path is not None:
+            reuse_path = config.reuse_nanotabpfn_curve_path.expanduser().resolve()
+            nanotabpfn_records = load_jsonl(reuse_path)
+            if not nanotabpfn_records:
+                raise RuntimeError(f"reused nanoTabPFN curve is empty: {reuse_path}")
+            write_jsonl(nanotabpfn_curve_path, nanotabpfn_records)
+        else:
+            assert nanotabpfn_root is not None
+            subprocess.run(
+                _nanotabpfn_helper_command(
+                    config=config,
+                    dataset_cache=dataset_cache_path,
+                    out_path=nanotabpfn_curve_path,
+                ),
+                cwd=nanotabpfn_root,
+                check=True,
+            )
+            nanotabpfn_records = load_jsonl(nanotabpfn_curve_path)
+            if not nanotabpfn_records:
+                raise RuntimeError("nanoTabPFN benchmark produced no curve records")
 
     plot_comparison_curve(
         tab_foundry_records=tab_foundry_records,
         nanotabpfn_records=nanotabpfn_records,
+        task_type=task_type,
         out_path=comparison_curve_path,
     )
     summary = build_comparison_summary(
@@ -228,8 +245,11 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         benchmark_bundle=benchmark_bundle,
         benchmark_bundle_path=benchmark_bundle_path,
         tab_foundry_run_dir=tab_foundry_run_dir,
+        task_type=task_type,
         nanotabpfn_root=nanotabpfn_root,
-        nanotabpfn_python=_nanotabpfn_python(nanotabpfn_root),
+        nanotabpfn_python=(
+            None if nanotabpfn_root is None else _nanotabpfn_python(nanotabpfn_root)
+        ),
         control_baseline=control_baseline,
     )
     gradient_history_jsonl = gradient_history_path(tab_foundry_run_dir)
@@ -237,7 +257,9 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     summary["artifacts"] = {
         "benchmark_tasks_json": str(benchmark_tasks_path),
         "tab_foundry_curve_jsonl": str(tab_foundry_curve_path),
-        "nanotabpfn_curve_jsonl": str(nanotabpfn_curve_path),
+        "nanotabpfn_curve_jsonl": (
+            str(nanotabpfn_curve_path) if require_external_control else None
+        ),
         "comparison_curve_png": str(comparison_curve_path),
         "benchmark_dataset_cache": str(dataset_cache_path),
         "gradient_history_jsonl": (
@@ -361,7 +383,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("nanoTabPFN comparison complete:")
     print(f"  dataset_count={summary['dataset_count']}")
     print(f"  tab_foundry={summary['tab_foundry']}")
-    print(f"  nanotabpfn={summary['nanotabpfn']}")
+    if "nanotabpfn" in summary:
+        print(f"  nanotabpfn={summary['nanotabpfn']}")
     print(f"  artifacts={summary['artifacts']}")
     return 0
 

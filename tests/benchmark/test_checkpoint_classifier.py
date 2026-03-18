@@ -13,7 +13,7 @@ from torch import nn
 import tab_foundry.bench.checkpoint as checkpoint_classifier
 from tab_foundry.bench.nanotabpfn import evaluate_classifier, load_dataset_cache
 from tab_foundry.input_normalization import normalize_train_test_arrays
-from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
+from tab_foundry.model.architectures.tabfoundry import ClassificationOutput, RegressionOutput
 from tab_foundry.model.factory import build_model
 from tab_foundry.types import TaskBatch
 
@@ -38,6 +38,23 @@ class _CapturingClassifier(nn.Module):
         return ClassificationOutput(logits=logits, num_classes=2)
 
 
+class _TinyRegressor(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = nn.Linear(4, 3)
+        self.register_buffer(
+            "quantile_levels",
+            torch.tensor([0.1, 0.5, 0.9], dtype=torch.float32),
+            persistent=False,
+        )
+
+    def forward(self, batch: TaskBatch) -> RegressionOutput:
+        return RegressionOutput(
+            quantiles=self.linear(batch.x_test),
+            quantile_levels=self.quantile_levels,
+        )
+
+
 def test_tab_foundry_classifier_predicts_probabilities(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -60,6 +77,30 @@ def test_tab_foundry_classifier_predicts_probabilities(
 
     assert probabilities.shape == (3, 2)
     assert np.allclose(probabilities.sum(axis=1), 1.0, atol=1.0e-6)
+
+
+def test_tab_foundry_regressor_predicts_quantiles(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fake_spec = SimpleNamespace(task="regression")
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: _TinyRegressor())
+
+    checkpoint = tmp_path / "tiny_regressor.pt"
+    model = _TinyRegressor()
+    torch.save({"model": model.state_dict(), "config": {"task": "regression", "model": {}}}, checkpoint)
+
+    regressor = checkpoint_classifier.TabFoundryRegressor(checkpoint, device="cpu")
+    regressor.fit(np.ones((6, 4), dtype=np.float32), np.linspace(0.0, 1.0, num=6, dtype=np.float32))
+    quantiles, levels = regressor.predict_quantiles(np.zeros((3, 4), dtype=np.float32))
+
+    assert quantiles.shape == (3, 3)
+    assert levels.tolist() == pytest.approx([0.1, 0.5, 0.9])
 
 
 @pytest.mark.parametrize(
@@ -297,6 +338,7 @@ def test_frozen_control_baseline_curve_matches_current_checkpoint_wrapper() -> N
         classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
         metrics = evaluate_classifier(classifier, datasets)
         assert metrics["ROC AUC"] == pytest.approx(curve_by_step[step], rel=2.0e-4, abs=2.0e-4)
+        assert float(metrics["Log Loss"]) >= 0.0
 
 
 def test_tab_foundry_classifier_skips_external_normalization_for_staged_missingness_token(

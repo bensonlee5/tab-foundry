@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-18
+
+### Added
+
+- Added task-aware benchmark evaluation and reporting so benchmark runs now compute classification Brier scores and regression CRPS, average pinball loss, and `PICP 90` alongside existing classification diagnostics.
+
+- Added regression-capable benchmark bundle support through `selection.task_type`, regression task loading, and tab-foundry checkpoint evaluation, while keeping the external nanoTabPFN comparison path classification-only for now.
+
+- Added task-aware persisted benchmark metadata fields in comparison summaries, benchmark registry entries, and control baselines, including optional `final_brier_score`, `final_crps`, `final_avg_pinball_loss`, and `final_picp_90`.
+
 ### Changed
+
+- Changed the benchmark objective policy so classification bundles target `final_log_loss` and regression bundles target `final_crps`, with ROC AUC retained as a classification diagnostic and tie-breaker instead of the primary sweep score.
+
+- Changed benchmark reporting surfaces to render the available task-family metric set instead of assuming ROC-only evaluation, including system-delta and instability-audit outputs.
+
+- User-facing note: benchmark bundle selection now accepts `selection.task_type`, regression task rows omit `n_classes`, and persisted benchmark summaries, registries, and control baselines may now include the new task-aware metric fields.
 
 - Scoped `TFRowEncoder` transformer-clone reinitialization to multi-layer stacks only, preserving the MPS-targeted deep `row_cls` fix without changing single-layer exported reference outputs.
 

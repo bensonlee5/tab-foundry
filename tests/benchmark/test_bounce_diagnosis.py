@@ -147,10 +147,12 @@ def test_run_benchmark_bounce_diagnosis_writes_summary_and_flags_benchmark_noise
         _run_dir: Path,
         *,
         datasets: dict[str, tuple[list[float], list[int]]],
+        task_type: str,
         device: str,
         allow_checkpoint_failures: bool = False,
         allow_missing_values: bool = False,
     ) -> list[dict[str, Any]]:
+        assert task_type == "supervised_classification"
         assert device == "cpu"
         assert allow_checkpoint_failures is True
         if len(datasets) == 12:
@@ -429,10 +431,12 @@ def test_run_benchmark_bounce_diagnosis_without_confirmation_uses_primary_bundle
         _run_dir: Path,
         *,
         datasets: dict[str, tuple[list[float], list[int]]],
+        task_type: str,
         device: str,
         allow_checkpoint_failures: bool = False,
         allow_missing_values: bool = False,
     ) -> list[dict[str, Any]]:
+        assert task_type == "supervised_classification"
         assert device == "cpu"
         assert allow_checkpoint_failures is True
         assert allow_missing_values is False
@@ -563,10 +567,12 @@ def test_run_benchmark_bounce_diagnosis_dense_confirmation_inherits_missing_valu
         actual_run_dir: Path,
         *,
         datasets: dict[str, tuple[list[float], list[int]]],
+        task_type: str,
         device: str,
         allow_checkpoint_failures: bool = False,
         allow_missing_values: bool = False,
     ) -> list[dict[str, Any]]:
+        assert task_type == "supervised_classification"
         assert device == "cpu"
         assert allow_checkpoint_failures is True
         assert list(datasets) == ["d1", "d2"]

@@ -78,7 +78,7 @@ def test_build_openml_benchmark_bundle_preserves_binary_filter(
     monkeypatch.setattr(
         bundle_module,
         "prepare_openml_benchmark_task",
-        lambda task_id, *, new_instances: prepared_by_task_id[int(task_id)],
+        lambda task_id, *, new_instances, task_type: prepared_by_task_id[int(task_id)],
     )
     monkeypatch.setattr(
         bundle_module.openml.tasks,
@@ -134,7 +134,7 @@ def test_build_openml_benchmark_bundle_auto_max_classes_widens_and_sorts(
     monkeypatch.setattr(
         bundle_module,
         "prepare_openml_benchmark_task",
-        lambda task_id, *, new_instances: prepared_by_task_id[int(task_id)],
+        lambda task_id, *, new_instances, task_type: prepared_by_task_id[int(task_id)],
     )
     monkeypatch.setattr(
         bundle_module.openml.tasks,
@@ -183,7 +183,7 @@ def test_build_openml_benchmark_bundle_uses_named_task_source(
     monkeypatch.setattr(
         bundle_module,
         "prepare_openml_benchmark_task",
-        lambda task_id, *, new_instances: prepared_by_task_id[int(task_id)],
+        lambda task_id, *, new_instances, task_type: prepared_by_task_id[int(task_id)],
     )
     monkeypatch.setattr(
         bundle_module.openml.tasks,
@@ -235,7 +235,7 @@ def test_build_openml_benchmark_bundle_rejects_empty_selection(
     monkeypatch.setattr(
         bundle_module,
         "prepare_openml_benchmark_task",
-        lambda task_id, *, new_instances: prepared_by_task_id[int(task_id)],
+        lambda task_id, *, new_instances, task_type: prepared_by_task_id[int(task_id)],
     )
     monkeypatch.setattr(
         bundle_module.openml.tasks,

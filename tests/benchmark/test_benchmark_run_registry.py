@@ -120,6 +120,7 @@ def _write_comparison_summary(
     run_dir: Path,
     source_bundle_path: str,
     final_roc_auc: float = 0.83,
+    final_log_loss: float = 0.42,
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -138,6 +139,7 @@ def _write_comparison_summary(
             "final_step": 75.0,
             "final_training_time": 3.0,
             "final_roc_auc": float(final_roc_auc),
+            "final_log_loss": float(final_log_loss),
             "run_dir": str(run_dir.resolve()),
             "model_arch": "tabfoundry_staged",
             "model_stage": "nano_exact",
@@ -170,6 +172,7 @@ def _prepare_run(
     checkpoint_data_cfg: dict[str, object] | None = None,
     seed: int = 1,
     final_roc_auc: float = 0.83,
+    final_log_loss: float = 0.42,
     training_cfg: dict[str, object] | None = None,
 ) -> tuple[Path, Path]:
     manifest_path = repo_root / "data" / "manifests" / "default.parquet"
@@ -194,6 +197,7 @@ def _prepare_run(
         run_dir=run_dir,
         source_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
         final_roc_auc=final_roc_auc,
+        final_log_loss=final_log_loss,
     )
     return run_dir, summary_path
 
@@ -230,6 +234,7 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     assert record["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
     )
+    assert record["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.42)
 
 
 def test_derive_benchmark_run_record_captures_optional_training_surface_label(
@@ -372,8 +377,20 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
 ) -> None:
     repo_root = tmp_path / "repo"
     registry_path = repo_root / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
-    anchor_run_dir, anchor_summary = _prepare_run(repo_root, run_name="anchor", seed=1, final_roc_auc=0.83)
-    child_run_dir, child_summary = _prepare_run(repo_root, run_name="label_token", seed=2, final_roc_auc=0.87)
+    anchor_run_dir, anchor_summary = _prepare_run(
+        repo_root,
+        run_name="anchor",
+        seed=1,
+        final_roc_auc=0.83,
+        final_log_loss=0.42,
+    )
+    child_run_dir, child_summary = _prepare_run(
+        repo_root,
+        run_name="label_token",
+        seed=2,
+        final_roc_auc=0.87,
+        final_log_loss=0.39,
+    )
     monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
 
     _ = registry_module.register_benchmark_run(
@@ -420,6 +437,7 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
     }
     assert run_entry["comparisons"]["vs_parent"]["reference_run_id"] == "00_simple_anchor"
     assert run_entry["comparisons"]["vs_parent"]["final_roc_auc_delta"] == pytest.approx(0.04)
+    assert run_entry["comparisons"]["vs_parent"]["final_log_loss_delta"] == pytest.approx(-0.03)
     assert run_entry["decision"] == "keep"
     child_record_path = repo_root / str(run_entry["artifacts"]["benchmark_run_record_path"])
     assert child_record_path.exists()
@@ -432,6 +450,7 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
     registry = registry_module.load_benchmark_run_registry(registry_path)
     assert set(registry["runs"]) == {"00_simple_anchor", "01_nano_exact"}
     assert registry["runs"]["01_nano_exact"]["comparisons"]["vs_anchor"]["final_roc_auc_delta"] == pytest.approx(0.04)
+    assert registry["runs"]["01_nano_exact"]["comparisons"]["vs_anchor"]["final_log_loss_delta"] == pytest.approx(-0.03)
 
 
 def test_register_benchmark_run_rejects_unknown_parent(

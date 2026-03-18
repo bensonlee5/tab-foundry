@@ -935,29 +935,93 @@ def next_ready_row(queue: Mapping[str, Any]) -> dict[str, Any] | None:
 
 
 def _metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str]:
+    def _optional_float(value: Any) -> float | None:
+        if value is None:
+            return None
+        return float(value)
+
+    def _format(value: float | None, *, suffix: str = "", signed: bool = False) -> str:
+        if value is None:
+            return "n/a"
+        return f"{value:+.4f}{suffix}" if signed else f"{value:.4f}{suffix}"
+
     metrics = cast(dict[str, Any], run["tab_foundry_metrics"])
     anchor_metrics = cast(dict[str, Any], anchor["tab_foundry_metrics"])
-    best = float(metrics["best_roc_auc"])
-    final = float(metrics["final_roc_auc"])
+    best = _optional_float(metrics.get("best_roc_auc"))
+    final = _optional_float(metrics.get("final_roc_auc"))
+    final_log_loss = _optional_float(metrics.get("final_log_loss"))
+    anchor_final_log_loss = _optional_float(anchor_metrics.get("final_log_loss"))
+    final_brier_score = _optional_float(metrics.get("final_brier_score"))
+    anchor_final_brier_score = _optional_float(anchor_metrics.get("final_brier_score"))
+    final_crps = _optional_float(metrics.get("final_crps"))
+    anchor_final_crps = _optional_float(anchor_metrics.get("final_crps"))
+    final_avg_pinball_loss = _optional_float(metrics.get("final_avg_pinball_loss"))
+    anchor_final_avg_pinball_loss = _optional_float(anchor_metrics.get("final_avg_pinball_loss"))
+    final_picp_90 = _optional_float(metrics.get("final_picp_90"))
+    anchor_final_picp_90 = _optional_float(anchor_metrics.get("final_picp_90"))
     best_time = float(metrics["best_training_time"])
     final_time = float(metrics["final_training_time"])
-    anchor_best = float(anchor_metrics["best_roc_auc"])
-    anchor_final = float(anchor_metrics["final_roc_auc"])
+    anchor_best = _optional_float(anchor_metrics.get("best_roc_auc"))
+    anchor_final = _optional_float(anchor_metrics.get("final_roc_auc"))
     anchor_best_time = float(anchor_metrics["best_training_time"])
     anchor_final_time = float(anchor_metrics["final_training_time"])
-    drift = final - best
-    anchor_drift = anchor_final - anchor_best
+    drift = None if best is None or final is None else final - best
+    anchor_drift = (
+        None if anchor_best is None or anchor_final is None else anchor_final - anchor_best
+    )
     return {
-        "best_roc_auc": f"{best:.4f}",
-        "final_roc_auc": f"{final:.4f}",
-        "final_minus_best": f"{drift:+.4f}",
-        "delta_best_roc_auc": f"{best - anchor_best:+.4f}",
-        "delta_final_roc_auc": f"{final - anchor_final:+.4f}",
-        "delta_drift": f"{drift - anchor_drift:+.4f}",
+        "best_roc_auc": _format(best),
+        "final_roc_auc": _format(final),
+        "final_minus_best": _format(drift, signed=True),
+        "delta_best_roc_auc": (
+            "n/a"
+            if best is None or anchor_best is None
+            else f"{best - anchor_best:+.4f}"
+        ),
+        "delta_final_roc_auc": (
+            "n/a"
+            if final is None or anchor_final is None
+            else f"{final - anchor_final:+.4f}"
+        ),
+        "delta_drift": (
+            "n/a"
+            if drift is None or anchor_drift is None
+            else f"{drift - anchor_drift:+.4f}"
+        ),
         "delta_training_time": f"{final_time - anchor_final_time:+.1f}s",
         "final_training_time": f"{final_time:.1f}s",
         "best_training_time": f"{best_time:.1f}s",
         "delta_best_training_time": f"{best_time - anchor_best_time:+.1f}s",
+        "final_log_loss": _format(final_log_loss),
+        "delta_final_log_loss": (
+            "n/a"
+            if final_log_loss is None or anchor_final_log_loss is None
+            else f"{final_log_loss - anchor_final_log_loss:+.4f}"
+        ),
+        "final_brier_score": _format(final_brier_score),
+        "delta_final_brier_score": (
+            "n/a"
+            if final_brier_score is None or anchor_final_brier_score is None
+            else f"{final_brier_score - anchor_final_brier_score:+.4f}"
+        ),
+        "final_crps": _format(final_crps),
+        "delta_final_crps": (
+            "n/a"
+            if final_crps is None or anchor_final_crps is None
+            else f"{final_crps - anchor_final_crps:+.4f}"
+        ),
+        "final_avg_pinball_loss": _format(final_avg_pinball_loss),
+        "delta_final_avg_pinball_loss": (
+            "n/a"
+            if final_avg_pinball_loss is None or anchor_final_avg_pinball_loss is None
+            else f"{final_avg_pinball_loss - anchor_final_avg_pinball_loss:+.4f}"
+        ),
+        "final_picp_90": _format(final_picp_90),
+        "delta_final_picp_90": (
+            "n/a"
+            if final_picp_90 is None or anchor_final_picp_90 is None
+            else f"{final_picp_90 - anchor_final_picp_90:+.4f}"
+        ),
     }
 
 
@@ -1052,11 +1116,21 @@ def render_system_delta_matrix(
     lines.append(f"- Benchmark bundle: `{queue['benchmark_bundle_path']}`")
     lines.append(f"- Control baseline id: `{queue['control_baseline_id']}`")
     lines.append(f"- Comparison policy: `{queue['comparison_policy']}`")
-    lines.append(
-        f"- Anchor metrics: best ROC AUC `{float(anchor_metrics['best_roc_auc']):.4f}`, "
-        f"final ROC AUC `{float(anchor_metrics['final_roc_auc']):.4f}`, "
-        f"final training time `{float(anchor_metrics['final_training_time']):.1f}s`"
-    )
+    anchor_metric_parts: list[str] = []
+    for label, key in (
+        ("final log loss", "final_log_loss"),
+        ("final Brier score", "final_brier_score"),
+        ("best ROC AUC", "best_roc_auc"),
+        ("final ROC AUC", "final_roc_auc"),
+        ("final CRPS", "final_crps"),
+        ("final avg pinball loss", "final_avg_pinball_loss"),
+        ("final PICP 90", "final_picp_90"),
+    ):
+        raw_value = anchor_metrics.get(key)
+        if raw_value is not None:
+            anchor_metric_parts.append(f"{label} `{float(raw_value):.4f}`")
+    anchor_metric_parts.append(f"final training time `{float(anchor_metrics['final_training_time']):.1f}s`")
+    lines.append(f"- Anchor metrics: {', '.join(anchor_metric_parts)}")
     lines.append("")
     lines.append("## Anchor Comparison")
     lines.append("")
@@ -1162,14 +1236,26 @@ def render_system_delta_matrix(
                 lines.append("- Benchmark metrics: pending")
         else:
             metrics = _metric_summary(run, anchor)
-            lines.append(
-                f"- Registered run: `{run_id}` with best ROC AUC `{metrics['best_roc_auc']}`, "
-                f"final ROC AUC `{metrics['final_roc_auc']}`, "
-                f"final-minus-best `{metrics['final_minus_best']}`, "
-                f"delta final ROC AUC `{metrics['delta_final_roc_auc']}`, "
-                f"delta drift `{metrics['delta_drift']}`, "
-                f"delta final training time `{metrics['delta_training_time']}`"
-            )
+            metric_parts = [
+                f"final log loss `{metrics['final_log_loss']}`",
+                f"delta final log loss `{metrics['delta_final_log_loss']}`",
+                f"final Brier score `{metrics['final_brier_score']}`",
+                f"delta final Brier score `{metrics['delta_final_brier_score']}`",
+                f"best ROC AUC `{metrics['best_roc_auc']}`",
+                f"final ROC AUC `{metrics['final_roc_auc']}`",
+                f"final-minus-best `{metrics['final_minus_best']}`",
+                f"delta final ROC AUC `{metrics['delta_final_roc_auc']}`",
+                f"delta drift `{metrics['delta_drift']}`",
+                f"final CRPS `{metrics['final_crps']}`",
+                f"delta final CRPS `{metrics['delta_final_crps']}`",
+                f"final avg pinball loss `{metrics['final_avg_pinball_loss']}`",
+                f"delta final avg pinball loss `{metrics['delta_final_avg_pinball_loss']}`",
+                f"final PICP 90 `{metrics['final_picp_90']}`",
+                f"delta final PICP 90 `{metrics['delta_final_picp_90']}`",
+                f"delta final training time `{metrics['delta_training_time']}`",
+            ]
+            filtered_metric_parts = [part for part in metric_parts if not part.endswith("`n/a`")]
+            lines.append(f"- Registered run: `{run_id}` with {', '.join(filtered_metric_parts)}")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
