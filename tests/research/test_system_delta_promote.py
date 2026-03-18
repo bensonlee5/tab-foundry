@@ -59,7 +59,7 @@ def test_resolve_run_id_for_order_uses_queue_run_id(tmp_path: Path) -> None:
 
     run_id = resolve_run_id_for_order(sweep_id='input_norm_followup', order=7, paths=paths)
 
-    assert run_id == 'sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1'
+    assert run_id == 'sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2'
 
 
 def test_promote_anchor_updates_sweep_and_index_without_touching_program_for_inactive_sweep(
@@ -93,7 +93,7 @@ def test_promote_anchor_updates_sweep_and_index_without_touching_program_for_ina
     assert index['sweeps']['input_norm_followup']['anchor_run_id'] == 'sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1'
     assert rendered == ['input_norm_followup']
     assert synced == []
-    assert 'sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1' in program_text
+    assert 'sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2' in program_text
 
 
 def test_promote_anchor_updates_program_for_active_sweep(

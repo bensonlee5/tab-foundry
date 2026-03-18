@@ -17,7 +17,7 @@ upstream_reference:
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-  - The locked anchor is benchmark registry run `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
+  - The locked anchor is benchmark registry run `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
     on bundle `nanotabpfn_openml_binary_medium` (10 tasks).
   - The anchor model surface is taken from the registry-resolved staged selection
     labeled `dpnb_input_norm_anchor_replay_batch64_sqrt`.
@@ -192,7 +192,7 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Keep `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
+  next_action: Keep `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
     as the preferred batch64 surface; do not reopen `input_normalization=none` on
     this bundle without new evidence.
   notes:

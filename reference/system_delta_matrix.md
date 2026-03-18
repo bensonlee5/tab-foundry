@@ -39,7 +39,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `dpnb_input_norm_none_batch64_sqrt` | input_normalization | yes | completed | none | Remove explicit input normalization on the batch64 sqrt-scaled bridge winner and keep the larger-batch surface fixed. | Keep `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1` as the preferred batch64 surface; do not reopen `input_normalization=none` on this bundle without new evidence. |
+| 1 | `dpnb_input_norm_none_batch64_sqrt` | input_normalization | yes | completed | none | Remove explicit input normalization on the batch64 sqrt-scaled bridge winner and keep the larger-batch surface fixed. | Keep `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2` as the preferred batch64 surface; do not reopen `input_normalization=none` on this bundle without new evidence. |
 
 ## Detailed Rows
 

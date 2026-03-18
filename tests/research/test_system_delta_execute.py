@@ -21,7 +21,7 @@ import tab_foundry.research.system_delta_execute as execute_module
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'benchmark_run_registry_v1.json'
-ANCHOR_RUN_ID = 'sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1'
+ANCHOR_RUN_ID = 'sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2'
 
 
 def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:
