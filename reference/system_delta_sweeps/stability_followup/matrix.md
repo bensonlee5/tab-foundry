@@ -56,3 +56,4 @@ Every row must report the same training-dynamics diagnostics in both `telemetry.
 - Promoted `dpnb_row_cls_cls2_linear_warmup_decay` as the new bridge-surface default for `cls_benchmark_staged_prior`.
 - Row 11 was the clean winner for promotion: best/final ROC AUC `0.7650`, zero best-checkpoint drift, and much better encoder-head balance than the target-column rows.
 - Row 12 (`dpnb_row_cls_cls2_linear_warmup_decay_warm10`) confirmed that `row_cls` is genuinely reopened on the bridge surface, but it did not improve final ROC AUC materially over row 11 and reintroduced small drift plus a higher clipped-step fraction.
+- This promotion is formalized as sweep metadata only on this machine; the canonical benchmark anchor remains deferred until the remote artifacts are synced and registered locally.

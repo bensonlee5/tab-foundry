@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: stability_followup
 parent_sweep_id: stability_ladder
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: null
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -15,7 +15,9 @@ anchor_surface:
   - This follow-up no longer builds off the post-norm `binary_md_v3` benchmark winner.
   - It is a bridge sweep anchored on the old `delta_prenorm_block` contract so schedule evidence is attributable to prenorm itself.
   - The queue is intentionally wider than the earlier four-row draft because the goal is hyperparameter calibration, not only one binary schedule choice.
-  - Concern #3 is promoted to first-class telemetry in wandb and `telemetry.json` via clipped-step, module-balance, and activation-window diagnostics.
+  - 'Concern #3 is promoted to first-class telemetry in wandb and `telemetry.json` via clipped-step, module-balance, and activation-window diagnostics.'
+  - 'The sweep is analytically complete: row 11 is the promoted bridge-surface default and row 12 is confirmatory evidence only.'
+  - Promotion is metadata-only on this machine because the winning artifacts were produced elsewhere; `anchor_run_id` remains unset until those artifacts are synced into the local benchmark registry.
   dimension_table:
   - dimension: feature encoder
     upstream: Same nano feature encoder path with internal benchmark normalization.

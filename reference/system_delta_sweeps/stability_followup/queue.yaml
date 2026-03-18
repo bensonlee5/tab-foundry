@@ -554,12 +554,15 @@ rows:
           warmup_ratio: 0.05
   run_id: null
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: promote
+  interpretation_status: completed
   confounders: []
   next_action: >-
-    Run this row only after the schedule rows so row-pool interpretation is not mixed with unsettled training dynamics.
-  notes: []
+    Defer canonical anchor registration until the remote artifacts are synced locally;
+    until then, treat this as the metadata-only bridge-surface default.
+  notes:
+  - 'Matrix outcome: best/final ROC AUC 0.7650 with zero drift; row-cls cls2 is the promoted bridge-surface default.'
+  - Remote artifacts were produced on a different machine, so local benchmark registry promotion is intentionally deferred.
 
 - order: 12
   delta_ref: dpnb_row_cls_cls2_linear_warmup_decay_warm10
@@ -609,9 +612,12 @@ rows:
           warmup_ratio: 0.10
   run_id: null
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: accept_as_evidence
+  interpretation_status: completed
   confounders: []
   next_action: >-
-    Run this row after row 11 and treat it as the promotion gate for whether row-cls becomes the new bridge-surface default.
-  notes: []
+    Keep this row as confirmatory evidence only; do not spend more bridge-surface
+    budget on warmup-only follow-up until row 11 is replicated or synced locally.
+  notes:
+  - 'Matrix outcome: confirms that row-cls is reopened on the bridge surface, but does not materially improve over row 11 and reintroduces small drift plus a higher clipped-step fraction.'
+  - Remote artifacts were produced on a different machine, so this row remains metadata-only on this machine.
