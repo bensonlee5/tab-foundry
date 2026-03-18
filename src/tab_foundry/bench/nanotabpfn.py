@@ -1025,12 +1025,12 @@ def _is_successful_curve_record(record: Mapping[str, Any]) -> bool:
 
 
 def _curve_ranking_metric(records: list[dict[str, Any]]) -> tuple[str, str]:
-    if any(record.get("roc_auc") is not None for record in records):
-        return ("roc_auc", "max")
-    if any(record.get("crps") is not None for record in records):
-        return ("crps", "min")
     if any(record.get("log_loss") is not None for record in records):
         return ("log_loss", "min")
+    if any(record.get("crps") is not None for record in records):
+        return ("crps", "min")
+    if any(record.get("roc_auc") is not None for record in records):
+        return ("roc_auc", "max")
     raise RuntimeError("checkpoint curve records do not expose a ranking metric")
 
 

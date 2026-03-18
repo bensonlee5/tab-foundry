@@ -1526,3 +1526,55 @@ def test_build_comparison_summary_preserves_model_identity_metadata(tmp_path: Pa
     assert summary["benchmark_bundle"]["all_tasks_no_missing"] is True
     assert summary["tab_foundry"]["checkpoint_diagnostics"]["checkpoint_count"] == 1
     assert summary["tab_foundry"]["checkpoint_diagnostics"]["failed_checkpoint_count"] == 0
+
+
+def test_build_comparison_summary_uses_log_loss_as_classification_best_step(tmp_path: Path) -> None:
+    summary = benchmark_module.build_comparison_summary(
+        tab_foundry_records=[
+            {
+                'checkpoint_path': '/tmp/step_000025.pt',
+                'step': 25,
+                'training_time': 1.2,
+                'roc_auc': 0.83,
+                'log_loss': 0.45,
+                'brier_score': 0.13,
+            },
+            {
+                'checkpoint_path': '/tmp/step_000050.pt',
+                'step': 50,
+                'training_time': 2.4,
+                'roc_auc': 0.81,
+                'log_loss': 0.40,
+                'brier_score': 0.11,
+            },
+        ],
+        nanotabpfn_records=[],
+        benchmark_tasks=[
+            {'task_id': 1, 'dataset_name': 'toy', 'n_rows': 6, 'n_features': 2, 'n_classes': 2}
+        ],
+        benchmark_bundle={
+            'name': 'toy_bundle',
+            'version': 1,
+            'selection': dict(DEFAULT_BENCHMARK_SELECTION),
+            'task_ids': [1],
+            'tasks': [
+                {
+                    'task_id': 1,
+                    'dataset_name': 'toy',
+                    'n_rows': 6,
+                    'n_features': 2,
+                    'n_classes': 2,
+                }
+            ],
+        },
+        benchmark_bundle_path=tmp_path / 'bundle.json',
+        tab_foundry_run_dir=tmp_path / 'run',
+        task_type='supervised_classification',
+        nanotabpfn_root=tmp_path / 'nano',
+        nanotabpfn_python=tmp_path / 'nano' / '.venv' / 'bin' / 'python',
+    )
+
+    assert summary['tab_foundry']['best_step'] == pytest.approx(50.0)
+    assert summary['tab_foundry']['best_log_loss'] == pytest.approx(0.40)
+    assert summary['tab_foundry']['best_roc_auc'] == pytest.approx(0.81)
+
