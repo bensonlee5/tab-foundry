@@ -21,7 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Tightened wandb-backed research execution so the new benchmarking reruns are captured and promotable under the current benchmark contract instead of relying on the earlier ROC-only sweep state.
 
-
 ## [0.7.0] - 2026-03-18
 
 ### Added
