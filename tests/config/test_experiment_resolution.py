@@ -142,20 +142,38 @@ def test_cls_benchmark_staged_prior_resolution() -> None:
     assert str(cfg.task) == "classification"
     assert str(cfg.model.arch) == "tabfoundry_staged"
     assert str(cfg.model.stage) == "nano_exact"
+    assert str(cfg.model.stage_label) == "dpnb_row_cls_cls2_linear_warmup_decay"
+    assert cfg.model.module_overrides == {
+        "table_block_style": "prenorm",
+        "allow_test_self_attention": False,
+        "row_pool": "row_cls",
+    }
     assert int(cfg.model.d_icl) == 96
     assert str(cfg.model.input_normalization) == "train_zscore_clip"
     assert int(cfg.model.many_class_base) == 2
+    assert int(cfg.model.tfrow_n_heads) == 8
+    assert int(cfg.model.tfrow_n_layers) == 3
+    assert int(cfg.model.tfrow_cls_tokens) == 2
+    assert str(cfg.model.tfrow_norm) == "layernorm"
     assert int(cfg.runtime.max_steps) == 2500
     assert int(cfg.runtime.eval_every) == 25
     assert int(cfg.runtime.checkpoint_every) == 25
+    assert bool(cfg.runtime.trace_activations) is True
     assert str(cfg.optimizer.name) == "schedulefree_adamw"
     assert bool(cfg.optimizer.require_requested) is True
     assert float(cfg.optimizer.weight_decay) == 0.0
     assert list(cfg.optimizer.betas) == [0.9, 0.999]
-    assert float(cfg.optimizer.min_lr) == 4.0e-3
+    assert float(cfg.optimizer.min_lr) == 4.0e-4
     assert bool(cfg.optimizer.muon_per_parameter_lr) is False
     assert str(cfg.model.norm_type) == "layernorm"
-    assert str(cfg.model.tfrow_norm) == "layernorm"
-    assert str(cfg.training.surface_label) == "prior_cosine_warmup"
+    assert str(cfg.training.surface_label) == "prior_linear_warmup_decay"
     assert bool(cfg.training.apply_schedule) is True
+    assert str(cfg.training.prior_dump_non_finite_policy) == "skip"
+    stage = cfg.schedule.stages[0]
+    assert str(stage["name"]) == "prior_dump"
+    assert int(stage["steps"]) == 2500
+    assert float(stage["lr_max"]) == 4.0e-3
+    assert str(stage["lr_schedule"]) == "linear"
+    assert float(stage["warmup_ratio"]) == 0.05
+    assert str(cfg.logging.run_name) == "dpnb_row_cls_cls2_linear_warmup_decay"
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_staged_prior/train_history.jsonl"

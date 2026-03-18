@@ -27,13 +27,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Retargeted `stability_followup` from the earlier five-row warmup/clip-plus-dagzoo draft toward a `delta_prenorm_block`-anchored 11-row training-dynamics calibration queue covering schedule shape, LR, warmup length, clip, weight decay, optimizer family, and one bounded `row_cls` revisit.
+- Retargeted `stability_followup` from the earlier five-row warmup/clip-plus-dagzoo draft toward a `delta_prenorm_block`-anchored 12-row bridge queue covering schedule shape, LR, warmup length, clip, weight decay, optimizer family, one bounded `row_cls` reopen, and one promotion-gate `row_cls + warm10` confirmation row.
+
+- Promoted `dpnb_row_cls_cls2_linear_warmup_decay` as the new `cls_benchmark_staged_prior` default bridge-surface recipe: `nano_exact` plus prenorm table blocks, `row_cls` readout with `tfrow_cls_tokens=2`, linear warmup decay, and wandb-visible activation diagnostics.
 
 - Exact-prior training now emits the new clipped-step, module-balance, activation-window, and skipped-batch diagnostics directly to wandb via per-step logs and flattened final summaries, so queue interpretation no longer depends on one-off offline scripts.
 
+- Staged-prior wandb runs now derive sweep-specific run names from `runtime.output_dir` when the config still uses the generic default name, so uploaded runs mirror the `reference/` queue ids automatically.
+
 - Standalone staged checkpoint evaluation now keeps benchmark normalization internal for the missingness-aware tokenizer path so raw missing values survive to tokenization instead of being erased by external preprocessing.
 
-- Updated focused research coverage so `stability_followup` asserts the retargeted four-row queue and `missingness_followup` is registered as a separate non-active draft sweep.
+- Updated focused research coverage so `stability_followup` asserts the retargeted 12-row bridge queue and `missingness_followup` is registered as a separate non-active draft sweep.
 
 ## [0.6.9] - 2026-03-17
 

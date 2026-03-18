@@ -60,6 +60,7 @@ DEFAULT_PRIOR_DUMP_PATH = Path("~/dev/nanoTabPFN/300k_150x5_2.h5")
 DEFAULT_BATCH_SIZE = 32
 DEFAULT_EXPERIMENT = "cls_benchmark_linear_simple_prior"
 _PRIOR_STAGE_NAME = "prior_dump"
+_DEFAULT_STAGED_PRIOR_WANDB_RUN_NAME = "cls-benchmark-staged-prior"
 
 
 def _resolve_positive_int(value: object, *, name: str) -> int:
@@ -156,6 +157,31 @@ def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> PriorDumpNonFinite
             f"got {raw_value!r}"
         )
     return cast(PriorDumpNonFinitePolicy, normalized)
+
+
+def _resolve_prior_wandb_run_name(cfg: DictConfig) -> str:
+    raw_run_name = str(getattr(cfg.logging, "run_name", "") or "").strip()
+    if raw_run_name and raw_run_name != _DEFAULT_STAGED_PRIOR_WANDB_RUN_NAME:
+        return raw_run_name
+
+    output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
+    candidate = output_dir.parent.name if output_dir.name == "train" else output_dir.name
+    if candidate.startswith("sd_stability_followup_dpnb_") and candidate.endswith("_v1"):
+        parts = candidate.split("_", 5)
+        if len(parts) == 6:
+            suffix = parts[-1].removesuffix("_v1")
+            return f"dpnb_{suffix}"
+    if candidate.startswith("sd_stability_followup_") and candidate.endswith("_v1"):
+        parts = candidate.split("_", 4)
+        if len(parts) == 5:
+            return str(parts[-1].removesuffix("_v1"))
+    if candidate:
+        return str(candidate)
+
+    stage_label = str(getattr(cfg.model, "stage_label", "") or "").strip()
+    if stage_label:
+        return stage_label
+    return _DEFAULT_STAGED_PRIOR_WANDB_RUN_NAME
 
 
 def _resolve_lr(cfg: DictConfig) -> float:
@@ -593,6 +619,7 @@ def train_tabfoundry_simple_prior(
     device = torch.device(resolve_device(str(cfg.runtime.device)))
     model.to(device)
     model.train()
+    cfg.logging.run_name = _resolve_prior_wandb_run_name(cfg)
     raw_cfg = cast(dict[str, object], OmegaConf.to_container(cfg, resolve=True))
     training_surface_path = output_dir / "training_surface_record.json"
     training_surface_payload = write_training_surface_record(

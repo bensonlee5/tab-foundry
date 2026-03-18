@@ -1694,6 +1694,21 @@ def test_train_tabfoundry_simple_prior_writes_failure_telemetry_for_nonfinite_la
     assert telemetry["missingness"]["prior_dump"]["non_finite_label_count"] == 1
 
 
+def test_resolve_prior_wandb_run_name_uses_stability_followup_output_slug(tmp_path: Path) -> None:
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+    cfg.logging.run_name = "cls-benchmark-staged-prior"
+    cfg.model.stage_label = "linear_warmup_decay_lr4e3_warm10"
+    cfg.runtime.output_dir = str(
+        tmp_path
+        / "outputs"
+        / "staged_ladder"
+        / "sd_stability_followup_dpnb_12_row_cls_cls2_linear_warmup_decay_warm10_v1"
+        / "train"
+    )
+
+    assert prior_train_module._resolve_prior_wandb_run_name(cfg) == "dpnb_row_cls_cls2_linear_warmup_decay_warm10"
+
+
 def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

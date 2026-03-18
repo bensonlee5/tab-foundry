@@ -21,6 +21,7 @@ EXPECTED_ROWS = [
     "dpnb_linear_warmup_decay_lr4e3_warm5_wd5e4",
     "dpnb_linear_warmup_decay_lr4e3_warm5_adamw",
     "dpnb_row_cls_cls2_linear_warmup_decay",
+    "dpnb_row_cls_cls2_linear_warmup_decay_warm10",
 ]
 
 
@@ -145,6 +146,26 @@ def test_stability_followup_metadata_and_rows_match_the_delta_prenorm_bridge_pla
         "row_pool": "row_cls",
     }
 
+    rowpool_warm10 = _row_by_ref(queue, "dpnb_row_cls_cls2_linear_warmup_decay_warm10")
+    assert rowpool_warm10["model"]["tfrow_n_heads"] == 8
+    assert rowpool_warm10["model"]["tfrow_n_layers"] == 3
+    assert rowpool_warm10["model"]["tfrow_cls_tokens"] == 2
+    assert rowpool_warm10["model"]["tfrow_norm"] == "layernorm"
+    assert rowpool_warm10["model"]["module_overrides"] == {
+        "table_block_style": "prenorm",
+        "allow_test_self_attention": False,
+        "row_pool": "row_cls",
+    }
+    assert rowpool_warm10["training"]["overrides"]["schedule"]["stages"] == [
+        {
+            "name": "prior_dump",
+            "steps": 2500,
+            "lr_max": 0.004,
+            "lr_schedule": "linear",
+            "warmup_ratio": 0.10,
+        }
+    ]
+
     materialized = load_system_delta_queue(
         sweep_id="stability_followup",
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
@@ -170,5 +191,7 @@ def test_stability_followup_matrix_records_the_expanded_bridge_queue() -> None:
     assert "dpnb_linear_warmup_decay_lr4e3_warm5_adamw" in matrix
     assert "dpnb_linear_warmup_decay_lr4e3_warm5_wd5e4" in matrix
     assert "dpnb_row_cls_cls2_linear_warmup_decay" in matrix
+    assert "dpnb_row_cls_cls2_linear_warmup_decay_warm10" in matrix
+    assert "Promoted `dpnb_row_cls_cls2_linear_warmup_decay`" in matrix
     assert "Dagzoo" not in matrix
     assert "10000-step horizon" not in matrix
