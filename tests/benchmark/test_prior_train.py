@@ -314,6 +314,21 @@ class _CapturingConstantLogitModel(_ConstantLogitModel):
         )
 
 
+class _DeviceTrackingConstantLogitModel(_ConstantLogitModel):
+    def __init__(self) -> None:
+        super().__init__()
+        self.to_device_types: list[str] = []
+
+    def to(self, *args: object, **kwargs: object) -> "_DeviceTrackingConstantLogitModel":
+        raw_device = kwargs.get("device")
+        if raw_device is None and args:
+            raw_device = args[0]
+        if raw_device is not None:
+            self.to_device_types.append(torch.device(raw_device).type)
+        super().to(*args, **kwargs)
+        return self
+
+
 class _TracingConstantLogitModel(_ConstantLogitModel):
     def __init__(self) -> None:
         super().__init__()
@@ -444,6 +459,21 @@ def _prior_cfg(
     if schedule_cfg is not None:
         payload["schedule"] = schedule_cfg
     return OmegaConf.create(payload)
+
+
+def _staged_prior_cfg(
+    tmp_path: Path,
+    *,
+    max_steps: int,
+    stage: str = "row_cls_pool",
+    tfrow_n_layers: int = 3,
+) -> object:
+    cfg = _prior_cfg(tmp_path, max_steps=max_steps)
+    cfg.model.arch = "tabfoundry_staged"
+    cfg.model.stage = stage
+    cfg.model.stage_label = stage
+    cfg.model.tfrow_n_layers = tfrow_n_layers
+    return cfg
 
 
 def test_train_tabfoundry_simple_prior_averages_task_loss_and_steps_per_batch(
@@ -857,6 +887,79 @@ def test_train_tabfoundry_simple_prior_applies_linear_warmup_decay_schedule(
         pytest.approx(4.0e-3),
         pytest.approx(4.0e-4),
     ]
+
+
+def test_train_tabfoundry_simple_prior_scales_lr_with_prior_dump_batch_size(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_batch_scaled_lr.h5",
+        x=np.asarray(
+            [[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]],
+            dtype=np.float32,
+        ),
+        y=np.asarray([[0, 1, 0, 1]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([4], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    model = _ConstantLogitModel()
+    optimizer = _LrTrackingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+
+    cfg = _prior_cfg(
+        tmp_path,
+        max_steps=2,
+        training_cfg={
+            "surface_label": "prior_linear_decay",
+            "apply_schedule": True,
+            "prior_dump_batch_size": 16,
+            "prior_dump_lr_scale_rule": "sqrt",
+            "prior_dump_batch_reference_size": 32,
+        },
+        schedule_cfg={
+            "stages": [
+                {
+                    "name": "prior_dump",
+                    "steps": 2,
+                    "lr_max": 4.0e-3,
+                    "lr_schedule": "linear",
+                    "warmup_ratio": 0.0,
+                }
+            ]
+        },
+    )
+
+    _ = prior_train_module.train_tabfoundry_simple_prior(cfg, prior_dump_path=path)
+
+    scale = 2 ** -0.5
+    assert optimizer.step_lrs == [
+        pytest.approx(4.0e-3 * scale),
+        pytest.approx(4.0e-4 * scale),
+    ]
+
+    training_surface_record = json.loads(
+        (tmp_path / "train_out" / "training_surface_record.json").read_text(encoding="utf-8")
+    )
+    assert training_surface_record["training"]["prior_dump_batch_size"] == 16
+    assert training_surface_record["training"]["prior_dump_lr_scale_rule"] == "sqrt"
+    assert training_surface_record["training"]["prior_dump_batch_reference_size"] == 32
+    assert training_surface_record["training"]["effective_lr_scale_factor"] == pytest.approx(scale)
+    assert training_surface_record["training"]["optimizer_min_lr"] == pytest.approx(4.0e-4 * scale)
+    assert training_surface_record["training"]["schedule_stages"][0]["lr_max"] == pytest.approx(
+        4.0e-3 * scale
+    )
 
 
 def test_train_tabfoundry_simple_prior_matches_nanotabpfn_loss_for_one_batch(
@@ -1946,6 +2049,114 @@ def test_train_tabfoundry_simple_prior_accepts_plain_adamw(
 
     assert result.global_step == 1
     assert optimizer.step_count == 1
+
+
+def test_resolve_prior_training_device_name_falls_back_for_multilayer_row_cls_on_mps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    cfg = _staged_prior_cfg(tmp_path, max_steps=1, stage="row_cls_pool", tfrow_n_layers=3)
+    cfg.runtime.device = "mps"
+    spec = prior_train_module._model_spec_from_cfg(cfg)
+    staged_surface = prior_train_module._validate_prior_training_model_spec(spec)
+    monkeypatch.setattr(prior_train_module, "resolve_device", lambda _device: "mps")
+
+    device_name = prior_train_module._resolve_prior_training_device_name(
+        cfg,
+        spec=spec,
+        staged_surface=staged_surface,
+    )
+
+    assert device_name == "cpu"
+    assert str(cfg.runtime.device) == "cpu"
+    assert "row_pool='row_cls'" in capsys.readouterr().err
+
+
+def test_resolve_prior_training_device_name_keeps_mps_for_target_column(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    cfg = _staged_prior_cfg(tmp_path, max_steps=1, stage="nano_exact", tfrow_n_layers=3)
+    cfg.runtime.device = "mps"
+    spec = prior_train_module._model_spec_from_cfg(cfg)
+    staged_surface = prior_train_module._validate_prior_training_model_spec(spec)
+    monkeypatch.setattr(prior_train_module, "resolve_device", lambda _device: "mps")
+
+    device_name = prior_train_module._resolve_prior_training_device_name(
+        cfg,
+        spec=spec,
+        staged_surface=staged_surface,
+    )
+
+    assert device_name == "mps"
+    assert str(cfg.runtime.device) == "mps"
+    assert capsys.readouterr().err == ""
+
+
+def test_resolve_prior_training_device_name_keeps_mps_for_single_layer_row_cls(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    cfg = _staged_prior_cfg(tmp_path, max_steps=1, stage="row_cls_pool", tfrow_n_layers=1)
+    cfg.runtime.device = "mps"
+    spec = prior_train_module._model_spec_from_cfg(cfg)
+    staged_surface = prior_train_module._validate_prior_training_model_spec(spec)
+    monkeypatch.setattr(prior_train_module, "resolve_device", lambda _device: "mps")
+
+    device_name = prior_train_module._resolve_prior_training_device_name(
+        cfg,
+        spec=spec,
+        staged_surface=staged_surface,
+    )
+
+    assert device_name == "mps"
+    assert str(cfg.runtime.device) == "mps"
+    assert capsys.readouterr().err == ""
+
+
+def test_train_tabfoundry_staged_prior_falls_back_to_cpu_for_multilayer_row_cls_on_mps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_row_cls_fallback.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    model = _DeviceTrackingConstantLogitModel()
+    optimizer = _CountingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    monkeypatch.setattr(prior_train_module, "resolve_device", lambda _device: "mps")
+    cfg = _staged_prior_cfg(tmp_path, max_steps=1, stage="row_cls_pool", tfrow_n_layers=3)
+    cfg.runtime.device = "mps"
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=1,
+    )
+
+    assert result.global_step == 1
+    assert model.to_device_types == ["cpu"]
+    assert str(cfg.runtime.device) == "cpu"
+    assert "falling back to CPU" in capsys.readouterr().err
 
 
 def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(

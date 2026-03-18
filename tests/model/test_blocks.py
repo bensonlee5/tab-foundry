@@ -46,3 +46,25 @@ def test_tfrow_encoder_accepts_token_padding_mask() -> None:
     mask = torch.tensor([False, False, True, False, True], dtype=torch.bool)
     out = encoder(per_row, token_padding_mask=mask)
     assert out.shape == (3, 16)
+
+
+def test_tfrow_encoder_reinitializes_cloned_transformer_layers() -> None:
+    torch.manual_seed(0)
+    encoder = TFRowEncoder(d_model=16, n_heads=4, n_layers=3, cls_tokens=2, d_out=16)
+    layers = list(encoder.encoder.layers)
+    assert len(layers) == 3
+
+    for param_name in (
+        "self_attn.in_proj_weight",
+        "self_attn.out_proj.weight",
+        "linear1.weight",
+        "linear2.weight",
+    ):
+        layer0_param = dict(layers[0].named_parameters())[param_name]
+        layer1_param = dict(layers[1].named_parameters())[param_name]
+        layer2_param = dict(layers[2].named_parameters())[param_name]
+
+        assert layer0_param.data_ptr() != layer1_param.data_ptr()
+        assert layer1_param.data_ptr() != layer2_param.data_ptr()
+        assert not torch.equal(layer0_param, layer1_param)
+        assert not torch.equal(layer1_param, layer2_param)

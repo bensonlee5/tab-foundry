@@ -1553,6 +1553,368 @@ deltas:
     default_next_action: Run and compare against the anchor and other normalization rows.
     applicability_guards: []
 
+  dpnb_input_norm_anchor_replay:
+    dimension_family: training
+    family: baseline_replay
+    binary_applicable: true
+    description: Replay the promoted bridge baseline exactly on this machine before comparing normalization or batch-size variants.
+    upstream_delta: Not applicable; this is a repo-local metadata-only bridge anchor replay.
+    expected_effect: Establish a local comparator for all later rows while the canonical winning artifacts remain on another machine.
+    adequacy_knobs:
+      - training.prior_dump_batch_size
+      - optimizer.min_lr
+      - schedule.stages[0].lr_max
+    parameter_adequacy_policy:
+      default_plan:
+        - Run this row first so every later row has a local same-machine comparator.
+        - Treat benchmark ROC as primary and use drift/clipped-step telemetry as diagnostics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_row_cls_cls2_linear_warmup_decay
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+          row_pool: row_cls
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run this row first and keep it as the local comparator for the rest of the sweep.
+    applicability_guards: []
+
+  dpnb_input_norm_zscore:
+    dimension_family: preprocessing
+    family: input_normalization
+    binary_applicable: true
+    description: Remove external clipping and use plain train-only z-score normalization on the promoted bridge baseline.
+    upstream_delta: Upstream nanoTabPFN keeps internal z-score-plus-clip behavior on the exact path.
+    expected_effect: Clarifies whether clipping is still helping on the stabilized row-cls bridge surface.
+    adequacy_knobs:
+      - model.input_normalization
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the anchor replay before trying smoother tails or batch-size interactions.
+        - Use drift and clipped-step telemetry only as diagnostics for the benchmark outcome.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_input_norm_zscore
+        input_normalization: train_zscore
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Compare directly against the anchor replay to decide whether clipping should remain default.
+    applicability_guards: []
+
+  dpnb_input_norm_winsorize_zscore:
+    dimension_family: preprocessing
+    family: input_normalization
+    binary_applicable: true
+    description: Winsorize at the 1st and 99th train percentiles before z-scoring on the promoted bridge baseline.
+    upstream_delta: Upstream nanoTabPFN does not expose percentile winsorization as a first-class normalization mode.
+    expected_effect: May preserve outlier robustness while relaxing the hard post-z-score clip.
+    adequacy_knobs:
+      - model.input_normalization
+    parameter_adequacy_policy:
+      default_plan:
+        - Interpret this row as a bounded outlier-defense alternative, not as a smooth-tail mechanism.
+        - Compare against both the anchor replay and plain z-score before drawing conclusions.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_input_norm_winsorize_zscore
+        input_normalization: train_winsorize_zscore
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Compare against the anchor replay and plain z-score to decide whether percentile clipping is worth keeping around.
+    applicability_guards: []
+
+  dpnb_input_norm_zscore_tanh:
+    dimension_family: preprocessing
+    family: input_normalization
+    binary_applicable: true
+    description: Apply train-only z-score normalization followed by a smooth tanh tail squash on the promoted bridge baseline.
+    upstream_delta: Upstream nanoTabPFN does not expose a smooth-tail normalization family.
+    expected_effect: Preserves near-linear scale around zero while soft-bounding outliers without hard clipping.
+    adequacy_knobs:
+      - model.input_normalization
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as the primary smooth-tail row for the sweep.
+        - If it wins locally, use it for the batch-size interaction sidecars before reopening any other preprocessing family.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_input_norm_zscore_tanh
+        input_normalization: train_zscore_tanh
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Use this as the favored smooth-tail row before any batch-size interaction checks.
+    applicability_guards: []
+
+  dpnb_input_norm_robust_tanh:
+    dimension_family: preprocessing
+    family: input_normalization
+    binary_applicable: true
+    description: Apply robust median/IQR scaling followed by a smooth tanh tail squash on the promoted bridge baseline.
+    upstream_delta: Upstream nanoTabPFN does not expose this robust smooth-tail normalization family.
+    expected_effect: Tests whether a more outlier-resistant center/scale estimate helps more than plain z-score plus smooth tails.
+    adequacy_knobs:
+      - model.input_normalization
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare this against zscore_tanh rather than against the anchor alone so the smooth-tail family is properly separated.
+        - Prefer the simpler z-score family unless this row shows clear benchmark upside.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_input_norm_robust_tanh
+        input_normalization: train_robust_tanh
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Compare against zscore_tanh before investing more budget in robust-tail preprocessing.
+    applicability_guards: []
+
+  dpnb_input_norm_anchor_replay_batch16_sqrt:
+    dimension_family: training
+    family: batch_size
+    binary_applicable: true
+    description: Replay the promoted bridge baseline at prior-dump batch size 16 with sqrt LR scaling.
+    upstream_delta: Not applicable; this is a repo-local exact-prior systems probe.
+    expected_effect: Tests whether smaller batches improve the bridge baseline once LR is scaled conservatively.
+    adequacy_knobs:
+      - training.prior_dump_batch_size
+      - training.prior_dump_lr_scale_rule
+      - schedule.stages[0].lr_max
+      - optimizer.min_lr
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare this row against the batch-32 anchor replay before combining batch changes with normalization changes.
+        - Use benchmark quality first and telemetry second.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_input_norm_anchor_replay_batch16_sqrt
+        input_normalization: train_zscore_clip
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 16
+        prior_dump_lr_scale_rule: sqrt
+        prior_dump_batch_reference_size: 32
+    default_next_action: Compare against the batch-32 anchor replay before attributing any gain to normalization.
+    applicability_guards: []
+
+  dpnb_input_norm_anchor_replay_batch64_sqrt:
+    dimension_family: training
+    family: batch_size
+    binary_applicable: true
+    description: Replay the promoted bridge baseline at prior-dump batch size 64 with sqrt LR scaling.
+    upstream_delta: Not applicable; this is a repo-local exact-prior systems probe.
+    expected_effect: Tests whether the stabilized bridge surface prefers a larger effective batch when LR is scaled up conservatively.
+    adequacy_knobs:
+      - training.prior_dump_batch_size
+      - training.prior_dump_lr_scale_rule
+      - schedule.stages[0].lr_max
+      - optimizer.min_lr
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare this row against the batch-32 anchor replay before combining batch changes with normalization changes.
+        - Use benchmark quality first and telemetry second.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
+        input_normalization: train_zscore_clip
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 64
+        prior_dump_lr_scale_rule: sqrt
+        prior_dump_batch_reference_size: 32
+    default_next_action: Compare against the batch-32 anchor replay before attributing any gain to normalization.
+    applicability_guards: []
+
+  dpnb_input_norm_zscore_tanh_batch16_sqrt:
+    dimension_family: training
+    family: batch_size
+    binary_applicable: true
+    description: Combine the favored smooth-tail zscore_tanh normalization with prior-dump batch size 16 and sqrt LR scaling.
+    upstream_delta: Not applicable; this is a repo-local interaction probe between smooth-tail preprocessing and smaller batch size.
+    expected_effect: Checks whether any zscore_tanh gains survive or improve at a smaller, scaled batch.
+    adequacy_knobs:
+      - training.prior_dump_batch_size
+      - training.prior_dump_lr_scale_rule
+      - model.input_normalization
+    parameter_adequacy_policy:
+      default_plan:
+        - Only interpret this row after comparing zscore_tanh itself against the anchor replay.
+        - Use it to decide whether batch size changes interact constructively with the smooth-tail row.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_input_norm_zscore_tanh_batch16_sqrt
+        input_normalization: train_zscore_tanh
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 16
+        prior_dump_lr_scale_rule: sqrt
+        prior_dump_batch_reference_size: 32
+    default_next_action: Compare against the plain zscore_tanh row before concluding that batch size is part of the mechanism.
+    applicability_guards: []
+
+  dpnb_input_norm_zscore_tanh_batch64_sqrt:
+    dimension_family: training
+    family: batch_size
+    binary_applicable: true
+    description: Combine the favored smooth-tail zscore_tanh normalization with prior-dump batch size 64 and sqrt LR scaling.
+    upstream_delta: Not applicable; this is a repo-local interaction probe between smooth-tail preprocessing and larger batch size.
+    expected_effect: Checks whether any zscore_tanh gains survive or improve at a larger, scaled batch.
+    adequacy_knobs:
+      - training.prior_dump_batch_size
+      - training.prior_dump_lr_scale_rule
+      - model.input_normalization
+    parameter_adequacy_policy:
+      default_plan:
+        - Only interpret this row after comparing zscore_tanh itself against the anchor replay.
+        - Use it to decide whether batch size changes interact constructively with the smooth-tail row.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_input_norm_zscore_tanh_batch64_sqrt
+        input_normalization: train_zscore_tanh
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 64
+        prior_dump_lr_scale_rule: sqrt
+        prior_dump_batch_reference_size: 32
+    default_next_action: Compare against the plain zscore_tanh row before concluding that batch size is part of the mechanism.
+    applicability_guards: []
+
   delta_preproc_label_mapping_surface:
     dimension_family: preprocessing
     family: label_mapping

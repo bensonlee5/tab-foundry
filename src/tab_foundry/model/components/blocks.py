@@ -9,6 +9,38 @@ from .normalization import build_norm
 from .qass import QASSMultiheadAttention
 
 
+def _reset_norm_module(module: nn.Module) -> None:
+    reset_parameters = getattr(module, "reset_parameters", None)
+    if callable(reset_parameters):
+        reset_parameters()
+        return
+    weight = getattr(module, "weight", None)
+    bias = getattr(module, "bias", None)
+    with torch.no_grad():
+        if isinstance(weight, torch.Tensor):
+            weight.fill_(1.0)
+        if isinstance(bias, torch.Tensor):
+            bias.zero_()
+
+
+def _reinitialize_transformer_encoder_layer(layer: nn.TransformerEncoderLayer) -> None:
+    # nn.TransformerEncoder clones one initialized layer N times, so we must
+    # reinitialize each clone to avoid value-identical deep stacks.
+    layer.self_attn._reset_parameters()
+    layer.self_attn.out_proj.reset_parameters()
+    layer.linear1.reset_parameters()
+    layer.linear2.reset_parameters()
+    _reset_norm_module(layer.norm1)
+    _reset_norm_module(layer.norm2)
+
+
+def _reinitialize_transformer_encoder(encoder: nn.TransformerEncoder) -> None:
+    for layer in encoder.layers:
+        _reinitialize_transformer_encoder_layer(layer)
+    if encoder.norm is not None:
+        _reset_norm_module(encoder.norm)
+
+
 class ISABBlock(nn.Module):
     """Induced set attention block."""
 
@@ -144,6 +176,7 @@ class TFRowEncoder(nn.Module):
             norm=build_norm(norm_type, d_model),
             enable_nested_tensor=False,
         )
+        _reinitialize_transformer_encoder(self.encoder)
         self.out = nn.Linear(cls_tokens * d_model, d_out)
 
     def forward(

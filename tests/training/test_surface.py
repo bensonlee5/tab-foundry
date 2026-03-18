@@ -365,3 +365,50 @@ def test_build_training_surface_record_includes_optional_training_surface(
     assert record["training"]["optimizer_name"] == "schedulefree_adamw"
     assert record["training"]["optimizer_min_lr"] == 4.0e-4
     assert record["training"]["schedule_stages"][0]["warmup_ratio"] == 0.05
+    assert record["training"]["prior_dump_batch_size"] is None
+    assert record["training"]["prior_dump_lr_scale_rule"] is None
+    assert record["training"]["prior_dump_batch_reference_size"] is None
+    assert record["training"]["effective_lr_scale_factor"] is None
+
+
+def test_build_training_surface_record_captures_prior_dump_batch_scaling_metadata(
+    tmp_path: Path,
+) -> None:
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry"},
+            "training": {
+                "surface_label": "prior_linear_warmup_decay",
+                "apply_schedule": True,
+                "prior_dump_non_finite_policy": "skip",
+                "prior_dump_batch_size": 64,
+                "prior_dump_lr_scale_rule": "sqrt",
+                "prior_dump_batch_reference_size": 32,
+                "effective_lr_scale_factor": 2 ** 0.5,
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "min_lr": 5.656854249492381e-4,
+            },
+            "schedule": {
+                "stages": [
+                    {
+                        "name": "prior_dump",
+                        "steps": 2500,
+                        "lr_max": 5.656854249492381e-3,
+                        "lr_schedule": "linear",
+                        "warmup_ratio": 0.05,
+                    }
+                ]
+            },
+        },
+        run_dir=tmp_path / "run_prior_scaling",
+    )
+
+    assert record["training"]["prior_dump_batch_size"] == 64
+    assert record["training"]["prior_dump_lr_scale_rule"] == "sqrt"
+    assert record["training"]["prior_dump_batch_reference_size"] == 32
+    assert record["training"]["effective_lr_scale_factor"] == 2 ** 0.5
+    assert record["training"]["optimizer_min_lr"] == 5.656854249492381e-4
+    assert record["training"]["schedule_stages"][0]["lr_max"] == 5.656854249492381e-3

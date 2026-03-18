@@ -1,0 +1,55 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: input_norm_followup
+parent_sweep_id: stability_followup
+status: draft
+complexity_level: binary_md
+anchor_run_id: null
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+  - This follow-up is anchored on the promoted `dpnb_row_cls_cls2_linear_warmup_decay` metadata-only bridge baseline rather than the older post-layernorm canonical anchor.
+  - The baseline artifacts still live on another machine, so row 1 is a required local anchor replay and `anchor_run_id` remains null.
+  - The queue isolates input normalization first, then adds bounded batch-size sidecars with explicit sqrt LR scaling around the reference batch size of 32.
+  - RMSNorm is intentionally out of scope here; the architecture stays fixed at the promoted prenorm plus row-cls bridge surface.
+  dimension_table:
+  - dimension: bridge architecture
+    upstream: Old bridge rows established that prenorm plus row-cls cls2 can train cleanly with linear warmup decay.
+    anchor: Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `tfrow_cls_tokens=2`, and `post_encoder_norm=none` fixed.
+    interpretation: Changes in this sweep should be attributed to preprocessing or batch-size effects, not to a reopened architecture axis.
+  - dimension: input normalization
+    upstream: The bridge baseline still uses `train_zscore_clip`.
+    anchor: Compare plain unclipped z-score, winsorize+zscore, zscore+tanh, and robust+tanh against the clipped bridge default.
+    interpretation: The main question is whether hard clipping remains necessary once the bridge baseline is stabilized.
+  - dimension: batch-size scaling
+    upstream: Exact-prior training previously treated batch size as a hidden function argument rather than a tracked surface knob.
+    anchor: Add sidecars at batch sizes 16 and 64 with sqrt LR scaling relative to the reference batch size of 32.
+    interpretation: Batch-size rows are interaction probes, not a new mainline sweep family.
+anchor_context:
+  run_id: null
+  experiment: cls_benchmark_staged_prior
+  config_profile: cls_benchmark_staged_prior
+  model:
+    arch: tabfoundry_staged
+    stage: nano_exact
+    stage_label: dpnb_row_cls_cls2_linear_warmup_decay
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: nano
+      head: binary_direct
+      post_encoder_norm: none
+      row_pool: row_cls
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: dpnb_row_cls_cls2_linear_warmup_decay
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

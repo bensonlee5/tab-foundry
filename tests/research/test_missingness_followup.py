@@ -24,7 +24,7 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
 def test_missingness_followup_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "binary_md_v3"
+    assert index["active_sweep_id"] == "input_norm_followup"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
