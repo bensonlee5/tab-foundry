@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/input_norm_followup/qu
 ## Sweep
 
 - Sweep id: `input_norm_followup`
-- Sweep status: `active`
+- Sweep status: `completed`
 - Parent sweep id: `stability_followup`
 - Complexity level: `binary_md`
 

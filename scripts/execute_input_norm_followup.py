@@ -250,7 +250,7 @@ def _research_card_text(*, row: Mapping[str, Any], sweep_id: str, anchor_run_id:
             f"- `dimension_family`: `{row['dimension_family']}`",
             f"- `family`: `{row['family']}`",
             f"- `anchor_run_id`: `{anchor_run_id}`",
-            f"- `comparison_policy`: `anchor_only`",
+            "- `comparison_policy`: `anchor_only`",
             "",
             "## What Changes",
             "",

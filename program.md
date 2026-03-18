@@ -32,7 +32,7 @@ Supporting metrics are:
 Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
-- active sweep id: `input_norm_followup`
+- active sweep id: `cuda_capacity_pilot`
 - anchor run id: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`
 - anchor prior run: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/train`
 - anchor benchmark: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/benchmark`
@@ -41,8 +41,8 @@ dimension family:
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
-- canonical sweep queue: `reference/system_delta_sweeps/input_norm_followup/queue.yaml`
-- canonical sweep matrix: `reference/system_delta_sweeps/input_norm_followup/matrix.md`
+- canonical sweep queue: `reference/system_delta_sweeps/cuda_capacity_pilot/queue.yaml`
+- canonical sweep matrix: `reference/system_delta_sweeps/cuda_capacity_pilot/matrix.md`
 - active queue alias: `reference/system_delta_queue.yaml`
 - active matrix alias: `reference/system_delta_matrix.md`
 - research template: `reference/system_delta_campaign_template.md`

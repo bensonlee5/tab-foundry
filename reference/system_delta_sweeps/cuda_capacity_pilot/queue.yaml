@@ -1,0 +1,183 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: cuda_capacity_pilot
+rows:
+  - order: 1
+    delta_ref: dpnb_cuda_large_anchor
+    status: ready
+    rationale: Establish a large CUDA-sized bridge baseline before asking whether width or depth matters more.
+    hypothesis: The promoted bridge recipe should benefit from a larger exact-prior trunk even without changing the optimizer or preprocessing family.
+    anchor_delta: Reuses the registered bridge anchor run but promotes the row itself to the large CUDA base with the same bridge modules and training recipe.
+    parameter_adequacy_plan:
+      - Run this row first and treat it as the local large-model comparator for the rest of the pilot.
+      - Rank by final ROC AUC first, then best ROC AUC, drift, and final training-time delta versus the compact anchor.
+      - Use activation and clipping telemetry to explain wins or losses, not to override benchmark quality.
+    model:
+      stage: nano_exact
+      stage_label: dpnb_cuda_large_anchor
+      d_col: 128
+      d_icl: 512
+      input_normalization: train_zscore_clip
+      module_overrides:
+        table_block_style: prenorm
+        allow_test_self_attention: false
+        row_pool: row_cls
+      tfrow_n_heads: 8
+      tfrow_n_layers: 3
+      tfrow_cls_tokens: 2
+      tfrow_norm: layernorm
+      tficl_n_heads: 8
+      tficl_n_layers: 12
+      head_hidden_dim: 1024
+    data:
+      surface_label: anchor_manifest_default
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_linear_warmup_decay
+      prior_dump_non_finite_policy: skip
+      prior_dump_batch_size: 32
+      prior_dump_lr_scale_rule: none
+      prior_dump_batch_reference_size: 32
+      overrides:
+        apply_schedule: true
+        optimizer:
+          min_lr: 0.0004
+        runtime:
+          grad_clip: 1.0
+          max_steps: 2500
+          trace_activations: true
+        schedule:
+          stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.004
+              lr_schedule: linear
+              warmup_ratio: 0.05
+    run_id: null
+    followup_run_ids: []
+    decision: null
+    interpretation_status: pending
+    confounders: []
+    next_action: Run this row first to establish the large CUDA bridge baseline before evaluating width or depth probes.
+    notes:
+      - This row is the baseline for the pilot even though the sweep anchor remains the compact registered bridge run.
+  - order: 2
+    delta_ref: dpnb_cuda_large_width_x2
+    status: ready
+    rationale: Test whether a substantially wider bridge trunk beats the large anchor without also changing depth.
+    hypothesis: Increasing representational width at fixed depth may recover more quality than adding more layers on this benchmark bundle.
+    anchor_delta: Changes only the width-related capacity knobs relative to row 1 while leaving bridge modules, normalization, and schedule fixed.
+    parameter_adequacy_plan:
+      - Compare directly against row 1 before reading row 3.
+      - Treat this as a sibling model-capacity probe rather than a new long-budget family.
+      - Prefer width only if the benchmark win survives the training-time increase.
+    model:
+      stage: nano_exact
+      stage_label: dpnb_cuda_large_width_x2
+      d_col: 256
+      d_icl: 1024
+      input_normalization: train_zscore_clip
+      module_overrides:
+        table_block_style: prenorm
+        allow_test_self_attention: false
+        row_pool: row_cls
+      tfrow_n_heads: 8
+      tfrow_n_layers: 3
+      tfrow_cls_tokens: 2
+      tfrow_norm: layernorm
+      tficl_n_heads: 8
+      tficl_n_layers: 12
+      head_hidden_dim: 2048
+    data:
+      surface_label: anchor_manifest_default
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_linear_warmup_decay
+      prior_dump_non_finite_policy: skip
+      prior_dump_batch_size: 32
+      prior_dump_lr_scale_rule: none
+      prior_dump_batch_reference_size: 32
+      overrides:
+        apply_schedule: true
+        optimizer:
+          min_lr: 0.0004
+        runtime:
+          grad_clip: 1.0
+          max_steps: 2500
+          trace_activations: true
+        schedule:
+          stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.004
+              lr_schedule: linear
+              warmup_ratio: 0.05
+    run_id: null
+    followup_run_ids: []
+    decision: null
+    interpretation_status: pending
+    confounders: []
+    next_action: Compare this row against the large anchor and decide whether width deserves a dedicated second sweep.
+    notes:
+      - This row deliberately leaves `tficl_n_layers=12` fixed so the width effect stays attributable.
+  - order: 3
+    delta_ref: dpnb_cuda_large_depth_plus4
+    status: ready
+    rationale: Test whether modestly deeper ICL processing helps more than width once the large bridge base is established.
+    hypothesis: Extra transformer depth may improve benchmark quality if the large anchor is still under-expressive at fixed width.
+    anchor_delta: Changes only `tficl_n_layers` relative to row 1 while keeping width, normalization, and training budget fixed.
+    parameter_adequacy_plan:
+      - Compare directly against row 1 after the width probe is available.
+      - Treat this as the depth sibling of row 2, not as evidence for longer training.
+      - Open the budget follow-up only after rows 1-3 establish the best architecture of this pilot.
+    model:
+      stage: nano_exact
+      stage_label: dpnb_cuda_large_depth_plus4
+      d_col: 128
+      d_icl: 512
+      input_normalization: train_zscore_clip
+      module_overrides:
+        table_block_style: prenorm
+        allow_test_self_attention: false
+        row_pool: row_cls
+      tfrow_n_heads: 8
+      tfrow_n_layers: 3
+      tfrow_cls_tokens: 2
+      tfrow_norm: layernorm
+      tficl_n_heads: 8
+      tficl_n_layers: 16
+      head_hidden_dim: 1024
+    data:
+      surface_label: anchor_manifest_default
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_linear_warmup_decay
+      prior_dump_non_finite_policy: skip
+      prior_dump_batch_size: 32
+      prior_dump_lr_scale_rule: none
+      prior_dump_batch_reference_size: 32
+      overrides:
+        apply_schedule: true
+        optimizer:
+          min_lr: 0.0004
+        runtime:
+          grad_clip: 1.0
+          max_steps: 2500
+          trace_activations: true
+        schedule:
+          stages:
+            - name: prior_dump
+              steps: 2500
+              lr_max: 0.004
+              lr_schedule: linear
+              warmup_ratio: 0.05
+    run_id: null
+    followup_run_ids: []
+    decision: null
+    interpretation_status: pending
+    confounders: []
+    next_action: Compare this row against the large anchor and then choose whether width, depth, or the large anchor itself should seed the budget follow-up.
+    notes:
+      - This row deliberately keeps the large-anchor width fixed so the depth effect stays attributable.

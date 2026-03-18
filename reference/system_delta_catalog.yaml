@@ -1915,6 +1915,348 @@ deltas:
     default_next_action: Compare against the plain zscore_tanh row before concluding that batch size is part of the mechanism.
     applicability_guards: []
 
+  dpnb_cuda_large_anchor:
+    dimension_family: model
+    family: size_scaling
+    binary_applicable: true
+    description: Establish the large CUDA-sized bridge baseline on the stabilized prenorm plus row-cls recipe.
+    upstream_delta: Not applicable; this is a repo-local capacity expansion relative to the compact registered bridge anchor.
+    expected_effect: A larger exact-prior trunk may improve quality if the promoted bridge surface is still capacity-limited at the compact size.
+    adequacy_knobs:
+      - model.d_icl
+      - model.tficl_n_heads
+      - model.tficl_n_layers
+      - model.head_hidden_dim
+    parameter_adequacy_policy:
+      default_plan:
+        - Run this row first and treat it as the large-model comparator for the rest of the capacity pilot.
+        - Compare against the compact registered anchor on benchmark ROC first, then drift and training-time delta.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_large_anchor
+        d_col: 128
+        d_icl: 512
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+          row_pool: row_cls
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        head_hidden_dim: 1024
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run this row first to establish the large CUDA bridge baseline.
+    applicability_guards: []
+
+  dpnb_cuda_large_width_x2:
+    dimension_family: model
+    family: size_scaling
+    binary_applicable: true
+    description: Double the large-anchor width-related capacity while keeping bridge modules and depth fixed.
+    upstream_delta: Not applicable; this is a repo-local width probe on the large bridge baseline.
+    expected_effect: More width may improve representation quality if the large anchor remains bottlenecked on hidden size rather than depth.
+    adequacy_knobs:
+      - model.d_col
+      - model.d_icl
+      - model.head_hidden_dim
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the large-anchor row before reading the depth probe.
+        - Prefer width only if its benchmark gain survives the training-time cost.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_large_width_x2
+        d_col: 256
+        d_icl: 1024
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+          row_pool: row_cls
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        head_hidden_dim: 2048
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Compare against the large anchor before opening any width-only follow-up.
+    applicability_guards: []
+
+  dpnb_cuda_large_depth_plus4:
+    dimension_family: model
+    family: size_scaling
+    binary_applicable: true
+    description: Add four ICL transformer layers on top of the large CUDA bridge anchor while keeping width fixed.
+    upstream_delta: Not applicable; this is a repo-local depth probe on the large bridge baseline.
+    expected_effect: More depth may improve benchmark quality if the large anchor needs extra iterative processing more than extra width.
+    adequacy_knobs:
+      - model.tficl_n_layers
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the large-anchor row after the width probe is available.
+        - Treat this as the depth sibling of the width row rather than a budget change.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_large_depth_plus4
+        d_col: 128
+        d_icl: 512
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+          row_pool: row_cls
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 16
+        head_hidden_dim: 1024
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Compare against the large anchor before deciding whether depth deserves a dedicated follow-up.
+    applicability_guards: []
+
+  dpnb_cuda_budget_5k:
+    dimension_family: training
+    family: budget
+    binary_applicable: true
+    description: Re-run the chosen large-capacity bridge row for 5000 steps under the same optimizer and schedule family.
+    upstream_delta: Not applicable; this is a repo-local training-budget adequacy probe.
+    expected_effect: If the chosen capacity row is compute-limited at 2500 steps, doubling the budget should improve final ROC AUC without changing the mechanism family.
+    adequacy_knobs:
+      - training.overrides.runtime.max_steps
+      - training.overrides.schedule.stages[0].steps
+    parameter_adequacy_policy:
+      default_plan:
+        - Re-anchor this row to the winning capacity architecture before execution.
+        - Compare against the chosen 2500-step capacity row and treat any gain as budget adequacy evidence only.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_anchor_selection
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_budget_5k
+        d_col: 128
+        d_icl: 512
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+          row_pool: row_cls
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        head_hidden_dim: 1024
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 5000
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 5000
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Wait for the capacity pilot winner, then bind this row to that architecture before running it.
+    applicability_guards: []
+
+  dpnb_cuda_budget_10k:
+    dimension_family: training
+    family: budget
+    binary_applicable: true
+    description: Re-run the chosen large-capacity bridge row for 10000 steps under the same optimizer and schedule family.
+    upstream_delta: Not applicable; this is a repo-local training-budget adequacy probe.
+    expected_effect: Further budget may help only if the chosen capacity row still looks compute-limited after the 5000-step rerun.
+    adequacy_knobs:
+      - training.overrides.runtime.max_steps
+      - training.overrides.schedule.stages[0].steps
+    parameter_adequacy_policy:
+      default_plan:
+        - Re-anchor this row to the winning capacity architecture before execution.
+        - Use it only after the 5000-step row still shows headroom.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_anchor_selection
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_budget_10k
+        d_col: 128
+        d_icl: 512
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+          row_pool: row_cls
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        head_hidden_dim: 1024
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 10000
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 10000
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Keep this row blocked unless the 5000-step rerun still looks compute-limited.
+    applicability_guards: []
+
   delta_preproc_label_mapping_surface:
     dimension_family: preprocessing
     family: label_mapping
