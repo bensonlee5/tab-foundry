@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
-import json
-import math
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 import torch
@@ -37,6 +34,21 @@ from tab_foundry.bench.registry.schema import (
     REGISTRY_SCHEMA,
     REGISTRY_VERSION,
 )
+from tab_foundry.bench.registry.storage import (
+    ensure_registry_payload as _ensure_registry_payload_common,
+    load_versioned_registry_payload as _load_versioned_registry_payload,
+    upsert_registry_entry as _upsert_registry_entry_common,
+    utc_now as _utc_now_common,
+)
+from tab_foundry.bench.registry.summary_metrics import (
+    benchmark_bundle_payload_from_summary as _benchmark_bundle_payload_from_summary,
+    ensure_mapping as _ensure_mapping_common,
+    ensure_non_empty_string as _ensure_non_empty_string_common,
+    ensure_optional_finite_number as _ensure_optional_finite_number_common,
+    ensure_optional_positive_int as _ensure_optional_positive_int_common,
+    ensure_optional_string as _ensure_optional_string_common,
+    tab_foundry_metrics_from_summary as _tab_foundry_metrics_from_summary_common,
+)
 from tab_foundry.data.surface import resolve_data_surface
 
 
@@ -67,10 +79,7 @@ def default_benchmark_run_registry_path() -> Path:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace(
-        "+00:00",
-        "Z",
-    )
+    return _utc_now_common()
 
 
 def _empty_registry() -> dict[str, Any]:
@@ -82,23 +91,15 @@ def _empty_registry() -> dict[str, Any]:
 
 
 def _ensure_non_empty_string(value: Any, *, context: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise RuntimeError(f"{context} must be a non-empty string")
-    return str(value)
+    return _ensure_non_empty_string_common(value, context=context)
 
 
 def _ensure_optional_string(value: Any, *, context: str) -> str | None:
-    if value is None:
-        return None
-    return _ensure_non_empty_string(value, context=context)
+    return _ensure_optional_string_common(value, context=context)
 
 
 def _ensure_optional_positive_int(value: Any, *, context: str) -> int | None:
-    if value is None:
-        return None
-    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
-        raise RuntimeError(f"{context} must be a positive int or null")
-    return int(value)
+    return _ensure_optional_positive_int_common(value, context=context)
 
 
 def _sweep_payload(
@@ -132,119 +133,30 @@ def _sweep_payload(
 
 
 def _ensure_optional_finite_number(value: Any, *, context: str) -> float | None:
-    if value is None:
-        return None
-    if not isinstance(value, (int, float)) or isinstance(value, bool):
-        raise RuntimeError(f"{context} must be a number or null")
-    value_f = float(value)
-    if not math.isfinite(value_f):
-        raise RuntimeError(f"{context} must be finite when present")
-    return value_f
+    return _ensure_optional_finite_number_common(value, context=context)
 
 
 def _ensure_mapping(value: Any, *, context: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise RuntimeError(f"{context} must be an object")
-    return cast(dict[str, Any], value)
+    return _ensure_mapping_common(value, context=context)
 
 
 def _tab_foundry_metrics_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str, float | None]:
-    metrics: dict[str, float | None] = {
-        "best_step": float(tab_foundry["best_step"]),
-        "best_training_time": float(tab_foundry["best_training_time"]),
-        "best_roc_auc": _ensure_optional_finite_number(
-            tab_foundry.get("best_roc_auc"),
-            context="comparison_summary.tab_foundry.best_roc_auc",
-        ),
-        "best_log_loss": _ensure_optional_finite_number(
-            tab_foundry.get("best_log_loss"),
-            context="comparison_summary.tab_foundry.best_log_loss",
-        ),
-        "best_brier_score": _ensure_optional_finite_number(
-            tab_foundry.get("best_brier_score"),
-            context="comparison_summary.tab_foundry.best_brier_score",
-        ),
-        "best_crps": _ensure_optional_finite_number(
-            tab_foundry.get("best_crps"),
-            context="comparison_summary.tab_foundry.best_crps",
-        ),
-        "best_avg_pinball_loss": _ensure_optional_finite_number(
-            tab_foundry.get("best_avg_pinball_loss"),
-            context="comparison_summary.tab_foundry.best_avg_pinball_loss",
-        ),
-        "best_picp_90": _ensure_optional_finite_number(
-            tab_foundry.get("best_picp_90"),
-            context="comparison_summary.tab_foundry.best_picp_90",
-        ),
-        "final_step": float(tab_foundry["final_step"]),
-        "final_training_time": float(tab_foundry["final_training_time"]),
-        "final_roc_auc": _ensure_optional_finite_number(
-            tab_foundry.get("final_roc_auc"),
-            context="comparison_summary.tab_foundry.final_roc_auc",
-        ),
-        "final_log_loss": _ensure_optional_finite_number(
-            tab_foundry.get("final_log_loss"),
-            context="comparison_summary.tab_foundry.final_log_loss",
-        ),
-        "final_brier_score": _ensure_optional_finite_number(
-            tab_foundry.get("final_brier_score"),
-            context="comparison_summary.tab_foundry.final_brier_score",
-        ),
-        "final_crps": _ensure_optional_finite_number(
-            tab_foundry.get("final_crps"),
-            context="comparison_summary.tab_foundry.final_crps",
-        ),
-        "final_avg_pinball_loss": _ensure_optional_finite_number(
-            tab_foundry.get("final_avg_pinball_loss"),
-            context="comparison_summary.tab_foundry.final_avg_pinball_loss",
-        ),
-        "final_picp_90": _ensure_optional_finite_number(
-            tab_foundry.get("final_picp_90"),
-            context="comparison_summary.tab_foundry.final_picp_90",
-        ),
-    }
-    return metrics
+    return _tab_foundry_metrics_from_summary_common(tab_foundry)
 
 
 def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
-    registry_path = path.expanduser().resolve()
-    if not registry_path.exists():
-        if allow_missing:
-            return _empty_registry()
-        raise RuntimeError(f"benchmark run registry does not exist: {registry_path}")
-    with registry_path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"benchmark run registry must be a JSON object: {registry_path}")
-    actual_keys = set(payload.keys())
-    if actual_keys != _TOP_LEVEL_KEYS:
-        raise RuntimeError(
-            "benchmark run registry keys mismatch: "
-            f"missing={sorted(_TOP_LEVEL_KEYS - actual_keys)}, "
-            f"extra={sorted(actual_keys - _TOP_LEVEL_KEYS)}"
-        )
-    if payload["schema"] != REGISTRY_SCHEMA:
-        raise RuntimeError(
-            "benchmark run registry schema mismatch: "
-            f"expected={REGISTRY_SCHEMA!r}, actual={payload['schema']!r}"
-        )
-    if int(payload["version"]) != REGISTRY_VERSION:
-        raise RuntimeError(
-            "benchmark run registry version mismatch: "
-            f"expected={REGISTRY_VERSION}, actual={payload['version']}"
-        )
-    runs = payload["runs"]
-    if not isinstance(runs, dict):
-        raise RuntimeError("benchmark run registry runs must be an object")
-    for run_id, entry in runs.items():
-        if not isinstance(run_id, str) or not run_id.strip():
-            raise RuntimeError("benchmark run registry ids must be non-empty strings")
-        _validate_run_entry(entry, run_id=str(run_id))
-    return {
-        "schema": REGISTRY_SCHEMA,
-        "version": REGISTRY_VERSION,
-        "runs": {str(key): value for key, value in runs.items()},
-    }
+    return _load_versioned_registry_payload(
+        path,
+        allow_missing=allow_missing,
+        empty_payload=_empty_registry(),
+        top_level_keys=_TOP_LEVEL_KEYS,
+        schema=REGISTRY_SCHEMA,
+        version=REGISTRY_VERSION,
+        entries_key="runs",
+        registry_label="benchmark run registry",
+        validate_entry_fn=_validate_run_entry,
+        entry_label="run_id",
+    )
 
 
 def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
@@ -254,9 +166,11 @@ def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
 
 
 def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, Any]]:
-    registry_path = (path or default_benchmark_run_registry_path()).expanduser().resolve()
-    payload = _load_registry_payload(registry_path, allow_missing=True)
-    return registry_path, payload
+    return _ensure_registry_payload_common(
+        path,
+        default_path=default_benchmark_run_registry_path(),
+        load_registry_payload_fn=_load_registry_payload,
+    )
 
 
 def derive_benchmark_run_record(
@@ -324,10 +238,6 @@ def derive_benchmark_run_record(
 
     history = load_history(history_path)
     benchmark_bundle = _ensure_mapping(summary["benchmark_bundle"], context="comparison_summary.benchmark_bundle")
-    benchmark_bundle_source = _ensure_non_empty_string(
-        benchmark_bundle.get("source_path"),
-        context="comparison_summary.benchmark_bundle.source_path",
-    )
     raw_artifacts = summary.get("artifacts")
     comparison_curve_path: Path | None = None
     if isinstance(raw_artifacts, dict):
@@ -351,15 +261,12 @@ def derive_benchmark_run_record(
             state_dict=raw_state_dict,
             summary_tab_foundry=tab_foundry,
         ),
-        "benchmark_bundle": {
-            "name": str(benchmark_bundle["name"]),
-            "version": int(benchmark_bundle["version"]),
-            "source_path": _normalize_path_value(resolve_registry_path_value(benchmark_bundle_source)),
-            "task_count": int(benchmark_bundle["task_count"]),
-            "task_ids": [
-                int(task_id) for task_id in cast(list[Any], benchmark_bundle["task_ids"])
-            ],
-        },
+        "benchmark_bundle": _benchmark_bundle_payload_from_summary(
+            benchmark_bundle,
+            source_context="comparison_summary.benchmark_bundle.source_path",
+            normalize_path_value_fn=_normalize_path_value,
+            resolve_registry_path_value_fn=resolve_registry_path_value,
+        ),
         "artifacts": {
             "run_dir": _normalize_path_value(resolved_run_dir),
             "benchmark_dir": _normalize_path_value(resolved_summary_path.parent),
@@ -577,13 +484,17 @@ def upsert_benchmark_run_entry(
 ) -> Path:
     """Insert or replace one benchmark run entry in the registry."""
 
-    run_id = str(entry["run_id"])
-    _validate_run_entry(entry, run_id=run_id)
-    resolved_registry_path, payload = _ensure_registry_payload(registry_path)
-    runs = cast(dict[str, Any], payload["runs"])
-    runs[run_id] = _copy_jsonable(entry)
-    write_json(resolved_registry_path, payload)
-    return resolved_registry_path
+    return _upsert_registry_entry_common(
+        entry,
+        entry_id_key="run_id",
+        validate_entry_fn=_validate_run_entry,
+        registry_path=registry_path,
+        default_path=default_benchmark_run_registry_path(),
+        load_registry_payload_fn=_load_registry_payload,
+        entries_key="runs",
+        write_json_fn=write_json,
+        copy_jsonable_fn=_copy_jsonable,
+    )
 
 
 def register_benchmark_run(
