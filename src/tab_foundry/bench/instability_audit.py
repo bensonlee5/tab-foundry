@@ -106,7 +106,13 @@ def _run_entry(
                 "best_roc_auc": tab_foundry.get("best_roc_auc"),
                 "final_roc_auc": tab_foundry.get("final_roc_auc"),
                 "final_log_loss": tab_foundry.get("final_log_loss"),
+                "final_brier_score": tab_foundry.get("final_brier_score"),
+                "best_crps": tab_foundry.get("best_crps"),
+                "final_crps": tab_foundry.get("final_crps"),
+                "final_avg_pinball_loss": tab_foundry.get("final_avg_pinball_loss"),
+                "final_picp_90": tab_foundry.get("final_picp_90"),
                 "best_to_final_roc_auc_delta": tab_foundry.get("best_to_final_roc_auc_delta"),
+                "best_to_final_crps_delta": tab_foundry.get("best_to_final_crps_delta"),
             }
 
     max_grad_norm = None if peak_grad is None else float(peak_grad[1])
@@ -299,12 +305,23 @@ def _markdown_report(payload: Mapping[str, Any]) -> str:
             f"- loss variance: `{history['train_loss_variance']}` | final grad `{history['final_grad_norm']}`"
         )
         if isinstance(benchmark, Mapping):
-            lines.append(
-                f"- benchmark: best ROC AUC `{benchmark.get('best_roc_auc')}`, "
-                f"final ROC AUC `{benchmark.get('final_roc_auc')}`, "
-                f"final log loss `{benchmark.get('final_log_loss')}`, "
-                f"best-to-final delta `{benchmark.get('best_to_final_roc_auc_delta')}`"
-            )
+            metric_parts: list[str] = []
+            for label, key in (
+                ("best ROC AUC", "best_roc_auc"),
+                ("final ROC AUC", "final_roc_auc"),
+                ("final log loss", "final_log_loss"),
+                ("final Brier score", "final_brier_score"),
+                ("best CRPS", "best_crps"),
+                ("final CRPS", "final_crps"),
+                ("final avg pinball loss", "final_avg_pinball_loss"),
+                ("final PICP 90", "final_picp_90"),
+                ("best-to-final ROC delta", "best_to_final_roc_auc_delta"),
+                ("best-to-final CRPS delta", "best_to_final_crps_delta"),
+            ):
+                if benchmark.get(key) is not None:
+                    metric_parts.append(f"{label} `{benchmark.get(key)}`")
+            if metric_parts:
+                lines.append(f"- benchmark: {', '.join(metric_parts)}")
         if entry.get("decision_recommendation") is not None:
             lines.append(
                 f"- result card decision: `{entry['decision_recommendation']}`"

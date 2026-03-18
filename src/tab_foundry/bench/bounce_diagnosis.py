@@ -22,6 +22,7 @@ from tab_foundry.bench.benchmark_run_registry import (
     resolve_registry_path_value,
 )
 from tab_foundry.bench.nanotabpfn import (
+    benchmark_bundle_task_type,
     benchmark_bundle_summary,
     curve_summary,
     default_benchmark_bundle_path,
@@ -456,6 +457,7 @@ def _evaluate_one_bundle(
     raw_records = evaluate_tab_foundry_run(
         run_dir,
         datasets=datasets,
+        task_type=benchmark_bundle_task_type(bundle),
         device=device,
         allow_checkpoint_failures=True,
         allow_missing_values=allow_missing_values,

@@ -13,20 +13,29 @@ Optimize for attributable evidence against the locked anchor
 `01_shared_norm_post_ln_binary_medium_v1`, not for rapid base
 promotion.
 
-The primary score remains `final_log_loss` on the canonical benchmark bundle
-`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
+The primary score remains `final_log_loss` on the canonical binary benchmark
+bundle `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
+
+When the benchmark family changes, switch the sweep target with it:
+
+- binary classification: `final_log_loss`
+- multiclass classification: `final_log_loss`
+- regression: `final_crps`
 
 Supporting metrics are:
 
-- `final_roc_auc`
-- `best_roc_auc`
-- `final_minus_best`
+- binary classification: `final_brier_score`, `final_roc_auc`, `best_roc_auc`,
+  `final_minus_best`
+- multiclass classification: `final_brier_score`, with ROC AUC retained only as
+  a diagnostic when it is reported
+- regression: `final_avg_pinball_loss`, `final_picp_90`
 - training-time deltas versus the anchor
 - manifest and preprocessing surface deltas recorded in `training_surface_record.json`
 - loss/gradient instability evidence from `train_history.jsonl`,
   `gradient_history.jsonl`, and `telemetry.json`
 
-`best_roc_auc` is a tie-breaker and diagnostic, not the main score.
+`best_roc_auc` remains a tie-breaker and diagnostic for classification sweeps,
+not the main score.
 
 ## Locked Anchor Surface
 
@@ -195,7 +204,7 @@ This pass is attribution-first. No row becomes the new base during the sweep.
 
 Use these decisions:
 
-- `keep`: the row is isolated, evidence is at least neutral or improved on `final_log_loss`, and the interpretation does not reveal unresolved confounding severe enough to block the signal
+- `keep`: the row is isolated, evidence is at least neutral or improved on the task-family primary final metric (`final_log_loss` for classification bundles, `final_crps` for regression bundles), and the interpretation does not reveal unresolved confounding severe enough to block the signal
 - `defer`: evidence is mixed, the row is not isolated enough yet, or the introduced degrees of freedom have not been checked adequately
 - `reject`: only allowed when the row is isolated, the adequacy plan was completed, and the result is clearly worse without offsetting benefit
 

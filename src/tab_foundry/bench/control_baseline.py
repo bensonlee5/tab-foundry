@@ -36,12 +36,23 @@ _BENCHMARK_BUNDLE_KEYS = {"name", "version", "source_path", "task_count", "task_
 _REQUIRED_TAB_FOUNDRY_METRIC_KEYS = {
     "best_step",
     "best_training_time",
-    "best_roc_auc",
     "final_step",
     "final_training_time",
-    "final_roc_auc",
 }
-_OPTIONAL_TAB_FOUNDRY_METRIC_KEYS = {"final_log_loss"}
+_OPTIONAL_TAB_FOUNDRY_METRIC_KEYS = {
+    "best_roc_auc",
+    "best_log_loss",
+    "best_brier_score",
+    "best_crps",
+    "best_avg_pinball_loss",
+    "best_picp_90",
+    "final_roc_auc",
+    "final_log_loss",
+    "final_brier_score",
+    "final_crps",
+    "final_avg_pinball_loss",
+    "final_picp_90",
+}
 _TAB_FOUNDRY_METRIC_KEYS = _REQUIRED_TAB_FOUNDRY_METRIC_KEYS | _OPTIONAL_TAB_FOUNDRY_METRIC_KEYS
 
 
@@ -265,14 +276,67 @@ def derive_control_baseline_entry(
     tab_foundry_metrics = {
         "best_step": float(tab_foundry["best_step"]),
         "best_training_time": float(tab_foundry["best_training_time"]),
-        "best_roc_auc": float(tab_foundry["best_roc_auc"]),
+        "best_roc_auc": (
+            None
+            if tab_foundry.get("best_roc_auc") is None
+            else float(tab_foundry["best_roc_auc"])
+        ),
+        "best_log_loss": (
+            None
+            if tab_foundry.get("best_log_loss") is None
+            else float(tab_foundry["best_log_loss"])
+        ),
+        "best_brier_score": (
+            None
+            if tab_foundry.get("best_brier_score") is None
+            else float(tab_foundry["best_brier_score"])
+        ),
+        "best_crps": (
+            None
+            if tab_foundry.get("best_crps") is None
+            else float(tab_foundry["best_crps"])
+        ),
+        "best_avg_pinball_loss": (
+            None
+            if tab_foundry.get("best_avg_pinball_loss") is None
+            else float(tab_foundry["best_avg_pinball_loss"])
+        ),
+        "best_picp_90": (
+            None
+            if tab_foundry.get("best_picp_90") is None
+            else float(tab_foundry["best_picp_90"])
+        ),
         "final_step": float(tab_foundry["final_step"]),
         "final_training_time": float(tab_foundry["final_training_time"]),
-        "final_roc_auc": float(tab_foundry["final_roc_auc"]),
+        "final_roc_auc": (
+            None
+            if tab_foundry.get("final_roc_auc") is None
+            else float(tab_foundry["final_roc_auc"])
+        ),
         "final_log_loss": (
             None
             if tab_foundry.get("final_log_loss") is None
             else float(tab_foundry["final_log_loss"])
+        ),
+        "final_brier_score": (
+            None
+            if tab_foundry.get("final_brier_score") is None
+            else float(tab_foundry["final_brier_score"])
+        ),
+        "final_crps": (
+            None
+            if tab_foundry.get("final_crps") is None
+            else float(tab_foundry["final_crps"])
+        ),
+        "final_avg_pinball_loss": (
+            None
+            if tab_foundry.get("final_avg_pinball_loss") is None
+            else float(tab_foundry["final_avg_pinball_loss"])
+        ),
+        "final_picp_90": (
+            None
+            if tab_foundry.get("final_picp_90") is None
+            else float(tab_foundry["final_picp_90"])
         ),
     }
     entry = {
