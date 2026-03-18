@@ -195,6 +195,16 @@ def test_reference_index_covers_system_delta_surfaces_and_legacy_stage_template_
     assert not legacy_template.exists()
 
 
+def test_reference_sweep_queue_and_matrix_outputs_do_not_contain_placeholder_todo_text() -> None:
+    sweeps_root = REPO_ROOT / "reference" / "system_delta_sweeps"
+    generated_files = list(sweeps_root.rglob("queue.yaml")) + list(sweeps_root.rglob("matrix.md"))
+
+    assert generated_files
+    for path in generated_files:
+        contents = path.read_text(encoding="utf-8")
+        assert "TODO:" not in contents, f"placeholder TODO leaked into generated sweep output: {path}"
+
+
 def test_stage_research_source_manifest_schema_is_portable() -> None:
     manifest_path = REPO_ROOT / "reference" / "stage_research_sources.yaml"
     payload = OmegaConf.to_container(OmegaConf.load(manifest_path), resolve=True)

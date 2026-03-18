@@ -60,7 +60,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Rationale: Contextualize `delta_preproc_norm_zscore` against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
 - Upstream delta: Upstream nanoTabPFN applies z-score+clip inside the feature encoder.
-- Anchor delta: TODO: describe how `delta_preproc_norm_zscore` differs from the locked anchor `01_shared_norm_post_ln_binary_medium_v1`.
+- Anchor delta: Changes `input_normalization` from `none` to `train_zscore` while keeping the anchor RMSNorm post-encoder norm.
 - Expected effect: May reduce feature-scale sensitivity; the anchor sees raw features, so any improvement indicates the model benefits from pre-normalized inputs.
 - Effective labels: model=`delta_preproc_norm_zscore`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_constant_lr`
 - Preprocessing overrides: `{}`
@@ -85,7 +85,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Rationale: Contextualize `delta_preproc_norm_rankgauss` against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
 - Upstream delta: Upstream nanoTabPFN applies z-score+clip inside the feature encoder.
-- Anchor delta: TODO: describe how `delta_preproc_norm_rankgauss` differs from the locked anchor `01_shared_norm_post_ln_binary_medium_v1`.
+- Anchor delta: Changes `input_normalization` from `none` to `train_rankgauss` while keeping the anchor RMSNorm post-encoder norm.
 - Expected effect: Rank-Gauss is robust to outliers and heavy tails; may help on skewed-feature tasks where z-score under- or over-corrects.
 - Effective labels: model=`delta_preproc_norm_rankgauss`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_constant_lr`
 - Preprocessing overrides: `{}`
@@ -110,7 +110,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Rationale: Contextualize `delta_preproc_norm_robust` against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
 - Upstream delta: Upstream nanoTabPFN applies z-score+clip inside the feature encoder.
-- Anchor delta: TODO: describe how `delta_preproc_norm_robust` differs from the locked anchor `01_shared_norm_post_ln_binary_medium_v1`.
+- Anchor delta: Changes `input_normalization` from `none` to `train_robust` while keeping the anchor RMSNorm post-encoder norm.
 - Expected effect: Median/IQR scaling is less sensitive to outliers than z-score; may improve stability on tasks with extreme values without discarding ordinal information.
 - Effective labels: model=`delta_preproc_norm_robust`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_constant_lr`
 - Preprocessing overrides: `{}`
@@ -135,7 +135,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Rationale: Contextualize `delta_preproc_norm_winsorize_zscore` against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
 - Upstream delta: Upstream nanoTabPFN applies z-score+clip inside the feature encoder.
-- Anchor delta: TODO: describe how `delta_preproc_norm_winsorize_zscore` differs from the locked anchor `01_shared_norm_post_ln_binary_medium_v1`.
+- Anchor delta: Changes `input_normalization` from `none` to `train_winsorize_zscore` while keeping the anchor RMSNorm post-encoder norm.
 - Expected effect: Winsorization removes extreme outliers before z-scoring, giving a tighter effective range than plain z-score while preserving more ordinal detail than rank-Gauss.
 - Effective labels: model=`delta_preproc_norm_winsorize_zscore`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_constant_lr`
 - Preprocessing overrides: `{}`

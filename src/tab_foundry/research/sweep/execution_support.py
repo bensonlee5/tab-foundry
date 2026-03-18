@@ -1,0 +1,634 @@
+"""Support helpers for system-delta execution orchestration."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import json
+import math
+from pathlib import Path
+from typing import Any, Mapping, cast
+
+from omegaconf import OmegaConf
+
+from .paths_io import (
+    _write_yaml as _write_yaml_file,
+    default_catalog_path,
+    default_registry_path,
+    default_sweep_index_path,
+    default_sweeps_root,
+    repo_root as _repo_root,
+)
+
+
+@dataclass(frozen=True)
+class ExecutionPaths:
+    repo_root: Path
+    index_path: Path
+    catalog_path: Path
+    sweeps_root: Path
+    registry_path: Path
+    program_path: Path
+    control_baseline_registry_path: Path
+
+    @classmethod
+    def default(cls) -> "ExecutionPaths":
+        repo_root = _repo_root()
+        return cls(
+            repo_root=repo_root,
+            index_path=default_sweep_index_path(),
+            catalog_path=default_catalog_path(),
+            sweeps_root=default_sweeps_root(),
+            registry_path=default_registry_path(),
+            program_path=repo_root / "program.md",
+            control_baseline_registry_path=repo_root
+            / "src"
+            / "tab_foundry"
+            / "bench"
+            / "control_baselines_v1.json",
+        )
+
+    def promotion_paths(self) -> Any:
+        from tab_foundry.research.system_delta_promote import PromotionPaths
+
+        return PromotionPaths(
+            index_path=self.index_path,
+            catalog_path=self.catalog_path,
+            sweeps_root=self.sweeps_root,
+            registry_path=self.registry_path,
+            program_path=self.program_path,
+        )
+
+
+def _read_yaml(path: Path) -> dict[str, Any]:
+    payload = OmegaConf.to_container(OmegaConf.load(path), resolve=True)
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"expected YAML mapping at {path}")
+    return cast(dict[str, Any], payload)
+
+
+def _write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
+    _write_yaml_file(path, payload)
+
+
+def _read_jsonl(path: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    if not path.exists():
+        return records
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        payload = json.loads(line)
+        if isinstance(payload, dict):
+            records.append(cast(dict[str, Any], payload))
+    return records
+
+
+def _clipped_step_fraction(records: list[dict[str, Any]]) -> float:
+    ordered_records = sorted(records, key=lambda record: int(record.get("step", 0)))
+    if not ordered_records:
+        return 0.0
+    clipped_steps = sum(1 for record in ordered_records if bool(record.get("grad_clip_triggered", False)))
+    return float(clipped_steps / float(len(ordered_records)))
+
+
+def _optional_metric(payload: Mapping[str, Any], key: str) -> float | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    numeric = float(value)
+    if not math.isfinite(numeric):
+        raise RuntimeError(f"{key} must be finite when present")
+    return numeric
+
+
+def _comparison_metric(run_entry: Mapping[str, Any], key: str) -> float | None:
+    comparisons = run_entry.get("comparisons")
+    if not isinstance(comparisons, Mapping):
+        return None
+    vs_anchor = comparisons.get("vs_anchor")
+    if not isinstance(vs_anchor, Mapping):
+        return None
+    return _optional_metric(cast(Mapping[str, Any], vs_anchor), key)
+
+
+def _queue_metrics(
+    summary: Mapping[str, Any],
+    *,
+    run_dir: Path,
+    run_entry: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    tab_foundry = cast(dict[str, Any], summary["tab_foundry"])
+    nanotabpfn = cast(dict[str, Any], summary["nanotabpfn"])
+    gradient_records = _read_jsonl(run_dir / "gradient_history.jsonl")
+    max_grad_norm = _optional_metric(
+        cast(dict[str, Any], tab_foundry["training_diagnostics"]),
+        "max_grad_norm",
+    )
+    if max_grad_norm is None:
+        raise RuntimeError("benchmark summary omitted training_diagnostics.max_grad_norm")
+    best_step = _optional_metric(tab_foundry, "best_step")
+    if best_step is None:
+        raise RuntimeError("benchmark summary omitted tab_foundry.best_step")
+
+    queue_metrics: dict[str, Any] = {
+        "best_step": int(best_step),
+        "max_grad_norm": max_grad_norm,
+        "clipped_step_fraction": _clipped_step_fraction(gradient_records),
+    }
+
+    metric_keys = (
+        "best_log_loss",
+        "final_log_loss",
+        "best_brier_score",
+        "final_brier_score",
+        "best_roc_auc",
+        "final_roc_auc",
+        "best_crps",
+        "final_crps",
+        "best_avg_pinball_loss",
+        "final_avg_pinball_loss",
+        "best_picp_90",
+        "final_picp_90",
+    )
+    for metric_key in metric_keys:
+        tab_foundry_value = _optional_metric(tab_foundry, metric_key)
+        if tab_foundry_value is not None:
+            queue_metrics[metric_key] = tab_foundry_value
+        nanotabpfn_value = _optional_metric(nanotabpfn, metric_key)
+        if nanotabpfn_value is not None:
+            queue_metrics[f"nanotabpfn_{metric_key}"] = nanotabpfn_value
+
+    delta_keys = {
+        "best_to_final_log_loss_delta": "final_minus_best_log_loss",
+        "best_to_final_brier_score_delta": "final_minus_best_brier_score",
+        "best_to_final_roc_auc_delta": "final_minus_best_roc_auc",
+        "best_to_final_crps_delta": "final_minus_best_crps",
+        "best_to_final_avg_pinball_loss_delta": "final_minus_best_avg_pinball_loss",
+        "best_to_final_picp_90_delta": "final_minus_best_picp_90",
+    }
+    for summary_key, queue_key in delta_keys.items():
+        value = _optional_metric(tab_foundry, summary_key)
+        if value is not None:
+            queue_metrics[queue_key] = value
+
+    if queue_metrics.get("final_minus_best_roc_auc") is not None:
+        queue_metrics["drift"] = queue_metrics["final_minus_best_roc_auc"]
+    if queue_metrics.get("nanotabpfn_best_roc_auc") is not None:
+        queue_metrics["nanotabpfn_best"] = queue_metrics["nanotabpfn_best_roc_auc"]
+    if queue_metrics.get("nanotabpfn_final_roc_auc") is not None:
+        queue_metrics["nanotabpfn_final"] = queue_metrics["nanotabpfn_final_roc_auc"]
+
+    if run_entry is not None:
+        comparison_keys = {
+            "final_log_loss_delta": "delta_final_log_loss",
+            "final_brier_score_delta": "delta_final_brier_score",
+            "final_roc_auc_delta": "delta_final_roc_auc",
+            "final_crps_delta": "delta_final_crps",
+            "final_avg_pinball_loss_delta": "delta_final_avg_pinball_loss",
+            "final_picp_90_delta": "delta_final_picp_90",
+        }
+        for comparison_key, queue_key in comparison_keys.items():
+            value = _comparison_metric(run_entry, comparison_key)
+            if value is not None:
+                queue_metrics[queue_key] = value
+
+    return queue_metrics
+
+
+def _research_card_text(*, row: Mapping[str, Any], sweep_id: str, anchor_run_id: str | None) -> str:
+    plan = cast(list[str], row.get("parameter_adequacy_plan", []))
+    plan_lines = "\n".join(f"- {item}" for item in plan) if plan else "- No extra adequacy plan recorded."
+    anchor_display = anchor_run_id or "none"
+    return "\n".join(
+        [
+            "# Research Card",
+            "",
+            "## Delta",
+            "",
+            f"- `delta_id`: `{row['delta_id']}`",
+            f"- `sweep_id`: `{sweep_id}`",
+            f"- `dimension_family`: `{row['dimension_family']}`",
+            f"- `family`: `{row['family']}`",
+            f"- `anchor_run_id`: `{anchor_display}`",
+            "- `comparison_policy`: `anchor_only`",
+            "",
+            "## What Changes",
+            "",
+            f"- {row['description']}",
+            f"- Anchor delta: {row['anchor_delta']}",
+            "",
+            "## Why This Row Is Informative",
+            "",
+            f"- {row['rationale']}",
+            f"- Hypothesis: {row['hypothesis']}",
+            "",
+            "## Adequacy Plan",
+            "",
+            plan_lines,
+            "",
+        ]
+    )
+
+
+def _campaign_payload(
+    *,
+    queue_row: Mapping[str, Any],
+    materialized_row: Mapping[str, Any],
+    sweep_meta: Mapping[str, Any],
+    sweep_id: str,
+    anchor_run_id: str | None,
+    device: str,
+    training_experiment: str,
+) -> dict[str, Any]:
+    changed_settings: dict[str, Any] = {
+        "model": cast(dict[str, Any], queue_row.get("model", {})),
+        "data": cast(dict[str, Any], queue_row.get("data", {})),
+        "preprocessing": cast(dict[str, Any], queue_row.get("preprocessing", {})),
+        "training": cast(dict[str, Any], queue_row.get("training", {})),
+    }
+    return {
+        "sweep_id": sweep_id,
+        "delta_id": materialized_row["delta_id"],
+        "dimension_family": materialized_row["dimension_family"],
+        "family": materialized_row["family"],
+        "comparison_policy": str(sweep_meta.get("comparison_policy", "anchor_only")),
+        "anchor_run_id": anchor_run_id,
+        "locked_bundle_path": str(sweep_meta["benchmark_bundle_path"]),
+        "locked_control_baseline_id": str(sweep_meta["control_baseline_id"]),
+        "training_experiment": training_experiment,
+        "preserved_settings": {
+            "queue_ref": f"reference/system_delta_sweeps/{sweep_id}/queue.yaml",
+            "runtime.device": str(device),
+            "logging.use_wandb": True,
+        },
+        "changed_settings": changed_settings,
+        "adequacy_knobs": cast(list[str], materialized_row.get("adequacy_knobs", [])),
+        "decision_hypothesis": "needs_followup",
+    }
+
+
+def _write_research_package(
+    *,
+    delta_root: Path,
+    materialized_row: Mapping[str, Any],
+    queue_row: Mapping[str, Any],
+    sweep_meta: Mapping[str, Any],
+    sweep_id: str,
+    anchor_run_id: str | None,
+    device: str,
+    training_experiment: str,
+) -> None:
+    delta_root.mkdir(parents=True, exist_ok=True)
+    (delta_root / "research_card.md").write_text(
+        _research_card_text(row=materialized_row, sweep_id=sweep_id, anchor_run_id=anchor_run_id),
+        encoding="utf-8",
+    )
+    _write_yaml(
+        delta_root / "campaign.yaml",
+        _campaign_payload(
+            queue_row=queue_row,
+            materialized_row=materialized_row,
+            sweep_meta=sweep_meta,
+            sweep_id=sweep_id,
+            anchor_run_id=anchor_run_id,
+            device=device,
+            training_experiment=training_experiment,
+        ),
+    )
+
+
+def _format_metric(value: Any, *, signed: bool = False) -> str:
+    numeric = float(value)
+    return f"{numeric:+.4f}" if signed else f"{numeric:.4f}"
+
+
+def _append_metric_line(
+    lines: list[str],
+    *,
+    label: str,
+    value: Any,
+    signed: bool = False,
+) -> None:
+    if value is None:
+        return
+    lines.append(f"- {label}: `{_format_metric(value, signed=signed)}`")
+
+
+def _result_card_text(
+    *,
+    row: Mapping[str, Any],
+    run_id: str,
+    anchor_run_id: str | None,
+    summary: Mapping[str, Any],
+    queue_metrics: Mapping[str, Any],
+    decision: str,
+    conclusion: str,
+) -> str:
+    _ = summary
+    anchor_display = anchor_run_id or "none"
+    best_step = queue_metrics.get("best_step")
+    lines = [
+        "# Result Card",
+        "",
+        "## What changed",
+        "",
+        f"- `delta_id`: `{row['delta_id']}`",
+        f"- `run_id`: `{run_id}`",
+        f"- `anchor_run_id`: `{anchor_display}`",
+        f"- `description`: {row['description']}",
+        f"- `anchor_delta`: {row['anchor_delta']}",
+        "",
+        "## Measured metrics versus the anchor",
+        "",
+    ]
+
+    def _append_best_metric(label: str, key: str) -> None:
+        value = queue_metrics.get(key)
+        if value is None:
+            return
+        if best_step is None:
+            _append_metric_line(lines, label=label, value=value)
+            return
+        lines.append(f"- {label}: `{_format_metric(value)}` at step `{int(float(best_step))}`")
+
+    has_classification_metrics = (
+        queue_metrics.get("best_log_loss") is not None
+        or queue_metrics.get("final_log_loss") is not None
+    )
+    has_regression_metrics = (
+        queue_metrics.get("best_crps") is not None or queue_metrics.get("final_crps") is not None
+    )
+
+    if has_classification_metrics:
+        _append_best_metric("Best log loss", "best_log_loss")
+        _append_metric_line(lines, label="Final log loss", value=queue_metrics.get("final_log_loss"))
+        _append_metric_line(
+            lines,
+            label="Final minus best log loss",
+            value=queue_metrics.get("final_minus_best_log_loss"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final log loss vs anchor",
+            value=queue_metrics.get("delta_final_log_loss"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN best log loss",
+            value=queue_metrics.get("nanotabpfn_best_log_loss"),
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN final log loss",
+            value=queue_metrics.get("nanotabpfn_final_log_loss"),
+        )
+        _append_metric_line(lines, label="Final Brier score", value=queue_metrics.get("final_brier_score"))
+        _append_metric_line(
+            lines,
+            label="Final minus best Brier score",
+            value=queue_metrics.get("final_minus_best_brier_score"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final Brier score vs anchor",
+            value=queue_metrics.get("delta_final_brier_score"),
+            signed=True,
+        )
+        _append_best_metric("Best ROC AUC", "best_roc_auc")
+        _append_metric_line(lines, label="Final ROC AUC", value=queue_metrics.get("final_roc_auc"))
+        _append_metric_line(
+            lines,
+            label="Final minus best ROC AUC",
+            value=queue_metrics.get("final_minus_best_roc_auc"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final ROC AUC vs anchor",
+            value=queue_metrics.get("delta_final_roc_auc"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN best ROC AUC",
+            value=queue_metrics.get("nanotabpfn_best_roc_auc"),
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN final ROC AUC",
+            value=queue_metrics.get("nanotabpfn_final_roc_auc"),
+        )
+    elif has_regression_metrics:
+        _append_best_metric("Best CRPS", "best_crps")
+        _append_metric_line(lines, label="Final CRPS", value=queue_metrics.get("final_crps"))
+        _append_metric_line(
+            lines,
+            label="Final minus best CRPS",
+            value=queue_metrics.get("final_minus_best_crps"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final CRPS vs anchor",
+            value=queue_metrics.get("delta_final_crps"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN best CRPS",
+            value=queue_metrics.get("nanotabpfn_best_crps"),
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN final CRPS",
+            value=queue_metrics.get("nanotabpfn_final_crps"),
+        )
+        _append_metric_line(
+            lines,
+            label="Final avg pinball loss",
+            value=queue_metrics.get("final_avg_pinball_loss"),
+        )
+        _append_metric_line(
+            lines,
+            label="Final minus best avg pinball loss",
+            value=queue_metrics.get("final_minus_best_avg_pinball_loss"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final avg pinball loss vs anchor",
+            value=queue_metrics.get("delta_final_avg_pinball_loss"),
+            signed=True,
+        )
+        _append_metric_line(lines, label="Final PICP 90", value=queue_metrics.get("final_picp_90"))
+        _append_metric_line(
+            lines,
+            label="Final minus best PICP 90",
+            value=queue_metrics.get("final_minus_best_picp_90"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final PICP 90 vs anchor",
+            value=queue_metrics.get("delta_final_picp_90"),
+            signed=True,
+        )
+    else:
+        _append_best_metric("Best ROC AUC", "best_roc_auc")
+        _append_metric_line(lines, label="Final ROC AUC", value=queue_metrics.get("final_roc_auc"))
+        _append_metric_line(
+            lines,
+            label="Final minus best ROC AUC",
+            value=queue_metrics.get("final_minus_best_roc_auc"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final ROC AUC vs anchor",
+            value=queue_metrics.get("delta_final_roc_auc"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN best ROC AUC",
+            value=queue_metrics.get("nanotabpfn_best_roc_auc"),
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN final ROC AUC",
+            value=queue_metrics.get("nanotabpfn_final_roc_auc"),
+        )
+
+    _append_metric_line(lines, label="max_grad_norm", value=queue_metrics.get("max_grad_norm"))
+    _append_metric_line(
+        lines,
+        label="clipped_step_fraction",
+        value=queue_metrics.get("clipped_step_fraction"),
+    )
+
+    lines.extend(
+        [
+            "",
+            "## Was the change actually isolated?",
+            "",
+            "- The run used the queue row as the only source of model/data/preprocessing/training overrides.",
+            "- Bundle, control baseline, experiment family, and schedule budget stayed on the locked sweep surface.",
+            "",
+            "## Hyperparameter adequacy",
+            "",
+            "- The row preserved the queue-declared short-run budget unless the row explicitly changed it.",
+            "- No extra tuning beyond the queue row was introduced during this execution.",
+            "",
+            "## Why this may have helped or hurt",
+            "",
+            f"- Decision recorded in the registry: `{decision}`.",
+            f"- Conclusion: {conclusion}",
+            "",
+            "## Remaining confounders",
+            "",
+            "- This auto-generated card is intentionally conservative; deeper interpretation still belongs in the sweep review.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _append_note(notes: list[str], note: str) -> list[str]:
+    updated = list(notes)
+    if note not in updated:
+        updated.append(note)
+    return updated
+
+
+def _update_queue_row(
+    *,
+    queue_row: dict[str, Any],
+    run_id: str,
+    queue_metrics: Mapping[str, Any],
+    decision: str,
+    conclusion: str,
+) -> None:
+    original_run_id = queue_row.get("run_id")
+    queue_row["status"] = "completed"
+    queue_row["run_id"] = run_id
+    queue_row["followup_run_ids"] = []
+    queue_row["decision"] = decision
+    queue_row["interpretation_status"] = "completed"
+    queue_row["benchmark_metrics"] = dict(queue_metrics)
+    queue_row["confounders"] = []
+    notes = cast(list[str], queue_row.get("notes", []))
+    if isinstance(original_run_id, str) and original_run_id.strip() and original_run_id != run_id:
+        notes = _append_note(
+            notes,
+            f"Supersedes historical queue run `{original_run_id}`; that registry entry is retained as history only.",
+        )
+    notes = _append_note(notes, f"Canonical rerun registered as `{run_id}`.")
+    notes = _append_note(notes, conclusion)
+    queue_row["notes"] = notes
+
+
+def parse_order_overrides(values: list[str] | None, *, arg_name: str) -> dict[int, str]:
+    overrides: dict[int, str] = {}
+    for raw in values or []:
+        left, separator, right = str(raw).partition("=")
+        if separator != "=" or not left.strip() or not right.strip():
+            raise RuntimeError(f"{arg_name} values must look like <order>=<value>, got {raw!r}")
+        try:
+            order = int(left)
+        except ValueError as exc:
+            raise RuntimeError(f"{arg_name} order must be an integer, got {left!r}") from exc
+        overrides[order] = right
+    return overrides
+
+
+def _sorted_rows(queue: Mapping[str, Any]) -> list[dict[str, Any]]:
+    rows = queue.get("rows")
+    if not isinstance(rows, list):
+        raise RuntimeError("queue rows must be a list")
+    return sorted(cast(list[dict[str, Any]], rows), key=lambda row: int(row["order"]))
+
+
+def select_queue_rows(
+    queue: Mapping[str, Any],
+    *,
+    orders: list[int] | None = None,
+    start_order: int | None = None,
+    stop_after_order: int | None = None,
+    include_completed: bool = False,
+) -> list[dict[str, Any]]:
+    rows = _sorted_rows(queue)
+    explicit_orders = list(orders or [])
+    explicit_selection = bool(explicit_orders) or start_order is not None or stop_after_order is not None
+    if not explicit_selection:
+        return [row for row in rows if str(row.get("status", "")).strip().lower() == "ready"]
+
+    known_orders = {int(row["order"]) for row in rows}
+    selected_orders = set(explicit_orders)
+    if start_order is not None or stop_after_order is not None:
+        min_order = min(known_orders)
+        max_order = max(known_orders)
+        lower = min_order if start_order is None else int(start_order)
+        upper = max_order if stop_after_order is None else int(stop_after_order)
+        if lower > upper:
+            raise RuntimeError("start_order must be less than or equal to stop_after_order")
+        selected_orders.update(range(lower, upper + 1))
+    missing = sorted(order for order in selected_orders if order not in known_orders)
+    if missing:
+        raise RuntimeError(f"unknown queue orders for selection: {missing}")
+
+    selected = [row for row in rows if int(row["order"]) in selected_orders]
+    if not include_completed:
+        completed_orders = [
+            int(row["order"])
+            for row in selected
+            if str(row.get("status", "")).strip().lower() == "completed"
+        ]
+        if completed_orders:
+            raise RuntimeError(
+                "explicitly selected completed rows require --include-completed; "
+                f"got completed orders {completed_orders}"
+            )
+    return selected

@@ -7,8 +7,8 @@ rows:
   rationale: Contextualize `delta_preproc_norm_zscore` against anchor `01_shared_norm_post_ln_binary_medium_v1`
     for sweep `binary_md_v4`.
   hypothesis: ''
-  anchor_delta: 'TODO: describe how `delta_preproc_norm_zscore` differs from the locked
-    anchor `01_shared_norm_post_ln_binary_medium_v1`.'
+  anchor_delta: Changes input_normalization from none to train_zscore while keeping
+    the anchor RMSNorm post-encoder norm.
   model:
     stage_label: delta_preproc_norm_zscore
     input_normalization: train_zscore
@@ -38,8 +38,8 @@ rows:
   rationale: Contextualize `delta_preproc_norm_rankgauss` against anchor `01_shared_norm_post_ln_binary_medium_v1`
     for sweep `binary_md_v4`.
   hypothesis: ''
-  anchor_delta: 'TODO: describe how `delta_preproc_norm_rankgauss` differs from the
-    locked anchor `01_shared_norm_post_ln_binary_medium_v1`.'
+  anchor_delta: Changes input_normalization from none to train_rankgauss while keeping
+    the anchor RMSNorm post-encoder norm.
   model:
     stage_label: delta_preproc_norm_rankgauss
     input_normalization: train_rankgauss
@@ -69,8 +69,8 @@ rows:
   rationale: Contextualize `delta_preproc_norm_robust` against anchor `01_shared_norm_post_ln_binary_medium_v1`
     for sweep `binary_md_v4`.
   hypothesis: ''
-  anchor_delta: 'TODO: describe how `delta_preproc_norm_robust` differs from the locked
-    anchor `01_shared_norm_post_ln_binary_medium_v1`.'
+  anchor_delta: Changes input_normalization from none to train_robust while keeping
+    the anchor RMSNorm post-encoder norm.
   model:
     stage_label: delta_preproc_norm_robust
     input_normalization: train_robust
@@ -100,8 +100,8 @@ rows:
   rationale: Contextualize `delta_preproc_norm_winsorize_zscore` against anchor `01_shared_norm_post_ln_binary_medium_v1`
     for sweep `binary_md_v4`.
   hypothesis: ''
-  anchor_delta: 'TODO: describe how `delta_preproc_norm_winsorize_zscore` differs
-    from the locked anchor `01_shared_norm_post_ln_binary_medium_v1`.'
+  anchor_delta: Changes input_normalization from none to train_winsorize_zscore while
+    keeping the anchor RMSNorm post-encoder norm.
   model:
     stage_label: delta_preproc_norm_winsorize_zscore
     input_normalization: train_winsorize_zscore
