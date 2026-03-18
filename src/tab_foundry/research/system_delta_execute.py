@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any, Mapping, cast
 
 from omegaconf import DictConfig, OmegaConf
-import yaml
 
 from tab_foundry.bench.benchmark_run_registry import register_benchmark_run
 from tab_foundry.bench.compare import NanoTabPFNBenchmarkConfig, run_nanotabpfn_benchmark
@@ -300,20 +299,16 @@ def _write_research_package(
         _research_card_text(row=materialized_row, sweep_id=sweep_id, anchor_run_id=anchor_run_id),
         encoding="utf-8",
     )
-    (delta_root / "campaign.yaml").write_text(
-        yaml.safe_dump(
-            _campaign_payload(
-                queue_row=queue_row,
-                materialized_row=materialized_row,
-                sweep_meta=sweep_meta,
-                sweep_id=sweep_id,
-                anchor_run_id=anchor_run_id,
-                device=device,
-            ),
-            sort_keys=False,
-            allow_unicode=False,
+    _write_yaml(
+        delta_root / "campaign.yaml",
+        _campaign_payload(
+            queue_row=queue_row,
+            materialized_row=materialized_row,
+            sweep_meta=sweep_meta,
+            sweep_id=sweep_id,
+            anchor_run_id=anchor_run_id,
+            device=device,
         ),
-        encoding="utf-8",
     )
 
 
@@ -467,16 +462,12 @@ def select_queue_rows(
 
 
 def _sync_sweep_matrix(*, sweep_id: str, paths: ExecutionPaths) -> None:
-    queue = system_delta.load_system_delta_queue(
+    _ = system_delta.render_and_write_system_delta_matrix(
         sweep_id=sweep_id,
+        registry_path=paths.registry_path,
         index_path=paths.index_path,
         catalog_path=paths.catalog_path,
         sweeps_root=paths.sweeps_root,
-    )
-    matrix = system_delta.render_system_delta_matrix(queue, registry_path=paths.registry_path)
-    system_delta._write_text(
-        system_delta.sweep_matrix_path(sweep_id, sweeps_root=paths.sweeps_root),
-        matrix,
     )
 
 

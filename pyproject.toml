@@ -16,6 +16,7 @@ dependencies = [
   "omegaconf>=2.3",
   "pydantic>=2.12",
   "pyarrow>=23.0",
+  "PyYAML>=6.0",
   "safetensors>=0.4",
   "schedulefree>=1.4",
   "torch>=2.8",
@@ -68,6 +69,9 @@ default-groups = ["dev"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "slow: long-running benchmark coverage",
+]
 
 [tool.ruff]
 line-length = 100

@@ -11,6 +11,14 @@ import torch
 
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.bench.nanotabpfn import resolve_tab_foundry_best_checkpoint
+from tab_foundry.bench.registry_common import (
+    copy_jsonable as _copy_jsonable,
+    load_comparison_summary as _load_comparison_summary,
+    normalize_path_value as _common_normalize_path_value,
+    project_root as _project_root,
+    resolve_config_path as _common_resolve_config_path,
+    resolve_registry_path_value as _common_resolve_registry_path_value,
+)
 
 
 REGISTRY_SCHEMA = "tab-foundry-control-baselines-v1"
@@ -59,7 +67,21 @@ _TAB_FOUNDRY_METRIC_KEYS = _REQUIRED_TAB_FOUNDRY_METRIC_KEYS | _OPTIONAL_TAB_FOU
 def project_root() -> Path:
     """Return the repository root for repo-relative artifact paths."""
 
-    return Path(__file__).resolve().parents[3]
+    return _project_root()
+
+
+def _normalize_path_value(path: Path) -> str:
+    return _common_normalize_path_value(path, root=project_root())
+
+
+def resolve_registry_path_value(value: str) -> Path:
+    """Resolve a registry path value to an absolute path."""
+
+    return _common_resolve_registry_path_value(value, root=project_root())
+
+
+def _resolve_config_path(raw_value: Any) -> Path:
+    return _common_resolve_config_path(raw_value, root=project_root())
 
 
 def default_control_baseline_registry_path() -> Path:
@@ -74,34 +96,6 @@ def _empty_registry() -> dict[str, Any]:
         "version": REGISTRY_VERSION,
         "baselines": {},
     }
-
-
-def _copy_jsonable(payload: Mapping[str, Any]) -> dict[str, Any]:
-    return cast(dict[str, Any], json.loads(json.dumps(payload, sort_keys=True)))
-
-
-def _normalize_path_value(path: Path) -> str:
-    resolved = path.expanduser().resolve()
-    root = project_root()
-    try:
-        return str(resolved.relative_to(root))
-    except ValueError:
-        return str(resolved)
-
-
-def resolve_registry_path_value(value: str) -> Path:
-    """Resolve a registry path value to an absolute path."""
-
-    path = Path(str(value)).expanduser()
-    if path.is_absolute():
-        return path.resolve()
-    return (project_root() / path).resolve()
-
-
-def _resolve_config_path(raw_value: Any) -> Path:
-    if not isinstance(raw_value, str) or not raw_value.strip():
-        raise RuntimeError("checkpoint config must include a non-empty data.manifest_path")
-    return resolve_registry_path_value(str(raw_value))
 
 
 def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
@@ -205,20 +199,6 @@ def load_control_baseline_entry(
     if entry is None:
         raise RuntimeError(f"unknown control baseline id: {baseline_id}")
     return _copy_jsonable(entry)
-
-
-def _load_comparison_summary(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"comparison summary must be a JSON object: {path}")
-    benchmark_bundle = payload.get("benchmark_bundle")
-    tab_foundry = payload.get("tab_foundry")
-    if not isinstance(benchmark_bundle, dict):
-        raise RuntimeError(f"comparison summary missing benchmark_bundle: {path}")
-    if not isinstance(tab_foundry, dict):
-        raise RuntimeError(f"comparison summary missing tab_foundry section: {path}")
-    return cast(dict[str, Any], payload)
 
 
 def derive_control_baseline_entry(

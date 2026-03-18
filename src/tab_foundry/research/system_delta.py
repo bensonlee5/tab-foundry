@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
 from omegaconf import OmegaConf
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 from tab_foundry.bench.benchmark_run_registry import (
     load_benchmark_run_registry,
@@ -1260,6 +1260,42 @@ def render_system_delta_matrix(
     return "\n".join(lines).rstrip() + "\n"
 
 
+def render_and_write_system_delta_matrix(
+    *,
+    sweep_id: str | None = None,
+    queue: Mapping[str, Any] | None = None,
+    registry_path: Path | None = None,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+    out_path: Path | None = None,
+) -> Path:
+    """Render one sweep matrix and write it to the canonical or requested path."""
+
+    resolved_queue = (
+        queue
+        if queue is not None
+        else load_system_delta_queue(
+            sweep_id=sweep_id,
+            index_path=index_path,
+            catalog_path=catalog_path,
+            sweeps_root=sweeps_root,
+        )
+    )
+    resolved_sweep_id = _ensure_non_empty_string(
+        sweep_id if sweep_id is not None else resolved_queue.get("sweep_id"),
+        context="sweep_id",
+    )
+    resolved_out_path = (
+        sweep_matrix_path(resolved_sweep_id, sweeps_root=sweeps_root)
+        if out_path is None
+        else Path(out_path).expanduser().resolve()
+    )
+    contents = render_system_delta_matrix(resolved_queue, registry_path=registry_path)
+    _write_text(resolved_out_path, contents)
+    return resolved_out_path
+
+
 def _instantiate_queue_row(
     *,
     sweep_id: str,
@@ -1447,8 +1483,12 @@ def create_sweep(
         catalog_path=catalog_path,
         sweeps_root=resolved_sweeps_root,
     )
-    matrix_contents = render_system_delta_matrix(queue, registry_path=registry_path)
-    _write_text(sweep_matrix_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), matrix_contents)
+    matrix_path = render_and_write_system_delta_matrix(
+        sweep_id=normalized_sweep_id,
+        queue=queue,
+        registry_path=registry_path,
+        sweeps_root=resolved_sweeps_root,
+    )
     if _ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id") == normalized_sweep_id:
         sync_active_sweep_aliases(
             sweep_id=normalized_sweep_id,
@@ -1461,7 +1501,7 @@ def create_sweep(
     return {
         "sweep_path": str(sweep_metadata_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root).resolve()),
         "queue_path": str(sweep_queue_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root).resolve()),
-        "matrix_path": str(sweep_matrix_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root).resolve()),
+        "matrix_path": str(matrix_path),
         "index_path": str(resolved_index_path),
     }
 
@@ -1505,11 +1545,15 @@ def sync_active_sweep_aliases(
         catalog_path=catalog_path,
         sweeps_root=sweeps_root,
     )
-    matrix_contents = render_system_delta_matrix(queue, registry_path=registry_path)
     alias_queue_path = default_queue_path()
     alias_matrix_path = default_matrix_path()
     _write_yaml(alias_queue_path, queue)
-    _write_text(alias_matrix_path, matrix_contents)
+    _ = render_and_write_system_delta_matrix(
+        sweep_id=str(queue["sweep_id"]),
+        queue=queue,
+        registry_path=registry_path,
+        out_path=alias_matrix_path,
+    )
     return {
         "queue_alias_path": str(alias_queue_path.resolve()),
         "matrix_alias_path": str(alias_matrix_path.resolve()),
@@ -1674,13 +1718,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(OmegaConf.to_yaml(next_row, resolve=True).strip())
         return 0
     if args.command == "render":
-        contents = render_system_delta_matrix(queue, registry_path=registry_path)
-        resolved_out_path = (
-            sweep_matrix_path(str(queue["sweep_id"]))
-            if args.out_path is None
-            else Path(str(args.out_path))
+        resolved_out_path = render_and_write_system_delta_matrix(
+            sweep_id=str(queue["sweep_id"]),
+            queue=queue,
+            registry_path=registry_path,
+            out_path=None if args.out_path is None else Path(str(args.out_path)),
         )
-        _write_text(resolved_out_path, contents)
         active_sweep_id = _ensure_non_empty_string(
             load_system_delta_index(index_path).get("active_sweep_id"),
             context="active_sweep_id",
