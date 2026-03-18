@@ -11,11 +11,11 @@ This file is rendered from `reference/system_delta_sweeps/input_norm_none_follow
 
 ## Locked Surface
 
-- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
+- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
-- Anchor metrics: best ROC AUC `0.7638`, final ROC AUC `0.7634`, final training time `257.0s`
+- Anchor metrics: final log loss `0.3972`, final Brier score `0.1307`, best ROC AUC `0.7634`, final ROC AUC `0.7634`, final training time `257.5s`
 
 ## Anchor Comparison
 
@@ -63,11 +63,14 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - model.input_normalization
 - Interpretation status: `completed`
-- Decision: `reject`
+- Decision: `defer`
 - Notes:
   - Canonical CUDA rerun registered as `sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v1`.
   - Canonical CUDA comparison recorded against the batch64 clipped anchor; interpret this row before simplifying the preprocessing default.
   - Removing explicit normalization lost 0.0048 final ROC AUC versus the clipped batch64 anchor, so the simpler `none` surface is not justified on this bundle.
+  - Supersedes historical queue run `sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_none_followup/dpnb_input_norm_none_batch64_sqrt/result_card.md`
-- Registered run: `sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v1` with best ROC AUC `0.7609`, final ROC AUC `0.7586`, final-minus-best `-0.0023`, delta final ROC AUC `-0.0048`, delta drift `-0.0020`, delta final training time `-0.7s`
+- Registered run: `sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2` with final log loss `0.4052`, delta final log loss `+0.0080`, final Brier score `0.1332`, delta final Brier score `+0.0025`, best ROC AUC `0.7597`, final ROC AUC `0.7586`, final-minus-best `-0.0011`, delta final ROC AUC `-0.0048`, delta drift `-0.0011`, delta final training time `+0.7s`

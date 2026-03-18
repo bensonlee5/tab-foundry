@@ -52,9 +52,9 @@ rows:
     anchor.
   - Compare final ROC AUC and drift directly against the batch64 clipped winner before
     simplifying the default preprocessing surface.
-  run_id: sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v1
+  run_id: sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2
   followup_run_ids: []
-  decision: reject
+  decision: defer
   interpretation_status: completed
   confounders: []
   next_action: Keep `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
@@ -66,12 +66,33 @@ rows:
     this row before simplifying the preprocessing default.
   - Removing explicit normalization lost 0.0048 final ROC AUC versus the clipped batch64
     anchor, so the simpler `none` surface is not justified on this bundle.
+  - Supersedes historical queue run `sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   benchmark_metrics:
-    best_roc_auc: 0.7609411146181547
-    best_step: 2125
-    final_roc_auc: 0.7586267171926775
-    drift: -0.0023143974254772326
-    nanotabpfn_best: 0.7540710196545419
-    nanotabpfn_final: 0.7466291551363653
+    best_step: 1975
     max_grad_norm: 3.1922013759613037
     clipped_step_fraction: 0.0048
+    best_log_loss: 0.40393956228046407
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.4052133821597301
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.13316426389715366
+    nanotabpfn_best_brier_score: 0.14642705664899075
+    final_brier_score: 0.1332384612260224
+    nanotabpfn_final_brier_score: 0.14745454546536443
+    best_roc_auc: 0.7597362859021641
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.7586267171926775
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0012738198792660027
+    final_minus_best_brier_score: 7.419732886873587e-05
+    final_minus_best_roc_auc: -0.0011095687094866413
+    drift: -0.0011095687094866413
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 0.00802589363008882
+    delta_final_brier_score: 0.0024911279435832767
+    delta_final_roc_auc: -0.004823171215435518

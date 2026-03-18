@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import shutil
 from typing import Any
@@ -8,7 +9,13 @@ from omegaconf import OmegaConf
 import pytest
 
 from tab_foundry.research.system_delta import create_sweep
-from tab_foundry.research.system_delta_execute import ExecutionPaths, execute_sweep, select_queue_rows
+from tab_foundry.research.system_delta_execute import (
+    ExecutionPaths,
+    _queue_metrics,
+    _result_card_text,
+    execute_sweep,
+    select_queue_rows,
+)
 import tab_foundry.research.system_delta_execute as execute_module
 
 
@@ -208,3 +215,100 @@ def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pyt
         'parent_run_id': 'promoted_anchor_v2',
         'run_id': 'row_2_v1',
     }
+
+
+def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> None:
+    (tmp_path / 'gradient_history.jsonl').write_text(
+        ''.join(
+            [
+                json.dumps({'step': 1, 'grad_clip_triggered': False}) + '\n',
+                json.dumps({'step': 2, 'grad_clip_triggered': True}) + '\n',
+            ]
+        ),
+        encoding='utf-8',
+    )
+
+    summary = {
+        'tab_foundry': {
+            'best_step': 75.0,
+            'best_log_loss': 0.41,
+            'final_log_loss': 0.43,
+            'best_to_final_log_loss_delta': 0.02,
+            'best_brier_score': 0.11,
+            'final_brier_score': 0.13,
+            'best_to_final_brier_score_delta': 0.02,
+            'best_roc_auc': 0.82,
+            'final_roc_auc': 0.80,
+            'best_to_final_roc_auc_delta': -0.02,
+            'training_diagnostics': {'max_grad_norm': 7.5},
+        },
+        'nanotabpfn': {
+            'best_log_loss': 0.46,
+            'final_log_loss': 0.48,
+            'best_brier_score': 0.14,
+            'final_brier_score': 0.15,
+            'best_roc_auc': 0.81,
+            'final_roc_auc': 0.79,
+        },
+    }
+    run_entry = {
+        'comparisons': {
+            'vs_anchor': {
+                'final_log_loss_delta': -0.03,
+                'final_brier_score_delta': 0.01,
+                'final_roc_auc_delta': -0.02,
+            }
+        }
+    }
+
+    queue_metrics = _queue_metrics(summary, run_dir=tmp_path, run_entry=run_entry)
+
+    assert queue_metrics['best_step'] == 75
+    assert queue_metrics['best_log_loss'] == pytest.approx(0.41)
+    assert queue_metrics['final_log_loss'] == pytest.approx(0.43)
+    assert queue_metrics['final_minus_best_log_loss'] == pytest.approx(0.02)
+    assert queue_metrics['final_brier_score'] == pytest.approx(0.13)
+    assert queue_metrics['best_roc_auc'] == pytest.approx(0.82)
+    assert queue_metrics['final_roc_auc'] == pytest.approx(0.80)
+    assert queue_metrics['delta_final_log_loss'] == pytest.approx(-0.03)
+    assert queue_metrics['delta_final_brier_score'] == pytest.approx(0.01)
+    assert queue_metrics['delta_final_roc_auc'] == pytest.approx(-0.02)
+    assert queue_metrics['nanotabpfn_final_log_loss'] == pytest.approx(0.48)
+    assert queue_metrics['clipped_step_fraction'] == pytest.approx(0.5)
+
+
+def test_result_card_text_reports_log_loss_before_roc() -> None:
+    text = _result_card_text(
+        row={
+            'delta_id': 'delta',
+            'description': 'Use the refreshed benchmark surface.',
+            'anchor_delta': 'anchor-only comparison.',
+        },
+        run_id='sd_test_v1',
+        anchor_run_id='anchor_v1',
+        summary={'tab_foundry': {}, 'nanotabpfn': {}},
+        queue_metrics={
+            'best_step': 125,
+            'best_log_loss': 0.401,
+            'final_log_loss': 0.409,
+            'final_minus_best_log_loss': 0.008,
+            'delta_final_log_loss': -0.011,
+            'final_brier_score': 0.118,
+            'final_minus_best_brier_score': 0.006,
+            'delta_final_brier_score': -0.004,
+            'best_roc_auc': 0.812,
+            'final_roc_auc': 0.804,
+            'final_minus_best_roc_auc': -0.008,
+            'delta_final_roc_auc': -0.006,
+            'max_grad_norm': 3.2,
+            'clipped_step_fraction': 0.125,
+        },
+        decision='defer',
+        conclusion='Monitor log-loss deltas before promotion.',
+    )
+
+    assert '- Best log loss: `0.4010` at step `125`' in text
+    assert '- Delta final log loss vs anchor: `-0.0110`' in text
+    assert '- Final ROC AUC: `0.8040`' in text
+    assert text.index('Best log loss') < text.index('Best ROC AUC')
+
