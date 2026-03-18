@@ -939,6 +939,8 @@ def _metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, st
     anchor_metrics = cast(dict[str, Any], anchor["tab_foundry_metrics"])
     best = float(metrics["best_roc_auc"])
     final = float(metrics["final_roc_auc"])
+    final_log_loss_raw = metrics.get("final_log_loss")
+    anchor_final_log_loss_raw = anchor_metrics.get("final_log_loss")
     best_time = float(metrics["best_training_time"])
     final_time = float(metrics["final_training_time"])
     anchor_best = float(anchor_metrics["best_roc_auc"])
@@ -958,6 +960,16 @@ def _metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, st
         "final_training_time": f"{final_time:.1f}s",
         "best_training_time": f"{best_time:.1f}s",
         "delta_best_training_time": f"{best_time - anchor_best_time:+.1f}s",
+        "final_log_loss": (
+            "n/a"
+            if final_log_loss_raw is None
+            else f"{float(final_log_loss_raw):.4f}"
+        ),
+        "delta_final_log_loss": (
+            "n/a"
+            if final_log_loss_raw is None or anchor_final_log_loss_raw is None
+            else f"{float(final_log_loss_raw) - float(anchor_final_log_loss_raw):+.4f}"
+        ),
     }
 
 
@@ -1052,11 +1064,18 @@ def render_system_delta_matrix(
     lines.append(f"- Benchmark bundle: `{queue['benchmark_bundle_path']}`")
     lines.append(f"- Control baseline id: `{queue['control_baseline_id']}`")
     lines.append(f"- Comparison policy: `{queue['comparison_policy']}`")
-    lines.append(
-        f"- Anchor metrics: best ROC AUC `{float(anchor_metrics['best_roc_auc']):.4f}`, "
+    anchor_final_log_loss = anchor_metrics.get("final_log_loss")
+    anchor_metric_line = (
+        f"- Anchor metrics: final log loss `{float(anchor_final_log_loss):.4f}`, "
+        if anchor_final_log_loss is not None
+        else "- Anchor metrics: "
+    )
+    anchor_metric_line += (
+        f"best ROC AUC `{float(anchor_metrics['best_roc_auc']):.4f}`, "
         f"final ROC AUC `{float(anchor_metrics['final_roc_auc']):.4f}`, "
         f"final training time `{float(anchor_metrics['final_training_time']):.1f}s`"
     )
+    lines.append(anchor_metric_line)
     lines.append("")
     lines.append("## Anchor Comparison")
     lines.append("")
@@ -1162,14 +1181,17 @@ def render_system_delta_matrix(
                 lines.append("- Benchmark metrics: pending")
         else:
             metrics = _metric_summary(run, anchor)
-            lines.append(
-                f"- Registered run: `{run_id}` with best ROC AUC `{metrics['best_roc_auc']}`, "
+            registered_line = (
+                f"- Registered run: `{run_id}` with final log loss `{metrics['final_log_loss']}`, "
+                f"delta final log loss `{metrics['delta_final_log_loss']}`, "
+                f"best ROC AUC `{metrics['best_roc_auc']}`, "
                 f"final ROC AUC `{metrics['final_roc_auc']}`, "
                 f"final-minus-best `{metrics['final_minus_best']}`, "
                 f"delta final ROC AUC `{metrics['delta_final_roc_auc']}`, "
                 f"delta drift `{metrics['delta_drift']}`, "
                 f"delta final training time `{metrics['delta_training_time']}`"
             )
+            lines.append(registered_line)
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 

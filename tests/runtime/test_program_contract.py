@@ -41,7 +41,9 @@ def test_program_contract_has_required_policy_sections() -> None:
         assert header in contents
 
     required_statements = [
+        "`final_log_loss`",
         "`final_roc_auc`",
+        "The primary score remains `final_log_loss`",
         "The benchmark registry is the historical system of record.",
         "Underperformance alone is not enough for `reject`.",
         "This pass is attribution-first. No row becomes the new base during the sweep.",

@@ -297,6 +297,7 @@ def test_frozen_control_baseline_curve_matches_current_checkpoint_wrapper() -> N
         classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
         metrics = evaluate_classifier(classifier, datasets)
         assert metrics["ROC AUC"] == pytest.approx(curve_by_step[step], rel=2.0e-4, abs=2.0e-4)
+        assert float(metrics["Log Loss"]) >= 0.0
 
 
 def test_tab_foundry_classifier_skips_external_normalization_for_staged_missingness_token(

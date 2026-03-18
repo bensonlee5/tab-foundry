@@ -512,7 +512,9 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
                     "step": 25,
                     "training_time": 1.2,
                     "roc_auc": 0.81,
+                    "log_loss": 0.42,
                     "dataset_roc_auc": {"toy": 0.81},
+                    "dataset_log_loss": {"toy": 0.42},
                 },
                 {
                     "checkpoint_path": "/tmp/step_000050.pt",
@@ -562,14 +564,15 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
                     (smoke_run_dir / "training_surface_record.json").resolve()
                 ),
             },
-            "tab_foundry_metrics": {
-                "best_step": 25.0,
-                "best_training_time": 1.2,
-                "best_roc_auc": 0.81,
-                "final_step": 25.0,
-                "final_training_time": 1.2,
-                "final_roc_auc": 0.81,
-            },
+                "tab_foundry_metrics": {
+                    "best_step": 25.0,
+                    "best_training_time": 1.2,
+                    "best_roc_auc": 0.81,
+                    "final_step": 25.0,
+                    "final_training_time": 1.2,
+                    "final_roc_auc": 0.81,
+                    "final_log_loss": 0.42,
+                },
             "training_diagnostics": {
                 "best_val_loss": 0.2,
                 "final_val_loss": 0.21,
@@ -601,7 +604,9 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
                     "step": 25,
                     "training_time": 2.0,
                     "roc_auc": 0.78,
+                    "log_loss": 0.48,
                     "dataset_roc_auc": {"toy": 0.78},
+                    "dataset_log_loss": {"toy": 0.48},
                 }
             )
             + "\n",
@@ -628,10 +633,14 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert summary["dataset_count"] == 1
     assert summary["tab_foundry"]["best_step"] == pytest.approx(25.0)
     assert summary["tab_foundry"]["best_roc_auc"] == pytest.approx(0.81)
+    assert summary["tab_foundry"]["final_log_loss"] == pytest.approx(0.42)
     assert summary["tab_foundry"]["final_dataset_roc_auc"] == {"toy": pytest.approx(0.81)}
+    assert summary["tab_foundry"]["final_dataset_log_loss"] == {"toy": pytest.approx(0.42)}
     assert summary["nanotabpfn"]["best_step"] == pytest.approx(25.0)
     assert summary["nanotabpfn"]["final_roc_auc"] == pytest.approx(0.78)
+    assert summary["nanotabpfn"]["final_log_loss"] == pytest.approx(0.48)
     assert summary["nanotabpfn"]["final_dataset_roc_auc"] == {"toy": pytest.approx(0.78)}
+    assert summary["nanotabpfn"]["final_dataset_log_loss"] == {"toy": pytest.approx(0.48)}
     assert summary["benchmark_bundle"]["name"] == "test_bundle"
     assert summary["benchmark_bundle"]["version"] == 1
     assert summary["benchmark_bundle"]["task_count"] == 1

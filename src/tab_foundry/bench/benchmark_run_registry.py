@@ -50,6 +50,7 @@ _TAB_FOUNDRY_METRIC_KEYS = {
     "final_step",
     "final_training_time",
     "final_roc_auc",
+    "final_log_loss",
 }
 
 _RegistryPayloadT = TypeVar("_RegistryPayloadT", bound="_RegistryPayloadModel")
@@ -108,6 +109,7 @@ class _TabFoundryMetricsPayload(_RegistryPayloadModel):
     final_step: FiniteFloat | None = None
     final_training_time: FiniteFloat | None = None
     final_roc_auc: FiniteFloat | None = None
+    final_log_loss: FiniteFloat | None = None
 
 
 class _TrainingDiagnosticsPayload(_RegistryPayloadModel):
@@ -131,6 +133,7 @@ class _ComparisonPayload(_RegistryPayloadModel):
     reference_run_id: StrictStr
     best_roc_auc_delta: FiniteFloat | None = None
     final_roc_auc_delta: FiniteFloat | None = None
+    final_log_loss_delta: FiniteFloat | None = None
     best_training_time_delta: FiniteFloat | None = None
     final_training_time_delta: FiniteFloat | None = None
 
@@ -324,6 +327,22 @@ def _ensure_mapping(value: Any, *, context: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise RuntimeError(f"{context} must be an object")
     return cast(dict[str, Any], value)
+
+
+def _tab_foundry_metrics_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str, float | None]:
+    metrics: dict[str, float | None] = {
+        "best_step": float(tab_foundry["best_step"]),
+        "best_training_time": float(tab_foundry["best_training_time"]),
+        "best_roc_auc": float(tab_foundry["best_roc_auc"]),
+        "final_step": float(tab_foundry["final_step"]),
+        "final_training_time": float(tab_foundry["final_training_time"]),
+        "final_roc_auc": float(tab_foundry["final_roc_auc"]),
+        "final_log_loss": _ensure_optional_finite_number(
+            tab_foundry.get("final_log_loss"),
+            context="comparison_summary.tab_foundry.final_log_loss",
+        ),
+    }
+    return metrics
 
 
 def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
@@ -731,10 +750,7 @@ def derive_benchmark_run_record(
             if training_surface_path is None
             else _normalize_path_value(training_surface_path),
         },
-        "tab_foundry_metrics": {
-            key: float(tab_foundry[key])
-            for key in sorted(_TAB_FOUNDRY_METRIC_KEYS)
-        },
+        "tab_foundry_metrics": _tab_foundry_metrics_from_summary(tab_foundry),
         "training_diagnostics": _training_diagnostics_from_history(history, raw_cfg=raw_cfg),
         "model_size": _count_parameters_from_cfg(raw_cfg, state_dict=raw_state_dict),
         "surface_labels": None
@@ -780,10 +796,21 @@ def _comparison_delta(
     current_metrics: Mapping[str, Any],
     reference_metrics: Mapping[str, Any],
 ) -> dict[str, Any]:
+    current_final_log_loss = _ensure_optional_finite_number(
+        current_metrics.get("final_log_loss"),
+        context="current_metrics.final_log_loss",
+    )
+    reference_final_log_loss = _ensure_optional_finite_number(
+        reference_metrics.get("final_log_loss"),
+        context="reference_metrics.final_log_loss",
+    )
     return {
         "reference_run_id": str(reference_run_id),
         "best_roc_auc_delta": float(current_metrics["best_roc_auc"]) - float(reference_metrics["best_roc_auc"]),
         "final_roc_auc_delta": float(current_metrics["final_roc_auc"]) - float(reference_metrics["final_roc_auc"]),
+        "final_log_loss_delta": None
+        if current_final_log_loss is None or reference_final_log_loss is None
+        else float(current_final_log_loss) - float(reference_final_log_loss),
         "best_training_time_delta": float(current_metrics["best_training_time"])
         - float(reference_metrics["best_training_time"]),
         "final_training_time_delta": float(current_metrics["final_training_time"])

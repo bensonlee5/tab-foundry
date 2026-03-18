@@ -13,11 +13,12 @@ Optimize for attributable evidence against the locked anchor
 `01_shared_norm_post_ln_binary_medium_v1`, not for rapid base
 promotion.
 
-The primary score remains `final_roc_auc` on the canonical benchmark bundle
+The primary score remains `final_log_loss` on the canonical benchmark bundle
 `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
 
 Supporting metrics are:
 
+- `final_roc_auc`
 - `best_roc_auc`
 - `final_minus_best`
 - training-time deltas versus the anchor
@@ -194,7 +195,7 @@ This pass is attribution-first. No row becomes the new base during the sweep.
 
 Use these decisions:
 
-- `keep`: the row is isolated, evidence is at least neutral or positive on `final_roc_auc`, and the interpretation does not reveal unresolved confounding severe enough to block the signal
+- `keep`: the row is isolated, evidence is at least neutral or improved on `final_log_loss`, and the interpretation does not reveal unresolved confounding severe enough to block the signal
 - `defer`: evidence is mixed, the row is not isolated enough yet, or the introduced degrees of freedom have not been checked adequately
 - `reject`: only allowed when the row is isolated, the adequacy plan was completed, and the result is clearly worse without offsetting benefit
 

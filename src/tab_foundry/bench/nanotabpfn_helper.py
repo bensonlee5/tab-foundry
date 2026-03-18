@@ -36,6 +36,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     from model import NanoTabPFNModel  # type: ignore[attr-defined]
     from tab_foundry.bench.artifacts import write_jsonl
     from tab_foundry.bench.nanotabpfn import (
+        dataset_log_loss_metrics,
         dataset_roc_auc_metrics,
         evaluate_classifier,
         load_dataset_cache,
@@ -81,7 +82,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "step": int(index * int(args.eval_every)),
                     "training_time": float(training_time),
                     "roc_auc": float(metrics["ROC AUC"]),
+                    "log_loss": float(metrics["Log Loss"]),
                     "dataset_roc_auc": dataset_roc_auc_metrics(metrics),
+                    "dataset_log_loss": dataset_log_loss_metrics(metrics),
                 }
             )
 

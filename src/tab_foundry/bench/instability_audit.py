@@ -105,6 +105,7 @@ def _run_entry(
             benchmark_payload = {
                 "best_roc_auc": tab_foundry.get("best_roc_auc"),
                 "final_roc_auc": tab_foundry.get("final_roc_auc"),
+                "final_log_loss": tab_foundry.get("final_log_loss"),
                 "best_to_final_roc_auc_delta": tab_foundry.get("best_to_final_roc_auc_delta"),
             }
 
@@ -301,6 +302,7 @@ def _markdown_report(payload: Mapping[str, Any]) -> str:
             lines.append(
                 f"- benchmark: best ROC AUC `{benchmark.get('best_roc_auc')}`, "
                 f"final ROC AUC `{benchmark.get('final_roc_auc')}`, "
+                f"final log loss `{benchmark.get('final_log_loss')}`, "
                 f"best-to-final delta `{benchmark.get('best_to_final_roc_auc_delta')}`"
             )
         if entry.get("decision_recommendation") is not None:

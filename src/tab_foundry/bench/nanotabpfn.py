@@ -14,7 +14,7 @@ import openml
 from openml.tasks import TaskType
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import log_loss, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, LabelEncoder, OrdinalEncoder
@@ -28,6 +28,7 @@ _BUNDLE_SELECTION_TASK_TYPE = "supervised_classification"
 DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES = 2000
 DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE = 0.95
 DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED = 0
+_LOG_LOSS_EPS = 1.0e-15
 
 _SKF = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
 
@@ -536,6 +537,7 @@ def evaluate_classifier(
         try:
             targets: list[np.ndarray] = []
             probabilities: list[np.ndarray] = []
+            log_loss_probabilities: list[np.ndarray] = []
             for train_idx, test_idx in _SKF.split(x, y):
                 x_train, x_test = x[train_idx], x[test_idx]
                 y_train, y_test = y[train_idx], y[test_idx]
@@ -546,32 +548,88 @@ def evaluate_classifier(
                     probabilities.append(np.asarray(y_proba[:, 1], dtype=np.float64))
                 else:
                     probabilities.append(np.asarray(y_proba, dtype=np.float64))
+                log_loss_probabilities.append(_normalize_log_loss_probabilities(y_proba))
 
             target_array = np.concatenate(targets, axis=0)
             probability_array = np.concatenate(probabilities, axis=0)
+            log_loss_probability_array = np.concatenate(log_loss_probabilities, axis=0)
             assert_no_non_finite_values(
-                {"probabilities": probability_array},
+                {
+                    "probabilities": probability_array,
+                    "log_loss_probabilities": log_loss_probability_array,
+                },
                 context=f"benchmark classifier outputs dataset={dataset_name!r}",
             )
             metrics[f"{dataset_name}/ROC AUC"] = float(
                 roc_auc_score(target_array, probability_array, multi_class="ovr")
             )
+            metrics[f"{dataset_name}/Log Loss"] = float(
+                log_loss(
+                    target_array,
+                    log_loss_probability_array,
+                    labels=sorted(int(label) for label in np.unique(target_array)),
+                )
+            )
         except Exception as exc:
             raise BenchmarkDatasetEvaluationError(str(dataset_name), exc) from exc
 
     roc_auc_values = [value for key, value in metrics.items() if key.endswith("/ROC AUC")]
+    log_loss_values = [value for key, value in metrics.items() if key.endswith("/Log Loss")]
     metrics["ROC AUC"] = float(np.mean(roc_auc_values))
+    metrics["Log Loss"] = float(np.mean(log_loss_values))
     return metrics
+
+
+def _normalize_log_loss_probabilities(probabilities: np.ndarray) -> np.ndarray:
+    """Normalize classifier probabilities for stable log-loss evaluation."""
+
+    raw = np.asarray(probabilities, dtype=np.float64)
+    if raw.ndim == 1:
+        positive = np.clip(raw, _LOG_LOSS_EPS, 1.0 - _LOG_LOSS_EPS)
+        return np.stack([1.0 - positive, positive], axis=1)
+    if raw.ndim != 2 or raw.shape[1] <= 0:
+        raise RuntimeError(
+            "predict_proba must return a 1D probability vector or a 2D probability matrix"
+        )
+    if raw.shape[1] == 1:
+        positive = np.clip(raw[:, 0], _LOG_LOSS_EPS, 1.0 - _LOG_LOSS_EPS)
+        return np.stack([1.0 - positive, positive], axis=1)
+    clipped = np.clip(raw, _LOG_LOSS_EPS, 1.0)
+    row_sums = clipped.sum(axis=1, keepdims=True)
+    if np.any(row_sums <= 0.0):
+        raise RuntimeError("predict_proba returned a non-positive probability row")
+    normalized = clipped / row_sums
+    normalized = np.clip(normalized, _LOG_LOSS_EPS, 1.0)
+    return normalized / normalized.sum(axis=1, keepdims=True)
+
+
+def _ensure_optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    return float(value)
+
+
+def _dataset_metric_summary(metrics: Mapping[str, float], *, metric_name: str) -> dict[str, float]:
+    """Extract per-dataset metrics for one benchmark metric family."""
+
+    suffix = f"/{metric_name}"
+    return {
+        str(key[: -len(suffix)]): float(value)
+        for key, value in metrics.items()
+        if key.endswith(suffix) and key != metric_name
+    }
 
 
 def dataset_roc_auc_metrics(metrics: Mapping[str, float]) -> dict[str, float]:
     """Extract per-dataset ROC AUC values from a benchmark metrics dict."""
 
-    return {
-        str(key[: -len("/ROC AUC")]): float(value)
-        for key, value in metrics.items()
-        if key.endswith("/ROC AUC") and key != "ROC AUC"
-    }
+    return _dataset_metric_summary(metrics, metric_name="ROC AUC")
+
+
+def dataset_log_loss_metrics(metrics: Mapping[str, float]) -> dict[str, float]:
+    """Extract per-dataset log-loss values from a benchmark metrics dict."""
+
+    return _dataset_metric_summary(metrics, metric_name="Log Loss")
 
 
 def task_bootstrap_roc_auc_interval(
@@ -954,7 +1012,9 @@ def evaluate_tab_foundry_run(
                 "step": int(snapshot["step"]),
                 "training_time": float(snapshot["elapsed_seconds"]),
                 "roc_auc": float(metrics["ROC AUC"]),
+                "log_loss": float(metrics["Log Loss"]),
                 "dataset_roc_auc": dataset_roc_auc_metrics(metrics),
+                "dataset_log_loss": dataset_log_loss_metrics(metrics),
                 "model_arch": model_arch,
                 "model_stage": model_stage,
                 "benchmark_profile": None
@@ -1044,7 +1104,7 @@ def build_comparison_summary(
 ) -> dict[str, Any]:
     """Build a compact JSON summary for the benchmark comparison."""
 
-    def _summary_metrics(records: list[dict[str, Any]]) -> dict[str, float]:
+    def _summary_metrics(records: list[dict[str, Any]]) -> dict[str, float | None]:
         if not records:
             return {
                 "best_step": 0.0,
@@ -1053,6 +1113,7 @@ def build_comparison_summary(
                 "final_step": 0.0,
                 "final_training_time": 0.0,
                 "final_roc_auc": float("nan"),
+                "final_log_loss": None,
             }
         frame = pd.DataFrame(records)
         if "step" not in frame.columns:
@@ -1065,8 +1126,10 @@ def build_comparison_summary(
                     "final_step": 0.0,
                     "final_training_time": 0.0,
                     "final_roc_auc": float("nan"),
+                    "final_log_loss": None,
                 }
             best_idx = int(np.nanargmax(mean))
+            ordered = frame.sort_values("training_time")
             return {
                 "best_step": 0.0,
                 "best_training_time": float(times[best_idx]),
@@ -1074,10 +1137,18 @@ def build_comparison_summary(
                 "final_step": 0.0,
                 "final_training_time": float(times[-1]),
                 "final_roc_auc": float(mean[-1]),
+                "final_log_loss": (
+                    None
+                    if "log_loss" not in ordered.columns
+                    else float(ordered.iloc[-1]["log_loss"])
+                ),
             }
 
+        aggregate_columns = ["training_time", "roc_auc"]
+        if "log_loss" in frame.columns:
+            aggregate_columns.append("log_loss")
         grouped = (
-            frame.groupby("step", sort=True)[["training_time", "roc_auc"]]
+            frame.groupby("step", sort=True)[aggregate_columns]
             .mean(numeric_only=True)
             .reset_index()
             .sort_values("step")
@@ -1090,6 +1161,7 @@ def build_comparison_summary(
                 "final_step": 0.0,
                 "final_training_time": 0.0,
                 "final_roc_auc": float("nan"),
+                "final_log_loss": None,
             }
         best_index = int(grouped["roc_auc"].astype(float).idxmax())
         best_row = grouped.loc[best_index]
@@ -1101,14 +1173,22 @@ def build_comparison_summary(
             "final_step": float(final_row["step"]),
             "final_training_time": float(final_row["training_time"]),
             "final_roc_auc": float(final_row["roc_auc"]),
+            "final_log_loss": (
+                None if "log_loss" not in final_row.index else float(final_row["log_loss"])
+            ),
         }
 
-    def _dataset_summary(records: list[dict[str, Any]], *, step: float) -> dict[str, float]:
+    def _dataset_summary(
+        records: list[dict[str, Any]],
+        *,
+        step: float,
+        record_key: str,
+    ) -> dict[str, float]:
         per_dataset: dict[str, list[float]] = {}
         for record in records:
             if float(record.get("step", -1.0)) != float(step):
                 continue
-            raw_metrics = record.get("dataset_roc_auc")
+            raw_metrics = record.get(record_key)
             if not isinstance(raw_metrics, dict):
                 continue
             for dataset_name, value in raw_metrics.items():
@@ -1124,9 +1204,10 @@ def build_comparison_summary(
         *,
         from_step: float,
         to_step: float,
+        record_key: str,
     ) -> dict[str, float]:
-        from_metrics = _dataset_summary(records, step=from_step)
-        to_metrics = _dataset_summary(records, step=to_step)
+        from_metrics = _dataset_summary(records, step=from_step, record_key=record_key)
+        to_metrics = _dataset_summary(records, step=to_step, record_key=record_key)
         shared_dataset_names = sorted(set(from_metrics) & set(to_metrics))
         return {
             dataset_name: float(to_metrics[dataset_name]) - float(from_metrics[dataset_name])
@@ -1196,15 +1277,28 @@ def build_comparison_summary(
     tab_foundry_summary["best_dataset_roc_auc"] = _dataset_summary(
         tab_foundry_successful_records,
         step=float(tab_foundry_summary["best_step"]),
+        record_key="dataset_roc_auc",
     )
     tab_foundry_summary["final_dataset_roc_auc"] = _dataset_summary(
         tab_foundry_successful_records,
         step=float(tab_foundry_summary["final_step"]),
+        record_key="dataset_roc_auc",
     )
     tab_foundry_summary["best_to_final_dataset_roc_auc_delta"] = _dataset_delta_summary(
         tab_foundry_successful_records,
         from_step=float(tab_foundry_summary["best_step"]),
         to_step=float(tab_foundry_summary["final_step"]),
+        record_key="dataset_roc_auc",
+    )
+    tab_foundry_summary["final_log_loss"] = (
+        None
+        if tab_foundry_curve["final_record"] is None
+        else _ensure_optional_float(cast(dict[str, Any], tab_foundry_curve["final_record"]).get("log_loss"))
+    )
+    tab_foundry_summary["final_dataset_log_loss"] = _dataset_summary(
+        tab_foundry_successful_records,
+        step=float(tab_foundry_summary["final_step"]),
+        record_key="dataset_log_loss",
     )
     tab_foundry_summary["best_to_final_roc_auc_delta"] = tab_foundry_curve[
         "best_to_final_roc_auc_delta"
@@ -1230,15 +1324,23 @@ def build_comparison_summary(
     nanotabpfn_summary["best_dataset_roc_auc"] = _dataset_summary(
         nanotabpfn_records,
         step=float(nanotabpfn_summary["best_step"]),
+        record_key="dataset_roc_auc",
     )
     nanotabpfn_summary["final_dataset_roc_auc"] = _dataset_summary(
         nanotabpfn_records,
         step=float(nanotabpfn_summary["final_step"]),
+        record_key="dataset_roc_auc",
     )
     nanotabpfn_summary["best_to_final_dataset_roc_auc_delta"] = _dataset_delta_summary(
         nanotabpfn_records,
         from_step=float(nanotabpfn_summary["best_step"]),
         to_step=float(nanotabpfn_summary["final_step"]),
+        record_key="dataset_roc_auc",
+    )
+    nanotabpfn_summary["final_dataset_log_loss"] = _dataset_summary(
+        nanotabpfn_records,
+        step=float(nanotabpfn_summary["final_step"]),
+        record_key="dataset_log_loss",
     )
     nanotabpfn_summary["best_to_final_roc_auc_delta"] = float(
         nanotabpfn_summary["final_roc_auc"]

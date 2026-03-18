@@ -33,7 +33,7 @@ _ENTRY_KEYS = {
     "tab_foundry_metrics",
 }
 _BENCHMARK_BUNDLE_KEYS = {"name", "version", "source_path", "task_count", "task_ids"}
-_TAB_FOUNDRY_METRIC_KEYS = {
+_REQUIRED_TAB_FOUNDRY_METRIC_KEYS = {
     "best_step",
     "best_training_time",
     "best_roc_auc",
@@ -41,6 +41,8 @@ _TAB_FOUNDRY_METRIC_KEYS = {
     "final_training_time",
     "final_roc_auc",
 }
+_OPTIONAL_TAB_FOUNDRY_METRIC_KEYS = {"final_log_loss"}
+_TAB_FOUNDRY_METRIC_KEYS = _REQUIRED_TAB_FOUNDRY_METRIC_KEYS | _OPTIONAL_TAB_FOUNDRY_METRIC_KEYS
 
 
 def project_root() -> Path:
@@ -166,7 +168,14 @@ def _validate_baseline_entry(entry: Any, *, baseline_id: str) -> None:
             f"control baseline entry benchmark_bundle must match expected schema: {baseline_id}"
         )
     tab_foundry_metrics = entry["tab_foundry_metrics"]
-    if not isinstance(tab_foundry_metrics, dict) or set(tab_foundry_metrics.keys()) != _TAB_FOUNDRY_METRIC_KEYS:
+    if not isinstance(tab_foundry_metrics, dict):
+        raise RuntimeError(
+            f"control baseline entry tab_foundry_metrics must match expected schema: {baseline_id}"
+        )
+    actual_metric_keys = set(tab_foundry_metrics.keys())
+    if not _REQUIRED_TAB_FOUNDRY_METRIC_KEYS.issubset(actual_metric_keys) or not actual_metric_keys.issubset(
+        _TAB_FOUNDRY_METRIC_KEYS
+    ):
         raise RuntimeError(
             f"control baseline entry tab_foundry_metrics must match expected schema: {baseline_id}"
         )
@@ -260,6 +269,11 @@ def derive_control_baseline_entry(
         "final_step": float(tab_foundry["final_step"]),
         "final_training_time": float(tab_foundry["final_training_time"]),
         "final_roc_auc": float(tab_foundry["final_roc_auc"]),
+        "final_log_loss": (
+            None
+            if tab_foundry.get("final_log_loss") is None
+            else float(tab_foundry["final_log_loss"])
+        ),
     }
     entry = {
         "baseline_id": str(baseline_id),
