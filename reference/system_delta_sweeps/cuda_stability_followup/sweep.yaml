@@ -1,0 +1,66 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: cuda_stability_followup
+parent_sweep_id: cuda_capacity_pilot
+status: active
+complexity_level: binary_md
+anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+  - This sweep exists because the first `cuda_capacity_pilot` large-anchor run drifted upward in activation scale and was stopped before benchmark registration.
+  - Both batch64 diagnostics were also operationally confounded by first-attempt OOM fallback to microbatch 32, so `batch32` is now the clean discriminator surface.
+  - 'Use an ordered ladder: `batch32` replay first, then lower LR on `batch32`, then compare post-encoder `rmsnorm` and `layernorm` on the same `batch32` surface.'
+  - Keep `input_normalization` and capacity shape fixed; the goal is to stabilize the existing large anchor, not to promote a new width/depth variant.
+  - Keep the earlier batch64 rows as deferred backlog evidence rather than the default execution path until batch64 can be evaluated without constant fallback.
+  - Once one row is stably trainable, return to `cuda_capacity_pilot` and rerun the blocked baseline before reading width or depth.
+  dimension_table:
+  - dimension: bridge architecture
+    upstream: The registered anchor remains the promoted prenorm plus row-cls bridge recipe from the completed follow-up.
+    anchor: Keep the large CUDA base `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `tfrow_cls_tokens=2`, `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, and `head_hidden_dim=1024` fixed across the ladder.
+    interpretation: This sweep is primarily a stability-surface investigation; it is not reopening width or depth as a live axis.
+  - dimension: input normalization
+    upstream: The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up underperformed on the same systems surface.
+    anchor: Keep `train_zscore_clip` fixed across all rows.
+    interpretation: Any movement here should be attributed to batch/LR coupling, not preprocessing.
+  - dimension: batch and LR coupling
+    upstream: The compact anchor promoted `prior_dump_batch_size=64` with sqrt LR scaling relative to the batch32 reference surface.
+    anchor: Use `batch32` replay as the primary discriminator, then lower the LR ceiling on the same `batch32` surface before revisiting any architecture-level change; keep batch64 no-scale rows as deferred backlog only.
+    interpretation: Use this sweep to decide whether the large anchor only needs the compact replay surface or a softer LR surface before any deeper structural change.
+  - dimension: post-encoder normalization
+    upstream: Upstream nanoTabPFN does not expose this exact staged post-encoder normalization ladder on the large CUDA bridge path.
+    anchor: Keep `post_encoder_norm=none` on the schedule-only rows, then compare `post_encoder_norm=rmsnorm` and `post_encoder_norm=layernorm` on the same batch32 replay surface if drift persists.
+    interpretation: Treat the norm-family rows as late-rung stabilization probes after schedule-only batch32 evidence, not as the first response to the drift.
+  - dimension: execution policy
+    upstream: '`cuda_capacity_pilot` would normally benchmark row 1 before width/depth probes.'
+    anchor: Treat rows 1-4 as an ordered stability gate and keep the batch64 rows deferred unless the batch32 ladder settles or batch64 memory behavior becomes interpretable.
+    interpretation: A row that still shows persistent activation drift is not sufficient to unblock the capacity pilot even if the loss curve looks superficially acceptable.
+anchor_context:
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+  experiment: cls_benchmark_staged_prior
+  config_profile: cls_benchmark_staged_prior
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: dpnb_input_norm_anchor_replay_batch64_sqrt
+    stage: nano_exact
+    stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: nano
+      head: binary_direct
+      post_encoder_norm: none
+      row_pool: row_cls
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: dpnb_input_norm_anchor_replay_batch64_sqrt
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

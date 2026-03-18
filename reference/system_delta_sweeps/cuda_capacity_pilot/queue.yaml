@@ -3,7 +3,7 @@ sweep_id: cuda_capacity_pilot
 rows:
   - order: 1
     delta_ref: dpnb_cuda_large_anchor
-    status: ready
+    status: blocked_on_stability_followup
     rationale: Establish a large CUDA-sized bridge baseline before asking whether width or depth matters more.
     hypothesis: The promoted bridge recipe should benefit from a larger exact-prior trunk even without changing the optimizer or preprocessing family.
     anchor_delta: Reuses the registered bridge anchor run but promotes the row itself to the large CUDA base with the same bridge modules and training recipe.
@@ -56,14 +56,15 @@ rows:
     run_id: null
     followup_run_ids: []
     decision: null
-    interpretation_status: pending
+    interpretation_status: blocked
     confounders: []
-    next_action: Run this row first to establish the large CUDA bridge baseline before evaluating width or depth probes.
+    next_action: Wait for `cuda_stability_followup` to pick a stable large-anchor training surface, then rerun this baseline before reading width or depth.
     notes:
       - This row is the baseline for the pilot even though the sweep anchor remains the promoted compact batch64 bridge run.
+      - A first attempt was stopped for persistent activation drift and preserved under `sd_cuda_capacity_pilot_01_dpnb_cuda_large_anchor_v1_stopped_activation_drift_20260318T225450Z`.
   - order: 2
     delta_ref: dpnb_cuda_large_width_x2
-    status: ready
+    status: blocked_on_stability_followup
     rationale: Test whether a substantially wider bridge trunk beats the large anchor without also changing depth.
     hypothesis: Increasing representational width at fixed depth may recover more quality than adding more layers on this benchmark bundle.
     anchor_delta: Changes only the width-related capacity knobs relative to row 1 while leaving bridge modules, normalization, and schedule fixed.
@@ -116,14 +117,15 @@ rows:
     run_id: null
     followup_run_ids: []
     decision: null
-    interpretation_status: pending
+    interpretation_status: blocked
     confounders: []
-    next_action: Compare this row against the large anchor and decide whether width deserves a dedicated second sweep.
+    next_action: Leave this row blocked until `cuda_stability_followup` re-establishes a trainable large-anchor baseline.
     notes:
       - This row deliberately leaves `tficl_n_layers=12` fixed so the width effect stays attributable.
+      - Do not run this width probe until the blocked row-1 baseline has a stable replacement.
   - order: 3
     delta_ref: dpnb_cuda_large_depth_plus4
-    status: ready
+    status: blocked_on_stability_followup
     rationale: Test whether modestly deeper ICL processing helps more than width once the large bridge base is established.
     hypothesis: Extra transformer depth may improve benchmark quality if the large anchor is still under-expressive at fixed width.
     anchor_delta: Changes only `tficl_n_layers` relative to row 1 while keeping width, normalization, and training budget fixed.
@@ -176,8 +178,9 @@ rows:
     run_id: null
     followup_run_ids: []
     decision: null
-    interpretation_status: pending
+    interpretation_status: blocked
     confounders: []
-    next_action: Compare this row against the large anchor and then choose whether width, depth, or the large anchor itself should seed the budget follow-up.
+    next_action: Leave this row blocked until `cuda_stability_followup` re-establishes a trainable large-anchor baseline.
     notes:
       - This row deliberately keeps the large-anchor width fixed so the depth effect stays attributable.
+      - Do not run this depth probe until the blocked row-1 baseline has a stable replacement.

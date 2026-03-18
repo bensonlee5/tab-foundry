@@ -32,13 +32,13 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
 def test_cuda_capacity_pilot_is_registered_and_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "cuda_capacity_pilot"
+    assert index["active_sweep_id"] == "cuda_stability_followup"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps["cuda_capacity_pilot"] == {
         "parent_sweep_id": "input_norm_followup",
-        "status": "active",
+        "status": "blocked_on_stability_followup",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -53,7 +53,7 @@ def test_cuda_capacity_pilot_metadata_and_rows_match_the_capacity_plan() -> None
 
     assert sweep["sweep_id"] == "cuda_capacity_pilot"
     assert sweep["parent_sweep_id"] == "input_norm_followup"
-    assert sweep["status"] == "active"
+    assert sweep["status"] == "blocked_on_stability_followup"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged_prior"
@@ -64,7 +64,11 @@ def test_cuda_capacity_pilot_metadata_and_rows_match_the_capacity_plan() -> None
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready", "ready"]
+    assert [row["status"] for row in rows] == [
+        "blocked_on_stability_followup",
+        "blocked_on_stability_followup",
+        "blocked_on_stability_followup",
+    ]
 
     baseline = _row_by_ref(queue, "dpnb_cuda_large_anchor")
     assert baseline["model"]["stage_label"] == "dpnb_cuda_large_anchor"
@@ -80,7 +84,9 @@ def test_cuda_capacity_pilot_metadata_and_rows_match_the_capacity_plan() -> None
     assert baseline["training"]["prior_dump_batch_reference_size"] == 32
     assert baseline["training"]["overrides"]["runtime"]["max_steps"] == 2500
     assert baseline["run_id"] is None
-    assert baseline["interpretation_status"] == "pending"
+    assert baseline["interpretation_status"] == "blocked"
+    assert "cuda_stability_followup" in baseline["next_action"]
+    assert any("activation drift" in note for note in baseline["notes"])
 
     width = _row_by_ref(queue, "dpnb_cuda_large_width_x2")
     assert width["model"]["d_col"] == 256
@@ -115,6 +121,6 @@ def test_cuda_capacity_pilot_matrix_records_the_three_row_capacity_probe() -> No
     assert "dpnb_cuda_large_anchor" in matrix
     assert "dpnb_cuda_large_width_x2" in matrix
     assert "dpnb_cuda_large_depth_plus4" in matrix
-    assert "2500" in matrix
-    assert "batch64" in matrix
-    assert "budget follow-up" in matrix
+    assert "blocked_on_stability_followup" in matrix
+    assert "cuda_stability_followup" in matrix
+    assert "activation drift" in matrix

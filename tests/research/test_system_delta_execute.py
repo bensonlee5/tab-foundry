@@ -11,6 +11,7 @@ import pytest
 from tab_foundry.research.system_delta import create_sweep
 from tab_foundry.research.system_delta_execute import (
     ExecutionPaths,
+    _compose_cfg,
     _queue_metrics,
     _result_card_text,
     execute_sweep,
@@ -215,6 +216,29 @@ def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pyt
         'parent_run_id': 'promoted_anchor_v2',
         'run_id': 'row_2_v1',
     }
+
+
+def test_compose_cfg_sets_queue_aware_wandb_run_name(tmp_path: Path) -> None:
+    run_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / 'cuda_capacity_pilot'
+        / 'dpnb_cuda_large_anchor'
+        / 'sd_cuda_capacity_pilot_01_dpnb_cuda_large_anchor_v1'
+        / 'train'
+    )
+
+    cfg = _compose_cfg(
+        row={'model': {'stage_label': 'dpnb_cuda_large_anchor'}},
+        run_dir=run_dir,
+        device='cuda',
+    )
+
+    assert str(cfg.runtime.output_dir) == str(run_dir.resolve())
+    assert str(cfg.logging.run_name) == 'sd_cuda_capacity_pilot_01_dpnb_cuda_large_anchor_v1'
+    assert str(cfg.model.stage_label) == 'dpnb_cuda_large_anchor'
 
 
 def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> None:

@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/cuda_capacity_pilot/qu
 ## Sweep
 
 - Sweep id: `cuda_capacity_pilot`
-- Sweep status: `active`
+- Sweep status: `blocked_on_stability_followup`
 - Parent sweep id: `input_norm_followup`
 - Complexity level: `binary_md`
 
@@ -24,24 +24,24 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | Dimension | Upstream nanoTabPFN | Locked anchor | Interpretation |
 | --- | --- | --- | --- |
 | bridge architecture | The registered anchor remains the promoted prenorm plus row-cls bridge recipe from the completed follow-up. | Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `tfrow_cls_tokens=2`, and `post_encoder_norm=none` fixed. | Capacity rows should be read as model-size probes on the bridge surface, not as reopened module-selection experiments. |
-| model capacity | The promoted anchor run keeps the compact bridge width while moving to the batch64 sqrt-scaled training surface. | Row 1 moves to the large CUDA base `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, `head_hidden_dim=1024`. | Rows 2 and 3 should be compared against row 1 first so width and depth evidence stays attributable. |
+| model capacity | The promoted anchor run keeps the compact bridge width while moving to the batch64 sqrt-scaled training surface. | Row 1 moves to the large CUDA base `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, `head_hidden_dim=1024`. | Rows 2 and 3 remain blocked until a stable row-1-equivalent large-anchor recipe exists again. |
 | input normalization | The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up underperformed on the same systems surface. | Keep `train_zscore_clip` fixed across this pilot because `input_norm_none_followup` underperformed and did not justify removing explicit clipping. | Any movement in this sweep should not be attributed to preprocessing changes. |
-| training recipe | The registered anchor already uses the promoted `prior_linear_warmup_decay` recipe with batch size 64 and sqrt LR scaling. | Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=64`, `prior_dump_lr_scale_rule=sqrt`, `prior_dump_batch_reference_size=32`, and `2500` steps fixed. | Longer-budget adequacy checks belong in `cuda_budget_followup`, not in this capacity readout. |
+| training recipe | The registered anchor already uses the promoted `prior_linear_warmup_decay` recipe with batch size 64 and sqrt LR scaling. | Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=64`, `prior_dump_lr_scale_rule=sqrt`, `prior_dump_batch_reference_size=32`, and `2500` steps fixed. | This copied systems surface triggered activation drift on the first large-anchor attempt, so `cuda_stability_followup` now owns training-surface repair before any further capacity comparison. |
 
 ## Queue Summary
 
 | Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `dpnb_cuda_large_anchor` | size_scaling | yes | ready | none | Establish the large CUDA-sized bridge baseline on the stabilized prenorm plus row-cls recipe. | Run this row first to establish the large CUDA bridge baseline before evaluating width or depth probes. |
-| 2 | `dpnb_cuda_large_width_x2` | size_scaling | yes | ready | none | Double the large-anchor width-related capacity while keeping bridge modules and depth fixed. | Compare this row against the large anchor and decide whether width deserves a dedicated second sweep. |
-| 3 | `dpnb_cuda_large_depth_plus4` | size_scaling | yes | ready | none | Add four ICL transformer layers on top of the large CUDA bridge anchor while keeping width fixed. | Compare this row against the large anchor and then choose whether width, depth, or the large anchor itself should seed the budget follow-up. |
+| 1 | `dpnb_cuda_large_anchor` | size_scaling | yes | blocked_on_stability_followup | none | Establish the large CUDA-sized bridge baseline on the stabilized prenorm plus row-cls recipe. | Wait for `cuda_stability_followup` to pick a stable large-anchor training surface, then rerun this baseline before reading width or depth. |
+| 2 | `dpnb_cuda_large_width_x2` | size_scaling | yes | blocked_on_stability_followup | none | Double the large-anchor width-related capacity while keeping bridge modules and depth fixed. | Leave this row blocked until `cuda_stability_followup` re-establishes a trainable large-anchor baseline. |
+| 3 | `dpnb_cuda_large_depth_plus4` | size_scaling | yes | blocked_on_stability_followup | none | Add four ICL transformer layers on top of the large CUDA bridge anchor while keeping width fixed. | Leave this row blocked until `cuda_stability_followup` re-establishes a trainable large-anchor baseline. |
 
 ## Detailed Rows
 
 ### 1. `dpnb_cuda_large_anchor`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `blocked_on_stability_followup`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Establish the large CUDA-sized bridge baseline on the stabilized prenorm plus row-cls recipe.
@@ -61,10 +61,11 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - model.tficl_n_heads
   - model.tficl_n_layers
   - model.head_hidden_dim
-- Interpretation status: `pending`
+- Interpretation status: `blocked`
 - Decision: `None`
 - Notes:
   - This row is the baseline for the pilot even though the sweep anchor remains the promoted compact batch64 bridge run.
+  - A first attempt was stopped for persistent activation drift and preserved under `sd_cuda_capacity_pilot_01_dpnb_cuda_large_anchor_v1_stopped_activation_drift_20260318T225450Z`.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_capacity_pilot/dpnb_cuda_large_anchor/result_card.md`
 - Benchmark metrics: pending
@@ -72,7 +73,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 2. `dpnb_cuda_large_width_x2`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `blocked_on_stability_followup`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Double the large-anchor width-related capacity while keeping bridge modules and depth fixed.
@@ -91,10 +92,11 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - model.d_col
   - model.d_icl
   - model.head_hidden_dim
-- Interpretation status: `pending`
+- Interpretation status: `blocked`
 - Decision: `None`
 - Notes:
   - This row deliberately leaves `tficl_n_layers=12` fixed so the width effect stays attributable.
+  - Do not run this width probe until the blocked row-1 baseline has a stable replacement.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_capacity_pilot/dpnb_cuda_large_width_x2/result_card.md`
 - Benchmark metrics: pending
@@ -102,7 +104,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 3. `dpnb_cuda_large_depth_plus4`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `blocked_on_stability_followup`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Add four ICL transformer layers on top of the large CUDA bridge anchor while keeping width fixed.
@@ -119,10 +121,11 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Open the budget follow-up only after rows 1-3 establish the best architecture of this pilot.
 - Adequacy knobs to dimension explicitly:
   - model.tficl_n_layers
-- Interpretation status: `pending`
+- Interpretation status: `blocked`
 - Decision: `None`
 - Notes:
   - This row deliberately keeps the large-anchor width fixed so the depth effect stays attributable.
+  - Do not run this depth probe until the blocked row-1 baseline has a stable replacement.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_capacity_pilot/dpnb_cuda_large_depth_plus4/result_card.md`
 - Benchmark metrics: pending

@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: cuda_capacity_pilot
 parent_sweep_id: input_norm_followup
-status: active
+status: blocked_on_stability_followup
 complexity_level: binary_md
 anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -12,8 +12,9 @@ upstream_reference:
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-    - This pilot now anchors on the promoted batch64 sqrt-scaled clipped bridge winner from `input_norm_followup` so the CUDA capacity rows inherit the current preferred systems surface.
-    - Row 1 establishes the first large CUDA-sized bridge baseline; rows 2 and 3 probe width and depth separately rather than fitting a mixed-family scaling curve.
+    - This pilot still targets width-vs-depth evidence on the promoted batch64 sqrt-scaled clipped bridge winner from `input_norm_followup`.
+    - The first large-anchor attempt was stopped for persistent activation drift before benchmark registration, so the pilot is now paused.
+    - Active training-surface stabilization has moved to `cuda_stability_followup`; resume this pilot only after that sweep picks a trainable large-anchor recipe.
     - "`input_norm_none_followup` completed on the same systems surface and did not justify removing explicit clipping, so input normalization stays fixed at `train_zscore_clip` on this branch."
     - Training-budget changes are intentionally excluded from this sweep and move to the draft `cuda_budget_followup` scaffold.
   dimension_table:
@@ -24,7 +25,7 @@ anchor_surface:
     - dimension: model capacity
       upstream: The promoted anchor run keeps the compact bridge width while moving to the batch64 sqrt-scaled training surface.
       anchor: Row 1 moves to the large CUDA base `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, `head_hidden_dim=1024`.
-      interpretation: Rows 2 and 3 should be compared against row 1 first so width and depth evidence stays attributable.
+      interpretation: Rows 2 and 3 remain blocked until a stable row-1-equivalent large-anchor recipe exists again.
     - dimension: input normalization
       upstream: The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up underperformed on the same systems surface.
       anchor: Keep `train_zscore_clip` fixed across this pilot because `input_norm_none_followup` underperformed and did not justify removing explicit clipping.
@@ -32,7 +33,7 @@ anchor_surface:
     - dimension: training recipe
       upstream: The registered anchor already uses the promoted `prior_linear_warmup_decay` recipe with batch size 64 and sqrt LR scaling.
       anchor: Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=64`, `prior_dump_lr_scale_rule=sqrt`, `prior_dump_batch_reference_size=32`, and `2500` steps fixed.
-      interpretation: Longer-budget adequacy checks belong in `cuda_budget_followup`, not in this capacity readout.
+      interpretation: This copied systems surface triggered activation drift on the first large-anchor attempt, so `cuda_stability_followup` now owns training-surface repair before any further capacity comparison.
 anchor_context:
   run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
   experiment: cls_benchmark_staged_prior
