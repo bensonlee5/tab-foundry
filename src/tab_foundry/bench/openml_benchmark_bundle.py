@@ -401,9 +401,9 @@ def _collect_discovered_task_candidates(
 
 def _collect_task_candidates(config: OpenMLBenchmarkBundleConfig) -> list[OpenMLBenchmarkTaskCandidate]:
     if config.discover_from_openml:
-        candidates, _report_entries = _collect_discovered_task_candidates(config)
-        return candidates
-    candidates: list[OpenMLBenchmarkTaskCandidate] = []
+        discovered_candidates, _report_entries = _collect_discovered_task_candidates(config)
+        return discovered_candidates
+    resolved_candidates: list[OpenMLBenchmarkTaskCandidate] = []
     for task_id in config.resolved_task_ids():
         task = openml.tasks.get_task(int(task_id), download_splits=False)
         expected_task_type = (
@@ -457,10 +457,10 @@ def _collect_task_candidates(config: OpenMLBenchmarkBundleConfig) -> list[OpenML
                 keep_candidate
                 and candidate.minority_class_pct is not None
                 and candidate.minority_class_pct >= float(config.min_minority_class_pct)
-            )
+        )
         if keep_candidate:
-            candidates.append(candidate)
-    return candidates
+            resolved_candidates.append(candidate)
+    return resolved_candidates
 
 
 def _resolve_selected_tasks(

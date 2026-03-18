@@ -37,7 +37,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - User-facing note: benchmark bundle selection now accepts `selection.task_type`, regression task rows omit `n_classes`, and persisted benchmark summaries, registries, and control baselines may now include the new task-aware metric fields.
 
-
 ## [0.6.11] - 2026-03-17
 
 ### Added
