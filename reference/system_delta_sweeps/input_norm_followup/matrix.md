@@ -11,11 +11,11 @@ This file is rendered from `reference/system_delta_sweeps/input_norm_followup/qu
 
 ## Locked Surface
 
-- Anchor run id: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`
+- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
-- Anchor metrics: best ROC AUC `0.7634`, final ROC AUC `0.7567`, final training time `143.0s`
+- Anchor metrics: best ROC AUC `0.7638`, final ROC AUC `0.7634`, final training time `257.0s`
 
 ## Anchor Comparison
 
@@ -24,22 +24,22 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | Dimension | Upstream nanoTabPFN | Locked anchor | Interpretation |
 | --- | --- | --- | --- |
 | bridge architecture | Old bridge rows established that prenorm plus row-cls cls2 can train cleanly with linear warmup decay. | Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `tfrow_cls_tokens=2`, and `post_encoder_norm=none` fixed. | Changes in this sweep should be attributed to preprocessing or batch-size effects, not to a reopened architecture axis. |
-| input normalization | The bridge baseline still uses `train_zscore_clip`. | Compare plain unclipped z-score, winsorize+zscore, zscore+tanh, and robust+tanh against the clipped bridge default. | The main question is whether hard clipping remains necessary once the bridge baseline is stabilized. |
-| batch-size scaling | Exact-prior training previously treated batch size as a hidden function argument rather than a tracked surface knob. | Add sidecars at batch sizes 16 and 64 with sqrt LR scaling relative to the reference batch size of 32. | Batch-size rows are interaction probes, not a new mainline sweep family. |
+| input normalization | The bridge baseline still uses `train_zscore_clip`. | Keep `train_zscore_clip` on the promoted batch64 sqrt-scaled bridge surface. | Rows 1-5 showed the normalized variants were tied on batch32, row 9 only tied row 7, and the later no-norm follow-up underperformed, so clipping stays in the anchor by default. |
+| batch-size scaling | Exact-prior training previously treated batch size as a hidden function argument rather than a tracked surface knob. | Use prior-dump batch size 64 with sqrt LR scaling relative to the reference batch size of 32. | Batch-size rows were the only source of clear lift in this sweep; row 7 is the promoted systems surface. |
 
 ## Queue Summary
 
 | Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `dpnb_input_norm_anchor_replay` | baseline_replay | yes | completed | none | Replay the promoted bridge baseline exactly on this machine before comparing normalization or batch-size variants. | Use this run as the local anchor and proceed to row 2 (`dpnb_input_norm_zscore`). |
-| 2 | `dpnb_input_norm_zscore` | input_normalization | yes | completed | none | Remove external clipping and use plain train-only z-score normalization on the promoted bridge baseline. | Proceed to row 3 (`dpnb_input_norm_winsorize_zscore`) and interpret rows 2-5 together before changing the default normalization. |
-| 3 | `dpnb_input_norm_winsorize_zscore` | input_normalization | yes | completed | none | Winsorize at the 1st and 99th train percentiles before z-scoring on the promoted bridge baseline. | Proceed to row 4 (`dpnb_input_norm_zscore_tanh`); rows 1-3 are now effectively tied on the locked bundle, so the smooth-tail family is the next real opportunity for movement. |
-| 4 | `dpnb_input_norm_zscore_tanh` | input_normalization | yes | completed | none | Apply train-only z-score normalization followed by a smooth tanh tail squash on the promoted bridge baseline. | If this row is competitive, treat it as the smooth-tail candidate for rows 8 and 9. |
-| 5 | `dpnb_input_norm_robust_tanh` | input_normalization | yes | completed | none | Apply robust median/IQR scaling followed by a smooth tanh tail squash on the promoted bridge baseline. | Use this as the robust smooth-tail comparator to row 4. |
-| 6 | `dpnb_input_norm_anchor_replay_batch16_sqrt` | batch_size | yes | completed | none | Replay the promoted bridge baseline at prior-dump batch size 16 with sqrt LR scaling. | Compare against row 1 before interpreting rows 8 and 9. |
-| 7 | `dpnb_input_norm_anchor_replay_batch64_sqrt` | batch_size | yes | completed | none | Replay the promoted bridge baseline at prior-dump batch size 64 with sqrt LR scaling. | Compare against row 1 before interpreting rows 8 and 9. |
-| 8 | `dpnb_input_norm_zscore_tanh_batch16_sqrt` | batch_size | yes | completed | none | Combine the favored smooth-tail zscore_tanh normalization with prior-dump batch size 16 and sqrt LR scaling. | Compare against row 4 before concluding that batch size is part of the effect. |
-| 9 | `dpnb_input_norm_zscore_tanh_batch64_sqrt` | batch_size | yes | completed | none | Combine the favored smooth-tail zscore_tanh normalization with prior-dump batch size 64 and sqrt LR scaling. | Review rows 1-9 together before redefining the default normalization or opening a new follow-up sweep. |
+| 1 | `dpnb_input_norm_anchor_replay` | baseline_replay | yes | completed | none | Replay the promoted bridge baseline exactly on this machine before comparing normalization or batch-size variants. | Treat this run as the batch32 reference only; row 7 (`dpnb_input_norm_anchor_replay_batch64_sqrt`) is the promoted canonical anchor. |
+| 2 | `dpnb_input_norm_zscore` | input_normalization | yes | completed | none | Remove external clipping and use plain train-only z-score normalization on the promoted bridge baseline. | Interpret rows 2-5 as a normalization-family wash on the weaker batch32 surface; keep row 7 as the canonical anchor. |
+| 3 | `dpnb_input_norm_winsorize_zscore` | input_normalization | yes | completed | none | Winsorize at the 1st and 99th train percentiles before z-scoring on the promoted bridge baseline. | Keep this as bounded outlier-defense evidence only; row 7 stays canonical because the batch64 surface moved the metric while rows 1-3 did not. |
+| 4 | `dpnb_input_norm_zscore_tanh` | input_normalization | yes | completed | none | Apply train-only z-score normalization followed by a smooth tanh tail squash on the promoted bridge baseline. | Treat this as the smooth-tail comparator only; row 9 later tied the promoted winner, so row 7 stays canonical because it reaches the same result with less normalization. |
+| 5 | `dpnb_input_norm_robust_tanh` | input_normalization | yes | completed | none | Apply robust median/IQR scaling followed by a smooth tanh tail squash on the promoted bridge baseline. | Keep this as negative evidence for the robust smooth-tail branch; it did not separate from the batch32 baseline and did not justify replacing row 7. |
+| 6 | `dpnb_input_norm_anchor_replay_batch16_sqrt` | batch_size | yes | completed | none | Replay the promoted bridge baseline at prior-dump batch size 16 with sqrt LR scaling. | Keep this as negative batch-size evidence only; the smaller batch is not competitive with the promoted row-7 anchor. |
+| 7 | `dpnb_input_norm_anchor_replay_batch64_sqrt` | batch_size | yes | completed | none | Replay the promoted bridge baseline at prior-dump batch size 64 with sqrt LR scaling. | Use this run as the canonical anchor for future binary_md follow-ups; it matched the best result in the sweep with the least additional normalization. |
+| 8 | `dpnb_input_norm_zscore_tanh_batch16_sqrt` | batch_size | yes | completed | none | Combine the favored smooth-tail zscore_tanh normalization with prior-dump batch size 16 and sqrt LR scaling. | Treat this as negative interaction evidence; smaller batch size hurts even when paired with the smooth-tail normalization. |
+| 9 | `dpnb_input_norm_zscore_tanh_batch64_sqrt` | batch_size | yes | completed | none | Combine the favored smooth-tail zscore_tanh normalization with prior-dump batch size 64 and sqrt LR scaling. | Keep this as tie evidence only; row 7 remains the promoted anchor because it matched this result with less invasive preprocessing. |
 
 ## Detailed Rows
 
@@ -58,25 +58,26 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Effective labels: model=`dpnb_row_cls_cls2_linear_warmup_decay`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'min_lr': 0.0004}, 'runtime': {'grad_clip': 1.0, 'max_steps': 2500, 'trace_activations': True}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
-  - Run this row first and use it as the same-machine comparator for every later row.
+  - Use this row as the batch32 reference for the normalization-only rows and the batch-size sidecars.
   - Report benchmark ROC, best-to-final drift, clipped-step fraction, and activation windows.
-  - Do not treat this replay as canonical anchor registration; the remote winning artifacts are still unsynced locally.
+  - If a later row wins cleanly, preserve this replay as evidence rather than forcing it to remain the canonical anchor.
 - Adequacy knobs to dimension explicitly:
   - training.prior_dump_batch_size
   - optimizer.min_lr
   - schedule.stages[0].lr_max
 - Interpretation status: `completed`
-- Decision: `keep`
+- Decision: `defer`
 - Notes:
   - This row is required because the promoted bridge baseline artifacts were produced on another machine.
   - The earlier local MPS replay is archived under `train_pre_cpu_fallback_20260317T2239` and is not canonical for this sweep.
   - The accepted local replay used the exact prior-train CPU fallback for requested `mps` multi-layer `row_cls` runs.
   - Supersedes historical queue run `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`; that registry entry is retained as history only.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`.
-  - CUDA rerun establishes the same-machine anchor for input_norm_followup and supersedes the earlier v1 queue reference.
+  - CUDA rerun established the same-machine batch32 reference, but row 7 later displaced it as the canonical anchor.
+  - Row 7 improved final ROC AUC by 0.0068 on the same clipped normalization family, so this row remains evidence rather than the live anchor.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/result_card.md`
-- Registered run: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `+0.0s`
+- Registered run: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-114.0s`
 
 ### 2. `dpnb_input_norm_zscore`
 
@@ -105,10 +106,10 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Clean telemetry means the tie is informative rather than a masked instability result.
   - Supersedes historical queue run `sd_input_norm_followup_02_dpnb_input_norm_zscore_v1`; that registry entry is retained as history only.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_02_dpnb_input_norm_zscore_v2`.
-  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.
+  - CUDA rerun recorded the canonical batch32 comparison, but batch-size evidence later dominated the sweep so this row remains supporting evidence only.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore/result_card.md`
-- Registered run: `sd_input_norm_followup_02_dpnb_input_norm_zscore_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `-1.7s`
+- Registered run: `sd_input_norm_followup_02_dpnb_input_norm_zscore_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-115.7s`
 
 ### 3. `dpnb_input_norm_winsorize_zscore`
 
@@ -137,10 +138,10 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - The row was slower than the clipped anchor and plain z-score while delivering no benchmark lift, which lowers its priority relative to the upcoming smooth-tail rows.
   - Supersedes historical queue run `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v1`; that registry entry is retained as history only.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2`.
-  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.
+  - CUDA rerun recorded the canonical batch32 comparison, but the row remains supporting evidence only after row 7 established the better systems surface.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_winsorize_zscore/result_card.md`
-- Registered run: `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `-1.7s`
+- Registered run: `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-115.7s`
 
 ### 4. `dpnb_input_norm_zscore_tanh`
 
@@ -166,9 +167,10 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Notes:
   - Canonical CUDA rerun registered as `sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1`.
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.
+  - This row tied the batch32 clipped baseline but did not create its own lift; the only winning smooth-tail result required the same batch64 systems change as row 7.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh/result_card.md`
-- Registered run: `sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `-1.6s`
+- Registered run: `sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-115.6s`
 
 ### 5. `dpnb_input_norm_robust_tanh`
 
@@ -194,9 +196,10 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Notes:
   - Canonical CUDA rerun registered as `sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1`.
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.
+  - Robust smooth-tail preprocessing produced no measurable upside on the locked bundle, so it stays below the promoted clipped batch64 surface.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_robust_tanh/result_card.md`
-- Registered run: `sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `+2.3s`
+- Registered run: `sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1` with best ROC AUC `0.7634`, final ROC AUC `0.7567`, final-minus-best `-0.0068`, delta final ROC AUC `-0.0068`, delta drift `-0.0065`, delta final training time `-111.7s`
 
 ### 6. `dpnb_input_norm_anchor_replay_batch16_sqrt`
 
@@ -226,9 +229,10 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Effective LR scaling factor is approximately 0.7071, so effective lr_max is about 0.002828 and effective min_lr is about 0.000283.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1`.
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.
+  - Batch size 16 hurt final ROC AUC relative to both the batch32 reference and the promoted batch64 surface.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch16_sqrt/result_card.md`
-- Registered run: `sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1` with best ROC AUC `0.7595`, final ROC AUC `0.7557`, final-minus-best `-0.0039`, delta final ROC AUC `-0.0010`, delta drift `+0.0029`, delta final training time `-35.3s`
+- Registered run: `sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1` with best ROC AUC `0.7595`, final ROC AUC `0.7557`, final-minus-best `-0.0039`, delta final ROC AUC `-0.0078`, delta drift `-0.0036`, delta final training time `-149.3s`
 
 ### 7. `dpnb_input_norm_anchor_replay_batch64_sqrt`
 
@@ -253,14 +257,15 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - schedule.stages[0].lr_max
   - optimizer.min_lr
 - Interpretation status: `completed`
-- Decision: `defer`
+- Decision: `keep`
 - Notes:
   - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about 0.005657 and effective min_lr is about 0.000566.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`.
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.
+  - This row is promoted as the canonical anchor because it matched row 9 while keeping `train_zscore_clip`, which is the less invasive preprocessing choice on this implementation.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/result_card.md`
-- Registered run: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1` with best ROC AUC `0.7638`, final ROC AUC `0.7634`, final-minus-best `-0.0003`, delta final ROC AUC `+0.0068`, delta drift `+0.0065`, delta final training time `+114.0s`
+- Registered run: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1` with best ROC AUC `0.7638`, final ROC AUC `0.7634`, final-minus-best `-0.0003`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `+0.0s`
 
 ### 8. `dpnb_input_norm_zscore_tanh_batch16_sqrt`
 
@@ -289,9 +294,10 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Effective LR scaling factor is approximately 0.7071, so effective lr_max is about 0.002828 and effective min_lr is about 0.000283.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1`.
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.
+  - The batch16 smooth-tail variant reproduced the same degradation as row 6, so the batch-size effect is not a tanh-specific mechanism.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch16_sqrt/result_card.md`
-- Registered run: `sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1` with best ROC AUC `0.7595`, final ROC AUC `0.7557`, final-minus-best `-0.0039`, delta final ROC AUC `-0.0010`, delta drift `+0.0029`, delta final training time `-35.1s`
+- Registered run: `sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1` with best ROC AUC `0.7595`, final ROC AUC `0.7557`, final-minus-best `-0.0039`, delta final ROC AUC `-0.0078`, delta drift `-0.0036`, delta final training time `-149.1s`
 
 ### 9. `dpnb_input_norm_zscore_tanh_batch64_sqrt`
 
@@ -320,6 +326,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about 0.005657 and effective min_lr is about 0.000566.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1`.
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred pending full sweep interpretation.
+  - Row 9 matched row 7 on final ROC AUC, but `train_zscore_tanh` is more interventionist than the effectively no-op `train_zscore_clip` bound at +/-100.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/result_card.md`
-- Registered run: `sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1` with best ROC AUC `0.7638`, final ROC AUC `0.7634`, final-minus-best `-0.0003`, delta final ROC AUC `+0.0068`, delta drift `+0.0065`, delta final training time `+114.3s`
+- Registered run: `sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1` with best ROC AUC `0.7638`, final ROC AUC `0.7634`, final-minus-best `-0.0003`, delta final ROC AUC `+0.0000`, delta drift `+0.0000`, delta final training time `+0.2s`

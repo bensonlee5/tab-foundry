@@ -33,6 +33,7 @@ def _write_comparison_summary(
     run_dir: Path,
     benchmark_bundle_source_path: str,
     final_roc_auc: float = 0.83,
+    final_log_loss: float = 0.41,
     include_diagnostics: bool = False,
 ) -> Path:
     payload = {
@@ -61,6 +62,7 @@ def _write_comparison_summary(
             "final_step": 25.0,
             "final_training_time": 1.2,
             "final_roc_auc": float(final_roc_auc),
+            "final_log_loss": float(final_log_loss),
             "run_dir": str(run_dir.resolve()),
         },
         "nanotabpfn": {
@@ -235,6 +237,7 @@ def test_freeze_control_baseline_writes_repo_relative_registry_entry(
         registry_path=registry_path,
     )
     assert updated["tab_foundry_metrics"]["final_roc_auc"] == pytest.approx(0.86)
+    assert updated["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.41)
 
 
 def test_freeze_control_baseline_validates_summary_run_dir(
@@ -323,6 +326,7 @@ def test_freeze_control_baseline_accepts_richer_checkpoint_diagnostics_summary(
     assert frozen["baseline"]["seed_set"] == [11]
     assert frozen["baseline"]["tab_foundry_metrics"]["best_roc_auc"] == pytest.approx(0.81)
     assert frozen["baseline"]["tab_foundry_metrics"]["final_roc_auc"] == pytest.approx(0.83)
+    assert frozen["baseline"]["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.41)
 
 
 def test_checked_in_control_baseline_registry_preserves_v1_and_adds_v2() -> None:
@@ -334,6 +338,7 @@ def test_checked_in_control_baseline_registry_preserves_v1_and_adds_v2() -> None
     assert registry["baselines"]["cls_benchmark_linear_v1"]["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
     )
+    assert "final_log_loss" not in registry["baselines"]["cls_benchmark_linear_v1"]["tab_foundry_metrics"]
     assert registry["baselines"]["cls_benchmark_linear_v2"]["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
     )

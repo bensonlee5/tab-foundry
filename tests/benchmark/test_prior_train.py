@@ -2228,6 +2228,7 @@ def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(
     records = evaluate_tab_foundry_run(
         run_dir,
         datasets={"toy": (x, y)},
+        task_type="supervised_classification",
         device="cpu",
     )
 

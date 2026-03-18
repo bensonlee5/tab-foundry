@@ -216,8 +216,8 @@ def test_cls_benchmark_staged_prior_cuda_scale_resolution() -> None:
     assert str(cfg.training.surface_label) == "prior_linear_warmup_decay"
     assert bool(cfg.training.apply_schedule) is True
     assert str(cfg.training.prior_dump_non_finite_policy) == "skip"
-    assert int(cfg.training.prior_dump_batch_size) == 32
-    assert str(cfg.training.prior_dump_lr_scale_rule) == "none"
+    assert int(cfg.training.prior_dump_batch_size) == 64
+    assert str(cfg.training.prior_dump_lr_scale_rule) == "sqrt"
     assert int(cfg.training.prior_dump_batch_reference_size) == 32
     stage = cfg.schedule.stages[0]
     assert str(stage["name"]) == "prior_dump"

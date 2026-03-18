@@ -8,6 +8,8 @@ from typing import Any
 from typing import Sequence
 import sys
 
+import numpy as np
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Train and evaluate nanoTabPFN on cached benchmark datasets")
@@ -36,6 +38,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     from model import NanoTabPFNModel  # type: ignore[attr-defined]
     from tab_foundry.bench.artifacts import write_jsonl
     from tab_foundry.bench.nanotabpfn import (
+        dataset_brier_score_metrics,
+        dataset_log_loss_metrics,
         dataset_roc_auc_metrics,
         evaluate_classifier,
         load_dataset_cache,
@@ -49,6 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise RuntimeError(f"nanoTabPFN prior dump does not exist: {prior_dump}")
 
     records: list[dict[str, object]] = []
+    num_outputs = max(int(np.unique(np.asarray(y)).size) for _name, (_x, y) in datasets.items())
     for seed in range(int(args.seeds)):
         set_randomness_seed(seed)
         prior = PriorDumpDataLoader(
@@ -62,7 +67,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             num_attention_heads=4,
             mlp_hidden_size=192,
             num_layers=3,
-            num_outputs=2,
+            num_outputs=num_outputs,
         )
         model_instance: Any = model
         model_instance, history = train(
@@ -81,7 +86,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "step": int(index * int(args.eval_every)),
                     "training_time": float(training_time),
                     "roc_auc": float(metrics["ROC AUC"]),
+                    "log_loss": float(metrics["Log Loss"]),
+                    "brier_score": float(metrics["Brier Score"]),
                     "dataset_roc_auc": dataset_roc_auc_metrics(metrics),
+                    "dataset_log_loss": dataset_log_loss_metrics(metrics),
+                    "dataset_brier_score": dataset_brier_score_metrics(metrics),
                 }
             )
 

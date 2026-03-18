@@ -5,7 +5,7 @@ rows:
     delta_ref: dpnb_cuda_budget_5k
     status: blocked_on_anchor_selection
     rationale: Extend the winning capacity row to `5000` steps only after the architecture choice is complete.
-    hypothesis: If the chosen large-capacity row is compute-limited at `2500` steps, doubling the budget should improve final ROC AUC without reopening architecture questions.
+    hypothesis: If the chosen large-capacity row is compute-limited at `2500` steps, doubling the budget should improve the task-family primary final metric without reopening architecture questions.
     anchor_delta: Keeps the provisional large-anchor model surface for scaffolding now, but this row must be rebound to the winning capacity architecture before execution.
     parameter_adequacy_plan:
       - Do not run this row until `cuda_capacity_pilot` identifies the winning architecture.
@@ -35,8 +35,8 @@ rows:
     training:
       surface_label: prior_linear_warmup_decay
       prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
+      prior_dump_batch_size: 64
+      prior_dump_lr_scale_rule: sqrt
       prior_dump_batch_reference_size: 32
       overrides:
         apply_schedule: true
@@ -95,8 +95,8 @@ rows:
     training:
       surface_label: prior_linear_warmup_decay
       prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
+      prior_dump_batch_size: 64
+      prior_dump_lr_scale_rule: sqrt
       prior_dump_batch_reference_size: 32
       overrides:
         apply_schedule: true

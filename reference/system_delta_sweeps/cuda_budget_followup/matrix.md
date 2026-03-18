@@ -11,11 +11,11 @@ This file is rendered from `reference/system_delta_sweeps/cuda_budget_followup/q
 
 ## Locked Surface
 
-- Anchor run id: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`
+- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
-- Anchor metrics: best ROC AUC `0.7634`, final ROC AUC `0.7567`, final training time `143.0s`
+- Anchor metrics: best ROC AUC `0.7638`, final ROC AUC `0.7634`, final training time `257.0s`
 
 ## Anchor Comparison
 
@@ -25,7 +25,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | --- | --- | --- | --- |
 | bridge architecture | The capacity pilot will choose between the large anchor, width, and depth probes. | Use the provisional large-anchor model surface for now, then re-anchor this sweep to the winning capacity row before execution. | Architecture choice must be settled before any budget result is interpreted. |
 | training budget | The capacity pilot fixes `2500` steps across all rows. | This follow-up isolates `5000` and `10000` steps with the same optimizer and schedule family. | Budget wins indicate undertraining of the chosen architecture, not a new architecture family. |
-| input normalization | The completed normalization follow-up found no significant benchmark difference across the tested rows. | Keep `train_zscore_clip` fixed until the separate no-normalization workstream changes the default with stronger evidence. | Budget rows must not be conflated with preprocessing experiments. |
+| input normalization | The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up was rejected on that same systems surface. | Keep `train_zscore_clip` fixed until new evidence reopens preprocessing. | Budget rows must not be conflated with preprocessing experiments. |
 
 ## Queue Summary
 
@@ -44,10 +44,10 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Legacy stage alias: `none`
 - Description: Re-run the chosen large-capacity bridge row for 5000 steps under the same optimizer and schedule family.
 - Rationale: Extend the winning capacity row to `5000` steps only after the architecture choice is complete.
-- Hypothesis: If the chosen large-capacity row is compute-limited at `2500` steps, doubling the budget should improve final ROC AUC without reopening architecture questions.
+- Hypothesis: If the chosen large-capacity row is compute-limited at `2500` steps, doubling the budget should improve the task-family primary final metric without reopening architecture questions.
 - Upstream delta: Not applicable; this is a repo-local training-budget adequacy probe.
 - Anchor delta: Keeps the provisional large-anchor model surface for scaffolding now, but this row must be rebound to the winning capacity architecture before execution.
-- Expected effect: If the chosen capacity row is compute-limited at 2500 steps, doubling the budget should improve final ROC AUC without changing the mechanism family.
+- Expected effect: If the chosen capacity row is compute-limited at 2500 steps, doubling the budget should improve the task-family primary final metric without changing the mechanism family.
 - Effective labels: model=`dpnb_cuda_large_anchor`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'min_lr': 0.0004}, 'runtime': {'grad_clip': 1.0, 'max_steps': 5000, 'trace_activations': True}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 5000, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:

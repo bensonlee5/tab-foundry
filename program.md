@@ -10,22 +10,32 @@ and the interpretation policy.
 ## Objective
 
 Optimize for attributable evidence against the locked anchor
-`sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`, not for rapid base
+`sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`, not for rapid base
 promotion.
 
-The primary score remains `final_roc_auc` on the canonical benchmark bundle
-`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
+The primary score remains `final_log_loss` on the canonical binary benchmark
+bundle `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
+
+When the benchmark family changes, switch the sweep target with it:
+
+- binary classification: `final_log_loss`
+- multiclass classification: `final_log_loss`
+- regression: `final_crps`
 
 Supporting metrics are:
 
-- `best_roc_auc`
-- `final_minus_best`
+- binary classification: `final_brier_score`, `final_roc_auc`, `best_roc_auc`,
+  `final_minus_best`
+- multiclass classification: `final_brier_score`, with ROC AUC retained only as
+  a diagnostic when it is reported
+- regression: `final_avg_pinball_loss`, `final_picp_90`
 - training-time deltas versus the anchor
 - manifest and preprocessing surface deltas recorded in `training_surface_record.json`
 - loss/gradient instability evidence from `train_history.jsonl`,
   `gradient_history.jsonl`, and `telemetry.json`
 
-`best_roc_auc` is a tie-breaker and diagnostic, not the main score.
+`best_roc_auc` remains a tie-breaker and diagnostic for classification sweeps,
+not the main score.
 
 ## Locked Anchor Surface
 
@@ -33,9 +43,9 @@ Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
 - active sweep id: `cuda_capacity_pilot`
-- anchor run id: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`
-- anchor prior run: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/train`
-- anchor benchmark: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay/sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2/benchmark`
+- anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
+- anchor prior run: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/train`
+- anchor benchmark: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1/benchmark`
 - canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - canonical control baseline id: `cls_benchmark_linear_v2`
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
@@ -195,7 +205,7 @@ This pass is attribution-first. No row becomes the new base during the sweep.
 
 Use these decisions:
 
-- `keep`: the row is isolated, evidence is at least neutral or positive on `final_roc_auc`, and the interpretation does not reveal unresolved confounding severe enough to block the signal
+- `keep`: the row is isolated, evidence is at least neutral or improved on the task-family primary final metric (`final_log_loss` for classification bundles, `final_crps` for regression bundles), and the interpretation does not reveal unresolved confounding severe enough to block the signal
 - `defer`: evidence is mixed, the row is not isolated enough yet, or the introduced degrees of freedom have not been checked adequately
 - `reject`: only allowed when the row is isolated, the adequacy plan was completed, and the result is clearly worse without offsetting benefit
 

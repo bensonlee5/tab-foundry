@@ -9,7 +9,7 @@ from tab_foundry.research.system_delta import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ANCHOR_RUN_ID = "sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2"
+ANCHOR_RUN_ID = "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
 EXPECTED_ROWS = [
     "dpnb_cuda_large_anchor",
     "dpnb_cuda_large_width_x2",
@@ -58,7 +58,7 @@ def test_cuda_capacity_pilot_metadata_and_rows_match_the_capacity_plan() -> None
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged_prior"
     assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged_prior"
-    assert sweep["anchor_context"]["model"]["stage_label"] == "dpnb_row_cls_cls2_linear_warmup_decay"
+    assert sweep["anchor_context"]["model"]["stage_label"] == "dpnb_input_norm_anchor_replay_batch64_sqrt"
     assert sweep["anchor_context"]["surface_labels"]["training"] == "prior_linear_warmup_decay"
 
     rows = queue["rows"]
@@ -75,8 +75,9 @@ def test_cuda_capacity_pilot_metadata_and_rows_match_the_capacity_plan() -> None
     assert baseline["model"]["tficl_n_layers"] == 12
     assert baseline["model"]["head_hidden_dim"] == 1024
     assert baseline["training"]["surface_label"] == "prior_linear_warmup_decay"
-    assert baseline["training"]["prior_dump_batch_size"] == 32
-    assert baseline["training"]["prior_dump_lr_scale_rule"] == "none"
+    assert baseline["training"]["prior_dump_batch_size"] == 64
+    assert baseline["training"]["prior_dump_lr_scale_rule"] == "sqrt"
+    assert baseline["training"]["prior_dump_batch_reference_size"] == 32
     assert baseline["training"]["overrides"]["runtime"]["max_steps"] == 2500
     assert baseline["run_id"] is None
     assert baseline["interpretation_status"] == "pending"
@@ -115,4 +116,5 @@ def test_cuda_capacity_pilot_matrix_records_the_three_row_capacity_probe() -> No
     assert "dpnb_cuda_large_width_x2" in matrix
     assert "dpnb_cuda_large_depth_plus4" in matrix
     assert "2500" in matrix
+    assert "batch64" in matrix
     assert "budget follow-up" in matrix

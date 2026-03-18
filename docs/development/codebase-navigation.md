@@ -70,6 +70,8 @@ Current wrapper-to-library mapping:
 - `scripts/run_nanotabpfn_benchmark_helper.py` ->
   `tab_foundry.bench.nanotabpfn_helper`
 - `scripts/system_delta_queue.py` -> `tab_foundry.research.system_delta`
+- `scripts/system_delta_execute.py` -> `tab_foundry.research.system_delta_execute`
+- `scripts/system_delta_promote.py` -> `tab_foundry.research.system_delta_promote`
 - `scripts/train_tabfoundry_staged_prior.py` -> staged prior-training harness
   under `tab_foundry.training`
 

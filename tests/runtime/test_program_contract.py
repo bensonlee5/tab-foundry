@@ -41,11 +41,17 @@ def test_program_contract_has_required_policy_sections() -> None:
         assert header in contents
 
     required_statements = [
+        "`final_log_loss`",
+        "`final_brier_score`",
+        "`final_crps`",
         "`final_roc_auc`",
+        "The primary score remains `final_log_loss` on the canonical binary benchmark",
+        "- multiclass classification: `final_log_loss`",
+        "- regression: `final_crps`",
         "The benchmark registry is the historical system of record.",
         "Underperformance alone is not enough for `reject`.",
         "This pass is attribution-first. No row becomes the new base during the sweep.",
-        "`best_roc_auc` is a tie-breaker and diagnostic, not the main score.",
+        "`best_roc_auc` remains a tie-breaker and diagnostic for classification sweeps,",
         "`training_surface_record.json`",
         "Agents should use optional sibling-workspace sources when available, but must",
         "generated compatibility aliases for the active sweep only",

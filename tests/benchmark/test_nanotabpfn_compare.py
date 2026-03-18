@@ -512,7 +512,9 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
                     "step": 25,
                     "training_time": 1.2,
                     "roc_auc": 0.81,
+                    "log_loss": 0.42,
                     "dataset_roc_auc": {"toy": 0.81},
+                    "dataset_log_loss": {"toy": 0.42},
                 },
                 {
                     "checkpoint_path": "/tmp/step_000050.pt",
@@ -562,14 +564,15 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
                     (smoke_run_dir / "training_surface_record.json").resolve()
                 ),
             },
-            "tab_foundry_metrics": {
-                "best_step": 25.0,
-                "best_training_time": 1.2,
-                "best_roc_auc": 0.81,
-                "final_step": 25.0,
-                "final_training_time": 1.2,
-                "final_roc_auc": 0.81,
-            },
+                "tab_foundry_metrics": {
+                    "best_step": 25.0,
+                    "best_training_time": 1.2,
+                    "best_roc_auc": 0.81,
+                    "final_step": 25.0,
+                    "final_training_time": 1.2,
+                    "final_roc_auc": 0.81,
+                    "final_log_loss": 0.42,
+                },
             "training_diagnostics": {
                 "best_val_loss": 0.2,
                 "final_val_loss": 0.21,
@@ -601,7 +604,9 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
                     "step": 25,
                     "training_time": 2.0,
                     "roc_auc": 0.78,
+                    "log_loss": 0.48,
                     "dataset_roc_auc": {"toy": 0.78},
+                    "dataset_log_loss": {"toy": 0.48},
                 }
             )
             + "\n",
@@ -628,10 +633,14 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert summary["dataset_count"] == 1
     assert summary["tab_foundry"]["best_step"] == pytest.approx(25.0)
     assert summary["tab_foundry"]["best_roc_auc"] == pytest.approx(0.81)
+    assert summary["tab_foundry"]["final_log_loss"] == pytest.approx(0.42)
     assert summary["tab_foundry"]["final_dataset_roc_auc"] == {"toy": pytest.approx(0.81)}
+    assert summary["tab_foundry"]["final_dataset_log_loss"] == {"toy": pytest.approx(0.42)}
     assert summary["nanotabpfn"]["best_step"] == pytest.approx(25.0)
     assert summary["nanotabpfn"]["final_roc_auc"] == pytest.approx(0.78)
+    assert summary["nanotabpfn"]["final_log_loss"] == pytest.approx(0.48)
     assert summary["nanotabpfn"]["final_dataset_roc_auc"] == {"toy": pytest.approx(0.78)}
+    assert summary["nanotabpfn"]["final_dataset_log_loss"] == {"toy": pytest.approx(0.48)}
     assert summary["benchmark_bundle"]["name"] == "test_bundle"
     assert summary["benchmark_bundle"]["version"] == 1
     assert summary["benchmark_bundle"]["task_count"] == 1
@@ -906,7 +915,11 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
                 "checkpoint_path": "/tmp/step_000025.pt",
                 "step": 25,
                 "training_time": 1.2,
+                "log_loss": 0.42,
+                "brier_score": 0.12,
                 "roc_auc": 0.81,
+                "dataset_log_loss": {"toy_multi": 0.42},
+                "dataset_brier_score": {"toy_multi": 0.12},
                 "dataset_roc_auc": {"toy_multi": 0.81},
             }
         ],
@@ -981,7 +994,11 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
                     "seed": 0,
                     "step": 25,
                     "training_time": 2.0,
+                    "log_loss": 0.48,
+                    "brier_score": 0.16,
                     "roc_auc": 0.78,
+                    "dataset_log_loss": {"toy_multi": 0.48},
+                    "dataset_brier_score": {"toy_multi": 0.16},
                     "dataset_roc_auc": {"toy_multi": 0.78},
                 }
             )
@@ -1073,7 +1090,11 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
                 "checkpoint_path": "/tmp/step_000025.pt",
                 "step": 25,
                 "training_time": 1.2,
+                "log_loss": 0.42,
+                "brier_score": 0.12,
                 "roc_auc": 0.81,
+                "dataset_log_loss": {"toy": 0.42},
+                "dataset_brier_score": {"toy": 0.12},
                 "dataset_roc_auc": {"toy": 0.81},
             }
         ],
@@ -1098,7 +1119,11 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
                     "seed": 0,
                     "step": 25,
                     "training_time": 2.0,
+                    "log_loss": 0.48,
+                    "brier_score": 0.16,
                     "roc_auc": 0.78,
+                    "dataset_log_loss": {"toy": 0.48},
+                    "dataset_brier_score": {"toy": 0.16},
                     "dataset_roc_auc": {"toy": 0.78},
                 }
             )
@@ -1314,7 +1339,14 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
         compare_module,
         "evaluate_tab_foundry_run",
         lambda *_args, **_kwargs: [
-            {"checkpoint_path": "/tmp/step_000025.pt", "step": 25, "training_time": 1.2, "roc_auc": 0.81}
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "log_loss": 0.42,
+                "brier_score": 0.12,
+                "roc_auc": 0.81,
+            }
         ],
     )
     monkeypatch.setattr(
@@ -1382,7 +1414,17 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
         out_index = cmd.index("--out-path") + 1
         out_path = Path(cmd[out_index])
         out_path.write_text(
-            json.dumps({"seed": 0, "step": 25, "training_time": 2.0, "roc_auc": 0.78}) + "\n",
+            json.dumps(
+                {
+                    "seed": 0,
+                    "step": 25,
+                    "training_time": 2.0,
+                    "log_loss": 0.48,
+                    "brier_score": 0.16,
+                    "roc_auc": 0.78,
+                }
+            )
+            + "\n",
             encoding="utf-8",
         )
         return subprocess.CompletedProcess(cmd, 0)
@@ -1456,13 +1498,22 @@ def test_build_comparison_summary_preserves_model_identity_metadata(tmp_path: Pa
                 "step": 25,
                 "training_time": 1.2,
                 "roc_auc": 0.81,
+                "log_loss": 0.42,
+                "brier_score": 0.12,
                 "model_arch": "tabfoundry_staged",
                 "model_stage": "nano_exact",
                 "benchmark_profile": "nano_exact",
             }
         ],
         nanotabpfn_records=[
-            {"seed": 0, "step": 25, "training_time": 2.0, "roc_auc": 0.78}
+            {
+                "seed": 0,
+                "step": 25,
+                "training_time": 2.0,
+                "roc_auc": 0.78,
+                "log_loss": 0.48,
+                "brier_score": 0.16,
+            }
         ],
         benchmark_tasks=[
             {"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}
@@ -1484,6 +1535,7 @@ def test_build_comparison_summary_preserves_model_identity_metadata(tmp_path: Pa
         },
         benchmark_bundle_path=tmp_path / "bundle.json",
         tab_foundry_run_dir=tmp_path / "run",
+        task_type="supervised_classification",
         nanotabpfn_root=tmp_path / "nano",
         nanotabpfn_python=tmp_path / "nano" / ".venv" / "bin" / "python",
     )

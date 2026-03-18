@@ -11,11 +11,11 @@ This file is rendered from `reference/system_delta_sweeps/cuda_capacity_pilot/qu
 
 ## Locked Surface
 
-- Anchor run id: `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`
+- Anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - Comparison policy: `anchor_only`
-- Anchor metrics: best ROC AUC `0.7634`, final ROC AUC `0.7567`, final training time `143.0s`
+- Anchor metrics: best ROC AUC `0.7638`, final ROC AUC `0.7634`, final training time `257.0s`
 
 ## Anchor Comparison
 
@@ -24,9 +24,9 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | Dimension | Upstream nanoTabPFN | Locked anchor | Interpretation |
 | --- | --- | --- | --- |
 | bridge architecture | The registered anchor remains the promoted prenorm plus row-cls bridge recipe from the completed follow-up. | Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `tfrow_cls_tokens=2`, and `post_encoder_norm=none` fixed. | Capacity rows should be read as model-size probes on the bridge surface, not as reopened module-selection experiments. |
-| model capacity | The anchor run uses the compact bridge size `d_col=128`, `d_icl=96`, `tficl_n_heads=4`, `tficl_n_layers=3`, `head_hidden_dim=192`. | Row 1 moves to the large CUDA base `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, `head_hidden_dim=1024`. | Rows 2 and 3 should be compared against row 1 first so width and depth evidence stays attributable. |
-| input normalization | The completed normalization follow-up found no significant benchmark difference across the tested rows. | Keep `train_zscore_clip` fixed across this pilot until the separate no-normalization follow-up changes the default with stronger evidence. | Any movement in this sweep should not be attributed to preprocessing changes. |
-| training recipe | The registered anchor already uses the promoted `prior_linear_warmup_decay` recipe with batch size 32. | Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=32`, `prior_dump_lr_scale_rule=none`, and `2500` steps fixed. | Longer-budget adequacy checks belong in `cuda_budget_followup`, not in this capacity readout. |
+| model capacity | The promoted anchor run keeps the compact bridge width while moving to the batch64 sqrt-scaled training surface. | Row 1 moves to the large CUDA base `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, `head_hidden_dim=1024`. | Rows 2 and 3 should be compared against row 1 first so width and depth evidence stays attributable. |
+| input normalization | The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up underperformed on the same systems surface. | Keep `train_zscore_clip` fixed across this pilot because `input_norm_none_followup` was rejected. | Any movement in this sweep should not be attributed to preprocessing changes. |
+| training recipe | The registered anchor already uses the promoted `prior_linear_warmup_decay` recipe with batch size 64 and sqrt LR scaling. | Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=64`, `prior_dump_lr_scale_rule=sqrt`, `prior_dump_batch_reference_size=32`, and `2500` steps fixed. | Longer-budget adequacy checks belong in `cuda_budget_followup`, not in this capacity readout. |
 
 ## Queue Summary
 
@@ -47,14 +47,14 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Description: Establish the large CUDA-sized bridge baseline on the stabilized prenorm plus row-cls recipe.
 - Rationale: Establish a large CUDA-sized bridge baseline before asking whether width or depth matters more.
 - Hypothesis: The promoted bridge recipe should benefit from a larger exact-prior trunk even without changing the optimizer or preprocessing family.
-- Upstream delta: Not applicable; this is a repo-local capacity expansion relative to the compact registered bridge anchor.
+- Upstream delta: Not applicable; this is a repo-local capacity expansion relative to the promoted batch64 sqrt-scaled bridge anchor.
 - Anchor delta: Reuses the registered bridge anchor run but promotes the row itself to the large CUDA base with the same bridge modules and training recipe.
-- Expected effect: A larger exact-prior trunk may improve quality if the promoted bridge surface is still capacity-limited at the compact size.
+- Expected effect: A larger exact-prior trunk may improve quality if the promoted bridge surface is still capacity-limited at the current budget.
 - Effective labels: model=`dpnb_cuda_large_anchor`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
 - Model overrides: `{'module_overrides': {'table_block_style': 'prenorm', 'allow_test_self_attention': False, 'row_pool': 'row_cls'}, 'stage': 'nano_exact', 'd_col': 128, 'd_icl': 512, 'input_normalization': 'train_zscore_clip', 'tfrow_n_heads': 8, 'tfrow_n_layers': 3, 'tfrow_cls_tokens': 2, 'tfrow_norm': 'layernorm', 'tficl_n_heads': 8, 'tficl_n_layers': 12, 'head_hidden_dim': 1024}`
 - Parameter adequacy plan:
   - Run this row first and treat it as the local large-model comparator for the rest of the pilot.
-  - Rank by final ROC AUC first, then best ROC AUC, drift, and final training-time delta versus the compact anchor.
+  - Rank by the task-family primary final metric first, then supporting diagnostics and final training-time delta versus the promoted anchor.
   - Use activation and clipping telemetry to explain wins or losses, not to override benchmark quality.
 - Adequacy knobs to dimension explicitly:
   - model.d_icl
@@ -64,7 +64,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Interpretation status: `pending`
 - Decision: `None`
 - Notes:
-  - This row is the baseline for the pilot even though the sweep anchor remains the compact registered bridge run.
+  - This row is the baseline for the pilot even though the sweep anchor remains the promoted compact batch64 bridge run.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_capacity_pilot/dpnb_cuda_large_anchor/result_card.md`
 - Benchmark metrics: pending

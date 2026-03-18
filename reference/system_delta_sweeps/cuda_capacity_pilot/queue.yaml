@@ -9,7 +9,7 @@ rows:
     anchor_delta: Reuses the registered bridge anchor run but promotes the row itself to the large CUDA base with the same bridge modules and training recipe.
     parameter_adequacy_plan:
       - Run this row first and treat it as the local large-model comparator for the rest of the pilot.
-      - Rank by final ROC AUC first, then best ROC AUC, drift, and final training-time delta versus the compact anchor.
+      - Rank by the task-family primary final metric first, then supporting diagnostics and final training-time delta versus the promoted anchor.
       - Use activation and clipping telemetry to explain wins or losses, not to override benchmark quality.
     model:
       stage: nano_exact
@@ -35,8 +35,8 @@ rows:
     training:
       surface_label: prior_linear_warmup_decay
       prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
+      prior_dump_batch_size: 64
+      prior_dump_lr_scale_rule: sqrt
       prior_dump_batch_reference_size: 32
       overrides:
         apply_schedule: true
@@ -60,7 +60,7 @@ rows:
     confounders: []
     next_action: Run this row first to establish the large CUDA bridge baseline before evaluating width or depth probes.
     notes:
-      - This row is the baseline for the pilot even though the sweep anchor remains the compact registered bridge run.
+      - This row is the baseline for the pilot even though the sweep anchor remains the promoted compact batch64 bridge run.
   - order: 2
     delta_ref: dpnb_cuda_large_width_x2
     status: ready
@@ -95,8 +95,8 @@ rows:
     training:
       surface_label: prior_linear_warmup_decay
       prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
+      prior_dump_batch_size: 64
+      prior_dump_lr_scale_rule: sqrt
       prior_dump_batch_reference_size: 32
       overrides:
         apply_schedule: true
@@ -155,8 +155,8 @@ rows:
     training:
       surface_label: prior_linear_warmup_decay
       prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
+      prior_dump_batch_size: 64
+      prior_dump_lr_scale_rule: sqrt
       prior_dump_batch_reference_size: 32
       overrides:
         apply_schedule: true

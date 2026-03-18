@@ -27,6 +27,9 @@ optimizer:
 training:
   surface_label: prior_linear_warmup_decay
   prior_dump_non_finite_policy: skip
+  prior_dump_batch_size: 64
+  prior_dump_lr_scale_rule: sqrt
+  prior_dump_batch_reference_size: 32
 runtime:
   output_dir: outputs/cls_benchmark_staged_prior_cuda_scale
   trace_activations: true

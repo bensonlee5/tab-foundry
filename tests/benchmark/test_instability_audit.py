@@ -33,7 +33,14 @@ def _write_history(path: Path, *, grad_norms: list[float], train_losses: list[fl
     return path
 
 
-def _write_comparison_summary(path: Path, *, run_dir: Path, best_roc_auc: float, final_roc_auc: float) -> Path:
+def _write_comparison_summary(
+    path: Path,
+    *,
+    run_dir: Path,
+    best_roc_auc: float,
+    final_roc_auc: float,
+    final_log_loss: float = 0.44,
+) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark_bundle": {
@@ -51,6 +58,7 @@ def _write_comparison_summary(path: Path, *, run_dir: Path, best_roc_auc: float,
             "final_step": 3.0,
             "final_training_time": 3.0,
             "final_roc_auc": float(final_roc_auc),
+            "final_log_loss": float(final_log_loss),
             "best_to_final_roc_auc_delta": float(final_roc_auc) - float(best_roc_auc),
         },
     }
@@ -150,6 +158,7 @@ def test_build_instability_audit_ranks_runs_and_writes_reports(
     report_text = markdown_path.read_text(encoding="utf-8")
     assert "sd_binary_md_v1_02_delta_unstable_v1" in report_text
     assert "Anchor reference rerun with module telemetry" in report_text
+    assert "final log loss" in report_text
 
 
 def test_build_instability_audit_indexes_primary_run_id_result_cards(

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tab-foundry"
-version = "0.6.11"
+version = "0.7.0"
 description = "Tabfoundry tabular foundation model training on dagzoo packed shard outputs"
 readme = "README.md"
 license = "MIT"
@@ -55,6 +55,7 @@ dev = [
   "ruff>=0.6",
   "scikit-learn>=1.6",
   "torchinfo>=1.8",
+  "types-PyYAML>=6.0",
   "vulture>=2.14",
 ]
 

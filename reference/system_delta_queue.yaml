@@ -8,7 +8,7 @@ sweep_id: cuda_capacity_pilot
 parent_sweep_id: input_norm_followup
 sweep_status: active
 complexity_level: binary_md
-anchor_run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2
+anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 comparison_policy: anchor_only
@@ -17,12 +17,13 @@ upstream_reference:
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-  - This pilot keeps the same registered bridge anchor as `input_norm_followup` so
-    the capacity rows compare against a real local benchmarked baseline.
+  - This pilot now anchors on the promoted batch64 sqrt-scaled clipped bridge winner
+    from `input_norm_followup` so the CUDA capacity rows inherit the current preferred
+    systems surface.
   - Row 1 establishes the first large CUDA-sized bridge baseline; rows 2 and 3 probe
     width and depth separately rather than fitting a mixed-family scaling curve.
-  - Input normalization stays fixed at `train_zscore_clip` for now because the completed
-    normalization sweep did not show a significant benchmark difference between rows.
+  - '`input_norm_none_followup` is closed out as unsuccessful evidence, so input normalization
+    stays fixed at `train_zscore_clip` on this branch.'
   - Training-budget changes are intentionally excluded from this sweep and move to
     the draft `cuda_budget_followup` scaffold.
   dimension_table:
@@ -34,34 +35,35 @@ anchor_surface:
     interpretation: Capacity rows should be read as model-size probes on the bridge
       surface, not as reopened module-selection experiments.
   - dimension: model capacity
-    upstream: The anchor run uses the compact bridge size `d_col=128`, `d_icl=96`,
-      `tficl_n_heads=4`, `tficl_n_layers=3`, `head_hidden_dim=192`.
+    upstream: The promoted anchor run keeps the compact bridge width while moving
+      to the batch64 sqrt-scaled training surface.
     anchor: Row 1 moves to the large CUDA base `d_col=128`, `d_icl=512`, `tficl_n_heads=8`,
       `tficl_n_layers=12`, `head_hidden_dim=1024`.
     interpretation: Rows 2 and 3 should be compared against row 1 first so width and
       depth evidence stays attributable.
   - dimension: input normalization
-    upstream: The completed normalization follow-up found no significant benchmark
-      difference across the tested rows.
-    anchor: Keep `train_zscore_clip` fixed across this pilot until the separate no-normalization
-      follow-up changes the default with stronger evidence.
+    upstream: The completed normalization follow-up promoted the clipped batch64 row,
+      and the no-normalization follow-up underperformed on the same systems surface.
+    anchor: Keep `train_zscore_clip` fixed across this pilot because `input_norm_none_followup`
+      was rejected.
     interpretation: Any movement in this sweep should not be attributed to preprocessing
       changes.
   - dimension: training recipe
     upstream: The registered anchor already uses the promoted `prior_linear_warmup_decay`
-      recipe with batch size 32.
-    anchor: Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=32`, `prior_dump_lr_scale_rule=none`,
-      and `2500` steps fixed.
+      recipe with batch size 64 and sqrt LR scaling.
+    anchor: Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=64`, `prior_dump_lr_scale_rule=sqrt`,
+      `prior_dump_batch_reference_size=32`, and `2500` steps fixed.
     interpretation: Longer-budget adequacy checks belong in `cuda_budget_followup`,
       not in this capacity readout.
 anchor_context:
-  run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1
   experiment: cls_benchmark_staged_prior
   config_profile: cls_benchmark_staged_prior
   model:
     arch: tabfoundry_staged
     stage: nano_exact
-    stage_label: dpnb_row_cls_cls2_linear_warmup_decay
+    benchmark_profile: dpnb_input_norm_anchor_replay_batch64_sqrt
+    stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
     module_selection:
       allow_test_self_attention: false
       column_encoder: none
@@ -75,7 +77,7 @@ anchor_context:
       tokenizer: scalar_per_feature
   surface_labels:
     data: anchor_manifest_default
-    model: dpnb_row_cls_cls2_linear_warmup_decay
+    model: dpnb_input_norm_anchor_replay_batch64_sqrt
     preprocessing: runtime_default
     training: prior_linear_warmup_decay
 rows:
@@ -92,12 +94,12 @@ rows:
   hypothesis: The promoted bridge recipe should benefit from a larger exact-prior
     trunk even without changing the optimizer or preprocessing family.
   upstream_delta: Not applicable; this is a repo-local capacity expansion relative
-    to the compact registered bridge anchor.
+    to the promoted batch64 sqrt-scaled bridge anchor.
   anchor_delta: Reuses the registered bridge anchor run but promotes the row itself
     to the large CUDA base with the same bridge modules and training recipe.
   entangled_legacy_stage: none
   expected_effect: A larger exact-prior trunk may improve quality if the promoted
-    bridge surface is still capacity-limited at the compact size.
+    bridge surface is still capacity-limited at the current budget.
   adequacy_knobs:
   - model.d_icl
   - model.tficl_n_heads
@@ -107,8 +109,8 @@ rows:
     default_plan:
     - Run this row first and treat it as the large-model comparator for the rest of
       the capacity pilot.
-    - Compare against the compact registered anchor on benchmark ROC first, then drift
-      and training-time delta.
+    - Compare against the promoted batch64 sqrt-scaled anchor on the task-family primary
+      metric first, then supporting diagnostics and training-time delta.
     default_negative_decision: defer
     reject_requires:
     - isolated_change
@@ -139,8 +141,8 @@ rows:
   training:
     surface_label: prior_linear_warmup_decay
     prior_dump_non_finite_policy: skip
-    prior_dump_batch_size: 32
-    prior_dump_lr_scale_rule: none
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
     prior_dump_batch_reference_size: 32
     overrides:
       apply_schedule: true
@@ -160,8 +162,8 @@ rows:
   parameter_adequacy_plan:
   - Run this row first and treat it as the local large-model comparator for the rest
     of the pilot.
-  - Rank by final ROC AUC first, then best ROC AUC, drift, and final training-time
-    delta versus the compact anchor.
+  - Rank by the task-family primary final metric first, then supporting diagnostics
+    and final training-time delta versus the promoted anchor.
   - Use activation and clipping telemetry to explain wins or losses, not to override
     benchmark quality.
   run_id: null
@@ -173,7 +175,7 @@ rows:
     evaluating width or depth probes.
   notes:
   - This row is the baseline for the pilot even though the sweep anchor remains the
-    compact registered bridge run.
+    promoted compact batch64 bridge run.
   benchmark_metrics: null
 - order: 2
   delta_id: dpnb_cuda_large_width_x2
@@ -232,8 +234,8 @@ rows:
   training:
     surface_label: prior_linear_warmup_decay
     prior_dump_non_finite_policy: skip
-    prior_dump_batch_size: 32
-    prior_dump_lr_scale_rule: none
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
     prior_dump_batch_reference_size: 32
     overrides:
       apply_schedule: true
@@ -320,8 +322,8 @@ rows:
   training:
     surface_label: prior_linear_warmup_decay
     prior_dump_non_finite_policy: skip
-    prior_dump_batch_size: 32
-    prior_dump_lr_scale_rule: none
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
     prior_dump_batch_reference_size: 32
     overrides:
       apply_schedule: true
