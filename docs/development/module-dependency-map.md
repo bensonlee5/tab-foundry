@@ -23,8 +23,8 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
 - `tab_foundry.model` depends on `tab_foundry.input_normalization` and
   `tab_foundry.types`.
-- `tab_foundry.research` depends on `tab_foundry.bench` and
-  `tab_foundry.model`.
+- `tab_foundry.research` depends on `tab_foundry.bench`,
+  `tab_foundry.config`, and `tab_foundry.model`.
 - `tab_foundry.training` depends on `tab_foundry.data`,
   `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
 
@@ -53,7 +53,7 @@ Observed cycle status:
   `config`, `data`, `model`, `training`, and shared helpers, but lower layers
   should not depend on it.
 - `tab_foundry.research` is the sweep-management layer. It may depend on
-  `bench` and `model`, but lower layers should not depend on it.
+  `bench`, `config`, and `model`, but lower layers should not depend on it.
 - `scripts/` should remain thin wrapper entrypoints over `bench/`, `research/`,
   or CLI/library modules rather than reimplementing workflow logic.
 

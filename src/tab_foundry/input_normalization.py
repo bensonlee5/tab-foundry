@@ -16,6 +16,8 @@ InputNormalizationMode = Literal[
     "train_rankgauss",
     "train_robust",
     "train_winsorize_zscore",
+    "train_zscore_tanh",
+    "train_robust_tanh",
 ]
 SUPPORTED_INPUT_NORMALIZATION_MODES: tuple[InputNormalizationMode, ...] = (
     "none",
@@ -24,12 +26,15 @@ SUPPORTED_INPUT_NORMALIZATION_MODES: tuple[InputNormalizationMode, ...] = (
     "train_rankgauss",
     "train_robust",
     "train_winsorize_zscore",
+    "train_zscore_tanh",
+    "train_robust_tanh",
 )
 
 _EPS = 1.0e-8
 _CLIP_VALUE = 100.0
 _WINSORIZE_LO = 1.0
 _WINSORIZE_HI = 99.0
+_SMOOTH_TAIL_LIMIT = 3.0
 _SQRT2 = math.sqrt(2.0)
 
 
@@ -37,6 +42,19 @@ def _tensor_stats_dtype(device: torch.device) -> torch.dtype:
     """Choose a reduction dtype that is supported on the active device."""
 
     return torch.float32 if device.type == "mps" else torch.float64
+
+
+def _smooth_tanh_np(values: np.ndarray) -> np.ndarray:
+    """Apply a bounded smooth-tail transform that stays near-linear around zero."""
+
+    return _SMOOTH_TAIL_LIMIT * np.tanh(values / _SMOOTH_TAIL_LIMIT)
+
+
+def _smooth_tanh_torch(values: torch.Tensor) -> torch.Tensor:
+    """Apply a bounded smooth-tail transform that stays near-linear around zero."""
+
+    limit = values.new_tensor(_SMOOTH_TAIL_LIMIT)
+    return limit * torch.tanh(values / limit)
 
 
 # ---------------------------------------------------------------------------
@@ -114,7 +132,12 @@ def normalize_train_test_arrays(
         return train, test
 
     # --- z-score based modes ---
-    if normalized_mode in ("train_zscore", "train_zscore_clip", "train_winsorize_zscore"):
+    if normalized_mode in (
+        "train_zscore",
+        "train_zscore_clip",
+        "train_winsorize_zscore",
+        "train_zscore_tanh",
+    ):
         if normalized_mode == "train_winsorize_zscore":
             lo = np.percentile(train_stats, _WINSORIZE_LO, axis=0)
             hi = np.percentile(train_stats, _WINSORIZE_HI, axis=0)
@@ -131,6 +154,11 @@ def normalize_train_test_arrays(
             return (
                 np.clip(train_norm, -_CLIP_VALUE, _CLIP_VALUE).astype(np.float32, copy=False),
                 np.clip(test_norm, -_CLIP_VALUE, _CLIP_VALUE).astype(np.float32, copy=False),
+            )
+        if normalized_mode == "train_zscore_tanh":
+            return (
+                _smooth_tanh_np(train_norm).astype(np.float32, copy=False),
+                _smooth_tanh_np(test_norm).astype(np.float32, copy=False),
             )
         return train_norm.astype(np.float32, copy=False), test_norm.astype(np.float32, copy=False)
 
@@ -155,7 +183,7 @@ def normalize_train_test_arrays(
         return train_out.astype(np.float32, copy=False), test_out.astype(np.float32, copy=False)
 
     # --- robust (median / IQR) ---
-    if normalized_mode == "train_robust":
+    if normalized_mode in ("train_robust", "train_robust_tanh"):
         median = np.median(train_stats, axis=0)
         q25 = np.percentile(train_stats, 25.0, axis=0)
         q75 = np.percentile(train_stats, 75.0, axis=0)
@@ -163,6 +191,11 @@ def normalize_train_test_arrays(
         iqr = np.where(iqr < _EPS, 1.0, iqr)
         train_norm = (train_stats - median) / iqr
         test_norm = (test_stats - median) / iqr
+        if normalized_mode == "train_robust_tanh":
+            return (
+                _smooth_tanh_np(train_norm).astype(np.float32, copy=False),
+                _smooth_tanh_np(test_norm).astype(np.float32, copy=False),
+            )
         return train_norm.astype(np.float32, copy=False), test_norm.astype(np.float32, copy=False)
 
     raise ValueError(f"Unsupported input_normalization mode: {mode!r}")
@@ -204,7 +237,12 @@ def normalize_train_test_tensors(
                     test_out[test_mask, c] = 0.0
                 continue
 
-            if normalized_mode in ("train_zscore", "train_zscore_clip", "train_winsorize_zscore"):
+            if normalized_mode in (
+                "train_zscore",
+                "train_zscore_clip",
+                "train_winsorize_zscore",
+                "train_zscore_tanh",
+            ):
                 if normalized_mode == "train_winsorize_zscore":
                     lo = torch.quantile(finite_train, _WINSORIZE_LO / 100.0)
                     hi = torch.quantile(finite_train, _WINSORIZE_HI / 100.0)
@@ -231,6 +269,10 @@ def normalize_train_test_tensors(
                     train_norm = train_norm.clamp(min=-_CLIP_VALUE, max=_CLIP_VALUE)
                     if test_norm is not None:
                         test_norm = test_norm.clamp(min=-_CLIP_VALUE, max=_CLIP_VALUE)
+                elif normalized_mode == "train_zscore_tanh":
+                    train_norm = _smooth_tanh_torch(train_norm)
+                    if test_norm is not None:
+                        test_norm = _smooth_tanh_torch(test_norm)
                 train_out[train_mask, c] = train_norm
                 if test_norm is not None:
                     test_out[test_mask, c] = test_norm
@@ -253,23 +295,34 @@ def normalize_train_test_tensors(
                     ).to(torch.float32)
                 continue
 
-            if normalized_mode == "train_robust":
+            if normalized_mode in ("train_robust", "train_robust_tanh"):
                 median = torch.quantile(finite_train, 0.5)
                 q25 = torch.quantile(finite_train, 0.25)
                 q75 = torch.quantile(finite_train, 0.75)
                 iqr = q75 - q25
                 if float(iqr) < _EPS:
                     iqr = torch.ones_like(iqr)
-                train_out[train_mask, c] = ((finite_train - median) / iqr).to(torch.float32)
+                train_norm = ((finite_train - median) / iqr).to(torch.float32)
+                if normalized_mode == "train_robust_tanh":
+                    train_norm = _smooth_tanh_torch(train_norm)
+                train_out[train_mask, c] = train_norm
                 if torch.any(test_mask):
-                    test_out[test_mask, c] = ((test_col[test_mask] - median) / iqr).to(torch.float32)
+                    test_norm = ((test_col[test_mask] - median) / iqr).to(torch.float32)
+                    if normalized_mode == "train_robust_tanh":
+                        test_norm = _smooth_tanh_torch(test_norm)
+                    test_out[test_mask, c] = test_norm
                 continue
 
             raise ValueError(f"Unsupported input_normalization mode: {mode!r}")
         return train_out, test_out
 
     # --- z-score based modes ---
-    if normalized_mode in ("train_zscore", "train_zscore_clip", "train_winsorize_zscore"):
+    if normalized_mode in (
+        "train_zscore",
+        "train_zscore_clip",
+        "train_winsorize_zscore",
+        "train_zscore_tanh",
+    ):
         if normalized_mode == "train_winsorize_zscore":
             lo = torch.quantile(train_stats, _WINSORIZE_LO / 100.0, dim=0)
             hi = torch.quantile(train_stats, _WINSORIZE_HI / 100.0, dim=0)
@@ -287,6 +340,8 @@ def normalize_train_test_tensors(
                 min=-_CLIP_VALUE,
                 max=_CLIP_VALUE,
             )
+        if normalized_mode == "train_zscore_tanh":
+            return _smooth_tanh_torch(train_norm), _smooth_tanh_torch(test_norm)
         return train_norm, test_norm
 
     # --- rank-gauss ---
@@ -308,7 +363,7 @@ def normalize_train_test_tensors(
         return train_out.to(torch.float32), test_out.to(torch.float32)
 
     # --- robust (median / IQR) ---
-    if normalized_mode == "train_robust":
+    if normalized_mode in ("train_robust", "train_robust_tanh"):
         median = torch.quantile(train_stats, 0.5, dim=0)
         q25 = torch.quantile(train_stats, 0.25, dim=0)
         q75 = torch.quantile(train_stats, 0.75, dim=0)
@@ -316,6 +371,8 @@ def normalize_train_test_tensors(
         iqr = torch.where(iqr < _EPS, torch.ones_like(iqr), iqr)
         train_norm = ((train_stats - median) / iqr).to(torch.float32)
         test_norm = ((test_stats - median) / iqr).to(torch.float32)
+        if normalized_mode == "train_robust_tanh":
+            return _smooth_tanh_torch(train_norm), _smooth_tanh_torch(test_norm)
         return train_norm, test_norm
 
     raise ValueError(f"Unsupported input_normalization mode: {mode!r}")

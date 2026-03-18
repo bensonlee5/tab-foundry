@@ -22,6 +22,13 @@ repos:
     types_or: [python, pyi]
     files: ^src/
     pass_filenames: false
+  - id: pytest
+    name: pytest
+    entry: ./.venv/bin/python -m pytest tests
+    language: system
+    types_or: [python, pyi]
+    files: ^(src/|tests/)
+    pass_filenames: false
   - id: mdformat
     name: mdformat
     entry: ./.venv/bin/mdformat AGENTS.md README.md docs reference CHANGELOG.md

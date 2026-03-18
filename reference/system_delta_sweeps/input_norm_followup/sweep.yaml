@@ -1,0 +1,70 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: input_norm_followup
+parent_sweep_id: stability_followup
+status: completed
+complexity_level: binary_md
+anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+  - This follow-up starts from the promoted `dpnb_row_cls_cls2_linear_warmup_decay`
+    bridge surface rather than the older post-layernorm canonical anchor.
+  - Rows 1-5 showed that changing the normalization family on the batch32 surface
+    was effectively inert on this bundle.
+  - Rows 7 and 9 were the only clear winners, and row 7 is promoted because it matched
+    row 9 while keeping the less invasive `train_zscore_clip` normalization.
+  - The queue still documents the batch32 replay and the smooth-tail sidecars as evidence,
+    but future comparisons should anchor on the batch64 sqrt-scaled clipped surface.
+  - RMSNorm is intentionally out of scope here; the architecture stays fixed at the
+    promoted prenorm plus row-cls bridge surface.
+  dimension_table:
+  - dimension: bridge architecture
+    upstream: Old bridge rows established that prenorm plus row-cls cls2 can train
+      cleanly with linear warmup decay.
+    anchor: Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `tfrow_cls_tokens=2`,
+      and `post_encoder_norm=none` fixed.
+    interpretation: Changes in this sweep should be attributed to preprocessing or
+      batch-size effects, not to a reopened architecture axis.
+  - dimension: input normalization
+    upstream: The bridge baseline still uses `train_zscore_clip`.
+    anchor: Keep `train_zscore_clip` on the promoted batch64 sqrt-scaled bridge surface.
+    interpretation: Rows 1-5 showed the normalized variants were tied on batch32,
+      row 9 only tied row 7, and the later no-norm follow-up underperformed, so clipping
+      stays in the anchor by default.
+  - dimension: batch-size scaling
+    upstream: Exact-prior training previously treated batch size as a hidden function
+      argument rather than a tracked surface knob.
+    anchor: Use prior-dump batch size 64 with sqrt LR scaling relative to the reference
+      batch size of 32.
+    interpretation: Batch-size rows were the only source of clear lift in this sweep;
+      row 7 is the promoted systems surface.
+anchor_context:
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1
+  experiment: cls_benchmark_staged_prior
+  config_profile: cls_benchmark_staged_prior
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: dpnb_input_norm_anchor_replay_batch64_sqrt
+    stage: nano_exact
+    stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: nano
+      head: binary_direct
+      post_encoder_norm: none
+      row_pool: row_cls
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: dpnb_input_norm_anchor_replay_batch64_sqrt
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

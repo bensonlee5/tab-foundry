@@ -1,0 +1,683 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: input_norm_followup
+rows:
+- order: 1
+  delta_ref: dpnb_input_norm_anchor_replay
+  status: completed
+  rationale: Reproduce the promoted bridge baseline locally before interpreting any
+    normalization or batch-size movement.
+  hypothesis: The row-cls bridge winner should replay cleanly on this machine and
+    provide the correct comparator for the rest of the queue.
+  anchor_delta: Replays `dpnb_row_cls_cls2_linear_warmup_decay` exactly, keeping `train_zscore_clip`,
+    batch size 32, and the promoted linear-warmup-decay schedule.
+  parameter_adequacy_plan:
+  - Use this row as the batch32 reference for the normalization-only rows and the
+    batch-size sidecars.
+  - Report benchmark ROC, best-to-final drift, clipped-step fraction, and activation
+    windows.
+  - If a later row wins cleanly, preserve this replay as evidence rather than forcing
+    it to remain the canonical anchor.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_row_cls_cls2_linear_warmup_decay
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2
+  benchmark_metrics:
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
+    clipped_step_fraction: 0.0056
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Treat this run as the batch32 reference only; row 7 (`dpnb_input_norm_anchor_replay_batch64_sqrt`)
+    is the promoted canonical anchor.
+  notes:
+  - This row is required because the promoted bridge baseline artifacts were produced
+    on another machine.
+  - The earlier local MPS replay is archived under `train_pre_cpu_fallback_20260317T2239`
+    and is not canonical for this sweep.
+  - The accepted local replay used the exact prior-train CPU fallback for requested
+    `mps` multi-layer `row_cls` runs.
+  - Supersedes historical queue run `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`;
+    that registry entry is retained as history only.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`.
+  - CUDA rerun established the same-machine batch32 reference, but row 7 later displaced
+    it as the canonical anchor.
+  - Row 7 improved final ROC AUC by 0.0068 on the same clipped normalization family,
+    so this row remains evidence rather than the live anchor.
+- order: 2
+  delta_ref: dpnb_input_norm_zscore
+  status: completed
+  rationale: Test the simplest unclipped alternative before trying smoother or more
+    robust tails.
+  hypothesis: Removing hard clipping may preserve more useful scale information now
+    that the bridge baseline is already stabilized.
+  anchor_delta: Changes only `model.input_normalization` from `train_zscore_clip`
+    to `train_zscore`.
+  parameter_adequacy_plan:
+  - Compare directly against row 1 before reading the smoother-tail rows.
+  - Use benchmark quality first; treat telemetry changes as explanatory evidence only.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_zscore
+    input_normalization: train_zscore
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: sd_input_norm_followup_02_dpnb_input_norm_zscore_v2
+  benchmark_metrics:
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
+    clipped_step_fraction: 0.0056
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Interpret rows 2-5 as a normalization-family wash on the weaker batch32
+    surface; keep row 7 as the canonical anchor.
+  notes:
+  - training_surface_record.json confirms this row actually resolved to input_normalization=train_zscore
+    with benchmark profile dpnb_input_norm_zscore.
+  - Best and final ROC AUC matched the row-1 anchor to checked precision on the locked
+    bundle, so plain z-score looks viable but not clearly superior.
+  - Clean telemetry means the tie is informative rather than a masked instability
+    result.
+  - Supersedes historical queue run `sd_input_norm_followup_02_dpnb_input_norm_zscore_v1`;
+    that registry entry is retained as history only.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_02_dpnb_input_norm_zscore_v2`.
+  - CUDA rerun recorded the canonical batch32 comparison, but batch-size evidence
+    later dominated the sweep so this row remains supporting evidence only.
+- order: 3
+  delta_ref: dpnb_input_norm_winsorize_zscore
+  status: completed
+  rationale: Keep explicit outlier defense while removing the hard post-z-score clip.
+  hypothesis: Percentile winsorization may retain robustness without the bluntness
+    of fixed clipping.
+  anchor_delta: Changes `model.input_normalization` from `train_zscore_clip` to `train_winsorize_zscore`.
+  parameter_adequacy_plan:
+  - Compare against both row 1 and row 2 before concluding that outlier defense is
+    helping or hurting.
+  - Treat this row as a bounded outlier-robust alternative, not as the main smooth-tail
+    candidate.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_winsorize_zscore
+    input_normalization: train_winsorize_zscore
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2
+  benchmark_metrics:
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
+    clipped_step_fraction: 0.0056
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep this as bounded outlier-defense evidence only; row 7 stays canonical
+    because the batch64 surface moved the metric while rows 1-3 did not.
+  notes:
+  - training_surface_record.json confirms this row actually resolved to input_normalization=train_winsorize_zscore
+    with benchmark profile dpnb_input_norm_winsorize_zscore.
+  - Best and final ROC AUC again matched rows 1 and 2 to checked precision, so percentile
+    winsorization is viable but not measurably useful on this bundle.
+  - The row was slower than the clipped anchor and plain z-score while delivering
+    no benchmark lift, which lowers its priority relative to the upcoming smooth-tail
+    rows.
+  - Supersedes historical queue run `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v1`;
+    that registry entry is retained as history only.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v2`.
+  - CUDA rerun recorded the canonical batch32 comparison, but the row remains supporting
+    evidence only after row 7 established the better systems surface.
+- order: 4
+  delta_ref: dpnb_input_norm_zscore_tanh
+  status: completed
+  rationale: Probe a smoother tail treatment that still stays near-linear around zero.
+  hypothesis: '`train_zscore_tanh` may outperform both clipped z-score and plain z-score
+    by avoiding hard saturation while still bounding outliers softly.'
+  anchor_delta: Changes `model.input_normalization` from `train_zscore_clip` to `train_zscore_tanh`.
+  parameter_adequacy_plan:
+  - Compare against rows 1-3 and use this as the favored smooth-tail candidate if
+    it wins locally.
+  - Promote batch-size interaction checks only if this row is at least competitive
+    with the anchor replay.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_zscore_tanh
+    input_normalization: train_zscore_tanh
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Treat this as the smooth-tail comparator only; row 9 later tied the
+    promoted winner, so row 7 stays canonical because it reaches the same result with
+    less normalization.
+  notes:
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  - This row tied the batch32 clipped baseline but did not create its own lift; the
+    only winning smooth-tail result required the same batch64 systems change as row
+    7.
+  benchmark_metrics:
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
+    clipped_step_fraction: 0.0056
+- order: 5
+  delta_ref: dpnb_input_norm_robust_tanh
+  status: completed
+  rationale: Compare a more outlier-resistant center/scale estimate within the same
+    smooth-tail family.
+  hypothesis: Robust scaling plus tanh may help if the remaining harmful feature variation
+    is still driven by extreme values rather than by clipping itself.
+  anchor_delta: Changes `model.input_normalization` from `train_zscore_clip` to `train_robust_tanh`.
+  parameter_adequacy_plan:
+  - Compare primarily against row 4 so the smooth-tail family is separated cleanly
+    from the batch-size sidecars.
+  - Prefer the simpler z-score family unless this row shows clear benchmark upside.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_robust_tanh
+    input_normalization: train_robust_tanh
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep this as negative evidence for the robust smooth-tail branch; it
+    did not separate from the batch32 baseline and did not justify replacing row 7.
+  notes:
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_05_dpnb_input_norm_robust_tanh_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  - Robust smooth-tail preprocessing produced no measurable upside on the locked bundle,
+    so it stays below the promoted clipped batch64 surface.
+  benchmark_metrics:
+    best_roc_auc: 0.7634285072744538
+    best_step: 750
+    final_roc_auc: 0.7566546311647561
+    drift: -0.006773876109697707
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.1847352981567383
+    clipped_step_fraction: 0.0056
+- order: 6
+  delta_ref: dpnb_input_norm_anchor_replay_batch16_sqrt
+  status: completed
+  rationale: Test whether a smaller prior-dump batch improves the bridge baseline
+    once LR is scaled conservatively.
+  hypothesis: Batch size 16 may reduce effective optimization noise enough to help
+    the baseline replay even after sqrt LR scaling.
+  anchor_delta: Keeps the baseline normalization fixed at `train_zscore_clip` but
+    changes `training.prior_dump_batch_size` from 32 to 16 with sqrt LR scaling.
+  parameter_adequacy_plan:
+  - Compare directly against row 1 before combining batch-size changes with normalization
+    changes.
+  - Treat the effective LR change as part of the row definition, not as a separate
+    confound.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_anchor_replay_batch16_sqrt
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 16
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep this as negative batch-size evidence only; the smaller batch is
+    not competitive with the promoted row-7 anchor.
+  notes:
+  - Effective LR scaling factor is approximately 0.7071, so effective lr_max is about
+    0.002828 and effective min_lr is about 0.000283.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_06_dpnb_input_norm_anchor_replay_batch16_sqrt_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  - Batch size 16 hurt final ROC AUC relative to both the batch32 reference and the
+    promoted batch64 surface.
+  benchmark_metrics:
+    best_roc_auc: 0.7595457209489976
+    best_step: 2000
+    final_roc_auc: 0.7556520172640854
+    drift: -0.003893703684912264
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.7146334648132324
+    clipped_step_fraction: 0.0072
+- order: 7
+  delta_ref: dpnb_input_norm_anchor_replay_batch64_sqrt
+  status: completed
+  rationale: Test whether a larger prior-dump batch improves the bridge baseline once
+    LR is scaled conservatively.
+  hypothesis: Batch size 64 may improve the bridge baseline if the current recipe
+    still prefers a larger effective batch than 32.
+  anchor_delta: Keeps the baseline normalization fixed at `train_zscore_clip` but
+    changes `training.prior_dump_batch_size` from 32 to 64 with sqrt LR scaling.
+  parameter_adequacy_plan:
+  - Compare directly against row 1 before combining batch-size changes with normalization
+    changes.
+  - Treat the effective LR change as part of the row definition, not as a separate
+    confound.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1
+  followup_run_ids: []
+  decision: keep
+  interpretation_status: completed
+  confounders: []
+  next_action: Use this run as the canonical anchor for future binary_md follow-ups;
+    it matched the best result in the sweep with the least additional normalization.
+  notes:
+  - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about
+    0.005657 and effective min_lr is about 0.000566.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  - This row is promoted as the canonical anchor because it matched row 9 while keeping
+    `train_zscore_clip`, which is the less invasive preprocessing choice on this implementation.
+  benchmark_metrics:
+    best_roc_auc: 0.763769595842719
+    best_step: 2200
+    final_roc_auc: 0.763449888408113
+    drift: -0.00031970743460596474
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.682995080947876
+    clipped_step_fraction: 0.0072
+- order: 8
+  delta_ref: dpnb_input_norm_zscore_tanh_batch16_sqrt
+  status: completed
+  rationale: Check whether the favored smooth-tail row benefits from a smaller scaled
+    batch.
+  hypothesis: If `train_zscore_tanh` is the right preprocessing family, batch size
+    16 may amplify that benefit rather than confound it away.
+  anchor_delta: Changes both `model.input_normalization` to `train_zscore_tanh` and
+    `training.prior_dump_batch_size` to 16 with sqrt LR scaling.
+  parameter_adequacy_plan:
+  - Compare first against row 4 and only second against row 1.
+  - Use this row to decide whether batch size is part of the smooth-tail mechanism
+    or merely a separate systems effect.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_zscore_tanh_batch16_sqrt
+    input_normalization: train_zscore_tanh
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 16
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Treat this as negative interaction evidence; smaller batch size hurts
+    even when paired with the smooth-tail normalization.
+  notes:
+  - Effective LR scaling factor is approximately 0.7071, so effective lr_max is about
+    0.002828 and effective min_lr is about 0.000283.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_08_dpnb_input_norm_zscore_tanh_batch16_sqrt_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  - The batch16 smooth-tail variant reproduced the same degradation as row 6, so the
+    batch-size effect is not a tanh-specific mechanism.
+  benchmark_metrics:
+    best_roc_auc: 0.7595457209489976
+    best_step: 2000
+    final_roc_auc: 0.7556520172640854
+    drift: -0.003893703684912264
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.7146334648132324
+    clipped_step_fraction: 0.0072
+- order: 9
+  delta_ref: dpnb_input_norm_zscore_tanh_batch64_sqrt
+  status: completed
+  rationale: Check whether the favored smooth-tail row benefits from a larger scaled
+    batch.
+  hypothesis: If `train_zscore_tanh` likes cleaner gradient averaging, batch size
+    64 may outperform both row 4 and row 7.
+  anchor_delta: Changes both `model.input_normalization` to `train_zscore_tanh` and
+    `training.prior_dump_batch_size` to 64 with sqrt LR scaling.
+  parameter_adequacy_plan:
+  - Compare first against row 4 and only second against row 1.
+  - Use this row to decide whether batch size is part of the smooth-tail mechanism
+    or merely a separate systems effect.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_zscore_tanh_batch64_sqrt
+    input_normalization: train_zscore_tanh
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  run_id: sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep this as tie evidence only; row 7 remains the promoted anchor because
+    it matched this result with less invasive preprocessing.
+  notes:
+  - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about
+    0.005657 and effective min_lr is about 0.000566.
+  - Canonical CUDA rerun registered as `sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1`.
+  - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
+    pending full sweep interpretation.
+  - Row 9 matched row 7 on final ROC AUC, but `train_zscore_tanh` is more interventionist
+    than the effectively no-op `train_zscore_clip` bound at +/-100.
+  benchmark_metrics:
+    best_roc_auc: 0.763769595842719
+    best_step: 2200
+    final_roc_auc: 0.763449888408113
+    drift: -0.00031970743460596474
+    nanotabpfn_best: 0.7540710196545419
+    nanotabpfn_final: 0.7466291551363653
+    max_grad_norm: 2.682995080947876
+    clipped_step_fraction: 0.0072

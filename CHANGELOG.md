@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Scoped `TFRowEncoder` transformer-clone reinitialization to multi-layer stacks only, preserving the MPS-targeted deep `row_cls` fix without changing single-layer exported reference outputs.
+
+- Refreshed the active `input_norm_followup` system-delta contract and research assertions so `program.md`, the active-sweep tests, and the checked-in reference state all point at the localized anchor replay `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`.
+
+- Synchronized the module dependency map with the currently observed `tab_foundry.research -> tab_foundry.config` edge.
+
+## [0.6.11] - 2026-03-17
+
+### Added
+
+- Added two new staged/shared input-normalization modes: `train_zscore_tanh` and `train_robust_tanh`. Both use train-only statistics and then apply a bounded smooth-tail tanh transform instead of a hard clip.
+
+- Added a new draft bridge-baseline sweep at `reference/system_delta_sweeps/input_norm_followup/`, anchored on the promoted `dpnb_row_cls_cls2_linear_warmup_decay` surface and covering unclipped z-score, winsorized z-score, smooth-tail normalization, and bounded batch-size sidecars.
+
+- Added tracked exact-prior batch-size metadata under `training_surface_record.json`, including `prior_dump_batch_size`, `prior_dump_lr_scale_rule`, `prior_dump_batch_reference_size`, and `effective_lr_scale_factor`.
+
+### Changed
+
+- Exact-prior prior-dump training now resolves `training.prior_dump_batch_size`, `training.prior_dump_lr_scale_rule`, and `training.prior_dump_batch_reference_size`, and applies the resulting scale factor to both `optimizer.min_lr` and schedule `lr_max` before training.
+
+- User-facing note: exact-prior training configs now accept the new `training.prior_dump_*` keys, and export/model validation paths now accept `train_zscore_tanh` and `train_robust_tanh` anywhere staged/shared `input_normalization` values are validated.
+
 ## [0.6.10] - 2026-03-17
 
 ### Added
