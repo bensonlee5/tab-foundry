@@ -7,25 +7,11 @@ from datetime import datetime, timezone
 import json
 import math
 from pathlib import Path
-from typing import Any, Literal, Mapping, Sequence, TypeVar, cast
-
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    FiniteFloat,
-    StrictInt,
-    StrictStr,
-    ValidationError,
-    field_validator,
-)
+from typing import Any, Mapping, Sequence, cast
 import torch
 
 from tab_foundry.bench.artifacts import load_history, write_json
-from tab_foundry.bench.nanotabpfn import (
-    resolve_tab_foundry_best_checkpoint,
-    resolve_tab_foundry_run_artifact_paths,
-)
+from tab_foundry.bench.nanotabpfn import resolve_tab_foundry_run_artifact_paths
 from tab_foundry.bench.registry_common import (
     copy_jsonable as _copy_jsonable,
     load_comparison_summary as _load_comparison_summary,
@@ -34,43 +20,24 @@ from tab_foundry.bench.registry_common import (
     resolve_config_path as _common_resolve_config_path,
     resolve_registry_path_value as _common_resolve_registry_path_value,
 )
-from tab_foundry.data.surface import resolve_data_surface
-from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
-from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.model.spec import (
-    checkpoint_model_build_spec_from_mappings,
-    ModelBuildSpec,
+from tab_foundry.bench.registry.record_helpers import (
+    _count_parameters_from_cfg,
+    _model_payload_from_cfg,
+    _resolve_record_checkpoint_path,
+    _training_diagnostics_from_history,
+    _training_surface_record,
 )
-from tab_foundry.training.surface import write_training_surface_record
-from tab_foundry.training.schedule import build_stage_configs, warmup_steps_for_stage
-
-
-REGISTRY_SCHEMA = "tab-foundry-benchmark-runs-v1"
-REGISTRY_VERSION = 1
-DEFAULT_BUDGET_CLASS = "short-run"
-ALLOWED_DECISIONS = ("keep", "reject", "defer")
-
-_TOP_LEVEL_KEYS = {"schema", "version", "runs"}
-_TAB_FOUNDRY_METRIC_KEYS = {
-    "best_step",
-    "best_training_time",
-    "best_roc_auc",
-    "best_log_loss",
-    "best_brier_score",
-    "best_crps",
-    "best_avg_pinball_loss",
-    "best_picp_90",
-    "final_step",
-    "final_training_time",
-    "final_roc_auc",
-    "final_log_loss",
-    "final_brier_score",
-    "final_crps",
-    "final_avg_pinball_loss",
-    "final_picp_90",
-}
-
-_RegistryPayloadT = TypeVar("_RegistryPayloadT", bound="_RegistryPayloadModel")
+from tab_foundry.bench.registry.schema import (
+    _BenchmarkRunEntryPayload,
+    _BenchmarkRunRecordPayload,
+    _TOP_LEVEL_KEYS,
+    _validate_payload_model,
+    ALLOWED_DECISIONS,
+    DEFAULT_BUDGET_CLASS,
+    REGISTRY_SCHEMA,
+    REGISTRY_VERSION,
+)
+from tab_foundry.data.surface import resolve_data_surface
 
 
 def project_root() -> Path:
@@ -91,176 +58,6 @@ def resolve_registry_path_value(value: str) -> Path:
 
 def _resolve_config_path(raw_value: Any) -> Path:
     return _common_resolve_config_path(raw_value, root=project_root())
-
-
-class _RegistryPayloadModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
-
-    @field_validator("*")
-    @classmethod
-    def _normalize_string(cls, value: Any) -> Any:
-        if isinstance(value, str) and not value.strip():
-            raise ValueError("must be a non-empty string")
-        return value
-
-
-class _BenchmarkRunModelPayload(_RegistryPayloadModel):
-    arch: StrictStr
-    stage: StrictStr | None = None
-    stage_label: StrictStr | None = None
-    benchmark_profile: StrictStr | None = None
-    d_icl: StrictInt
-    tficl_n_heads: StrictInt
-    tficl_n_layers: StrictInt
-    head_hidden_dim: StrictInt
-    input_normalization: StrictStr
-    many_class_base: StrictInt
-    module_selection: dict[StrictStr, Any] | None = None
-    module_hyperparameters: dict[StrictStr, Any] | None = None
-
-
-class _BenchmarkBundlePayload(_RegistryPayloadModel):
-    name: StrictStr
-    version: StrictInt
-    source_path: StrictStr
-    task_count: StrictInt
-    task_ids: list[StrictInt] = Field(min_length=1)
-
-
-class _BenchmarkArtifactsPayload(_RegistryPayloadModel):
-    run_dir: StrictStr
-    benchmark_dir: StrictStr
-    prior_dir: StrictStr | None = None
-    history_path: StrictStr
-    best_checkpoint_path: StrictStr
-    comparison_summary_path: StrictStr
-    comparison_curve_path: StrictStr
-    benchmark_run_record_path: StrictStr | None = None
-    training_surface_record_path: StrictStr | None = None
-
-
-class _TabFoundryMetricsPayload(_RegistryPayloadModel):
-    best_step: FiniteFloat | None = None
-    best_training_time: FiniteFloat | None = None
-    best_roc_auc: FiniteFloat | None = None
-    best_log_loss: FiniteFloat | None = None
-    best_brier_score: FiniteFloat | None = None
-    best_crps: FiniteFloat | None = None
-    best_avg_pinball_loss: FiniteFloat | None = None
-    best_picp_90: FiniteFloat | None = None
-    final_step: FiniteFloat | None = None
-    final_training_time: FiniteFloat | None = None
-    final_roc_auc: FiniteFloat | None = None
-    final_log_loss: FiniteFloat | None = None
-    final_brier_score: FiniteFloat | None = None
-    final_crps: FiniteFloat | None = None
-    final_avg_pinball_loss: FiniteFloat | None = None
-    final_picp_90: FiniteFloat | None = None
-
-
-class _TrainingDiagnosticsPayload(_RegistryPayloadModel):
-    best_val_loss: FiniteFloat | None = None
-    final_val_loss: FiniteFloat | None = None
-    best_val_step: FiniteFloat | None = None
-    post_warmup_train_loss_var: FiniteFloat | None = None
-    mean_grad_norm: FiniteFloat | None = None
-    max_grad_norm: FiniteFloat | None = None
-    final_grad_norm: FiniteFloat | None = None
-    train_elapsed_seconds: FiniteFloat | None = None
-    wall_elapsed_seconds: FiniteFloat | None = None
-
-
-class _ModelSizePayload(_RegistryPayloadModel):
-    total_params: StrictInt
-    trainable_params: StrictInt
-
-
-class _ComparisonPayload(_RegistryPayloadModel):
-    reference_run_id: StrictStr
-    best_roc_auc_delta: FiniteFloat | None = None
-    final_roc_auc_delta: FiniteFloat | None = None
-    final_log_loss_delta: FiniteFloat | None = None
-    final_brier_score_delta: FiniteFloat | None = None
-    final_crps_delta: FiniteFloat | None = None
-    final_avg_pinball_loss_delta: FiniteFloat | None = None
-    final_picp_90_delta: FiniteFloat | None = None
-    best_training_time_delta: FiniteFloat | None = None
-    final_training_time_delta: FiniteFloat | None = None
-
-
-class _ComparisonsPayload(_RegistryPayloadModel):
-    vs_parent: _ComparisonPayload | None = None
-    vs_anchor: _ComparisonPayload | None = None
-
-
-class _LineagePayload(_RegistryPayloadModel):
-    parent_run_id: StrictStr | None = None
-    anchor_run_id: StrictStr | None = None
-    control_baseline_id: StrictStr | None = None
-
-
-class _SurfaceLabelsPayload(_RegistryPayloadModel):
-    model: StrictStr
-    data: StrictStr
-    preprocessing: StrictStr
-    training: StrictStr | None = None
-
-
-class _SweepPayload(_RegistryPayloadModel):
-    sweep_id: StrictStr
-    delta_id: StrictStr
-    parent_sweep_id: StrictStr | None = None
-    queue_order: StrictInt | None = None
-    run_kind: Literal["primary", "followup"]
-
-
-class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
-    manifest_path: StrictStr
-    seed_set: list[StrictInt] = Field(min_length=1)
-    model: _BenchmarkRunModelPayload
-    benchmark_bundle: _BenchmarkBundlePayload
-    artifacts: _BenchmarkArtifactsPayload
-    tab_foundry_metrics: _TabFoundryMetricsPayload
-    training_diagnostics: _TrainingDiagnosticsPayload
-    model_size: _ModelSizePayload
-    surface_labels: _SurfaceLabelsPayload | None = None
-    sweep: _SweepPayload | None = None
-    generated_at_utc: StrictStr
-
-
-class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
-    run_id: StrictStr
-    track: StrictStr
-    experiment: StrictStr
-    config_profile: StrictStr
-    budget_class: StrictStr
-    model: _BenchmarkRunModelPayload
-    lineage: _LineagePayload
-    manifest_path: StrictStr
-    seed_set: list[StrictInt] = Field(min_length=1)
-    benchmark_bundle: _BenchmarkBundlePayload
-    artifacts: _BenchmarkArtifactsPayload
-    tab_foundry_metrics: _TabFoundryMetricsPayload
-    training_diagnostics: _TrainingDiagnosticsPayload
-    model_size: _ModelSizePayload
-    surface_labels: _SurfaceLabelsPayload | None = None
-    sweep: _SweepPayload | None = None
-    comparisons: _ComparisonsPayload
-    decision: Literal["keep", "reject", "defer"]
-    conclusion: StrictStr
-    registered_at_utc: StrictStr
-
-
-def _validate_payload_model(
-    payload_model: type[_RegistryPayloadT],
-    payload: Any,
-    *,
-    context: str,
-) -> _RegistryPayloadT:
-    try:
-        return payload_model.model_validate(payload)
-    except ValidationError as exc:
-        raise RuntimeError(f"{context} is invalid: {exc}") from exc
 
 
 def default_benchmark_run_registry_path() -> Path:
@@ -460,222 +257,6 @@ def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, 
     registry_path = (path or default_benchmark_run_registry_path()).expanduser().resolve()
     payload = _load_registry_payload(registry_path, allow_missing=True)
     return registry_path, payload
-
-
-def _history_variance(values: list[float]) -> float | None:
-    if len(values) < 2:
-        return None
-    mean = sum(values) / float(len(values))
-    return sum((value - mean) ** 2 for value in values) / float(len(values))
-
-
-def _finite_history_values(history: list[dict[str, Any]], key: str) -> list[float]:
-    values: list[float] = []
-    for record in history:
-        raw = record.get(key)
-        if raw is None:
-            continue
-        value = float(raw)
-        if math.isfinite(value):
-            values.append(value)
-    return values
-
-
-def _training_diagnostics_from_history(
-    history: list[dict[str, Any]],
-    *,
-    raw_cfg: dict[str, Any],
-) -> dict[str, float | None]:
-    val_records: list[tuple[float, float]] = []
-    for record in history:
-        raw_val_loss = record.get("val_loss")
-        if raw_val_loss is None:
-            continue
-        value = float(raw_val_loss)
-        if math.isfinite(value):
-            val_records.append((float(record["step"]), value))
-
-    best_val_loss: float | None = None
-    best_val_step: float | None = None
-    final_val_loss: float | None = None
-    if val_records:
-        best_val_step, best_val_loss = min(val_records, key=lambda item: (item[1], item[0]))
-        final_val_loss = float(val_records[-1][1])
-
-    grad_norms = _finite_history_values(history, "grad_norm")
-    raw_schedule = raw_cfg.get("schedule")
-    warmup_steps = 0
-    if isinstance(raw_schedule, dict):
-        raw_stages = raw_schedule.get("stages")
-        if isinstance(raw_stages, list):
-            normalized_stages = [
-                {str(key): value for key, value in stage.items()}
-                for stage in raw_stages
-                if isinstance(stage, dict)
-            ]
-            if normalized_stages:
-                stage_configs = build_stage_configs(normalized_stages)
-                if stage_configs:
-                    warmup_steps = warmup_steps_for_stage(stage_configs[0])
-    post_warmup_losses = [
-        float(record["train_loss"])
-        for record in history
-        if int(record["step"]) > warmup_steps
-        and record.get("train_loss") is not None
-        and math.isfinite(float(record["train_loss"]))
-    ]
-    last_record = history[-1]
-    train_elapsed = float(last_record.get("train_elapsed_seconds", 0.0))
-    wall_elapsed = float(last_record.get("elapsed_seconds", train_elapsed))
-    return {
-        "best_val_loss": None if best_val_loss is None else float(best_val_loss),
-        "final_val_loss": None if final_val_loss is None else float(final_val_loss),
-        "best_val_step": None if best_val_step is None else float(best_val_step),
-        "post_warmup_train_loss_var": _history_variance(post_warmup_losses),
-        "mean_grad_norm": None
-        if not grad_norms
-        else float(sum(grad_norms) / float(len(grad_norms))),
-        "max_grad_norm": None if not grad_norms else float(max(grad_norms)),
-        "final_grad_norm": None if not grad_norms else float(grad_norms[-1]),
-        "train_elapsed_seconds": train_elapsed if math.isfinite(train_elapsed) else None,
-        "wall_elapsed_seconds": wall_elapsed if math.isfinite(wall_elapsed) else None,
-    }
-
-
-def _checkpoint_model_spec_from_cfg(
-    raw_cfg: dict[str, Any],
-    *,
-    state_dict: dict[str, Any] | None,
-) -> ModelBuildSpec:
-    task = _ensure_non_empty_string(raw_cfg.get("task"), context="checkpoint config.task")
-    raw_model_cfg = raw_cfg.get("model")
-    if not isinstance(raw_model_cfg, dict):
-        raise RuntimeError("checkpoint config must include a model mapping")
-    model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
-    arch = model_cfg.get("arch")
-    if not isinstance(arch, str) or not arch.strip():
-        raise RuntimeError(
-            "checkpoint config must include explicit model.arch metadata for benchmark registration; "
-            "legacy checkpoints without persisted model.arch cannot be registered"
-        )
-    return checkpoint_model_build_spec_from_mappings(
-        task=task,
-        primary=model_cfg,
-        state_dict=state_dict,
-    )
-
-
-def _count_parameters_from_cfg(
-    raw_cfg: dict[str, Any],
-    *,
-    state_dict: dict[str, Any] | None,
-) -> dict[str, int]:
-    model_spec = _checkpoint_model_spec_from_cfg(raw_cfg, state_dict=state_dict)
-    model = build_model_from_spec(model_spec)
-    total_params = sum(int(parameter.numel()) for parameter in model.parameters())
-    trainable_params = sum(
-        int(parameter.numel()) for parameter in model.parameters() if parameter.requires_grad
-    )
-    return {
-        "total_params": int(total_params),
-        "trainable_params": int(trainable_params),
-    }
-
-
-def _model_payload_from_cfg(
-    raw_cfg: dict[str, Any],
-    *,
-    state_dict: dict[str, Any] | None,
-    summary_tab_foundry: Mapping[str, Any],
-) -> dict[str, Any]:
-    model_spec = _checkpoint_model_spec_from_cfg(raw_cfg, state_dict=state_dict)
-    benchmark_profile_raw = summary_tab_foundry.get("benchmark_profile")
-    payload: dict[str, Any] = {
-        "arch": str(model_spec.arch),
-        "stage": None if model_spec.stage is None else str(model_spec.stage),
-        "stage_label": None if model_spec.stage_label is None else str(model_spec.stage_label),
-        "benchmark_profile": None if benchmark_profile_raw is None else str(benchmark_profile_raw),
-        "d_icl": int(model_spec.d_icl),
-        "tficl_n_heads": int(model_spec.tficl_n_heads),
-        "tficl_n_layers": int(model_spec.tficl_n_layers),
-        "head_hidden_dim": int(model_spec.head_hidden_dim),
-        "input_normalization": str(model_spec.input_normalization),
-        "many_class_base": int(model_spec.many_class_base),
-    }
-    if model_spec.arch == "tabfoundry_staged":
-        surface = resolve_staged_surface(model_spec)
-        if payload["stage_label"] is None:
-            payload["stage_label"] = str(surface.stage_label)
-        if payload["benchmark_profile"] is None:
-            payload["benchmark_profile"] = str(surface.benchmark_profile)
-        payload["module_selection"] = surface.module_selection()
-        payload["module_hyperparameters"] = surface.component_hyperparameters()
-    return payload
-
-
-def _training_surface_record(
-    *,
-    run_dir: Path,
-    raw_cfg: dict[str, Any],
-    raw_state_dict: dict[str, Any] | None,
-    benchmark_run_record_path: Path | None,
-) -> tuple[dict[str, Any] | None, Path | None]:
-    run_record_path = run_dir.expanduser().resolve() / "training_surface_record.json"
-    if run_record_path.exists():
-        with run_record_path.open("r", encoding="utf-8") as handle:
-            payload = json.load(handle)
-        if not isinstance(payload, dict):
-            raise RuntimeError(f"training_surface_record.json must be a JSON object: {run_record_path}")
-        return cast(dict[str, Any], payload), run_record_path
-    if benchmark_run_record_path is None:
-        return None, None
-    derived_path = benchmark_run_record_path.parent / "training_surface_record.json"
-    payload = write_training_surface_record(
-        derived_path,
-        raw_cfg=raw_cfg,
-        run_dir=run_dir,
-        state_dict=raw_state_dict,
-    )
-    return payload, derived_path
-
-
-def _coerce_integral_step(value: Any) -> int | None:
-    if not isinstance(value, (int, float)) or isinstance(value, bool):
-        return None
-    value_f = float(value)
-    if not math.isfinite(value_f) or not value_f.is_integer():
-        return None
-    return int(value_f)
-
-
-def _resolve_record_checkpoint_path(
-    run_dir: Path,
-    *,
-    summary_tab_foundry: Mapping[str, Any],
-) -> Path:
-    try:
-        return resolve_tab_foundry_best_checkpoint(run_dir)
-    except RuntimeError as best_exc:
-        _history_path, checkpoint_dir = resolve_tab_foundry_run_artifact_paths(run_dir)
-        candidate_steps: list[int] = []
-        for key in ("best_step", "final_step"):
-            step = _coerce_integral_step(summary_tab_foundry.get(key))
-            if step is not None and step > 0 and step not in candidate_steps:
-                candidate_steps.append(step)
-        for step in candidate_steps:
-            step_path = checkpoint_dir / f"step_{step:06d}.pt"
-            if step_path.exists():
-                return step_path.resolve()
-        latest_path = checkpoint_dir / "latest.pt"
-        if latest_path.exists():
-            return latest_path.resolve()
-        step_paths = sorted(checkpoint_dir.glob("step_*.pt"))
-        if step_paths:
-            return step_paths[-1].resolve()
-        raise RuntimeError(
-            "missing checkpoint artifact suitable for benchmark run record under "
-            f"{run_dir.expanduser().resolve()}; best.pt lookup failed with: {best_exc}"
-        ) from best_exc
 
 
 def derive_benchmark_run_record(

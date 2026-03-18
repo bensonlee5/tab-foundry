@@ -162,7 +162,7 @@ surface. Use the canonical docs instead:
   - `src/tab_foundry/bench/iris_smoke.py`
   - `src/tab_foundry/bench/checkpoint.py`
   - `src/tab_foundry/bench/bounce_diagnosis.py`
-  - `src/tab_foundry/bench/nanotabpfn.py`
+  - `src/tab_foundry/bench/nanotabpfn/`
   - `scripts/configure_repo_protection.sh`
 - Current state:
   - The benchmark-facing control is named and documented as

@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-import math
 import random
 import sys
 import time
@@ -16,18 +14,37 @@ from omegaconf import DictConfig, OmegaConf
 import torch
 
 from tab_foundry.bench.nanotabpfn import resolve_device
+from tab_foundry.bench.prior.config import (
+    _model_spec_from_cfg,
+    _optimizer_kwargs,
+    _resolve_lr,
+    _resolve_positive_int,
+    _resolve_prior_dump_batch_config,
+    _resolve_prior_dump_non_finite_policy,
+    _resolve_prior_missingness_config,
+    _resolve_prior_schedule,
+    _resolve_prior_wandb_run_name,
+    _resolve_runtime_bool,
+    _validate_prior_training_model_spec,
+    DEFAULT_BATCH_SIZE as _CONFIG_DEFAULT_BATCH_SIZE,
+)
 from tab_foundry.bench.prior_dump import (
     PriorDumpBatchMissingness,
-    PriorDumpNonFinitePolicy,
     PriorDumpTaskBatchReader,
+)
+from tab_foundry.bench.prior.missingness import (
+    _accumulate_missingness,
+    _accumulate_synthetic_missingness,
+    _apply_prior_missingness,
+    _initial_missingness_summary,
+    _prior_wandb_summary_payload,
 )
 from tab_foundry.config import compose_config
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     ResolvedStageSurface,
-    resolve_staged_surface,
 )
-from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
+from tab_foundry.model.spec import ModelBuildSpec
 from tab_foundry.training.artifacts import (
     append_jsonl_record,
     append_history_record,
@@ -51,7 +68,7 @@ from tab_foundry.training.instability import (
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import build_optimizer
 from tab_foundry.training.surface import write_training_surface_record
-from tab_foundry.training.schedule import build_stage_configs, stage_base_lr, StageConfig
+from tab_foundry.training.schedule import stage_base_lr
 from tab_foundry.training.trainer import _set_optimizer_base_lr, _set_optimizer_training_mode
 from tab_foundry.training.wandb import (
     finish_wandb_run,
@@ -63,299 +80,9 @@ from tab_foundry.types import TrainResult
 
 
 DEFAULT_PRIOR_DUMP_PATH = Path("~/dev/nanoTabPFN/300k_150x5_2.h5")
-DEFAULT_BATCH_SIZE = 32
+DEFAULT_BATCH_SIZE = _CONFIG_DEFAULT_BATCH_SIZE
 DEFAULT_EXPERIMENT = "cls_benchmark_linear_simple_prior"
 _PRIOR_STAGE_NAME = "prior_dump"
-_DEFAULT_STAGED_PRIOR_WANDB_RUN_NAME = "cls-benchmark-staged-prior"
-_SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES = ("none", "sqrt", "linear")
-
-
-@dataclass(slots=True, frozen=True)
-class _PriorDumpBatchConfig:
-    batch_size: int
-    lr_scale_rule: str
-    reference_batch_size: int
-    effective_lr_scale_factor: float
-
-
-def _resolve_positive_int(value: object, *, name: str) -> int:
-    if not isinstance(value, (int, float, str)):
-        raise ValueError(f"{name} must be int-compatible, got {value!r}")
-    resolved = int(value)
-    if resolved <= 0:
-        raise ValueError(f"{name} must be >= 1, got {resolved}")
-    return resolved
-
-
-def _resolve_runtime_bool(value: object, *, name: str) -> bool:
-    if value is None:
-        return False
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, int) and value in {0, 1}:
-        return bool(value)
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"1", "true", "yes", "on"}:
-            return True
-        if normalized in {"0", "false", "no", "off", ""}:
-            return False
-    raise ValueError(f"{name} must be boolean-compatible, got {value!r}")
-
-
-def _resolve_mapping(value: object, *, name: str) -> dict[str, Any]:
-    if value is None:
-        return {}
-    resolved = OmegaConf.to_container(value, resolve=True)
-    if resolved is None:
-        return {}
-    if not isinstance(resolved, dict):
-        raise ValueError(f"{name} must resolve to a mapping, got {resolved!r}")
-    return {str(key): item for key, item in resolved.items()}
-
-
-
-def _resolve_prior_missingness_config(cfg: DictConfig) -> dict[str, Any] | None:
-    training_cfg = getattr(cfg, "training", None)
-    overrides = _resolve_mapping(
-        None if training_cfg is None else getattr(training_cfg, "overrides", None),
-        name="training.overrides",
-    )
-    raw = overrides.get("prior_missingness")
-    if raw is None:
-        return None
-    if not isinstance(raw, dict):
-        raise ValueError(
-            "training.overrides.prior_missingness must resolve to a mapping"
-        )
-    enabled = _resolve_runtime_bool(
-        raw.get("enabled", False),
-        name="training.overrides.prior_missingness.enabled",
-    )
-    min_rate = float(raw.get("min_rate", 0.0))
-    max_rate = float(raw.get("max_rate", min_rate))
-    if not 0.0 <= min_rate <= 1.0:
-        raise ValueError(
-            "training.overrides.prior_missingness.min_rate must be in [0, 1], "
-            f"got {min_rate}"
-        )
-    if not 0.0 <= max_rate <= 1.0:
-        raise ValueError(
-            "training.overrides.prior_missingness.max_rate must be in [0, 1], "
-            f"got {max_rate}"
-        )
-    if min_rate > max_rate:
-        raise ValueError(
-            "training.overrides.prior_missingness.min_rate must be <= max_rate, "
-            f"got min_rate={min_rate}, max_rate={max_rate}"
-        )
-    if not enabled:
-        return None
-    return {
-        "enabled": True,
-        "min_rate": min_rate,
-        "max_rate": max_rate,
-    }
-
-
-def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> PriorDumpNonFinitePolicy:
-    training_cfg = getattr(cfg, "training", None)
-    raw_value = (
-        "error"
-        if training_cfg is None
-        else getattr(training_cfg, "prior_dump_non_finite_policy", "error")
-    )
-    normalized = str(raw_value).strip().lower()
-    if normalized not in {"error", "skip"}:
-        raise ValueError(
-            "training.prior_dump_non_finite_policy must be one of {'error', 'skip'}, "
-            f"got {raw_value!r}"
-        )
-    return cast(PriorDumpNonFinitePolicy, normalized)
-
-
-def _resolve_prior_wandb_run_name(cfg: DictConfig) -> str:
-    raw_run_name = str(getattr(cfg.logging, "run_name", "") or "").strip()
-    if raw_run_name and raw_run_name != _DEFAULT_STAGED_PRIOR_WANDB_RUN_NAME:
-        return raw_run_name
-
-    output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
-    candidate = output_dir.parent.name if output_dir.name == "train" else output_dir.name
-    if candidate.startswith("sd_stability_followup_dpnb_") and candidate.endswith("_v1"):
-        parts = candidate.split("_", 5)
-        if len(parts) == 6:
-            suffix = parts[-1].removesuffix("_v1")
-            return f"dpnb_{suffix}"
-    if candidate.startswith("sd_stability_followup_") and candidate.endswith("_v1"):
-        parts = candidate.split("_", 4)
-        if len(parts) == 5:
-            return str(parts[-1].removesuffix("_v1"))
-    if candidate:
-        return str(candidate)
-
-    stage_label = str(getattr(cfg.model, "stage_label", "") or "").strip()
-    if stage_label:
-        return stage_label
-    return _DEFAULT_STAGED_PRIOR_WANDB_RUN_NAME
-
-
-def _resolve_lr(cfg: DictConfig) -> float:
-    raw_lr = getattr(cfg.optimizer, "min_lr", None)
-    if raw_lr is None:
-        raise ValueError("exact-parity prior training requires optimizer.min_lr")
-    lr = float(raw_lr)
-    if lr <= 0:
-        raise ValueError(f"optimizer.min_lr must be > 0, got {lr}")
-    return lr
-
-
-def _resolve_prior_dump_batch_size(
-    cfg: DictConfig,
-    *,
-    override: int | None = None,
-) -> int:
-    if override is not None:
-        return _resolve_positive_int(override, name="batch_size")
-    training_cfg = getattr(cfg, "training", None)
-    raw_value = (
-        DEFAULT_BATCH_SIZE
-        if training_cfg is None
-        else getattr(training_cfg, "prior_dump_batch_size", DEFAULT_BATCH_SIZE)
-    )
-    return _resolve_positive_int(raw_value, name="training.prior_dump_batch_size")
-
-
-def _resolve_prior_dump_lr_scale_rule(cfg: DictConfig) -> str:
-    training_cfg = getattr(cfg, "training", None)
-    raw_value = (
-        "none"
-        if training_cfg is None
-        else getattr(training_cfg, "prior_dump_lr_scale_rule", "none")
-    )
-    normalized = str(raw_value).strip().lower()
-    if normalized not in _SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES:
-        raise ValueError(
-            "training.prior_dump_lr_scale_rule must be one of "
-            f"{_SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES}, got {raw_value!r}"
-        )
-    return normalized
-
-
-def _resolve_prior_dump_batch_reference_size(cfg: DictConfig) -> int:
-    training_cfg = getattr(cfg, "training", None)
-    raw_value = (
-        DEFAULT_BATCH_SIZE
-        if training_cfg is None
-        else getattr(training_cfg, "prior_dump_batch_reference_size", DEFAULT_BATCH_SIZE)
-    )
-    return _resolve_positive_int(raw_value, name="training.prior_dump_batch_reference_size")
-
-
-def _resolve_prior_dump_batch_config(
-    cfg: DictConfig,
-    *,
-    batch_size_override: int | None = None,
-) -> _PriorDumpBatchConfig:
-    batch_size = _resolve_prior_dump_batch_size(cfg, override=batch_size_override)
-    lr_scale_rule = _resolve_prior_dump_lr_scale_rule(cfg)
-    reference_batch_size = _resolve_prior_dump_batch_reference_size(cfg)
-    ratio = float(batch_size) / float(reference_batch_size)
-    if lr_scale_rule == "none":
-        factor = 1.0
-    elif lr_scale_rule == "sqrt":
-        factor = math.sqrt(ratio)
-    else:
-        factor = ratio
-    return _PriorDumpBatchConfig(
-        batch_size=batch_size,
-        lr_scale_rule=lr_scale_rule,
-        reference_batch_size=reference_batch_size,
-        effective_lr_scale_factor=float(factor),
-    )
-
-
-def _resolve_prior_schedule(
-    cfg: DictConfig,
-    *,
-    max_steps: int,
-    lr_min: float,
-    lr_scale_factor: float = 1.0,
-) -> StageConfig | None:
-    training_cfg = getattr(cfg, "training", None)
-    apply_schedule = bool(getattr(training_cfg, "apply_schedule", False))
-    if not apply_schedule:
-        return None
-
-    schedule_cfg = getattr(cfg, "schedule", None)
-    raw_stages = getattr(schedule_cfg, "stages", None)
-    if raw_stages is None:
-        raise ValueError("exact-parity prior training requires schedule.stages when training.apply_schedule=true")
-    resolved = OmegaConf.to_container(raw_stages, resolve=True)
-    if not isinstance(resolved, list):
-        raise ValueError("exact-parity prior training requires schedule.stages to resolve to a list")
-    stages = build_stage_configs(cast(list[dict[str, object]], resolved))
-    if len(stages) != 1:
-        raise ValueError("exact-parity prior training currently supports exactly one schedule stage")
-    stage = stages[0]
-    if lr_scale_factor <= 0.0:
-        raise ValueError(f"lr_scale_factor must be > 0, got {lr_scale_factor}")
-    stage = StageConfig(
-        name=str(stage.name),
-        steps=int(stage.steps),
-        lr_max=float(stage.lr_max) * float(lr_scale_factor),
-        lr_schedule=str(stage.lr_schedule),
-        warmup_ratio=float(stage.warmup_ratio),
-    )
-    if int(stage.steps) != int(max_steps):
-        raise ValueError(
-            "exact-parity prior training requires schedule.stages[0].steps to equal runtime.max_steps; "
-            f"got steps={stage.steps}, max_steps={max_steps}"
-        )
-    if float(lr_min) > float(stage.lr_max):
-        raise ValueError(
-            "exact-parity prior training requires optimizer.min_lr <= schedule.stages[0].lr_max; "
-            f"got min_lr={lr_min}, lr_max={stage.lr_max}"
-        )
-    return stage
-
-
-def _optimizer_kwargs(cfg: DictConfig) -> dict[str, object]:
-    kwargs: dict[str, object] = {}
-    raw_betas = getattr(cfg.optimizer, "betas", None)
-    if raw_betas is not None:
-        kwargs["betas"] = tuple(float(value) for value in raw_betas)
-    return kwargs
-
-
-def _model_spec_from_cfg(cfg: DictConfig):
-    raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
-    if not isinstance(raw_model_cfg, dict):
-        raise RuntimeError("cfg.model must resolve to a mapping")
-    primary_cfg = {str(key): value for key, value in raw_model_cfg.items()}
-    return model_build_spec_from_mappings(
-        task=str(cfg.task),
-        primary=primary_cfg,
-    )
-
-
-def _validate_prior_training_model_spec(
-    spec: ModelBuildSpec,
-) -> ResolvedStageSurface | None:
-    if spec.arch not in {"tabfoundry_simple", "tabfoundry_staged"}:
-        raise ValueError(
-            "prior-dump training requires model.arch in {'tabfoundry_simple', 'tabfoundry_staged'}, "
-            f"got {spec.arch!r}"
-        )
-    if spec.arch != "tabfoundry_staged":
-        return None
-
-    surface = resolve_staged_surface(spec)
-    if surface.head == "many_class":
-        raise ValueError(
-            "prior-dump training requires a staged recipe with forward_batched() tensor logits, "
-            f"got model.stage={surface.stage!r}"
-        )
-    return surface
 
 
 def _resolve_prior_training_device_name(
@@ -456,243 +183,6 @@ def _save_eval_mode_checkpoint(
     )
     if restore_training:
         _set_optimizer_training_mode(prepared_opts, training=True)
-
-
-def _initial_missingness_summary(
-    prior_dump_path: Path,
-    *,
-    prior_missingness_config: dict[str, Any] | None,
-    prior_dump_non_finite_policy: str,
-) -> dict[str, Any]:
-    synthetic_enabled = prior_missingness_config is not None
-    return {
-        "prior_dump": {
-            "path": str(prior_dump_path.expanduser().resolve()),
-            "allow_missing_values": False,
-            "non_finite_policy": str(prior_dump_non_finite_policy),
-            "batches_seen": 0,
-            "affected_batch_count": 0,
-            "affected_dataset_indices": [],
-            "non_finite_feature_count": 0,
-            "non_finite_label_count": 0,
-            "last_batch": None,
-            "skipped_batch_count": 0,
-            "skipped_dataset_indices": [],
-            "skipped_non_finite_feature_count": 0,
-            "skipped_non_finite_label_count": 0,
-            "last_skipped_batch": None,
-        },
-        "synthetic_prior": {
-            "enabled": synthetic_enabled,
-            "min_rate": None if prior_missingness_config is None else float(prior_missingness_config["min_rate"]),
-            "max_rate": None if prior_missingness_config is None else float(prior_missingness_config["max_rate"]),
-            "batches_seen": 0,
-            "affected_batch_count": 0,
-            "affected_dataset_indices": [],
-            "masked_feature_count": 0,
-            "last_batch": None,
-        },
-    }
-
-
-def _accumulate_missingness(
-    summary: dict[str, Any],
-    *,
-    batch_missingness: PriorDumpBatchMissingness,
-    skipped: bool = False,
-) -> None:
-    prior_dump = cast(dict[str, Any], summary["prior_dump"])
-    prior_dump["batches_seen"] = int(prior_dump["batches_seen"]) + 1
-    prior_dump["non_finite_feature_count"] = int(prior_dump["non_finite_feature_count"]) + int(
-        batch_missingness.non_finite_feature_count
-    )
-    prior_dump["non_finite_label_count"] = int(prior_dump["non_finite_label_count"]) + int(
-        batch_missingness.non_finite_label_count
-    )
-    if batch_missingness.affected_batch_count > 0:
-        prior_dump["affected_batch_count"] = int(prior_dump["affected_batch_count"]) + 1
-        known_dataset_indices = {
-            int(dataset_index) for dataset_index in prior_dump["affected_dataset_indices"]
-        }
-        known_dataset_indices.update(int(index) for index in batch_missingness.affected_dataset_indices)
-        prior_dump["affected_dataset_indices"] = sorted(known_dataset_indices)
-        prior_dump["last_batch"] = batch_missingness.to_dict()
-    if skipped:
-        prior_dump["skipped_batch_count"] = int(prior_dump["skipped_batch_count"]) + 1
-        prior_dump["skipped_non_finite_feature_count"] = int(
-            prior_dump["skipped_non_finite_feature_count"]
-        ) + int(batch_missingness.non_finite_feature_count)
-        prior_dump["skipped_non_finite_label_count"] = int(
-            prior_dump["skipped_non_finite_label_count"]
-        ) + int(batch_missingness.non_finite_label_count)
-        skipped_dataset_indices = {
-            int(dataset_index) for dataset_index in prior_dump["skipped_dataset_indices"]
-        }
-        skipped_dataset_indices.update(int(index) for index in batch_missingness.affected_dataset_indices)
-        prior_dump["skipped_dataset_indices"] = sorted(skipped_dataset_indices)
-        prior_dump["last_skipped_batch"] = batch_missingness.to_dict()
-
-
-def _accumulate_synthetic_missingness(
-    summary: dict[str, Any],
-    *,
-    batch_missingness: dict[str, Any] | None,
-) -> None:
-    synthetic_prior = cast(dict[str, Any], summary["synthetic_prior"])
-    synthetic_prior["batches_seen"] = int(synthetic_prior["batches_seen"]) + 1
-    if batch_missingness is None:
-        return
-    masked_feature_count = int(batch_missingness["masked_feature_count"])
-    synthetic_prior["masked_feature_count"] = int(synthetic_prior["masked_feature_count"]) + masked_feature_count
-    if masked_feature_count <= 0:
-        return
-    synthetic_prior["affected_batch_count"] = int(synthetic_prior["affected_batch_count"]) + 1
-    known_dataset_indices = {
-        int(dataset_index) for dataset_index in synthetic_prior["affected_dataset_indices"]
-    }
-    known_dataset_indices.update(int(index) for index in batch_missingness["affected_dataset_indices"])
-    synthetic_prior["affected_dataset_indices"] = sorted(known_dataset_indices)
-    synthetic_prior["last_batch"] = batch_missingness
-
-
-
-def _apply_prior_missingness(
-    x_batch: torch.Tensor,
-    *,
-    prior_step: Any,
-    generator: torch.Generator | None,
-    prior_missingness_config: dict[str, Any] | None,
-) -> tuple[torch.Tensor, dict[str, Any] | None]:
-    if prior_missingness_config is None:
-        return x_batch, None
-
-    masked = x_batch.clone()
-    min_rate = float(prior_missingness_config["min_rate"])
-    max_rate = float(prior_missingness_config["max_rate"])
-    affected_dataset_indices: list[int] = []
-    affected_datasets: list[dict[str, int | float]] = []
-    masked_feature_count = 0
-    for local_index, task in enumerate(prior_step.tasks):
-        num_rows = int(task.x_train.shape[0] + task.x_test.shape[0])
-        num_features = int(task.x_train.shape[1])
-        if num_rows <= 0 or num_features <= 0:
-            continue
-        if max_rate > min_rate:
-            assert generator is not None
-            rate = min_rate + ((max_rate - min_rate) * float(torch.rand((), generator=generator).item()))
-        else:
-            rate = min_rate
-        if rate <= 0.0:
-            continue
-        mask = torch.rand((num_rows, num_features), generator=generator, device="cpu") < rate
-        dataset_masked_feature_count = int(mask.sum().item())
-        if dataset_masked_feature_count <= 0:
-            continue
-        masked_feature_count += dataset_masked_feature_count
-        dataset_index = int(prior_step.dataset_indices[local_index])
-        affected_dataset_indices.append(dataset_index)
-        affected_datasets.append(
-            {
-                "dataset_index": dataset_index,
-                "masked_feature_count": dataset_masked_feature_count,
-                "applied_rate": float(rate),
-            }
-        )
-        masked[local_index, :num_rows, :num_features][mask.to(device=masked.device)] = float("nan")
-    return masked, {
-        "step_index": int(prior_step.step_index),
-        "dataset_indices": [int(index) for index in prior_step.dataset_indices],
-        "masked_feature_count": int(masked_feature_count),
-        "affected_batch_count": 1 if masked_feature_count > 0 else 0,
-        "affected_dataset_count": int(len(affected_dataset_indices)),
-        "affected_dataset_indices": sorted(affected_dataset_indices),
-        "affected_datasets": affected_datasets,
-    }
-
-
-def _prior_wandb_summary_payload(
-    *,
-    output_dir: Path,
-    global_step: int,
-    telemetry_payload: dict[str, Any],
-) -> dict[str, Any]:
-    raw_gradient_summary = telemetry_payload.get("gradient_summary")
-    gradient_global = (
-        raw_gradient_summary.get("global")
-        if isinstance(raw_gradient_summary, dict)
-        else None
-    )
-    raw_missingness = telemetry_payload.get("missingness")
-    prior_dump_missingness = (
-        raw_missingness.get("prior_dump")
-        if isinstance(raw_missingness, dict)
-        else None
-    )
-    synthetic_prior_missingness = (
-        raw_missingness.get("synthetic_prior")
-        if isinstance(raw_missingness, dict)
-        else None
-    )
-    affected_indices = (
-        prior_dump_missingness.get("affected_dataset_indices")
-        if isinstance(prior_dump_missingness, dict)
-        else None
-    )
-    raw_artifacts = telemetry_payload.get("artifacts")
-    latest_checkpoint = (
-        raw_artifacts.get("latest_checkpoint")
-        if isinstance(raw_artifacts, dict)
-        else None
-    )
-    summary: dict[str, Any] = {
-        "run": {
-            "output_dir": str(output_dir),
-            "global_step": int(global_step),
-        },
-        "telemetry": {
-            "success": telemetry_payload.get("success"),
-            "checkpoint_snapshot_count": len(telemetry_payload.get("checkpoint_snapshots", [])),
-        },
-        "artifacts": {
-            "latest_checkpoint": latest_checkpoint,
-        },
-        "loss_summary": telemetry_payload.get("loss_summary"),
-        "gradient_summary": {
-            "global": gradient_global,
-        },
-        "diagnostics": telemetry_payload.get("diagnostics"),
-    }
-    if isinstance(prior_dump_missingness, dict) or isinstance(synthetic_prior_missingness, dict):
-        summary["missingness"] = {}
-        if isinstance(prior_dump_missingness, dict):
-            summary["missingness"]["prior_dump"] = {
-                "batches_seen": prior_dump_missingness.get("batches_seen"),
-                "non_finite_policy": prior_dump_missingness.get("non_finite_policy"),
-                "affected_batch_count": prior_dump_missingness.get("affected_batch_count"),
-                "affected_dataset_count": len(affected_indices)
-                if isinstance(affected_indices, list)
-                else None,
-                "non_finite_feature_count": prior_dump_missingness.get("non_finite_feature_count"),
-                "non_finite_label_count": prior_dump_missingness.get("non_finite_label_count"),
-                "skipped_batch_count": prior_dump_missingness.get("skipped_batch_count"),
-                "skipped_dataset_count": len(prior_dump_missingness.get("skipped_dataset_indices", []))
-                if isinstance(prior_dump_missingness.get("skipped_dataset_indices"), list)
-                else None,
-            }
-        if isinstance(synthetic_prior_missingness, dict):
-            summary["missingness"]["synthetic_prior"] = {
-                "enabled": synthetic_prior_missingness.get("enabled"),
-                "batches_seen": synthetic_prior_missingness.get("batches_seen"),
-                "affected_batch_count": synthetic_prior_missingness.get("affected_batch_count"),
-                "masked_feature_count": synthetic_prior_missingness.get("masked_feature_count"),
-            }
-    raw_error = telemetry_payload.get("error")
-    if isinstance(raw_error, dict):
-        summary["error"] = {
-            "type": raw_error.get("type"),
-            "message": raw_error.get("message"),
-        }
-    return summary
 
 
 def train_tabfoundry_simple_prior(
