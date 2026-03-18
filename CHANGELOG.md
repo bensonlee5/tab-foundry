@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added OpenML discovery mode to the benchmark-bundle builder, including direct task-list filtering, one-per-dataset deduping with `10-fold Crossvalidation` preference, validation-time rejection reporting, and CLI controls for `--discover-from-openml`, `--min-instances`, and `--min-task-count`.
+
+### Changed
+
+- Scoped `TFRowEncoder` transformer-clone reinitialization to multi-layer stacks only, preserving the MPS-targeted deep `row_cls` fix without changing single-layer exported reference outputs.
+
+- Refreshed the active `input_norm_followup` system-delta contract and research assertions so `program.md`, the active-sweep tests, and the checked-in reference state all point at the localized anchor replay `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`.
+
+- Synchronized the module dependency map with the currently observed `tab_foundry.research -> tab_foundry.config` edge.
+
+- Added the opt-in repo-tracked benchmark artifact `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json` for larger binary no-missing comparisons, while leaving the existing missing-permitting large bundle in place for missingness-focused sweeps.
+
 ## [0.7.0] - 2026-03-18
 
 ### Added
@@ -25,11 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - User-facing note: benchmark bundle selection now accepts `selection.task_type`, regression task rows omit `n_classes`, and persisted benchmark summaries, registries, and control baselines may now include the new task-aware metric fields.
 
-- Scoped `TFRowEncoder` transformer-clone reinitialization to multi-layer stacks only, preserving the MPS-targeted deep `row_cls` fix without changing single-layer exported reference outputs.
-
-- Refreshed the active `input_norm_followup` system-delta contract and research assertions so `program.md`, the active-sweep tests, and the checked-in reference state all point at the localized anchor replay `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`.
-
-- Synchronized the module dependency map with the currently observed `tab_foundry.research -> tab_foundry.config` edge.
 
 ## [0.6.11] - 2026-03-17
 
