@@ -72,7 +72,7 @@ jobs:
         run: uv sync --group dev
 
       - name: Run iris smoke
-        run: uv run python scripts/iris_smoke.py --out-root benchmarks/results/ci_iris_smoke
+        run: uv run tab-foundry bench smoke iris --out-root benchmarks/results/ci_iris_smoke
 
       - name: Upload iris smoke artifacts
         if: always()
