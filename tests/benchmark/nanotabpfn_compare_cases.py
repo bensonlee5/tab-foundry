@@ -1577,4 +1577,3 @@ def test_build_comparison_summary_uses_log_loss_as_classification_best_step(tmp_
     assert summary['tab_foundry']['best_step'] == pytest.approx(50.0)
     assert summary['tab_foundry']['best_log_loss'] == pytest.approx(0.40)
     assert summary['tab_foundry']['best_roc_auc'] == pytest.approx(0.81)
-

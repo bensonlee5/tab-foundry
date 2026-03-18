@@ -206,7 +206,7 @@ surface. Use the canonical docs instead:
 - Repo touchpoints:
   - `src/tab_foundry/data/manifest.py`
   - `src/tab_foundry/cli/groups/data.py`
-  - `tests/data/test_manifest_and_dataset.py`
+  - `tests/data/manifest_and_dataset_cases.py`
   - `src/tab_foundry/bench/dagzoo_smoke.py`
   - `docs/workflows.md`
 - Current state:
@@ -469,7 +469,7 @@ surface. Use the canonical docs instead:
 - Repo touchpoints:
   - `src/tab_foundry/export/loader_ref.py`
   - `src/tab_foundry/export/contracts.py`
-  - `tests/export/test_exporter.py`
+  - `tests/export/exporter_cases.py`
   - `tests/export/fixtures/`
   - `docs/inference.md`
 - Current state:

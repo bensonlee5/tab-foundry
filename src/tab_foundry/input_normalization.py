@@ -112,6 +112,8 @@ def _rankgauss_test_torch(
     col: torch.Tensor,
 ) -> torch.Tensor:
     """Map test column through the train rank-gauss mapping (torch)."""
+    train_sorted = train_sorted.contiguous()
+    col = col.contiguous()
     insert_idx = torch.searchsorted(train_sorted, col, right=True)
     quantiles = (insert_idx.to(col.dtype) + 0.5) / (n_train + 1)
     quantiles = quantiles.clamp(1e-7, 1.0 - 1e-7)
