@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tab-foundry"
-version = "0.7.0"
+version = "0.7.1"
 description = "Tabfoundry tabular foundation model training on dagzoo packed shard outputs"
 readme = "README.md"
 license = "MIT"
@@ -52,6 +52,7 @@ dev = [
   "pre-commit>=3.8",
   "pytest>=8.0",
   "pytest-cov>=6.0",
+  "pytest-xdist>=3.5",
   "ruff>=0.6",
   "scikit-learn>=1.6",
   "torchinfo>=1.8",
@@ -68,6 +69,7 @@ default-groups = ["dev"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-n auto --maxprocesses 8"
 
 [tool.ruff]
 line-length = 100

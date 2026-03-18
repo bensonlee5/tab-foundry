@@ -10,11 +10,11 @@ from tab_foundry.research.system_delta import load_system_delta_queue
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SWEEP_ID = "input_norm_none_followup"
-ANCHOR_RUN_ID = "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1"
-RUN_ID = "sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v1"
-BEST_ROC_AUC = 0.7609411146181547
+ANCHOR_RUN_ID = "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
+RUN_ID = "sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2"
+BEST_ROC_AUC = 0.7597362859021641
 FINAL_ROC_AUC = 0.7586267171926775
-DRIFT = -0.0023143974254772326
+DRIFT = -0.0011095687094866413
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -39,7 +39,7 @@ def test_input_norm_none_followup_is_registered_and_active() -> None:
     }
 
 
-def test_input_norm_none_followup_metadata_and_result_match_the_rejection() -> None:
+def test_input_norm_none_followup_metadata_and_result_match_the_deferred_result() -> None:
     sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID
     sweep = _load_yaml(sweep_root / "sweep.yaml")
     queue = _load_yaml(sweep_root / "queue.yaml")
@@ -58,7 +58,7 @@ def test_input_norm_none_followup_metadata_and_result_match_the_rejection() -> N
     assert row["model"]["input_normalization"] == "none"
     assert row["training"]["prior_dump_batch_size"] == 64
     assert row["run_id"] == RUN_ID
-    assert row["decision"] == "reject"
+    assert row["decision"] == "defer"
     assert row["interpretation_status"] == "completed"
     assert row["benchmark_metrics"]["best_roc_auc"] == BEST_ROC_AUC
     assert row["benchmark_metrics"]["final_roc_auc"] == FINAL_ROC_AUC
@@ -74,7 +74,7 @@ def test_input_norm_none_followup_metadata_and_result_match_the_rejection() -> N
     assert [row["delta_id"] for row in materialized["rows"]] == ["dpnb_input_norm_none_batch64_sqrt"]
 
 
-def test_input_norm_none_followup_matrix_records_the_rejection() -> None:
+def test_input_norm_none_followup_matrix_records_the_deferred_result() -> None:
     matrix = (REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "matrix.md").read_text(encoding="utf-8")
 
     assert "# System Delta Matrix" in matrix

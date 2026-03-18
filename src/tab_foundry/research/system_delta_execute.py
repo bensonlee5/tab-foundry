@@ -195,23 +195,108 @@ def _clipped_step_fraction(records: list[dict[str, Any]]) -> float:
     return float(clipped_steps / float(len(ordered_records)))
 
 
-def _queue_metrics(summary: Mapping[str, Any], *, run_dir: Path) -> dict[str, Any]:
+def _optional_metric(payload: Mapping[str, Any], key: str) -> float | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    numeric = float(value)
+    if not math.isfinite(numeric):
+        raise RuntimeError(f"{key} must be finite when present")
+    return numeric
+
+
+def _comparison_metric(run_entry: Mapping[str, Any], key: str) -> float | None:
+    comparisons = run_entry.get("comparisons")
+    if not isinstance(comparisons, Mapping):
+        return None
+    vs_anchor = comparisons.get("vs_anchor")
+    if not isinstance(vs_anchor, Mapping):
+        return None
+    return _optional_metric(cast(Mapping[str, Any], vs_anchor), key)
+
+
+def _queue_metrics(
+    summary: Mapping[str, Any],
+    *,
+    run_dir: Path,
+    run_entry: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     tab_foundry = cast(dict[str, Any], summary["tab_foundry"])
     nanotabpfn = cast(dict[str, Any], summary["nanotabpfn"])
     gradient_records = _read_jsonl(run_dir / "gradient_history.jsonl")
-    max_grad_norm = float(cast(dict[str, Any], tab_foundry["training_diagnostics"])["max_grad_norm"])
-    if not math.isfinite(max_grad_norm):
-        raise RuntimeError("benchmark summary reported a non-finite max_grad_norm")
-    return {
-        "best_roc_auc": float(tab_foundry["best_roc_auc"]),
-        "best_step": int(float(tab_foundry["best_step"])),
-        "final_roc_auc": float(tab_foundry["final_roc_auc"]),
-        "drift": float(tab_foundry["best_to_final_roc_auc_delta"]),
-        "nanotabpfn_best": float(nanotabpfn["best_roc_auc"]),
-        "nanotabpfn_final": float(nanotabpfn["final_roc_auc"]),
+    max_grad_norm = _optional_metric(
+        cast(dict[str, Any], tab_foundry["training_diagnostics"]),
+        "max_grad_norm",
+    )
+    if max_grad_norm is None:
+        raise RuntimeError("benchmark summary omitted training_diagnostics.max_grad_norm")
+    best_step = _optional_metric(tab_foundry, "best_step")
+    if best_step is None:
+        raise RuntimeError("benchmark summary omitted tab_foundry.best_step")
+
+    queue_metrics: dict[str, Any] = {
+        "best_step": int(best_step),
         "max_grad_norm": max_grad_norm,
         "clipped_step_fraction": _clipped_step_fraction(gradient_records),
     }
+
+    metric_keys = (
+        "best_log_loss",
+        "final_log_loss",
+        "best_brier_score",
+        "final_brier_score",
+        "best_roc_auc",
+        "final_roc_auc",
+        "best_crps",
+        "final_crps",
+        "best_avg_pinball_loss",
+        "final_avg_pinball_loss",
+        "best_picp_90",
+        "final_picp_90",
+    )
+    for metric_key in metric_keys:
+        tab_foundry_value = _optional_metric(tab_foundry, metric_key)
+        if tab_foundry_value is not None:
+            queue_metrics[metric_key] = tab_foundry_value
+        nanotabpfn_value = _optional_metric(nanotabpfn, metric_key)
+        if nanotabpfn_value is not None:
+            queue_metrics[f"nanotabpfn_{metric_key}"] = nanotabpfn_value
+
+    delta_keys = {
+        "best_to_final_log_loss_delta": "final_minus_best_log_loss",
+        "best_to_final_brier_score_delta": "final_minus_best_brier_score",
+        "best_to_final_roc_auc_delta": "final_minus_best_roc_auc",
+        "best_to_final_crps_delta": "final_minus_best_crps",
+        "best_to_final_avg_pinball_loss_delta": "final_minus_best_avg_pinball_loss",
+        "best_to_final_picp_90_delta": "final_minus_best_picp_90",
+    }
+    for summary_key, queue_key in delta_keys.items():
+        value = _optional_metric(tab_foundry, summary_key)
+        if value is not None:
+            queue_metrics[queue_key] = value
+
+    if queue_metrics.get("final_minus_best_roc_auc") is not None:
+        queue_metrics["drift"] = queue_metrics["final_minus_best_roc_auc"]
+    if queue_metrics.get("nanotabpfn_best_roc_auc") is not None:
+        queue_metrics["nanotabpfn_best"] = queue_metrics["nanotabpfn_best_roc_auc"]
+    if queue_metrics.get("nanotabpfn_final_roc_auc") is not None:
+        queue_metrics["nanotabpfn_final"] = queue_metrics["nanotabpfn_final_roc_auc"]
+
+    if run_entry is not None:
+        comparison_keys = {
+            "final_log_loss_delta": "delta_final_log_loss",
+            "final_brier_score_delta": "delta_final_brier_score",
+            "final_roc_auc_delta": "delta_final_roc_auc",
+            "final_crps_delta": "delta_final_crps",
+            "final_avg_pinball_loss_delta": "delta_final_avg_pinball_loss",
+            "final_picp_90_delta": "delta_final_picp_90",
+        }
+        for comparison_key, queue_key in comparison_keys.items():
+            value = _comparison_metric(run_entry, comparison_key)
+            if value is not None:
+                queue_metrics[queue_key] = value
+
+    return queue_metrics
 
 
 def _research_card_text(*, row: Mapping[str, Any], sweep_id: str, anchor_run_id: str | None) -> str:
@@ -317,6 +402,23 @@ def _write_research_package(
     )
 
 
+def _format_metric(value: Any, *, signed: bool = False) -> str:
+    numeric = float(value)
+    return f"{numeric:+.4f}" if signed else f"{numeric:.4f}"
+
+
+def _append_metric_line(
+    lines: list[str],
+    *,
+    label: str,
+    value: Any,
+    signed: bool = False,
+) -> None:
+    if value is None:
+        return
+    lines.append(f"- {label}: `{_format_metric(value, signed=signed)}`")
+
+
 def _result_card_text(
     *,
     row: Mapping[str, Any],
@@ -327,30 +429,195 @@ def _result_card_text(
     decision: str,
     conclusion: str,
 ) -> str:
-    tab_foundry = cast(dict[str, Any], summary["tab_foundry"])
-    nanotabpfn = cast(dict[str, Any], summary["nanotabpfn"])
+    _ = summary
     anchor_display = anchor_run_id or "none"
-    return "\n".join(
+    best_step = queue_metrics.get("best_step")
+    lines = [
+        "# Result Card",
+        "",
+        "## What changed",
+        "",
+        f"- `delta_id`: `{row['delta_id']}`",
+        f"- `run_id`: `{run_id}`",
+        f"- `anchor_run_id`: `{anchor_display}`",
+        f"- `description`: {row['description']}",
+        f"- `anchor_delta`: {row['anchor_delta']}",
+        "",
+        "## Measured metrics versus the anchor",
+        "",
+    ]
+
+    def _append_best_metric(label: str, key: str) -> None:
+        value = queue_metrics.get(key)
+        if value is None:
+            return
+        if best_step is None:
+            _append_metric_line(lines, label=label, value=value)
+            return
+        lines.append(
+            f"- {label}: `{_format_metric(value)}` at step `{int(float(best_step))}`"
+        )
+
+    has_classification_metrics = (
+        queue_metrics.get("best_log_loss") is not None
+        or queue_metrics.get("final_log_loss") is not None
+    )
+    has_regression_metrics = (
+        queue_metrics.get("best_crps") is not None or queue_metrics.get("final_crps") is not None
+    )
+
+    if has_classification_metrics:
+        _append_best_metric("Best log loss", "best_log_loss")
+        _append_metric_line(lines, label="Final log loss", value=queue_metrics.get("final_log_loss"))
+        _append_metric_line(
+            lines,
+            label="Final minus best log loss",
+            value=queue_metrics.get("final_minus_best_log_loss"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final log loss vs anchor",
+            value=queue_metrics.get("delta_final_log_loss"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN best log loss",
+            value=queue_metrics.get("nanotabpfn_best_log_loss"),
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN final log loss",
+            value=queue_metrics.get("nanotabpfn_final_log_loss"),
+        )
+        _append_metric_line(lines, label="Final Brier score", value=queue_metrics.get("final_brier_score"))
+        _append_metric_line(
+            lines,
+            label="Final minus best Brier score",
+            value=queue_metrics.get("final_minus_best_brier_score"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final Brier score vs anchor",
+            value=queue_metrics.get("delta_final_brier_score"),
+            signed=True,
+        )
+        _append_best_metric("Best ROC AUC", "best_roc_auc")
+        _append_metric_line(lines, label="Final ROC AUC", value=queue_metrics.get("final_roc_auc"))
+        _append_metric_line(
+            lines,
+            label="Final minus best ROC AUC",
+            value=queue_metrics.get("final_minus_best_roc_auc"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final ROC AUC vs anchor",
+            value=queue_metrics.get("delta_final_roc_auc"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN best ROC AUC",
+            value=queue_metrics.get("nanotabpfn_best_roc_auc"),
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN final ROC AUC",
+            value=queue_metrics.get("nanotabpfn_final_roc_auc"),
+        )
+    elif has_regression_metrics:
+        _append_best_metric("Best CRPS", "best_crps")
+        _append_metric_line(lines, label="Final CRPS", value=queue_metrics.get("final_crps"))
+        _append_metric_line(
+            lines,
+            label="Final minus best CRPS",
+            value=queue_metrics.get("final_minus_best_crps"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final CRPS vs anchor",
+            value=queue_metrics.get("delta_final_crps"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN best CRPS",
+            value=queue_metrics.get("nanotabpfn_best_crps"),
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN final CRPS",
+            value=queue_metrics.get("nanotabpfn_final_crps"),
+        )
+        _append_metric_line(
+            lines,
+            label="Final avg pinball loss",
+            value=queue_metrics.get("final_avg_pinball_loss"),
+        )
+        _append_metric_line(
+            lines,
+            label="Final minus best avg pinball loss",
+            value=queue_metrics.get("final_minus_best_avg_pinball_loss"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final avg pinball loss vs anchor",
+            value=queue_metrics.get("delta_final_avg_pinball_loss"),
+            signed=True,
+        )
+        _append_metric_line(lines, label="Final PICP 90", value=queue_metrics.get("final_picp_90"))
+        _append_metric_line(
+            lines,
+            label="Final minus best PICP 90",
+            value=queue_metrics.get("final_minus_best_picp_90"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final PICP 90 vs anchor",
+            value=queue_metrics.get("delta_final_picp_90"),
+            signed=True,
+        )
+    else:
+        _append_best_metric("Best ROC AUC", "best_roc_auc")
+        _append_metric_line(lines, label="Final ROC AUC", value=queue_metrics.get("final_roc_auc"))
+        _append_metric_line(
+            lines,
+            label="Final minus best ROC AUC",
+            value=queue_metrics.get("final_minus_best_roc_auc"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="Delta final ROC AUC vs anchor",
+            value=queue_metrics.get("delta_final_roc_auc"),
+            signed=True,
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN best ROC AUC",
+            value=queue_metrics.get("nanotabpfn_best_roc_auc"),
+        )
+        _append_metric_line(
+            lines,
+            label="nanoTabPFN final ROC AUC",
+            value=queue_metrics.get("nanotabpfn_final_roc_auc"),
+        )
+
+    _append_metric_line(lines, label="max_grad_norm", value=queue_metrics.get("max_grad_norm"))
+    _append_metric_line(
+        lines,
+        label="clipped_step_fraction",
+        value=queue_metrics.get("clipped_step_fraction"),
+    )
+
+    lines.extend(
         [
-            "# Result Card",
-            "",
-            "## What changed",
-            "",
-            f"- `delta_id`: `{row['delta_id']}`",
-            f"- `run_id`: `{run_id}`",
-            f"- `anchor_run_id`: `{anchor_display}`",
-            f"- `description`: {row['description']}",
-            f"- `anchor_delta`: {row['anchor_delta']}",
-            "",
-            "## Measured metrics versus the anchor",
-            "",
-            f"- Best ROC AUC: `{float(tab_foundry['best_roc_auc']):.4f}` at step `{int(float(tab_foundry['best_step']))}`",
-            f"- Final ROC AUC: `{float(tab_foundry['final_roc_auc']):.4f}`",
-            f"- Final minus best: `{float(tab_foundry['best_to_final_roc_auc_delta']):+.4f}`",
-            f"- nanoTabPFN best ROC AUC: `{float(nanotabpfn['best_roc_auc']):.4f}`",
-            f"- nanoTabPFN final ROC AUC: `{float(nanotabpfn['final_roc_auc']):.4f}`",
-            f"- max_grad_norm: `{float(queue_metrics['max_grad_norm']):.4f}`",
-            f"- clipped_step_fraction: `{float(queue_metrics['clipped_step_fraction']):.4f}`",
             "",
             "## Was the change actually isolated?",
             "",
@@ -373,6 +640,7 @@ def _result_card_text(
             "",
         ]
     )
+    return "\n".join(lines)
 
 
 def _append_note(notes: list[str], note: str) -> list[str]:
@@ -560,9 +828,8 @@ def _run_row(
             benchmark_bundle_path=paths.repo_root / str(sweep_meta["benchmark_bundle_path"]),
         )
     )
-    queue_metrics = _queue_metrics(summary, run_dir=train_dir)
     parent_sweep_id = sweep_meta.get("parent_sweep_id")
-    _ = register_benchmark_run(
+    registration = register_benchmark_run(
         run_id=run_id,
         track=DEFAULT_TRACK,
         experiment=DEFAULT_EXPERIMENT,
@@ -583,6 +850,8 @@ def _run_row(
         run_kind="primary",
         registry_path=paths.registry_path,
     )
+    run_entry = cast(dict[str, Any], registration["run"])
+    queue_metrics = _queue_metrics(summary, run_dir=train_dir, run_entry=run_entry)
     (delta_root / "result_card.md").write_text(
         _result_card_text(
             row=materialized_row,
@@ -602,10 +871,24 @@ def _run_row(
         decision=decision,
         conclusion=conclusion,
     )
+    tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
+    final_metric_label = "final_log_loss"
+    final_metric_value = _optional_metric(tab_foundry_summary, final_metric_label)
+    if final_metric_value is None:
+        final_metric_label = "final_crps"
+        final_metric_value = _optional_metric(tab_foundry_summary, final_metric_label)
+    if final_metric_value is None:
+        final_metric_label = "final_roc_auc"
+        final_metric_value = _optional_metric(tab_foundry_summary, final_metric_label)
+    final_metric_text = (
+        f"{final_metric_label}={final_metric_value:.4f}"
+        if final_metric_value is not None
+        else "final_metric=n/a"
+    )
     print(
         f"[row {int(queue_row['order']):02d}] benchmark+registry complete",
         f"run_id={run_id}",
-        f"final_roc_auc={float(cast(dict[str, Any], summary['tab_foundry'])['final_roc_auc']):.4f}",
+        final_metric_text,
         flush=True,
     )
     return run_id
