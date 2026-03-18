@@ -7,13 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.1] - 2026-03-18
+## [0.7.2] - 2026-03-18
 
 ### Added
 
 - Added OpenML discovery mode to the benchmark-bundle builder, including direct task-list filtering, one-per-dataset deduping with `10-fold Crossvalidation` preference, validation-time rejection reporting, and CLI controls for `--discover-from-openml`, `--min-instances`, and `--min-task-count`.
 
 - Added the opt-in repo-tracked benchmark artifact `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json` for larger binary no-missing comparisons, while leaving the existing missing-permitting large bundle in place for missingness-focused sweeps.
+
+### Changed
+
+- User-facing note: the benchmark bundle builder now supports direct OpenML discovery for supervised-classification bundles, and the package version is now `0.7.2`.
+
+## [0.7.1] - 2026-03-18
+
+### Added
 
 - Added system-delta queue and result-card coverage for log-loss-first classification benchmarking, including persisted `final_log_loss`, `final_brier_score`, and anchor delta fields such as `delta_final_log_loss`.
 
@@ -24,8 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refreshed the active `input_norm_followup` and `input_norm_none_followup` sweep state around the rerun anchor `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`, and recorded the unclipped `none` follow-up rerun `sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2` against that log-loss-capable anchor.
 
 - Tightened wandb-backed research execution so the new benchmarking reruns are captured and promotable under the current benchmark contract instead of relying on the earlier ROC-only sweep state.
-
-- User-facing note: the benchmark bundle builder now supports direct OpenML discovery for supervised-classification bundles, and the package version is now `0.7.1`.
 
 ## [0.7.0] - 2026-03-18
 
