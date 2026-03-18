@@ -1,9 +1,9 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: input_norm_followup
 parent_sweep_id: stability_followup
-status: draft
+status: active
 complexity_level: binary_md
-anchor_run_id: null
+anchor_run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 comparison_policy: anchor_only
@@ -12,8 +12,8 @@ upstream_reference:
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-  - This follow-up is anchored on the promoted `dpnb_row_cls_cls2_linear_warmup_decay` metadata-only bridge baseline rather than the older post-layernorm canonical anchor.
-  - The baseline artifacts still live on another machine, so row 1 is a required local anchor replay and `anchor_run_id` remains null.
+  - This follow-up is anchored on the promoted `dpnb_row_cls_cls2_linear_warmup_decay` bridge surface rather than the older post-layernorm canonical anchor.
+  - Row 1 localized that bridge baseline on this machine as `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`, so later rows now compare against a real same-machine anchor.
   - The queue isolates input normalization first, then adds bounded batch-size sidecars with explicit sqrt LR scaling around the reference batch size of 32.
   - RMSNorm is intentionally out of scope here; the architecture stays fixed at the promoted prenorm plus row-cls bridge surface.
   dimension_table:
@@ -30,7 +30,7 @@ anchor_surface:
     anchor: Add sidecars at batch sizes 16 and 64 with sqrt LR scaling relative to the reference batch size of 32.
     interpretation: Batch-size rows are interaction probes, not a new mainline sweep family.
 anchor_context:
-  run_id: null
+  run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1
   experiment: cls_benchmark_staged_prior
   config_profile: cls_benchmark_staged_prior
   model:
@@ -49,7 +49,7 @@ anchor_context:
       target_conditioner: mean_padded_linear
       tokenizer: scalar_per_feature
   surface_labels:
-    data: anchor_manifest_default
+    data: manifest_default
     model: dpnb_row_cls_cls2_linear_warmup_decay
     preprocessing: runtime_default
     training: prior_linear_warmup_decay

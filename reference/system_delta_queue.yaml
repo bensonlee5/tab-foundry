@@ -1,14 +1,14 @@
 schema: tab-foundry-system-delta-queue-v1
-generated_from_sweep_id: binary_md_v3
+generated_from_sweep_id: input_norm_followup
 catalog_path: reference/system_delta_catalog.yaml
-canonical_sweep_path: reference/system_delta_sweeps/binary_md_v3/sweep.yaml
-canonical_queue_path: reference/system_delta_sweeps/binary_md_v3/queue.yaml
-canonical_matrix_path: reference/system_delta_sweeps/binary_md_v3/matrix.md
-sweep_id: binary_md_v3
-parent_sweep_id: binary_md_v2
+canonical_sweep_path: reference/system_delta_sweeps/input_norm_followup/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/input_norm_followup/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/input_norm_followup/matrix.md
+sweep_id: input_norm_followup
+parent_sweep_id: stability_followup
 sweep_status: active
 complexity_level: binary_md
-anchor_run_id: 01_shared_norm_post_ln_binary_medium_v1
+anchor_run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 comparison_policy: anchor_only
@@ -17,120 +17,87 @@ upstream_reference:
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-  - The locked anchor is benchmark registry run `01_shared_norm_post_ln_binary_medium_v1`
-    on bundle `nanotabpfn_openml_binary_medium` (10 tasks).
-  - The anchor model surface is taken from the registry-resolved staged selection
-    labeled `delta_shared_norm_post_ln`.
-  - Data and preprocessing remain part of the comparison surface and must stay fixed
-    unless the queue row declares that exact dimension.
+  - This follow-up is anchored on the promoted `dpnb_row_cls_cls2_linear_warmup_decay`
+    bridge surface rather than the older post-layernorm canonical anchor.
+  - Row 1 localized that bridge baseline on this machine as `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`,
+    so later rows now compare against a real same-machine anchor.
+  - The queue isolates input normalization first, then adds bounded batch-size sidecars
+    with explicit sqrt LR scaling around the reference batch size of 32.
+  - RMSNorm is intentionally out of scope here; the architecture stays fixed at the
+    promoted prenorm plus row-cls bridge surface.
   dimension_table:
-  - dimension: feature encoder
-    upstream: Scalar feature linear encoder with internal train/test z-score+clip
-      handling.
-    anchor: Shared feature encoder path with benchmark-external normalization.
-    interpretation: Feature encoder swaps change both the representation path and
-      where normalization lives.
-  - dimension: target conditioning
-    upstream: Mean-padded linear target encoder on the direct binary path.
-    anchor: Same mean-padded linear target conditioner.
-    interpretation: The anchor preserves the upstream label-conditioning mechanism.
-  - dimension: cell transformer block
-    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
-    anchor: Same nano post-norm cell transformer block.
-    interpretation: This keeps the strongest structural tie to upstream nanoTabPFN.
-  - dimension: tokenizer
-    upstream: One scalar token per feature.
-    anchor: Same scalar-per-feature tokenizer.
-    interpretation: Tokenization remains aligned with upstream parity.
-  - dimension: column encoder
-    upstream: None on the upstream direct path.
-    anchor: No column-set encoder on the anchor path.
-    interpretation: Column-set modeling remains absent and should not explain anchor
-      behavior.
-  - dimension: row readout
-    upstream: Target-column readout from the final cell tensor.
-    anchor: Same target-column row pool.
-    interpretation: Readout remains on the direct upstream-style path.
-  - dimension: context encoder
-    upstream: None on the upstream direct path.
-    anchor: None on the anchor path.
-    interpretation: Context encoding remains absent; later context rows will change
-      both depth and label-flow semantics.
-  - dimension: prediction head
-    upstream: Direct binary logits head.
-    anchor: Direct binary logits head.
-    interpretation: The prediction head remains on the narrow upstream-style binary
-      path.
-  - dimension: training data surface
-    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
-      manifest contract.
-    anchor: Benchmark bundle `nanotabpfn_openml_binary_medium` (10 tasks) with data
-      surface label `manifest_default`.
-    interpretation: Bundle and training-data changes are first-class sweep rows and
-      should not be inherited from parent sweep prose.
-  - dimension: preprocessing
-    upstream: Notebook preprocessing inside the benchmark helper.
-    anchor: Benchmark preprocessing surface label `runtime_default`.
-    interpretation: Preprocessing changes can alter the effective task definition
-      and must be tracked explicitly.
-  - dimension: training recipe
-    upstream: No repo-local prior-dump training-surface contract.
-    anchor: Training surface label `prior_constant_lr`.
-    interpretation: Optimizer and schedule changes are first-class sweep rows, not
-      background recipe assumptions.
+  - dimension: bridge architecture
+    upstream: Old bridge rows established that prenorm plus row-cls cls2 can train
+      cleanly with linear warmup decay.
+    anchor: Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `tfrow_cls_tokens=2`,
+      and `post_encoder_norm=none` fixed.
+    interpretation: Changes in this sweep should be attributed to preprocessing or
+      batch-size effects, not to a reopened architecture axis.
+  - dimension: input normalization
+    upstream: The bridge baseline still uses `train_zscore_clip`.
+    anchor: Compare plain unclipped z-score, winsorize+zscore, zscore+tanh, and robust+tanh
+      against the clipped bridge default.
+    interpretation: The main question is whether hard clipping remains necessary once
+      the bridge baseline is stabilized.
+  - dimension: batch-size scaling
+    upstream: Exact-prior training previously treated batch size as a hidden function
+      argument rather than a tracked surface knob.
+    anchor: Add sidecars at batch sizes 16 and 64 with sqrt LR scaling relative to
+      the reference batch size of 32.
+    interpretation: Batch-size rows are interaction probes, not a new mainline sweep
+      family.
 anchor_context:
-  run_id: 01_shared_norm_post_ln_binary_medium_v1
+  run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1
   experiment: cls_benchmark_staged_prior
   config_profile: cls_benchmark_staged_prior
   model:
     arch: tabfoundry_staged
-    benchmark_profile: delta_shared_norm_post_ln
     stage: nano_exact
-    stage_label: delta_shared_norm_post_ln
+    stage_label: dpnb_row_cls_cls2_linear_warmup_decay
     module_selection:
       allow_test_self_attention: false
       column_encoder: none
       context_encoder: none
-      feature_encoder: shared
+      feature_encoder: nano
       head: binary_direct
-      post_encoder_norm: layernorm
-      row_pool: target_column
-      table_block_style: nano_postnorm
+      post_encoder_norm: none
+      row_pool: row_cls
+      table_block_style: prenorm
       target_conditioner: mean_padded_linear
       tokenizer: scalar_per_feature
   surface_labels:
     data: manifest_default
-    model: delta_shared_norm_post_ln
+    model: dpnb_row_cls_cls2_linear_warmup_decay
     preprocessing: runtime_default
-    training: prior_constant_lr
+    training: prior_linear_warmup_decay
 rows:
 - order: 1
-  delta_id: delta_global_rmsnorm
-  status: ready
-  dimension_family: model
-  family: normalization
+  delta_id: dpnb_input_norm_anchor_replay
+  status: completed
+  dimension_family: training
+  family: baseline_replay
   binary_applicable: true
-  description: Keep the anchor structure fixed but switch the staged/global LayerNorm
-    family to RMSNorm, including the row-pool norm override for completeness.
-  rationale: Test bias removal (baked into QASS and shared encoder layers) combined
-    with global RMSNorm on the promoted shared+LayerNorm anchor.
-  hypothesis: RMSNorm may improve optimization stability, and bias removal provides
-    mild regularization by eliminating redundant parameters behind pre-norm layers.
-  upstream_delta: Upstream nanoTabPFN uses LayerNorm in its exact transformer blocks.
-  anchor_delta: Changes the global norm family from LayerNorm to RMSNorm (norm_type
-    and tfrow_norm) while keeping the shared feature encoder, post-encoder LayerNorm,
-    nano-postnorm block style, and all other anchor surfaces fixed.
+  description: Replay the promoted bridge baseline exactly on this machine before
+    comparing normalization or batch-size variants.
+  rationale: Reproduce the promoted bridge baseline locally before interpreting any
+    normalization or batch-size movement.
+  hypothesis: The row-cls bridge winner should replay cleanly on this machine and
+    provide the correct comparator for the rest of the queue.
+  upstream_delta: Not applicable; this is a repo-local metadata-only bridge anchor
+    replay.
+  anchor_delta: Replays `dpnb_row_cls_cls2_linear_warmup_decay` exactly, keeping `train_zscore_clip`,
+    batch size 32, and the promoted linear-warmup-decay schedule.
   entangled_legacy_stage: none
-  expected_effect: Potentially smoother optimization or lower gradient spikes, with
-    the risk that RMSNorm only shifts calibration or late-curve behavior.
+  expected_effect: Establish a local comparator for all later rows while the canonical
+    winning artifacts remain on another machine.
   adequacy_knobs:
-  - model.norm_type
-  - model.tfrow_norm
+  - training.prior_dump_batch_size
+  - optimizer.min_lr
+  - schedule.stages[0].lr_max
   parameter_adequacy_policy:
     default_plan:
-    - Compare best/final ROC AUC and training stability against the constant anchor
-      surface.
-    - Distinguish early-step stabilization from true end-of-run quality improvements.
+    - Run this row first so every later row has a local same-machine comparator.
+    - Treat benchmark ROC as primary and use drift/clipped-step telemetry as diagnostics.
     default_negative_decision: defer
     reject_requires:
     - isolated_change
@@ -138,32 +105,766 @@ rows:
     - clearly_worse_without_offsetting_benefit
   applicability_guards: []
   model:
-    stage_label: delta_global_rmsnorm
-    norm_type: rmsnorm
-    tfrow_norm: rmsnorm
+    stage: nano_exact
+    stage_label: dpnb_row_cls_cls2_linear_warmup_decay
+    input_normalization: train_zscore_clip
     module_overrides:
-      feature_encoder: shared
-      post_encoder_norm: layernorm
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
   data:
     surface_label: anchor_manifest_default
   preprocessing:
     surface_label: runtime_default
   training:
-    surface_label: prior_constant_lr
-    overrides: {}
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Compare best/final ROC AUC and training stability against the v3 anchor.
-  - Distinguish early-step stabilization from true end-of-run quality improvements.
-  - "Note the bias-removal confound \u2014 this run tests both changes simultaneously."
+  - Run this row first and use it as the same-machine comparator for every later row.
+  - Report benchmark ROC, best-to-final drift, clipped-step fraction, and activation
+    windows.
+  - Do not treat this replay as canonical anchor registration; the remote winning
+    artifacts are still unsynced locally.
+  run_id: sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1
+  followup_run_ids: []
+  decision: keep
+  interpretation_status: completed
+  confounders: []
+  next_action: Use this run as the local anchor and proceed to row 2 (`dpnb_input_norm_zscore`).
+  notes:
+  - This row is required because the promoted bridge baseline artifacts were produced
+    on another machine.
+  - The earlier local MPS replay is archived under `train_pre_cpu_fallback_20260317T2239`
+    and is not canonical for this sweep.
+  - The accepted local replay used the exact prior-train CPU fallback for requested
+    `mps` multi-layer `row_cls` runs.
+  benchmark_metrics:
+    best_roc_auc: 0.7618365535919085
+    best_step: 1725
+    final_roc_auc: 0.7581824725133723
+    drift: -0.0036540810785361533
+    nanotabpfn_best: 0.7615725414848853
+    nanotabpfn_final: 0.7605936128636401
+    max_grad_norm: 2.1847355365753174
+    clipped_step_fraction: 0.0056
+- order: 2
+  delta_id: dpnb_input_norm_zscore
+  status: completed
+  dimension_family: preprocessing
+  family: input_normalization
+  binary_applicable: true
+  description: Remove external clipping and use plain train-only z-score normalization
+    on the promoted bridge baseline.
+  rationale: Test the simplest unclipped alternative before trying smoother or more
+    robust tails.
+  hypothesis: Removing hard clipping may preserve more useful scale information now
+    that the bridge baseline is already stabilized.
+  upstream_delta: Upstream nanoTabPFN keeps internal z-score-plus-clip behavior on
+    the exact path.
+  anchor_delta: Changes only `model.input_normalization` from `train_zscore_clip`
+    to `train_zscore`.
+  entangled_legacy_stage: none
+  expected_effect: Clarifies whether clipping is still helping on the stabilized row-cls
+    bridge surface.
+  adequacy_knobs:
+  - model.input_normalization
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare directly against the anchor replay before trying smoother tails or batch-size
+      interactions.
+    - Use drift and clipped-step telemetry only as diagnostics for the benchmark outcome.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_zscore
+    input_normalization: train_zscore
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against row 1 before reading the smoother-tail rows.
+  - Use benchmark quality first; treat telemetry changes as explanatory evidence only.
+  run_id: sd_input_norm_followup_02_dpnb_input_norm_zscore_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Proceed to row 3 (`dpnb_input_norm_winsorize_zscore`) and interpret
+    rows 2-5 together before changing the default normalization.
+  notes:
+  - training_surface_record.json confirms this row actually resolved to input_normalization=train_zscore
+    with benchmark profile dpnb_input_norm_zscore.
+  - Best and final ROC AUC matched the row-1 anchor to checked precision on the locked
+    bundle, so plain z-score looks viable but not clearly superior.
+  - Clean telemetry means the tie is informative rather than a masked instability
+    result.
+  benchmark_metrics:
+    best_roc_auc: 0.7618365535919085
+    best_step: 1725
+    final_roc_auc: 0.7581824725133723
+    drift: -0.0036540810785361533
+    nanotabpfn_best: 0.7615725414848853
+    nanotabpfn_final: 0.7605936128636401
+    max_grad_norm: 2.1847355365753174
+    clipped_step_fraction: 0.0056
+- order: 3
+  delta_id: dpnb_input_norm_winsorize_zscore
+  status: completed
+  dimension_family: preprocessing
+  family: input_normalization
+  binary_applicable: true
+  description: Winsorize at the 1st and 99th train percentiles before z-scoring on
+    the promoted bridge baseline.
+  rationale: Keep explicit outlier defense while removing the hard post-z-score clip.
+  hypothesis: Percentile winsorization may retain robustness without the bluntness
+    of fixed clipping.
+  upstream_delta: Upstream nanoTabPFN does not expose percentile winsorization as
+    a first-class normalization mode.
+  anchor_delta: Changes `model.input_normalization` from `train_zscore_clip` to `train_winsorize_zscore`.
+  entangled_legacy_stage: none
+  expected_effect: May preserve outlier robustness while relaxing the hard post-z-score
+    clip.
+  adequacy_knobs:
+  - model.input_normalization
+  parameter_adequacy_policy:
+    default_plan:
+    - Interpret this row as a bounded outlier-defense alternative, not as a smooth-tail
+      mechanism.
+    - Compare against both the anchor replay and plain z-score before drawing conclusions.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_winsorize_zscore
+    input_normalization: train_winsorize_zscore
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare against both row 1 and row 2 before concluding that outlier defense is
+    helping or hurting.
+  - Treat this row as a bounded outlier-robust alternative, not as the main smooth-tail
+    candidate.
+  run_id: sd_input_norm_followup_03_dpnb_input_norm_winsorize_zscore_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Proceed to row 4 (`dpnb_input_norm_zscore_tanh`); rows 1-3 are now
+    effectively tied on the locked bundle, so the smooth-tail family is the next real
+    opportunity for movement.
+  notes:
+  - training_surface_record.json confirms this row actually resolved to input_normalization=train_winsorize_zscore
+    with benchmark profile dpnb_input_norm_winsorize_zscore.
+  - Best and final ROC AUC again matched rows 1 and 2 to checked precision, so percentile
+    winsorization is viable but not measurably useful on this bundle.
+  - The row was slower than the clipped anchor and plain z-score while delivering
+    no benchmark lift, which lowers its priority relative to the upcoming smooth-tail
+    rows.
+  benchmark_metrics:
+    best_roc_auc: 0.7618365535919085
+    best_step: 1725
+    final_roc_auc: 0.7581824725133723
+    drift: -0.0036540810785361533
+    nanotabpfn_best: 0.7615725414848853
+    nanotabpfn_final: 0.7605936128636401
+    max_grad_norm: 2.1847355365753174
+    clipped_step_fraction: 0.0056
+- order: 4
+  delta_id: dpnb_input_norm_zscore_tanh
+  status: ready
+  dimension_family: preprocessing
+  family: input_normalization
+  binary_applicable: true
+  description: Apply train-only z-score normalization followed by a smooth tanh tail
+    squash on the promoted bridge baseline.
+  rationale: Probe a smoother tail treatment that still stays near-linear around zero.
+  hypothesis: '`train_zscore_tanh` may outperform both clipped z-score and plain z-score
+    by avoiding hard saturation while still bounding outliers softly.'
+  upstream_delta: Upstream nanoTabPFN does not expose a smooth-tail normalization
+    family.
+  anchor_delta: Changes `model.input_normalization` from `train_zscore_clip` to `train_zscore_tanh`.
+  entangled_legacy_stage: none
+  expected_effect: Preserves near-linear scale around zero while soft-bounding outliers
+    without hard clipping.
+  adequacy_knobs:
+  - model.input_normalization
+  parameter_adequacy_policy:
+    default_plan:
+    - Treat this as the primary smooth-tail row for the sweep.
+    - If it wins locally, use it for the batch-size interaction sidecars before reopening
+      any other preprocessing family.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_zscore_tanh
+    input_normalization: train_zscore_tanh
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare against rows 1-3 and use this as the favored smooth-tail candidate if
+    it wins locally.
+  - Promote batch-size interaction checks only if this row is at least competitive
+    with the anchor replay.
   run_id: null
   followup_run_ids: []
   decision: null
   interpretation_status: pending
-  confounders:
-  - Bias removal is baked into the code; cannot isolate RMSNorm from bias removal.
-  next_action: Train on the locked medium binary surface and benchmark against the
-    v3 anchor.
+  confounders: []
+  next_action: If this row is competitive, treat it as the smooth-tail candidate for
+    rows 8 and 9.
+  notes: []
+  benchmark_metrics: null
+- order: 5
+  delta_id: dpnb_input_norm_robust_tanh
+  status: ready
+  dimension_family: preprocessing
+  family: input_normalization
+  binary_applicable: true
+  description: Apply robust median/IQR scaling followed by a smooth tanh tail squash
+    on the promoted bridge baseline.
+  rationale: Compare a more outlier-resistant center/scale estimate within the same
+    smooth-tail family.
+  hypothesis: Robust scaling plus tanh may help if the remaining harmful feature variation
+    is still driven by extreme values rather than by clipping itself.
+  upstream_delta: Upstream nanoTabPFN does not expose this robust smooth-tail normalization
+    family.
+  anchor_delta: Changes `model.input_normalization` from `train_zscore_clip` to `train_robust_tanh`.
+  entangled_legacy_stage: none
+  expected_effect: Tests whether a more outlier-resistant center/scale estimate helps
+    more than plain z-score plus smooth tails.
+  adequacy_knobs:
+  - model.input_normalization
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare this against zscore_tanh rather than against the anchor alone so the
+      smooth-tail family is properly separated.
+    - Prefer the simpler z-score family unless this row shows clear benchmark upside.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_robust_tanh
+    input_normalization: train_robust_tanh
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare primarily against row 4 so the smooth-tail family is separated cleanly
+    from the batch-size sidecars.
+  - Prefer the simpler z-score family unless this row shows clear benchmark upside.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Use this as the robust smooth-tail comparator to row 4.
+  notes: []
+  benchmark_metrics: null
+- order: 6
+  delta_id: dpnb_input_norm_anchor_replay_batch16_sqrt
+  status: ready
+  dimension_family: training
+  family: batch_size
+  binary_applicable: true
+  description: Replay the promoted bridge baseline at prior-dump batch size 16 with
+    sqrt LR scaling.
+  rationale: Test whether a smaller prior-dump batch improves the bridge baseline
+    once LR is scaled conservatively.
+  hypothesis: Batch size 16 may reduce effective optimization noise enough to help
+    the baseline replay even after sqrt LR scaling.
+  upstream_delta: Not applicable; this is a repo-local exact-prior systems probe.
+  anchor_delta: Keeps the baseline normalization fixed at `train_zscore_clip` but
+    changes `training.prior_dump_batch_size` from 32 to 16 with sqrt LR scaling.
+  entangled_legacy_stage: none
+  expected_effect: Tests whether smaller batches improve the bridge baseline once
+    LR is scaled conservatively.
+  adequacy_knobs:
+  - training.prior_dump_batch_size
+  - training.prior_dump_lr_scale_rule
+  - schedule.stages[0].lr_max
+  - optimizer.min_lr
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare this row against the batch-32 anchor replay before combining batch changes
+      with normalization changes.
+    - Use benchmark quality first and telemetry second.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_anchor_replay_batch16_sqrt
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 16
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against row 1 before combining batch-size changes with normalization
+    changes.
+  - Treat the effective LR change as part of the row definition, not as a separate
+    confound.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Compare against row 1 before interpreting rows 8 and 9.
   notes:
-  - The v1 RMSNorm run (sd_binary_md_v1_10_delta_global_rmsnorm_v1) scored 0.7601
-    best ROC AUC on the nano-only anchor.
+  - Effective LR scaling factor is approximately 0.7071, so effective lr_max is about
+    0.002828 and effective min_lr is about 0.000283.
+  benchmark_metrics: null
+- order: 7
+  delta_id: dpnb_input_norm_anchor_replay_batch64_sqrt
+  status: ready
+  dimension_family: training
+  family: batch_size
+  binary_applicable: true
+  description: Replay the promoted bridge baseline at prior-dump batch size 64 with
+    sqrt LR scaling.
+  rationale: Test whether a larger prior-dump batch improves the bridge baseline once
+    LR is scaled conservatively.
+  hypothesis: Batch size 64 may improve the bridge baseline if the current recipe
+    still prefers a larger effective batch than 32.
+  upstream_delta: Not applicable; this is a repo-local exact-prior systems probe.
+  anchor_delta: Keeps the baseline normalization fixed at `train_zscore_clip` but
+    changes `training.prior_dump_batch_size` from 32 to 64 with sqrt LR scaling.
+  entangled_legacy_stage: none
+  expected_effect: Tests whether the stabilized bridge surface prefers a larger effective
+    batch when LR is scaled up conservatively.
+  adequacy_knobs:
+  - training.prior_dump_batch_size
+  - training.prior_dump_lr_scale_rule
+  - schedule.stages[0].lr_max
+  - optimizer.min_lr
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare this row against the batch-32 anchor replay before combining batch changes
+      with normalization changes.
+    - Use benchmark quality first and telemetry second.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against row 1 before combining batch-size changes with normalization
+    changes.
+  - Treat the effective LR change as part of the row definition, not as a separate
+    confound.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Compare against row 1 before interpreting rows 8 and 9.
+  notes:
+  - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about
+    0.005657 and effective min_lr is about 0.000566.
+  benchmark_metrics: null
+- order: 8
+  delta_id: dpnb_input_norm_zscore_tanh_batch16_sqrt
+  status: ready
+  dimension_family: training
+  family: batch_size
+  binary_applicable: true
+  description: Combine the favored smooth-tail zscore_tanh normalization with prior-dump
+    batch size 16 and sqrt LR scaling.
+  rationale: Check whether the favored smooth-tail row benefits from a smaller scaled
+    batch.
+  hypothesis: If `train_zscore_tanh` is the right preprocessing family, batch size
+    16 may amplify that benefit rather than confound it away.
+  upstream_delta: Not applicable; this is a repo-local interaction probe between smooth-tail
+    preprocessing and smaller batch size.
+  anchor_delta: Changes both `model.input_normalization` to `train_zscore_tanh` and
+    `training.prior_dump_batch_size` to 16 with sqrt LR scaling.
+  entangled_legacy_stage: none
+  expected_effect: Checks whether any zscore_tanh gains survive or improve at a smaller,
+    scaled batch.
+  adequacy_knobs:
+  - training.prior_dump_batch_size
+  - training.prior_dump_lr_scale_rule
+  - model.input_normalization
+  parameter_adequacy_policy:
+    default_plan:
+    - Only interpret this row after comparing zscore_tanh itself against the anchor
+      replay.
+    - Use it to decide whether batch size changes interact constructively with the
+      smooth-tail row.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_zscore_tanh_batch16_sqrt
+    input_normalization: train_zscore_tanh
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 16
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare first against row 4 and only second against row 1.
+  - Use this row to decide whether batch size is part of the smooth-tail mechanism
+    or merely a separate systems effect.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Compare against row 4 before concluding that batch size is part of
+    the effect.
+  notes:
+  - Effective LR scaling factor is approximately 0.7071, so effective lr_max is about
+    0.002828 and effective min_lr is about 0.000283.
+  benchmark_metrics: null
+- order: 9
+  delta_id: dpnb_input_norm_zscore_tanh_batch64_sqrt
+  status: ready
+  dimension_family: training
+  family: batch_size
+  binary_applicable: true
+  description: Combine the favored smooth-tail zscore_tanh normalization with prior-dump
+    batch size 64 and sqrt LR scaling.
+  rationale: Check whether the favored smooth-tail row benefits from a larger scaled
+    batch.
+  hypothesis: If `train_zscore_tanh` likes cleaner gradient averaging, batch size
+    64 may outperform both row 4 and row 7.
+  upstream_delta: Not applicable; this is a repo-local interaction probe between smooth-tail
+    preprocessing and larger batch size.
+  anchor_delta: Changes both `model.input_normalization` to `train_zscore_tanh` and
+    `training.prior_dump_batch_size` to 64 with sqrt LR scaling.
+  entangled_legacy_stage: none
+  expected_effect: Checks whether any zscore_tanh gains survive or improve at a larger,
+    scaled batch.
+  adequacy_knobs:
+  - training.prior_dump_batch_size
+  - training.prior_dump_lr_scale_rule
+  - model.input_normalization
+  parameter_adequacy_policy:
+    default_plan:
+    - Only interpret this row after comparing zscore_tanh itself against the anchor
+      replay.
+    - Use it to decide whether batch size changes interact constructively with the
+      smooth-tail row.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: nano_exact
+    stage_label: dpnb_input_norm_zscore_tanh_batch64_sqrt
+    input_normalization: train_zscore_tanh
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare first against row 4 and only second against row 1.
+  - Use this row to decide whether batch size is part of the smooth-tail mechanism
+    or merely a separate systems effect.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Compare against row 4 before concluding that batch size is part of
+    the effect.
+  notes:
+  - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about
+    0.005657 and effective min_lr is about 0.000566.
   benchmark_metrics: null
