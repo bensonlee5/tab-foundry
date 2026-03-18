@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 import pyarrow.parquet as pq
 
+from tab_foundry.data.manifest import MANIFEST_SUMMARY_METADATA_KEY
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import (
@@ -21,7 +22,6 @@ from tab_foundry.preprocessing import resolve_preprocessing_surface
 
 
 TRAINING_SURFACE_SCHEMA = "tab-foundry-training-surface-v1"
-_MANIFEST_SUMMARY_METADATA_KEY = b"tab_foundry_manifest_summary"
 
 
 def _utc_now() -> str:
@@ -103,7 +103,7 @@ def _manifest_characteristics(manifest_path: Path) -> dict[str, Any]:
     ]
     raw_metadata = parquet_file.schema_arrow.metadata or {}
     persisted_summary = None
-    raw_summary = raw_metadata.get(_MANIFEST_SUMMARY_METADATA_KEY)
+    raw_summary = raw_metadata.get(MANIFEST_SUMMARY_METADATA_KEY)
     if raw_summary is not None:
         persisted_summary = json.loads(raw_summary.decode("utf-8"))
     return {

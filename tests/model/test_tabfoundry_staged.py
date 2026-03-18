@@ -8,6 +8,9 @@ from tab_foundry.model.architectures.tabfoundry_staged.recipes import STAGE_RECI
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     staged_surface_uses_internal_benchmark_normalization,
 )
+from tab_foundry.model.architectures.tabfoundry_staged.subsystems import (
+    ScalarPerFeatureMissingnessTokenizer,
+)
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import ModelBuildSpec, ModelStage
 from tab_foundry.types import TaskBatch
@@ -511,6 +514,66 @@ def test_prenorm_missingness_tokenizer_produces_finite_logits() -> None:
     assert out.logits is not None
     assert tuple(out.logits.shape) == (2, 2)
     assert torch.isfinite(out.logits).all()
+
+
+def test_missingness_tokenizer_emits_distinct_non_finite_flags() -> None:
+    tokenizer = ScalarPerFeatureMissingnessTokenizer()
+    tokenized, token_padding_mask = tokenizer(
+        torch.tensor(
+            [[[1.5, float("nan"), float("inf"), float("-inf")]]],
+            dtype=torch.float32,
+        )
+    )
+
+    assert token_padding_mask is None
+    assert tokenizer.token_dim == 4
+    assert torch.allclose(tokenized[0, 0, 0], torch.tensor([1.5, 0.0, 0.0, 0.0]))
+    assert torch.allclose(tokenized[0, 0, 1], torch.tensor([0.0, 1.0, 0.0, 0.0]))
+    assert torch.allclose(tokenized[0, 0, 2], torch.tensor([0.0, 0.0, 1.0, 0.0]))
+    assert torch.allclose(tokenized[0, 0, 3], torch.tensor([0.0, 0.0, 0.0, 1.0]))
+
+
+def test_pre_encoder_clip_preserves_non_finite_categories_for_missingness_tokenizer() -> None:
+    model = _staged(
+        "prenorm_block",
+        input_normalization="none",
+        pre_encoder_clip=5.0,
+        module_overrides={
+            "feature_encoder": "shared",
+            "post_encoder_norm": "layernorm",
+            "table_block_style": "prenorm",
+            "tokenizer": "scalar_per_feature_nan_mask",
+        },
+    )
+    x_all = torch.tensor(
+        [
+            [
+                [100.0, float("nan"), float("inf"), float("-inf")],
+                [4.0, 5.0, 6.0, 7.0],
+                [50.0, 8.0, 9.0, 10.0],
+                [3.5, 4.5, float("inf"), float("-inf")],
+            ],
+        ],
+        dtype=torch.float32,
+    )
+    y_train = torch.tensor([[0, 1]], dtype=torch.int64)
+    raw_state = model._build_raw_input_state(
+        x_all=x_all,
+        y_train=y_train,
+        y_test=torch.tensor([[0, 1]], dtype=torch.int64),
+        train_test_split_index=2,
+        num_classes=2,
+    )
+    tokenized_x, _ = model.tokenizer(raw_state.x_all)
+
+    assert raw_state.x_all[0, 0, 0].item() == pytest.approx(5.0)
+    assert torch.isnan(raw_state.x_all[0, 0, 1])
+    assert torch.isposinf(raw_state.x_all[0, 0, 2])
+    assert torch.isneginf(raw_state.x_all[0, 0, 3])
+    assert torch.allclose(tokenized_x[0, 0, 0], torch.tensor([5.0, 0.0, 0.0, 0.0]))
+    assert torch.allclose(tokenized_x[0, 0, 1], torch.tensor([0.0, 1.0, 0.0, 0.0]))
+    assert torch.allclose(tokenized_x[0, 0, 2], torch.tensor([0.0, 0.0, 1.0, 0.0]))
+    assert torch.allclose(tokenized_x[0, 0, 3], torch.tensor([0.0, 0.0, 0.0, 1.0]))
 
 
 def test_missingness_tokenizer_uses_internal_benchmark_normalization() -> None:

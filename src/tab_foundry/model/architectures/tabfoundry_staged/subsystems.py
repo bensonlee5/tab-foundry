@@ -13,6 +13,7 @@ from tab_foundry.model.architectures.tabfoundry_simple import (
     _TargetEncoder as NanoTargetEncoder,
 )
 from tab_foundry.model.components.normalization import build_norm
+from tab_foundry.model.components.non_finite import encode_non_finite_token_features
 from tab_foundry.model.components.blocks import TFColEncoder, TFRowEncoder
 from tab_foundry.model.components.qass import QASSTransformerEncoder
 
@@ -27,15 +28,12 @@ class ScalarPerFeatureTokenizer(nn.Module):
 
 
 class ScalarPerFeatureMissingnessTokenizer(nn.Module):
-    """One per-feature token with explicit missingness flag."""
+    """One per-feature token with explicit non-finite-type flags."""
 
-    token_dim = 2
+    token_dim = 4
 
     def forward(self, x_all: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
-        missing = ~torch.isfinite(x_all)
-        filled = torch.nan_to_num(x_all, nan=0.0, posinf=0.0, neginf=0.0)
-        tokenized = torch.stack([filled, missing.to(torch.float32)], dim=-1)
-        return tokenized, None
+        return encode_non_finite_token_features(x_all), None
 
 
 class ShiftedGroupedTokenizer(nn.Module):

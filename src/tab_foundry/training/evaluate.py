@@ -23,17 +23,23 @@ from .trainer import _compute_loss_and_metrics
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
 
-def _checkpoint_preprocessing_settings(
+def _checkpoint_config_mapping(payload: dict[str, Any]) -> dict[str, Any]:
+    cfg_payload = payload.get("config")
+    return cfg_payload if isinstance(cfg_payload, dict) else {}
+
+
+def _checkpoint_config_section(
     payload: dict[str, Any],
     cfg: DictConfig,
+    *,
+    section: str,
 ) -> DictConfig | None:
-    cfg_payload = payload.get("config")
-    checkpoint_cfg = cfg_payload if isinstance(cfg_payload, dict) else {}
-    checkpoint_preprocessing_cfg = checkpoint_cfg.get("preprocessing")
-    if isinstance(checkpoint_preprocessing_cfg, dict):
-        return OmegaConf.create(checkpoint_preprocessing_cfg)
+    checkpoint_cfg = _checkpoint_config_mapping(payload)
+    checkpoint_section = checkpoint_cfg.get(section)
+    if isinstance(checkpoint_section, dict):
+        return OmegaConf.create(checkpoint_section)
 
-    fallback = cfg.get("preprocessing")
+    fallback = cfg.get(section)
     if isinstance(fallback, DictConfig):
         return fallback
     if isinstance(fallback, dict):
@@ -41,12 +47,44 @@ def _checkpoint_preprocessing_settings(
     return None
 
 
+def _checkpoint_preprocessing_settings(
+    payload: dict[str, Any],
+    cfg: DictConfig,
+) -> DictConfig | None:
+    return _checkpoint_config_section(payload, cfg, section="preprocessing")
+
+
+def _checkpoint_data_settings(
+    payload: dict[str, Any],
+    cfg: DictConfig,
+) -> DictConfig:
+    data_cfg = _checkpoint_config_section(payload, cfg, section="data")
+    if data_cfg is None:
+        raise RuntimeError("evaluate_checkpoint requires data config from checkpoint or runtime cfg")
+    return data_cfg
+
+
+def _checkpoint_dataset_seed(
+    payload: dict[str, Any],
+    cfg: DictConfig,
+) -> int:
+    checkpoint_cfg = _checkpoint_config_mapping(payload)
+    checkpoint_runtime_cfg = checkpoint_cfg.get("runtime")
+    if isinstance(checkpoint_runtime_cfg, dict):
+        raw_seed = checkpoint_runtime_cfg.get("seed")
+        if raw_seed is not None:
+            try:
+                return int(raw_seed)
+            except (TypeError, ValueError) as exc:
+                raise RuntimeError(f"Unsupported checkpoint runtime seed value: {raw_seed!r}") from exc
+    return int(cfg.runtime.seed)
+
+
 def _checkpoint_model_settings(
     payload: dict[str, Any],
     cfg: DictConfig,
 ) -> ModelBuildSpec:
-    cfg_payload = payload.get("config")
-    checkpoint_cfg = cfg_payload if isinstance(cfg_payload, dict) else {}
+    checkpoint_cfg = _checkpoint_config_mapping(payload)
     task_raw = checkpoint_cfg.get("task", cfg.task)
     task = str(task_raw).strip().lower()
     if task not in {"classification", "regression"}:
@@ -119,7 +157,9 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         raise RuntimeError("checkpoint payload must be a mapping")
 
     model_spec = _checkpoint_model_settings(payload, cfg)
+    data_cfg = _checkpoint_data_settings(payload, cfg)
     preprocessing_cfg = _checkpoint_preprocessing_settings(payload, cfg)
+    dataset_seed = _checkpoint_dataset_seed(payload, cfg)
     task = model_spec.task
     eval_step = _resolved_checkpoint_step(payload)
     model = build_model_from_spec(model_spec)
@@ -128,17 +168,17 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     split = str(cfg.eval.split)
     max_batches = int(cfg.eval.max_batches)
     ds = build_task_dataset(
-        cfg.data,
+        data_cfg,
         split=split,
         task=task,
-        seed=int(cfg.runtime.seed),
+        seed=dataset_seed,
         preprocessing_cfg=preprocessing_cfg,
     )
     loader = build_task_loader(
         ds,
         shuffle=False,
         num_workers=int(cfg.runtime.num_workers),
-        seed=int(cfg.runtime.seed),
+        seed=dataset_seed,
     )
 
     accelerator = build_accelerator_from_runtime(cfg.runtime)

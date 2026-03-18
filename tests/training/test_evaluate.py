@@ -188,6 +188,81 @@ def test_evaluate_checkpoint_prefers_checkpoint_preprocessing_config(
     }
 
 
+def test_evaluate_checkpoint_prefers_checkpoint_data_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class _DummyModel:
+        def load_state_dict(self, _state: object) -> None:
+            return None
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {
+                    "d_col": 128,
+                    "d_icl": 512,
+                    "feature_group_size": 1,
+                    "many_class_train_mode": "path_nll",
+                    "max_mixed_radix_digits": 64,
+                },
+                "data": {
+                    "manifest_path": "checkpoint_manifest.parquet",
+                    "train_row_cap": 16,
+                    "test_row_cap": 8,
+                },
+            },
+        }
+
+    def _capture_dataset(
+        data_cfg: object,
+        *_args: object,
+        preprocessing_cfg: object = None,
+        **_kwargs: object,
+    ) -> None:
+        del preprocessing_cfg
+        captured["data_cfg"] = data_cfg
+        raise RuntimeError("stop_after_dataset")
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", _capture_dataset)
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+            "data": {
+                "manifest_path": "runtime_manifest.parquet",
+                "train_row_cap": 64,
+                "test_row_cap": 32,
+            },
+            "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="stop_after_dataset"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
+
+    data_cfg = captured["data_cfg"]
+    assert OmegaConf.to_container(data_cfg, resolve=True) == {
+        "manifest_path": "checkpoint_manifest.parquet",
+        "train_row_cap": 16,
+        "test_row_cap": 8,
+    }
+
+
 def test_evaluate_checkpoint_falls_back_to_runtime_preprocessing_config(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -249,6 +324,78 @@ def test_evaluate_checkpoint_falls_back_to_runtime_preprocessing_config(
         "surface_label": "runtime_all_nan_fill_one",
         "overrides": {"all_nan_fill": 1.0},
     }
+
+
+def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loader(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class _DummyModel:
+        def load_state_dict(self, _state: object) -> None:
+            return None
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {
+                    "d_col": 128,
+                    "d_icl": 512,
+                    "feature_group_size": 1,
+                    "many_class_train_mode": "path_nll",
+                    "max_mixed_radix_digits": 64,
+                },
+                "runtime": {"seed": 77},
+            },
+        }
+
+    def _capture_dataset(*_args: object, seed: int, **_kwargs: object) -> object:
+        captured["dataset_seed"] = seed
+        return object()
+
+    def _capture_loader(
+        _dataset: object,
+        *,
+        shuffle: bool,
+        num_workers: int,
+        seed: int,
+    ) -> None:
+        captured["shuffle"] = shuffle
+        captured["num_workers"] = num_workers
+        captured["loader_seed"] = seed
+        raise RuntimeError("stop_after_loader")
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", _capture_dataset)
+    monkeypatch.setattr(evaluate_module, "build_task_loader", _capture_loader)
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "runtime": {"seed": 1, "num_workers": 3, "device": "cpu", "mixed_precision": "no"},
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="stop_after_loader"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert captured["dataset_seed"] == 77
+    assert captured["loader_seed"] == 77
+    assert captured["shuffle"] is False
+    assert captured["num_workers"] == 3
 
 
 def test_checkpoint_model_settings_rejects_legacy_grouped_weights_without_override() -> None:

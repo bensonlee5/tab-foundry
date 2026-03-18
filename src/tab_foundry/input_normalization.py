@@ -223,8 +223,8 @@ def normalize_train_test_tensors(
     if normalized_mode == "none":
         return train, test
     if preserve_non_finite:
-        train_out = torch.full_like(train, float("nan"))
-        test_out = torch.full_like(test, float("nan"))
+        train_out = train.clone()
+        test_out = test.clone()
         n_cols = int(train_stats.shape[1])
         for c in range(n_cols):
             train_col = train_stats[:, c]

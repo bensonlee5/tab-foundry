@@ -13,6 +13,7 @@ from tab_foundry.input_normalization import (
     normalize_train_test_tensors,
 )
 from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
+from tab_foundry.model.components.non_finite import clip_finite_values
 from tab_foundry.model.components.many_class import (
     HierNode,
     balanced_bases,
@@ -290,7 +291,14 @@ class TabFoundryStagedClassifier(nn.Module):
         self._validate_batched_inputs(x_all, y_train, train_test_split_index)
         normalized = self._normalize_x_all(x_all, train_test_split_index=train_test_split_index)
         if self.pre_encoder_clip is not None:
-            normalized = normalized.clamp(-self.pre_encoder_clip, self.pre_encoder_clip)
+            # Preserve NaN / +/-Inf until the tokenizer can emit dedicated flags for them.
+            if self.surface.tokenizer == "scalar_per_feature_nan_mask":
+                normalized = clip_finite_values(
+                    normalized,
+                    clip_value=float(self.pre_encoder_clip),
+                )
+            else:
+                normalized = normalized.clamp(-self.pre_encoder_clip, self.pre_encoder_clip)
         return RawInputState(
             x_all=normalized,
             y_train=y_train,

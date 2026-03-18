@@ -22,7 +22,7 @@ from tab_foundry.data.validation import (
 )
 
 
-_MANIFEST_SUMMARY_METADATA_KEY = b"tab_foundry_manifest_summary"
+MANIFEST_SUMMARY_METADATA_KEY = b"tab_foundry_manifest_summary"
 
 
 @dataclass(slots=True)
@@ -288,7 +288,7 @@ def _manifest_schema_metadata(*, summary: ManifestSummary) -> dict[bytes, bytes]
         "filter_status_counts": dict(summary.filter_status_counts),
         "missing_value_status_counts": dict(summary.missing_value_status_counts),
     }
-    return {_MANIFEST_SUMMARY_METADATA_KEY: json.dumps(payload, sort_keys=True).encode("utf-8")}
+    return {MANIFEST_SUMMARY_METADATA_KEY: json.dumps(payload, sort_keys=True).encode("utf-8")}
 
 
 def build_manifest(

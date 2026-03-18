@@ -7,10 +7,10 @@ import csv
 from dataclasses import dataclass
 from datetime import datetime
 from itertools import product
-import json
 from pathlib import Path
 from typing import Any, Sequence
 
+from tab_foundry.bench.artifacts import write_json
 from tab_foundry.config import compose_config
 from tab_foundry.bench.tune_metrics import (
     finite_history_values,
@@ -49,13 +49,6 @@ def _parse_float_list(value: str) -> tuple[float, ...]:
     if not values:
         raise ValueError("expected at least one numeric value")
     return values
-
-
-def _write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, sort_keys=True)
-        handle.write("\n")
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -262,7 +255,7 @@ def run_tuning(config: TuneConfig) -> dict[str, Any]:
         "best_trial": best_trial,
         "trials": ranked_trials,
     }
-    _write_json(out_root / "sweep_summary.json", summary)
+    write_json(out_root / "sweep_summary.json", summary)
     _write_csv(out_root / "sweep_results.csv", ranked_trials)
     return summary
 

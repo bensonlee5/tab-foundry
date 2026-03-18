@@ -143,3 +143,36 @@ def test_preserve_non_finite_normalizes_only_finite_values() -> None:
     assert test_norm[0, 0].item() == pytest.approx(3.0)
     assert train_norm[1, 1].item() == pytest.approx(0.0)
     assert test_norm[1, 1].item() == pytest.approx(2.0)
+
+
+def test_preserve_non_finite_keeps_signed_infinities_distinct() -> None:
+    x_train = torch.tensor(
+        [
+            [float("inf"), float("-inf")],
+            [2.0, 4.0],
+        ],
+        dtype=torch.float32,
+    )
+    x_test = torch.tensor(
+        [
+            [float("inf"), float("-inf")],
+            [6.0, 8.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    train_norm, test_norm = normalize_train_test_tensors(
+        x_train,
+        x_test,
+        mode="train_zscore_clip",
+        preserve_non_finite=True,
+    )
+
+    assert torch.isposinf(train_norm[0, 0])
+    assert torch.isneginf(train_norm[0, 1])
+    assert torch.isposinf(test_norm[0, 0])
+    assert torch.isneginf(test_norm[0, 1])
+    assert train_norm[1, 0].item() == pytest.approx(0.0)
+    assert train_norm[1, 1].item() == pytest.approx(0.0)
+    assert test_norm[1, 0].item() == pytest.approx(4.0)
+    assert test_norm[1, 1].item() == pytest.approx(4.0)

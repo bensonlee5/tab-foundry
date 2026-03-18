@@ -363,8 +363,11 @@ def test_tab_foundry_classifier_skips_external_normalization_for_staged_missingn
     checkpoint = tmp_path / "staged_missingness.pt"
     torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
 
-    x_train = np.asarray([[1.0, np.nan], [2.0, 4.0], [4.0, 8.0]], dtype=np.float32)
-    x_test = np.asarray([[3.0, np.nan], [5.0, 9.0]], dtype=np.float32)
+    x_train = np.asarray(
+        [[1.0, np.nan, np.inf, -np.inf], [2.0, 4.0, 6.0, 8.0], [4.0, 8.0, 10.0, 12.0]],
+        dtype=np.float32,
+    )
+    x_test = np.asarray([[3.0, np.nan, np.inf, -np.inf], [5.0, 9.0, 11.0, 13.0]], dtype=np.float32)
     classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
     classifier.fit(x_train, np.asarray([0, 1, 0], dtype=np.int64))
     _ = classifier.predict_proba(x_test)
@@ -372,3 +375,7 @@ def test_tab_foundry_classifier_skips_external_normalization_for_staged_missingn
     assert model.last_batch is not None
     assert np.isnan(model.last_batch.x_train.cpu().numpy()[0, 1])
     assert np.isnan(model.last_batch.x_test.cpu().numpy()[0, 1])
+    assert np.isposinf(model.last_batch.x_train.cpu().numpy()[0, 2])
+    assert np.isposinf(model.last_batch.x_test.cpu().numpy()[0, 2])
+    assert np.isneginf(model.last_batch.x_train.cpu().numpy()[0, 3])
+    assert np.isneginf(model.last_batch.x_test.cpu().numpy()[0, 3])
