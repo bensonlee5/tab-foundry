@@ -10,3 +10,5 @@
 - We don’t probe data “YOLO-style”—we validate boundaries or rely on typed SDKs
 - Prior to declaring a branch ready for review, compare branch to main and verify that all intended changes are included and no unintended changes are included
 - Canonical local verification is `uv run pre-commit run --all-files` and `./.venv/bin/python -m pytest`
+- Always log results to wandb when executing sweeps
+
