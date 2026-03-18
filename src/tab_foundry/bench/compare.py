@@ -138,7 +138,8 @@ def _validate_config(
         raise RuntimeError(f"nanoTabPFN root does not exist: {nanotabpfn_root}")
     if not nanotabpfn_python.exists():
         raise RuntimeError(
-            f"missing nanoTabPFN interpreter at {nanotabpfn_python}; run scripts/bootstrap_benchmark_envs.py first"
+            "missing nanoTabPFN interpreter at "
+            f"{nanotabpfn_python}; run `tab-foundry bench env bootstrap` first"
         )
     if not prior_dump.exists():
         raise RuntimeError(f"nanoTabPFN prior dump does not exist: {prior_dump}")

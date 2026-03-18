@@ -1,4 +1,4 @@
-"""Eval CLI command."""
+"""Evaluation CLI group."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from tab_foundry.config import compose_config
 from tab_foundry.training.evaluate import evaluate_checkpoint
 
 
-def _run(args: argparse.Namespace) -> int:
+def _run_checkpoint(args: argparse.Namespace) -> int:
     overrides = list(args.overrides)
     if args.checkpoint is not None:
         overrides.append(f"eval.checkpoint={args.checkpoint}")
@@ -22,9 +22,11 @@ def _run(args: argparse.Namespace) -> int:
 
 
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    parser = subparsers.add_parser("eval", help="Evaluate checkpoint")
-    parser.add_argument("--checkpoint", default=None, help="Checkpoint override")
-    parser.add_argument("--split", default=None, help="Eval split override")
-    parser.add_argument("overrides", nargs="*", help="Hydra override strings")
-    parser.set_defaults(func=_run)
+    parser = subparsers.add_parser("eval", help="Evaluation workflows")
+    nested = parser.add_subparsers(dest="eval_command", required=True)
 
+    checkpoint_parser = nested.add_parser("checkpoint", help="Evaluate checkpoint")
+    checkpoint_parser.add_argument("--checkpoint", default=None, help="Checkpoint override")
+    checkpoint_parser.add_argument("--split", default=None, help="Eval split override")
+    checkpoint_parser.add_argument("overrides", nargs="*", help="Hydra override strings")
+    checkpoint_parser.set_defaults(func=_run_checkpoint)

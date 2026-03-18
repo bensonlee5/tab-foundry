@@ -15,8 +15,9 @@ section factual and keep design intent in the policy section below it.
 - `tab_foundry.bench` depends on `tab_foundry.config`,
   `tab_foundry.data`, `tab_foundry.input_normalization`,
   `tab_foundry.model`, `tab_foundry.training`, and `tab_foundry.types`.
-- `tab_foundry.cli` depends on `tab_foundry.config`,
-  `tab_foundry.data`, `tab_foundry.export`, and `tab_foundry.training`.
+- `tab_foundry.cli` depends on `tab_foundry.bench`,
+  `tab_foundry.config`, `tab_foundry.data`, `tab_foundry.export`,
+  `tab_foundry.research`, and `tab_foundry.training`.
 - `tab_foundry.data` depends on `tab_foundry.preprocessing` and
   `tab_foundry.types`.
 - `tab_foundry.export` depends on `tab_foundry.input_normalization`,
@@ -54,8 +55,10 @@ Observed cycle status:
   should not depend on it.
 - `tab_foundry.research` is the sweep-management layer. It may depend on
   `bench`, `config`, and `model`, but lower layers should not depend on it.
-- `scripts/` should remain thin wrapper entrypoints over `bench/`, `research/`,
-  or CLI/library modules rather than reimplementing workflow logic.
+- Python workflow entrypoints should live under the packaged nested CLI rather
+  than being duplicated under `scripts/`.
+- `scripts/` should stay limited to shell convenience helpers and audit tooling
+  instead of reintroducing parallel Python workflow surfaces.
 
 ## Change-Impact Hotspots
 

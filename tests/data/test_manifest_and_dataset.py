@@ -459,16 +459,29 @@ def test_dataset_rejects_missing_inputs_by_default(tmp_path: Path) -> None:
         _ = ds[0]
 
 
-def test_cli_parser_rejects_removed_preprocessor_state_surface() -> None:
+def test_cli_parser_rejects_legacy_flat_and_removed_preprocessor_state_surface() -> None:
     parser = build_parser()
 
     with pytest.raises(SystemExit):
         parser.parse_args(["build-preprocessor-state"])
 
     with pytest.raises(SystemExit):
+        parser.parse_args(["build-manifest"])
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["validate-export"])
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["train", "experiment=cls_smoke"])
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(["export", "--checkpoint", "checkpoint.pt", "--out-dir", "bundle"])
+
+    with pytest.raises(SystemExit):
         parser.parse_args(
             [
                 "export",
+                "bundle",
                 "--checkpoint",
                 "checkpoint.pt",
                 "--out-dir",

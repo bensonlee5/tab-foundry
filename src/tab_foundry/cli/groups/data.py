@@ -1,4 +1,4 @@
-"""Build-manifest CLI command."""
+"""Data CLI group."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 from tab_foundry.data.manifest import build_manifest
 
 
-def _run(args: argparse.Namespace) -> int:
+def _run_build_manifest(args: argparse.Namespace) -> int:
     roots = [Path(path).expanduser() for path in args.data_root]
     summary = build_manifest(
         data_roots=roots,
@@ -47,29 +47,32 @@ def _run(args: argparse.Namespace) -> int:
 
 
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    parser = subparsers.add_parser(
+    parser = subparsers.add_parser("data", help="Data workflows")
+    nested = parser.add_subparsers(dest="data_command", required=True)
+
+    build_parser = nested.add_parser(
         "build-manifest",
         help="Build manifest parquet from dagzoo packed shard outputs",
     )
-    parser.add_argument(
+    build_parser.add_argument(
         "--data-root",
         action="append",
         required=True,
         help="Input dagzoo data root",
     )
-    parser.add_argument("--out-manifest", required=True, help="Output manifest parquet path")
-    parser.add_argument("--train-ratio", type=float, default=0.90)
-    parser.add_argument("--val-ratio", type=float, default=0.05)
-    parser.add_argument(
+    build_parser.add_argument("--out-manifest", required=True, help="Output manifest parquet path")
+    build_parser.add_argument("--train-ratio", type=float, default=0.90)
+    build_parser.add_argument("--val-ratio", type=float, default=0.05)
+    build_parser.add_argument(
         "--filter-policy",
         choices=("include_all", "accepted_only"),
         default="include_all",
         help="Dataset selection policy based on dagzoo filter metadata",
     )
-    parser.add_argument(
+    build_parser.add_argument(
         "--missing-value-policy",
         choices=("allow_any", "forbid_any"),
         default="allow_any",
         help="Dataset selection policy for NaN/Inf-containing inputs",
     )
-    parser.set_defaults(func=_run)
+    build_parser.set_defaults(func=_run_build_manifest)

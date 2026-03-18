@@ -11,7 +11,7 @@ Audit method:
 - `./.venv/bin/python scripts/audit/module_graph.py --fail-on-doc-drift`
 - `uv run deptry .`
 - `uv run vulture src scripts tests --min-confidence 80`
-- targeted `rg`/`sed` inspection for wrapper usage, doc references, and
+- targeted `rg`/`sed` inspection for CLI/doc references and
   orphan-surface candidates
 
 ## Status Summary
@@ -34,7 +34,7 @@ No `P0`, `P1`, or `P2` cleanup findings remain open from the original audit.
 
 | Surface | Classification | Notes |
 | ---- | ---- | ---- |
-| `src/tab_foundry/`, `configs/`, `scripts/` wrappers | canonical and live | Includes live `preprocessing/` and `research/` package surfaces in addition to data/model/training/export. |
+| `src/tab_foundry/`, `configs/`, packaged CLI, and shell/audit scripts | canonical and live | Includes live `preprocessing/`, `research/`, and nested CLI package surfaces in addition to data/model/training/export. |
 | `README.md`, `docs/workflows.md`, `docs/inference.md`, `program.md` | canonical and live | Operator-facing docs and the active staged-research contract. |
 | `reference/system_delta_catalog.yaml`, `reference/system_delta_sweeps/` | canonical and live | Multi-sweep system-delta source of truth. |
 | `reference/system_delta_queue.yaml`, `reference/system_delta_matrix.md` | generated alias | Active-sweep compatibility views, not canonical editable sources. |
@@ -57,10 +57,9 @@ These are not current cleanup findings, but they remain worth watching:
 
 ## Not A Finding
 
-- Thin wrapper scripts are still behaving as intended. Examples:
-  - `scripts/system_delta_queue.py`
-  - `scripts/benchmark_nanotabpfn.py`
-  - `scripts/train_tabfoundry_staged_prior.py`
+- The wrapper-surface reset is intentional: packaged nested CLI commands now
+  own workflow entrypoints, while `scripts/` is limited to shell helpers and
+  audit tooling.
 - The three model families are intentional, not accidental duplication:
   - `tabfoundry`
   - `tabfoundry_simple`
@@ -93,7 +92,7 @@ These are not current cleanup findings, but they remain worth watching:
 
 | Surface | Current assessment | Recommended action |
 | ---- | ---- | ---- |
-| `scripts/` wrappers into `bench/` and `research/` | intentional thin indirection | keep |
+| packaged nested CLI entrypoints into `bench/` and `research/` | intentional orchestration indirection | keep |
 | `tabfoundry`, `tabfoundry_simple`, `tabfoundry_staged` | intentional layered family split | keep |
 | `reference/system_delta_queue.yaml`, `reference/system_delta_matrix.md` | intentional generated aliases | keep |
 | benchmark-only third-party packages under `src/tab_foundry/bench/` | optional install surface | keep, but extend the `benchmark` extra when new imports are added |

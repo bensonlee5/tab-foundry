@@ -78,9 +78,11 @@ forking the repo. Core swap points include:
 The repo should keep the same role-based direction already started in code:
 
 - workflow tooling in `bench/`
-- Python files in `scripts/` should stay as thin wrappers into `bench/` or the
-  CLI rather than becoming a second home for benchmark logic
 - user-facing command surfaces in `cli/`
+- Python workflow entrypoints should live under the packaged CLI rather than
+  reappearing under `scripts/`
+- `scripts/` should stay limited to shell helpers and audit tooling rather than
+  becoming a second home for benchmark logic
 - reusable data, model, training, and export packages separated by role
 - canonical planning and repo-shape docs under `docs/development/`
 - stable operational docs such as `docs/workflows.md` and `docs/inference.md`
@@ -121,7 +123,7 @@ The end state should support:
 | Path | Intended role |
 | ---- | ------------- |
 | `src/tab_foundry/` | Stable top-level package namespace for CLI entrypoints, shared config resolution, and small cross-cutting helpers. |
-| `src/tab_foundry/cli/` and `src/tab_foundry/cli/commands/` | User-facing command surfaces and argument parsing. |
+| `src/tab_foundry/cli/` and `src/tab_foundry/cli/groups/` | User-facing command surfaces and nested argument parsing. |
 | `src/tab_foundry/bench/` | Smoke harnesses, benchmark utilities, comparison flows, plotting helpers, env bootstrap, and internal research harnesses. |
 | `src/tab_foundry/data/` and `src/tab_foundry/data/sources/` | Data package namespaces for reusable dataset abstractions, loaders, and registered task sources. Direct imports should target modules such as `tab_foundry.data.manifest`, `tab_foundry.data.dataset`, and `tab_foundry.data.factory`. |
 | `src/tab_foundry/model/` | Model package namespace. Direct imports should target submodules such as `tab_foundry.model.factory`, `tab_foundry.model.spec`, or family modules under `tab_foundry.model.architectures`. |
@@ -138,10 +140,11 @@ The end state should support:
 The intended dependency direction is:
 
 ```text
-cli/commands -> cli
-cli/commands -> bench
-cli/commands -> training/data/model/export
+cli/groups -> cli
+cli/groups -> bench/research
+cli/groups -> training/data/export
 bench -> training/data/model/export
+research -> bench/model/config
 training -> model/data
 export -> model
 model/architectures -> model/components
@@ -152,7 +155,7 @@ Notes:
 
 - `bench/` may depend on core library packages, but core library packages
   should not depend on `bench/`.
-- `cli/commands/` may orchestrate both `bench/` and core packages.
+- `cli/groups/` may orchestrate both `bench/`, `research/`, and core packages.
 - `src/tab_foundry/model/` is a namespace package. Direct imports should target
   stable submodules like `model.factory` and `model.spec`, while
   `model/components` and `model/architectures` carry the internal split.

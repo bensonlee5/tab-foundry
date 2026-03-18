@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- User-facing workflow break: the packaged CLI now uses nested namespaces for
+  all supported commands. Canonical surfaces are `tab-foundry data build-manifest`, `train run`, `train prior simple|staged`, `eval checkpoint`, `export bundle|validate`, `bench ...`, and `research sweep ...`.
+  The thin Python workflow wrappers under `scripts/` have been removed.
+
 ## [0.7.0] - 2026-03-18
 
 ### Added

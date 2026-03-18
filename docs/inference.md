@@ -96,7 +96,7 @@ Required keys:
 Export from checkpoint:
 
 ```bash
-uv run tab-foundry export \
+uv run tab-foundry export bundle \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   --out-dir outputs/exports/cls_smoke_v3
 ```
@@ -104,7 +104,7 @@ uv run tab-foundry export \
 Validate bundle:
 
 ```bash
-uv run tab-foundry validate-export \
+uv run tab-foundry export validate \
   --bundle-dir outputs/exports/cls_smoke_v3
 ```
 

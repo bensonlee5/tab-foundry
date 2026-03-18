@@ -205,7 +205,7 @@ surface. Use the canonical docs instead:
   `BL-195 -> BL-196 -> BL-197 -> BL-198`
 - Repo touchpoints:
   - `src/tab_foundry/data/manifest.py`
-  - `src/tab_foundry/cli/commands/build_manifest.py`
+  - `src/tab_foundry/cli/groups/data.py`
   - `tests/data/test_manifest_and_dataset.py`
   - `src/tab_foundry/bench/dagzoo_smoke.py`
   - `docs/workflows.md`
@@ -264,7 +264,7 @@ surface. Use the canonical docs instead:
 - Linear tracking: `BL-175 -> BL-177 -> BL-178 -> BL-179 -> BL-180`
 - Repo touchpoints:
   - `src/tab_foundry/cli/`
-  - `src/tab_foundry/cli/commands/`
+  - `src/tab_foundry/cli/groups/`
   - `src/tab_foundry/bench/`
   - `src/tab_foundry/data/sources/`
   - `src/tab_foundry/model/`
@@ -274,7 +274,7 @@ surface. Use the canonical docs instead:
   - `docs/workflows.md`
   - `reference/`
 - Completion evidence (March 12, 2026):
-  - Neutral `bench/` and `cli/commands/` homes now exist and act as the
+  - Neutral `bench/` and nested `cli/` group homes now exist and act as the
     canonical destinations for workflow orchestration and harness logic.
   - Reusable model components now live separately from family-specific
     assemblies under `src/tab_foundry/model/components/` and
@@ -303,8 +303,8 @@ surface. Use the canonical docs instead:
   - `reference/papers.md`
   - `reference/evidence.md`
   - `docs/development/design-decisions.md`
-  - `scripts/bootstrap_benchmark_envs.py`
-  - `scripts/benchmark_nanotabpfn.py`
+  - `src/tab_foundry/bench/envs.py`
+  - `src/tab_foundry/bench/compare.py`
 - Current state:
   - Reference documents and evidence mapping now exist and express explicit
     adoption tiers.
@@ -415,8 +415,7 @@ surface. Use the canonical docs instead:
   - `src/tab_foundry/training/optimizer.py`
   - `src/tab_foundry/training/schedule.py`
   - `src/tab_foundry/bench/tune.py`
-  - `scripts/tune_tab_foundry.py`
-  - `scripts/benchmark_nanotabpfn.py`
+  - `src/tab_foundry/bench/compare.py`
 - Current state:
   - Internal tuning harnesses exist.
   - Multiple optimizer and schedule choices are present in the training stack.
@@ -502,7 +501,7 @@ surface. Use the canonical docs instead:
   - `src/tab_foundry/training/losses.py`
   - `src/tab_foundry/data/dataset.py`
   - `src/tab_foundry/bench/checkpoint.py`
-  - `src/tab_foundry/cli/commands/`
+  - `src/tab_foundry/cli/groups/`
 - Current state:
   - Classification and regression flows exist.
   - Classification remains the anchor workload.

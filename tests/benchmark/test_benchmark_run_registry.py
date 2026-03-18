@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import runpy
-import sys
 
 import pytest
 import torch
@@ -554,25 +552,6 @@ def test_register_benchmark_run_main_parses_cli_and_defaults_config_profile(
     assert captured["run_kind"] == "followup"
     assert captured["registry_path"] == tmp_path / "benchmark_run_registry.json"
     assert "Benchmark run registered:" in capsys.readouterr().out
-
-
-def test_register_benchmark_run_script_delegates_to_registry_main(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    captured: dict[str, object] = {}
-
-    def _fake_main(argv=None):
-        captured["argv"] = argv
-        return 0
-
-    monkeypatch.setattr(registry_module, "main", _fake_main)
-    monkeypatch.setattr(sys, "argv", ["register_benchmark_run.py"])
-
-    with pytest.raises(SystemExit) as exc_info:
-        runpy.run_path(str(REPO_ROOT / "scripts" / "register_benchmark_run.py"), run_name="__main__")
-
-    assert exc_info.value.code == 0
-    assert captured["argv"] is None
 
 
 def test_derive_benchmark_run_record_rejects_legacy_checkpoint_without_arch_metadata(

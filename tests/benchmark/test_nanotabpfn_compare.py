@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import runpy
 import subprocess
-import sys
 from types import SimpleNamespace
 from typing import Any
 
@@ -202,25 +200,6 @@ def test_compare_main_parses_cli_invocation(
     assert config.control_baseline_registry == tmp_path / "control_baselines.json"
     assert config.benchmark_bundle_path == tmp_path / "bundle.json"
     assert "nanoTabPFN comparison complete:" in capsys.readouterr().out
-
-
-def test_benchmark_nanotabpfn_script_delegates_to_compare_main(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    captured: dict[str, object] = {}
-
-    def _fake_main(argv=None):
-        captured["argv"] = argv
-        return 0
-
-    monkeypatch.setattr(compare_module, "main", _fake_main)
-    monkeypatch.setattr(sys, "argv", ["benchmark_nanotabpfn.py"])
-
-    with pytest.raises(SystemExit) as exc_info:
-        runpy.run_path(str(REPO_ROOT / "scripts" / "benchmark_nanotabpfn.py"), run_name="__main__")
-
-    assert exc_info.value.code == 0
-    assert captured["argv"] is None
 
 
 def test_load_openml_benchmark_datasets_fails_on_bundle_drift(

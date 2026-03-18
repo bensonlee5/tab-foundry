@@ -118,9 +118,8 @@ The matrix must be rerendered from the active or selected sweep plus the
 canonical benchmark registry. Metrics belong in the registry, not duplicated in
 the queue.
 
-Use `scripts/system_delta_queue.py` to:
+Use `tab-foundry research sweep` to:
 
-- list sweeps and show the active sweep
 - create a new sweep or set a different active sweep
 - list rows in order
 - print the next `ready` row

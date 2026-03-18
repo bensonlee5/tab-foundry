@@ -4,8 +4,6 @@ from functools import lru_cache
 import importlib.util
 import json
 from pathlib import Path
-import runpy
-import sys
 from types import SimpleNamespace
 
 import numpy as np
@@ -28,7 +26,6 @@ from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import OptimizerSelection
 
 h5py = pytest.importorskip("h5py")
-REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _write_prior_dump(
@@ -1559,70 +1556,6 @@ def test_prior_train_main_passes_prior_dump_and_overrides(
     assert captured["prior_dump_path"] == tmp_path / "prior_dump.h5"
     assert captured["batch_size"] == prior_train_module.DEFAULT_BATCH_SIZE
     assert "Training complete:" in capsys.readouterr().out
-
-
-def test_train_tabfoundry_staged_prior_script_injects_default_experiment(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    captured: dict[str, object] = {}
-
-    def _fake_main(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
-        return 0
-
-    monkeypatch.setattr(prior_train_module, "main", _fake_main)
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "train_tabfoundry_staged_prior.py",
-            "model.stage=label_token",
-            "runtime.output_dir=/tmp/staged-prior",
-        ],
-    )
-
-    with pytest.raises(SystemExit) as exc_info:
-        runpy.run_path(str(REPO_ROOT / "scripts" / "train_tabfoundry_staged_prior.py"), run_name="__main__")
-
-    assert exc_info.value.code == 0
-    assert captured["argv"] == [
-        "model.stage=label_token",
-        "runtime.output_dir=/tmp/staged-prior",
-        "experiment=cls_benchmark_staged_prior",
-    ]
-
-
-def test_train_tabfoundry_staged_prior_script_keeps_prior_dump_option_order(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    captured: dict[str, object] = {}
-
-    def _fake_main(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
-        return 0
-
-    monkeypatch.setattr(prior_train_module, "main", _fake_main)
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "train_tabfoundry_staged_prior.py",
-            "--prior-dump",
-            "/tmp/prior.h5",
-            "runtime.max_steps=1",
-        ],
-    )
-
-    with pytest.raises(SystemExit) as exc_info:
-        runpy.run_path(str(REPO_ROOT / "scripts" / "train_tabfoundry_staged_prior.py"), run_name="__main__")
-
-    assert exc_info.value.code == 0
-    assert captured["argv"] == [
-        "--prior-dump",
-        "/tmp/prior.h5",
-        "runtime.max_steps=1",
-        "experiment=cls_benchmark_staged_prior",
-    ]
 
 
 def test_train_tabfoundry_simple_prior_rejects_staged_many_class_before_io(

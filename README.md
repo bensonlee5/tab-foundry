@@ -34,7 +34,7 @@ Build a manifest:
 
 ```bash
 export DAGZOO_DATA_ROOT="$HOME/dev/dagzoo/data"
-uv run tab-foundry build-manifest \
+uv run tab-foundry data build-manifest \
   --data-root "${DAGZOO_DATA_ROOT:-$HOME/dev/dagzoo/data}" \
   --out-manifest data/manifests/default.parquet
 ```
@@ -42,13 +42,13 @@ uv run tab-foundry build-manifest \
 Train a smoke profile:
 
 ```bash
-uv run tab-foundry train experiment=cls_smoke
+uv run tab-foundry train run experiment=cls_smoke
 ```
 
 Evaluate a checkpoint:
 
 ```bash
-uv run tab-foundry eval \
+uv run tab-foundry eval checkpoint \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   experiment=cls_smoke
 ```
@@ -56,25 +56,25 @@ uv run tab-foundry eval \
 Export and validate an inference bundle:
 
 ```bash
-uv run tab-foundry export \
+uv run tab-foundry export bundle \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   --out-dir outputs/exports/cls_smoke_v3
 
-uv run tab-foundry validate-export \
+uv run tab-foundry export validate \
   --bundle-dir outputs/exports/cls_smoke_v3
 ```
 
 Run the Iris smoke harness:
 
 ```bash
-uv run python scripts/iris_smoke.py
+uv run tab-foundry bench smoke iris
 ```
 
 Repo-local `uv sync` includes Muon. If you are using a minimal install without
 the `muon` extra, override the optimizer explicitly:
 
 ```bash
-uv run tab-foundry train experiment=cls_smoke optimizer=adamw
+uv run tab-foundry train run experiment=cls_smoke optimizer=adamw
 ```
 
 ## Docs
