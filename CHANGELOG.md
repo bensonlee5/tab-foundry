@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Scoped `TFRowEncoder` transformer-clone reinitialization to multi-layer stacks only, preserving the MPS-targeted deep `row_cls` fix without changing single-layer exported reference outputs.
+
+- Refreshed the active `input_norm_followup` system-delta contract and research assertions so `program.md`, the active-sweep tests, and the checked-in reference state all point at the localized anchor replay `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v1`.
+
+- Synchronized the module dependency map with the currently observed `tab_foundry.research -> tab_foundry.config` edge.
+
 ## [0.6.11] - 2026-03-17
 
 ### Added

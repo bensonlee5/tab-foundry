@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import pytest
 import torch
 from torch import nn
 
+import tab_foundry.model.components.blocks as blocks_module
 from tab_foundry.model.components.blocks import ISABBlock, TFColEncoder, TFRowEncoder
 
 
@@ -68,3 +70,21 @@ def test_tfrow_encoder_reinitializes_cloned_transformer_layers() -> None:
         assert layer1_param.data_ptr() != layer2_param.data_ptr()
         assert not torch.equal(layer0_param, layer1_param)
         assert not torch.equal(layer1_param, layer2_param)
+
+
+def test_tfrow_encoder_only_reinitializes_multi_layer_transformer_stack(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[int] = []
+    original = blocks_module._reinitialize_transformer_encoder
+
+    def _capture_calls(encoder: nn.TransformerEncoder) -> None:
+        calls.append(len(encoder.layers))
+        original(encoder)
+
+    monkeypatch.setattr(blocks_module, "_reinitialize_transformer_encoder", _capture_calls)
+
+    _ = TFRowEncoder(d_model=8, n_heads=2, n_layers=1, cls_tokens=2, d_out=16)
+    _ = TFRowEncoder(d_model=8, n_heads=2, n_layers=3, cls_tokens=2, d_out=16)
+
+    assert calls == [3]

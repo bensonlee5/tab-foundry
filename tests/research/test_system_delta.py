@@ -71,7 +71,15 @@ def test_active_sweep_materializes_current_active_sweep() -> None:
     assert sweep["sweep_id"] == active_sweep_id
     assert queue["sweep_id"] == active_sweep_id
     assert queue["generated_from_sweep_id"] == active_sweep_id
-    assert "prior_constant_lr" in _anchor_dimension_anchor_text(sweep, dimension="training recipe")
+    anchor_surface = sweep["anchor_surface"]
+    assert isinstance(anchor_surface, dict)
+    dimension_table = anchor_surface["dimension_table"]
+    assert isinstance(dimension_table, list) and dimension_table
+    assert all(
+        isinstance(row.get("dimension"), str) and row["dimension"].strip()
+        for row in dimension_table
+    )
+    assert sweep["anchor_run_id"] == queue["anchor_run_id"]
     expected_next_ready = next((row for row in queue["rows"] if row["status"] == "ready"), None)
     assert next_ready_row(queue) == expected_next_ready
 

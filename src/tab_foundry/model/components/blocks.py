@@ -176,7 +176,8 @@ class TFRowEncoder(nn.Module):
             norm=build_norm(norm_type, d_model),
             enable_nested_tensor=False,
         )
-        _reinitialize_transformer_encoder(self.encoder)
+        if n_layers > 1:
+            _reinitialize_transformer_encoder(self.encoder)
         self.out = nn.Linear(cls_tokens * d_model, d_out)
 
     def forward(
