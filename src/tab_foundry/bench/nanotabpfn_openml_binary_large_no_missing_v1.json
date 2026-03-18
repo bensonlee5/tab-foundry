@@ -1,0 +1,528 @@
+{
+  "name": "nanotabpfn_openml_binary_large_no_missing",
+  "selection": {
+    "max_classes": 2,
+    "max_features": 50,
+    "max_missing_pct": 0.0,
+    "min_minority_class_pct": 2.5,
+    "new_instances": 200,
+    "task_type": "supervised_classification"
+  },
+  "task_ids": [
+    3,
+    31,
+    37,
+    42,
+    49,
+    52,
+    57,
+    134,
+    135,
+    139,
+    146,
+    147,
+    148,
+    150,
+    152,
+    154,
+    157,
+    206,
+    208,
+    209,
+    211,
+    212,
+    215,
+    219,
+    220,
+    221,
+    229,
+    230,
+    2137,
+    2142,
+    2147,
+    2148,
+    2253,
+    2255,
+    2257,
+    2262,
+    2264,
+    3484,
+    3492,
+    3493,
+    3494,
+    3495,
+    3496,
+    3539,
+    3542,
+    3555,
+    3581,
+    3583,
+    3586,
+    3587,
+    3588,
+    3589,
+    3590,
+    3591,
+    3593,
+    3594,
+    3596,
+    3599,
+    3600,
+    3601,
+    3603,
+    3606,
+    3607,
+    3609
+  ],
+  "tasks": [
+    {
+      "dataset_name": "kr-vs-kp",
+      "n_classes": 2,
+      "n_features": 34,
+      "n_rows": 200,
+      "task_id": 3
+    },
+    {
+      "dataset_name": "credit-g",
+      "n_classes": 2,
+      "n_features": 20,
+      "n_rows": 200,
+      "task_id": 31
+    },
+    {
+      "dataset_name": "diabetes",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 37
+    },
+    {
+      "dataset_name": "haberman",
+      "n_classes": 2,
+      "n_features": 3,
+      "n_rows": 200,
+      "task_id": 42
+    },
+    {
+      "dataset_name": "tic-tac-toe",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 49
+    },
+    {
+      "dataset_name": "heart-statlog",
+      "n_classes": 2,
+      "n_features": 13,
+      "n_rows": 200,
+      "task_id": 52
+    },
+    {
+      "dataset_name": "ionosphere",
+      "n_classes": 2,
+      "n_features": 33,
+      "n_rows": 200,
+      "task_id": 57
+    },
+    {
+      "dataset_name": "BNG(kr-vs-kp)",
+      "n_classes": 2,
+      "n_features": 33,
+      "n_rows": 200,
+      "task_id": 134
+    },
+    {
+      "dataset_name": "BNG(labor,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 16,
+      "n_rows": 200,
+      "task_id": 135
+    },
+    {
+      "dataset_name": "BNG(breast-cancer,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 139
+    },
+    {
+      "dataset_name": "BNG(mushroom)",
+      "n_classes": 2,
+      "n_features": 21,
+      "n_rows": 200,
+      "task_id": 146
+    },
+    {
+      "dataset_name": "BNG(colic.ORIG,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 26,
+      "n_rows": 200,
+      "task_id": 147
+    },
+    {
+      "dataset_name": "BNG(colic,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 22,
+      "n_rows": 200,
+      "task_id": 148
+    },
+    {
+      "dataset_name": "BNG(credit-a,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 14,
+      "n_rows": 200,
+      "task_id": 150
+    },
+    {
+      "dataset_name": "BNG(credit-g,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 20,
+      "n_rows": 200,
+      "task_id": 152
+    },
+    {
+      "dataset_name": "BNG(cylinder-bands,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 36,
+      "n_rows": 200,
+      "task_id": 154
+    },
+    {
+      "dataset_name": "BNG(sick,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 24,
+      "n_rows": 200,
+      "task_id": 157
+    },
+    {
+      "dataset_name": "BNG(tic-tac-toe)",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 206
+    },
+    {
+      "dataset_name": "BNG(trains)",
+      "n_classes": 2,
+      "n_features": 26,
+      "n_rows": 200,
+      "task_id": 208
+    },
+    {
+      "dataset_name": "BNG(heart-statlog,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 13,
+      "n_rows": 200,
+      "task_id": 209
+    },
+    {
+      "dataset_name": "BNG(hepatitis,nominal,1000000)",
+      "n_classes": 2,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 211
+    },
+    {
+      "dataset_name": "BNG(vote)",
+      "n_classes": 2,
+      "n_features": 16,
+      "n_rows": 200,
+      "task_id": 212
+    },
+    {
+      "dataset_name": "BNG(ionosphere)",
+      "n_classes": 2,
+      "n_features": 33,
+      "n_rows": 200,
+      "task_id": 215
+    },
+    {
+      "dataset_name": "electricity",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 219
+    },
+    {
+      "dataset_name": "Hyperplane_10_1E-3",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 220
+    },
+    {
+      "dataset_name": "Hyperplane_10_1E-4",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 221
+    },
+    {
+      "dataset_name": "SEA(50)",
+      "n_classes": 2,
+      "n_features": 3,
+      "n_rows": 200,
+      "task_id": 229
+    },
+    {
+      "dataset_name": "SEA(50000)",
+      "n_classes": 2,
+      "n_features": 3,
+      "n_rows": 200,
+      "task_id": 230
+    },
+    {
+      "dataset_name": "BNG(labor)",
+      "n_classes": 2,
+      "n_features": 16,
+      "n_rows": 200,
+      "task_id": 2137
+    },
+    {
+      "dataset_name": "BNG(breast-w)",
+      "n_classes": 2,
+      "n_features": 9,
+      "n_rows": 200,
+      "task_id": 2142
+    },
+    {
+      "dataset_name": "BNG(colic.ORIG)",
+      "n_classes": 2,
+      "n_features": 26,
+      "n_rows": 200,
+      "task_id": 2147
+    },
+    {
+      "dataset_name": "BNG(colic)",
+      "n_classes": 2,
+      "n_features": 22,
+      "n_rows": 200,
+      "task_id": 2148
+    },
+    {
+      "dataset_name": "BNG(credit-a)",
+      "n_classes": 2,
+      "n_features": 15,
+      "n_rows": 200,
+      "task_id": 2253
+    },
+    {
+      "dataset_name": "BNG(credit-g)",
+      "n_classes": 2,
+      "n_features": 20,
+      "n_rows": 200,
+      "task_id": 2255
+    },
+    {
+      "dataset_name": "BNG(cylinder-bands)",
+      "n_classes": 2,
+      "n_features": 35,
+      "n_rows": 200,
+      "task_id": 2257
+    },
+    {
+      "dataset_name": "BNG(heart-statlog)",
+      "n_classes": 2,
+      "n_features": 13,
+      "n_rows": 200,
+      "task_id": 2262
+    },
+    {
+      "dataset_name": "BNG(hepatitis)",
+      "n_classes": 2,
+      "n_features": 19,
+      "n_rows": 200,
+      "task_id": 2264
+    },
+    {
+      "dataset_name": "oil_spill",
+      "n_classes": 2,
+      "n_features": 48,
+      "n_rows": 200,
+      "task_id": 3484
+    },
+    {
+      "dataset_name": "monks-problems-1",
+      "n_classes": 2,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 3492
+    },
+    {
+      "dataset_name": "monks-problems-2",
+      "n_classes": 2,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 3493
+    },
+    {
+      "dataset_name": "monks-problems-3",
+      "n_classes": 2,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 3494
+    },
+    {
+      "dataset_name": "SPECT",
+      "n_classes": 2,
+      "n_features": 22,
+      "n_rows": 200,
+      "task_id": 3495
+    },
+    {
+      "dataset_name": "SPECTF",
+      "n_classes": 2,
+      "n_features": 44,
+      "n_rows": 200,
+      "task_id": 3496
+    },
+    {
+      "dataset_name": "prnn_crabs",
+      "n_classes": 2,
+      "n_features": 7,
+      "n_rows": 200,
+      "task_id": 3539
+    },
+    {
+      "dataset_name": "analcatdata_lawsuit",
+      "n_classes": 2,
+      "n_features": 4,
+      "n_rows": 200,
+      "task_id": 3542
+    },
+    {
+      "dataset_name": "prnn_synth",
+      "n_classes": 2,
+      "n_features": 2,
+      "n_rows": 200,
+      "task_id": 3555
+    },
+    {
+      "dataset_name": "fri_c3_1000_25",
+      "n_classes": 2,
+      "n_features": 25,
+      "n_rows": 200,
+      "task_id": 3581
+    },
+    {
+      "dataset_name": "rmftsa_ladata",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 3583
+    },
+    {
+      "dataset_name": "abalone",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 3586
+    },
+    {
+      "dataset_name": "pwLinear",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 3587
+    },
+    {
+      "dataset_name": "pol",
+      "n_classes": 2,
+      "n_features": 26,
+      "n_rows": 200,
+      "task_id": 3588
+    },
+    {
+      "dataset_name": "fri_c4_1000_25",
+      "n_classes": 2,
+      "n_features": 25,
+      "n_rows": 200,
+      "task_id": 3589
+    },
+    {
+      "dataset_name": "analcatdata_vineyard",
+      "n_classes": 2,
+      "n_features": 3,
+      "n_rows": 200,
+      "task_id": 3590
+    },
+    {
+      "dataset_name": "bank8FM",
+      "n_classes": 2,
+      "n_features": 8,
+      "n_rows": 200,
+      "task_id": 3591
+    },
+    {
+      "dataset_name": "2dplanes",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 3593
+    },
+    {
+      "dataset_name": "analcatdata_supreme",
+      "n_classes": 2,
+      "n_features": 7,
+      "n_rows": 200,
+      "task_id": 3594
+    },
+    {
+      "dataset_name": "fri_c1_250_5",
+      "n_classes": 2,
+      "n_features": 5,
+      "n_rows": 200,
+      "task_id": 3596
+    },
+    {
+      "dataset_name": "machine_cpu",
+      "n_classes": 2,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 3599
+    },
+    {
+      "dataset_name": "ailerons",
+      "n_classes": 2,
+      "n_features": 33,
+      "n_rows": 200,
+      "task_id": 3600
+    },
+    {
+      "dataset_name": "cpu_small",
+      "n_classes": 2,
+      "n_features": 12,
+      "n_rows": 200,
+      "task_id": 3601
+    },
+    {
+      "dataset_name": "space_ga",
+      "n_classes": 2,
+      "n_features": 6,
+      "n_rows": 200,
+      "task_id": 3603
+    },
+    {
+      "dataset_name": "fri_c3_1000_10",
+      "n_classes": 2,
+      "n_features": 10,
+      "n_rows": 200,
+      "task_id": 3606
+    },
+    {
+      "dataset_name": "rmftsa_sleepdata",
+      "n_classes": 2,
+      "n_features": 2,
+      "n_rows": 200,
+      "task_id": 3607
+    },
+    {
+      "dataset_name": "fri_c1_1000_5",
+      "n_classes": 2,
+      "n_features": 5,
+      "n_rows": 200,
+      "task_id": 3609
+    }
+  ],
+  "version": 1
+}
