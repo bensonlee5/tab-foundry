@@ -55,6 +55,7 @@ dev = [
   "ruff>=0.6",
   "scikit-learn>=1.6",
   "torchinfo>=1.8",
+  "types-PyYAML>=6.0",
   "vulture>=2.14",
 ]
 
