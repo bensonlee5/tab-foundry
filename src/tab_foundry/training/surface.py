@@ -263,6 +263,18 @@ def build_training_surface_record(
             "prior_dump_non_finite_policy": str(
                 training_cfg.get("prior_dump_non_finite_policy", "error")
             ),
+            "prior_dump_batch_size": None
+            if training_cfg.get("prior_dump_batch_size") is None
+            else int(training_cfg["prior_dump_batch_size"]),
+            "prior_dump_lr_scale_rule": None
+            if training_cfg.get("prior_dump_lr_scale_rule") is None
+            else str(training_cfg["prior_dump_lr_scale_rule"]),
+            "prior_dump_batch_reference_size": None
+            if training_cfg.get("prior_dump_batch_reference_size") is None
+            else int(training_cfg["prior_dump_batch_reference_size"]),
+            "effective_lr_scale_factor": None
+            if training_cfg.get("effective_lr_scale_factor") is None
+            else float(training_cfg["effective_lr_scale_factor"]),
             "optimizer_name": None
             if optimizer_cfg is None or optimizer_cfg.get("name") is None
             else str(optimizer_cfg["name"]),

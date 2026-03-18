@@ -105,7 +105,7 @@ def test_tab_foundry_regressor_predicts_quantiles(
 
 @pytest.mark.parametrize(
     "mode",
-    ["none", "train_zscore", "train_zscore_clip"],
+    ["none", "train_zscore", "train_zscore_clip", "train_zscore_tanh"],
 )
 def test_tab_foundry_classifier_honors_checkpoint_input_normalization(
     monkeypatch: pytest.MonkeyPatch,

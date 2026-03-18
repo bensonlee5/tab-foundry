@@ -2,3 +2,6 @@ surface_label: training_default
 apply_schedule: false
 overrides: {}
 prior_dump_non_finite_policy: error
+prior_dump_batch_size: 32
+prior_dump_lr_scale_rule: none
+prior_dump_batch_reference_size: 32

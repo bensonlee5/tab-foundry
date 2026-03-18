@@ -8,6 +8,7 @@ from hypothesis.extra import numpy as hnp
 
 from tab_foundry.input_normalization import (
     _CLIP_VALUE,
+    _SMOOTH_TAIL_LIMIT,
     normalize_train_test_arrays,
     normalize_train_test_tensors,
     SUPPORTED_INPUT_NORMALIZATION_MODES,
@@ -28,6 +29,8 @@ _MODES_WITH_TRAIN_STATS = (
     "train_rankgauss",
     "train_robust",
     "train_winsorize_zscore",
+    "train_zscore_tanh",
+    "train_robust_tanh",
 )
 
 
@@ -192,3 +195,16 @@ def test_winsorize_clips_within_train_percentiles(data: tuple[np.ndarray, np.nda
     # Output should be finite (no NaN/Inf from division)
     assert np.all(np.isfinite(train_norm))
     assert np.all(np.isfinite(test_norm))
+
+
+@settings(deadline=None, max_examples=40)
+@given(data=_train_test_arrays(), mode=st.sampled_from(("train_zscore_tanh", "train_robust_tanh")))
+def test_smooth_tail_modes_are_bounded(data: tuple[np.ndarray, np.ndarray], mode: str) -> None:
+    x_train, x_test = data
+
+    train_np, test_np = normalize_train_test_arrays(x_train, x_test, mode=mode)
+
+    assert np.all(np.isfinite(train_np))
+    assert np.all(np.isfinite(test_np))
+    assert float(np.max(np.abs(train_np))) <= _SMOOTH_TAIL_LIMIT + 1.0e-6
+    assert float(np.max(np.abs(test_np))) <= _SMOOTH_TAIL_LIMIT + 1.0e-6

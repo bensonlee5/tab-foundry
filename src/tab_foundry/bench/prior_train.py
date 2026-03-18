@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
+import math
 import random
+import sys
 import time
 from pathlib import Path
 from typing import Any, Sequence, cast
@@ -20,7 +23,10 @@ from tab_foundry.bench.prior_dump import (
 )
 from tab_foundry.config import compose_config
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
+from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
+    ResolvedStageSurface,
+    resolve_staged_surface,
+)
 from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
 from tab_foundry.training.artifacts import (
     append_jsonl_record,
@@ -61,6 +67,15 @@ DEFAULT_BATCH_SIZE = 32
 DEFAULT_EXPERIMENT = "cls_benchmark_linear_simple_prior"
 _PRIOR_STAGE_NAME = "prior_dump"
 _DEFAULT_STAGED_PRIOR_WANDB_RUN_NAME = "cls-benchmark-staged-prior"
+_SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES = ("none", "sqrt", "linear")
+
+
+@dataclass(slots=True, frozen=True)
+class _PriorDumpBatchConfig:
+    batch_size: int
+    lr_scale_rule: str
+    reference_batch_size: int
+    effective_lr_scale_factor: float
 
 
 def _resolve_positive_int(value: object, *, name: str) -> int:
@@ -194,7 +209,78 @@ def _resolve_lr(cfg: DictConfig) -> float:
     return lr
 
 
-def _resolve_prior_schedule(cfg: DictConfig, *, max_steps: int, lr_min: float) -> StageConfig | None:
+def _resolve_prior_dump_batch_size(
+    cfg: DictConfig,
+    *,
+    override: int | None = None,
+) -> int:
+    if override is not None:
+        return _resolve_positive_int(override, name="batch_size")
+    training_cfg = getattr(cfg, "training", None)
+    raw_value = (
+        DEFAULT_BATCH_SIZE
+        if training_cfg is None
+        else getattr(training_cfg, "prior_dump_batch_size", DEFAULT_BATCH_SIZE)
+    )
+    return _resolve_positive_int(raw_value, name="training.prior_dump_batch_size")
+
+
+def _resolve_prior_dump_lr_scale_rule(cfg: DictConfig) -> str:
+    training_cfg = getattr(cfg, "training", None)
+    raw_value = (
+        "none"
+        if training_cfg is None
+        else getattr(training_cfg, "prior_dump_lr_scale_rule", "none")
+    )
+    normalized = str(raw_value).strip().lower()
+    if normalized not in _SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES:
+        raise ValueError(
+            "training.prior_dump_lr_scale_rule must be one of "
+            f"{_SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES}, got {raw_value!r}"
+        )
+    return normalized
+
+
+def _resolve_prior_dump_batch_reference_size(cfg: DictConfig) -> int:
+    training_cfg = getattr(cfg, "training", None)
+    raw_value = (
+        DEFAULT_BATCH_SIZE
+        if training_cfg is None
+        else getattr(training_cfg, "prior_dump_batch_reference_size", DEFAULT_BATCH_SIZE)
+    )
+    return _resolve_positive_int(raw_value, name="training.prior_dump_batch_reference_size")
+
+
+def _resolve_prior_dump_batch_config(
+    cfg: DictConfig,
+    *,
+    batch_size_override: int | None = None,
+) -> _PriorDumpBatchConfig:
+    batch_size = _resolve_prior_dump_batch_size(cfg, override=batch_size_override)
+    lr_scale_rule = _resolve_prior_dump_lr_scale_rule(cfg)
+    reference_batch_size = _resolve_prior_dump_batch_reference_size(cfg)
+    ratio = float(batch_size) / float(reference_batch_size)
+    if lr_scale_rule == "none":
+        factor = 1.0
+    elif lr_scale_rule == "sqrt":
+        factor = math.sqrt(ratio)
+    else:
+        factor = ratio
+    return _PriorDumpBatchConfig(
+        batch_size=batch_size,
+        lr_scale_rule=lr_scale_rule,
+        reference_batch_size=reference_batch_size,
+        effective_lr_scale_factor=float(factor),
+    )
+
+
+def _resolve_prior_schedule(
+    cfg: DictConfig,
+    *,
+    max_steps: int,
+    lr_min: float,
+    lr_scale_factor: float = 1.0,
+) -> StageConfig | None:
     training_cfg = getattr(cfg, "training", None)
     apply_schedule = bool(getattr(training_cfg, "apply_schedule", False))
     if not apply_schedule:
@@ -211,6 +297,15 @@ def _resolve_prior_schedule(cfg: DictConfig, *, max_steps: int, lr_min: float) -
     if len(stages) != 1:
         raise ValueError("exact-parity prior training currently supports exactly one schedule stage")
     stage = stages[0]
+    if lr_scale_factor <= 0.0:
+        raise ValueError(f"lr_scale_factor must be > 0, got {lr_scale_factor}")
+    stage = StageConfig(
+        name=str(stage.name),
+        steps=int(stage.steps),
+        lr_max=float(stage.lr_max) * float(lr_scale_factor),
+        lr_schedule=str(stage.lr_schedule),
+        warmup_ratio=float(stage.warmup_ratio),
+    )
     if int(stage.steps) != int(max_steps):
         raise ValueError(
             "exact-parity prior training requires schedule.stages[0].steps to equal runtime.max_steps; "
@@ -243,14 +338,16 @@ def _model_spec_from_cfg(cfg: DictConfig):
     )
 
 
-def _validate_prior_training_model_spec(spec: ModelBuildSpec) -> None:
+def _validate_prior_training_model_spec(
+    spec: ModelBuildSpec,
+) -> ResolvedStageSurface | None:
     if spec.arch not in {"tabfoundry_simple", "tabfoundry_staged"}:
         raise ValueError(
             "prior-dump training requires model.arch in {'tabfoundry_simple', 'tabfoundry_staged'}, "
             f"got {spec.arch!r}"
         )
     if spec.arch != "tabfoundry_staged":
-        return
+        return None
 
     surface = resolve_staged_surface(spec)
     if surface.head == "many_class":
@@ -258,6 +355,39 @@ def _validate_prior_training_model_spec(spec: ModelBuildSpec) -> None:
             "prior-dump training requires a staged recipe with forward_batched() tensor logits, "
             f"got model.stage={surface.stage!r}"
         )
+    return surface
+
+
+def _resolve_prior_training_device_name(
+    cfg: DictConfig,
+    *,
+    spec: ModelBuildSpec,
+    staged_surface: ResolvedStageSurface | None,
+) -> str:
+    requested_device = str(getattr(cfg.runtime, "device", "auto") or "auto").strip()
+    resolved_device = resolve_device(requested_device)
+    if (
+        resolved_device != "mps"
+        or spec.arch != "tabfoundry_staged"
+        or staged_surface is None
+        or staged_surface.row_pool != "row_cls"
+    ):
+        return resolved_device
+
+    row_pool_layers = int(staged_surface.row_pool_config.n_layers or 0)
+    if row_pool_layers <= 1:
+        return resolved_device
+
+    print(
+        "Warning: exact prior-dump training requested "
+        f"runtime.device={requested_device!r} resolved to 'mps', but staged "
+        f"row_pool='row_cls' with tfrow_n_layers={row_pool_layers} is unstable on MPS; "
+        "falling back to CPU for this run.",
+        file=sys.stderr,
+        flush=True,
+    )
+    cfg.runtime.device = "cpu"
+    return "cpu"
 
 
 def _stack_prior_step(
@@ -569,7 +699,7 @@ def train_tabfoundry_simple_prior(
     cfg: DictConfig,
     *,
     prior_dump_path: Path = DEFAULT_PRIOR_DUMP_PATH,
-    batch_size: int = DEFAULT_BATCH_SIZE,
+    batch_size: int | None = None,
 ) -> TrainResult:
     """Train an exact-parity staged/simple classifier on the nanoTabPFN prior dump."""
 
@@ -577,7 +707,7 @@ def train_tabfoundry_simple_prior(
         raise ValueError(f"prior-dump training requires task='classification', got {cfg.task!r}")
 
     spec = _model_spec_from_cfg(cfg)
-    _validate_prior_training_model_spec(spec)
+    staged_surface = _validate_prior_training_model_spec(spec)
     if str(cfg.runtime.mixed_precision).strip().lower() != "no":
         raise ValueError(
             "exact-parity prior-dump training requires runtime.mixed_precision='no', "
@@ -610,17 +740,48 @@ def train_tabfoundry_simple_prior(
     if grad_clip <= 0:
         raise ValueError(f"runtime.grad_clip must be > 0 for prior-dump training, got {grad_clip}")
 
-    lr_min = _resolve_lr(cfg)
+    prior_batch_config = _resolve_prior_dump_batch_config(cfg, batch_size_override=batch_size)
+    lr_min = _resolve_lr(cfg) * prior_batch_config.effective_lr_scale_factor
+    device = torch.device(
+        _resolve_prior_training_device_name(
+            cfg,
+            spec=spec,
+            staged_surface=staged_surface,
+        )
+    )
     model = build_model_from_spec(spec)
     enable_activation_trace = getattr(model, "enable_activation_trace", None)
     flush_activation_trace = getattr(model, "flush_activation_trace", None)
     if trace_activations and callable(enable_activation_trace):
         enable_activation_trace()
-    device = torch.device(resolve_device(str(cfg.runtime.device)))
     model.to(device)
     model.train()
     cfg.logging.run_name = _resolve_prior_wandb_run_name(cfg)
     raw_cfg = cast(dict[str, object], OmegaConf.to_container(cfg, resolve=True))
+    raw_training_cfg = raw_cfg.get("training")
+    if not isinstance(raw_training_cfg, dict):
+        raw_training_cfg = {}
+        raw_cfg["training"] = raw_training_cfg
+    raw_training_cfg["prior_dump_batch_size"] = int(prior_batch_config.batch_size)
+    raw_training_cfg["prior_dump_lr_scale_rule"] = str(prior_batch_config.lr_scale_rule)
+    raw_training_cfg["prior_dump_batch_reference_size"] = int(
+        prior_batch_config.reference_batch_size
+    )
+    raw_training_cfg["effective_lr_scale_factor"] = float(
+        prior_batch_config.effective_lr_scale_factor
+    )
+    raw_optimizer_cfg = raw_cfg.get("optimizer")
+    if isinstance(raw_optimizer_cfg, dict) and raw_optimizer_cfg.get("min_lr") is not None:
+        raw_optimizer_cfg["min_lr"] = float(lr_min)
+    raw_schedule_cfg = raw_cfg.get("schedule")
+    if isinstance(raw_schedule_cfg, dict):
+        raw_stages = raw_schedule_cfg.get("stages")
+        if isinstance(raw_stages, list):
+            for stage in raw_stages:
+                if isinstance(stage, dict) and stage.get("lr_max") is not None:
+                    stage["lr_max"] = float(stage["lr_max"]) * float(
+                        prior_batch_config.effective_lr_scale_factor
+                    )
     training_surface_path = output_dir / "training_surface_record.json"
     training_surface_payload = write_training_surface_record(
         training_surface_path,
@@ -650,7 +811,12 @@ def train_tabfoundry_simple_prior(
         prior_dump_non_finite_policy=prior_dump_non_finite_policy,
     )
 
-    prior_stage = _resolve_prior_schedule(cfg, max_steps=max_steps, lr_min=lr_min)
+    prior_stage = _resolve_prior_schedule(
+        cfg,
+        max_steps=max_steps,
+        lr_min=lr_min,
+        lr_scale_factor=prior_batch_config.effective_lr_scale_factor,
+    )
     initial_lr = (
         float(stage_base_lr(prior_stage, step=1, lr_min=lr_min))
         if prior_stage is not None
@@ -716,7 +882,7 @@ def train_tabfoundry_simple_prior(
     reader = PriorDumpTaskBatchReader(
         prior_dump_path,
         num_steps=max_steps,
-        batch_size=batch_size,
+        batch_size=prior_batch_config.batch_size,
         non_finite_policy=prior_dump_non_finite_policy,
         on_non_finite_batch=_record_non_finite_batch,
     )

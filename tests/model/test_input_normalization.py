@@ -5,6 +5,7 @@ import pytest
 import torch
 
 from tab_foundry.input_normalization import (
+    _SMOOTH_TAIL_LIMIT,
     _tensor_stats_dtype,
     normalize_train_test_arrays,
     normalize_train_test_tensors,
@@ -82,6 +83,45 @@ def test_train_winsorize_zscore_clips_at_percentiles() -> None:
     std_c0 = clipped_train[:, 0].std()
     expected = (clipped_test_col0 - mean_c0) / std_c0
     np.testing.assert_allclose(float(test_norm[0, 0]), expected, atol=1e-4)
+
+
+def test_train_zscore_tanh_uses_train_only_stats_and_bounded_smooth_tail() -> None:
+    x_train = np.asarray([[0.0], [2.0]], dtype=np.float32)
+    x_test = np.asarray([[1000.0]], dtype=np.float32)
+
+    train_norm, test_norm = normalize_train_test_arrays(
+        x_train,
+        x_test,
+        mode="train_zscore_tanh",
+    )
+
+    expected_train = np.asarray(
+        [
+            [-_SMOOTH_TAIL_LIMIT * np.tanh(1.0 / _SMOOTH_TAIL_LIMIT)],
+            [_SMOOTH_TAIL_LIMIT * np.tanh(1.0 / _SMOOTH_TAIL_LIMIT)],
+        ],
+        dtype=np.float32,
+    )
+    np.testing.assert_allclose(train_norm, expected_train, atol=1e-6)
+    assert float(test_norm[0, 0]) == pytest.approx(_SMOOTH_TAIL_LIMIT, abs=1.0e-4)
+
+
+def test_train_robust_tanh_uses_median_iqr_and_bounded_smooth_tail() -> None:
+    x_train = np.asarray([[1.0], [2.0], [3.0], [4.0], [5.0]], dtype=np.float32)
+    x_test = np.asarray([[25.0]], dtype=np.float32)
+
+    train_norm, test_norm = normalize_train_test_arrays(
+        x_train,
+        x_test,
+        mode="train_robust_tanh",
+    )
+
+    expected_raw_train = np.asarray([[-1.0], [-0.5], [0.0], [0.5], [1.0]], dtype=np.float32)
+    expected_train = (_SMOOTH_TAIL_LIMIT * np.tanh(expected_raw_train / _SMOOTH_TAIL_LIMIT)).astype(
+        np.float32,
+    )
+    np.testing.assert_allclose(train_norm, expected_train, atol=1e-6)
+    assert float(test_norm[0, 0]) == pytest.approx(2.9960823, abs=1.0e-4)
 
 
 def test_preserve_non_finite_normalizes_only_finite_values() -> None:

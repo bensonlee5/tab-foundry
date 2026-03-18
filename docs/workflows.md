@@ -470,79 +470,60 @@ Canonical sources of truth:
 
 Recommended loop:
 
-1. Inspect the next runnable row:
+1. Inspect the active sweep and the next runnable row:
 
    ```bash
+   uv run python scripts/system_delta_queue.py list
    uv run python scripts/system_delta_queue.py next
    ```
 
-1. Create the research package described in
-   `reference/system_delta_campaign_template.md`.
-
-1. Train the staged prior run with the queue row's preserved and changed
-   settings:
+1. Execute the active sweep's `ready` rows with the generic executor:
 
    ```bash
-   uv run python scripts/train_tabfoundry_staged_prior.py \
-     runtime.output_dir=<run_dir>
+   uv run python scripts/system_delta_execute.py
    ```
 
-   Use a fresh rerun directory such as
-   `outputs/staged_ladder/<run_id>_diag_v1/train`. The completed first-pass
-   `sd_binary_md_v1_*` outputs under `outputs/staged_ladder/` should be treated
-   as baseline evidence and left unchanged.
-
-1. Audit the existing first-pass scalar histories before selecting reruns:
+1. Re-run explicit rows, including already completed rows, when you need a fresh
+   canonical CUDA pass:
 
    ```bash
-   uv run python -m tab_foundry.bench.instability_audit \
-     --staged-ladder-root outputs/staged_ladder \
-     --sweep-id binary_md_v1
-   ```
-
-   This writes
-   `outputs/staged_ladder/reports/binary_md_v1_instability_audit.{json,md}` by
-   ranking the existing `sd_binary_md_v1_*/train/train_history.jsonl` runs and
-   joining any available benchmark summaries and result cards.
-
-1. Benchmark the run on the canonical binary surface:
-
-   ```bash
-   uv run python scripts/benchmark_nanotabpfn.py \
-     --tab-foundry-run-dir <run_dir> \
-     --out-root <benchmark_out_root> \
-     --control-baseline-id cls_benchmark_linear_v2 \
-     --control-baseline-registry src/tab_foundry/bench/control_baselines_v1.json \
-     --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json \
-     --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
-   ```
-
-1. Register the benchmark-facing run with sweep metadata:
-
-   ```bash
-   uv run python scripts/register_benchmark_run.py \
-     --run-id <run_id> \
-     --track system_delta_binary_medium_v1 \
-     --run-dir <run_dir> \
-     --comparison-summary <benchmark_out_root>/comparison_summary.json \
-     --experiment cls_benchmark_staged_prior \
-     --config-profile cls_benchmark_staged_prior \
-     --anchor-run-id 01_nano_exact_md_prior_parity_fix_binary_medium_v1 \
-     --control-baseline-id cls_benchmark_linear_v2 \
+   uv run python scripts/system_delta_execute.py \
      --sweep-id <sweep_id> \
-     --delta-id <delta_id> \
-     --queue-order <order> \
-     --run-kind primary \
-     --decision <keep|defer|reject> \
-     --conclusion "<one-line conclusion>"
+     --order <order> \
+     --include-completed
    ```
 
-1. Refresh the rendered matrix and validate the completed row:
+1. Promote the first executed row to the sweep anchor during an execution pass
+   when you are intentionally re-baselining the sweep:
 
    ```bash
-   uv run python scripts/system_delta_queue.py render
-   uv run python scripts/system_delta_queue.py validate
+   uv run python scripts/system_delta_execute.py \
+     --sweep-id <sweep_id> \
+     --order <order> \
+     --include-completed \
+     --promote-first-executed-row-to-anchor
    ```
+
+1. Promote a completed run after review when you want to update the sweep's
+   canonical anchor without rerunning the queue:
+
+   ```bash
+   uv run python scripts/system_delta_promote.py \
+     --sweep-id <sweep_id> \
+     --order <order>
+   ```
+
+1. Validate the rendered sweep metadata after execution or promotion:
+
+   ```bash
+   uv run python scripts/system_delta_queue.py render --sweep-id <sweep_id>
+   uv run python scripts/system_delta_queue.py validate --sweep-id <sweep_id>
+   ```
+
+Manual train, benchmark, and registry commands remain the advanced fallback when
+`system_delta_execute.py` is not flexible enough for a one-off debugging pass.
+Use the existing staged-prior, benchmark, and benchmark-registration scripts in
+that case, then rerender and validate the sweep metadata afterward.
 
 Every completed benchmark-facing row should leave behind:
 

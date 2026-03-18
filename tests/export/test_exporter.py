@@ -189,6 +189,21 @@ def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path)
     assert validated.manifest.model.input_normalization == "train_zscore"
 
 
+def test_export_bundle_accepts_smooth_tail_input_normalization(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_tanh.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore_tanh",
+    )
+    out_dir = tmp_path / "export_cls_tanh"
+
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+    validated = validate_export_bundle(out_dir)
+
+    assert validated.manifest.model.input_normalization == "train_zscore_tanh"
+
+
 def test_export_bundle_supports_explicit_v2(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt.pt"
     _ = _write_checkpoint(checkpoint, task="classification")
