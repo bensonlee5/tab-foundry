@@ -1,139 +1,15 @@
-schema: tab-foundry-system-delta-queue-v1
-generated_from_sweep_id: cuda_stability_followup
-catalog_path: reference/system_delta_catalog.yaml
-canonical_sweep_path: reference/system_delta_sweeps/cuda_stability_followup/sweep.yaml
-canonical_queue_path: reference/system_delta_sweeps/cuda_stability_followup/queue.yaml
-canonical_matrix_path: reference/system_delta_sweeps/cuda_stability_followup/matrix.md
+schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: cuda_stability_followup
-parent_sweep_id: cuda_capacity_pilot
-sweep_status: active
-complexity_level: binary_md
-anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
-benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
-control_baseline_id: cls_benchmark_linear_v2
-comparison_policy: anchor_only
-upstream_reference:
-  name: nanoTabPFN
-  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
-anchor_surface:
-  notes:
-  - This sweep exists because the first `cuda_capacity_pilot` large-anchor run drifted
-    upward in activation scale and was stopped before benchmark registration.
-  - Both batch64 diagnostics were also operationally confounded by first-attempt OOM
-    fallback to microbatch 32, so `batch32` is now the clean discriminator surface.
-  - Rows 1-4 all completed and underperformed the locked anchor on final log loss,
-    so this sweep still has no stable competitive large-anchor winner.
-  - A second batch64 no-scale attempt was stopped at step `2025` after continued activation
-    drift and `2026` first-attempt OOM retries, so batch64 remains backlog-only.
-  - 'Use an ordered ladder: `batch32` replay first, then lower LR on `batch32`, then
-    compare post-encoder `rmsnorm` and `layernorm` on the same `batch32` surface.'
-  - Keep `input_normalization` and capacity shape fixed; the goal is to stabilize
-    the existing large anchor, not to promote a new width/depth variant.
-  - Keep the earlier batch64 rows as deferred backlog evidence rather than the default
-    execution path until batch64 can be evaluated without constant fallback.
-  - Once one row is stably trainable, return to `cuda_capacity_pilot` and rerun the
-    blocked baseline before reading width or depth.
-  dimension_table:
-  - dimension: bridge architecture
-    upstream: The registered anchor remains the promoted prenorm plus row-cls bridge
-      recipe from the completed follow-up.
-    anchor: Keep the large CUDA base `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`,
-      `tfrow_cls_tokens=2`, `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`,
-      and `head_hidden_dim=1024` fixed across the ladder.
-    interpretation: This sweep is primarily a stability-surface investigation; it
-      is not reopening width or depth as a live axis.
-  - dimension: input normalization
-    upstream: The completed normalization follow-up promoted the clipped batch64 row,
-      and the no-normalization follow-up underperformed on the same systems surface.
-    anchor: Keep `train_zscore_clip` fixed across all rows.
-    interpretation: Any movement here should be attributed to batch/LR coupling, not
-      preprocessing.
-  - dimension: batch and LR coupling
-    upstream: The compact anchor promoted `prior_dump_batch_size=64` with sqrt LR
-      scaling relative to the batch32 reference surface.
-    anchor: Use `batch32` replay as the primary discriminator, then lower the LR ceiling
-      on the same `batch32` surface before revisiting any architecture-level change;
-      keep batch64 no-scale rows as deferred backlog only.
-    interpretation: Use this sweep to decide whether the large anchor only needs the
-      compact replay surface or a softer LR surface before any deeper structural change.
-  - dimension: post-encoder normalization
-    upstream: Upstream nanoTabPFN does not expose this exact staged post-encoder normalization
-      ladder on the large CUDA bridge path.
-    anchor: Keep `post_encoder_norm=none` on the schedule-only rows, then compare
-      `post_encoder_norm=rmsnorm` and `post_encoder_norm=layernorm` on the same batch32
-      replay surface if drift persists.
-    interpretation: Treat the norm-family rows as late-rung stabilization probes after
-      schedule-only batch32 evidence, not as the first response to the drift.
-  - dimension: execution policy
-    upstream: '`cuda_capacity_pilot` would normally benchmark row 1 before width/depth
-      probes.'
-    anchor: Treat rows 1-4 as an ordered stability gate and keep the batch64 rows
-      deferred unless the batch32 ladder settles or batch64 memory behavior becomes
-      interpretable.
-    interpretation: A row that still shows persistent activation drift is not sufficient
-      to unblock the capacity pilot even if the loss curve looks superficially acceptable.
-anchor_context:
-  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
-  experiment: cls_benchmark_staged_prior
-  config_profile: cls_benchmark_staged_prior
-  model:
-    arch: tabfoundry_staged
-    benchmark_profile: dpnb_input_norm_anchor_replay_batch64_sqrt
-    stage: nano_exact
-    stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
-    module_selection:
-      allow_test_self_attention: false
-      column_encoder: none
-      context_encoder: none
-      feature_encoder: nano
-      head: binary_direct
-      post_encoder_norm: none
-      row_pool: row_cls
-      table_block_style: prenorm
-      target_conditioner: mean_padded_linear
-      tokenizer: scalar_per_feature
-  surface_labels:
-    data: anchor_manifest_default
-    model: dpnb_input_norm_anchor_replay_batch64_sqrt
-    preprocessing: runtime_default
-    training: prior_linear_warmup_decay
 rows:
 - order: 1
-  delta_id: dpnb_cuda_large_anchor_batch32_replay
+  delta_ref: dpnb_cuda_large_anchor_batch32_replay
   status: completed
-  dimension_family: training
-  family: batch_size
-  binary_applicable: true
-  description: Re-run the large CUDA bridge anchor on the compact batch32 replay surface.
   rationale: Use the pre-batch64 replay surface as the cleanest discriminator after
     both batch64 diagnostics were confounded by activation drift and memory fallback.
   hypothesis: The large CUDA anchor may train cleanly on the batch32 replay surface
     even if both batch64 variants drift or need first-attempt OOM retry.
-  upstream_delta: Not applicable; this is a repo-local batch/LR-coupling probe on
-    the large CUDA anchor.
   anchor_delta: Keeps the large CUDA anchor fixed but reverts to `prior_dump_batch_size=32`,
     `prior_dump_lr_scale_rule=none`, and `prior_dump_batch_reference_size=32`.
-  entangled_legacy_stage: none
-  expected_effect: Reverting to the batch32 replay surface should show whether the
-    large CUDA anchor can train on the pre-batch64 baseline without reopening architecture.
-  adequacy_knobs:
-  - training.prior_dump_batch_size
-  - training.prior_dump_lr_scale_rule
-  - training.prior_dump_batch_reference_size
-  - training.overrides.optimizer.min_lr
-  - training.overrides.schedule.stages[0].lr_max
-  parameter_adequacy_policy:
-    default_plan:
-    - Compare against the batch64 no-scale row to separate pure LR-surface effects
-      from batch-size coupling.
-    - Treat this as the compact-surface replay for the large anchor, not as a new
-      canonical system unless it is both stable and competitive.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
   model:
     stage: nano_exact
     stage_label: dpnb_cuda_large_anchor_batch32_replay
@@ -222,42 +98,14 @@ rows:
     delta_final_brier_score: 0.07122265782757603
     delta_final_roc_auc: -0.19853001754053778
 - order: 2
-  delta_id: dpnb_cuda_large_anchor_batch32_lr3e3
+  delta_ref: dpnb_cuda_large_anchor_batch32_lr3e3
   status: completed
-  dimension_family: training
-  family: schedule
-  binary_applicable: true
-  description: Re-run the large CUDA bridge anchor on the compact batch32 replay surface
-    with a lower 3e-3 LR ceiling.
   rationale: If the clean batch32 replay still drifts, lower the LR ceiling before
     reopening architecture.
   hypothesis: A 3e-3 LR ceiling on the same batch32 replay surface may flatten upper-block
     growth without changing the large CUDA bridge architecture.
-  upstream_delta: Not applicable; this is a repo-local lower-LR neighbor on the batch32
-    replay surface for the large CUDA anchor.
   anchor_delta: Keeps the batch32 replay surface fixed but lowers `optimizer.min_lr`
     to `0.0003` and `schedule.lr_max` to `0.003`.
-  entangled_legacy_stage: none
-  expected_effect: If the baseline batch32 replay still drifts, a milder LR surface
-    may flatten upper-block norms without reopening architecture.
-  adequacy_knobs:
-  - training.prior_dump_batch_size
-  - training.prior_dump_lr_scale_rule
-  - training.prior_dump_batch_reference_size
-  - training.overrides.optimizer.min_lr
-  - training.overrides.schedule.stages[0].lr_max
-  parameter_adequacy_policy:
-    default_plan:
-    - Compare against the plain batch32 replay before attributing any stabilization
-      gain to architecture rather than LR.
-    - Keep the large CUDA anchor architecture fixed so this row isolates LR-surface
-      softness only.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
   model:
     stage: nano_exact
     stage_label: dpnb_cuda_large_anchor_batch32_lr3e3
@@ -344,40 +192,13 @@ rows:
     delta_final_brier_score: 0.07924541406844757
     delta_final_roc_auc: -0.3038642105749907
 - order: 3
-  delta_id: dpnb_cuda_large_anchor_batch32_postrms
+  delta_ref: dpnb_cuda_large_anchor_batch32_postrms
   status: completed
-  dimension_family: model
-  family: normalization
-  binary_applicable: true
-  description: Keep the large CUDA bridge anchor on the batch32 replay surface and
-    add explicit post-encoder RMSNorm before the transformer blocks.
   rationale: If the schedule-only batch32 rows still drift, try post-encoder RMSNorm
     as the first architecture-level stabilization probe.
   hypothesis: Adding `post_encoder_norm=rmsnorm` may re-anchor the transformer input
     scale on the large prenorm stack without changing the rest of the bridge surface.
-  upstream_delta: Upstream nanoTabPFN does not expose this exact staged post-encoder
-    normalization surface on the large CUDA bridge path.
   anchor_delta: Keeps the batch32 replay surface fixed but sets `model.module_overrides.post_encoder_norm=rmsnorm`.
-  entangled_legacy_stage: none
-  expected_effect: RMSNorm may bound transformer-input scale on the large prenorm
-    stack if the schedule-only batch32 rows still drift.
-  adequacy_knobs:
-  - model.module_overrides.post_encoder_norm
-  - training.prior_dump_batch_size
-  - training.overrides.optimizer.min_lr
-  - training.overrides.schedule.stages[0].lr_max
-  parameter_adequacy_policy:
-    default_plan:
-    - Compare against both batch32 schedule rows before attributing any gain to architecture
-      rather than LR softness.
-    - Keep the batch32 replay surface fixed so this row isolates post-encoder normalization
-      family effects.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
   model:
     stage: nano_exact
     stage_label: dpnb_cuda_large_anchor_batch32_postrms
@@ -465,40 +286,13 @@ rows:
     delta_final_brier_score: 0.0743060731756576
     delta_final_roc_auc: -0.21528004154883973
 - order: 4
-  delta_id: dpnb_cuda_large_anchor_batch32_postln
+  delta_ref: dpnb_cuda_large_anchor_batch32_postln
   status: completed
-  dimension_family: model
-  family: normalization
-  binary_applicable: true
-  description: Keep the large CUDA bridge anchor on the batch32 replay surface and
-    add explicit post-encoder LayerNorm before the transformer blocks.
   rationale: If RMSNorm is mixed or still drifts, run the direct LayerNorm comparator
     on the same batch32 surface.
   hypothesis: Adding `post_encoder_norm=layernorm` may stabilize the large prenorm
     stack more strongly than RMSNorm even if it rescales features more aggressively.
-  upstream_delta: Upstream nanoTabPFN does not expose this exact staged post-encoder
-    normalization surface on the large CUDA bridge path.
   anchor_delta: Keeps the batch32 replay surface fixed but sets `model.module_overrides.post_encoder_norm=layernorm`.
-  entangled_legacy_stage: none
-  expected_effect: LayerNorm is the direct norm-family comparator to the RMSNorm probe
-    if the first architecture-level stabilization row is mixed or still drifts.
-  adequacy_knobs:
-  - model.module_overrides.post_encoder_norm
-  - training.prior_dump_batch_size
-  - training.overrides.optimizer.min_lr
-  - training.overrides.schedule.stages[0].lr_max
-  parameter_adequacy_policy:
-    default_plan:
-    - Compare directly against the RMSNorm row on the same batch32 replay surface
-      before preferring one normalization family.
-    - Keep the batch32 replay surface fixed so any change is attributable to the post-encoder
-      norm choice.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
   model:
     stage: nano_exact
     stage_label: dpnb_cuda_large_anchor_batch32_postln
@@ -588,42 +382,15 @@ rows:
     delta_final_brier_score: 0.07270369200583601
     delta_final_roc_auc: -0.17934904042105426
 - order: 5
-  delta_id: dpnb_cuda_large_anchor_batch64_noscale
+  delta_ref: dpnb_cuda_large_anchor_batch64_noscale
   status: deferred_separate_workstream
-  dimension_family: training
-  family: schedule
-  binary_applicable: true
-  description: Re-run the large CUDA bridge anchor at batch64 without sqrt LR scaling.
-  rationale: Keep the batch64 no-scale probe as backlog evidence rather than the next
-    execution target because both no-scale diagnostics drifted and retried on essentially
-    every step.
+  rationale: Keep the batch64 no-scale probe as backlog evidence rather than
+    the next execution target because both no-scale diagnostics drifted and retried
+    on essentially every step.
   hypothesis: Removing sqrt LR scaling may still matter, but batch64 remains a confounded
     surface until it can run without constant first-attempt OOM fallback.
-  upstream_delta: Not applicable; this is a repo-local training-surface stabilization
-    probe on the large CUDA anchor.
   anchor_delta: Keeps the large CUDA anchor architecture fixed but removes sqrt LR
     scaling by setting `prior_dump_lr_scale_rule=none` and `prior_dump_batch_reference_size=64`.
-  entangled_legacy_stage: none
-  expected_effect: Lower effective LR should reduce activation drift if the copied
-    batch64-sqrt surface is the main trigger.
-  adequacy_knobs:
-  - training.prior_dump_batch_size
-  - training.prior_dump_lr_scale_rule
-  - training.prior_dump_batch_reference_size
-  - training.overrides.optimizer.min_lr
-  - training.overrides.schedule.stages[0].lr_max
-  parameter_adequacy_policy:
-    default_plan:
-    - Compare directly against the stopped batch64-sqrt large-anchor diagnostic before
-      reopening architecture.
-    - Use activation boundedness and clipping telemetry first, then benchmark quality
-      only after the row looks trainable.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
   model:
     stage: nano_exact
     stage_label: dpnb_cuda_large_anchor_batch64_noscale
@@ -669,8 +436,8 @@ rows:
   parameter_adequacy_plan:
   - Revisit only if the batch32 ladder settles or batch64 memory behavior becomes
     interpretable without first-attempt fallback.
-  - Compare against the archived batch64-sqrt and both archived batch64-no-scale diagnostics
-    before treating any future batch64 retry as new evidence.
+  - Compare against the archived batch64-sqrt and both archived batch64-no-scale
+    diagnostics before treating any future batch64 retry as new evidence.
   run_id: null
   followup_run_ids: []
   decision: null
@@ -681,48 +448,18 @@ rows:
   notes:
   - A stopped diagnostic archive exists at `sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch64_noscale_v1_stopped_activation_drift_20260318T233315Z`.
   - A second stopped diagnostic archive exists at `sd_cuda_stability_followup_05_dpnb_cuda_large_anchor_batch64_noscale_v1_stopped_activation_drift_20260319T043910Z`.
-  - The second attempted execution was stopped at step `2025` without benchmark registration
-    after continued activation drift and `2026` first-attempt OOM retries to `microbatch_size=32`.
+  - The second attempted execution was stopped at step `2025` without benchmark registration after continued activation drift and `2026` first-attempt OOM retries to `microbatch_size=32`.
   - Do not use this row as the default next execution target.
-  benchmark_metrics: null
 - order: 6
-  delta_id: dpnb_cuda_large_anchor_batch64_noscale_lr3e3
+  delta_ref: dpnb_cuda_large_anchor_batch64_noscale_lr3e3
   status: deferred_separate_workstream
-  dimension_family: training
-  family: schedule
-  binary_applicable: true
-  description: Re-run the large CUDA bridge anchor at batch64 without sqrt LR scaling
-    and with a lower 3e-3 LR ceiling.
   rationale: Keep the lower-LR batch64 neighbor as backlog evidence, not the default
     next run, because the underlying batch64 surface is still confounded by fallback
     behavior.
   hypothesis: Lowering LR may still help on batch64, but it is lower priority than
     resolving whether batch32 can train the large anchor cleanly.
-  upstream_delta: Not applicable; this is a repo-local lower-LR neighbor for the large-anchor
-    stability probe.
   anchor_delta: Keeps the large CUDA anchor and batch64 no-scale coupling from row
     5 but lowers `optimizer.min_lr` to `0.0003` and `schedule.lr_max` to `0.003`.
-  entangled_legacy_stage: none
-  expected_effect: Further reducing the LR surface should help if the no-scale row
-    is still too aggressive for the 12-layer CUDA anchor.
-  adequacy_knobs:
-  - training.prior_dump_batch_size
-  - training.prior_dump_lr_scale_rule
-  - training.prior_dump_batch_reference_size
-  - training.overrides.optimizer.min_lr
-  - training.overrides.schedule.stages[0].lr_max
-  parameter_adequacy_policy:
-    default_plan:
-    - Compare against the no-scale batch64 row before attributing any gain to architecture
-      rather than LR.
-    - Prefer this row only if it improves boundedness without paying an obvious quality
-      penalty.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
   model:
     stage: nano_exact
     stage_label: dpnb_cuda_large_anchor_batch64_noscale_lr3e3
@@ -782,4 +519,3 @@ rows:
     microbatch 32 on essentially every step.
   - Treat this as a backlog neighbor to the deferred batch64 no-scale row, not as
     the next active rung.
-  benchmark_metrics: null

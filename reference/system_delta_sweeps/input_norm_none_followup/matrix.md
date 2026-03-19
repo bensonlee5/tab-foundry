@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/input_norm_none_follow
 ## Sweep
 
 - Sweep id: `input_norm_none_followup`
-- Sweep status: `active`
+- Sweep status: `completed`
 - Parent sweep id: `input_norm_followup`
 - Complexity level: `binary_md`
 

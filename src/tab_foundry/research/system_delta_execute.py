@@ -155,13 +155,23 @@ def _materialized_row_map(*, sweep_id: str, paths: ExecutionPaths) -> dict[str, 
 
 def _apply_mapping(cfg: DictConfig, prefix: str, payload: Mapping[str, Any]) -> None:
     for key, value in payload.items():
-        OmegaConf.update(cfg, f"{prefix}.{key}", value, merge=True)
+        merge = not (
+            prefix == "model"
+            and key == "module_overrides"
+            and isinstance(value, Mapping)
+        )
+        OmegaConf.update(cfg, f"{prefix}.{key}", value, merge=merge)
+
+
+def _queue_aware_run_name(*, run_dir: Path) -> str:
+    return str(run_dir.parent.name if run_dir.name == "train" else run_dir.name)
 
 
 def _compose_cfg(*, row: Mapping[str, Any], run_dir: Path, device: str) -> DictConfig:
     cfg = compose_config([f"experiment={DEFAULT_EXPERIMENT}"])
     cfg.runtime.output_dir = str(run_dir.resolve())
     cfg.runtime.device = str(device)
+    cfg.logging.run_name = _queue_aware_run_name(run_dir=run_dir)
     _apply_mapping(cfg, "model", cast(Mapping[str, Any], row.get("model", {})))
     _apply_mapping(cfg, "data", cast(Mapping[str, Any], row.get("data", {})))
     _apply_mapping(cfg, "preprocessing", cast(Mapping[str, Any], row.get("preprocessing", {})))

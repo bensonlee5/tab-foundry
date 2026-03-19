@@ -11,6 +11,7 @@ import pytest
 from tab_foundry.research.system_delta import create_sweep
 from tab_foundry.research.system_delta_execute import (
     ExecutionPaths,
+    _compose_cfg,
     _queue_metrics,
     _result_card_text,
     execute_sweep,
@@ -217,6 +218,55 @@ def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pyt
     }
 
 
+def test_compose_cfg_sets_queue_aware_wandb_run_name(tmp_path: Path) -> None:
+    run_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / 'cuda_capacity_pilot'
+        / 'dpnb_cuda_large_anchor'
+        / 'sd_cuda_capacity_pilot_01_dpnb_cuda_large_anchor_v1'
+        / 'train'
+    )
+
+    cfg = _compose_cfg(
+        row={'model': {'stage_label': 'dpnb_cuda_large_anchor'}},
+        run_dir=run_dir,
+        device='cuda',
+    )
+
+    assert str(cfg.runtime.output_dir) == str(run_dir.resolve())
+    assert str(cfg.logging.run_name) == 'sd_cuda_capacity_pilot_01_dpnb_cuda_large_anchor_v1'
+    assert str(cfg.model.stage_label) == 'dpnb_cuda_large_anchor'
+
+
+def test_compose_cfg_replaces_module_overrides_to_allow_post_encoder_norm(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'outputs' / 'staged_ladder' / 'research' / 'cuda_stability_followup' / 'train'
+
+    cfg = _compose_cfg(
+        row={
+            'model': {
+                'module_overrides': {
+                    'table_block_style': 'prenorm',
+                    'allow_test_self_attention': False,
+                    'row_pool': 'row_cls',
+                    'post_encoder_norm': 'rmsnorm',
+                }
+            }
+        },
+        run_dir=run_dir,
+        device='cuda',
+    )
+
+    assert cfg.model.module_overrides == {
+        'table_block_style': 'prenorm',
+        'allow_test_self_attention': False,
+        'row_pool': 'row_cls',
+        'post_encoder_norm': 'rmsnorm',
+    }
+
+
 def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> None:
     (tmp_path / 'gradient_history.jsonl').write_text(
         ''.join(
@@ -311,4 +361,3 @@ def test_result_card_text_reports_log_loss_before_roc() -> None:
     assert '- Delta final log loss vs anchor: `-0.0110`' in text
     assert '- Final ROC AUC: `0.8040`' in text
     assert text.index('Best log loss') < text.index('Best ROC AUC')
-
