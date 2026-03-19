@@ -12,6 +12,9 @@ Structural rules:
 - keep roadmap-to-source justification and acceptance signals in `evidence.md`
 - add future repo notes or issue maps as standalone Markdown files in this
   directory and link them from this index
+- treat generated sweep queues and matrices as research-evidence surfaces that
+  may reflect diagnostic or historical PFN-adjacent work rather than the
+  normative architecture target
 
 Contents:
 
@@ -25,10 +28,12 @@ Contents:
 - `stage_research_sources.yaml`: pinned repo-local, sibling-workspace, and
   external reference manifest for research packages
 - `system_delta_sweeps/`: canonical sweep metadata, queue instances, and
-  rendered matrices
+  rendered matrices for research evidence; completed sweeps remain historical
+  evidence even when the roadmap direction moves on
 - `system_delta_queue.yaml`: generated active-sweep queue alias
 - `system_delta_matrix.md`: generated active-sweep matrix alias
 
 Keeping this material under one indexed home gives future architecture and
 benchmark work a stable citation surface without mixing research notes into the
-operator-facing docs.
+operator-facing docs. The live architecture source of truth still lives in
+`docs/development/`.
