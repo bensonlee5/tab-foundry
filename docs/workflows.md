@@ -24,34 +24,49 @@ policy.
 Setup:
 
 ```bash
+./scripts/dev bootstrap
+```
+
+`./scripts/dev bootstrap` wraps the canonical repo-local setup:
+
+```bash
 uv sync
 uv run pre-commit install
 ```
 
-`uv sync` is the canonical repo-local setup and includes the benchmark helper
-dependencies plus Muon through the dev environment. For a minimal non-dev
-install, opt into those optional surfaces explicitly:
+Repo-local `uv sync` includes the benchmark helper dependencies plus Muon
+through the dev environment. For a minimal non-dev install, opt into those
+optional surfaces explicitly:
 
 ```bash
 uv sync --no-dev --extra benchmark --extra muon
 ```
 
+Review the current diff against `origin/main` and run the smallest safe
+verification slice:
+
+```bash
+./scripts/dev review-base
+./scripts/dev verify affected
+```
+
 Run the full local quality gate:
 
 ```bash
-uv run pre-commit run --all-files
+./scripts/dev verify full
 ```
 
 Format markdown directly:
 
 ```bash
-uv run mdformat README.md docs reference CHANGELOG.md AGENTS.md
+./.venv/bin/mdformat AGENTS.md README.md CHANGELOG.md program.md docs reference
 ```
 
 CI workflow `test` runs two required jobs on pull requests and `main`:
 
-- `quality-and-unit`: `mdformat --check`, `ruff`, `mypy`, `pytest -q`
-- `iris-smoke`: the Iris-backed smoke harness with uploaded artifacts and markdown summary
+- `quality-and-unit`: `./scripts/dev verify full`
+- `iris-smoke`: `./scripts/dev smoke iris --out-root benchmarks/results/ci_iris_smoke`
+  plus uploaded artifacts and markdown summary
 
 Apply matching branch protection with:
 
@@ -205,7 +220,7 @@ Smoke and benchmark-style runs may also persist generated datasets, manifests, a
 Run the repo-local Iris-backed smoke harness:
 
 ```bash
-uv run tab-foundry bench smoke iris
+./scripts/dev smoke iris
 ```
 
 This generates manifest-compatible packed Iris tasks, trains a small classification checkpoint on CPU by default, evaluates it on the manifest test split, then runs the binary-Iris checkpoint benchmark.

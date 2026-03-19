@@ -1,0 +1,148 @@
+default_base_ref: origin/main
+
+path_rules:
+  - name: docs
+    subsystem: docs
+    globs:
+      - AGENTS.md
+      - README.md
+      - CHANGELOG.md
+      - docs/**
+      - reference/**
+      - program.md
+    checks:
+      - mdformat
+      - audit
+
+  - name: audit
+    subsystem: audit
+    globs:
+      - scripts/dev
+      - scripts/audit/**
+      - tests/audit/**
+      - docs/development/module-dependency-map.md
+    checks:
+      - audit
+      - pytest_audit
+
+  - name: data
+    subsystem: data
+    core: true
+    globs:
+      - src/tab_foundry/data/**
+      - tests/data/**
+    checks:
+      - ruff
+      - mypy
+      - pytest_data
+      - pytest_training
+      - pytest_smoke
+
+  - name: model
+    subsystem: model
+    core: true
+    globs:
+      - src/tab_foundry/model/**
+      - tests/model/**
+      - tests/property/**
+    checks:
+      - ruff
+      - mypy
+      - pytest_model
+      - pytest_training
+      - pytest_property
+      - pytest_smoke
+
+  - name: training
+    subsystem: training
+    core: true
+    globs:
+      - src/tab_foundry/training/**
+      - src/tab_foundry/preprocessing/**
+      - tests/training/**
+      - tests/runtime/**
+      - tests/smoke/**
+    checks:
+      - ruff
+      - mypy
+      - pytest_training
+      - pytest_runtime
+      - pytest_smoke
+
+  - name: export
+    subsystem: export
+    core: true
+    globs:
+      - src/tab_foundry/export/**
+      - tests/export/**
+    checks:
+      - ruff
+      - mypy
+      - pytest_export
+      - pytest_property
+
+  - name: bench
+    subsystem: bench
+    core: true
+    globs:
+      - src/tab_foundry/bench/**
+      - tests/benchmark/**
+    checks:
+      - ruff
+      - mypy
+      - pytest_benchmark
+      - pytest_smoke
+
+  - name: research
+    subsystem: research
+    core: true
+    globs:
+      - src/tab_foundry/research/**
+      - tests/research/**
+    checks:
+      - ruff
+      - mypy
+      - pytest_research
+      - pytest_benchmark
+
+  - name: cli-config
+    subsystem: cli-config
+    core: true
+    globs:
+      - src/tab_foundry/cli/**
+      - src/tab_foundry/__main__.py
+      - configs/**
+      - tests/cli/**
+      - tests/config/**
+    checks:
+      - ruff
+      - mypy
+      - pytest_cli
+      - pytest_config
+      - pytest_smoke
+
+full_verify:
+  checks:
+    - mdformat
+    - audit
+    - ruff
+    - mypy
+    - pytest_all
+
+full_verify_escalation:
+  any_changed:
+    - pyproject.toml
+    - uv.lock
+    - .pre-commit-config.yaml
+    - .github/workflows/test.yml
+  min_core_subsystems: 2
+  unmatched_paths: true
+
+companion_rules:
+  - name: version-and-changelog
+    when_any:
+      - src/tab_foundry/**
+    suggest_all:
+      - pyproject.toml
+      - CHANGELOG.md
+    message: Code changed under src/tab_foundry; confirm whether version and changelog updates are required.

@@ -10,22 +10,36 @@ Modular tabular prior-data fitted network training on `dagzoo` packed shard outp
 ## Setup
 
 ```bash
+./scripts/dev bootstrap
+```
+
+`./scripts/dev bootstrap` wraps the canonical repo-local setup:
+
+```bash
 uv sync
 uv run pre-commit install
 ```
 
-`uv sync` is the canonical repo-local setup and includes the benchmark helper
-dependencies plus Muon through the dev environment. For a minimal non-dev
-install, opt into the extra surfaces explicitly:
+Repo-local `uv sync` includes the benchmark helper dependencies plus Muon
+through the dev environment. For a minimal non-dev install, opt into the extra
+surfaces explicitly:
 
 ```bash
 uv sync --no-dev --extra benchmark --extra muon
 ```
 
-Run the local quality gate:
+Summarize the current diff against `origin/main` and run the smallest safe
+verification slice:
 
 ```bash
-uv run pre-commit run --all-files
+./scripts/dev review-base
+./scripts/dev verify affected
+```
+
+Run the full local quality gate:
+
+```bash
+./scripts/dev verify full
 ```
 
 ## Quickstart
@@ -67,7 +81,7 @@ uv run tab-foundry export validate \
 Run the Iris smoke harness:
 
 ```bash
-uv run tab-foundry bench smoke iris
+./scripts/dev smoke iris
 ```
 
 Repo-local `uv sync` includes Muon. If you are using a minimal install without

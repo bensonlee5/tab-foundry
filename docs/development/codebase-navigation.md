@@ -15,6 +15,8 @@ into the canonical library modules.
   `data`, `train`, `eval`, `export`, `bench`, and `research` workflows.
 - `scripts/`: shell convenience helpers plus audit tooling only. Python
   workflow entrypoints have been retired in favor of the packaged CLI.
+- `scripts/dev`: diff-aware repo-local review and verification wrapper that
+  delegates to the audit tooling and packaged CLI.
 
 ## 2. Canonical Library Areas
 
@@ -55,6 +57,8 @@ The repo uses three stable workflow layers:
   registry, and research-sweep flows.
 - Shell helpers under `scripts/*.sh` plus `scripts/audit/` as repo-local
   convenience and verification surfaces only.
+- `scripts/dev` as the canonical repo-local entrypoint for branch review,
+  affected-scope verification, full verification, and Iris smoke delegation.
 - Reference YAML/Markdown artifacts for the active system-delta sweep.
 
 Current canonical CLI namespaces:

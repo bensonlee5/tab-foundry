@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ./scripts/dev bootstrap
+  ./scripts/dev review-base [--base-ref <git-ref>]
+  ./scripts/dev verify affected [--base-ref <git-ref>]
+  ./scripts/dev verify audit
+  ./scripts/dev verify full
+  ./scripts/dev smoke iris [tab-foundry bench smoke iris args...]
+EOF
+}
+
+ensure_venv() {
+  if [[ ! -x "${REPO_ROOT}/.venv/bin/python" ]]; then
+    echo "Missing ${REPO_ROOT}/.venv/bin/python. Run ./scripts/dev bootstrap first." >&2
+    exit 1
+  fi
+}
+
+main() {
+  cd "${REPO_ROOT}"
+
+  local command="${1:-}"
+  case "${command}" in
+    ""|help|-h|--help)
+      usage
+      ;;
+    bootstrap)
+      shift
+      if [[ $# -ne 0 ]]; then
+        usage >&2
+        exit 1
+      fi
+      uv sync
+      uv run pre-commit install
+      ;;
+    review-base|verify)
+      ensure_venv
+      exec ./.venv/bin/python scripts/audit/dev_verify.py "$@"
+      ;;
+    smoke)
+      shift
+      local smoke_command="${1:-}"
+      case "${smoke_command}" in
+        iris)
+          shift
+          ensure_venv
+          exec ./.venv/bin/tab-foundry bench smoke iris "$@"
+          ;;
+        *)
+          usage >&2
+          exit 1
+          ;;
+      esac
+      ;;
+    *)
+      usage >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
