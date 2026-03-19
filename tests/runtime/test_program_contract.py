@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import tomllib
 
 from omegaconf import OmegaConf
 
@@ -54,6 +55,11 @@ def test_program_contract_has_required_policy_sections() -> None:
         "Agents should use optional sibling-workspace sources when available, but must",
         "generated compatibility aliases for the active sweep only",
         "Every benchmark-facing run belongs to exactly one `sweep_id`.",
+        "PFN control lane",
+        "hybrid diagnostic lane",
+        "canonical architecture-screen surface",
+        "Evidence collected only on the hybrid",
+        "`screen_only` rows are not benchmark-facing replacements for the anchor.",
     ]
     for statement in required_statements:
         assert statement in contents
@@ -114,6 +120,9 @@ def test_system_delta_campaign_template_has_required_fields() -> None:
         "`comparison_policy: anchor_only`",
         "`training_surface_record.json`",
         "`result_card.md`",
+        "`training_experiment`",
+        "`training_config_profile`",
+        "`surface_role`",
         "`accept_signal`",
         "`needs_followup`",
         "`unambiguously_worse`",
@@ -136,8 +145,15 @@ def test_workflows_runbook_reflects_system_delta_surface() -> None:
         "`cls_benchmark_linear_v2`",
         "`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`",
         "`training_surface_record.json`",
+        "`tab-foundry train prior staged`",
+        "`outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`",
+        "`outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json`",
         "`tab-foundry research sweep graph --anchor`",
         "Graphviz `dot`",
+        "PFN control lane",
+        "Hybrid diagnostic lane",
+        "Canonical architecture-screen surface",
+        "`screen_only` rows are diagnostic only.",
     ]
     for statement in required_statements:
         assert statement in contents
@@ -149,6 +165,25 @@ def test_workflows_runbook_reflects_system_delta_surface() -> None:
     ]
     for statement in forbidden_statements:
         assert statement not in contents
+
+
+def test_python_runtime_and_tooling_contracts_are_aligned() -> None:
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    workflows = (REPO_ROOT / "docs" / "workflows.md").read_text(encoding="utf-8")
+    ci_workflow = (REPO_ROOT / ".github" / "workflows" / "test.yml").read_text(encoding="utf-8")
+    python_version = (REPO_ROOT / ".python-version").read_text(encoding="utf-8").strip()
+
+    assert pyproject["project"]["requires-python"] == ">=3.14,<3.15"
+    assert pyproject["tool"]["ruff"]["target-version"] == "py314"
+    assert pyproject["tool"]["mypy"]["python_version"] == "3.14"
+    assert python_version == "3.14"
+    assert "Python `3.14`" in readme
+    assert "Python `3.14`" in workflows
+    assert 'python-version: "3.14"' in ci_workflow
+    assert "Python `3.13`" not in readme
+    assert "Python `3.13`" not in workflows
+    assert 'python-version: "3.13"' not in ci_workflow
 
 
 def test_model_config_documents_staged_override_surface() -> None:

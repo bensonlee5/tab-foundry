@@ -6,6 +6,9 @@ complexity_level: binary_md
 anchor_run_id: null
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
+training_experiment: cls_benchmark_staged_prior
+training_config_profile: cls_benchmark_staged_prior
+surface_role: hybrid_diagnostic
 comparison_policy: anchor_only
 upstream_reference:
   name: nanoTabPFN
@@ -16,8 +19,8 @@ anchor_surface:
   - It is a bridge sweep anchored on the old `delta_prenorm_block` contract so schedule evidence is attributable to prenorm itself.
   - The queue is intentionally wider than the earlier four-row draft because the goal is hyperparameter calibration, not only one binary schedule choice.
   - 'Concern #3 is promoted to first-class telemetry in wandb and `telemetry.json` via clipped-step, module-balance, and activation-window diagnostics.'
-  - 'The sweep is analytically complete: row 11 is the promoted bridge-surface default and row 12 is confirmatory evidence only.'
-  - Promotion is metadata-only on this machine because the winning artifacts were produced elsewhere; `anchor_run_id` remains unset until those artifacts are synced into the local benchmark registry.
+  - 'The sweep is analytically complete: row 11 is the locked hybrid-diagnostic default and row 12 is confirmatory evidence only.'
+  - Hybrid-diagnostic default registration is metadata-only on this machine because the winning artifacts were produced elsewhere; `anchor_run_id` remains unset until those artifacts are synced into the local benchmark registry.
   dimension_table:
   - dimension: feature encoder
     upstream: Same nano feature encoder path with internal benchmark normalization.

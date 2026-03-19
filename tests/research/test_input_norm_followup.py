@@ -71,6 +71,9 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     assert sweep["parent_sweep_id"] == "stability_followup"
     assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
+    assert sweep["training_experiment"] == "cls_benchmark_staged_prior"
+    assert sweep["training_config_profile"] == "cls_benchmark_staged_prior"
+    assert sweep["surface_role"] == "hybrid_diagnostic"
     assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged_prior"
     assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged_prior"
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
@@ -120,7 +123,7 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     assert baseline["benchmark_metrics"]["best_roc_auc"] == BASELINE_BEST_ROC_AUC
     assert baseline["benchmark_metrics"]["final_roc_auc"] == BASELINE_FINAL_ROC_AUC
     assert baseline["benchmark_metrics"]["drift"] == BASELINE_DRIFT
-    assert "promoted canonical anchor" in baseline["next_action"]
+    assert "locked hybrid-diagnostic anchor" in baseline["next_action"]
 
     zscore = _row_by_ref(queue, "dpnb_input_norm_zscore")
     assert zscore["model"]["input_normalization"] == "train_zscore"
@@ -169,7 +172,7 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     assert batch64["benchmark_metrics"]["final_roc_auc"] == BATCH64_FINAL_ROC_AUC
     assert batch64["benchmark_metrics"]["drift"] == BATCH64_DRIFT
     assert batch64["decision"] == "defer"
-    assert "canonical anchor" in batch64["next_action"]
+    assert "locked hybrid-diagnostic anchor" in batch64["next_action"]
     assert "1.4142" in batch64["notes"][0]
 
     batch16_tanh = _row_by_ref(queue, "dpnb_input_norm_zscore_tanh_batch16_sqrt")
@@ -207,6 +210,8 @@ def test_input_norm_followup_matrix_records_the_bridge_norm_and_batch_queue() ->
     assert "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1" in matrix
     assert "sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1" in matrix
     assert "dpnb_row_cls_cls2_linear_warmup_decay" in matrix
+    assert "Training experiment: `cls_benchmark_staged_prior`" in matrix
+    assert "Surface role: `hybrid_diagnostic`" in matrix
     assert "train_zscore_tanh" in matrix
     assert "0.7071" in matrix
     assert "1.4142" in matrix

@@ -8,7 +8,7 @@ version = "0.8.2"
 description = "Tabfoundry tabular foundation model training on dagzoo packed shard outputs"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.14,<3.15"
 dependencies = [
   "accelerate>=1.2",
   "graphviz>=0.20",
@@ -79,7 +79,7 @@ addopts = "-n auto --maxprocesses 8"
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py314"
 
 [tool.coverage.run]
 source = ["tab_foundry"]
@@ -92,7 +92,7 @@ fail_under = 80
 show_missing = true
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 warn_unused_configs = true
 ignore_missing_imports = true
 strict_equality = true

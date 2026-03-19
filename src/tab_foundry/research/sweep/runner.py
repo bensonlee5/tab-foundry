@@ -13,6 +13,11 @@ from tab_foundry.bench.benchmark_run_registry import register_benchmark_run
 from tab_foundry.bench.compare import NanoTabPFNBenchmarkConfig, run_nanotabpfn_benchmark
 from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.config import compose_config
+from tab_foundry.research.lane_contract import (
+    resolve_surface_role,
+    resolve_training_config_profile,
+    resolve_training_experiment,
+)
 from tab_foundry.research import system_delta
 from tab_foundry.research.system_delta_promote import promote_anchor
 
@@ -101,8 +106,14 @@ def _queue_aware_run_name(*, run_dir: Path) -> str:
     return str(run_dir.parent.name if run_dir.name == "train" else run_dir.name)
 
 
-def compose_cfg(*, row: Mapping[str, Any], run_dir: Path, device: str) -> DictConfig:
-    cfg = compose_config([f"experiment={DEFAULT_EXPERIMENT}"])
+def compose_cfg(
+    *,
+    row: Mapping[str, Any],
+    run_dir: Path,
+    device: str,
+    training_experiment: str = DEFAULT_EXPERIMENT,
+) -> DictConfig:
+    cfg = compose_config([f"experiment={training_experiment}"])
     cfg.runtime.output_dir = str(run_dir.resolve())
     cfg.runtime.device = str(device)
     cfg.logging.run_name = _queue_aware_run_name(run_dir=run_dir)
@@ -261,6 +272,9 @@ def run_row(
         queue_row=queue_row,
         materialized_row=materialized_row,
     )
+    training_experiment = resolve_training_experiment(sweep_meta)
+    training_config_profile = resolve_training_config_profile(sweep_meta)
+    surface_role = resolve_surface_role(sweep_meta)
     existing_run_id = queue_row.get("run_id")
     run_id = row_id_for_order(
         sweep_id,
@@ -281,7 +295,9 @@ def run_row(
         sweep_id=sweep_id,
         anchor_run_id=anchor_run_id,
         device=device,
-        training_experiment=DEFAULT_EXPERIMENT,
+        training_experiment=training_experiment,
+        training_config_profile=training_config_profile,
+        surface_role=surface_role,
     )
     if completed_train_artifacts_exist(train_dir):
         print(
@@ -291,7 +307,12 @@ def run_row(
             flush=True,
         )
     else:
-        cfg = compose_cfg(row=queue_row, run_dir=train_dir, device=device)
+        cfg = compose_cfg(
+            row=queue_row,
+            run_dir=train_dir,
+            device=device,
+            training_experiment=training_experiment,
+        )
         train_result = train_tabfoundry_simple_prior(cfg, prior_dump_path=prior_dump)
         print(
             f"[row {int(queue_row['order']):02d}] train complete",
@@ -339,8 +360,8 @@ def run_row(
     registration = register_benchmark_run(
         run_id=run_id,
         track=DEFAULT_TRACK,
-        experiment=DEFAULT_EXPERIMENT,
-        config_profile=DEFAULT_CONFIG_PROFILE,
+        experiment=training_experiment,
+        config_profile=training_config_profile,
         budget_class=DEFAULT_BUDGET_CLASS,
         run_dir=train_dir,
         comparison_summary_path=benchmark_dir / "comparison_summary.json",

@@ -5,6 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
+from tab_foundry.research.lane_contract import (
+    PFN_CONTROL_SURFACES,
+    resolve_surface_role,
+    resolve_training_config_profile,
+    resolve_training_experiment,
+)
+
 from .anchor import anchor_context_from_registry_run, anchor_training_surface_label, build_anchor_surface
 from .catalog import (
     SWEEP_QUEUE_SCHEMA,
@@ -20,6 +27,20 @@ from .validation import ensure_mapping, ensure_non_empty_string
 
 
 DEFAULT_SWEEP_STATUS = "draft"
+_STAGED_ONLY_MODEL_KEYS = ("stage", "stage_label", "module_overrides")
+
+
+def _sanitize_model_payload_for_training_experiment(
+    model_payload: Mapping[str, Any],
+    *,
+    training_experiment: str,
+) -> dict[str, Any]:
+    sanitized = cast(dict[str, Any], _copy_jsonable(cast(dict[str, Any], model_payload)))
+    if training_experiment not in PFN_CONTROL_SURFACES:
+        return sanitized
+    for key in _STAGED_ONLY_MODEL_KEYS:
+        sanitized.pop(key, None)
+    return sanitized
 
 
 def instantiate_queue_row(
@@ -30,6 +51,7 @@ def instantiate_queue_row(
     delta_id: str,
     delta_entry: Mapping[str, Any],
     anchor_context: Mapping[str, Any],
+    training_experiment: str,
 ) -> dict[str, Any]:
     status, interpretation_status, next_action_override = guarded_initial_state(
         delta_entry=delta_entry,
@@ -39,6 +61,10 @@ def instantiate_queue_row(
         dict[str, Any],
         _copy_jsonable(cast(dict[str, Any], delta_entry.get("default_effective_surface", {}))),
     )
+    model_payload = _sanitize_model_payload_for_training_experiment(
+        cast(dict[str, Any], default_effective_surface.get("model", {})),
+        training_experiment=training_experiment,
+    )
     parameter_policy = cast(dict[str, Any], delta_entry.get("parameter_adequacy_policy", {}))
     return {
         "order": int(order),
@@ -47,7 +73,7 @@ def instantiate_queue_row(
         "rationale": f"Contextualize `{delta_id}` against anchor `{anchor_run_id}` for sweep `{sweep_id}`.",
         "hypothesis": "",
         "anchor_delta": f"Delta description pending for `{delta_id}` against locked anchor `{anchor_run_id}`.",
-        "model": cast(dict[str, Any], _copy_jsonable(default_effective_surface.get("model", {}))),
+        "model": model_payload,
         "data": cast(dict[str, Any], _copy_jsonable(default_effective_surface.get("data", {}))),
         "preprocessing": cast(dict[str, Any], _copy_jsonable(default_effective_surface.get("preprocessing", {}))),
         "training": cast(
@@ -81,6 +107,9 @@ def create_sweep(
     complexity_level: str,
     benchmark_bundle_path: str,
     control_baseline_id: str,
+    training_experiment: str | None = None,
+    training_config_profile: str | None = None,
+    surface_role: str | None = None,
     delta_refs: Sequence[str] | None = None,
     index_path: Path | None = None,
     catalog_path: Path | None = None,
@@ -115,6 +144,36 @@ def create_sweep(
         sweep_status = "active"
         index["active_sweep_id"] = normalized_sweep_id
 
+    explicit_training_experiment = (
+        None
+        if training_experiment is None
+        else ensure_non_empty_string(training_experiment, context="training_experiment")
+    )
+    explicit_training_config_profile = (
+        None
+        if training_config_profile is None
+        else ensure_non_empty_string(training_config_profile, context="training_config_profile")
+    )
+    explicit_surface_role = (
+        None if surface_role is None else ensure_non_empty_string(surface_role, context="surface_role")
+    )
+    if explicit_training_experiment is None:
+        resolved_training_experiment = resolve_training_experiment(template_sweep)
+        derived_lane_context: Mapping[str, Any] = template_sweep
+    else:
+        resolved_training_experiment = explicit_training_experiment
+        derived_lane_context = {"training_experiment": resolved_training_experiment}
+    resolved_training_config_profile = (
+        resolve_training_config_profile(derived_lane_context)
+        if explicit_training_config_profile is None
+        else explicit_training_config_profile
+    )
+    resolved_surface_role = (
+        resolve_surface_role(derived_lane_context)
+        if explicit_surface_role is None
+        else explicit_surface_role
+    )
+
     sweep_payload = {
         "schema": SWEEP_SCHEMA,
         "sweep_id": normalized_sweep_id,
@@ -124,6 +183,9 @@ def create_sweep(
         "anchor_run_id": normalized_anchor_run_id,
         "benchmark_bundle_path": normalized_benchmark_bundle_path,
         "control_baseline_id": normalized_control_baseline_id,
+        "training_experiment": resolved_training_experiment,
+        "training_config_profile": resolved_training_config_profile,
+        "surface_role": resolved_surface_role,
         "comparison_policy": str(template_sweep.get("comparison_policy", "anchor_only")),
         "upstream_reference": cast(
             dict[str, Any],
@@ -159,6 +221,7 @@ def create_sweep(
             delta_id=delta_id,
             delta_entry=cast(dict[str, Any], deltas[delta_id]),
             anchor_context=anchor_context,
+            training_experiment=resolved_training_experiment,
         )
         for order, delta_id in enumerate(selected_delta_ids, start=1)
     ]

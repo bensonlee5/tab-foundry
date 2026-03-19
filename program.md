@@ -52,6 +52,8 @@ dimension family:
 - anchor benchmark: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_replay/sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1/benchmark`
 - canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - canonical control baseline id: `cls_benchmark_linear_v2`
+- canonical control source run: `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
+- canonical control source artifacts: `outputs/staged_ladder/01_nano_exact_md/prior_parity_fix` and `outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1`
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
@@ -65,6 +67,9 @@ dimension family:
 Keep these invariant by default:
 
 - prior-trained experiment family: `cls_benchmark_staged_prior`
+- PFN control lane: `tabfoundry_simple` plus `tabfoundry_staged` with `stage=nano_exact`
+- hybrid diagnostic lane: `cls_benchmark_staged_prior`
+- canonical architecture-screen surface for future benchmark-facing architecture work: `cls_benchmark_staged`
 - benchmark bundle path
 - control baseline id
 - history, checkpoint, benchmark, and `training_surface_record.json` artifact contracts
@@ -151,6 +156,12 @@ Use `reference/system_delta_campaign_template.md` and
 Agents should use optional sibling-workspace sources when available, but must
 be able to proceed from the required repo-local sources alone.
 
+Benchmark-facing conclusions must cite the locked bundle path,
+`cls_benchmark_linear_v2`, `training_surface_record.json`, `research_card.md`,
+`campaign.yaml`, and `result_card.md`. Evidence collected only on the hybrid
+diagnostic lane may guide diagnosis, but it is not by itself benchmark-facing
+promotion evidence for the architecture-screen surface.
+
 Every completed run must have a `training_surface_record.json` artifact. That
 record is the system-surface evidence source for:
 
@@ -186,7 +197,7 @@ For each queue row:
 1. Train on the locked anchor surface, changing only the declared dimension.
 1. Ensure the run has `training_surface_record.json`,
    `gradient_history.jsonl`, and `telemetry.json`.
-1. If `execution_policy=screen_only`, stop after recording screen metrics in the queue and rerender the matrix; skip benchmark registration and do not write `result_card.md`.
+1. If `execution_policy=screen_only`, stop after recording screen metrics in the queue and rerender the matrix; skip benchmark registration, do not write `result_card.md`, and treat the row as diagnostic only.
 1. If `execution_policy=benchmark_full`, benchmark on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
 1. If `execution_policy=benchmark_full`, register the benchmark-facing run in `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its `sweep_id`.
 1. If `execution_policy=benchmark_full`, write `result_card.md`.
@@ -205,6 +216,7 @@ uv run python -m tab_foundry.bench.instability_audit \
 ```
 
 This pass is attribution-first. No row becomes the new base during the sweep.
+`screen_only` rows are not benchmark-facing replacements for the anchor.
 
 ## Decisions
 

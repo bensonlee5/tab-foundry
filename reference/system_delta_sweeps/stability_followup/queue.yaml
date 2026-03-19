@@ -16,7 +16,7 @@ rows:
   parameter_adequacy_plan:
   - Use this row as the baseline comparator for every later row in the sweep.
   - Report benchmark ROC, best-to-final drift, clipped-step fraction, encoder/head gradient ratio windows, and activation windows.
-  - Do not treat this row as a new benchmark ceiling; it is the bridge baseline for future prenorm work.
+  - Do not treat this row as a new benchmark ceiling; it is the hybrid-diagnostic baseline for future prenorm work.
   model:
     stage: nano_exact
     stage_label: dpnb_baseline_cosine_warmup_2500
@@ -59,7 +59,7 @@ rows:
   rationale: >-
     Test whether plain linear decay reduces prenorm drift without any warmup.
   hypothesis: >-
-    Decay may improve checkpoint retention, but it can also reopen early clipped steps on the prenorm bridge surface.
+    Decay may improve checkpoint retention, but it can also reopen early clipped steps on the prenorm hybrid-diagnostic surface.
   anchor_delta: >-
     Keeps the bridge model fixed while switching to single-stage linear decay at lr_max=0.004 with no warmup.
   parameter_adequacy_plan:
@@ -159,7 +159,7 @@ rows:
   rationale: >-
     Probe whether lr_max=0.003 is a better prenorm neighborhood than the inherited 0.004 setting.
   hypothesis: >-
-    A slightly lower peak LR may reduce residual clipping and improve final retention if the bridge surface is still over-driven.
+    A slightly lower peak LR may reduce residual clipping and improve final retention if the hybrid-diagnostic surface is still over-driven.
   anchor_delta: >-
     Changes only lr_max/min_lr relative to row 3.
   parameter_adequacy_plan:
@@ -209,7 +209,7 @@ rows:
   rationale: >-
     Probe whether prenorm quality is currently peak-LR limited on the bridge surface.
   hypothesis: >-
-    A slightly higher peak LR may recover benchmark quality if row 3 is under-driving the bridge surface.
+    A slightly higher peak LR may recover benchmark quality if row 3 is under-driving the hybrid-diagnostic surface.
   anchor_delta: >-
     Changes only lr_max/min_lr relative to row 3.
   parameter_adequacy_plan:
@@ -558,10 +558,10 @@ rows:
   interpretation_status: completed
   confounders: []
   next_action: >-
-    Defer canonical anchor registration until the remote artifacts are synced locally;
-    until then, treat this as the metadata-only bridge-surface default.
+    Defer locked hybrid-diagnostic anchor registration until the remote artifacts are synced locally;
+    until then, treat this as the metadata-only hybrid-diagnostic default.
   notes:
-  - 'Matrix outcome: best/final ROC AUC 0.7650 with zero drift; row-cls cls2 is the promoted bridge-surface default.'
+  - 'Matrix outcome: best/final ROC AUC 0.7650 with zero drift; row-cls cls2 is the locked hybrid-diagnostic default.'
   - Remote artifacts were produced on a different machine, so local benchmark registry promotion is intentionally deferred.
 
 - order: 12
@@ -574,7 +574,7 @@ rows:
   anchor_delta: >-
     Keeps the bounded row-cls cls2 seed from row 11 and changes only warmup_ratio relative to that row from 0.05 to 0.10.
   parameter_adequacy_plan:
-  - Use this row as the single promotion confirmation row before changing the bridge-surface default.
+  - Use this row as the single promotion confirmation row before changing the locked hybrid-diagnostic default.
   - Compare directly against row 7 and row 11 on final ROC first, drift second, and stability diagnostics third.
   - Promote only if row-cls remains clearly ahead on final ROC without reintroducing material drift.
   model:

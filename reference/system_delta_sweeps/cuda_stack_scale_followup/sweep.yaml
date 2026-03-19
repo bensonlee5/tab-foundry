@@ -1,18 +1,21 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: cuda_stack_scale_followup
 parent_sweep_id: cuda_stability_followup
-status: active
+status: completed
 complexity_level: binary_md
 anchor_run_id: sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
+training_experiment: cls_benchmark_staged_prior
+training_config_profile: cls_benchmark_staged_prior
+surface_role: hybrid_diagnostic
 comparison_policy: anchor_only
 upstream_reference:
   name: nanoTabPFN
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-    - The locked anchor is the completed batch32 replay row from `cuda_stability_followup`, not the older batch64 promoted anchor.
+    - The locked anchor is the completed batch32 replay row from `cuda_stability_followup`, not the older batch64 hybrid-diagnostic anchor.
     - "This follow-up is stability-first: rows 1-4 are train-only screens on the same batch32 replay surface and intentionally skip benchmark registration."
     - The active question is whether a post-stack norm alone is enough, whether depth-scaled prenorm residuals are enough, or whether the combined row is required.
     - The row-5 norm winner is chosen from rows 2-3 by lower upper-block final-window mean first, then lower post-warmup slope, then lower clip rate, then lower final train-loss EMA, with RMSNorm winning any remaining tie.
