@@ -17,11 +17,11 @@ Related docs:
 
 ## Direction
 
-`tab-foundry` should not ossify around the current `tabfoundry` family as the
-final architecture identity.
+`tab-foundry` should not fragment across multiple live model families.
 
-The current `tabfoundry` family started from the TabICLv2 paper and adjacent
-references, but the repo should evolve through:
+The active architecture surface is now `tabfoundry_staged`, with
+`tabfoundry_simple` retained only as the frozen exact anchor. The repo should
+evolve through:
 
 - modular building blocks
 - explicit baseline comparisons against adjacent repos
@@ -37,7 +37,8 @@ intentionally deferred further still.
 - Scaling predictability comes first.
 - Classification remains the anchor workload until the scaling-oriented control
   family is stable.
-- Regression comes next, then missing-data prediction.
+- Regression is intentionally deferred until it can be rebuilt on top of
+  `tabfoundry_staged`.
 - Many-class expansion beyond maintenance, time series, text-conditioned inputs,
   and similar modalities are explicitly later work.
 - Benchmark gains matter, but they are a constraint and feedback signal rather
@@ -45,14 +46,13 @@ intentionally deferred further still.
 
 ## Enduring Decisions
 
-### Neutral Architecture Naming
+### Single Active Architecture Surface
 
-- Internal code should not assume `tabfoundry` is the long-term architecture
-  name.
-- Multiple model families should be able to coexist behind a shared builder or
-  factory surface.
-- The current `tabfoundry` export contract is a user-facing boundary, not the
-  final internal taxonomy.
+- Internal code should optimize for one active model-development surface:
+  `tabfoundry_staged`.
+- `tabfoundry_simple` remains only as the frozen compatibility anchor.
+- New feature work should not create a second live family unless it is planned
+  as an explicit replacement of `tabfoundry_staged`.
 
 ### Modular Model Construction
 
@@ -78,9 +78,11 @@ forking the repo. Core swap points include:
 The repo should keep the same role-based direction already started in code:
 
 - workflow tooling in `bench/`
-- Python files in `scripts/` should stay as thin wrappers into `bench/` or the
-  CLI rather than becoming a second home for benchmark logic
 - user-facing command surfaces in `cli/`
+- Python workflow entrypoints should live under the packaged CLI rather than
+  reappearing under `scripts/`
+- `scripts/` should stay limited to shell helpers and audit tooling rather than
+  becoming a second home for benchmark logic
 - reusable data, model, training, and export packages separated by role
 - canonical planning and repo-shape docs under `docs/development/`
 - stable operational docs such as `docs/workflows.md` and `docs/inference.md`
@@ -121,7 +123,7 @@ The end state should support:
 | Path | Intended role |
 | ---- | ------------- |
 | `src/tab_foundry/` | Stable top-level package namespace for CLI entrypoints, shared config resolution, and small cross-cutting helpers. |
-| `src/tab_foundry/cli/` and `src/tab_foundry/cli/commands/` | User-facing command surfaces and argument parsing. |
+| `src/tab_foundry/cli/` and `src/tab_foundry/cli/groups/` | User-facing command surfaces and nested argument parsing. |
 | `src/tab_foundry/bench/` | Smoke harnesses, benchmark utilities, comparison flows, plotting helpers, env bootstrap, and internal research harnesses. |
 | `src/tab_foundry/data/` and `src/tab_foundry/data/sources/` | Data package namespaces for reusable dataset abstractions, loaders, and registered task sources. Direct imports should target modules such as `tab_foundry.data.manifest`, `tab_foundry.data.dataset`, and `tab_foundry.data.factory`. |
 | `src/tab_foundry/model/` | Model package namespace. Direct imports should target submodules such as `tab_foundry.model.factory`, `tab_foundry.model.spec`, or family modules under `tab_foundry.model.architectures`. |
@@ -138,10 +140,11 @@ The end state should support:
 The intended dependency direction is:
 
 ```text
-cli/commands -> cli
-cli/commands -> bench
-cli/commands -> training/data/model/export
+cli/groups -> cli
+cli/groups -> bench/research
+cli/groups -> training/data/export
 bench -> training/data/model/export
+research -> bench/model/config
 training -> model/data
 export -> model
 model/architectures -> model/components
@@ -152,19 +155,19 @@ Notes:
 
 - `bench/` may depend on core library packages, but core library packages
   should not depend on `bench/`.
-- `cli/commands/` may orchestrate both `bench/` and core packages.
+- `cli/groups/` may orchestrate both `bench/`, `research/`, and core packages.
 - `src/tab_foundry/model/` is a namespace package. Direct imports should target
   stable submodules like `model.factory` and `model.spec`, while
   `model/components` and `model/architectures` carry the internal split.
-- Current export compatibility constraints around `tabfoundry` are part of the
-  boundary, but should not re-anchor internal architecture structure.
+- Current export compatibility constraints should follow the active staged and
+  simple classification surfaces, not a removed legacy family.
 
 ## Naming And Compatibility Guidance
 
-- Prefer neutral family ids over architecture names that assume permanence.
-- Use `tabfoundry` for the current family rather than a paper-derived,
-  versioned name.
-- Export and inference compatibility now follow the current family id; any
-  future rename must be planned as an explicit schema migration.
-- Optimize naming for future coexistence of multiple model families, data
-  sources, and baseline-inspired variants.
+- Prefer family ids that reflect current ownership and scope.
+- `tabfoundry_staged` is the active development family and
+  `tabfoundry_simple` is the frozen anchor.
+- Export and inference compatibility changes still require explicit schema
+  migration planning.
+- Optimize naming for clear role separation, not for keeping retired families
+  alive indefinitely.

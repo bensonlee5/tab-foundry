@@ -20,7 +20,6 @@ When the benchmark family changes, switch the sweep target with it:
 
 - binary classification: `final_log_loss`
 - multiclass classification: `final_log_loss`
-- regression: `final_crps`
 
 Supporting metrics are:
 
@@ -28,7 +27,6 @@ Supporting metrics are:
   `final_minus_best`
 - multiclass classification: `final_brier_score`, with ROC AUC retained only as
   a diagnostic when it is reported
-- regression: `final_avg_pinball_loss`, `final_picp_90`
 - training-time deltas versus the anchor
 - manifest and preprocessing surface deltas recorded in `training_surface_record.json`
 - loss/gradient instability evidence from `train_history.jsonl`,
@@ -118,9 +116,8 @@ The matrix must be rerendered from the active or selected sweep plus the
 canonical benchmark registry. Metrics belong in the registry, not duplicated in
 the queue.
 
-Use `scripts/system_delta_queue.py` to:
+Use `tab-foundry research sweep` to:
 
-- list sweeps and show the active sweep
 - create a new sweep or set a different active sweep
 - list rows in order
 - print the next `ready` row
@@ -205,7 +202,7 @@ This pass is attribution-first. No row becomes the new base during the sweep.
 
 Use these decisions:
 
-- `keep`: the row is isolated, evidence is at least neutral or improved on the task-family primary final metric (`final_log_loss` for classification bundles, `final_crps` for regression bundles), and the interpretation does not reveal unresolved confounding severe enough to block the signal
+- `keep`: the row is isolated, evidence is at least neutral or improved on the task-family primary final metric (`final_log_loss` for the current classification bundles), and the interpretation does not reveal unresolved confounding severe enough to block the signal
 - `defer`: evidence is mixed, the row is not isolated enough yet, or the introduced degrees of freedom have not been checked adequately
 - `reject`: only allowed when the row is isolated, the adequacy plan was completed, and the result is clearly worse without offsetting benefit
 

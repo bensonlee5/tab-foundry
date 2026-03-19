@@ -37,7 +37,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 ## Queue Summary
 
-| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
+| Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `delta_global_rmsnorm` | normalization | yes | ready | none | Keep the anchor structure fixed but switch the staged/global LayerNorm family to RMSNorm, including the row-pool norm override for completeness. | Train on the locked medium binary surface and benchmark against the v3 anchor. |
 
@@ -48,7 +48,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Keep the anchor structure fixed but switch the staged/global LayerNorm family to RMSNorm, including the row-pool norm override for completeness.
 - Rationale: Test bias removal (baked into QASS and shared encoder layers) combined with global RMSNorm on the promoted shared+LayerNorm anchor.
 - Hypothesis: RMSNorm may improve optimization stability, and bias removal provides mild regularization by eliminating redundant parameters behind pre-norm layers.

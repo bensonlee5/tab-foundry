@@ -198,7 +198,7 @@ def test_build_training_surface_record_marks_missing_inputs_when_manifest_is_dir
     record = build_training_surface_record(
         raw_cfg={
             "task": "classification",
-            "model": {"arch": "tabfoundry"},
+            "model": {"arch": "tabfoundry_staged"},
             "data": {
                 "source": "manifest",
                 "manifest_path": str(manifest_path),
@@ -255,7 +255,7 @@ def test_build_training_surface_record_marks_legacy_manifest_missingness_as_unkn
     record = build_training_surface_record(
         raw_cfg={
             "task": "classification",
-            "model": {"arch": "tabfoundry"},
+            "model": {"arch": "tabfoundry_staged"},
             "data": {
                 "source": "manifest",
                 "manifest_path": str(manifest_path),
@@ -277,7 +277,7 @@ def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_v
     overridden_record = build_training_surface_record(
         raw_cfg={
             "task": "classification",
-            "model": {"arch": "tabfoundry"},
+            "model": {"arch": "tabfoundry_staged"},
             "data": {
                 "source": "manifest",
                 "manifest_path": str(manifest_path),
@@ -294,7 +294,7 @@ def test_build_training_surface_record_uses_row_cap_overrides_before_top_level_v
     fallback_record = build_training_surface_record(
         raw_cfg={
             "task": "classification",
-            "model": {"arch": "tabfoundry"},
+            "model": {"arch": "tabfoundry_staged"},
             "data": {
                 "source": "manifest",
                 "manifest_path": str(manifest_path),
@@ -377,7 +377,7 @@ def test_build_training_surface_record_captures_prior_dump_batch_scaling_metadat
     record = build_training_surface_record(
         raw_cfg={
             "task": "classification",
-            "model": {"arch": "tabfoundry"},
+            "model": {"arch": "tabfoundry_staged"},
             "training": {
                 "surface_label": "prior_linear_warmup_decay",
                 "apply_schedule": True,

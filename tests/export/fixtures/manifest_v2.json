@@ -7,7 +7,8 @@
   },
   "task": "classification",
   "model": {
-    "arch": "tabfoundry",
+    "arch": "tabfoundry_staged",
+    "stage": "nano_exact",
     "d_col": 128,
     "d_icl": 512,
     "feature_group_size": 1,

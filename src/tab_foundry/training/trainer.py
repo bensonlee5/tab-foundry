@@ -2,22 +2,18 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 import math
 from pathlib import Path
 import time
-from typing import Any, Mapping, cast
+from typing import Any, cast
 
-from accelerate import Accelerator
 import torch
-from torch.utils.data import DataLoader
 from omegaconf import DictConfig, OmegaConf
 
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
-from tab_foundry.model.architectures.tabfoundry import ClassificationOutput, RegressionOutput
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
-from tab_foundry.types import TaskBatch, TrainResult
+from tab_foundry.types import TrainResult
 
 from .artifacts import (
     append_history_record,
@@ -27,288 +23,31 @@ from .artifacts import (
     save_checkpoint,
 )
 from .batching import move_batch
-from .distributed import _global_mean_from_local, _reduction_float_dtype
+from .distributed import _reduction_float_dtype
 from .instability import normalize_grad_norm_value, total_grad_norm, train_loss_delta, update_loss_ema
-from .losses import classification_loss, hierarchical_nll_loss, quantile_pinball_loss
 from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
 from .schedule import build_stage_configs, stage_base_lr
 from .surface import write_training_surface_record
+from .trainer_metrics import (
+    _compute_loss_and_metrics,
+    _evaluate_loader,
+    _expected_metric_keys,
+    cycle_loader,
+)
+from .trainer_optimizer import (
+    _optimizer_lr_scales,
+    _set_optimizer_base_lr,
+    _set_optimizer_training_mode,
+)
+from .trainer_runtime_config import (
+    _checkpoint_every,
+    _resolve_grad_accum_steps,
+    _resolve_max_steps,
+    _resolve_target_train_seconds,
+)
+from .trainer_summary import _trainer_summary_payload
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
-
-
-def _cycle(loader: DataLoader[TaskBatch]) -> Iterator[TaskBatch]:
-    while True:
-        yield from loader
-
-
-def _compute_loss_and_metrics(
-    output: ClassificationOutput | RegressionOutput,
-    batch: TaskBatch,
-    *,
-    task: str,
-) -> tuple[torch.Tensor, dict[str, float]]:
-    if task == "classification":
-        if not isinstance(output, ClassificationOutput):
-            raise TypeError("classification run expected ClassificationOutput")
-        n_test = int(batch.y_test.shape[0])
-        if n_test <= 0:
-            raise RuntimeError("classification batch has zero test labels")
-
-        if output.logits is not None:
-            logits = output.logits[:, : output.num_classes]
-            target = batch.y_test.to(torch.int64)
-            loss = classification_loss(logits, target)
-            acc = (logits.argmax(dim=-1) == target).float().mean().item()
-            cls_metrics = {"acc": float(acc)}
-            if output.aux_metrics is not None:
-                cls_metrics.update(output.aux_metrics)
-            return loss, cls_metrics
-
-        if output.class_probs is not None:
-            probs = output.class_probs
-            target = batch.y_test.to(torch.int64)
-            loss = hierarchical_nll_loss(probs, target)
-            acc = (probs.argmax(dim=-1) == target).float().mean().item()
-            cls_metrics = {"acc": float(acc)}
-            if output.aux_metrics is not None:
-                cls_metrics.update(output.aux_metrics)
-            return loss, cls_metrics
-
-        if output.path_logits is None or output.path_targets is None:
-            raise RuntimeError("many-class output missing class_probs and path terms")
-        if len(output.path_logits) != len(output.path_targets):
-            raise RuntimeError("path_logits and path_targets length mismatch")
-
-        counts = (
-            output.path_sample_counts
-            if output.path_sample_counts is not None
-            else [int(logits.shape[0]) for logits in output.path_logits]
-        )
-        if len(counts) != len(output.path_logits):
-            raise RuntimeError("path_sample_counts length mismatch")
-        weighted_total: torch.Tensor | None = None
-        total_edges = 0
-        for logits, targets, sample_count in zip(
-            output.path_logits, output.path_targets, counts, strict=True
-        ):
-            count_i = int(sample_count)
-            if count_i <= 0:
-                continue
-            term = classification_loss(logits, targets.to(torch.int64))
-            contrib = term * float(count_i)
-            weighted_total = contrib if weighted_total is None else weighted_total + contrib
-            total_edges += count_i
-        if weighted_total is None or total_edges <= 0 or n_test <= 0:
-            raise RuntimeError("path-based many-class output has no valid terms")
-        loss = weighted_total / float(n_test)
-        path_metrics: dict[str, float] = {}
-        if output.aux_metrics is not None:
-            path_metrics.update(output.aux_metrics)
-        return loss, path_metrics
-
-    if not isinstance(output, RegressionOutput):
-        raise TypeError("regression run expected RegressionOutput")
-    target = batch.y_test.to(torch.float32)
-    levels = output.quantile_levels
-    if levels is None:
-        levels = torch.arange(1, 1000, device=target.device, dtype=torch.float32) / 1000.0
-    loss = quantile_pinball_loss(output.quantiles, target, quantile_levels=levels)
-    pred_mean = output.quantiles.mean(dim=-1)
-    rmse = torch.sqrt(torch.mean((pred_mean - target) ** 2)).item()
-    return loss, {"rmse": float(rmse)}
-
-
-def _evaluate_loader(
-    model: torch.nn.Module,
-    loader: DataLoader[TaskBatch],
-    *,
-    accelerator: Accelerator,
-    task: str,
-    max_batches: int,
-) -> dict[str, float]:
-    model.eval()
-    loss_sum = 0.0
-    score_sum = 0.0
-    count = 0
-    metric_name = "acc" if task == "classification" else "rmse"
-
-    with torch.no_grad():
-        for step, batch in enumerate(loader):
-            if step >= max_batches:
-                break
-            batch = move_batch(batch, accelerator.device)
-            with accelerator.autocast():
-                output = model(batch)
-                loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-            loss_sum += float(loss.detach().item())
-            score_sum += float(metrics[metric_name])
-            count += 1
-
-    model.train()
-    dev = accelerator.device
-    val_loss = _global_mean_from_local(
-        accelerator, local_sum=loss_sum, local_count=count, device=dev, default=float("inf"),
-    )
-    val_score = _global_mean_from_local(
-        accelerator, local_sum=score_sum, local_count=count, device=dev, default=0.0,
-    )
-    return {"val_loss": val_loss, metric_name: val_score}
-
-
-def _resolve_grad_accum_steps(cfg: DictConfig) -> int:
-    value = int(getattr(cfg, "grad_accum_steps", 1))
-    if value <= 0:
-        raise ValueError(f"runtime.grad_accum_steps must be >= 1, got {value}")
-    return value
-
-
-def _checkpoint_every(cfg: DictConfig) -> int | None:
-    raw_value = getattr(cfg, "checkpoint_every", None)
-    if raw_value is None:
-        return None
-    value = int(raw_value)
-    if value <= 0:
-        raise ValueError(f"runtime.checkpoint_every must be >= 1, got {value}")
-    return value
-
-
-def _resolve_max_steps(runtime_cfg: DictConfig) -> int | None:
-    raw_value = getattr(runtime_cfg, "max_steps", None)
-    if raw_value is None:
-        return None
-    value = int(raw_value)
-    if value <= 0:
-        raise ValueError(f"runtime.max_steps must be >= 1, got {value}")
-    return value
-
-
-def _resolve_target_train_seconds(runtime_cfg: DictConfig) -> float | None:
-    raw_value = getattr(runtime_cfg, "target_train_seconds", None)
-    if raw_value is None:
-        return None
-    value = float(raw_value)
-    if value <= 0:
-        raise ValueError(f"runtime.target_train_seconds must be > 0, got {value}")
-    return value
-
-
-def _optimizer_lr_scales(
-    optimizer: torch.optim.Optimizer,
-    *,
-    base_lr: float,
-) -> list[float]:
-    if base_lr <= 0:
-        return [1.0 for _ in optimizer.param_groups]
-    return [float(group["lr"]) / float(base_lr) for group in optimizer.param_groups]
-
-
-def _set_optimizer_base_lr(
-    optimizer: torch.optim.Optimizer,
-    *,
-    base_lr: float,
-    scales: list[float],
-) -> None:
-    if len(scales) != len(optimizer.param_groups):
-        raise RuntimeError("lr scales count does not match optimizer param groups")
-    for group, scale in zip(optimizer.param_groups, scales, strict=True):
-        group["lr"] = float(base_lr) * float(scale)
-
-
-def _set_optimizer_training_mode(
-    prepared_opts: list[tuple[str, torch.optim.Optimizer]],
-    *,
-    training: bool,
-) -> None:
-    method_name = "train" if training else "eval"
-    for _name, optimizer in prepared_opts:
-        method = getattr(optimizer, method_name, None)
-        if callable(method):
-            method()
-
-
-def _expected_metric_keys(task: str) -> set[str]:
-    if task == "classification":
-        return {
-            "acc",
-            "grad_norm",
-            "many_class_nodes_visited",
-            "many_class_avg_path_depth",
-            "many_class_empty_nodes",
-        }
-    return {"rmse", "grad_norm"}
-
-
-def _trainer_summary_payload(
-    *,
-    output_dir: Path,
-    optimizer_requested_name: str,
-    optimizer_resolved_name: str,
-    optimizer_fallback_reason: str | None,
-    global_step: int,
-    best_checkpoint: Path | None,
-    latest_checkpoint: Path | None,
-    best_val: float,
-    best_val_step: float,
-    final_train_loss: float | None,
-    final_train_loss_ema: float | None,
-    last_train_metrics: Mapping[str, float] | None,
-    last_val_metrics: dict[str, float] | None,
-    final_grad_norm: float,
-    grad_norm_sum: float,
-    grad_norm_count: int,
-    max_grad_norm: float,
-    train_elapsed_seconds: float,
-    wall_elapsed_seconds: float,
-    nan_skip_count: int = 0,
-    error: BaseException | None = None,
-) -> dict[str, Any]:
-    def _summary_float(value: float | None) -> float | None:
-        if value is None:
-            return None
-        value_f = float(value)
-        return value_f if math.isfinite(value_f) else None
-
-    metrics_payload: dict[str, float | None] = {
-        "best_val_loss": float(best_val),
-        "best_val_step": float(best_val_step) if best_val_step > 0 else None,
-        "final_train_loss": _summary_float(final_train_loss),
-        "final_train_loss_ema": _summary_float(final_train_loss_ema),
-        "final_val_loss": None
-        if last_val_metrics is None
-        else _summary_float(last_val_metrics.get("val_loss")),
-        "final_grad_norm": float(final_grad_norm),
-        "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
-        "max_grad_norm": float(max_grad_norm),
-        "train_elapsed_seconds": float(train_elapsed_seconds),
-        "wall_elapsed_seconds": float(wall_elapsed_seconds),
-        "nan_skip_count": float(nan_skip_count),
-    }
-    if last_train_metrics is not None:
-        final_train_acc = _summary_float(last_train_metrics.get("acc"))
-        if final_train_acc is not None:
-            metrics_payload["final_train_acc"] = final_train_acc
-        final_train_rmse = _summary_float(last_train_metrics.get("rmse"))
-        if final_train_rmse is not None:
-            metrics_payload["final_train_rmse"] = final_train_rmse
-
-    summary: dict[str, Any] = {
-        "optimizer": {
-            "requested_name": optimizer_requested_name,
-            "resolved_name": optimizer_resolved_name,
-            "fallback_reason": optimizer_fallback_reason,
-        },
-        "run": {
-            "output_dir": str(output_dir),
-            "global_step": int(global_step),
-            "best_checkpoint": None if best_checkpoint is None else str(best_checkpoint.resolve()),
-            "latest_checkpoint": None if latest_checkpoint is None else str(latest_checkpoint.resolve()),
-        },
-        "metrics": metrics_payload,
-    }
-    if error is not None:
-        summary["error"] = {"type": type(error).__name__, "message": str(error)}
-    return summary
 
 
 def train(cfg: DictConfig) -> TrainResult:
@@ -384,7 +123,7 @@ def train(cfg: DictConfig) -> TrainResult:
     stage_configs = build_stage_configs(raw_stages)
     if not stage_configs:
         raise RuntimeError("schedule.stages must contain at least one stage")
-    train_iter = _cycle(train_loader)
+    train_iter = cycle_loader(train_loader)
 
     first_stage = stage_configs[0]
     optimizer_sel = build_optimizer(

@@ -11,12 +11,10 @@ These are the user-facing or repo-local control surfaces that bridge commands
 into the canonical library modules.
 
 - `src/tab_foundry/__main__.py`: packaged CLI entrypoint for `tab-foundry`.
-- `src/tab_foundry/cli/`: parser assembly and command dispatch for
-  manifest-backed build, train, eval, export, and validate-export flows.
-- `scripts/`: thin repo-local wrappers for smoke, tuning, benchmarking,
-  benchmark-env bootstrap, and system-delta queue operations. Python wrappers
-  here should stay import-only shims into `src/tab_foundry/` modules rather
-  than accumulating business logic.
+- `src/tab_foundry/cli/`: nested CLI registration and dispatch for
+  `data`, `train`, `eval`, `export`, `bench`, and `research` workflows.
+- `scripts/`: shell convenience helpers plus audit tooling only. Python
+  workflow entrypoints have been retired in favor of the packaged CLI.
 
 ## 2. Canonical Library Areas
 
@@ -33,12 +31,11 @@ into the canonical library modules.
   family modules under `tab_foundry.model.architectures`.
 - `src/tab_foundry/model/components/`: reusable blocks, QASS primitives, and
   many-class helpers shared across families.
-- `src/tab_foundry/model/architectures/`: the current three-family model
+- `src/tab_foundry/model/architectures/`: the current two-family model
   surface:
-  - `tabfoundry`: the main grouped-token backbone family
-  - `tabfoundry_simple`: the exact nanoTabPFN-style benchmark anchor
-  - `tabfoundry_staged`: the staged research family with atomic surface
-    resolution and queue-driven overrides
+  - `tabfoundry_simple`: the frozen exact nanoTabPFN-style benchmark anchor
+  - `tabfoundry_staged`: the staged classification family and the only active
+    architecture-development surface
 - `src/tab_foundry/training/`: family-agnostic training loops, batching,
   schedules, optimizers, runtime policy, and evaluation helpers.
 - `src/tab_foundry/export/`: export bundle construction, loading, and
@@ -53,27 +50,39 @@ into the canonical library modules.
 
 The repo uses three stable workflow layers:
 
-- CLI as the canonical user-facing surface for manifest-backed build, train,
-  eval, export, and validate-export.
-- Thin script wrappers for repo-local operational flows that are intentionally
-  not modeled as long-lived public CLI surfaces yet.
+- The packaged CLI as the canonical user-facing surface for manifest-backed
+  data/build, training, evaluation, export, smoke, tuning, benchmarking,
+  registry, and research-sweep flows.
+- Shell helpers under `scripts/*.sh` plus `scripts/audit/` as repo-local
+  convenience and verification surfaces only.
 - Reference YAML/Markdown artifacts for the active system-delta sweep.
 
-Current wrapper-to-library mapping:
+Current canonical CLI namespaces:
 
-- `scripts/iris_smoke.py` -> `tab_foundry.bench.iris_smoke`
-- `scripts/dagzoo_smoke.py` -> `tab_foundry.bench.dagzoo_smoke`
-- `scripts/eval_iris_checkpoint.py` -> `tab_foundry.bench.iris`
-- `scripts/tune_tab_foundry.py` -> `tab_foundry.bench.tune`
-- `scripts/benchmark_nanotabpfn.py` -> `tab_foundry.bench.compare`
-- `scripts/bootstrap_benchmark_envs.py` -> `tab_foundry.bench.envs`
-- `scripts/run_nanotabpfn_benchmark_helper.py` ->
-  `tab_foundry.bench.nanotabpfn_helper`
-- `scripts/system_delta_queue.py` -> `tab_foundry.research.system_delta`
-- `scripts/system_delta_execute.py` -> `tab_foundry.research.system_delta_execute`
-- `scripts/system_delta_promote.py` -> `tab_foundry.research.system_delta_promote`
-- `scripts/train_tabfoundry_staged_prior.py` -> staged prior-training harness
-  under `tab_foundry.training`
+- `tab-foundry data build-manifest`
+- `tab-foundry train run`
+- `tab-foundry train prior simple`
+- `tab-foundry train prior staged`
+- `tab-foundry eval checkpoint`
+- `tab-foundry export bundle`
+- `tab-foundry export validate`
+- `tab-foundry bench smoke iris`
+- `tab-foundry bench smoke dagzoo`
+- `tab-foundry bench tune`
+- `tab-foundry bench compare`
+- `tab-foundry bench env bootstrap`
+- `tab-foundry bench bundle build-openml`
+- `tab-foundry bench registry register-run`
+- `tab-foundry bench registry freeze-baseline`
+- `tab-foundry bench diagnose bounce`
+- `tab-foundry research sweep create`
+- `tab-foundry research sweep list`
+- `tab-foundry research sweep next`
+- `tab-foundry research sweep render`
+- `tab-foundry research sweep validate`
+- `tab-foundry research sweep set-active`
+- `tab-foundry research sweep execute`
+- `tab-foundry research sweep promote`
 
 Shell helpers such as `scripts/build_manifest.sh`, `scripts/train_smoke.sh`,
 and `scripts/eval_smoke.sh` are repo-local convenience entrypoints and should
@@ -100,11 +109,11 @@ not absorb new orchestration logic.
 - `src/tab_foundry/bench/` is the canonical home for benchmark and harness
   logic. Core training/model/data packages should not start depending on it.
 - `src/tab_foundry/research/` is the canonical home for sweep queue/matrix
-  management; do not recreate parallel queue logic in `scripts/` or docs-only
-  tooling.
-- The three model families are intentional. Shared logic should continue to
-  move into `model/components/`, `model/spec.py`, and family-neutral helpers
-  instead of forking duplicate pathways.
+  management; do not recreate parallel queue logic in shell helpers or
+  docs-only tooling.
+- `tabfoundry_staged` is the only active architecture surface. Shared logic
+  should continue to move into `model/components/`, `model/spec.py`, and
+  family-neutral helpers instead of reintroducing parallel model pathways.
 - The active system-delta aliases are generated views. Docs and scripts should
   describe them as such and should resolve canonical state through the sweep
   index and per-sweep sources.

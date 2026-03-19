@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
@@ -11,6 +10,25 @@ import torch
 
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.bench.nanotabpfn import resolve_tab_foundry_best_checkpoint
+from tab_foundry.bench.registry.paths import (
+    normalize_path_value as _normalize_path_value_impl,
+    project_root as _project_root_impl,
+    resolve_config_path as _resolve_config_path_impl,
+    resolve_registry_path_value as _resolve_registry_path_value_impl,
+)
+from tab_foundry.bench.registry_common import (
+    copy_jsonable as _copy_jsonable,
+    load_comparison_summary as _load_comparison_summary,
+)
+from tab_foundry.bench.registry.storage import (
+    ensure_registry_payload as _ensure_registry_payload_common,
+    load_versioned_registry_payload as _load_versioned_registry_payload,
+    upsert_registry_entry as _upsert_registry_entry_common,
+)
+from tab_foundry.bench.registry.summary_metrics import (
+    benchmark_bundle_payload_from_summary as _benchmark_bundle_payload_from_summary,
+    tab_foundry_metrics_from_summary as _tab_foundry_metrics_from_summary,
+)
 
 
 REGISTRY_SCHEMA = "tab-foundry-control-baselines-v1"
@@ -59,7 +77,21 @@ _TAB_FOUNDRY_METRIC_KEYS = _REQUIRED_TAB_FOUNDRY_METRIC_KEYS | _OPTIONAL_TAB_FOU
 def project_root() -> Path:
     """Return the repository root for repo-relative artifact paths."""
 
-    return Path(__file__).resolve().parents[3]
+    return _project_root_impl()
+
+
+def _normalize_path_value(path: Path) -> str:
+    return _normalize_path_value_impl(path, root_fn=project_root)
+
+
+def resolve_registry_path_value(value: str) -> Path:
+    """Resolve a registry path value to an absolute path."""
+
+    return _resolve_registry_path_value_impl(value, root_fn=project_root)
+
+
+def _resolve_config_path(raw_value: Any) -> Path:
+    return _resolve_config_path_impl(raw_value, root_fn=project_root)
 
 
 def default_control_baseline_registry_path() -> Path:
@@ -76,73 +108,19 @@ def _empty_registry() -> dict[str, Any]:
     }
 
 
-def _copy_jsonable(payload: Mapping[str, Any]) -> dict[str, Any]:
-    return cast(dict[str, Any], json.loads(json.dumps(payload, sort_keys=True)))
-
-
-def _normalize_path_value(path: Path) -> str:
-    resolved = path.expanduser().resolve()
-    root = project_root()
-    try:
-        return str(resolved.relative_to(root))
-    except ValueError:
-        return str(resolved)
-
-
-def resolve_registry_path_value(value: str) -> Path:
-    """Resolve a registry path value to an absolute path."""
-
-    path = Path(str(value)).expanduser()
-    if path.is_absolute():
-        return path.resolve()
-    return (project_root() / path).resolve()
-
-
-def _resolve_config_path(raw_value: Any) -> Path:
-    if not isinstance(raw_value, str) or not raw_value.strip():
-        raise RuntimeError("checkpoint config must include a non-empty data.manifest_path")
-    return resolve_registry_path_value(str(raw_value))
-
-
 def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
-    registry_path = path.expanduser().resolve()
-    if not registry_path.exists():
-        if allow_missing:
-            return _empty_registry()
-        raise RuntimeError(f"control baseline registry does not exist: {registry_path}")
-    with registry_path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"control baseline registry must be a JSON object: {registry_path}")
-    actual_keys = set(payload.keys())
-    if actual_keys != _TOP_LEVEL_KEYS:
-        raise RuntimeError(
-            "control baseline registry keys mismatch: "
-            f"missing={sorted(_TOP_LEVEL_KEYS - actual_keys)}, "
-            f"extra={sorted(actual_keys - _TOP_LEVEL_KEYS)}"
-        )
-    if payload["schema"] != REGISTRY_SCHEMA:
-        raise RuntimeError(
-            "control baseline registry schema mismatch: "
-            f"expected={REGISTRY_SCHEMA!r}, actual={payload['schema']!r}"
-        )
-    if int(payload["version"]) != REGISTRY_VERSION:
-        raise RuntimeError(
-            "control baseline registry version mismatch: "
-            f"expected={REGISTRY_VERSION}, actual={payload['version']}"
-        )
-    baselines = payload["baselines"]
-    if not isinstance(baselines, dict):
-        raise RuntimeError("control baseline registry baselines must be an object")
-    for baseline_id, entry in baselines.items():
-        if not isinstance(baseline_id, str) or not baseline_id.strip():
-            raise RuntimeError("control baseline registry baseline ids must be non-empty strings")
-        _validate_baseline_entry(entry, baseline_id=str(baseline_id))
-    return {
-        "schema": REGISTRY_SCHEMA,
-        "version": REGISTRY_VERSION,
-        "baselines": {str(key): value for key, value in baselines.items()},
-    }
+    return _load_versioned_registry_payload(
+        path,
+        allow_missing=allow_missing,
+        empty_payload=_empty_registry(),
+        top_level_keys=_TOP_LEVEL_KEYS,
+        schema=REGISTRY_SCHEMA,
+        version=REGISTRY_VERSION,
+        entries_key="baselines",
+        registry_label="control baseline registry",
+        validate_entry_fn=_validate_baseline_entry,
+        entry_label="baseline_id",
+    )
 
 
 def load_control_baseline_registry(path: Path | None = None) -> dict[str, Any]:
@@ -152,9 +130,11 @@ def load_control_baseline_registry(path: Path | None = None) -> dict[str, Any]:
 
 
 def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, Any]]:
-    registry_path = (path or default_control_baseline_registry_path()).expanduser().resolve()
-    payload = _load_registry_payload(registry_path, allow_missing=True)
-    return registry_path, payload
+    return _ensure_registry_payload_common(
+        path,
+        default_path=default_control_baseline_registry_path(),
+        load_registry_payload_fn=_load_registry_payload,
+    )
 
 
 def _validate_baseline_entry(entry: Any, *, baseline_id: str) -> None:
@@ -207,20 +187,6 @@ def load_control_baseline_entry(
     return _copy_jsonable(entry)
 
 
-def _load_comparison_summary(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"comparison summary must be a JSON object: {path}")
-    benchmark_bundle = payload.get("benchmark_bundle")
-    tab_foundry = payload.get("tab_foundry")
-    if not isinstance(benchmark_bundle, dict):
-        raise RuntimeError(f"comparison summary missing benchmark_bundle: {path}")
-    if not isinstance(tab_foundry, dict):
-        raise RuntimeError(f"comparison summary missing tab_foundry section: {path}")
-    return cast(dict[str, Any], payload)
-
-
 def derive_control_baseline_entry(
     *,
     baseline_id: str,
@@ -263,82 +229,13 @@ def derive_control_baseline_entry(
         raise RuntimeError(f"checkpoint runtime.seed must be an int: {best_checkpoint}")
 
     benchmark_bundle = cast(dict[str, Any], summary["benchmark_bundle"])
-    benchmark_bundle_source = benchmark_bundle.get("source_path")
-    if not isinstance(benchmark_bundle_source, str) or not benchmark_bundle_source.strip():
-        raise RuntimeError("comparison summary benchmark_bundle.source_path must be a non-empty string")
-    benchmark_bundle_payload = {
-        "name": str(benchmark_bundle["name"]),
-        "version": int(benchmark_bundle["version"]),
-        "source_path": _normalize_path_value(resolve_registry_path_value(benchmark_bundle_source)),
-        "task_count": int(benchmark_bundle["task_count"]),
-        "task_ids": [int(task_id) for task_id in cast(list[Any], benchmark_bundle["task_ids"])],
-    }
-    tab_foundry_metrics = {
-        "best_step": float(tab_foundry["best_step"]),
-        "best_training_time": float(tab_foundry["best_training_time"]),
-        "best_roc_auc": (
-            None
-            if tab_foundry.get("best_roc_auc") is None
-            else float(tab_foundry["best_roc_auc"])
-        ),
-        "best_log_loss": (
-            None
-            if tab_foundry.get("best_log_loss") is None
-            else float(tab_foundry["best_log_loss"])
-        ),
-        "best_brier_score": (
-            None
-            if tab_foundry.get("best_brier_score") is None
-            else float(tab_foundry["best_brier_score"])
-        ),
-        "best_crps": (
-            None
-            if tab_foundry.get("best_crps") is None
-            else float(tab_foundry["best_crps"])
-        ),
-        "best_avg_pinball_loss": (
-            None
-            if tab_foundry.get("best_avg_pinball_loss") is None
-            else float(tab_foundry["best_avg_pinball_loss"])
-        ),
-        "best_picp_90": (
-            None
-            if tab_foundry.get("best_picp_90") is None
-            else float(tab_foundry["best_picp_90"])
-        ),
-        "final_step": float(tab_foundry["final_step"]),
-        "final_training_time": float(tab_foundry["final_training_time"]),
-        "final_roc_auc": (
-            None
-            if tab_foundry.get("final_roc_auc") is None
-            else float(tab_foundry["final_roc_auc"])
-        ),
-        "final_log_loss": (
-            None
-            if tab_foundry.get("final_log_loss") is None
-            else float(tab_foundry["final_log_loss"])
-        ),
-        "final_brier_score": (
-            None
-            if tab_foundry.get("final_brier_score") is None
-            else float(tab_foundry["final_brier_score"])
-        ),
-        "final_crps": (
-            None
-            if tab_foundry.get("final_crps") is None
-            else float(tab_foundry["final_crps"])
-        ),
-        "final_avg_pinball_loss": (
-            None
-            if tab_foundry.get("final_avg_pinball_loss") is None
-            else float(tab_foundry["final_avg_pinball_loss"])
-        ),
-        "final_picp_90": (
-            None
-            if tab_foundry.get("final_picp_90") is None
-            else float(tab_foundry["final_picp_90"])
-        ),
-    }
+    benchmark_bundle_payload = _benchmark_bundle_payload_from_summary(
+        benchmark_bundle,
+        source_context="comparison summary benchmark_bundle.source_path",
+        normalize_path_value_fn=_normalize_path_value,
+        resolve_registry_path_value_fn=resolve_registry_path_value,
+    )
+    tab_foundry_metrics = _tab_foundry_metrics_from_summary(tab_foundry)
     entry = {
         "baseline_id": str(baseline_id),
         "experiment": str(experiment),
@@ -362,13 +259,17 @@ def upsert_control_baseline_entry(
 ) -> Path:
     """Insert or replace one control baseline entry in the registry."""
 
-    baseline_id = str(entry["baseline_id"])
-    _validate_baseline_entry(entry, baseline_id=baseline_id)
-    resolved_registry_path, payload = _ensure_registry_payload(registry_path)
-    baselines = cast(dict[str, Any], payload["baselines"])
-    baselines[baseline_id] = _copy_jsonable(entry)
-    write_json(resolved_registry_path, payload)
-    return resolved_registry_path
+    return _upsert_registry_entry_common(
+        entry,
+        entry_id_key="baseline_id",
+        validate_entry_fn=_validate_baseline_entry,
+        registry_path=registry_path,
+        default_path=default_control_baseline_registry_path(),
+        load_registry_payload_fn=_load_registry_payload,
+        entries_key="baselines",
+        write_json_fn=write_json,
+        copy_jsonable_fn=_copy_jsonable,
+    )
 
 
 def freeze_control_baseline(

@@ -35,7 +35,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 ## Queue Summary
 
-| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
+| Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `delta_anchor_activation_trace_baseline` | diagnostics | yes | completed | none | Keep the locked anchor model surface fixed but rerun prior training with activation tracing enabled so forward-pass norm dynamics are captured in `gradient_history.jsonl` and `telemetry.json`. | None |
 | 2 | `delta_shared_feature_norm` | feature_encoding | yes | completed | shared_norm | Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization. | None |
@@ -49,7 +49,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Keep the locked anchor model surface fixed but rerun prior training with activation tracing enabled so forward-pass norm dynamics are captured in `gradient_history.jsonl` and `telemetry.json`.
 - Rationale: Establish a traced anchor baseline before rerunning the shared-encoder rows so activation-scale shifts can be interpreted against the unchanged model surface.
 - Hypothesis: Activation tracing should be additive only; the traced anchor rerun is expected to preserve anchor-quality behavior while revealing the forward-pass norm profile entering and traversing the transformer.
@@ -83,7 +83,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `shared_norm`
+- Recipe alias: `shared_norm`
 - Description: Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization.
 - Rationale: Reproduce the shared-feature-encoder row with activation tracing enabled so the late-curve retention gap can be separated from purely structural explanations.
 - Hypothesis: Shared feature encoding may still peak above the anchor, but the traced rerun should show whether unstable pre-transformer or per-block activation scales accompany the weaker final checkpoint.
@@ -117,7 +117,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Shared linear feature encoder with explicit post-encoder LayerNorm before the transformer blocks.
 - Rationale: Test whether explicit LayerNorm after the shared feature encoder stabilizes the cell table before it enters the transformer.
 - Hypothesis: Post-encoder LayerNorm should reduce activation-scale drift across transformer blocks and improve final retention relative to the traced shared baseline.
@@ -152,7 +152,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Shared linear feature encoder with explicit post-encoder RMSNorm before the transformer blocks.
 - Rationale: Compare RMSNorm against LayerNorm as the explicit post-encoder stabilization stage on the shared feature path.
 - Hypothesis: RMSNorm may preserve more of the shared encoder scale structure than LayerNorm while still preventing the activation growth that hurt late-curve retention.

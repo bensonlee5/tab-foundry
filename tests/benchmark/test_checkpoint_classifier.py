@@ -5,7 +5,6 @@ from types import SimpleNamespace
 import json
 
 import numpy as np
-from omegaconf import OmegaConf
 import pytest
 import torch
 from torch import nn
@@ -13,8 +12,7 @@ from torch import nn
 import tab_foundry.bench.checkpoint as checkpoint_classifier
 from tab_foundry.bench.nanotabpfn import evaluate_classifier, load_dataset_cache
 from tab_foundry.input_normalization import normalize_train_test_arrays
-from tab_foundry.model.architectures.tabfoundry import ClassificationOutput, RegressionOutput
-from tab_foundry.model.factory import build_model
+from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.types import TaskBatch
 
 
@@ -36,23 +34,6 @@ class _CapturingClassifier(nn.Module):
         self.last_batch = batch
         logits = torch.zeros((batch.x_test.shape[0], 2), dtype=batch.x_test.dtype, device=batch.x_test.device)
         return ClassificationOutput(logits=logits, num_classes=2)
-
-
-class _TinyRegressor(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.linear = nn.Linear(4, 3)
-        self.register_buffer(
-            "quantile_levels",
-            torch.tensor([0.1, 0.5, 0.9], dtype=torch.float32),
-            persistent=False,
-        )
-
-    def forward(self, batch: TaskBatch) -> RegressionOutput:
-        return RegressionOutput(
-            quantiles=self.linear(batch.x_test),
-            quantile_levels=self.quantile_levels,
-        )
 
 
 def test_tab_foundry_classifier_predicts_probabilities(
@@ -79,30 +60,6 @@ def test_tab_foundry_classifier_predicts_probabilities(
     assert np.allclose(probabilities.sum(axis=1), 1.0, atol=1.0e-6)
 
 
-def test_tab_foundry_regressor_predicts_quantiles(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    fake_spec = SimpleNamespace(task="regression")
-    monkeypatch.setattr(
-        checkpoint_classifier,
-        "checkpoint_model_build_spec_from_mappings",
-        lambda **_kwargs: fake_spec,
-    )
-    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: _TinyRegressor())
-
-    checkpoint = tmp_path / "tiny_regressor.pt"
-    model = _TinyRegressor()
-    torch.save({"model": model.state_dict(), "config": {"task": "regression", "model": {}}}, checkpoint)
-
-    regressor = checkpoint_classifier.TabFoundryRegressor(checkpoint, device="cpu")
-    regressor.fit(np.ones((6, 4), dtype=np.float32), np.linspace(0.0, 1.0, num=6, dtype=np.float32))
-    quantiles, levels = regressor.predict_quantiles(np.zeros((3, 4), dtype=np.float32))
-
-    assert quantiles.shape == (3, 3)
-    assert levels.tolist() == pytest.approx([0.1, 0.5, 0.9])
-
-
 @pytest.mark.parametrize(
     "mode",
     ["none", "train_zscore", "train_zscore_clip", "train_zscore_tanh"],
@@ -113,7 +70,12 @@ def test_tab_foundry_classifier_honors_checkpoint_input_normalization(
     mode: str,
 ) -> None:
     model = _CapturingClassifier()
-    fake_spec = SimpleNamespace(task="classification", input_normalization=mode)
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_staged",
+        stage="shared_norm",
+        input_normalization=mode,
+    )
     monkeypatch.setattr(
         checkpoint_classifier,
         "checkpoint_model_build_spec_from_mappings",
@@ -271,44 +233,19 @@ def test_load_checkpoint_classifier_model_rejects_legacy_grouped_weights_without
     tmp_path: Path,
 ) -> None:
     checkpoint = tmp_path / "legacy.pt"
-    model = build_model(task="classification", feature_group_size=32)
     torch.save(
         {
-            "model": model.state_dict(),
+            "model": {"group_linear.weight": torch.zeros((128, 96))},
             "config": {"task": "classification", "model": {}},
         },
         checkpoint,
     )
 
-    with pytest.raises(ValueError, match="omitted feature_group_size"):
+    with pytest.raises(ValueError, match="Legacy tabfoundry checkpoints"):
         _ = checkpoint_classifier.load_checkpoint_classifier_model(
             checkpoint,
             device=torch.device("cpu"),
         )
-
-
-def test_load_checkpoint_classifier_model_supports_explicit_override_for_legacy_weights(
-    tmp_path: Path,
-) -> None:
-    checkpoint = tmp_path / "legacy.pt"
-    model = build_model(task="classification", feature_group_size=32)
-    torch.save(
-        {
-            "model": model.state_dict(),
-            "config": {"task": "classification", "model": {}},
-        },
-        checkpoint,
-    )
-    cfg = OmegaConf.create({"model": {"feature_group_size": 32}})
-
-    loaded_model, spec = checkpoint_classifier.load_checkpoint_classifier_model(
-        checkpoint,
-        device=torch.device("cpu"),
-        cfg=cfg,
-    )
-
-    assert spec.feature_group_size == 32
-    assert getattr(loaded_model, "feature_group_size") == 32
 
 
 def test_frozen_control_baseline_curve_matches_current_checkpoint_wrapper() -> None:
@@ -363,8 +300,11 @@ def test_tab_foundry_classifier_skips_external_normalization_for_staged_missingn
     checkpoint = tmp_path / "staged_missingness.pt"
     torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
 
-    x_train = np.asarray([[1.0, np.nan], [2.0, 4.0], [4.0, 8.0]], dtype=np.float32)
-    x_test = np.asarray([[3.0, np.nan], [5.0, 9.0]], dtype=np.float32)
+    x_train = np.asarray(
+        [[1.0, np.nan, np.inf, -np.inf], [2.0, 4.0, 6.0, 8.0], [4.0, 8.0, 10.0, 12.0]],
+        dtype=np.float32,
+    )
+    x_test = np.asarray([[3.0, np.nan, np.inf, -np.inf], [5.0, 9.0, 11.0, 13.0]], dtype=np.float32)
     classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
     classifier.fit(x_train, np.asarray([0, 1, 0], dtype=np.int64))
     _ = classifier.predict_proba(x_test)
@@ -372,3 +312,7 @@ def test_tab_foundry_classifier_skips_external_normalization_for_staged_missingn
     assert model.last_batch is not None
     assert np.isnan(model.last_batch.x_train.cpu().numpy()[0, 1])
     assert np.isnan(model.last_batch.x_test.cpu().numpy()[0, 1])
+    assert np.isposinf(model.last_batch.x_train.cpu().numpy()[0, 2])
+    assert np.isposinf(model.last_batch.x_test.cpu().numpy()[0, 2])
+    assert np.isneginf(model.last_batch.x_train.cpu().numpy()[0, 3])
+    assert np.isneginf(model.last_batch.x_test.cpu().numpy()[0, 3])

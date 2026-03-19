@@ -8,9 +8,8 @@ from torch import nn
 from torch.nn.modules.transformer import Linear, MultiheadAttention
 
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES, build_norm
+from tab_foundry.model.outputs import ClassificationOutput, DEFAULT_HEAD_HIDDEN_DIM
 from tab_foundry.types import TaskBatch
-
-from .tabfoundry import ClassificationOutput, DEFAULT_HEAD_HIDDEN_DIM
 
 
 _REQUIRED_INPUT_NORMALIZATION = "train_zscore_clip"

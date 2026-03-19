@@ -122,7 +122,7 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     assert "training=`prior_linear_decay`" in matrix
     assert "- {'" not in matrix
     assert "outputs/staged_ladder/research/binary_md_v1/delta_row_cls_pool/result_card.md" in matrix
-    assert "Legacy stage alias" in matrix
+    assert "Recipe alias" in matrix
     row_cls_pool = next(row for row in queue["rows"] if row["delta_id"] == "delta_row_cls_pool")
     assert (
         f"| 6 | `delta_row_cls_pool` | row_pool | yes | {row_cls_pool['status']} | row_cls_pool |"

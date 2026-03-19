@@ -43,11 +43,9 @@ def test_program_contract_has_required_policy_sections() -> None:
     required_statements = [
         "`final_log_loss`",
         "`final_brier_score`",
-        "`final_crps`",
         "`final_roc_auc`",
         "The primary score remains `final_log_loss` on the canonical binary benchmark",
         "- multiclass classification: `final_log_loss`",
-        "- regression: `final_crps`",
         "The benchmark registry is the historical system of record.",
         "Underperformance alone is not enough for `reject`.",
         "This pass is attribution-first. No row becomes the new base during the sweep.",
@@ -193,6 +191,16 @@ def test_reference_index_covers_system_delta_surfaces_and_legacy_stage_template_
 
     legacy_template = REPO_ROOT / "reference" / "stage_campaign_template.md"
     assert not legacy_template.exists()
+
+
+def test_reference_sweep_queue_and_matrix_outputs_do_not_contain_placeholder_todo_text() -> None:
+    sweeps_root = REPO_ROOT / "reference" / "system_delta_sweeps"
+    generated_files = list(sweeps_root.rglob("queue.yaml")) + list(sweeps_root.rglob("matrix.md"))
+
+    assert generated_files
+    for path in generated_files:
+        contents = path.read_text(encoding="utf-8")
+        assert "TODO:" not in contents, f"placeholder TODO leaked into generated sweep output: {path}"
 
 
 def test_stage_research_source_manifest_schema_is_portable() -> None:

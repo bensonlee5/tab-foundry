@@ -31,7 +31,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 ## Queue Summary
 
-| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
+| Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `dpnb_cuda_large_anchor_batch32_replay` | batch_size | yes | completed | none | Re-run the large CUDA bridge anchor on the compact batch32 replay surface. | Run this row first as the clean batch32 discriminator before lower-LR or post-encoder-norm probes. |
 | 2 | `dpnb_cuda_large_anchor_batch32_lr3e3` | schedule | yes | completed | none | Re-run the large CUDA bridge anchor on the compact batch32 replay surface with a lower 3e-3 LR ceiling. | Run after row 1 if the clean batch32 replay still shows upward activation drift. |
@@ -47,7 +47,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Re-run the large CUDA bridge anchor on the compact batch32 replay surface.
 - Rationale: Use the pre-batch64 replay surface as the cleanest discriminator after both batch64 diagnostics were confounded by activation drift and memory fallback.
 - Hypothesis: The large CUDA anchor may train cleanly on the batch32 replay surface even if both batch64 variants drift or need first-attempt OOM retry.
@@ -81,7 +81,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Re-run the large CUDA bridge anchor on the compact batch32 replay surface with a lower 3e-3 LR ceiling.
 - Rationale: If the clean batch32 replay still drifts, lower the LR ceiling before reopening architecture.
 - Hypothesis: A 3e-3 LR ceiling on the same batch32 replay surface may flatten upper-block growth without changing the large CUDA bridge architecture.
@@ -115,7 +115,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Keep the large CUDA bridge anchor on the batch32 replay surface and add explicit post-encoder RMSNorm before the transformer blocks.
 - Rationale: If the schedule-only batch32 rows still drift, try post-encoder RMSNorm as the first architecture-level stabilization probe.
 - Hypothesis: Adding `post_encoder_norm=rmsnorm` may re-anchor the transformer input scale on the large prenorm stack without changing the rest of the bridge surface.
@@ -148,7 +148,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Keep the large CUDA bridge anchor on the batch32 replay surface and add explicit post-encoder LayerNorm before the transformer blocks.
 - Rationale: If RMSNorm is mixed or still drifts, run the direct LayerNorm comparator on the same batch32 surface.
 - Hypothesis: Adding `post_encoder_norm=layernorm` may stabilize the large prenorm stack more strongly than RMSNorm even if it rescales features more aggressively.
@@ -181,7 +181,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `deferred_separate_workstream`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Re-run the large CUDA bridge anchor at batch64 without sqrt LR scaling.
 - Rationale: Keep the batch64 no-scale probe as backlog evidence rather than the next execution target because both no-scale diagnostics drifted and retried on essentially every step.
 - Hypothesis: Removing sqrt LR scaling may still matter, but batch64 remains a confounded surface until it can run without constant first-attempt OOM fallback.
@@ -215,7 +215,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `deferred_separate_workstream`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Re-run the large CUDA bridge anchor at batch64 without sqrt LR scaling and with a lower 3e-3 LR ceiling.
 - Rationale: Keep the lower-LR batch64 neighbor as backlog evidence, not the default next run, because the underlying batch64 surface is still confounded by fallback behavior.
 - Hypothesis: Lowering LR may still help on batch64, but it is lower priority than resolving whether batch32 can train the large anchor cleanly.

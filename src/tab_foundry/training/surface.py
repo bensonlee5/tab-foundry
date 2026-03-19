@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import Any, Mapping
 
 import pyarrow.parquet as pq
 
+from tab_foundry.data.manifest import MANIFEST_SUMMARY_METADATA_KEY
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import (
@@ -18,14 +18,14 @@ from tab_foundry.model.spec import (
     model_build_spec_from_mappings,
 )
 from tab_foundry.preprocessing import resolve_preprocessing_surface
+from tab_foundry.timestamps import utc_now as _shared_utc_now
 
 
 TRAINING_SURFACE_SCHEMA = "tab-foundry-training-surface-v1"
-_MANIFEST_SUMMARY_METADATA_KEY = b"tab_foundry_manifest_summary"
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return _shared_utc_now()
 
 
 def _sha256_path(path: Path) -> str:
@@ -103,7 +103,7 @@ def _manifest_characteristics(manifest_path: Path) -> dict[str, Any]:
     ]
     raw_metadata = parquet_file.schema_arrow.metadata or {}
     persisted_summary = None
-    raw_summary = raw_metadata.get(_MANIFEST_SUMMARY_METADATA_KEY)
+    raw_summary = raw_metadata.get(MANIFEST_SUMMARY_METADATA_KEY)
     if raw_summary is not None:
         persisted_summary = json.loads(raw_summary.decode("utf-8"))
     return {

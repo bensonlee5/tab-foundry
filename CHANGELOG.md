@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-03-18
+
+### Changed
+
+- Broad user-facing break: removed the legacy `tabfoundry` architecture family
+  from supported build, training, evaluation, checkpoint-loading, export, and
+  benchmark paths. The active model-development surface is now
+  `tabfoundry_staged`, with `tabfoundry_simple` retained only as the frozen
+  exact anchor.
+
+- Broad user-facing break: removed regression from the active train/eval/export
+  surface. The repo is now classification-only until regression is rebuilt on
+  top of `tabfoundry_staged`.
+
+- The canonical model default now resolves to `model.arch=tabfoundry_staged`,
+  and legacy `tabfoundry` checkpoints now fail fast with explicit unsupported
+  compatibility errors instead of attempting reconstruction.
+
+- Updated the model, workflow, inference, and roadmap documentation to describe
+  the single active staged surface and the classification-only contract.
+
 ## [0.7.3] - 2026-03-18
 
 ### Added
@@ -20,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed system-delta execution to use queue-aware wandb run IDs and to replace `model.module_overrides` cleanly for row-specific overrides such as `post_encoder_norm`.
 
 - Changed prior-dump training to retry `torch.OutOfMemoryError` batches with smaller microbatches while preserving aggregated loss, accuracy, and activation-trace logging, and switched the active sweep metadata to `cuda_stability_followup`.
+
+- User-facing workflow break: the packaged CLI now uses nested namespaces for
+  all supported commands. Canonical surfaces are `tab-foundry data build-manifest`, `train run`, `train prior simple|staged`, `eval checkpoint`, `export bundle|validate`, `bench ...`, and `research sweep ...`.
+  The thin Python workflow wrappers under `scripts/` have been removed.
 
 - User-facing note: research metadata now includes the CUDA sweep family, exact-prior prior-dump runs may automatically fall back to smaller microbatches after OOM, and the package version is now `0.7.3`.
 

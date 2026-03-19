@@ -29,7 +29,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 ## Queue Summary
 
-| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
+| Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `dpnb_input_norm_anchor_replay` | baseline_replay | yes | completed | none | Replay the promoted bridge baseline exactly on this machine before comparing normalization or batch-size variants. | Treat this run as the batch32 reference only; row 7 (`dpnb_input_norm_anchor_replay_batch64_sqrt`) is the promoted canonical anchor. |
 | 2 | `dpnb_input_norm_zscore` | input_normalization | yes | completed | none | Remove external clipping and use plain train-only z-score normalization on the promoted bridge baseline. | Interpret rows 2-5 as a normalization-family wash on the weaker batch32 surface; keep row 7 as the canonical anchor. |
@@ -48,7 +48,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Replay the promoted bridge baseline exactly on this machine before comparing normalization or batch-size variants.
 - Rationale: Reproduce the promoted bridge baseline locally before interpreting any normalization or batch-size movement.
 - Hypothesis: The row-cls bridge winner should replay cleanly on this machine and provide the correct comparator for the rest of the queue.
@@ -84,7 +84,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Remove external clipping and use plain train-only z-score normalization on the promoted bridge baseline.
 - Rationale: Test the simplest unclipped alternative before trying smoother or more robust tails.
 - Hypothesis: Removing hard clipping may preserve more useful scale information now that the bridge baseline is already stabilized.
@@ -116,7 +116,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Winsorize at the 1st and 99th train percentiles before z-scoring on the promoted bridge baseline.
 - Rationale: Keep explicit outlier defense while removing the hard post-z-score clip.
 - Hypothesis: Percentile winsorization may retain robustness without the bluntness of fixed clipping.
@@ -148,7 +148,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Apply train-only z-score normalization followed by a smooth tanh tail squash on the promoted bridge baseline.
 - Rationale: Probe a smoother tail treatment that still stays near-linear around zero.
 - Hypothesis: `train_zscore_tanh` may outperform both clipped z-score and plain z-score by avoiding hard saturation while still bounding outliers softly.
@@ -177,7 +177,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Apply robust median/IQR scaling followed by a smooth tanh tail squash on the promoted bridge baseline.
 - Rationale: Compare a more outlier-resistant center/scale estimate within the same smooth-tail family.
 - Hypothesis: Robust scaling plus tanh may help if the remaining harmful feature variation is still driven by extreme values rather than by clipping itself.
@@ -206,7 +206,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Replay the promoted bridge baseline at prior-dump batch size 16 with sqrt LR scaling.
 - Rationale: Test whether a smaller prior-dump batch improves the bridge baseline once LR is scaled conservatively.
 - Hypothesis: Batch size 16 may reduce effective optimization noise enough to help the baseline replay even after sqrt LR scaling.
@@ -239,7 +239,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Replay the promoted bridge baseline at prior-dump batch size 64 with sqrt LR scaling.
 - Rationale: Test whether a larger prior-dump batch improves the bridge baseline once LR is scaled conservatively.
 - Hypothesis: Batch size 64 may improve the bridge baseline if the current recipe still prefers a larger effective batch than 32.
@@ -275,7 +275,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Combine the favored smooth-tail zscore_tanh normalization with prior-dump batch size 16 and sqrt LR scaling.
 - Rationale: Check whether the favored smooth-tail row benefits from a smaller scaled batch.
 - Hypothesis: If `train_zscore_tanh` is the right preprocessing family, batch size 16 may amplify that benefit rather than confound it away.
@@ -307,7 +307,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Combine the favored smooth-tail zscore_tanh normalization with prior-dump batch size 64 and sqrt LR scaling.
 - Rationale: Check whether the favored smooth-tail row benefits from a larger scaled batch.
 - Hypothesis: If `train_zscore_tanh` likes cleaner gradient averaging, batch size 64 may outperform both row 4 and row 7.

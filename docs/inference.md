@@ -38,7 +38,7 @@ Required keys:
 
 - `schema_version`
 - `producer`: `{name, version, git_sha}` (`git_sha` may be `null`)
-- `task`: `classification | regression`
+- `task`: `classification`
 - `manifest_sha256`: SHA-256 of the canonical UTF-8 JSON encoding of the full
   manifest with `manifest_sha256` omitted; validators reject stale or missing
   values
@@ -54,19 +54,17 @@ Required keys:
     and the current canonical defaults.
 - `inference`
   - `task`
-  - `model_arch` (`tabfoundry`, `tabfoundry_simple`, or `tabfoundry_staged`)
+  - `model_arch` (`tabfoundry_simple` or `tabfoundry_staged`)
   - `model_stage` (optional; emitted only for `tabfoundry_staged`)
   - `group_shifts` (`[0, 1, 3]`)
   - `feature_group_size`
   - `many_class_threshold` (`10`)
   - `many_class_inference_mode` (`full_probs`)
-  - regression-only additional key: `quantile_levels` (length `999`)
 - `preprocessor`
   - `feature_order_policy` (`positional_feature_ids`)
   - `missing_value_policy` (`strategy=train_mean`, `all_nan_fill=0.0`)
   - `classification_label_policy`
-    - classification bundles: `{mapping=train_only_remap, unseen_test_label=filter}`
-    - regression bundles: `null`
+    - `{mapping=train_only_remap, unseen_test_label=filter}`
   - `dtype_policy` (`features=float32`, `classification_labels=int64`, `regression_targets=float32`)
 - `weights`: `{file, sha256}`
 - `created_at_utc`: ISO8601 UTC timestamp
@@ -96,7 +94,7 @@ Required keys:
 Export from checkpoint:
 
 ```bash
-uv run tab-foundry export \
+uv run tab-foundry export bundle \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   --out-dir outputs/exports/cls_smoke_v3
 ```
@@ -104,7 +102,7 @@ uv run tab-foundry export \
 Validate bundle:
 
 ```bash
-uv run tab-foundry validate-export \
+uv run tab-foundry export validate \
   --bundle-dir outputs/exports/cls_smoke_v3
 ```
 
@@ -118,8 +116,7 @@ Scope:
 - dense numeric matrices in
 - persisted checksum and schema validation
 - runtime-derived preprocessing using the support set
-- model-native outputs out (`class_probs` for classification,
-  `quantiles` plus `quantile_levels` for regression)
+- model-native outputs out (`class_probs` for classification)
 
 Out of scope here:
 
@@ -141,8 +138,8 @@ Out of scope here:
   intentionally obsolete after the metadata-integrity fix and must be
   regenerated.
 - `tab-foundry-export-v2` bundles remain validator-readable during migration.
-- `tab-foundry-export-v1` bundles are intentionally unsupported after the
-  `tabfoundry` family rename and must be regenerated.
+- `tab-foundry-export-v1` bundles are intentionally unsupported and must be
+  regenerated onto the current classification-only staged/simple surface.
 - Checkpoint export/load now treats omitted `feature_group_size` as `1`. Legacy
   grouped-token checkpoints that omitted that field are intentionally rejected
   and must be regenerated or loaded with an explicit `feature_group_size`

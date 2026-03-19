@@ -81,7 +81,7 @@ export DAGZOO_DATA_ROOT="$HOME/dev/dagzoo/data"
 Build the default manifest:
 
 ```bash
-uv run tab-foundry build-manifest \
+uv run tab-foundry data build-manifest \
   --data-root "${DAGZOO_DATA_ROOT:-$HOME/dev/dagzoo/data}" \
   --out-manifest data/manifests/default.parquet
 ```
@@ -92,7 +92,7 @@ Accepted-only flow:
 
 ```bash
 dagzoo filter --in data/run1 --out data/run1_filter --curated-out data/run1_curated
-uv run tab-foundry build-manifest \
+uv run tab-foundry data build-manifest \
   --data-root data/run1_curated \
   --filter-policy accepted_only \
   --out-manifest data/manifests/accepted_only.parquet
@@ -109,17 +109,15 @@ Helper script:
 Common training profiles:
 
 ```bash
-uv run tab-foundry train experiment=cls_smoke
-uv run tab-foundry train experiment=reg_smoke
-uv run tab-foundry train experiment=cls_workstation
-uv run tab-foundry train experiment=reg_workstation
-uv run tab-foundry train \
+uv run tab-foundry train run experiment=cls_smoke
+uv run tab-foundry train run experiment=cls_workstation
+uv run tab-foundry train run \
   experiment=cls_benchmark_linear \
   data.manifest_path=data/manifests/default.parquet
-uv run tab-foundry train \
+uv run tab-foundry train run \
   experiment=cls_benchmark_linear_simple \
   data.manifest_path=<binary_manifest.parquet>
-uv run tab-foundry train \
+uv run tab-foundry train run \
   experiment=cls_benchmark_staged \
   data.manifest_path=<binary_manifest.parquet>
 ```
@@ -135,11 +133,15 @@ base recipe only. The live staged workflow now records isolated changes through
 the active system-delta sweep using `model.stage_label` and
 `model.module_overrides`, not through a promotion ladder in this runbook.
 
+Regression is intentionally removed in the current repo state. Future
+regression work will be rebuilt on top of `tabfoundry_staged`, not the retired
+legacy `tabfoundry` family.
+
 Prior-dump training for the staged family uses the same harness with the staged
 experiment default:
 
 ```bash
-uv run python scripts/train_tabfoundry_staged_prior.py
+uv run tab-foundry train prior staged
 ```
 
 Use the queue row plus `reference/system_delta_campaign_template.md` to decide
@@ -150,13 +152,13 @@ Repo-local `uv sync` includes Muon. If you are using a minimal install without
 the `muon` extra, run without Muon explicitly:
 
 ```bash
-uv run tab-foundry train experiment=cls_smoke optimizer=adamw
+uv run tab-foundry train run experiment=cls_smoke optimizer=adamw
 ```
 
 Evaluate a checkpoint:
 
 ```bash
-uv run tab-foundry eval \
+uv run tab-foundry eval checkpoint \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   experiment=cls_smoke
 ```
@@ -164,11 +166,11 @@ uv run tab-foundry eval \
 Export and validate an inference bundle:
 
 ```bash
-uv run tab-foundry export \
+uv run tab-foundry export bundle \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   --out-dir outputs/exports/cls_smoke_v3
 
-uv run tab-foundry validate-export \
+uv run tab-foundry export validate \
   --bundle-dir outputs/exports/cls_smoke_v3
 ```
 
@@ -196,7 +198,7 @@ Smoke and benchmark-style runs may also persist generated datasets, manifests, a
 Run the repo-local Iris-backed smoke harness:
 
 ```bash
-uv run python scripts/iris_smoke.py
+uv run tab-foundry bench smoke iris
 ```
 
 This generates manifest-compatible packed Iris tasks, trains a small classification checkpoint on CPU by default, evaluates it on the manifest test split, then runs the binary-Iris checkpoint benchmark.
@@ -208,7 +210,7 @@ Artifacts are written under a timestamped `/tmp/tab_foundry_iris_smoke_*` direct
 Run a repo-local end-to-end smoke harness against a sibling `dagzoo` checkout:
 
 ```bash
-uv run python scripts/dagzoo_smoke.py
+uv run tab-foundry bench smoke dagzoo
 ```
 
 Default profile:
@@ -228,7 +230,7 @@ Smoke exists to validate the end-to-end path. Do not treat smoke-run metrics as 
 Run an internal-only sweep on a fixed manifest:
 
 ```bash
-uv run python scripts/tune_tab_foundry.py \
+uv run tab-foundry bench tune \
   --manifest-path data/manifests/default.parquet
 ```
 
@@ -251,7 +253,7 @@ Gradient norm is logged as a stability diagnostic, not as the primary ranking ta
 Bootstrap sibling benchmark envs:
 
 ```bash
-uv run python scripts/bootstrap_benchmark_envs.py
+uv run tab-foundry bench env bootstrap
 ```
 
 This bootstraps sibling envs for:
@@ -267,7 +269,7 @@ for non-dev installs. Repo-local `uv sync` already includes them.
 Run benchmark comparison only after a run has already been selected internally:
 
 ```bash
-uv run python scripts/benchmark_nanotabpfn.py \
+uv run tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
@@ -301,7 +303,7 @@ contracts.
 Regenerate the canonical medium binary bundle with:
 
 ```bash
-uv run python scripts/build_openml_benchmark_bundle.py \
+uv run tab-foundry bench bundle build-openml \
   --out-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json \
   --bundle-name nanotabpfn_openml_binary_medium \
   --version 1 \
@@ -316,7 +318,7 @@ uv run python scripts/build_openml_benchmark_bundle.py \
 Regenerate the multiclass companion bundle with:
 
 ```bash
-uv run python scripts/build_openml_benchmark_bundle.py \
+uv run tab-foundry bench bundle build-openml \
   --out-path src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json \
   --bundle-name nanotabpfn_openml_classification_small \
   --version 1 \
@@ -331,7 +333,7 @@ uv run python scripts/build_openml_benchmark_bundle.py \
 Discover a fresh no-missing large binary candidate surface with:
 
 ```bash
-uv run python scripts/build_openml_benchmark_bundle.py \
+uv run tab-foundry bench bundle build-openml \
   --out-path /tmp/nanotabpfn_openml_binary_large_no_missing_candidate.json \
   --bundle-name nanotabpfn_openml_binary_large_no_missing_candidate \
   --version 1 \
@@ -349,7 +351,7 @@ uv run python scripts/build_openml_benchmark_bundle.py \
 Rebuild the checked-in reviewed no-missing large bundle exactly with:
 
 ```bash
-uv run python scripts/build_openml_benchmark_bundle.py \
+uv run tab-foundry bench bundle build-openml \
   --out-path src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json \
   --bundle-name nanotabpfn_openml_binary_large_no_missing \
   --version 1 \
@@ -365,7 +367,7 @@ uv run python scripts/build_openml_benchmark_bundle.py \
 Benchmark against a non-default repo-tracked bundle with:
 
 ```bash
-uv run python scripts/benchmark_nanotabpfn.py \
+uv run tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
   --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
@@ -373,14 +375,14 @@ uv run python scripts/benchmark_nanotabpfn.py \
 
 The benchmark-profile training config now writes `train_history.jsonl` directly
 under `runtime.output_dir`, so benchmark comparison can consume plain
-`tab-foundry train experiment=cls_benchmark_linear ...` outputs without a smoke
-wrapper.
+`tab-foundry train run experiment=cls_benchmark_linear ...` outputs without a
+smoke harness.
 
 One simple preparation path is:
 
 ```bash
-uv run python scripts/dagzoo_smoke.py --out-root /tmp/tab_foundry_dagzoo_smoke_bench
-uv run python scripts/benchmark_nanotabpfn.py \
+uv run tab-foundry bench smoke dagzoo --out-root /tmp/tab_foundry_dagzoo_smoke_bench
+uv run tab-foundry bench compare \
   --tab-foundry-run-dir /tmp/tab_foundry_dagzoo_smoke_bench \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
@@ -388,25 +390,25 @@ uv run python scripts/benchmark_nanotabpfn.py \
 The canonical control-baseline surface is:
 
 ```bash
-uv run tab-foundry train \
+uv run tab-foundry train run \
   experiment=cls_benchmark_linear \
   data.manifest_path=data/manifests/default.parquet \
   runtime.output_dir=outputs/control_baselines/cls_benchmark_linear_v2/train
 
-uv run python scripts/benchmark_nanotabpfn.py \
+uv run tab-foundry bench compare \
   --tab-foundry-run-dir outputs/control_baselines/cls_benchmark_linear_v2/train \
   --out-root outputs/control_baselines/cls_benchmark_linear_v2/benchmark \
   --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 
-uv run python scripts/freeze_control_baseline.py \
+uv run tab-foundry bench registry freeze-baseline \
   --baseline-id cls_benchmark_linear_v2 \
   --run-dir outputs/control_baselines/cls_benchmark_linear_v2/train \
   --comparison-summary outputs/control_baselines/cls_benchmark_linear_v2/benchmark/comparison_summary.json
 ```
 
 Keep `outputs/control_baselines/cls_benchmark_linear_v2/train` empty before rerunning the
-training command; `tab-foundry train` now fails fast if `runtime.output_dir` already contains a
+training command; `tab-foundry train run` now fails fast if `runtime.output_dir` already contains a
 non-empty history file or checkpoint `.pt` artifacts.
 
 `cls_benchmark_linear_v2` is the live canonical control surface for the medium
@@ -424,7 +426,7 @@ Later comparison runs can copy one of those registry entries into
 `comparison_summary.json` via:
 
 ```bash
-uv run python scripts/benchmark_nanotabpfn.py \
+uv run tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
   --out-root <benchmark_out_root> \
   --control-baseline-id cls_benchmark_linear_v2 \
@@ -454,7 +456,7 @@ benchmark-run ledger at
 `src/tab_foundry/bench/benchmark_run_registry_v1.json`:
 
 ```bash
-uv run python scripts/register_benchmark_run.py \
+uv run tab-foundry bench registry register-run \
   --run-id 01_nano_exact \
   --track binary_ladder \
   --run-dir outputs/staged_ladder/01_nano_exact/train \
@@ -515,21 +517,21 @@ Recommended loop:
 1. Inspect the active sweep and the next runnable row:
 
    ```bash
-   uv run python scripts/system_delta_queue.py list
-   uv run python scripts/system_delta_queue.py next
+   uv run tab-foundry research sweep list
+   uv run tab-foundry research sweep next
    ```
 
 1. Execute the active sweep's `ready` rows with the generic executor:
 
    ```bash
-   uv run python scripts/system_delta_execute.py
+   uv run tab-foundry research sweep execute
    ```
 
 1. Re-run explicit rows, including already completed rows, when you need a fresh
    canonical CUDA pass:
 
    ```bash
-   uv run python scripts/system_delta_execute.py \
+   uv run tab-foundry research sweep execute \
      --sweep-id <sweep_id> \
      --order <order> \
      --include-completed
@@ -539,7 +541,7 @@ Recommended loop:
    when you are intentionally re-baselining the sweep:
 
    ```bash
-   uv run python scripts/system_delta_execute.py \
+   uv run tab-foundry research sweep execute \
      --sweep-id <sweep_id> \
      --order <order> \
      --include-completed \
@@ -550,7 +552,7 @@ Recommended loop:
    canonical anchor without rerunning the queue:
 
    ```bash
-   uv run python scripts/system_delta_promote.py \
+   uv run tab-foundry research sweep promote \
      --sweep-id <sweep_id> \
      --order <order>
    ```
@@ -558,14 +560,15 @@ Recommended loop:
 1. Validate the rendered sweep metadata after execution or promotion:
 
    ```bash
-   uv run python scripts/system_delta_queue.py render --sweep-id <sweep_id>
-   uv run python scripts/system_delta_queue.py validate --sweep-id <sweep_id>
+   uv run tab-foundry research sweep render --sweep-id <sweep_id>
+   uv run tab-foundry research sweep validate --sweep-id <sweep_id>
    ```
 
 Manual train, benchmark, and registry commands remain the advanced fallback when
-`system_delta_execute.py` is not flexible enough for a one-off debugging pass.
-Use the existing staged-prior, benchmark, and benchmark-registration scripts in
-that case, then rerender and validate the sweep metadata afterward.
+`tab-foundry research sweep execute` is not flexible enough for a one-off
+debugging pass. Use the packaged staged-prior, benchmark, and
+benchmark-registration commands in that case, then rerender and validate the
+sweep metadata afterward.
 
 Every completed benchmark-facing row should leave behind:
 

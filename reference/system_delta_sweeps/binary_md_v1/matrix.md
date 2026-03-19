@@ -35,7 +35,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 ## Queue Summary
 
-| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
+| Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `delta_label_token` | target_conditioning | yes | completed | label_token | Replace mean-padded linear target conditioning with train-label embeddings plus a learned test token. | Keep this as completed negative evidence and only revisit label-token conditioning if a calibration-focused follow-up becomes justified. |
 | 2 | `delta_shared_feature_norm` | feature_encoding | yes | completed | shared_norm | Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization. | Keep this as completed mixed evidence and only schedule a bounded follow-up if we want to test whether shorter budgets or downstream normalization mismatch explain the late-curve drop. |
@@ -63,7 +63,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `label_token`
+- Recipe alias: `label_token`
 - Description: Replace mean-padded linear target conditioning with train-label embeddings plus a learned test token.
 - Rationale: This is the smallest staged departure from upstream nanoTabPFN and should be measured before shared normalization or block-style changes.
 - Hypothesis: Discrete label tokens may sharpen small-binary support-set conditioning, but any loss could reflect embedding initialization or calibration drift rather than the idea itself.
@@ -97,7 +97,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `shared_norm`
+- Recipe alias: `shared_norm`
 - Description: Replace the internal nano feature path with the shared linear feature encoder while keeping scalar-per-feature tokenization.
 - Rationale: This isolates shared normalization and shared feature weights without changing the table block or row readout.
 - Hypothesis: Shared feature encoding may help the staged family generalize across varied feature identities, but it also moves normalization responsibility outside the nano-exact path.
@@ -131,7 +131,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `prenorm_block`
+- Recipe alias: `prenorm_block`
 - Description: Switch the cell transformer from the nano post-norm block to the staged pre-norm block, still without test self-attention.
 - Rationale: This isolates normalization/block ordering before introducing any new attention edges or tokenization changes.
 - Hypothesis: Pre-norm may stabilize optimization at compact scale, but a loss may simply mean the head/optimizer neighborhood was tuned around post-norm behavior.
@@ -165,7 +165,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `test_self`
+- Recipe alias: `test_self`
 - Description: Allow test-token self-attention inside the pre-norm block without adding any test-to-test cross-attention.
 - Rationale: This isolates the masking change from tokenizer, row-pool, and context-encoder changes.
 - Hypothesis: Keeping each test token's own state through the block may help the direct head, but any failure could mean the surrounding block settings are still mismatched.
@@ -198,7 +198,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `blocked_on_surface_semantics`
 - Binary applicable: `True`
-- Legacy stage alias: `grouped_tokens`
+- Recipe alias: `grouped_tokens`
 - Description: Replace scalar-per-feature tokenization with the shifted grouped tokenizer while keeping downstream row/context structure anchored.
 - Rationale: The anchor keeps the nano feature encoder, which bypasses tokenizer outputs entirely, so this row is not isolatable until the surface changes away from the nano path.
 - Hypothesis: Local grouped views may help feature interaction modeling, but this row cannot produce that signal while the nano encoder remains active.
@@ -224,7 +224,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `row_cls_pool`
+- Recipe alias: `row_cls_pool`
 - Description: Replace target-column pooling with CLS-based row pooling while leaving tokenizer, column encoder, and context encoder otherwise anchored.
 - Rationale: This is the row you called out directly; the structure change is large enough that its introduced capacity knobs must be reported and interpreted, not hidden.
 - Hypothesis: CLS pooling may extract better row summaries, but a weak result is not evidence against the mechanism unless tfrow_n_heads, tfrow_n_layers, and tfrow_cls_tokens are adequate.
@@ -262,7 +262,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `row_cls_pool`
+- Recipe alias: `row_cls_pool`
 - Description: Keep the row-CLS pooling path but replace its row-encoder LayerNorm modules with RMSNorm.
 - Rationale: This keeps the row-CLS structural change but isolates the row-encoder normalization choice after the base row-CLS evidence is in hand.
 - Hypothesis: RMSNorm may reduce row-CLS instability, but a weak result could still mean the row-CLS mechanism is mismatched to the anchor surface rather than merely badly normalized.
@@ -299,7 +299,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `column_set`
+- Recipe alias: `column_set`
 - Description: Add the TFCol/ISAB-style set encoder over columns while keeping row pooling and context encoding otherwise fixed.
 - Rationale: Column-set encoding should be evaluated separately from row CLS pooling and QASS context so its effect is attributable.
 - Hypothesis: Explicit column-set reasoning may help heterogeneous feature identity, but harm may indicate that tfcol_n_heads / tfcol_n_layers / tfcol_n_inducing are poorly chosen rather than that the idea is bad.
@@ -334,7 +334,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `qass_context`
+- Recipe alias: `qass_context`
 - Description: Add the QASS-based sequence context encoder over row embeddings.
 - Rationale: Context encoding changes both depth and label-conditioned message passing, so it belongs late in the binary queue after simpler toggles.
 - Hypothesis: QASS may help longer-range support/test interactions, but weak results may simply indicate the compact benchmark surface does not justify the added context depth.
@@ -369,7 +369,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `model`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Keep the anchor structure fixed but switch the staged/global LayerNorm family to RMSNorm, including the row-pool norm override for completeness.
 - Rationale: A broad norm-family change should be measured explicitly rather than smuggled into structural rescue runs.
 - Hypothesis: RMSNorm may reduce optimization instability on the anchored staged surface, but any gain must be separated from late-curve calibration or retention effects.
@@ -404,7 +404,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Keep the anchor model, data, and preprocessing surfaces but replace the exact-prior constant LR with single-stage linear decay.
 - Rationale: Training recipe changes should be measured explicitly after the simpler structural rows, not smuggled in as silent recovery attempts.
 - Hypothesis: A decayed exact-prior LR may retain more of the anchor's peak quality or reduce instability without changing the model surface at all.
@@ -440,7 +440,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `training`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup.
 - Rationale: Warmup should be measured separately from plain decay so the queue can tell whether any benefit comes from gentler early steps or just from a lower late-stage LR.
 - Hypothesis: A short warmup may reduce early instability on the exact-prior surface and improve retention relative to no-warmup decay, but it may also simply slow convergence.
@@ -476,7 +476,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `data`
 - Status: `blocked_on_artifacts`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor.
 - Rationale: Filter policy is a data-surface decision, not a silent background tweak.
 - Hypothesis: Accepted-only data may improve robustness if the current anchor manifest still contains marginal datasets, but a loss may simply reflect reduced diversity.
@@ -503,7 +503,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `data`
 - Status: `blocked_on_artifacts`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Point training at a curated dagzoo manifest root with explicit dagzoo command provenance.
 - Rationale: The queue must be able to compare not only model structure but also the exact dagzoo call set that defined the training corpus.
 - Hypothesis: A more curated dagzoo root may improve signal quality, but any change must be interpreted through manifest lineage and dataset-characteristic shifts.
@@ -531,7 +531,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `data`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Swap the training manifest to the small binary iris support surface while keeping the model and preprocessing anchored.
 - Rationale: This gives the queue one immediately runnable data-source ablation using an existing repo-tracked manifest family.
 - Hypothesis: A very clean but tiny training surface may sharpen some local behavior but is likely to underperform because it collapses diversity; that should be interpreted as a coverage tradeoff, not a verdict on the model.
@@ -557,7 +557,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `deferred_separate_workstream`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Disable runtime mean imputation while keeping the fitted label-remap path intact.
 - Rationale: Missing-value handling is a first-class preprocessing dimension and should be measured without mixing in data or model changes.
 - Hypothesis: If missingness is rare on the anchor surface this may be neutral; if not, harm may reflect simple information loss rather than a meaningful architectural weakness.
@@ -581,7 +581,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `deferred_separate_workstream`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Keep imputation on but change the all-NaN fallback fill value from 0.0 to 1.0.
 - Rationale: This isolates a preprocessing policy knob that is usually hidden inside fitted-state defaults.
 - Hypothesis: The row is mainly interpretive; a weak result may simply mean all-NaN columns are rare on the current surface.
@@ -605,7 +605,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `blocked_on_policy_impl`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Compare the current train-only remap/filter label policy against an alternate surfaced label-mapping policy.
 - Rationale: Label mapping is now explicit in the surface record, but there is not yet a second supported runtime policy to compare.
 - Hypothesis: This row is blocked until a legitimate alternate policy exists; until then it serves as a reminder that label policy is part of the system surface, not a hidden constant.

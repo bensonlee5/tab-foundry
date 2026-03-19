@@ -12,6 +12,27 @@ from tab_foundry.input_normalization import (
 )
 
 
+def _stack_2d_normalization(
+    x_train: torch.Tensor,
+    x_test: torch.Tensor,
+    *,
+    mode: str,
+    preserve_non_finite: bool = False,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    train_parts: list[torch.Tensor] = []
+    test_parts: list[torch.Tensor] = []
+    for batch_idx in range(int(x_train.shape[0])):
+        train_norm, test_norm = normalize_train_test_tensors(
+            x_train[batch_idx],
+            x_test[batch_idx],
+            mode=mode,
+            preserve_non_finite=preserve_non_finite,
+        )
+        train_parts.append(train_norm)
+        test_parts.append(test_norm)
+    return torch.stack(train_parts, dim=0), torch.stack(test_parts, dim=0)
+
+
 def test_train_zscore_clip_normalizes_from_train_only_and_clips() -> None:
     x_train = np.asarray([[0.0, 1.0], [2.0, 1.0]], dtype=np.float32)
     x_test = np.asarray([[1000.0, 1.0]], dtype=np.float32)
@@ -143,3 +164,152 @@ def test_preserve_non_finite_normalizes_only_finite_values() -> None:
     assert test_norm[0, 0].item() == pytest.approx(3.0)
     assert train_norm[1, 1].item() == pytest.approx(0.0)
     assert test_norm[1, 1].item() == pytest.approx(2.0)
+
+
+def test_preserve_non_finite_keeps_signed_infinities_distinct() -> None:
+    x_train = torch.tensor(
+        [
+            [float("inf"), float("-inf")],
+            [2.0, 4.0],
+        ],
+        dtype=torch.float32,
+    )
+    x_test = torch.tensor(
+        [
+            [float("inf"), float("-inf")],
+            [6.0, 8.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    train_norm, test_norm = normalize_train_test_tensors(
+        x_train,
+        x_test,
+        mode="train_zscore_clip",
+        preserve_non_finite=True,
+    )
+
+    assert torch.isposinf(train_norm[0, 0])
+    assert torch.isneginf(train_norm[0, 1])
+    assert torch.isposinf(test_norm[0, 0])
+    assert torch.isneginf(test_norm[0, 1])
+    assert train_norm[1, 0].item() == pytest.approx(0.0)
+    assert train_norm[1, 1].item() == pytest.approx(0.0)
+    assert test_norm[1, 0].item() == pytest.approx(4.0)
+    assert test_norm[1, 1].item() == pytest.approx(4.0)
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "train_zscore",
+        "train_zscore_clip",
+        "train_winsorize_zscore",
+        "train_zscore_tanh",
+    ],
+)
+def test_batched_zscore_modes_match_stacked_2d_behavior(mode: str) -> None:
+    rng = np.random.default_rng(7)
+    x_train = torch.tensor(rng.standard_normal((3, 9, 4)).astype(np.float32))
+    x_test = torch.tensor(rng.standard_normal((3, 5, 4)).astype(np.float32))
+
+    observed_train, observed_test = normalize_train_test_tensors(
+        x_train,
+        x_test,
+        mode=mode,
+    )
+    expected_train, expected_test = _stack_2d_normalization(
+        x_train,
+        x_test,
+        mode=mode,
+    )
+
+    torch.testing.assert_close(observed_train, expected_train, atol=1.0e-6, rtol=1.0e-6)
+    torch.testing.assert_close(observed_test, expected_test, atol=1.0e-6, rtol=1.0e-6)
+
+
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "train_rankgauss",
+        "train_robust",
+        "train_robust_tanh",
+    ],
+)
+def test_batched_fallback_modes_match_stacked_2d_behavior(mode: str) -> None:
+    rng = np.random.default_rng(17)
+    x_train = torch.tensor(rng.standard_normal((2, 11, 3)).astype(np.float32))
+    x_test = torch.tensor(rng.standard_normal((2, 4, 3)).astype(np.float32))
+
+    observed_train, observed_test = normalize_train_test_tensors(
+        x_train,
+        x_test,
+        mode=mode,
+    )
+    expected_train, expected_test = _stack_2d_normalization(
+        x_train,
+        x_test,
+        mode=mode,
+    )
+
+    torch.testing.assert_close(observed_train, expected_train, atol=1.0e-6, rtol=1.0e-6)
+    torch.testing.assert_close(observed_test, expected_test, atol=1.0e-6, rtol=1.0e-6)
+
+
+def test_batched_preserve_non_finite_matches_stacked_2d_behavior() -> None:
+    x_train = torch.tensor(
+        [
+            [
+                [1.0, float("nan"), float("inf"), float("-inf")],
+                [3.0, 5.0, 7.0, 9.0],
+                [5.0, 7.0, 11.0, 13.0],
+            ],
+            [
+                [2.0, float("nan"), float("inf"), float("-inf")],
+                [6.0, 8.0, 10.0, 12.0],
+                [8.0, 10.0, 14.0, 16.0],
+            ],
+        ],
+        dtype=torch.float32,
+    )
+    x_test = torch.tensor(
+        [
+            [
+                [7.0, float("nan"), float("inf"), float("-inf")],
+                [9.0, 11.0, 15.0, 17.0],
+            ],
+            [
+                [10.0, float("nan"), float("inf"), float("-inf")],
+                [12.0, 14.0, 18.0, 20.0],
+            ],
+        ],
+        dtype=torch.float32,
+    )
+
+    observed_train, observed_test = normalize_train_test_tensors(
+        x_train,
+        x_test,
+        mode="train_zscore_clip",
+        preserve_non_finite=True,
+    )
+    expected_train, expected_test = _stack_2d_normalization(
+        x_train,
+        x_test,
+        mode="train_zscore_clip",
+        preserve_non_finite=True,
+    )
+
+    torch.testing.assert_close(
+        observed_train,
+        expected_train,
+        equal_nan=True,
+        atol=1.0e-6,
+        rtol=1.0e-6,
+    )
+    torch.testing.assert_close(
+        observed_test,
+        expected_test,
+        equal_nan=True,
+        atol=1.0e-6,
+        rtol=1.0e-6,
+    )

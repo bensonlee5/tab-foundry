@@ -137,23 +137,17 @@ def test_manifest_validators_reject_missing_or_extra_section_keys(
         validate_manifest_dict(payload)
 
 
-@settings(deadline=None, max_examples=25)
-@given(task=st.sampled_from(("classification", "regression")))
-def test_validate_preprocessor_state_dict_roundtrips_valid_v3_payloads(task: str) -> None:
+def test_validate_preprocessor_state_dict_roundtrips_valid_v3_payloads() -> None:
     payload: dict[str, object] = {
         "feature_order_policy": "positional_feature_ids",
         "missing_value_policy": {
             "strategy": "train_mean",
             "all_nan_fill": 0.0,
         },
-        "classification_label_policy": (
-            {
-                "mapping": "train_only_remap",
-                "unseen_test_label": "filter",
-            }
-            if task == "classification"
-            else None
-        ),
+        "classification_label_policy": {
+            "mapping": "train_only_remap",
+            "unseen_test_label": "filter",
+        },
         "dtype_policy": {
             "features": "float32",
             "classification_labels": "int64",
@@ -164,7 +158,7 @@ def test_validate_preprocessor_state_dict_roundtrips_valid_v3_payloads(task: str
     validated = validate_preprocessor_state_dict(
         payload,
         schema_version=SCHEMA_VERSION_V3,
-        task=task,
+        task="classification",
     )
 
     assert isinstance(validated, ExportPreprocessorState)
@@ -172,22 +166,41 @@ def test_validate_preprocessor_state_dict_roundtrips_valid_v3_payloads(task: str
 
 
 @settings(deadline=None, max_examples=25)
-@given(task=st.sampled_from(("classification", "regression")))
-def test_validate_preprocessor_state_dict_rejects_task_policy_mismatch(task: str) -> None:
+@given(task=st.sampled_from(("regression", "REGRESSION")))
+def test_validate_preprocessor_state_dict_rejects_unsupported_task(task: str) -> None:
     payload: dict[str, object] = {
         "feature_order_policy": "positional_feature_ids",
         "missing_value_policy": {
             "strategy": "train_mean",
             "all_nan_fill": 0.0,
         },
-        "classification_label_policy": (
-            None
-            if task == "classification"
-            else {
-                "mapping": "train_only_remap",
-                "unseen_test_label": "filter",
-            }
-        ),
+        "classification_label_policy": {
+            "mapping": "train_only_remap",
+            "unseen_test_label": "filter",
+        },
+        "dtype_policy": {
+            "features": "float32",
+            "classification_labels": "int64",
+            "regression_targets": "float32",
+        },
+    }
+
+    with pytest.raises(ValueError, match="Unsupported preprocessor_state task"):
+        validate_preprocessor_state_dict(
+            payload,
+            schema_version=SCHEMA_VERSION_V3,
+            task=task,
+        )
+
+
+def test_validate_preprocessor_state_dict_rejects_missing_classification_policy() -> None:
+    payload: dict[str, object] = {
+        "feature_order_policy": "positional_feature_ids",
+        "missing_value_policy": {
+            "strategy": "train_mean",
+            "all_nan_fill": 0.0,
+        },
+        "classification_label_policy": None,
         "dtype_policy": {
             "features": "float32",
             "classification_labels": "int64",
@@ -199,5 +212,5 @@ def test_validate_preprocessor_state_dict_rejects_task_policy_mismatch(task: str
         validate_preprocessor_state_dict(
             payload,
             schema_version=SCHEMA_VERSION_V3,
-            task=task,
+            task="classification",
         )

@@ -1,4 +1,4 @@
-arch: tabfoundry
+arch: tabfoundry_staged
 stage: null
 stage_label: null
 module_overrides: null

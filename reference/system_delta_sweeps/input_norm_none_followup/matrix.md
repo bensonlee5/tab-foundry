@@ -37,7 +37,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 ## Queue Summary
 
-| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
+| Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `dpnb_input_norm_none_batch64_sqrt` | input_normalization | yes | completed | none | Remove explicit input normalization on the batch64 sqrt-scaled bridge winner and keep the larger-batch surface fixed. | Keep `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2` as the preferred batch64 surface; do not reopen `input_normalization=none` on this bundle without new evidence. |
 
@@ -48,7 +48,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `completed`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Remove explicit input normalization on the batch64 sqrt-scaled bridge winner and keep the larger-batch surface fixed.
 - Rationale: Test the user-preferred simpler preprocessing choice on the current best tested systems surface rather than reopening the weaker batch32 rows.
 - Hypothesis: If batch64 with sqrt LR scaling was the real driver of the gain, explicit input normalization may be removable without losing the benchmark lift.

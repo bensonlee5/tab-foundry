@@ -144,38 +144,38 @@ def test_model_build_spec_none_in_primary_does_not_erase_fallback(
 
 
 @given(task=st.sampled_from(SUPPORTED_MODEL_TASKS))
-def test_checkpoint_build_spec_defaults_omitted_feature_group_size_for_default_weight_shape(task: str) -> None:
+def test_checkpoint_build_spec_defaults_feature_group_size_without_legacy_weights(task: str) -> None:
     spec = checkpoint_model_build_spec_from_mappings(
         task=task,
         primary={},
-        state_dict={"group_linear.weight": torch.zeros((128, 3))},
+        state_dict={},
     )
 
     assert spec.feature_group_size == 1
 
 
 @given(task=st.sampled_from(SUPPORTED_MODEL_TASKS), feature_group_size=st.integers(min_value=2, max_value=64))
-def test_checkpoint_build_spec_preserves_explicit_nondefault_feature_group_size(
+def test_checkpoint_build_spec_preserves_explicit_nondefault_feature_group_size_without_legacy_weights(
     task: str,
     feature_group_size: int,
 ) -> None:
     spec = checkpoint_model_build_spec_from_mappings(
         task=task,
         primary={"feature_group_size": feature_group_size},
-        state_dict={"group_linear.weight": torch.zeros((128, feature_group_size * 3))},
+        state_dict={},
     )
 
     assert spec.feature_group_size == feature_group_size
 
 
 @given(task=st.sampled_from(SUPPORTED_MODEL_TASKS), feature_group_size=st.integers(min_value=2, max_value=64))
-def test_checkpoint_build_spec_rejects_legacy_grouped_weights_without_override(
+def test_checkpoint_build_spec_rejects_legacy_tabfoundry_state_dict(
     task: str,
     feature_group_size: int,
 ) -> None:
-    with pytest.raises(ValueError, match="omitted feature_group_size"):
+    with pytest.raises(ValueError, match="Legacy tabfoundry checkpoints are no longer supported"):
         _ = checkpoint_model_build_spec_from_mappings(
             task=task,
-            primary={},
+            primary={"feature_group_size": feature_group_size},
             state_dict={"group_linear.weight": torch.zeros((128, feature_group_size * 3))},
         )

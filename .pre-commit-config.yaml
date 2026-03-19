@@ -24,7 +24,7 @@ repos:
     pass_filenames: false
   - id: pytest
     name: pytest
-    entry: ./.venv/bin/python -m pytest -n auto --maxprocesses 8 tests
+    entry: ./.venv/bin/python -m pytest tests
     language: system
     types_or: [python, pyi]
     files: ^(src/|tests/)

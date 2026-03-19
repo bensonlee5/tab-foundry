@@ -3,27 +3,42 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from datetime import datetime, timezone
-import json
-import math
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Any, Sequence, cast
 
-import numpy as np
-from omegaconf import DictConfig, OmegaConf
-import torch
+from omegaconf import DictConfig
 
 from tab_foundry.bench.artifacts import load_history, write_json, write_jsonl
-from tab_foundry.bench.benchmark_run_registry import (
-    default_benchmark_run_registry_path,
-    load_benchmark_run_registry,
-    resolve_registry_path_value,
+from tab_foundry.bench.benchmark_run_registry import default_benchmark_run_registry_path
+from tab_foundry.bench.bounce.config import (
+    BenchmarkBounceDiagnosisConfig,
+    DIAGNOSIS_SCHEMA as _DIAGNOSIS_SCHEMA,
+    RerunMode,
+    default_out_root as _default_out_root_impl,
+    resolve_positive_int as _resolve_positive_int_impl,
+    resolve_probability as _resolve_probability_impl,
+    utc_now as _utc_now_impl,
+)
+from tab_foundry.bench.bounce.execution import (
+    evaluate_one_bundle as _evaluate_one_bundle_impl,
+    run_benchmark_bounce_diagnosis as _run_benchmark_bounce_diagnosis_impl,
+)
+from tab_foundry.bench.bounce.rerun import (
+    checkpoint_cfg_from_run as _checkpoint_cfg_from_run_impl,
+    resolve_run_dir_from_registry as _resolve_run_dir_from_registry_impl,
+    run_dense_checkpoint_rerun as _run_dense_checkpoint_rerun_impl,
+)
+from tab_foundry.bench.bounce.signals import (
+    checkpoint_aliasing_signal as _checkpoint_aliasing_signal_impl,
+    classify_causes as _classify_causes_impl,
+    curve_summary_compat as _curve_summary_impl,
+    shared_bundle_analysis as _shared_bundle_analysis_impl,
+    task_tradeoff_signal as _task_tradeoff_signal_impl,
+    training_signal as _training_signal_impl,
 )
 from tab_foundry.bench.nanotabpfn import (
-    benchmark_bundle_task_type,
     benchmark_bundle_summary,
+    benchmark_bundle_task_type,
     curve_summary,
     default_benchmark_bundle_path,
     evaluate_tab_foundry_run,
@@ -34,48 +49,23 @@ from tab_foundry.bench.nanotabpfn import (
 from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.trainer import train
 
-DIAGNOSIS_SCHEMA = "benchmark_bounce_diagnosis_v1"
+DIAGNOSIS_SCHEMA = _DIAGNOSIS_SCHEMA
 
-RerunMode = Literal["auto", "prior", "train", "none"]
-
-
-@dataclass(slots=True)
-class BenchmarkBounceDiagnosisConfig:
-    """Input configuration for one benchmark-bounce diagnosis run."""
-
-    run_dir: Path
-    out_root: Path
-    device: str = "auto"
-    benchmark_bundle_path: Path | None = None
-    confirmation_benchmark_bundle_path: Path | None = None
-    bootstrap_samples: int = 2000
-    bootstrap_confidence: float = 0.95
-    dense_checkpoint_every: int | None = None
-    dense_run_dir: Path | None = None
-    rerun_mode: RerunMode = "none"
-    run_id: str | None = None
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return _utc_now_impl()
 
 
 def _default_out_root(run_dir: Path) -> Path:
-    stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-    return Path("/tmp") / f"{run_dir.expanduser().resolve().name}_benchmark_bounce_{stamp}"
+    return _default_out_root_impl(run_dir)
 
 
 def _resolve_positive_int(value: int, *, name: str) -> int:
-    resolved = int(value)
-    if resolved <= 0:
-        raise ValueError(f"{name} must be > 0, got {resolved}")
-    return resolved
+    return _resolve_positive_int_impl(value, name=name)
 
 
 def _resolve_probability(value: float, *, name: str) -> float:
-    resolved = float(value)
-    if not 0.0 < resolved < 1.0:
-        raise ValueError(f"{name} must be in (0, 1), got {resolved!r}")
-    return resolved
+    return _resolve_probability_impl(value, name=name)
 
 
 def resolve_run_dir_from_registry(
@@ -85,164 +75,31 @@ def resolve_run_dir_from_registry(
 ) -> Path:
     """Resolve a benchmark registry run id into its concrete run directory."""
 
-    registry = load_benchmark_run_registry(registry_path or default_benchmark_run_registry_path())
-    runs = cast(dict[str, Any], registry["runs"])
-    try:
-        run_payload = cast(dict[str, Any], runs[str(run_id)])
-    except KeyError as exc:
-        raise RuntimeError(f"unknown benchmark registry run_id: {run_id!r}") from exc
-    artifacts = cast(dict[str, Any], run_payload["artifacts"])
-    run_dir_raw = artifacts.get("run_dir")
-    if not isinstance(run_dir_raw, str) or not run_dir_raw.strip():
-        raise RuntimeError(f"benchmark registry run missing artifacts.run_dir: {run_id!r}")
-    return resolve_registry_path_value(run_dir_raw)
-
-
-def _resolve_latest_checkpoint(run_dir: Path) -> Path:
-    resolved_run_dir = run_dir.expanduser().resolve()
-    candidates = [
-        resolved_run_dir / "checkpoints" / "latest.pt",
-        resolved_run_dir / "train_outputs" / "checkpoints" / "latest.pt",
-        resolved_run_dir / "checkpoints" / "best.pt",
-        resolved_run_dir / "train_outputs" / "checkpoints" / "best.pt",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    expected = ", ".join(str(path) for path in candidates)
-    raise RuntimeError(f"missing checkpoint config under {resolved_run_dir}; checked {expected}")
+    return _resolve_run_dir_from_registry_impl(run_id, registry_path=registry_path)
 
 
 def _checkpoint_cfg_from_run(run_dir: Path) -> DictConfig:
-    checkpoint_path = _resolve_latest_checkpoint(run_dir)
-    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"checkpoint payload must be a mapping: {checkpoint_path}")
-    raw_cfg = payload.get("config")
-    if not isinstance(raw_cfg, dict):
-        raise RuntimeError(f"checkpoint config must be a mapping: {checkpoint_path}")
-    return cast(DictConfig, OmegaConf.create(json.loads(json.dumps(raw_cfg))))
-
-
-def _infer_rerun_mode(cfg: DictConfig) -> Literal["prior", "train"]:
-    training_cfg = cfg.get("training")
-    surface_label = ""
-    if isinstance(training_cfg, Mapping):
-        surface_label = str(training_cfg.get("surface_label", "")).strip().lower()
-    optimizer_cfg = cfg.get("optimizer")
-    optimizer_name = ""
-    if isinstance(optimizer_cfg, Mapping):
-        optimizer_name = str(optimizer_cfg.get("name", "")).strip().lower()
-    runtime_cfg = cfg.get("runtime")
-    val_batches = 0
-    if isinstance(runtime_cfg, Mapping):
-        raw_val_batches = runtime_cfg.get("val_batches", 0)
-        if raw_val_batches is not None:
-            val_batches = int(raw_val_batches)
-    if surface_label.startswith("prior_"):
-        return "prior"
-    if optimizer_name == "schedulefree_adamw" and val_batches == 0:
-        return "prior"
-    return "train"
-
-
-def _prepare_dense_rerun_cfg(
-    cfg: DictConfig,
-    *,
-    dense_output_dir: Path,
-    dense_checkpoint_every: int,
-) -> DictConfig:
-    updated = cast(DictConfig, OmegaConf.create(OmegaConf.to_container(cfg, resolve=True)))
-    updated.runtime.output_dir = str(dense_output_dir.resolve())
-    updated.runtime.checkpoint_every = int(dense_checkpoint_every)
-    if getattr(updated.runtime, "eval_every", None) is not None:
-        updated.runtime.eval_every = int(dense_checkpoint_every)
-    if getattr(updated, "logging", None) is not None:
-        updated.logging.use_wandb = False
-        updated.logging.run_name = f"{dense_output_dir.name}"
-        updated.logging.history_jsonl_path = str((dense_output_dir / "train_history.jsonl").resolve())
-    return updated
+    return _checkpoint_cfg_from_run_impl(run_dir)
 
 
 def _run_dense_checkpoint_rerun(config: BenchmarkBounceDiagnosisConfig) -> Path:
-    if config.dense_checkpoint_every is None:
-        raise RuntimeError("dense_checkpoint_every must be set to run a dense rerun")
-    dense_output_dir = (
-        config.dense_run_dir.expanduser().resolve()
-        if config.dense_run_dir is not None
-        else (config.out_root.expanduser().resolve() / "dense_checkpoint_run").resolve()
+    return _run_dense_checkpoint_rerun_impl(
+        config,
+        checkpoint_cfg_from_run_fn=_checkpoint_cfg_from_run,
+        prior_train_fn=train_tabfoundry_simple_prior,
+        train_fn=train,
     )
-    cfg = _prepare_dense_rerun_cfg(
-        _checkpoint_cfg_from_run(config.run_dir),
-        dense_output_dir=dense_output_dir,
-        dense_checkpoint_every=_resolve_positive_int(
-            int(config.dense_checkpoint_every),
-            name="dense_checkpoint_every",
-        ),
-    )
-    rerun_mode: RerunMode = config.rerun_mode
-    if rerun_mode == "none":
-        raise RuntimeError("rerun_mode='none' does not allow dense_checkpoint_every reruns")
-    if rerun_mode == "auto":
-        rerun_mode = _infer_rerun_mode(cfg)
-    if rerun_mode == "prior":
-        _ = train_tabfoundry_simple_prior(cfg)
-    elif rerun_mode == "train":
-        _ = train(cfg)
-    else:
-        raise RuntimeError(f"unsupported rerun_mode: {rerun_mode!r}")
-    return dense_output_dir
 
 
 def _shared_bundle_analysis(
     primary_records: list[dict[str, Any]],
     confirmation_records: list[dict[str, Any]] | None,
 ) -> dict[str, Any]:
-    primary_by_step = {int(record["step"]): record for record in primary_records}
-    confirmation_by_step = (
-        {}
-        if confirmation_records is None
-        else {int(record["step"]): record for record in confirmation_records}
-    )
-    shared_steps = sorted(set(primary_by_step) & set(confirmation_by_step))
-    primary_summary = curve_summary(primary_records)
-    confirmation_summary = (
-        None if confirmation_records is None else curve_summary(confirmation_records)
-    )
-    best_step_changed = bool(
-        int(primary_summary["checkpoint_count"]) > 0
-        and confirmation_summary is not None
-        and int(confirmation_summary["checkpoint_count"]) > 0
-        and int(primary_summary["best_step"]) != int(confirmation_summary["best_step"])
-    )
-    likely_benchmark_noise = bool(
-        best_step_changed
-        and primary_summary["adjacent_ci_overlap_fraction"] is not None
-        and float(primary_summary["adjacent_ci_overlap_fraction"]) >= 0.5
-        and confirmation_summary is not None
-        and int(confirmation_summary["task_count"]) > int(primary_summary["task_count"])
-    )
-    return {
-        "shared_step_count": int(len(shared_steps)),
-        "shared_steps": shared_steps,
-        "best_step_changed_between_bundles": bool(best_step_changed),
-        "primary": primary_summary,
-        "confirmation": confirmation_summary,
-        "likely_benchmark_noise": likely_benchmark_noise,
-    }
+    return _shared_bundle_analysis_impl(primary_records, confirmation_records)
 
 
 def _curve_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
-    """Compatibility wrapper around the shared checkpoint-curve summary helper."""
-
-    return curve_summary(records)
-
-
-def _history_variance(values: list[float]) -> float | None:
-    if len(values) < 2:
-        return None
-    mean = sum(values) / float(len(values))
-    return sum((value - mean) ** 2 for value in values) / float(len(values))
+    return _curve_summary_impl(records)
 
 
 def _training_signal(
@@ -250,105 +107,11 @@ def _training_signal(
     history: list[dict[str, Any]],
     curve_records: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    grad_norms = [
-        float(record["grad_norm"])
-        for record in history
-        if record.get("grad_norm") is not None and math.isfinite(float(record["grad_norm"]))
-    ]
-    train_losses = [
-        float(record["train_loss"])
-        for record in history
-        if record.get("train_loss") is not None and math.isfinite(float(record["train_loss"]))
-    ]
-    median_grad_norm = float(np.median(np.asarray(grad_norms, dtype=np.float64))) if grad_norms else 0.0
-    max_grad_norm = float(max(grad_norms)) if grad_norms else 0.0
-    grad_spike_ratio = (
-        float(max_grad_norm / median_grad_norm)
-        if grad_norms and median_grad_norm > 0.0
-        else float("inf") if max_grad_norm > 0.0 else 0.0
-    )
-    sorted_records = sorted(curve_records, key=lambda record: int(record["step"]))
-    worst_drop: dict[str, Any] | None = None
-    for previous, current in zip(sorted_records, sorted_records[1:], strict=False):
-        delta = float(current["roc_auc"]) - float(previous["roc_auc"])
-        if worst_drop is None or delta < float(worst_drop["roc_auc_delta"]):
-            window = [
-                record
-                for record in history
-                if int(previous["step"]) < int(record["step"]) <= int(current["step"])
-            ]
-            window_grad_norms = [
-                float(record["grad_norm"])
-                for record in window
-                if record.get("grad_norm") is not None and math.isfinite(float(record["grad_norm"]))
-            ]
-            window_losses = [
-                float(record["train_loss"])
-                for record in window
-                if record.get("train_loss") is not None and math.isfinite(float(record["train_loss"]))
-            ]
-            worst_drop = {
-                "from_step": int(previous["step"]),
-                "to_step": int(current["step"]),
-                "roc_auc_delta": float(delta),
-                "window_max_grad_norm": None if not window_grad_norms else float(max(window_grad_norms)),
-                "window_train_loss_var": _history_variance(window_losses),
-            }
-    likely_optimization_instability = bool(
-        max_grad_norm >= 50.0
-        or (
-            worst_drop is not None
-            and worst_drop["window_max_grad_norm"] is not None
-            and float(worst_drop["window_max_grad_norm"]) >= max(50.0, 10.0 * median_grad_norm)
-            and float(worst_drop["roc_auc_delta"]) < -0.02
-        )
-    )
-    return {
-        "history_step_count": int(len(history)),
-        "median_grad_norm": float(median_grad_norm),
-        "max_grad_norm": float(max_grad_norm),
-        "grad_spike_ratio": float(grad_spike_ratio),
-        "train_loss_variance": _history_variance(train_losses),
-        "worst_checkpoint_drop": worst_drop,
-        "likely_optimization_instability": likely_optimization_instability,
-    }
+    return _training_signal_impl(history=history, curve_records=curve_records)
 
 
 def _task_tradeoff_signal(records: list[dict[str, Any]]) -> dict[str, Any]:
-    if not records:
-        return {
-            "positive_task_count": 0,
-            "negative_task_count": 0,
-            "top_quartile_abs_delta_share": 0.0,
-            "likely_heterogeneous_task_tradeoff": False,
-        }
-    sorted_records = sorted(records, key=lambda record: int(record["step"]))
-    best_record = max(sorted_records, key=lambda record: float(record["roc_auc"]))
-    final_record = sorted_records[-1]
-    best_dataset = cast(dict[str, float], best_record.get("dataset_roc_auc", {}))
-    final_dataset = cast(dict[str, float], final_record.get("dataset_roc_auc", {}))
-    shared_dataset_names = sorted(set(best_dataset) & set(final_dataset))
-    deltas = {
-        dataset_name: float(final_dataset[dataset_name]) - float(best_dataset[dataset_name])
-        for dataset_name in shared_dataset_names
-    }
-    positive_count = sum(1 for value in deltas.values() if value > 0)
-    negative_count = sum(1 for value in deltas.values() if value < 0)
-    abs_deltas = sorted((abs(value) for value in deltas.values()), reverse=True)
-    total_abs_delta = float(sum(abs_deltas))
-    top_count = max(1, math.ceil(len(abs_deltas) / 4.0)) if abs_deltas else 0
-    top_share = (
-        float(sum(abs_deltas[:top_count]) / total_abs_delta)
-        if total_abs_delta > 0.0 and top_count > 0
-        else 0.0
-    )
-    likely_tradeoff = bool(positive_count > 0 and negative_count > 0 and top_share >= 0.5)
-    return {
-        "positive_task_count": int(positive_count),
-        "negative_task_count": int(negative_count),
-        "top_quartile_abs_delta_share": float(top_share),
-        "likely_heterogeneous_task_tradeoff": likely_tradeoff,
-    }
+    return _task_tradeoff_signal_impl(records)
 
 
 def _checkpoint_aliasing_signal(
@@ -356,34 +119,10 @@ def _checkpoint_aliasing_signal(
     coarse_records: list[dict[str, Any]],
     dense_records: list[dict[str, Any]] | None,
 ) -> dict[str, Any]:
-    if not dense_records:
-        return {
-            "available": False,
-            "likely_checkpoint_aliasing": False,
-        }
-    coarse_summary = curve_summary(coarse_records)
-    dense_summary = curve_summary(dense_records)
-    coarse_steps = {int(record["step"]) for record in coarse_records}
-    dense_best_step = int(dense_summary["best_step"])
-    likely_aliasing = bool(
-        dense_best_step not in coarse_steps
-        and float(dense_summary["best_roc_auc"]) > float(coarse_summary["best_roc_auc"])
+    return _checkpoint_aliasing_signal_impl(
+        coarse_records=coarse_records,
+        dense_records=dense_records,
     )
-    dense_intervals = [
-        int(current["step"]) - int(previous["step"])
-        for previous, current in zip(
-            sorted(dense_records, key=lambda record: int(record["step"])),
-            sorted(dense_records, key=lambda record: int(record["step"]))[1:],
-            strict=False,
-        )
-    ]
-    return {
-        "available": True,
-        "coarse": coarse_summary,
-        "dense": dense_summary,
-        "dense_checkpoint_interval": None if not dense_intervals else min(dense_intervals),
-        "likely_checkpoint_aliasing": likely_aliasing,
-    }
 
 
 def _classify_causes(
@@ -394,48 +133,13 @@ def _classify_causes(
     checkpoint_aliasing_signal: dict[str, Any],
     evaluation_failures: dict[str, Any],
 ) -> dict[str, Any]:
-    primary_causes: list[str] = []
-    evidence: list[str] = []
-    if int(evaluation_failures["failure_count"]) > 0:
-        primary_causes.append("checkpoint_evaluation_failure")
-        evidence.append(
-            "One or more checkpoints could not be benchmarked cleanly on the selected bundle, "
-            "which is itself diagnostic evidence rather than a plotting artifact."
-        )
-    if bool(bundle_analysis["likely_benchmark_noise"]):
-        primary_causes.append("benchmark_noise")
-        evidence.append(
-            "The best checkpoint changes between the primary and confirmation bundles while adjacent "
-            "primary-bundle confidence intervals overlap heavily."
-        )
-    if bool(checkpoint_aliasing_signal.get("likely_checkpoint_aliasing")):
-        primary_causes.append("checkpoint_aliasing")
-        evidence.append(
-            "The denser checkpoint run finds a better checkpoint that is not present in the coarse "
-            "25-step snapshot grid."
-        )
-    if bool(training_signal["likely_optimization_instability"]):
-        primary_causes.append("optimization_instability")
-        evidence.append(
-            "Gradient norms spike sharply relative to the run median or the worst ROC AUC drop aligns "
-            "with a high-gradient interval."
-        )
-    if bool(task_tradeoff_signal["likely_heterogeneous_task_tradeoff"]):
-        primary_causes.append("heterogeneous_task_tradeoff")
-        evidence.append(
-            "A minority of datasets account for most of the best-to-final ROC AUC change while other "
-            "datasets move in the opposite direction."
-        )
-    if not primary_causes:
-        primary_causes.append("unclear")
-        evidence.append(
-            "The current traces do not isolate a single dominant cause; the next step is more repeated "
-            "measurement rather than an optimizer change."
-        )
-    return {
-        "primary_causes": primary_causes,
-        "evidence": evidence,
-    }
+    return _classify_causes_impl(
+        bundle_analysis=bundle_analysis,
+        training_signal=training_signal,
+        task_tradeoff_signal=task_tradeoff_signal,
+        checkpoint_aliasing_signal=checkpoint_aliasing_signal,
+        evaluation_failures=evaluation_failures,
+    )
 
 
 def _evaluate_one_bundle(
@@ -447,193 +151,41 @@ def _evaluate_one_bundle(
     bootstrap_samples: int,
     bootstrap_confidence: float,
 ) -> dict[str, Any]:
-    bundle, allow_missing_values = load_benchmark_bundle_for_execution(bundle_path)
-    selection = cast(dict[str, Any], bundle["selection"])
-    datasets, benchmark_tasks = load_openml_benchmark_datasets(
-        new_instances=int(selection["new_instances"]),
-        benchmark_bundle_path=bundle_path,
-        allow_missing_values=allow_missing_values,
-    )
-    raw_records = evaluate_tab_foundry_run(
-        run_dir,
-        datasets=datasets,
-        task_type=benchmark_bundle_task_type(bundle),
+    return _evaluate_one_bundle_impl(
+        run_dir=run_dir,
+        bundle_path=bundle_path,
         device=device,
-        allow_checkpoint_failures=True,
-        allow_missing_values=allow_missing_values,
+        out_path=out_path,
+        bootstrap_samples=bootstrap_samples,
+        bootstrap_confidence=bootstrap_confidence,
+        load_benchmark_bundle_for_execution_fn=load_benchmark_bundle_for_execution,
+        load_openml_benchmark_datasets_fn=load_openml_benchmark_datasets,
+        evaluate_tab_foundry_run_fn=evaluate_tab_foundry_run,
+        summarize_checkpoint_curve_fn=summarize_checkpoint_curve,
+        benchmark_bundle_summary_fn=benchmark_bundle_summary,
+        benchmark_bundle_task_type_fn=benchmark_bundle_task_type,
+        curve_summary_fn=curve_summary,
+        write_jsonl_fn=write_jsonl,
     )
-    diagnostics = summarize_checkpoint_curve(
-        raw_records,
-        bootstrap_samples=int(bootstrap_samples),
-        bootstrap_confidence=float(bootstrap_confidence),
-    )
-    records = cast(list[dict[str, Any]], diagnostics["successful_records"])
-    failed_records = cast(list[dict[str, Any]], diagnostics["failed_records"])
-    write_jsonl(
-        out_path,
-        cast(list[dict[str, Any]], diagnostics["records"]),
-    )
-    return {
-        "bundle": benchmark_bundle_summary(bundle, source_path=bundle_path),
-        "benchmark_tasks": benchmark_tasks,
-        "records": records,
-        "records_path": str(out_path.resolve()),
-        "summary": curve_summary(records),
-        "failure_count": int(len(failed_records)),
-        "failed_checkpoints": failed_records,
-    }
 
 
 def run_benchmark_bounce_diagnosis(config: BenchmarkBounceDiagnosisConfig) -> dict[str, Any]:
     """Benchmark one run on multiple bundles and classify likely bounce causes."""
 
-    bootstrap_samples = _resolve_positive_int(int(config.bootstrap_samples), name="bootstrap_samples")
-    bootstrap_confidence = _resolve_probability(
-        float(config.bootstrap_confidence),
-        name="bootstrap_confidence",
+    return _run_benchmark_bounce_diagnosis_impl(
+        config,
+        default_benchmark_bundle_path_fn=default_benchmark_bundle_path,
+        evaluate_one_bundle_fn=_evaluate_one_bundle,
+        run_dense_checkpoint_rerun_fn=_run_dense_checkpoint_rerun,
+        load_history_fn=load_history,
+        shared_bundle_analysis_fn=_shared_bundle_analysis,
+        training_signal_fn=_training_signal,
+        task_tradeoff_signal_fn=_task_tradeoff_signal,
+        checkpoint_aliasing_signal_fn=_checkpoint_aliasing_signal,
+        classify_causes_fn=_classify_causes,
+        utc_now_fn=_utc_now,
+        write_json_fn=write_json,
     )
-    out_root = config.out_root.expanduser().resolve()
-    out_root.mkdir(parents=True, exist_ok=True)
-    run_dir = config.run_dir.expanduser().resolve()
-    if not run_dir.exists():
-        raise RuntimeError(f"run_dir does not exist: {run_dir}")
-
-    benchmark_bundle_path = (
-        default_benchmark_bundle_path()
-        if config.benchmark_bundle_path is None
-        else config.benchmark_bundle_path.expanduser().resolve()
-    )
-
-    primary = _evaluate_one_bundle(
-        run_dir=run_dir,
-        bundle_path=benchmark_bundle_path,
-        device=config.device,
-        out_path=out_root / "primary_bundle_curve.jsonl",
-        bootstrap_samples=bootstrap_samples,
-        bootstrap_confidence=bootstrap_confidence,
-    )
-    confirmation: dict[str, Any] | None = None
-    if config.confirmation_benchmark_bundle_path is not None:
-        confirmation = _evaluate_one_bundle(
-            run_dir=run_dir,
-            bundle_path=config.confirmation_benchmark_bundle_path.expanduser().resolve(),
-            device=config.device,
-            out_path=out_root / "confirmation_bundle_curve.jsonl",
-            bootstrap_samples=bootstrap_samples,
-            bootstrap_confidence=bootstrap_confidence,
-        )
-
-    dense_run_dir: Path | None = None
-    dense_confirmation: dict[str, Any] | None = None
-    if config.dense_run_dir is not None:
-        dense_run_dir = config.dense_run_dir.expanduser().resolve()
-    elif config.dense_checkpoint_every is not None:
-        dense_run_dir = _run_dense_checkpoint_rerun(config)
-    if dense_run_dir is not None:
-        dense_bundle_path = (
-            benchmark_bundle_path
-            if confirmation is None
-            else Path(str(cast(dict[str, Any], confirmation["bundle"])["source_path"]))
-        )
-        dense_confirmation = _evaluate_one_bundle(
-            run_dir=dense_run_dir,
-            bundle_path=dense_bundle_path,
-            device=config.device,
-            out_path=out_root / "dense_confirmation_bundle_curve.jsonl",
-            bootstrap_samples=bootstrap_samples,
-            bootstrap_confidence=bootstrap_confidence,
-        )
-
-    history = load_history(
-        run_dir / "train_history.jsonl"
-        if (run_dir / "train_history.jsonl").exists()
-        else run_dir / "train_outputs" / "train_history.jsonl"
-    )
-    bundle_analysis = _shared_bundle_analysis(
-        cast(list[dict[str, Any]], primary["records"]),
-        None if confirmation is None else cast(list[dict[str, Any]], confirmation["records"]),
-    )
-    training_signal = _training_signal(
-        history=history,
-        curve_records=(
-            cast(list[dict[str, Any]], primary["records"])
-            if confirmation is None
-            else cast(list[dict[str, Any]], confirmation["records"])
-        ),
-    )
-    task_tradeoff_signal = _task_tradeoff_signal(
-        (
-            cast(list[dict[str, Any]], primary["records"])
-            if confirmation is None
-            else cast(list[dict[str, Any]], confirmation["records"])
-        ),
-    )
-    checkpoint_aliasing_signal = _checkpoint_aliasing_signal(
-        coarse_records=(
-            cast(list[dict[str, Any]], primary["records"])
-            if confirmation is None
-            else cast(list[dict[str, Any]], confirmation["records"])
-        ),
-        dense_records=None if dense_confirmation is None else cast(list[dict[str, Any]], dense_confirmation["records"]),
-    )
-    evaluation_failures = {
-        "failure_count": int(primary.get("failure_count", 0))
-        + (0 if confirmation is None else int(confirmation.get("failure_count", 0))),
-        "primary_bundle_failures": list(primary.get("failed_checkpoints", [])),
-        "confirmation_bundle_failures": []
-        if confirmation is None
-        else list(confirmation.get("failed_checkpoints", [])),
-    }
-    classification = _classify_causes(
-        bundle_analysis=bundle_analysis,
-        training_signal=training_signal,
-        task_tradeoff_signal=task_tradeoff_signal,
-        checkpoint_aliasing_signal=checkpoint_aliasing_signal,
-        evaluation_failures=evaluation_failures,
-    )
-
-    summary = {
-        "schema": DIAGNOSIS_SCHEMA,
-        "generated_at_utc": _utc_now(),
-        "run_id": config.run_id,
-        "run_dir": str(run_dir),
-        "artifacts": {
-            "primary_bundle_curve_jsonl": primary["records_path"],
-            "confirmation_bundle_curve_jsonl": None
-            if confirmation is None
-            else confirmation["records_path"],
-            "dense_confirmation_bundle_curve_jsonl": None
-            if dense_confirmation is None
-            else dense_confirmation["records_path"],
-        },
-        "bundles": {
-            "primary": {
-                "benchmark_bundle": primary["bundle"],
-                "summary": primary["summary"],
-            },
-            "confirmation": None
-            if confirmation is None
-            else {
-                "benchmark_bundle": confirmation["bundle"],
-                "summary": confirmation["summary"],
-            },
-        },
-        "bundle_analysis": bundle_analysis,
-        "training_signal": training_signal,
-        "task_tradeoff_signal": task_tradeoff_signal,
-        "checkpoint_aliasing_signal": checkpoint_aliasing_signal,
-        "evaluation_failures": evaluation_failures,
-        "classification": classification,
-    }
-    if dense_run_dir is not None:
-        summary["dense_run"] = {
-            "run_dir": str(dense_run_dir),
-            "checkpoint_every": int(config.dense_checkpoint_every)
-            if config.dense_checkpoint_every is not None
-            else None,
-        }
-    write_json(out_root / "benchmark_bounce_diagnosis.json", summary)
-    return summary
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -3,4 +3,4 @@ set -euo pipefail
 
 EXP="${1:-cls_smoke}"
 
-uv run tab-foundry train "experiment=${EXP}"
+uv run tab-foundry train run "experiment=${EXP}"

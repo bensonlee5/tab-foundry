@@ -111,7 +111,7 @@ def test_build_comparison_summary_supports_regression_without_nanotabpfn(tmp_pat
                 "dataset_crps": {"toy": 0.18},
                 "dataset_avg_pinball_loss": {"toy": 0.09},
                 "dataset_picp_90": {"toy": 0.88},
-                "model_arch": "tabfoundry",
+                "model_arch": "tabfoundry_staged",
             },
             {
                 "checkpoint_path": "/tmp/step_000050.pt",
@@ -123,7 +123,7 @@ def test_build_comparison_summary_supports_regression_without_nanotabpfn(tmp_pat
                 "dataset_crps": {"toy": 0.16},
                 "dataset_avg_pinball_loss": {"toy": 0.08},
                 "dataset_picp_90": {"toy": 0.9},
-                "model_arch": "tabfoundry",
+                "model_arch": "tabfoundry_staged",
             },
         ],
         nanotabpfn_records=[],

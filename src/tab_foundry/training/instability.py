@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import json
 import math
 from pathlib import Path
@@ -10,6 +9,8 @@ from typing import Any, Mapping, Sequence
 
 import torch
 from torch import nn
+
+from tab_foundry.timestamps import utc_now as _shared_utc_now
 
 
 LOSS_EMA_ALPHA = 0.1
@@ -36,7 +37,7 @@ _TOP_LEVEL_GRADIENT_MODULES = (
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return _shared_utc_now()
 
 
 def gradient_history_path(output_dir: Path) -> Path:

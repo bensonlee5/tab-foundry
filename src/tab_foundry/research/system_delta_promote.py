@@ -38,6 +38,16 @@ class PromotionPaths:
         )
 
 
+def _render_sweep_matrix(*, sweep_id: str, paths: PromotionPaths) -> None:
+    _ = system_delta.render_and_write_system_delta_matrix(
+        sweep_id=sweep_id,
+        registry_path=paths.registry_path,
+        index_path=paths.index_path,
+        catalog_path=paths.catalog_path,
+        sweeps_root=paths.sweeps_root,
+    )
+
+
 def _read_yaml(path: Path, *, context: str) -> dict[str, Any]:
     return system_delta._load_yaml_mapping(path, context=context)
 
@@ -47,20 +57,6 @@ def _replace_prefixed_line(text: str, *, prefix: str, replacement: str) -> str:
     if pattern.search(text) is None:
         raise RuntimeError(f"missing program line with prefix {prefix!r}")
     return pattern.sub(replacement, text, count=1)
-
-
-def _render_sweep_matrix(*, sweep_id: str, paths: PromotionPaths) -> None:
-    queue = system_delta.load_system_delta_queue(
-        sweep_id=sweep_id,
-        index_path=paths.index_path,
-        catalog_path=paths.catalog_path,
-        sweeps_root=paths.sweeps_root,
-    )
-    matrix = system_delta.render_system_delta_matrix(queue, registry_path=paths.registry_path)
-    system_delta._write_text(
-        system_delta.sweep_matrix_path(sweep_id, sweeps_root=paths.sweeps_root),
-        matrix,
-    )
 
 
 def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: PromotionPaths) -> None:

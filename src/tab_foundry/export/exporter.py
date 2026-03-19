@@ -102,10 +102,6 @@ def _checkpoint_model_spec(
 
 
 def _inference_config(task: str, model_spec: ExportModelSpec) -> InferenceConfig:
-    quantile_levels: list[float] | None = None
-    if task == "regression":
-        levels = torch.arange(1, 1000, dtype=torch.float32) / 1000.0
-        quantile_levels = [float(v) for v in levels.tolist()]
     return InferenceConfig(
         task=task,
         model_arch=str(model_spec.arch),
@@ -114,7 +110,7 @@ def _inference_config(task: str, model_spec: ExportModelSpec) -> InferenceConfig
         feature_group_size=int(model_spec.feature_group_size),
         many_class_threshold=DEFAULT_MANY_CLASS_THRESHOLD,
         many_class_inference_mode="full_probs",
-        quantile_levels=quantile_levels,
+        quantile_levels=None,
     )
 
 
@@ -134,20 +130,17 @@ def _preprocessor_state_v2() -> LegacyPreprocessorState:
     )
 
 
-def _preprocessor_state_v3(task: str) -> ExportPreprocessorState:
-    classification_label_policy: ExportClassificationLabelPolicy | None = None
-    if task == "classification":
-        classification_label_policy = ExportClassificationLabelPolicy(
-            mapping="train_only_remap",
-            unseen_test_label="filter",
-        )
+def _preprocessor_state_v3() -> ExportPreprocessorState:
     return ExportPreprocessorState(
         feature_order_policy="positional_feature_ids",
         missing_value_policy=ExportMissingValuePolicy(
             strategy="train_mean",
             all_nan_fill=0.0,
         ),
-        classification_label_policy=classification_label_policy,
+        classification_label_policy=ExportClassificationLabelPolicy(
+            mapping="train_only_remap",
+            unseen_test_label="filter",
+        ),
         dtype_policy={
             "features": "float32",
             "classification_labels": "int64",
@@ -188,8 +181,11 @@ def export_checkpoint(
 
     cfg = _require_mapping(payload["config"], context="checkpoint payload.config")
     task = str(cfg.get("task", "")).strip().lower()
-    if task not in ("classification", "regression"):
-        raise RuntimeError(f"Unsupported checkpoint task value: {task!r}")
+    if task != "classification":
+        raise RuntimeError(
+            "Only classification checkpoints can be exported in this branch; "
+            f"got task={task!r}."
+        )
 
     state_dict = _normalize_state_dict(payload["model"])
     model_build_spec = _checkpoint_model_spec(cfg, task=task, state_dict=state_dict)
@@ -213,7 +209,7 @@ def export_checkpoint(
             model=model_spec,
             created_at_utc=datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z"),
             inference=_inference_config(task, model_spec),
-            preprocessor=_preprocessor_state_v3(task),
+            preprocessor=_preprocessor_state_v3(),
             weights=ExportWeights(
                 file=weights_name,
                 sha256=sha256_file(weights_path),

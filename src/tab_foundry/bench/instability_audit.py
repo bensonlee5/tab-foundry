@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import json
 import math
 from pathlib import Path
@@ -16,6 +15,7 @@ from tab_foundry.bench.benchmark_run_registry import (
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
+from tab_foundry.timestamps import utc_now as _shared_utc_now
 from tab_foundry.training.instability import history_loss_summary
 
 
@@ -28,7 +28,7 @@ _NEXT_ACTION_PATTERN = re.compile(r"^- recommended next action: `([^`]+)`$", re.
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return _shared_utc_now()
 
 
 def _load_json(path: Path) -> dict[str, Any] | None:

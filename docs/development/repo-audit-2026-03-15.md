@@ -1,6 +1,9 @@
 # Repo Audit — 2026-03-15
 
-Audit target: current branch `codex/system-dimension-delta-sweep`, not `main`.
+Historical snapshot: this document records an audit that was run against branch
+`codex/system-dimension-delta-sweep` on 2026-03-15, not against the current
+branch tip. Current-state repo truth should come from the live docs and code,
+not from this dated snapshot.
 
 Audit method:
 
@@ -11,15 +14,16 @@ Audit method:
 - `./.venv/bin/python scripts/audit/module_graph.py --fail-on-doc-drift`
 - `uv run deptry .`
 - `uv run vulture src scripts tests --min-confidence 80`
-- targeted `rg`/`sed` inspection for wrapper usage, doc references, and
+- targeted `rg`/`sed` inspection for CLI/doc references and
   orphan-surface candidates
 
 ## Status Summary
 
-The original 2026-03-15 audit findings have been addressed on this branch:
+The original 2026-03-15 audit findings were addressed on the audited branch:
 
-- `docs/development/codebase-navigation.md` now reflects the live three-family
-  model surface plus the `preprocessing` and `research` package areas.
+- `docs/development/codebase-navigation.md` was updated to reflect that
+  branch's then-live model surface plus the `preprocessing` and `research`
+  package areas.
 - `docs/development/module-dependency-map.md` now separates observed graph
   facts from dependency-direction policy and is guarded by the module-graph
   audit script.
@@ -34,7 +38,7 @@ No `P0`, `P1`, or `P2` cleanup findings remain open from the original audit.
 
 | Surface | Classification | Notes |
 | ---- | ---- | ---- |
-| `src/tab_foundry/`, `configs/`, `scripts/` wrappers | canonical and live | Includes live `preprocessing/` and `research/` package surfaces in addition to data/model/training/export. |
+| `src/tab_foundry/`, `configs/`, packaged CLI, and shell/audit scripts | canonical and live | Includes live `preprocessing/`, `research/`, and nested CLI package surfaces in addition to data/model/training/export. |
 | `README.md`, `docs/workflows.md`, `docs/inference.md`, `program.md` | canonical and live | Operator-facing docs and the active staged-research contract. |
 | `reference/system_delta_catalog.yaml`, `reference/system_delta_sweeps/` | canonical and live | Multi-sweep system-delta source of truth. |
 | `reference/system_delta_queue.yaml`, `reference/system_delta_matrix.md` | generated alias | Active-sweep compatibility views, not canonical editable sources. |
@@ -57,14 +61,13 @@ These are not current cleanup findings, but they remain worth watching:
 
 ## Not A Finding
 
-- Thin wrapper scripts are still behaving as intended. Examples:
-  - `scripts/system_delta_queue.py`
-  - `scripts/benchmark_nanotabpfn.py`
-  - `scripts/train_tabfoundry_staged_prior.py`
-- The three model families are intentional, not accidental duplication:
-  - `tabfoundry`
-  - `tabfoundry_simple`
-  - `tabfoundry_staged`
+- The wrapper-surface reset is intentional: packaged nested CLI commands now
+  own workflow entrypoints, while `scripts/` is limited to shell helpers and
+  audit tooling.
+- The audited branch intentionally kept three model families at that time:
+  `tabfoundry`, `tabfoundry_simple`, and `tabfoundry_staged`.
+- The current repo has since removed legacy `tabfoundry`; see the live model
+  docs for the current staged/simple split.
 - The current top-level import graph has no cycle candidates according to
   `scripts/audit/module_graph.py`.
 - Repo-path and local Markdown-link hygiene are clean according to
@@ -76,13 +79,13 @@ These are not current cleanup findings, but they remain worth watching:
 | Document | Status | Notes |
 | ---- | ---- | ---- |
 | `README.md` | accurate | Setup now distinguishes repo-local `uv sync` from minimal installs with optional extras. |
-| `docs/workflows.md` | accurate | Matches the active system-delta workflow and current benchmark surface terminology. |
+| `docs/workflows.md` | accurate on the audited branch | This row describes the 2026-03-15 snapshot, not the current branch by itself. |
 | `docs/inference.md` | accurate | Schema, producer commands, and compatibility notes match the current export contract. |
 | `program.md` | accurate | Correctly describes the active-sweep model and generated alias behavior. |
 | `docs/development/design-decisions.md` | accurate but incomplete | Directional policy is sound; current-state package graph lives in the dependency-map doc instead. |
-| `docs/development/codebase-navigation.md` | accurate | Reflects the current three-family model surface and live package layout. |
+| `docs/development/codebase-navigation.md` | accurate on the audited branch | Reflected the audited branch's then-live package layout and model-family split. |
 | `docs/development/module-dependency-map.md` | accurate | Observed graph and policy are now separated and checked by tooling. |
-| `docs/development/model-architecture.md` | accurate | Explicitly names all three model families and matches the branch structure. |
+| `docs/development/model-architecture.md` | accurate on the audited branch | Captured the audited branch's model-family state at that time. |
 | `docs/development/model-config.md` | accurate | Reflects `stage_label` and `module_overrides`. |
 | `docs/development/roadmap.md` | accurate but incomplete | Planning state looks current; dependency-direction details live in the dedicated dependency-map doc. |
 | `reference/README.md` | accurate | Correctly indexes active system-delta surfaces and generated aliases. |
@@ -93,8 +96,8 @@ These are not current cleanup findings, but they remain worth watching:
 
 | Surface | Current assessment | Recommended action |
 | ---- | ---- | ---- |
-| `scripts/` wrappers into `bench/` and `research/` | intentional thin indirection | keep |
-| `tabfoundry`, `tabfoundry_simple`, `tabfoundry_staged` | intentional layered family split | keep |
+| packaged nested CLI entrypoints into `bench/` and `research/` | intentional orchestration indirection | keep |
+| three-family audited model split | historical snapshot only | keep this doc as historical context, but use the live docs for the current staged/simple split |
 | `reference/system_delta_queue.yaml`, `reference/system_delta_matrix.md` | intentional generated aliases | keep |
 | benchmark-only third-party packages under `src/tab_foundry/bench/` | optional install surface | keep, but extend the `benchmark` extra when new imports are added |
 

@@ -1,6 +1,7 @@
 {
   "task": "classification",
-  "model_arch": "tabfoundry",
+  "model_arch": "tabfoundry_staged",
+  "model_stage": "nano_exact",
   "group_shifts": [0, 1, 3],
   "feature_group_size": 1,
   "many_class_threshold": 10,
