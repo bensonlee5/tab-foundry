@@ -14,13 +14,24 @@ from tab_foundry.timestamps import utc_now as _shared_utc_now
 
 
 LOSS_EMA_ALPHA = 0.1
-TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v1"
+TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v2"
 _WINDOW_EARLY = "early_1_25"
 _WINDOW_POST_WARMUP = "post_warmup_100"
 _WINDOW_FINAL = "final_10pct"
-_TRACKED_ACTIVATIONS = ("post_feature_encoder", "pre_transformer")
+_TRACKED_ACTIVATIONS = (
+    "post_feature_encoder",
+    "pre_transformer",
+    "post_column_encoder",
+    "post_row_pool",
+    "post_context_encoder",
+)
 _UPPER_BLOCK_START = 8
 _UPPER_BLOCK_END = 11
+_STAGE_LOCAL_GRADIENT_MODULES = (
+    "column_encoder",
+    "row_pool",
+    "context_encoder",
+)
 
 _TOP_LEVEL_GRADIENT_MODULES = (
     "tokenizer",
@@ -309,6 +320,55 @@ def _module_balance_summary(
     }
 
 
+def _module_window_summary(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    warmup_end_step: int,
+    module_names: Sequence[str],
+) -> dict[str, Any]:
+    windows = _windowed_gradient_records(records, warmup_end_step=warmup_end_step)
+    modules: dict[str, Any] = {}
+    for module_name in module_names:
+        window_summaries: dict[str, Any] = {}
+        for window_name, window_records in windows.items():
+            values: list[float] = []
+            for record in window_records:
+                raw_modules = record.get("module_grad_norms")
+                if not isinstance(raw_modules, Mapping):
+                    continue
+                raw_value = raw_modules.get(module_name)
+                if raw_value is None:
+                    continue
+                value = float(raw_value)
+                if math.isfinite(value):
+                    values.append(value)
+            window_summaries[window_name] = {
+                "record_count": int(len(values)),
+                "mean_grad_norm": _mean_or_none(values),
+                "max_grad_norm": None if not values else float(max(values)),
+                "final_grad_norm": None if not values else float(values[-1]),
+            }
+        modules[module_name] = {
+            "windows": window_summaries,
+        }
+    return {
+        "warmup_end_step": int(warmup_end_step),
+        "modules": modules,
+    }
+
+
+def _stage_local_gradient_summary(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    warmup_end_step: int,
+) -> dict[str, Any]:
+    return _module_window_summary(
+        records,
+        warmup_end_step=warmup_end_step,
+        module_names=_STAGE_LOCAL_GRADIENT_MODULES,
+    )
+
+
 def _activation_summary(
     records: Sequence[Mapping[str, Any]],
     *,
@@ -467,6 +527,10 @@ def diagnostics_summary(
             if not ordered
             else float(clipped_step_count / float(len(ordered))),
         },
+        "stage_local_gradients": _stage_local_gradient_summary(
+            ordered,
+            warmup_end_step=warmup_end_step,
+        ),
         "module_balance": {
             "feature_encoder_vs_direct_head": _module_balance_summary(
                 ordered,

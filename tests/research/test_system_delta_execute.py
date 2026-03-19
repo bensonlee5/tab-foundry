@@ -321,6 +321,44 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
         ),
         encoding='utf-8',
     )
+    (tmp_path / 'telemetry.json').write_text(
+        json.dumps(
+            {
+                'diagnostics': {
+                    'stage_local_gradients': {
+                        'modules': {
+                            'column_encoder': {
+                                'windows': {'final_10pct': {'mean_grad_norm': 0.42}}
+                            },
+                            'row_pool': {
+                                'windows': {'final_10pct': {'mean_grad_norm': 0.55}}
+                            },
+                            'context_encoder': {
+                                'windows': {'final_10pct': {'mean_grad_norm': 0.73}}
+                            },
+                        }
+                    },
+                    'activation_windows': {
+                        'tracked_activations': {
+                            'post_column_encoder': {
+                                'early_to_final_mean_delta': 0.12,
+                                'windows': {'final_10pct': {'mean': 1.3}},
+                            },
+                            'post_row_pool': {
+                                'early_to_final_mean_delta': 0.18,
+                                'windows': {'final_10pct': {'mean': 1.7}},
+                            },
+                            'post_context_encoder': {
+                                'early_to_final_mean_delta': 0.24,
+                                'windows': {'final_10pct': {'mean': 2.1}},
+                            },
+                        }
+                    },
+                }
+            }
+        ),
+        encoding='utf-8',
+    )
 
     summary = {
         'tab_foundry': {
@@ -369,6 +407,11 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
     assert queue_metrics['delta_final_roc_auc'] == pytest.approx(-0.02)
     assert queue_metrics['nanotabpfn_final_log_loss'] == pytest.approx(0.48)
     assert queue_metrics['clipped_step_fraction'] == pytest.approx(0.5)
+    assert queue_metrics['column_encoder_final_window_mean_grad_norm'] == pytest.approx(0.42)
+    assert queue_metrics['row_pool_final_window_mean_grad_norm'] == pytest.approx(0.55)
+    assert queue_metrics['context_encoder_final_window_mean_grad_norm'] == pytest.approx(0.73)
+    assert queue_metrics['column_activation_early_to_final_mean_delta'] == pytest.approx(0.12)
+    assert queue_metrics['context_activation_final_window_mean'] == pytest.approx(2.1)
 
 
 def test_result_card_text_reports_log_loss_before_roc() -> None:
@@ -396,6 +439,12 @@ def test_result_card_text_reports_log_loss_before_roc() -> None:
             'delta_final_roc_auc': -0.006,
             'max_grad_norm': 3.2,
             'clipped_step_fraction': 0.125,
+            'column_encoder_final_window_mean_grad_norm': 0.42,
+            'row_pool_final_window_mean_grad_norm': 0.55,
+            'context_encoder_final_window_mean_grad_norm': 0.73,
+            'column_activation_early_to_final_mean_delta': 0.12,
+            'row_activation_early_to_final_mean_delta': 0.18,
+            'context_activation_early_to_final_mean_delta': 0.24,
         },
         decision='defer',
         conclusion='Monitor log-loss deltas before promotion.',
@@ -404,6 +453,9 @@ def test_result_card_text_reports_log_loss_before_roc() -> None:
     assert '- Best log loss: `0.4010` at step `125`' in text
     assert '- Delta final log loss vs anchor: `-0.0110`' in text
     assert '- Final ROC AUC: `0.8040`' in text
+    assert '## Stage-local stability' in text
+    assert '- Column stage: final-window mean grad norm `0.4200`, activation early-to-final mean delta `+0.1200`' in text
+    assert '- Context stage: final-window mean grad norm `0.7300`, activation early-to-final mean delta `+0.2400`' in text
     assert text.index('Best log loss') < text.index('Best ROC AUC')
 
 

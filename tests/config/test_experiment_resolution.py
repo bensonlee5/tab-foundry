@@ -107,6 +107,7 @@ def test_cls_benchmark_staged_resolution() -> None:
     assert int(cfg.model.tficl_n_heads) == 4
     assert int(cfg.model.tficl_n_layers) == 3
     assert int(cfg.model.head_hidden_dim) == 192
+    assert bool(cfg.runtime.trace_activations) is True
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_staged/train_history.jsonl"
 
 

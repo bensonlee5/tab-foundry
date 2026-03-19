@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-03-19
+
+### Changed
+
+- User-facing note: the regular trainer now writes `gradient_history.jsonl`
+  and `telemetry.json`, the canonical `cls_benchmark_staged` surface enables
+  activation tracing by default, and the persisted telemetry schema is now
+  `tab-foundry-training-telemetry-v2`.
+
+- Added regular-trainer parity for the TF-RD-002 stability surface: stage-local
+  activation traces and module-gradient summaries now flow through
+  `train run`, are summarized into wandb, and surface in result cards and sweep
+  matrix rows alongside the existing exact-prior telemetry.
+
+- Added the missing `post_context_encoder` activation trace to staged model
+  paths so context-enabled rows now expose column, row, and context activation
+  boundaries consistently.
+
 ## [0.8.4] - 2026-03-19
 
 ### Changed

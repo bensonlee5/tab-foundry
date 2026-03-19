@@ -17,14 +17,26 @@ from tab_foundry.types import TrainResult
 
 from .artifacts import (
     append_history_record,
+    append_jsonl_record,
     assert_clean_training_output,
+    gradient_history_record,
     history_path_from_cfg,
     history_record,
     save_checkpoint,
 )
 from .batching import move_batch
 from .distributed import _reduction_float_dtype
-from .instability import normalize_grad_norm_value, total_grad_norm, train_loss_delta, update_loss_ema
+from .instability import (
+    build_training_telemetry,
+    gradient_history_path,
+    module_grad_norms,
+    normalize_grad_norm_value,
+    telemetry_path,
+    total_grad_norm,
+    train_loss_delta,
+    update_loss_ema,
+    write_training_telemetry,
+)
 from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
 from .schedule import build_stage_configs, stage_base_lr
@@ -46,8 +58,23 @@ from .trainer_runtime_config import (
     _resolve_max_steps,
     _resolve_target_train_seconds,
 )
-from .trainer_summary import _trainer_summary_payload
+from .trainer_summary import _training_telemetry_summary_payload, _trainer_summary_payload
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
+
+
+def _merge_activation_norms(
+    weighted_sums: dict[str, float],
+    weight_totals: dict[str, float],
+) -> dict[str, float] | None:
+    if not weighted_sums:
+        return None
+    merged: dict[str, float] = {}
+    for name, value in weighted_sums.items():
+        weight = float(weight_totals.get(name, 0.0))
+        if weight <= 0.0:
+            continue
+        merged[name] = float(value / weight)
+    return merged or None
 
 
 def train(cfg: DictConfig) -> TrainResult:
@@ -59,6 +86,9 @@ def train(cfg: DictConfig) -> TrainResult:
     output_dir.mkdir(parents=True, exist_ok=True)
     history_path = history_path_from_cfg(cfg)
     assert_clean_training_output(output_dir, history_path=history_path)
+    gradient_path = gradient_history_path(output_dir)
+    telemetry_output_path = telemetry_path(output_dir)
+    training_surface_path = output_dir / "training_surface_record.json"
 
     torch.manual_seed(seed)
     grad_accum_steps = _resolve_grad_accum_steps(cfg.runtime)
@@ -106,10 +136,17 @@ def train(cfg: DictConfig) -> TrainResult:
     model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
     model = build_model_from_spec(model_spec)
     model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
+    base_model = accelerator.unwrap_model(model)
+    trace_activations = bool(getattr(cfg.runtime, "trace_activations", False))
+    enable_activation_trace = getattr(base_model, "enable_activation_trace", None)
+    flush_activation_trace = getattr(base_model, "flush_activation_trace", None)
+    if trace_activations and callable(enable_activation_trace):
+        enable_activation_trace()
+    training_surface_payload: dict[str, Any] | None = None
     if accelerator.is_main_process:
         raw_cfg = cast(dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
-        write_training_surface_record(
-            output_dir / "training_surface_record.json",
+        training_surface_payload = write_training_surface_record(
+            training_surface_path,
             raw_cfg=raw_cfg,
             run_dir=output_dir,
         )
@@ -176,6 +213,20 @@ def train(cfg: DictConfig) -> TrainResult:
     final_train_loss: float | None = None
     final_train_loss_ema: float | None = None
     last_train_metrics: dict[str, float] | None = None
+    history_records: list[dict[str, Any]] = []
+    gradient_records: list[dict[str, Any]] = []
+    checkpoint_snapshots: list[dict[str, Any]] = []
+
+    def _artifacts_payload() -> dict[str, Any]:
+        return {
+            "train_history_jsonl": None if history_path is None else str(history_path),
+            "gradient_history_jsonl": str(gradient_path),
+            "telemetry_json": str(telemetry_output_path),
+            "training_surface_record_json": str(training_surface_path.resolve()),
+            "checkpoints_dir": str((output_dir / "checkpoints").resolve()),
+            "best_checkpoint": None if best_checkpoint is None else str(best_checkpoint.resolve()),
+            "latest_checkpoint": None if latest_checkpoint is None else str(latest_checkpoint.resolve()),
+        }
 
     try:
         for stage in stage_configs:
@@ -200,6 +251,8 @@ def train(cfg: DictConfig) -> TrainResult:
                 train_loss_count = 0
                 train_metric_sums: dict[str, float] = {}
                 train_metric_counts: dict[str, int] = {}
+                activation_weighted_sums: dict[str, float] = {}
+                activation_weight_totals: dict[str, float] = {}
                 step_train_start = time.perf_counter()
                 for _micro_step in range(grad_accum_steps):
                     batch = move_batch(next(train_iter), accelerator.device)
@@ -213,9 +266,26 @@ def train(cfg: DictConfig) -> TrainResult:
                     for key, value in metrics.items():
                         train_metric_sums[key] = train_metric_sums.get(key, 0.0) + float(value)
                         train_metric_counts[key] = train_metric_counts.get(key, 0) + 1
+                    batch_activation_norms = (
+                        flush_activation_trace()
+                        if trace_activations and callable(flush_activation_trace)
+                        else None
+                    )
+                    if batch_activation_norms is not None:
+                        activation_weight = float(max(1, int(batch.y_test.numel())))
+                        for activation_name, activation_value in batch_activation_norms.items():
+                            activation_weighted_sums[activation_name] = (
+                                activation_weighted_sums.get(activation_name, 0.0)
+                                + (float(activation_value) * activation_weight)
+                            )
+                            activation_weight_totals[activation_name] = (
+                                activation_weight_totals.get(activation_name, 0.0) + activation_weight
+                            )
 
                 nan_detected = not math.isfinite(train_loss_sum)
                 if nan_detected:
+                    if callable(flush_activation_trace):
+                        _ = flush_activation_trace()
                     nan_skip_count += 1
                     for _opt_name, opt in prepared_opts:
                         opt.zero_grad(set_to_none=True)
@@ -226,25 +296,25 @@ def train(cfg: DictConfig) -> TrainResult:
                         "train/nan_skip_count": float(nan_skip_count),
                     }
                     log_wandb_metrics(run, nan_log, step=global_step)
-                    if history_path is not None and accelerator.is_main_process:
-                        append_history_record(
-                            history_path,
-                            history_record(
-                                global_step=global_step,
-                                stage_name=stage.name,
-                                train_loss=float("nan"),
-                                train_metrics={"nan_guard_triggered": 1.0},
-                                lr=float(prepared_opts[0][1].param_groups[0]["lr"]),
-                                grad_norm=None,
-                                elapsed_seconds=time.perf_counter() - train_start,
-                                train_elapsed_seconds=train_elapsed_seconds,
-                                val_metrics=None,
-                                train_loss_delta=None,
-                                train_loss_ema=loss_ema,
-                                grad_clip_threshold=float(cfg.runtime.grad_clip),
-                                grad_clip_triggered=False,
-                            ),
+                    if accelerator.is_main_process:
+                        nan_history_payload = history_record(
+                            global_step=global_step,
+                            stage_name=stage.name,
+                            train_loss=float("nan"),
+                            train_metrics={"nan_guard_triggered": 1.0},
+                            lr=float(prepared_opts[0][1].param_groups[0]["lr"]),
+                            grad_norm=None,
+                            elapsed_seconds=time.perf_counter() - train_start,
+                            train_elapsed_seconds=train_elapsed_seconds,
+                            val_metrics=None,
+                            train_loss_delta=None,
+                            train_loss_ema=loss_ema,
+                            grad_clip_threshold=float(cfg.runtime.grad_clip),
+                            grad_clip_triggered=False,
                         )
+                        history_records.append(nan_history_payload)
+                        if history_path is not None:
+                            append_history_record(history_path, nan_history_payload)
                     if max_steps is not None and global_step >= max_steps:
                         stop_requested = True
                     if target_train_seconds is not None and train_elapsed_seconds >= target_train_seconds:
@@ -253,6 +323,13 @@ def train(cfg: DictConfig) -> TrainResult:
                         break
                     continue
 
+                activation_norms = _merge_activation_norms(
+                    activation_weighted_sums,
+                    activation_weight_totals,
+                )
+                pre_clip_module_grad_norms = (
+                    module_grad_norms(base_model) if accelerator.is_main_process else {}
+                )
                 local_grad_norm = total_grad_norm(model.parameters())
                 if float(cfg.runtime.grad_clip) > 0:
                     clipped = accelerator.clip_grad_norm_(model.parameters(), float(cfg.runtime.grad_clip))
@@ -330,6 +407,18 @@ def train(cfg: DictConfig) -> TrainResult:
                 train_log["train/train_elapsed_seconds"] = train_elapsed_seconds
                 train_log["train/grad_clip_threshold"] = grad_clip_threshold
                 train_log["train/grad_clip_triggered"] = grad_clip_triggered
+                if accelerator.is_main_process:
+                    for module_name, module_value in pre_clip_module_grad_norms.items():
+                        train_log[f"train/module_grad_norm/{module_name}"] = float(module_value)
+                    feature_grad = pre_clip_module_grad_norms.get("feature_encoder")
+                    head_grad = pre_clip_module_grad_norms.get("direct_head")
+                    if feature_grad is not None and float(feature_grad) > 0.0 and head_grad is not None:
+                        train_log["train/module_balance/direct_head_to_feature_encoder"] = float(head_grad) / float(feature_grad)
+                    if head_grad is not None and float(head_grad) > 0.0 and feature_grad is not None:
+                        train_log["train/module_balance/feature_encoder_to_direct_head"] = float(feature_grad) / float(head_grad)
+                    if activation_norms is not None:
+                        for activation_name, activation_value in activation_norms.items():
+                            train_log[f"train/activation_norm/{activation_name}"] = float(activation_value)
                 final_train_loss = current_train_loss
                 final_train_loss_ema = loss_ema
                 last_train_metrics = current_train_metrics
@@ -337,6 +426,8 @@ def train(cfg: DictConfig) -> TrainResult:
 
                 history_val_metrics: dict[str, float] | None = None
                 if global_step % int(cfg.runtime.eval_every) == 0:
+                    if callable(flush_activation_trace):
+                        _ = flush_activation_trace()
                     _set_optimizer_training_mode(prepared_opts, training=False)
                     val_metrics = _evaluate_loader(
                         model,
@@ -352,6 +443,8 @@ def train(cfg: DictConfig) -> TrainResult:
                     )
                     history_val_metrics = val_metrics
                     last_val_metrics = val_metrics
+                    if callable(flush_activation_trace):
+                        _ = flush_activation_trace()
 
                     if val_metrics["val_loss"] < best_val:
                         best_val = val_metrics["val_loss"]
@@ -375,8 +468,16 @@ def train(cfg: DictConfig) -> TrainResult:
                             global_step=global_step,
                             cfg=cfg,
                         )
+                        checkpoint_snapshots.append(
+                            {
+                                "step": int(global_step),
+                                "path": str(snapshot_checkpoint.resolve()),
+                                "elapsed_seconds": float(train_elapsed_seconds),
+                                "train_elapsed_seconds": float(train_elapsed_seconds),
+                            }
+                        )
 
-                if history_path is not None and accelerator.is_main_process:
+                if accelerator.is_main_process:
                     train_metrics_for_history = {
                         key.removeprefix("train/"): float(value)
                         for key, value in train_log.items()
@@ -385,24 +486,43 @@ def train(cfg: DictConfig) -> TrainResult:
                         and key != "train/lr"
                         and math.isfinite(float(value))
                     }
-                    append_history_record(
-                        history_path,
-                        history_record(
-                            global_step=global_step,
-                            stage_name=stage.name,
-                            train_loss=float(train_loss),
-                            train_metrics=train_metrics_for_history,
-                            lr=float(first_lr),
-                            grad_norm=None if not math.isfinite(grad_norm_value) else float(grad_norm_value),
-                            elapsed_seconds=elapsed_seconds,
-                            train_elapsed_seconds=train_elapsed_seconds,
-                            val_metrics=history_val_metrics,
-                            train_loss_delta=loss_delta_value,
-                            train_loss_ema=loss_ema,
-                            grad_clip_threshold=grad_clip_threshold,
-                            grad_clip_triggered=grad_clip_triggered,
-                        ),
+                    history_payload = history_record(
+                        global_step=global_step,
+                        stage_name=stage.name,
+                        train_loss=float(train_loss),
+                        train_metrics=train_metrics_for_history,
+                        lr=float(first_lr),
+                        grad_norm=None if not math.isfinite(grad_norm_value) else float(grad_norm_value),
+                        elapsed_seconds=elapsed_seconds,
+                        train_elapsed_seconds=train_elapsed_seconds,
+                        val_metrics=history_val_metrics,
+                        train_loss_delta=loss_delta_value,
+                        train_loss_ema=loss_ema,
+                        grad_clip_threshold=grad_clip_threshold,
+                        grad_clip_triggered=grad_clip_triggered,
                     )
+                    history_records.append(history_payload)
+                    if history_path is not None:
+                        append_history_record(history_path, history_payload)
+
+                    gradient_payload = gradient_history_record(
+                        global_step=global_step,
+                        stage_name=stage.name,
+                        train_loss=float(train_loss),
+                        train_acc=current_train_metrics.get("acc"),
+                        lr=float(first_lr),
+                        global_grad_norm=0.0
+                        if not math.isfinite(grad_norm_value)
+                        else float(grad_norm_value),
+                        module_grad_norms=pre_clip_module_grad_norms,
+                        activation_norms=activation_norms,
+                        elapsed_seconds=elapsed_seconds,
+                        train_elapsed_seconds=train_elapsed_seconds,
+                        grad_clip_threshold=grad_clip_threshold,
+                        grad_clip_triggered=grad_clip_triggered,
+                    )
+                    gradient_records.append(gradient_payload)
+                    append_jsonl_record(gradient_path, gradient_payload)
 
                 if max_steps is not None and global_step >= max_steps:
                     stop_requested = True
@@ -454,6 +574,21 @@ def train(cfg: DictConfig) -> TrainResult:
                 "nan_skip_count": float(nan_skip_count),
             },
         )
+        if accelerator.is_main_process:
+            telemetry_payload = build_training_telemetry(
+                run_dir=output_dir,
+                success=True,
+                artifacts=_artifacts_payload(),
+                checkpoint_snapshots=checkpoint_snapshots,
+                history_records=history_records,
+                gradient_records=gradient_records,
+                training_surface_record=training_surface_payload,
+            )
+            write_training_telemetry(telemetry_output_path, telemetry_payload)
+            update_wandb_summary(
+                run,
+                _training_telemetry_summary_payload(telemetry_payload=telemetry_payload),
+            )
         update_wandb_summary(
             run,
             _trainer_summary_payload(
@@ -481,6 +616,22 @@ def train(cfg: DictConfig) -> TrainResult:
         )
         return result
     except Exception as exc:
+        if accelerator.is_main_process:
+            telemetry_payload = build_training_telemetry(
+                run_dir=output_dir,
+                success=False,
+                artifacts=_artifacts_payload(),
+                checkpoint_snapshots=checkpoint_snapshots,
+                history_records=history_records,
+                gradient_records=gradient_records,
+                training_surface_record=training_surface_payload,
+                error=exc,
+            )
+            write_training_telemetry(telemetry_output_path, telemetry_payload)
+            update_wandb_summary(
+                run,
+                _training_telemetry_summary_payload(telemetry_payload=telemetry_payload),
+            )
         update_wandb_summary(
             run,
             _trainer_summary_payload(

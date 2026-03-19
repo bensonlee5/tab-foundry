@@ -143,6 +143,13 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
+    row_cls_pool = next(row for row in queue["rows"] if row["delta_id"] == "delta_row_cls_pool")
+    row_cls_pool["benchmark_metrics"] = {
+        "column_encoder_final_window_mean_grad_norm": 0.42,
+        "row_pool_final_window_mean_grad_norm": 0.55,
+        "column_activation_early_to_final_mean_delta": 0.12,
+        "row_activation_early_to_final_mean_delta": 0.18,
+    }
     matrix = render_system_delta_matrix(
         queue,
         registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
@@ -163,10 +170,10 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     assert "delta_training_linear_decay" in matrix
     assert "Training overrides" in matrix
     assert "training=`prior_linear_decay`" in matrix
+    assert "- Stage-local stability: column (grad `0.4200`, act delta `+0.1200`); row (grad `0.5500`, act delta `+0.1800`)" in matrix
     assert "- {'" not in matrix
     assert "outputs/staged_ladder/research/binary_md_v1/delta_row_cls_pool/result_card.md" in matrix
     assert "Recipe alias" in matrix
-    row_cls_pool = next(row for row in queue["rows"] if row["delta_id"] == "delta_row_cls_pool")
     assert (
         f"| 6 | `delta_row_cls_pool` | row_pool | yes | {row_cls_pool['status']} | row_cls_pool |"
         in matrix

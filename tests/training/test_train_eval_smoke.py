@@ -92,6 +92,86 @@ class _TinyClassifier(nn.Module):
         return ClassificationOutput(logits=self.linear(batch.x_test), num_classes=3)
 
 
+class _TraceableRowPool(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = nn.Linear(4, 4)
+
+    def forward(self, encoded_cells: torch.Tensor, token_padding_mask=None) -> torch.Tensor:
+        del token_padding_mask
+        return self.linear(encoded_cells)
+
+
+class _TraceableContextEncoder(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = nn.Linear(4, 4)
+
+    def forward(
+        self,
+        rows: torch.Tensor,
+        *,
+        train_target_embeddings: torch.Tensor,
+        train_test_split_index: int,
+    ) -> torch.Tensor:
+        del train_test_split_index
+        if rows.ndim != 2:
+            raise RuntimeError("traceable context encoder expects [R, D] rows")
+        if train_target_embeddings.ndim != 2:
+            raise RuntimeError("traceable context encoder expects [R_train, D] train_target_embeddings")
+        context = train_target_embeddings.mean(dim=0, keepdim=True)
+        return self.linear(rows + context)
+
+
+class _TraceableStageLocalClassifier(nn.Module):
+    def __init__(self, *, use_context: bool = True) -> None:
+        super().__init__()
+        self.feature_encoder = nn.Linear(4, 4)
+        self.column_encoder = nn.Linear(4, 4)
+        self.row_pool = _TraceableRowPool()
+        self.context_label_embed = nn.Embedding(8, 4) if use_context else None
+        self.context_encoder = _TraceableContextEncoder() if use_context else None
+        self.direct_head = nn.Linear(4, 3)
+        self._activation_trace: dict[str, list[float]] | None = None
+
+    def enable_activation_trace(self) -> None:
+        self._activation_trace = {}
+
+    def disable_activation_trace(self) -> None:
+        self._activation_trace = None
+
+    def trace_activation(self, name: str, tensor: torch.Tensor) -> None:
+        if self._activation_trace is None:
+            return
+        self._activation_trace.setdefault(name, []).append(
+            float(tensor.detach().to(torch.float32).square().mean().sqrt().item())
+        )
+
+    def flush_activation_trace(self) -> dict[str, float] | None:
+        if self._activation_trace is None:
+            return None
+        snapshot = {name: values[-1] for name, values in self._activation_trace.items() if values}
+        self._activation_trace = {}
+        return snapshot
+
+    def forward(self, batch: TaskBatch) -> ClassificationOutput:
+        features = self.feature_encoder(batch.x_test.to(torch.float32))
+        self.trace_activation("post_feature_encoder", features)
+        encoded = self.column_encoder(features)
+        self.trace_activation("post_column_encoder", encoded)
+        rows = self.row_pool(encoded, token_padding_mask=None)
+        self.trace_activation("post_row_pool", rows)
+        if self.context_encoder is not None and self.context_label_embed is not None:
+            train_targets = self.context_label_embed(batch.y_train.clamp(max=7))
+            rows = self.context_encoder(
+                rows,
+                train_target_embeddings=train_targets,
+                train_test_split_index=int(batch.y_train.shape[0]),
+            )
+            self.trace_activation("post_context_encoder", rows)
+        return ClassificationOutput(logits=self.direct_head(rows), num_classes=3)
+
+
 class _FakeWandbRun:
     def __init__(self) -> None:
         self.logged: list[tuple[dict[str, object], int]] = []
@@ -163,6 +243,18 @@ def _install_classification_fakes(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(trainer_module, "build_model_from_spec", lambda _spec: _TinyClassifier())
     monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _TinyClassifier())
+
+
+def _install_traceable_classifier(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    use_context: bool = True,
+) -> None:
+    monkeypatch.setattr(
+        trainer_module,
+        "build_model_from_spec",
+        lambda _spec: _TraceableStageLocalClassifier(use_context=use_context),
+    )
 
 
 def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -369,6 +461,112 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert fake_run.summary["metrics/final_train_loss_ema"] >= 0.0
     assert fake_run.summary["metrics/final_grad_norm"] >= 0.0
     assert fake_run.summary["metrics/wall_elapsed_seconds"] >= 0.0
+    assert fake_run.summary["telemetry/success"] is True
+    assert fake_run.summary["artifacts/gradient_history_jsonl"].endswith("gradient_history.jsonl")
+    assert fake_run.summary["artifacts/telemetry_json"].endswith("telemetry.json")
+
+
+def test_train_writes_regular_gradient_history_and_telemetry_with_stage_local_traces(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    _install_traceable_classifier(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    cfg.logging.use_wandb = True
+    cfg.runtime.trace_activations = True
+    cfg.schedule.stages = [{"name": "stage1", "steps": 2, "lr_max": 1.0e-3}]
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+
+    result = trainer_module.train(cfg)
+
+    gradient_history_path = result.output_dir / "gradient_history.jsonl"
+    telemetry_path = result.output_dir / "telemetry.json"
+    gradient_history = [
+        json.loads(line)
+        for line in gradient_history_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    telemetry = json.loads(telemetry_path.read_text(encoding="utf-8"))
+
+    assert len(gradient_history) == 2
+    assert set(gradient_history[0]["module_grad_norms"]) == {
+        "column_encoder",
+        "context_encoder",
+        "context_label_embed",
+        "direct_head",
+        "feature_encoder",
+        "row_pool",
+    }
+    assert set(gradient_history[0]["activation_norms"]) == {
+        "post_column_encoder",
+        "post_context_encoder",
+        "post_feature_encoder",
+        "post_row_pool",
+    }
+    assert telemetry["artifacts"]["gradient_history_jsonl"] == str(gradient_history_path)
+    assert telemetry["artifacts"]["telemetry_json"] == str(telemetry_path)
+    assert telemetry["gradient_summary"]["modules"]["context_encoder"]["final_grad_norm"] >= 0.0
+    assert (
+        telemetry["diagnostics"]["stage_local_gradients"]["modules"]["row_pool"]["windows"]["final_10pct"][
+            "mean_grad_norm"
+        ]
+        >= 0.0
+    )
+    assert (
+        telemetry["diagnostics"]["activation_windows"]["tracked_activations"]["post_context_encoder"]["windows"][
+            "final_10pct"
+        ]["record_count"]
+        == 1
+    )
+    assert fake_run.summary["telemetry/success"] is True
+    assert (
+        fake_run.summary[
+            "diagnostics/stage_local_gradients/modules/column_encoder/windows/final_10pct/mean_grad_norm"
+        ]
+        >= 0.0
+    )
+    assert (
+        fake_run.summary[
+            "diagnostics/activation_windows/tracked_activations/post_row_pool/windows/final_10pct/mean"
+        ]
+        >= 0.0
+    )
+
+
+def test_train_trace_activations_handles_context_disabled_surface(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    _install_traceable_classifier(monkeypatch, use_context=False)
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.trace_activations = True
+
+    result = trainer_module.train(cfg)
+
+    gradient_history = [
+        json.loads(line)
+        for line in (result.output_dir / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    telemetry = json.loads((result.output_dir / "telemetry.json").read_text(encoding="utf-8"))
+
+    assert "context_encoder" not in gradient_history[0]["module_grad_norms"]
+    assert "post_context_encoder" not in gradient_history[0]["activation_norms"]
+    assert (
+        telemetry["diagnostics"]["stage_local_gradients"]["modules"]["context_encoder"]["windows"]["early_1_25"][
+            "record_count"
+        ]
+        == 0
+    )
+    assert (
+        telemetry["diagnostics"]["activation_windows"]["tracked_activations"]["post_context_encoder"]["windows"][
+            "early_1_25"
+        ]["record_count"]
+        == 0
+    )
 
 
 def test_evaluate_checkpoint_logs_wandb_metrics_for_classification(
