@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `cls_benchmark_linear_simple_prior` sweeps as `pfn_control` instead of
   generic `custom`.
 
+- Fixed PFN-control sweep creation so catalog rows drop staged-only
+  `model.stage`, `model.stage_label`, and `model.module_overrides` payloads
+  while preserving portable data, preprocessing, and training overrides.
+
 - Clarified and corrected the checked-in `cls_benchmark_linear_v2`
   control-baseline contract: the canonical medium-bundle baseline id is
   preserved, but it now freezes the existing prior-trained staged `nano_exact`

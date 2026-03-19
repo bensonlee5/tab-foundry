@@ -430,7 +430,7 @@ def test_create_sweep_preserves_explicit_lane_contract_overrides(tmp_path: Path)
 def test_create_sweep_labels_simple_surface_as_pfn_control(tmp_path: Path) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
 
-    _ = create_sweep(
+    result = create_sweep(
         sweep_id="input_norm_simple_surface",
         anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
         parent_sweep_id="input_norm_followup",
@@ -450,6 +450,11 @@ def test_create_sweep_labels_simple_surface_as_pfn_control(tmp_path: Path) -> No
         index_path=sweeps_root / "index.yaml",
         sweeps_root=sweeps_root,
     )
+    created_queue = load_system_delta_queue_instance(
+        "input_norm_simple_surface",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
     materialized = load_system_delta_queue(
         sweep_id="input_norm_simple_surface",
         index_path=sweeps_root / "index.yaml",
@@ -460,9 +465,15 @@ def test_create_sweep_labels_simple_surface_as_pfn_control(tmp_path: Path) -> No
     assert created_sweep["training_experiment"] == "cls_benchmark_linear_simple"
     assert created_sweep["training_config_profile"] == "cls_benchmark_linear_simple"
     assert created_sweep["surface_role"] == "pfn_control"
+    assert created_queue["rows"][0]["model"] == {}
+    assert created_queue["rows"][0]["training"]["surface_label"] == "prior_constant_lr_trace_activations"
+    assert created_queue["rows"][0]["training"]["overrides"]["runtime"]["trace_activations"] is True
     assert materialized["training_experiment"] == "cls_benchmark_linear_simple"
     assert materialized["training_config_profile"] == "cls_benchmark_linear_simple"
     assert materialized["surface_role"] == "pfn_control"
+    assert materialized["rows"][0]["model"] == {}
+    matrix_text = Path(result["matrix_path"]).read_text(encoding="utf-8")
+    assert "Effective labels: model=`cls_benchmark_linear_simple`" in matrix_text
 
 
 def test_create_sweep_marks_unknown_training_label_for_unlabeled_nonprior_anchor(

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
 from tab_foundry.research.lane_contract import (
+    PFN_CONTROL_SURFACES,
     resolve_surface_role,
     resolve_training_config_profile,
     resolve_training_experiment,
@@ -26,6 +27,20 @@ from .validation import ensure_mapping, ensure_non_empty_string
 
 
 DEFAULT_SWEEP_STATUS = "draft"
+_STAGED_ONLY_MODEL_KEYS = ("stage", "stage_label", "module_overrides")
+
+
+def _sanitize_model_payload_for_training_experiment(
+    model_payload: Mapping[str, Any],
+    *,
+    training_experiment: str,
+) -> dict[str, Any]:
+    sanitized = cast(dict[str, Any], _copy_jsonable(cast(dict[str, Any], model_payload)))
+    if training_experiment not in PFN_CONTROL_SURFACES:
+        return sanitized
+    for key in _STAGED_ONLY_MODEL_KEYS:
+        sanitized.pop(key, None)
+    return sanitized
 
 
 def instantiate_queue_row(
@@ -36,6 +51,7 @@ def instantiate_queue_row(
     delta_id: str,
     delta_entry: Mapping[str, Any],
     anchor_context: Mapping[str, Any],
+    training_experiment: str,
 ) -> dict[str, Any]:
     status, interpretation_status, next_action_override = guarded_initial_state(
         delta_entry=delta_entry,
@@ -45,6 +61,10 @@ def instantiate_queue_row(
         dict[str, Any],
         _copy_jsonable(cast(dict[str, Any], delta_entry.get("default_effective_surface", {}))),
     )
+    model_payload = _sanitize_model_payload_for_training_experiment(
+        cast(dict[str, Any], default_effective_surface.get("model", {})),
+        training_experiment=training_experiment,
+    )
     parameter_policy = cast(dict[str, Any], delta_entry.get("parameter_adequacy_policy", {}))
     return {
         "order": int(order),
@@ -53,7 +73,7 @@ def instantiate_queue_row(
         "rationale": f"Contextualize `{delta_id}` against anchor `{anchor_run_id}` for sweep `{sweep_id}`.",
         "hypothesis": "",
         "anchor_delta": f"Delta description pending for `{delta_id}` against locked anchor `{anchor_run_id}`.",
-        "model": cast(dict[str, Any], _copy_jsonable(default_effective_surface.get("model", {}))),
+        "model": model_payload,
         "data": cast(dict[str, Any], _copy_jsonable(default_effective_surface.get("data", {}))),
         "preprocessing": cast(dict[str, Any], _copy_jsonable(default_effective_surface.get("preprocessing", {}))),
         "training": cast(
@@ -201,6 +221,7 @@ def create_sweep(
             delta_id=delta_id,
             delta_entry=cast(dict[str, Any], deltas[delta_id]),
             anchor_context=anchor_context,
+            training_experiment=resolved_training_experiment,
         )
         for order, delta_id in enumerate(selected_delta_ids, start=1)
     ]
