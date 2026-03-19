@@ -1995,6 +1995,52 @@ def test_train_tabfoundry_simple_prior_logs_wandb_failure_summary(
     assert fake_run.summary["missingness/prior_dump/affected_batch_count"] == 1
 
 
+def test_train_tabfoundry_simple_prior_closes_wandb_for_setup_failures(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_wandb_setup_failure.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(
+        prior_train_module,
+        "_initial_missingness_summary",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("simulated setup failure")),
+    )
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+    cfg.logging.use_wandb = True
+    cfg.logging.project = "test-project"
+    cfg.logging.run_name = "prior-wandb-setup-failure"
+
+    with pytest.raises(RuntimeError, match="simulated setup failure"):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=path,
+            batch_size=1,
+        )
+
+    telemetry_path = Path(str(cfg.runtime.output_dir)).expanduser().resolve() / "telemetry.json"
+    telemetry = json.loads(telemetry_path.read_text(encoding="utf-8"))
+
+    assert fake_run.finished is True
+    assert telemetry["success"] is False
+    assert telemetry["error"] == {
+        "type": "RuntimeError",
+        "message": "simulated setup failure",
+    }
+    assert fake_run.summary["telemetry/success"] is False
+    assert fake_run.summary["error/type"] == "RuntimeError"
+    assert fake_run.summary["error/message"] == "simulated setup failure"
+
+
 def test_train_tabfoundry_simple_prior_skip_policy_preserves_successful_step_budget(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

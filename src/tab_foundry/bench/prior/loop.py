@@ -241,15 +241,8 @@ def run_prior_training(
                 if isinstance(stage, dict) and stage.get("lr_max") is not None:
                     stage["lr_max"] = float(stage["lr_max"]) * float(prior_batch_config.effective_lr_scale_factor)
     training_surface_path = output_dir / "training_surface_record.json"
-    training_surface_payload = deps.write_training_surface_record(
-        training_surface_path,
-        raw_cfg=raw_cfg,
-        run_dir=output_dir,
-    )
-    run = deps.init_wandb_run(
-        cfg,
-        enabled=bool(getattr(cfg.logging, "use_wandb", False)),
-    )
+    run = None
+    training_surface_payload: dict[str, Any] | None = None
     artifacts: dict[str, Any] = {
         "train_history_jsonl": None if history_path is None else str(history_path),
         "gradient_history_jsonl": str(gradient_path),
@@ -261,11 +254,7 @@ def run_prior_training(
     history_records: list[dict[str, Any]] = []
     gradient_records: list[dict[str, Any]] = []
     checkpoint_snapshots: list[dict[str, Any]] = []
-    missingness_summary = deps.initial_missingness_summary(
-        prior_dump_path,
-        prior_missingness_config=prior_missingness_config,
-        prior_dump_non_finite_policy=prior_dump_non_finite_policy,
-    )
+    missingness_summary: dict[str, Any] | None = None
 
     initial_lr = (
         float(deps.stage_base_lr(prior_stage, step=1, lr_min=lr_min))
@@ -273,36 +262,9 @@ def run_prior_training(
         else float(lr_min)
     )
 
-    optimizer_selection = deps.build_optimizer(
-        model,
-        name=str(cfg.optimizer.name),
-        lr=initial_lr,
-        weight_decay=float(cfg.optimizer.weight_decay),
-        extra_kwargs=deps.optimizer_kwargs(cfg),
-        require_requested=bool(cfg.optimizer.require_requested),
-        muon_per_parameter_lr=bool(getattr(cfg.optimizer, "muon_per_parameter_lr", True)),
-        muon_lr_scale_base=float(getattr(cfg.optimizer, "muon_lr_scale_base", 0.2)),
-        muon_partition_non2d=bool(getattr(cfg.optimizer, "muon_partition_non2d", True)),
-    )
-    if optimizer_selection.resolved_name not in {"schedulefree_adamw", "adamw"}:
-        raise RuntimeError(
-            "exact-parity prior-dump training requires optimizer 'schedulefree_adamw' or 'adamw', "
-            f"resolved {optimizer_selection.resolved_name!r}"
-        )
-    if len(optimizer_selection.optimizers) != 1:
-        raise RuntimeError(
-            "exact-parity prior-dump training expects exactly one optimizer instance, "
-            f"got {len(optimizer_selection.optimizers)}"
-        )
-    prepared_opts = list(optimizer_selection.optimizers)
-    optimizer = prepared_opts[0][1]
-    deps.set_optimizer_training_mode(prepared_opts, training=True)
-    lr_scales = [1.0 for _ in optimizer.param_groups]
-    deps.set_optimizer_base_lr(
-        optimizer,
-        base_lr=initial_lr,
-        scales=lr_scales,
-    )
+    prepared_opts: list[tuple[str, torch.optim.Optimizer]] = []
+    optimizer: torch.optim.Optimizer | None = None
+    lr_scales: list[float] = []
 
     history_step_loss = 0.0
     history_step_acc = 0.0
@@ -323,22 +285,72 @@ def run_prior_training(
         prior_missingness_generator.manual_seed(int(cfg.runtime.seed))
 
     def _record_non_finite_batch(batch_missingness) -> None:
+        if missingness_summary is None:
+            raise RuntimeError("prior training setup did not initialize missingness state")
         deps.accumulate_missingness(
             missingness_summary,
             batch_missingness=batch_missingness,
             skipped=prior_dump_non_finite_policy == "skip",
         )
 
-    reader = deps.prior_dump_task_batch_reader(
-        prior_dump_path,
-        num_steps=max_steps,
-        batch_size=prior_batch_config.batch_size,
-        non_finite_policy=prior_dump_non_finite_policy,
-        on_non_finite_batch=_record_non_finite_batch,
-    )
-
     try:
+        training_surface_payload = deps.write_training_surface_record(
+            training_surface_path,
+            raw_cfg=raw_cfg,
+            run_dir=output_dir,
+        )
+        run = deps.init_wandb_run(
+            cfg,
+            enabled=bool(getattr(cfg.logging, "use_wandb", False)),
+        )
+        missingness_summary = deps.initial_missingness_summary(
+            prior_dump_path,
+            prior_missingness_config=prior_missingness_config,
+            prior_dump_non_finite_policy=prior_dump_non_finite_policy,
+        )
+
+        optimizer_selection = deps.build_optimizer(
+            model,
+            name=str(cfg.optimizer.name),
+            lr=initial_lr,
+            weight_decay=float(cfg.optimizer.weight_decay),
+            extra_kwargs=deps.optimizer_kwargs(cfg),
+            require_requested=bool(cfg.optimizer.require_requested),
+            muon_per_parameter_lr=bool(getattr(cfg.optimizer, "muon_per_parameter_lr", True)),
+            muon_lr_scale_base=float(getattr(cfg.optimizer, "muon_lr_scale_base", 0.2)),
+            muon_partition_non2d=bool(getattr(cfg.optimizer, "muon_partition_non2d", True)),
+        )
+        if optimizer_selection.resolved_name not in {"schedulefree_adamw", "adamw"}:
+            raise RuntimeError(
+                "exact-parity prior-dump training requires optimizer 'schedulefree_adamw' or 'adamw', "
+                f"resolved {optimizer_selection.resolved_name!r}"
+            )
+        if len(optimizer_selection.optimizers) != 1:
+            raise RuntimeError(
+                "exact-parity prior-dump training expects exactly one optimizer instance, "
+                f"got {len(optimizer_selection.optimizers)}"
+            )
+        prepared_opts = list(optimizer_selection.optimizers)
+        optimizer = prepared_opts[0][1]
+        deps.set_optimizer_training_mode(prepared_opts, training=True)
+        lr_scales = [1.0 for _ in optimizer.param_groups]
+        deps.set_optimizer_base_lr(
+            optimizer,
+            base_lr=initial_lr,
+            scales=lr_scales,
+        )
+
+        reader = deps.prior_dump_task_batch_reader(
+            prior_dump_path,
+            num_steps=max_steps,
+            batch_size=prior_batch_config.batch_size,
+            non_finite_policy=prior_dump_non_finite_policy,
+            on_non_finite_batch=_record_non_finite_batch,
+        )
+
         for prior_step in reader:
+            if optimizer is None or missingness_summary is None:
+                raise RuntimeError("prior training setup did not initialize optimizer and missingness state")
             if prior_step.missingness is not None:
                 deps.accumulate_missingness(
                     missingness_summary,

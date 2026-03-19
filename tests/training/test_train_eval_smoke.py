@@ -713,6 +713,38 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert fake_run.summary["artifacts/telemetry_json"].endswith("telemetry.json")
 
 
+def test_train_closes_wandb_and_writes_failure_telemetry_for_setup_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    cfg.logging.use_wandb = True
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_stage_configs",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("simulated setup failure")),
+    )
+
+    with pytest.raises(RuntimeError, match="simulated setup failure"):
+        _ = trainer_module.train(cfg)
+
+    telemetry_path = Path(str(cfg.runtime.output_dir)).expanduser().resolve() / "telemetry.json"
+    telemetry = json.loads(telemetry_path.read_text(encoding="utf-8"))
+
+    assert fake_run.finished is True
+    assert telemetry["success"] is False
+    assert telemetry["error"] == {
+        "type": "RuntimeError",
+        "message": "simulated setup failure",
+    }
+    assert fake_run.summary["telemetry/success"] is False
+    assert fake_run.summary["error/type"] == "RuntimeError"
+    assert fake_run.summary["error/message"] == "simulated setup failure"
+
+
 def test_train_writes_regular_gradient_history_and_telemetry_with_stage_local_traces(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
