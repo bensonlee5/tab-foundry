@@ -33,11 +33,11 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `dpnb_cuda_stack_scale_control` | screening | yes | screened | none | Re-screen the large-anchor batch32 replay surface with a short activation-first diagnostic run. | Run this short-screen control first, then compare the two post-stack norm candidates before deciding on the combined benchmark row. |
-| 2 | `dpnb_cuda_stack_scale_poststack_rms` | normalization | yes | screened | none | Add post-stack RMSNorm after the prenorm table-block stack on the batch32 replay control screen. | Run after the short-screen control and compare directly against the LayerNorm variant before carrying one norm into a full benchmark row. |
-| 3 | `dpnb_cuda_stack_scale_poststack_ln` | normalization | yes | screened | none | Add post-stack LayerNorm after the prenorm table-block stack on the batch32 replay control screen. | Run after the RMSNorm short screen so the post-stack norm family comparison is available for a winner-take-forward decision. |
-| 4 | `dpnb_cuda_stack_scale_depth_scaled` | residual_scaling | yes | screened | none | Keep the batch32 replay control screen fixed and depth-scale each prenorm residual branch by stack depth. | Run after the norm-family screens so the final full-budget row can combine depth scaling with the winning post-stack norm if needed. |
-| 5 | `dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner` | normalization | yes | ready | none | Run the full batch32 replay benchmark with depth-scaled prenorm residuals plus whichever post-stack norm wins the short-screen comparison. | Wait for the short-screen norm comparison to resolve, then benchmark the combined depth-scaled row with the winning post-stack norm. |
+| 1 | `dpnb_cuda_stack_scale_control` | screening | yes | screened | none | Re-screen the large-anchor batch32 replay surface with a short activation-first diagnostic run. | Keep this row as the reproduced drift control; do not spend benchmark budget on the unchanged short-screen surface. |
+| 2 | `dpnb_cuda_stack_scale_poststack_rms` | normalization | yes | screened | none | Add post-stack RMSNorm after the prenorm table-block stack on the batch32 replay control screen. | Carry RMSNorm forward only as the winning norm-family comparator; it beat LayerNorm on upper-block scale but still trailed depth scaling overall. |
+| 3 | `dpnb_cuda_stack_scale_poststack_ln` | normalization | yes | screened | none | Add post-stack LayerNorm after the prenorm table-block stack on the batch32 replay control screen. | Do not carry LayerNorm forward; despite the lower loss trace, it lost the norm-family comparison on upper-block scale and clip rate. |
+| 4 | `dpnb_cuda_stack_scale_depth_scaled` | residual_scaling | yes | screened | none | Keep the batch32 replay control screen fixed and depth-scale each prenorm residual branch by stack depth. | Keep depth scaling as the preferred stack-scale intervention if this sweep is revisited; it produced the strongest short-screen stability signal. |
+| 5 | `dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner` | normalization | yes | blocked | none | Run the full batch32 replay benchmark with depth-scaled prenorm residuals plus whichever post-stack norm wins the short-screen comparison. | Leave the combined benchmark row blocked until there is a materially stronger reason to spend full-budget benchmark time on the depth-scaled plus RMSNorm surface. |
 
 ## Detailed Rows
 
@@ -63,7 +63,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.overrides.schedule.stages[0].steps
   - training.overrides.schedule.stages[0].warmup_ratio
 - Execution policy: `screen_only`
-- Interpretation status: `screened`
+- Interpretation status: `interpreted`
 - Decision: `defer`
 - Notes:
   - If upper-block means remain clearly upward after warmup, treat the control as reproduced even if train loss looks superficially acceptable.
@@ -100,7 +100,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.overrides.runtime.max_steps
   - training.overrides.schedule.stages[0].steps
 - Execution policy: `screen_only`
-- Interpretation status: `screened`
+- Interpretation status: `interpreted`
 - Decision: `defer`
 - Notes:
   - Train-only screen recorded as `sd_cuda_stack_scale_followup_02_dpnb_cuda_stack_scale_poststack_rms_v1`.
@@ -136,7 +136,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.overrides.runtime.max_steps
   - training.overrides.schedule.stages[0].steps
 - Execution policy: `screen_only`
-- Interpretation status: `screened`
+- Interpretation status: `interpreted`
 - Decision: `defer`
 - Notes:
   - Train-only screen recorded as `sd_cuda_stack_scale_followup_03_dpnb_cuda_stack_scale_poststack_ln_v1`.
@@ -163,7 +163,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.table_block_residual_scale=depth_scaled`.
 - Expected effect: Depth-scaled residual branches should target the source of the in-stack activation ratchet more directly than a final normalization alone.
 - Effective labels: model=`dpnb_cuda_stack_scale_depth_scaled`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
-- Model overrides: `{'module_overrides': {'table_block_style': 'prenorm', 'table_block_residual_scale': 'depth_scaled', 'allow_test_self_attention': False, 'row_pool': 'row_cls'}, 'stage': 'nano_exact', 'd_col': 128, 'd_icl': 512, 'input_normalization': 'train_zscore_clip', 'tfrow_n_heads': 8, 'tfrow_n_layers': 3, 'tfrow_cls_tokens': 2, 'tfrow_norm': 'layernorm', 'tficl_n_heads': 8, 'tficl_n_layers': 12, 'head_hidden_dim': 1024}`
+- Model overrides: `{'module_overrides': {'table_block_style': 'prenorm', 'table_block_residual_scale': 'depth_scaled', 'post_stack_norm': 'rmsnorm', 'allow_test_self_attention': False, 'row_pool': 'row_cls'}, 'stage': 'nano_exact', 'd_col': 128, 'd_icl': 512, 'input_normalization': 'train_zscore_clip', 'tfrow_n_heads': 8, 'tfrow_n_layers': 3, 'tfrow_cls_tokens': 2, 'tfrow_norm': 'layernorm', 'tficl_n_heads': 8, 'tficl_n_layers': 12, 'head_hidden_dim': 1024}`
 - Parameter adequacy plan:
   - Compare directly against the control and post-stack norm rows on the same short-screen surface.
   - Use this row to decide whether the root-cause residual intervention deserves the one full-budget benchmark row.
@@ -172,7 +172,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.overrides.runtime.max_steps
   - training.overrides.schedule.stages[0].steps
 - Execution policy: `screen_only`
-- Interpretation status: `screened`
+- Interpretation status: `interpreted`
 - Decision: `defer`
 - Notes:
   - Train-only screen recorded as `sd_cuda_stack_scale_followup_04_dpnb_cuda_stack_scale_depth_scaled_v1`.
@@ -189,7 +189,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 5. `dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `blocked`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Run the full batch32 replay benchmark with depth-scaled prenorm residuals plus whichever post-stack norm wins the short-screen comparison.
@@ -199,8 +199,8 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Keep the large-anchor batch32 replay benchmark surface fixed, add `table_block_residual_scale=depth_scaled`, and resolve `post_stack_norm` dynamically from rows 2-3 with RMSNorm winning any unresolved tie.
 - Expected effect: The combined row should test whether root-cause residual scaling plus the better downstream stack export norm is enough to produce a benchmarkable large-anchor candidate.
 - Effective labels: model=`dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
-- Model overrides: `{'module_overrides': {'table_block_style': 'prenorm', 'table_block_residual_scale': 'depth_scaled', 'allow_test_self_attention': False, 'row_pool': 'row_cls'}, 'stage': 'nano_exact', 'd_col': 128, 'd_icl': 512, 'input_normalization': 'train_zscore_clip', 'tfrow_n_heads': 8, 'tfrow_n_layers': 3, 'tfrow_cls_tokens': 2, 'tfrow_norm': 'layernorm', 'tficl_n_heads': 8, 'tficl_n_layers': 12, 'head_hidden_dim': 1024}`
-- Dynamic model overrides: `{'post_stack_norm': {'kind': 'screen_winner', 'compare_orders': [{'order': 2, 'value': 'rmsnorm'}, {'order': 3, 'value': 'layernorm'}], 'tie_break_preference': 'rmsnorm'}}`
+- Model overrides: `{'module_overrides': {'table_block_style': 'prenorm', 'table_block_residual_scale': 'depth_scaled', 'post_stack_norm': 'rmsnorm', 'allow_test_self_attention': False, 'row_pool': 'row_cls'}, 'stage': 'nano_exact', 'd_col': 128, 'd_icl': 512, 'input_normalization': 'train_zscore_clip', 'tfrow_n_heads': 8, 'tfrow_n_layers': 3, 'tfrow_cls_tokens': 2, 'tfrow_norm': 'layernorm', 'tficl_n_heads': 8, 'tficl_n_layers': 12, 'head_hidden_dim': 1024}`
+- Dynamic model overrides: `{'post_stack_norm': {'kind': 'screen_winner', 'compare_orders': [{'order': 2, 'value': 'rmsnorm'}, {'order': 3, 'value': 'layernorm'}], 'tie_break_preference': 'rmsnorm', 'resolved_value': 'rmsnorm', 'resolved_from_order': 2, 'resolution_reason': 'lower upper-block final-window mean'}}`
 - Parameter adequacy plan:
   - Resolve the winning post-stack norm from rows 2-3 using upper-block final-window scale first, then post-warmup slope, then clip rate, then loss EMA, with RMSNorm as the final tie-breaker.
   - Benchmark only this combined row at full budget after the short-screen control and component rows complete.
@@ -210,10 +210,13 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.overrides.runtime.max_steps
   - training.overrides.schedule.stages[0].steps
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
+- Interpretation status: `blocked`
 - Decision: `None`
 - Notes:
   - The runner resolves `model.module_overrides.post_stack_norm` at execution time from the recorded screen metrics in rows 2-3.
+  - Resolved `post_stack_norm` to `rmsnorm` from screen row `2` (lower upper-block final-window mean).
+  - A stopped diagnostic archive exists at `sd_cuda_stack_scale_followup_05_dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner_v1_stopped_user_interrupt_20260319T161805Z`.
+  - The first full-budget attempt was stopped manually at step `475` before benchmark registration after the partial trace still looked mediocre relative to the screen evidence.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stack_scale_followup/dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner/result_card.md`
 - Benchmark metrics: pending

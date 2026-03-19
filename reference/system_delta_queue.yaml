@@ -176,10 +176,10 @@ rows:
   run_id: sd_cuda_stack_scale_followup_01_dpnb_cuda_stack_scale_control_v1
   followup_run_ids: []
   decision: defer
-  interpretation_status: screened
+  interpretation_status: interpreted
   confounders: []
-  next_action: Run this short-screen control first, then compare the two post-stack
-    norm candidates before deciding on the combined benchmark row.
+  next_action: Keep this row as the reproduced drift control; do not spend benchmark
+    budget on the unchanged short-screen surface.
   notes:
   - If upper-block means remain clearly upward after warmup, treat the control as
     reproduced even if train loss looks superficially acceptable.
@@ -298,10 +298,10 @@ rows:
   run_id: sd_cuda_stack_scale_followup_02_dpnb_cuda_stack_scale_poststack_rms_v1
   followup_run_ids: []
   decision: defer
-  interpretation_status: screened
+  interpretation_status: interpreted
   confounders: []
-  next_action: Run after the short-screen control and compare directly against the
-    LayerNorm variant before carrying one norm into a full benchmark row.
+  next_action: Carry RMSNorm forward only as the winning norm-family comparator; it
+    beat LayerNorm on upper-block scale but still trailed depth scaling overall.
   notes:
   - Train-only screen recorded as `sd_cuda_stack_scale_followup_02_dpnb_cuda_stack_scale_poststack_rms_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
@@ -416,10 +416,10 @@ rows:
   run_id: sd_cuda_stack_scale_followup_03_dpnb_cuda_stack_scale_poststack_ln_v1
   followup_run_ids: []
   decision: defer
-  interpretation_status: screened
+  interpretation_status: interpreted
   confounders: []
-  next_action: Run after the RMSNorm short screen so the post-stack norm family comparison
-    is available for a winner-take-forward decision.
+  next_action: Do not carry LayerNorm forward; despite the lower loss trace, it lost
+    the norm-family comparison on upper-block scale and clip rate.
   notes:
   - Train-only screen recorded as `sd_cuda_stack_scale_followup_03_dpnb_cuda_stack_scale_poststack_ln_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
@@ -492,6 +492,7 @@ rows:
     module_overrides:
       table_block_style: prenorm
       table_block_residual_scale: depth_scaled
+      post_stack_norm: rmsnorm
       allow_test_self_attention: false
       row_pool: row_cls
     tfrow_n_heads: 8
@@ -536,10 +537,10 @@ rows:
   run_id: sd_cuda_stack_scale_followup_04_dpnb_cuda_stack_scale_depth_scaled_v1
   followup_run_ids: []
   decision: defer
-  interpretation_status: screened
+  interpretation_status: interpreted
   confounders: []
-  next_action: Run after the norm-family screens so the final full-budget row can
-    combine depth scaling with the winning post-stack norm if needed.
+  next_action: Keep depth scaling as the preferred stack-scale intervention if this
+    sweep is revisited; it produced the strongest short-screen stability signal.
   notes:
   - Train-only screen recorded as `sd_cuda_stack_scale_followup_04_dpnb_cuda_stack_scale_depth_scaled_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
@@ -570,7 +571,7 @@ rows:
   benchmark_metrics: null
 - order: 5
   delta_id: dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner
-  status: ready
+  status: blocked
   dimension_family: model
   family: normalization
   binary_applicable: true
@@ -617,6 +618,7 @@ rows:
     module_overrides:
       table_block_style: prenorm
       table_block_residual_scale: depth_scaled
+      post_stack_norm: rmsnorm
       allow_test_self_attention: false
       row_pool: row_cls
     tfrow_n_heads: 8
@@ -635,6 +637,9 @@ rows:
       - order: 3
         value: layernorm
       tie_break_preference: rmsnorm
+      resolved_value: rmsnorm
+      resolved_from_order: 2
+      resolution_reason: lower upper-block final-window mean
   data:
     surface_label: anchor_manifest_default
   preprocessing:
@@ -670,12 +675,19 @@ rows:
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: pending
+  interpretation_status: blocked
   confounders: []
-  next_action: Wait for the short-screen norm comparison to resolve, then benchmark
-    the combined depth-scaled row with the winning post-stack norm.
+  next_action: Leave the combined benchmark row blocked until there is a materially
+    stronger reason to spend full-budget benchmark time on the depth-scaled plus RMSNorm
+    surface.
   notes:
   - The runner resolves `model.module_overrides.post_stack_norm` at execution time
     from the recorded screen metrics in rows 2-3.
+  - Resolved `post_stack_norm` to `rmsnorm` from screen row `2` (lower upper-block
+    final-window mean).
+  - A stopped diagnostic archive exists at `sd_cuda_stack_scale_followup_05_dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner_v1_stopped_user_interrupt_20260319T161805Z`.
+  - The first full-budget attempt was stopped manually at step `475` before benchmark
+    registration after the partial trace still looked mediocre relative to the screen
+    evidence.
   screen_metrics: null
   benchmark_metrics: null
