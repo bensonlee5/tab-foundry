@@ -18,7 +18,7 @@ This file is rendered from `reference/system_delta_sweeps/cuda_stack_scale_follo
 - Training config profile: `cls_benchmark_staged_prior`
 - Surface role: `hybrid_diagnostic`
 - Comparison policy: `anchor_only`
-- Anchor metrics: final log loss `0.5865`, final Brier score `0.2020`, best ROC AUC `0.5484`, final ROC AUC `0.5649`, final training time `2012.0s`
+- Anchor metrics: final log loss `0.5865`, final Brier score `0.4039`, best ROC AUC `0.5484`, final ROC AUC `0.5649`, final training time `2012.0s`
 
 ## Anchor Comparison
 

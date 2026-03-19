@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-03-19
+
+### Changed
+
+- User-facing note: classification benchmark Brier scores now use the summed
+  per-example classwise squared error definition, so persisted Brier metrics in
+  the checked-in benchmark run registry were refreshed to the corrected scale.
+
 ## [0.8.3] - 2026-03-19
 
 ### Changed

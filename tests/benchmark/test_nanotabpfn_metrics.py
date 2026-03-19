@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import tab_foundry.bench.nanotabpfn as benchmark_module
+import tab_foundry.bench.nanotabpfn.metrics as benchmark_metrics_module
 
 
 class _PerfectClassifier:
@@ -56,6 +57,36 @@ def test_evaluate_classifier_reports_brier_for_binary_and_multiclass() -> None:
     assert multiclass_metrics["ROC AUC"] == pytest.approx(1.0)
     assert multiclass_metrics["Log Loss"] < 1.0e-10
     assert multiclass_metrics["Brier Score"] < 1.0e-10
+
+
+def test_classification_brier_score_matches_expected_binary_value() -> None:
+    targets = np.asarray([0, 1], dtype=np.int64)
+    probabilities = np.asarray(
+        [
+            [0.8, 0.2],
+            [0.3, 0.7],
+        ],
+        dtype=np.float64,
+    )
+
+    observed = benchmark_metrics_module._classification_brier_score(targets, probabilities)
+
+    assert observed == pytest.approx(0.13)
+
+
+def test_classification_brier_score_matches_expected_multiclass_value() -> None:
+    targets = np.asarray([0, 2], dtype=np.int64)
+    probabilities = np.asarray(
+        [
+            [0.7, 0.2, 0.1],
+            [0.1, 0.3, 0.6],
+        ],
+        dtype=np.float64,
+    )
+
+    observed = benchmark_metrics_module._classification_brier_score(targets, probabilities)
+
+    assert observed == pytest.approx(0.2)
 
 
 def test_evaluate_regressor_reports_crps_pinball_and_picp() -> None:
