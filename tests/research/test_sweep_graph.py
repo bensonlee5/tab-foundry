@@ -46,7 +46,10 @@ def test_resolve_queue_row_model_spec_matches_selected_sweep_surface() -> None:
     )
     row = next(row for row in queue["rows"] if int(row["order"]) == 7)
 
-    spec = graph_module.resolve_queue_row_model_spec(row)
+    spec = graph_module.resolve_queue_row_model_spec(
+        row,
+        training_experiment=str(queue["training_experiment"]),
+    )
 
     assert spec.arch == "tabfoundry_staged"
     assert spec.stage == "nano_exact"
@@ -303,3 +306,106 @@ def test_render_sweep_graphs_writes_svg_and_index_without_mutating_sweep_metadat
     assert "row:07:dpnb_input_norm_anchor_replay_batch64_sqrt" in index_text
     assert sweep_yaml_path.read_text(encoding="utf-8") == sweep_before
     assert queue_yaml_path.read_text(encoding="utf-8") == queue_before
+
+
+def test_render_sweep_graphs_respects_non_default_sweep_training_experiment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    queue = {
+        "sweep_id": "simple_surface_graph",
+        "training_experiment": "cls_benchmark_linear_simple",
+        "rows": [
+            {
+                "order": 1,
+                "delta_id": "delta_anchor_activation_trace_baseline",
+                "status": "ready",
+                "run_id": None,
+                "model": {},
+                "data": {},
+                "preprocessing": {},
+                "training": {"overrides": {}},
+            }
+        ],
+    }
+
+    class _FakeVisualGraph:
+        def pipe(self, *, format: str) -> bytes:
+            assert format == "svg"
+            return b"<svg><!-- fake graph --></svg>"
+
+    class _FakeGraph:
+        def __init__(self) -> None:
+            self.visual_graph = _FakeVisualGraph()
+
+    def _fake_draw_graph(*args, **kwargs):
+        assert args
+        return _FakeGraph()
+
+    monkeypatch.setattr(graph_module.shutil, "which", lambda name: "/usr/bin/dot" if name == "dot" else None)
+    monkeypatch.setattr(graph_module, "load_system_delta_queue", lambda **_: queue)
+    monkeypatch.setitem(sys.modules, "torchview", SimpleNamespace(draw_graph=_fake_draw_graph))
+
+    result = graph_module.render_sweep_graphs(
+        sweep_id="simple_surface_graph",
+        orders=[1],
+        out_dir=tmp_path / "graphs",
+    )
+
+    index_text = Path(str(result["index_path"])).read_text(encoding="utf-8")
+    assert "row:01:delta_anchor_activation_trace_baseline" in index_text
+    assert "Model arch: `tabfoundry_simple`" in index_text
+    assert "Model stage: `None`" in index_text
+
+
+def test_render_sweep_graphs_legacy_queue_ignores_synthetic_anchor_context_experiment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    queue = {
+        "sweep_id": "legacy_graph",
+        "anchor_context": {
+            "experiment": "stability_followup",
+            "config_profile": "stability_followup",
+        },
+        "rows": [
+            {
+                "order": 1,
+                "delta_id": "delta_anchor_activation_trace_baseline",
+                "status": "ready",
+                "run_id": None,
+                "model": {},
+                "data": {},
+                "preprocessing": {},
+                "training": {"overrides": {}},
+            }
+        ],
+    }
+
+    class _FakeVisualGraph:
+        def pipe(self, *, format: str) -> bytes:
+            assert format == "svg"
+            return b"<svg><!-- fake graph --></svg>"
+
+    class _FakeGraph:
+        def __init__(self) -> None:
+            self.visual_graph = _FakeVisualGraph()
+
+    def _fake_draw_graph(*args, **kwargs):
+        assert args
+        return _FakeGraph()
+
+    monkeypatch.setattr(graph_module.shutil, "which", lambda name: "/usr/bin/dot" if name == "dot" else None)
+    monkeypatch.setattr(graph_module, "load_system_delta_queue", lambda **_: queue)
+    monkeypatch.setitem(sys.modules, "torchview", SimpleNamespace(draw_graph=_fake_draw_graph))
+
+    result = graph_module.render_sweep_graphs(
+        sweep_id="legacy_graph",
+        orders=[1],
+        out_dir=tmp_path / "graphs",
+    )
+
+    index_text = Path(str(result["index_path"])).read_text(encoding="utf-8")
+    assert "row:01:delta_anchor_activation_trace_baseline" in index_text
+    assert "Model arch: `tabfoundry_staged`" in index_text
+    assert "Model stage label: `dpnb_row_cls_cls2_linear_warmup_decay`" in index_text

@@ -4,7 +4,7 @@ Modular tabular prior-data fitted network training on `dagzoo` packed shard outp
 
 ## Environment
 
-- Python `3.13` (pinned in `.python-version`)
+- Python `3.14` (pinned in `.python-version`)
 - `uv` workflow for sync, tooling, and commands
 
 ## Setup

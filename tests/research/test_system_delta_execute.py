@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import shutil
+from types import SimpleNamespace
 from typing import Any
 
 from omegaconf import OmegaConf
@@ -19,6 +20,7 @@ from tab_foundry.research.system_delta_execute import (
 )
 import tab_foundry.research.system_delta_execute as execute_module
 import tab_foundry.research.sweep.runner as runner_module
+from tab_foundry.research.sweep.artifacts import read_yaml as read_artifact_yaml, write_research_package
 from tab_foundry.research.sweep.screening import pick_screen_winner, screen_metrics as load_screen_metrics
 
 
@@ -281,6 +283,34 @@ def test_compose_cfg_replaces_module_overrides_to_allow_post_encoder_norm(tmp_pa
     }
 
 
+def test_compose_cfg_uses_requested_training_experiment(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_compose_config(args: list[str]) -> Any:
+        captured['args'] = list(args)
+        return OmegaConf.create(
+            {
+                'runtime': {'output_dir': '', 'device': ''},
+                'logging': {'run_name': ''},
+                'model': {'stage_label': 'base', 'module_overrides': {}},
+            }
+        )
+
+    monkeypatch.setattr(runner_module, 'compose_config', fake_compose_config)
+
+    _ = _compose_cfg(
+        row={'model': {'stage_label': 'dpnb_architecture_screen_probe'}},
+        run_dir=tmp_path / 'train',
+        device='cuda',
+        training_experiment='cls_benchmark_staged',
+    )
+
+    assert captured['args'] == ['experiment=cls_benchmark_staged']
+
+
 def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> None:
     (tmp_path / 'gradient_history.jsonl').write_text(
         ''.join(
@@ -517,7 +547,12 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
         control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
     )
 
-    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    captured_research_package: dict[str, Any] = {}
+
+    def fake_write_research_package(**kwargs: Any) -> None:
+        captured_research_package.update(kwargs)
+
+    monkeypatch.setattr(runner_module, 'write_research_package', fake_write_research_package)
     monkeypatch.setattr(
         runner_module,
         'screen_metrics',
@@ -533,7 +568,13 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
 
     observed_run_id = runner_module.run_row(
         sweep_id=sweep_id,
-        sweep_meta={'control_baseline_id': 'cls_benchmark_linear_v2', 'benchmark_bundle_path': 'bundle.json'},
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': 'bundle.json',
+            'training_experiment': 'cls_benchmark_staged',
+            'training_config_profile': 'cls_benchmark_staged',
+            'surface_role': 'architecture_screen',
+        },
         queue_row=queue_row,
         materialized_row=materialized_row,
         anchor_run_id='anchor_v1',
@@ -549,11 +590,305 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
     )
 
     assert observed_run_id == run_id
+    assert captured_research_package['training_experiment'] == 'cls_benchmark_staged'
+    assert captured_research_package['training_config_profile'] == 'cls_benchmark_staged'
+    assert captured_research_package['surface_role'] == 'architecture_screen'
     assert queue_row['status'] == 'screened'
     assert queue_row['interpretation_status'] == 'screened'
     assert queue_row['decision'] == 'defer'
     assert queue_row['benchmark_metrics'] is None
     assert queue_row['screen_metrics']['upper_block_final_window_mean'] == pytest.approx(42.0)
+
+
+def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'legacy_sweep'
+    delta_ref = 'legacy_delta'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {},
+        'training': {},
+        'execution_policy': 'screen_only',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'training',
+        'family': 'schedule',
+        'description': 'Legacy sweep execution should keep the hybrid default.',
+        'anchor_delta': 'Retain the old implicit hybrid surface.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=REGISTRY_PATH,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+    )
+
+    captured_research_package: dict[str, Any] = {}
+    captured_compose_cfg: dict[str, Any] = {}
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **kwargs: captured_research_package.update(kwargs))
+
+    def fake_compose_cfg(**kwargs: Any) -> Any:
+        captured_compose_cfg.update(kwargs)
+        return SimpleNamespace()
+
+    monkeypatch.setattr(runner_module, 'compose_cfg', fake_compose_cfg)
+    monkeypatch.setattr(
+        runner_module,
+        'train_tabfoundry_simple_prior',
+        lambda *_args, **_kwargs: SimpleNamespace(output_dir=str(train_dir)),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'screen_metrics',
+        lambda **_: {
+            'upper_block_final_window_mean': 42.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.5,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('registry should be skipped')),
+    )
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': 'bundle.json',
+            'anchor_context': {
+                'experiment': 'stability_followup',
+                'config_profile': 'stability_followup',
+            },
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Legacy sweep should stay on the hybrid default.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert captured_compose_cfg['training_experiment'] == 'cls_benchmark_staged_prior'
+    assert captured_research_package['training_experiment'] == 'cls_benchmark_staged_prior'
+    assert captured_research_package['training_config_profile'] == 'cls_benchmark_staged_prior'
+    assert captured_research_package['surface_role'] == 'hybrid_diagnostic'
+
+
+def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'architecture_screen_probe'
+    delta_ref = 'dpnb_architecture_screen_probe'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    benchmark_dir = train_dir.parent / 'benchmark'
+    (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'gradient_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
+    (train_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+    benchmark_dir.mkdir(parents=True, exist_ok=True)
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'training': {},
+        'execution_policy': 'benchmark_full',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'model',
+        'family': 'screening',
+        'description': 'Benchmark the architecture-screen row.',
+        'anchor_delta': 'Switch to the architecture-screen experiment surface.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=REGISTRY_PATH,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+    )
+
+    captured_registration: dict[str, Any] = {}
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'ensure_nanotabpfn_python', lambda **_: tmp_path / 'python')
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: {
+            'tab_foundry': {
+                'best_step': 100.0,
+                'best_log_loss': 0.41,
+                'final_log_loss': 0.40,
+                'best_to_final_log_loss_delta': -0.01,
+                'best_brier_score': 0.12,
+                'final_brier_score': 0.11,
+                'best_to_final_brier_score_delta': -0.01,
+                'best_roc_auc': 0.80,
+                'final_roc_auc': 0.81,
+                'best_to_final_roc_auc_delta': 0.01,
+                'training_diagnostics': {'max_grad_norm': 7.5},
+            },
+            'nanotabpfn': {
+                'best_log_loss': 0.46,
+                'final_log_loss': 0.45,
+                'best_brier_score': 0.14,
+                'final_brier_score': 0.13,
+                'best_roc_auc': 0.78,
+                'final_roc_auc': 0.77,
+            },
+        },
+    )
+
+    def fake_register_benchmark_run(**kwargs: Any) -> dict[str, Any]:
+        captured_registration.update(kwargs)
+        return {
+            'run': {
+                'comparisons': {
+                    'vs_anchor': {
+                        'final_log_loss_delta': -0.02,
+                        'final_brier_score_delta': -0.01,
+                        'final_roc_auc_delta': 0.01,
+                    }
+                }
+            }
+        }
+
+    monkeypatch.setattr(runner_module, 'register_benchmark_run', fake_register_benchmark_run)
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': 'bundle.json',
+            'training_experiment': 'cls_benchmark_staged',
+            'training_config_profile': 'cls_benchmark_staged',
+            'surface_role': 'architecture_screen',
+            'parent_sweep_id': 'input_norm_followup',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Use the architecture-screen surface for benchmark-facing evidence.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert captured_registration['experiment'] == 'cls_benchmark_staged'
+    assert captured_registration['config_profile'] == 'cls_benchmark_staged'
+    assert captured_registration['sweep_id'] == sweep_id
+    assert captured_registration['parent_sweep_id'] == 'input_norm_followup'
+    assert queue_row['status'] == 'completed'
+    assert queue_row['interpretation_status'] == 'completed'
+
+
+def test_write_research_package_uses_resolved_lane_contract_fields(tmp_path: Path) -> None:
+    delta_root = tmp_path / "outputs" / "staged_ladder" / "research" / "legacy_sweep" / "delta_example"
+
+    write_research_package(
+        delta_root=delta_root,
+        materialized_row={
+            "delta_id": "delta_example",
+            "dimension_family": "training",
+            "family": "schedule",
+            "description": "Exercise the resolved research-package contract.",
+            "anchor_delta": "Keep the existing anchor unchanged.",
+            "parameter_adequacy_plan": [],
+            "rationale": "Legacy sweep metadata should still write a complete package.",
+            "hypothesis": "The fallback lane contract should be written explicitly.",
+        },
+        queue_row={"model": {}, "data": {}, "preprocessing": {}, "training": {}},
+        sweep_meta={
+            "control_baseline_id": "cls_benchmark_linear_v2",
+            "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        },
+        sweep_id="legacy_sweep",
+        anchor_run_id="anchor_v1",
+        device="cuda",
+        training_experiment="cls_benchmark_staged_prior",
+        training_config_profile="cls_benchmark_staged_prior",
+        surface_role="hybrid_diagnostic",
+    )
+
+    research_card = (delta_root / "research_card.md").read_text(encoding="utf-8")
+    campaign = read_artifact_yaml(delta_root / "campaign.yaml")
+
+    assert "`training_experiment`: `cls_benchmark_staged_prior`" in research_card
+    assert "`training_config_profile`: `cls_benchmark_staged_prior`" in research_card
+    assert "`surface_role`: `hybrid_diagnostic`" in research_card
+    assert campaign["training_experiment"] == "cls_benchmark_staged_prior"
+    assert campaign["training_config_profile"] == "cls_benchmark_staged_prior"
+    assert campaign["surface_role"] == "hybrid_diagnostic"
 
 
 def test_run_row_resolves_dynamic_post_stack_norm_from_screened_rows(

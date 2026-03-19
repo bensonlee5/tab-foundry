@@ -5,6 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.research.lane_contract import (
+    resolve_surface_role,
+    resolve_training_config_profile,
+    resolve_training_experiment,
+)
+
 from .anchor import anchor_training_surface_label
 from .catalog import (
     SWEEP_QUEUE_SCHEMA,
@@ -227,6 +233,9 @@ def materialize_system_delta_queue(
         "anchor_run_id": sweep["anchor_run_id"],
         "benchmark_bundle_path": sweep["benchmark_bundle_path"],
         "control_baseline_id": sweep["control_baseline_id"],
+        "training_experiment": resolve_training_experiment(sweep),
+        "training_config_profile": resolve_training_config_profile(sweep),
+        "surface_role": resolve_surface_role(sweep),
         "comparison_policy": sweep["comparison_policy"],
         "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep["upstream_reference"])),
         "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep["anchor_surface"])),

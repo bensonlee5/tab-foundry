@@ -63,6 +63,25 @@ def load_history(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def resolve_train_elapsed_seconds(record: Mapping[str, Any], *, context: str) -> float:
+    """Resolve a training-time field from history or telemetry payloads."""
+
+    if "train_elapsed_seconds" in record:
+        elapsed_raw = record["train_elapsed_seconds"]
+    elif "elapsed_seconds" in record:
+        elapsed_raw = record["elapsed_seconds"]
+    else:
+        keys = ", ".join(sorted(str(key) for key in record.keys()))
+        raise RuntimeError(
+            f"{context} record is missing elapsed time; expected train_elapsed_seconds or "
+            f"elapsed_seconds, keys=[{keys}]"
+        )
+    elapsed_seconds = float(elapsed_raw)
+    if not math.isfinite(elapsed_seconds):
+        raise RuntimeError(f"{context} record has non-finite elapsed time: {elapsed_seconds!r}")
+    return max(0.0, elapsed_seconds)
+
+
 def plot_loss_curve(
     history_path: Path,
     out_path: Path,
@@ -111,7 +130,10 @@ def checkpoint_snapshots_from_history(history_path: Path, checkpoint_dir: Path) 
     """Resolve step checkpoints and their elapsed training times."""
 
     step_times = {
-        int(record["step"]): float(record.get("train_elapsed_seconds", record["elapsed_seconds"]))
+        int(record["step"]): resolve_train_elapsed_seconds(
+            record,
+            context=f"history step={record['step']}",
+        )
         for record in load_history(history_path)
     }
     snapshots: list[dict[str, Any]] = []

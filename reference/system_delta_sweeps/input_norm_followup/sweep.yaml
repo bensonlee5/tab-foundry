@@ -6,22 +6,26 @@ complexity_level: binary_md
 anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
+training_experiment: cls_benchmark_staged_prior
+training_config_profile: cls_benchmark_staged_prior
+surface_role: hybrid_diagnostic
 comparison_policy: anchor_only
 upstream_reference:
   name: nanoTabPFN
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-  - This follow-up starts from the promoted `dpnb_row_cls_cls2_linear_warmup_decay`
-    bridge surface rather than the older post-layernorm canonical anchor.
+  - This follow-up starts from the locked `dpnb_row_cls_cls2_linear_warmup_decay`
+    hybrid-diagnostic surface rather than the older post-layernorm anchor.
   - Rows 1-5 showed that changing the normalization family on the batch32 surface
     was effectively inert on this bundle.
-  - Rows 7 and 9 were the only clear winners, and row 7 is promoted because it matched
+  - Rows 7 and 9 were the only clear winners, and row 7 stays locked because it matched
     row 9 while keeping the less invasive `train_zscore_clip` normalization.
   - The queue still documents the batch32 replay and the smooth-tail sidecars as evidence,
-    but future comparisons should anchor on the batch64 sqrt-scaled clipped surface.
+    but future comparisons on this lane should anchor on the batch64 sqrt-scaled clipped
+    hybrid-diagnostic surface.
   - RMSNorm is intentionally out of scope here; the architecture stays fixed at the
-    promoted prenorm plus row-cls bridge surface.
+    locked prenorm plus row-cls hybrid-diagnostic surface.
   dimension_table:
   - dimension: bridge architecture
     upstream: Old bridge rows established that prenorm plus row-cls cls2 can train
@@ -32,17 +36,18 @@ anchor_surface:
       batch-size effects, not to a reopened architecture axis.
   - dimension: input normalization
     upstream: The bridge baseline still uses `train_zscore_clip`.
-    anchor: Keep `train_zscore_clip` on the promoted batch64 sqrt-scaled bridge surface.
+    anchor: Keep `train_zscore_clip` on the locked batch64 sqrt-scaled hybrid-diagnostic
+      surface.
     interpretation: Rows 1-5 showed the normalized variants were tied on batch32,
       row 9 only tied row 7, and the later no-norm follow-up underperformed, so clipping
-      stays in the anchor by default.
+      stays in the locked hybrid-diagnostic anchor by default.
   - dimension: batch-size scaling
     upstream: Exact-prior training previously treated batch size as a hidden function
       argument rather than a tracked surface knob.
     anchor: Use prior-dump batch size 64 with sqrt LR scaling relative to the reference
       batch size of 32.
     interpretation: Batch-size rows were the only source of clear lift in this sweep;
-      row 7 is the promoted systems surface.
+      row 7 is the locked systems surface for this hybrid-diagnostic lane.
 anchor_context:
   run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
   experiment: cls_benchmark_staged_prior

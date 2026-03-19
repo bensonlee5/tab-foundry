@@ -159,6 +159,9 @@ def render_system_delta_matrix(
     lines.append(f"- Anchor run id: `{anchor_run_id}`")
     lines.append(f"- Benchmark bundle: `{queue['benchmark_bundle_path']}`")
     lines.append(f"- Control baseline id: `{queue['control_baseline_id']}`")
+    lines.append(f"- Training experiment: `{queue.get('training_experiment')}`")
+    lines.append(f"- Training config profile: `{queue.get('training_config_profile')}`")
+    lines.append(f"- Surface role: `{queue.get('surface_role')}`")
     lines.append(f"- Comparison policy: `{queue['comparison_policy']}`")
     anchor_metric_parts: list[str] = []
     for label, key in (

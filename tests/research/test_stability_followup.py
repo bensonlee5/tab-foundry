@@ -62,6 +62,9 @@ def test_stability_followup_metadata_and_rows_match_the_delta_prenorm_bridge_pla
     assert sweep["sweep_id"] == "stability_followup"
     assert sweep["parent_sweep_id"] == "stability_ladder"
     assert sweep["status"] == "completed"
+    assert sweep["training_experiment"] == "cls_benchmark_staged_prior"
+    assert sweep["training_config_profile"] == "cls_benchmark_staged_prior"
+    assert sweep["surface_role"] == "hybrid_diagnostic"
     assert sweep["anchor_context"]["model"]["arch"] == "tabfoundry_staged"
     assert sweep["anchor_context"]["model"]["stage"] == "nano_exact"
     assert sweep["anchor_context"]["model"]["stage_label"] == "delta_prenorm_block"
@@ -80,12 +83,12 @@ def test_stability_followup_metadata_and_rows_match_the_delta_prenorm_bridge_pla
     assert sweep["anchor_context"]["surface_labels"]["training"] == "prior_cosine_warmup"
     assert sweep["anchor_run_id"] is None
     assert any(
-        "row 11 is the promoted bridge-surface default and row 12 is confirmatory evidence only."
+        "row 11 is the locked hybrid-diagnostic default and row 12 is confirmatory evidence only."
         in note
         for note in sweep["anchor_surface"]["notes"]
     )
     assert any(
-        "Promotion is metadata-only on this machine because the winning artifacts were produced elsewhere;"
+        "Hybrid-diagnostic default registration is metadata-only on this machine because the winning artifacts were produced elsewhere;"
         in note
         for note in sweep["anchor_surface"]["notes"]
     )
@@ -155,10 +158,10 @@ def test_stability_followup_metadata_and_rows_match_the_delta_prenorm_bridge_pla
     assert rowpool_row["interpretation_status"] == "completed"
     assert (
         rowpool_row["next_action"]
-        == "Defer canonical anchor registration until the remote artifacts are synced locally; until then, treat this as the metadata-only bridge-surface default."
+        == "Defer locked hybrid-diagnostic anchor registration until the remote artifacts are synced locally; until then, treat this as the metadata-only hybrid-diagnostic default."
     )
     assert rowpool_row["notes"] == [
-        "Matrix outcome: best/final ROC AUC 0.7650 with zero drift; row-cls cls2 is the promoted bridge-surface default.",
+        "Matrix outcome: best/final ROC AUC 0.7650 with zero drift; row-cls cls2 is the locked hybrid-diagnostic default.",
         "Remote artifacts were produced on a different machine, so local benchmark registry promotion is intentionally deferred.",
     ]
     assert rowpool_row["model"]["module_overrides"] == {
@@ -223,7 +226,7 @@ def test_stability_followup_matrix_records_the_expanded_bridge_queue() -> None:
     assert "dpnb_linear_warmup_decay_lr4e3_warm5_wd5e4" in matrix
     assert "dpnb_row_cls_cls2_linear_warmup_decay" in matrix
     assert "dpnb_row_cls_cls2_linear_warmup_decay_warm10" in matrix
-    assert "Promoted `dpnb_row_cls_cls2_linear_warmup_decay`" in matrix
-    assert "This promotion is formalized as sweep metadata only on this machine" in matrix
+    assert "hybrid-diagnostic default" in matrix
+    assert "metadata only on this machine" in matrix
     assert "Dagzoo" not in matrix
     assert "10000-step horizon" not in matrix

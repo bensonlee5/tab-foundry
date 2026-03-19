@@ -5,11 +5,11 @@ rows:
     delta_ref: dpnb_cuda_large_anchor
     status: blocked_on_stability_followup
     rationale: Establish a large CUDA-sized bridge baseline before asking whether width or depth matters more.
-    hypothesis: The promoted bridge recipe should benefit from a larger exact-prior trunk even without changing the optimizer or preprocessing family.
-    anchor_delta: Reuses the registered bridge anchor run but promotes the row itself to the large CUDA base with the same bridge modules and training recipe.
+    hypothesis: The locked hybrid-diagnostic recipe should benefit from a larger exact-prior trunk even without changing the optimizer or preprocessing family.
+    anchor_delta: Reuses the registered bridge anchor run but moves the row itself to the large CUDA base with the same bridge modules and training recipe.
     parameter_adequacy_plan:
       - Run this row first and treat it as the local large-model comparator for the rest of the pilot.
-      - Rank by the task-family primary final metric first, then supporting diagnostics and final training-time delta versus the promoted anchor.
+      - Rank by the task-family primary final metric first, then supporting diagnostics and final training-time delta versus the locked hybrid-diagnostic anchor.
       - Use activation and clipping telemetry to explain wins or losses, not to override benchmark quality.
     model:
       stage: nano_exact
@@ -60,7 +60,7 @@ rows:
     confounders: []
     next_action: Wait for `cuda_stack_scale_followup` to pick a stable large-anchor training surface, then rerun this baseline before reading width or depth.
     notes:
-      - This row is the baseline for the pilot even though the sweep anchor remains the promoted compact batch64 bridge run.
+      - This row is the baseline for the pilot even though the sweep anchor remains the locked compact batch64 hybrid-diagnostic run.
       - A first attempt was stopped for persistent activation drift and preserved under `sd_cuda_capacity_pilot_01_dpnb_cuda_large_anchor_v1_stopped_activation_drift_20260318T225450Z`.
   - order: 2
     delta_ref: dpnb_cuda_large_width_x2

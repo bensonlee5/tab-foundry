@@ -1,4 +1,4 @@
-"""Shared helpers for the promoted bridge baseline surface."""
+"""Shared helpers for the locked hybrid-diagnostic surface."""
 
 from __future__ import annotations
 
@@ -9,18 +9,19 @@ from omegaconf import DictConfig, OmegaConf
 from tab_foundry.config import compose_config
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
+from tab_foundry.research.lane_contract import HYBRID_DIAGNOSTIC_SURFACE
 
 
-def promoted_bridge_baseline_cfg() -> DictConfig:
-    """Resolve the current promoted bridge baseline experiment config."""
+def hybrid_diagnostic_surface_cfg() -> DictConfig:
+    """Resolve the current locked hybrid-diagnostic experiment config."""
 
-    return compose_config(["experiment=cls_benchmark_staged_prior"])
+    return compose_config([f"experiment={HYBRID_DIAGNOSTIC_SURFACE}"])
 
 
-def promoted_bridge_baseline_payload() -> dict[str, Any]:
-    """Return the promotion-relevant surface payload for the bridge baseline."""
+def hybrid_diagnostic_surface_payload() -> dict[str, Any]:
+    """Return the locked hybrid-diagnostic surface payload."""
 
-    cfg = promoted_bridge_baseline_cfg()
+    cfg = hybrid_diagnostic_surface_cfg()
     module_overrides = cast(
         dict[str, Any],
         OmegaConf.to_container(cfg.model.module_overrides, resolve=True),
@@ -70,10 +71,10 @@ def promoted_bridge_baseline_payload() -> dict[str, Any]:
     }
 
 
-def build_promoted_bridge_baseline_model():
-    """Instantiate the promoted bridge baseline model from the canonical experiment config."""
+def build_hybrid_diagnostic_surface_model():
+    """Instantiate the locked hybrid-diagnostic model from the canonical experiment config."""
 
-    cfg = promoted_bridge_baseline_cfg()
+    cfg = hybrid_diagnostic_surface_cfg()
     raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
     if not isinstance(raw_model_cfg, dict):
         raise RuntimeError("cfg.model must resolve to a mapping")

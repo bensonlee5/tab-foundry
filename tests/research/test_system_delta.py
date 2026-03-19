@@ -7,6 +7,14 @@ import shutil
 from omegaconf import OmegaConf
 import pytest
 
+from tab_foundry.research.lane_contract import (
+    ARCHITECTURE_SCREEN_LANE,
+    HYBRID_DIAGNOSTIC_LANE,
+    PFN_CONTROL_LANE,
+    resolve_training_config_profile,
+    resolve_training_experiment,
+    resolve_surface_role,
+)
 from tab_foundry.research.system_delta import (
     create_sweep,
     load_system_delta_catalog,
@@ -84,6 +92,38 @@ def test_active_sweep_materializes_current_active_sweep() -> None:
     assert next_ready_row(queue) == expected_next_ready
 
 
+def test_resolve_surface_role_classifies_named_sweep_surfaces() -> None:
+    assert resolve_surface_role({"training_experiment": "cls_benchmark_linear_simple"}) == PFN_CONTROL_LANE
+    assert resolve_surface_role({"training_experiment": "cls_benchmark_linear_simple_prior"}) == PFN_CONTROL_LANE
+    assert resolve_surface_role({"training_experiment": "cls_benchmark_staged_prior"}) == HYBRID_DIAGNOSTIC_LANE
+    assert resolve_surface_role({"training_experiment": "cls_benchmark_staged"}) == ARCHITECTURE_SCREEN_LANE
+
+
+def test_legacy_sweep_without_lane_contract_fields_uses_hybrid_defaults() -> None:
+    legacy_sweep = {
+        "anchor_context": {
+            "experiment": "stability_followup",
+            "config_profile": "stability_followup",
+        }
+    }
+
+    assert resolve_training_experiment(legacy_sweep) == "cls_benchmark_staged_prior"
+    assert resolve_training_config_profile(legacy_sweep) == "cls_benchmark_staged_prior"
+    assert resolve_surface_role(legacy_sweep) == HYBRID_DIAGNOSTIC_LANE
+
+
+def test_all_checked_in_sweep_manifests_declare_lane_contract_fields() -> None:
+    sweeps_root = REPO_ROOT / "reference" / "system_delta_sweeps"
+    required_fields = ("training_experiment", "training_config_profile", "surface_role")
+
+    for sweep_path in sorted(sweeps_root.rglob("sweep.yaml")):
+        payload = OmegaConf.to_container(OmegaConf.load(sweep_path), resolve=True)
+        assert isinstance(payload, dict)
+        for field in required_fields:
+            value = payload.get(field)
+            assert isinstance(value, str) and value.strip(), f"missing {field} in {sweep_path}"
+
+
 def test_catalog_and_canonical_queue_are_split() -> None:
     catalog = load_system_delta_catalog(REPO_ROOT / "reference" / "system_delta_catalog.yaml")
     queue_instance = load_system_delta_queue_instance(
@@ -111,6 +151,9 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     assert "reference/system_delta_sweeps/binary_md_v1/queue.yaml" in matrix
     assert "reference/system_delta_catalog.yaml" in matrix
     assert "Sweep id: `binary_md_v1`" in matrix
+    assert "Training experiment: `cls_benchmark_staged_prior`" in matrix
+    assert "Training config profile: `cls_benchmark_staged_prior`" in matrix
+    assert "Surface role: `hybrid_diagnostic`" in matrix
     assert "delta_row_cls_pool" in matrix
     assert "tfrow_n_heads" in matrix
     assert "delta_row_cls_pool_rmsnorm" in matrix
@@ -290,12 +333,136 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
     )
     assert "10-task medium binary bundle" not in created_sweep["anchor_surface"]["notes"][0]
     assert created_queue["rows"][0]["delta_ref"] == "delta_label_token"
+    assert created_sweep["training_experiment"] == "cls_benchmark_staged_prior"
+    assert created_sweep["training_config_profile"] == "cls_benchmark_staged_prior"
+    assert created_sweep["surface_role"] == "hybrid_diagnostic"
     assert materialized["sweep_id"] == "binary_sm_v2"
+    assert materialized["training_experiment"] == "cls_benchmark_staged_prior"
+    assert materialized["training_config_profile"] == "cls_benchmark_staged_prior"
+    assert materialized["surface_role"] == "hybrid_diagnostic"
     assert materialized["rows"][0]["entangled_legacy_stage"] == "label_token"
     grouped_row = next(row for row in created_queue["rows"] if row["delta_ref"] == "delta_shifted_grouped_tokenizer")
     assert grouped_row["status"] == "blocked_on_surface_semantics"
     assert grouped_row["interpretation_status"] == "blocked"
     assert next(row for row in created_queue["rows"] if row["delta_ref"] == "delta_label_token")["status"] == "ready"
+
+
+def test_create_sweep_derives_lane_contract_from_overridden_training_experiment(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="input_norm_screen_surface",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="input_norm_followup",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        training_experiment="cls_benchmark_staged",
+        delta_refs=["delta_anchor_activation_trace_baseline"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        sweeps_root=sweeps_root,
+    )
+
+    created_sweep = load_system_delta_sweep(
+        "input_norm_screen_surface",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="input_norm_screen_surface",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert created_sweep["training_experiment"] == "cls_benchmark_staged"
+    assert created_sweep["training_config_profile"] == "cls_benchmark_staged"
+    assert created_sweep["surface_role"] == "architecture_screen"
+    assert materialized["training_experiment"] == "cls_benchmark_staged"
+    assert materialized["training_config_profile"] == "cls_benchmark_staged"
+    assert materialized["surface_role"] == "architecture_screen"
+
+
+def test_create_sweep_preserves_explicit_lane_contract_overrides(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="input_norm_custom_surface",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="input_norm_followup",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        training_experiment="cls_benchmark_staged",
+        training_config_profile="custom_profile",
+        surface_role="custom",
+        delta_refs=["delta_anchor_activation_trace_baseline"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        sweeps_root=sweeps_root,
+    )
+
+    created_sweep = load_system_delta_sweep(
+        "input_norm_custom_surface",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="input_norm_custom_surface",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert created_sweep["training_experiment"] == "cls_benchmark_staged"
+    assert created_sweep["training_config_profile"] == "custom_profile"
+    assert created_sweep["surface_role"] == "custom"
+    assert materialized["training_experiment"] == "cls_benchmark_staged"
+    assert materialized["training_config_profile"] == "custom_profile"
+    assert materialized["surface_role"] == "custom"
+
+
+def test_create_sweep_labels_simple_surface_as_pfn_control(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="input_norm_simple_surface",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="input_norm_followup",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        training_experiment="cls_benchmark_linear_simple",
+        delta_refs=["delta_anchor_activation_trace_baseline"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        sweeps_root=sweeps_root,
+    )
+
+    created_sweep = load_system_delta_sweep(
+        "input_norm_simple_surface",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="input_norm_simple_surface",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert created_sweep["training_experiment"] == "cls_benchmark_linear_simple"
+    assert created_sweep["training_config_profile"] == "cls_benchmark_linear_simple"
+    assert created_sweep["surface_role"] == "pfn_control"
+    assert materialized["training_experiment"] == "cls_benchmark_linear_simple"
+    assert materialized["training_config_profile"] == "cls_benchmark_linear_simple"
+    assert materialized["surface_role"] == "pfn_control"
 
 
 def test_create_sweep_marks_unknown_training_label_for_unlabeled_nonprior_anchor(

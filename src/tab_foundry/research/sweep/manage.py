@@ -5,6 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
+from tab_foundry.research.lane_contract import (
+    resolve_surface_role,
+    resolve_training_config_profile,
+    resolve_training_experiment,
+)
+
 from .anchor import anchor_context_from_registry_run, anchor_training_surface_label, build_anchor_surface
 from .catalog import (
     SWEEP_QUEUE_SCHEMA,
@@ -81,6 +87,9 @@ def create_sweep(
     complexity_level: str,
     benchmark_bundle_path: str,
     control_baseline_id: str,
+    training_experiment: str | None = None,
+    training_config_profile: str | None = None,
+    surface_role: str | None = None,
     delta_refs: Sequence[str] | None = None,
     index_path: Path | None = None,
     catalog_path: Path | None = None,
@@ -115,6 +124,36 @@ def create_sweep(
         sweep_status = "active"
         index["active_sweep_id"] = normalized_sweep_id
 
+    explicit_training_experiment = (
+        None
+        if training_experiment is None
+        else ensure_non_empty_string(training_experiment, context="training_experiment")
+    )
+    explicit_training_config_profile = (
+        None
+        if training_config_profile is None
+        else ensure_non_empty_string(training_config_profile, context="training_config_profile")
+    )
+    explicit_surface_role = (
+        None if surface_role is None else ensure_non_empty_string(surface_role, context="surface_role")
+    )
+    if explicit_training_experiment is None:
+        resolved_training_experiment = resolve_training_experiment(template_sweep)
+        derived_lane_context: Mapping[str, Any] = template_sweep
+    else:
+        resolved_training_experiment = explicit_training_experiment
+        derived_lane_context = {"training_experiment": resolved_training_experiment}
+    resolved_training_config_profile = (
+        resolve_training_config_profile(derived_lane_context)
+        if explicit_training_config_profile is None
+        else explicit_training_config_profile
+    )
+    resolved_surface_role = (
+        resolve_surface_role(derived_lane_context)
+        if explicit_surface_role is None
+        else explicit_surface_role
+    )
+
     sweep_payload = {
         "schema": SWEEP_SCHEMA,
         "sweep_id": normalized_sweep_id,
@@ -124,6 +163,9 @@ def create_sweep(
         "anchor_run_id": normalized_anchor_run_id,
         "benchmark_bundle_path": normalized_benchmark_bundle_path,
         "control_baseline_id": normalized_control_baseline_id,
+        "training_experiment": resolved_training_experiment,
+        "training_config_profile": resolved_training_config_profile,
+        "surface_role": resolved_surface_role,
         "comparison_policy": str(template_sweep.get("comparison_policy", "anchor_only")),
         "upstream_reference": cast(
             dict[str, Any],

@@ -52,21 +52,31 @@
         "version": 1
       },
       "budget_class": "short-run",
-      "comparison_summary_path": "outputs/control_baselines/cls_benchmark_linear_v2/benchmark/comparison_summary.json",
-      "config_profile": "cls_benchmark_linear",
-      "experiment": "cls_benchmark_linear",
-      "manifest_path": "outputs/control_baselines/cls_benchmark_linear_v1/manifest.parquet",
-      "run_dir": "outputs/control_baselines/cls_benchmark_linear_v1/train",
+      "comparison_summary_path": "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json",
+      "config_profile": "cls_benchmark_staged_prior",
+      "experiment": "cls_benchmark_staged_prior",
+      "manifest_path": "data/manifests/default.parquet",
+      "run_dir": "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix",
       "seed_set": [
         1
       ],
       "tab_foundry_metrics": {
-        "best_roc_auc": 0.5877828235334834,
-        "best_step": 75.0,
-        "best_training_time": 25.29644304420799,
-        "final_roc_auc": 0.4309988642605564,
-        "final_step": 400.0,
-        "final_training_time": 119.83245475264266
+        "best_avg_pinball_loss": null,
+        "best_brier_score": null,
+        "best_crps": null,
+        "best_log_loss": null,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7614517503932239,
+        "best_step": 1125.0,
+        "best_training_time": 166.11370419885498,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": null,
+        "final_crps": null,
+        "final_log_loss": null,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7598854139194626,
+        "final_step": 2500.0,
+        "final_training_time": 355.5597403793363
       }
     }
   },

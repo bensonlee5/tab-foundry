@@ -8,7 +8,10 @@ from typing import Any, Mapping
 
 import numpy as np
 
-from tab_foundry.bench.artifacts import checkpoint_snapshots_from_history
+from tab_foundry.bench.artifacts import (
+    checkpoint_snapshots_from_history,
+    resolve_train_elapsed_seconds,
+)
 
 from .bundle import _CLASSIFICATION_TASK_TYPE
 from .datasets import BenchmarkDatasetEvaluationError
@@ -90,8 +93,9 @@ def collect_checkpoint_snapshots(run_dir: Path) -> list[dict[str, Any]]:
                     {
                         "step": int(snapshot["step"]),
                         "path": str(Path(str(snapshot["path"])).expanduser().resolve()),
-                        "elapsed_seconds": float(
-                            snapshot.get("train_elapsed_seconds", snapshot["elapsed_seconds"])
+                        "elapsed_seconds": resolve_train_elapsed_seconds(
+                            snapshot,
+                            context=f"telemetry checkpoint step={snapshot['step']}",
                         ),
                     }
                     for snapshot in snapshots

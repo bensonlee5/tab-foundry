@@ -25,6 +25,8 @@ from tab_foundry.model.spec import (
     model_build_spec_from_mappings,
 )
 
+from tab_foundry.research.lane_contract import resolve_training_experiment
+
 from .materialize import load_system_delta_queue, ordered_rows
 from .paths_io import (
     _write_text,
@@ -110,11 +112,16 @@ def _queue_row_run_dir(queue_row: Mapping[str, Any]) -> Path:
     return repo_root() / "outputs" / ".graph_spec_resolution" / delta_id / "train"
 
 
-def resolve_queue_row_model_spec(queue_row: Mapping[str, Any]) -> ModelBuildSpec:
+def resolve_queue_row_model_spec(
+    queue_row: Mapping[str, Any],
+    *,
+    training_experiment: str,
+) -> ModelBuildSpec:
     cfg = compose_cfg(
         row=queue_row,
         run_dir=_queue_row_run_dir(queue_row),
         device="cpu",
+        training_experiment=training_experiment,
     )
     task = str(getattr(cfg, "task", "classification")).strip().lower()
     raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
@@ -167,10 +174,14 @@ def resolve_anchor_model_spec(
     registry_path: Path | None = None,
 ) -> tuple[ModelBuildSpec, dict[str, Any]]:
     anchor_run_id = ensure_non_empty_string(queue.get("anchor_run_id"), context="anchor_run_id")
+    training_experiment = resolve_training_experiment(queue)
     for row in ordered_rows(queue):
         row_run_id = row.get("run_id")
         if isinstance(row_run_id, str) and row_run_id == anchor_run_id:
-            return resolve_queue_row_model_spec(row), {
+            return resolve_queue_row_model_spec(
+                row,
+                training_experiment=training_experiment,
+            ), {
                 "source": "queue_row",
                 "run_id": anchor_run_id,
                 "order": int(row["order"]),
@@ -261,6 +272,7 @@ def _build_targets(
     if not anchor and not all_rows and not orders and not delta_refs:
         raise RuntimeError("select at least one target with --anchor, --all-rows, --order, or --delta-ref")
 
+    training_experiment = resolve_training_experiment(queue)
     targets: list[GraphTarget] = []
     if anchor:
         model_spec, metadata = resolve_anchor_model_spec(queue=queue, registry_path=registry_path)
@@ -288,7 +300,10 @@ def _build_targets(
                 kind="row",
                 title=f"row:{order:02d}:{delta_id}",
                 filename=f"row_{order:02d}__{_sanitize_filename_component(delta_id)}.svg",
-                model_spec=resolve_queue_row_model_spec(row),
+                model_spec=resolve_queue_row_model_spec(
+                    row,
+                    training_experiment=training_experiment,
+                ),
                 metadata={
                     "source": "queue_row",
                     "order": order,
