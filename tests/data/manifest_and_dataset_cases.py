@@ -137,6 +137,53 @@ def _write_packed_shard(
     return offsets
 
 
+def _write_split_drift_shard(
+    shard_dir: Path,
+    *,
+    metadata_datasets: list[dict[str, Any]],
+    train_datasets: list[dict[str, Any]],
+    test_datasets: list[dict[str, Any]],
+) -> dict[int, tuple[int, int, str]]:
+    shard_dir.mkdir(parents=True, exist_ok=True)
+
+    train_rows = [
+        (
+            int(dataset["dataset_index"]),
+            dataset["x_train"],
+            dataset["y_train"],
+        )
+        for dataset in train_datasets
+    ]
+    test_rows = [
+        (
+            int(dataset["dataset_index"]),
+            dataset["x_test"],
+            dataset["y_test"],
+        )
+        for dataset in test_datasets
+    ]
+    pq.write_table(_build_split_table(train_rows), shard_dir / "train.parquet")
+    pq.write_table(_build_split_table(test_rows), shard_dir / "test.parquet")
+
+    offsets: dict[int, tuple[int, int, str]] = {}
+    with (shard_dir / "metadata.ndjson").open("wb") as handle:
+        for dataset in metadata_datasets:
+            payload = {
+                "dataset_index": int(dataset["dataset_index"]),
+                "n_train": int(dataset["x_train"].shape[0]),
+                "n_test": int(dataset["x_test"].shape[0]),
+                "n_features": int(dataset["x_train"].shape[1]),
+                "feature_types": list(dataset["feature_types"]),
+                "metadata": dict(dataset["metadata"]),
+            }
+            raw = (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
+            offset = int(handle.tell())
+            handle.write(raw)
+            offsets[int(dataset["dataset_index"])] = (offset, len(raw), sha256(raw).hexdigest())
+
+    return offsets
+
+
 def _write_dataset(
     shard_dir: Path,
     *,
@@ -311,6 +358,53 @@ def test_manifest_accepted_only_requires_at_least_one_record(tmp_path: Path) -> 
     manifest_path = tmp_path / "manifest.parquet"
     with pytest.raises(RuntimeError, match="no datasets matched filter_policy"):
         _ = build_manifest([tmp_path / "run"], manifest_path, filter_policy="accepted_only")
+
+
+@pytest.mark.parametrize(
+    ("missing_split_name", "train_datasets", "test_datasets"),
+    [
+        ("train.parquet", [], ["dataset"]),
+        ("test.parquet", ["dataset"], []),
+    ],
+)
+def test_manifest_rejects_selected_dataset_index_missing_from_packed_split(
+    tmp_path: Path,
+    missing_split_name: str,
+    train_datasets: list[str],
+    test_datasets: list[str],
+) -> None:
+    root = tmp_path / "run"
+    shard_dir = root / "shard_00000"
+    x_train, y_train, x_test, y_test = _classification_arrays(seed=13)
+    dataset = {
+        "dataset_index": 0,
+        "x_train": x_train,
+        "y_train": y_train,
+        "x_test": x_test,
+        "y_test": y_test,
+        "feature_types": ["num"] * x_train.shape[1],
+        "metadata": _classification_metadata(
+            n_features=x_train.shape[1],
+            seed=13,
+            filter_status="accepted",
+            filter_accepted=True,
+        ),
+    }
+    dataset_lookup = {"dataset": dataset}
+    _ = _write_split_drift_shard(
+        shard_dir,
+        metadata_datasets=[dataset],
+        train_datasets=[dataset_lookup[name] for name in train_datasets],
+        test_datasets=[dataset_lookup[name] for name in test_datasets],
+    )
+
+    manifest_path = tmp_path / "manifest.parquet"
+    with pytest.raises(RuntimeError) as excinfo:
+        _ = build_manifest([root], manifest_path, filter_policy="accepted_only")
+
+    message = str(excinfo.value)
+    assert "dataset_index=0" in message
+    assert missing_split_name in message
 
 
 def test_remap_labels_uses_train_only() -> None:

@@ -419,14 +419,19 @@ def build_manifest(
                     filter_accepted=filter_accepted,
                 ):
                     continue
-                train_missing_value_status = train_missing_status.get(
-                    dataset_index,
-                    MISSING_VALUE_STATUS_CLEAN,
-                )
-                test_missing_value_status = test_missing_status.get(
-                    dataset_index,
-                    MISSING_VALUE_STATUS_CLEAN,
-                )
+                missing_splits: list[str] = []
+                if dataset_index not in train_missing_status:
+                    missing_splits.append(train_path.name)
+                if dataset_index not in test_missing_status:
+                    missing_splits.append(test_path.name)
+                if missing_splits:
+                    raise RuntimeError(
+                        "metadata dataset_index missing from packed split(s): "
+                        f"shard={shard_dir}, path={metadata_path}, dataset_index={dataset_index}, "
+                        f"missing_splits={','.join(missing_splits)}"
+                    )
+                train_missing_value_status = train_missing_status[dataset_index]
+                test_missing_value_status = test_missing_status[dataset_index]
                 record_missing_value_status = (
                     MISSING_VALUE_STATUS_CLEAN
                     if train_missing_value_status == MISSING_VALUE_STATUS_CLEAN

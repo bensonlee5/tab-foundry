@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.10] - 2026-03-19
+
+### Changed
+
+- User-facing note: setup-time failures in both the regular trainer and the
+  exact prior-dump trainer now write failure telemetry and close active wandb
+  runs cleanly instead of leaking runs when initialization fails before the
+  training loop begins.
+
 ## [0.8.9] - 2026-03-19
 
 ### Added

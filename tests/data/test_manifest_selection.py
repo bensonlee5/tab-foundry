@@ -27,5 +27,6 @@ _export(
         "test_manifest_accepted_only_excludes_unaccepted_records",
         "test_manifest_forbid_any_excludes_datasets_with_nan_or_inf",
         "test_manifest_accepted_only_requires_at_least_one_record",
+        "test_manifest_rejects_selected_dataset_index_missing_from_packed_split",
     ]
 )
