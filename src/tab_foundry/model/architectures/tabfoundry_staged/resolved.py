@@ -14,6 +14,7 @@ from .recipes import StageTaskContract, recipe_for_stage
 
 SUPPORTED_FEATURE_ENCODERS = ("nano", "shared")
 SUPPORTED_POST_ENCODER_NORMS = ("none", "layernorm", "rmsnorm")
+SUPPORTED_POST_STACK_NORMS = SUPPORTED_POST_ENCODER_NORMS
 SUPPORTED_TARGET_CONDITIONERS = ("mean_padded_linear", "label_token")
 SUPPORTED_TOKENIZERS = ("scalar_per_feature", "scalar_per_feature_nan_mask", "shifted_grouped")
 SUPPORTED_COLUMN_ENCODERS = ("none", "tfcol")
@@ -21,9 +22,11 @@ SUPPORTED_ROW_POOLS = ("target_column", "row_cls")
 SUPPORTED_CONTEXT_ENCODERS = ("none", "plain", "qass")
 SUPPORTED_HEADS = ("binary_direct", "small_class", "many_class")
 SUPPORTED_TABLE_BLOCK_STYLES = ("nano_postnorm", "prenorm")
+SUPPORTED_TABLE_BLOCK_RESIDUAL_SCALES = ("none", "depth_scaled")
 SUPPORTED_MODULE_OVERRIDE_KEYS = (
     "feature_encoder",
     "post_encoder_norm",
+    "post_stack_norm",
     "target_conditioner",
     "tokenizer",
     "column_encoder",
@@ -31,6 +34,7 @@ SUPPORTED_MODULE_OVERRIDE_KEYS = (
     "context_encoder",
     "head",
     "table_block_style",
+    "table_block_residual_scale",
     "allow_test_self_attention",
 )
 
@@ -82,6 +86,8 @@ class TableBlockSurfaceSpec:
     n_heads: int
     mlp_hidden_dim: int
     norm_type: str
+    residual_scale: str
+    residual_branch_gain: float
 
     def to_dict(self) -> dict[str, Any]:
         return dict(asdict(self))
@@ -135,6 +141,15 @@ class PostEncoderNormSurfaceSpec:
 
 
 @dataclass(slots=True, frozen=True)
+class PostStackNormSurfaceSpec:
+    name: str
+    norm_type: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return dict(asdict(self))
+
+
+@dataclass(slots=True, frozen=True)
 class ResolvedStageSurface:
     stage: str
     stage_label: str
@@ -142,6 +157,7 @@ class ResolvedStageSurface:
     normalization_mode: str
     feature_encoder: str
     post_encoder_norm: str
+    post_stack_norm: str
     target_conditioner: str
     tokenizer: str
     column_encoder: str
@@ -154,12 +170,14 @@ class ResolvedStageSurface:
     row_pool_config: RowPoolSurfaceSpec
     context_encoder_config: ContextEncoderSurfaceSpec
     post_encoder_norm_config: PostEncoderNormSurfaceSpec
+    post_stack_norm_config: PostStackNormSurfaceSpec
     staged_dropout: float = 0.0
 
     def module_selection(self) -> dict[str, Any]:
         return {
             "feature_encoder": self.feature_encoder,
             "post_encoder_norm": self.post_encoder_norm,
+            "post_stack_norm": self.post_stack_norm,
             "target_conditioner": self.target_conditioner,
             "tokenizer": self.tokenizer,
             "column_encoder": self.column_encoder,
@@ -167,6 +185,7 @@ class ResolvedStageSurface:
             "context_encoder": self.context_encoder,
             "head": self.head,
             "table_block_style": self.table_block.style,
+            "table_block_residual_scale": self.table_block.residual_scale,
             "allow_test_self_attention": bool(self.table_block.allow_test_self_attention),
         }
 
@@ -177,6 +196,7 @@ class ResolvedStageSurface:
             "row_pool": self.row_pool_config.to_dict(),
             "context_encoder": self.context_encoder_config.to_dict(),
             "post_encoder_norm": self.post_encoder_norm_config.to_dict(),
+            "post_stack_norm": self.post_stack_norm_config.to_dict(),
             "staged_dropout": self.staged_dropout,
         }
 
@@ -235,6 +255,11 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         supported=SUPPORTED_POST_ENCODER_NORMS,
         context="model.module_overrides.post_encoder_norm",
     )
+    post_stack_norm = _require_choice(
+        value=overrides.get("post_stack_norm", "none"),
+        supported=SUPPORTED_POST_STACK_NORMS,
+        context="model.module_overrides.post_stack_norm",
+    )
     target_conditioner = _require_choice(
         value=overrides.get("target_conditioner", recipe.modules.target_conditioner),
         supported=SUPPORTED_TARGET_CONDITIONERS,
@@ -280,6 +305,11 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         supported=SUPPORTED_TABLE_BLOCK_STYLES,
         context="model.module_overrides.table_block_style",
     )
+    table_block_residual_scale = _require_choice(
+        value=overrides.get("table_block_residual_scale", "none"),
+        supported=SUPPORTED_TABLE_BLOCK_RESIDUAL_SCALES,
+        context="model.module_overrides.table_block_residual_scale",
+    )
     allow_test_self_attention = (
         _coerce_override_bool(
             overrides["allow_test_self_attention"],
@@ -307,6 +337,7 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         normalization_mode=_normalization_mode_for_feature_encoder(feature_encoder),
         feature_encoder=feature_encoder,
         post_encoder_norm=post_encoder_norm,
+        post_stack_norm=post_stack_norm,
         target_conditioner=target_conditioner,
         tokenizer=tokenizer,
         column_encoder=column_encoder,
@@ -321,6 +352,12 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
             n_heads=int(spec.tficl_n_heads),
             mlp_hidden_dim=int(spec.head_hidden_dim),
             norm_type=norm_type,
+            residual_scale=table_block_residual_scale,
+            residual_branch_gain=(
+                1.0
+                if table_block_residual_scale == "none"
+                else float((3.0 * float(spec.tficl_n_layers)) ** -0.5)
+            ),
         ),
         column_encoder_config=ColumnEncoderSurfaceSpec(
             name=column_encoder,
@@ -350,6 +387,10 @@ def resolve_staged_surface(spec: ModelBuildSpec) -> ResolvedStageSurface:
         post_encoder_norm_config=PostEncoderNormSurfaceSpec(
             name=post_encoder_norm,
             norm_type=None if post_encoder_norm == "none" else post_encoder_norm,
+        ),
+        post_stack_norm_config=PostStackNormSurfaceSpec(
+            name=post_stack_norm,
+            norm_type=None if post_stack_norm == "none" else post_stack_norm,
         ),
     )
 

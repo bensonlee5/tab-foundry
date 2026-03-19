@@ -226,6 +226,9 @@ def render_system_delta_matrix(
         )
         if queue_row["dimension_family"] == "model":
             lines.append(f"- Model overrides: `{render_model_change_payload(cast(Mapping[str, Any], queue_row['model']))}`")
+            dynamic_model_overrides = queue_row.get("dynamic_model_overrides")
+            if isinstance(dynamic_model_overrides, Mapping) and dynamic_model_overrides:
+                lines.append(f"- Dynamic model overrides: `{dict(dynamic_model_overrides)}`")
         elif queue_row["dimension_family"] == "data":
             lines.append(f"- Data overrides: `{queue_row['data'].get('surface_overrides', {})}`")
         elif queue_row["dimension_family"] == "training":
@@ -239,6 +242,7 @@ def render_system_delta_matrix(
             lines.append("- Adequacy knobs to dimension explicitly:")
             for adequacy_knob in cast(list[str], queue_row["adequacy_knobs"]):
                 lines.append(f"  - {adequacy_knob}")
+        lines.append(f"- Execution policy: `{queue_row.get('execution_policy', 'benchmark_full')}`")
         lines.append(f"- Interpretation status: `{queue_row.get('interpretation_status', 'pending')}`")
         lines.append(f"- Decision: `{queue_row.get('decision')}`")
         if cast(list[str], queue_row.get("confounders", [])):
@@ -252,6 +256,27 @@ def render_system_delta_matrix(
         lines.append(f"- Follow-up run ids: `{queue_row.get('followup_run_ids', [])}`")
         lines.append(f"- Result card path: `{_render_path(result_card_path(sweep_id=sweep_id, delta_id=delta_id))}`")
         if run is None:
+            screen_metrics = queue_row.get("screen_metrics")
+            if isinstance(screen_metrics, Mapping):
+                lines.append("- Screen metrics:")
+                upper_mean = screen_metrics.get("upper_block_final_window_mean")
+                if upper_mean is not None:
+                    lines.append(
+                        f"  - Upper-block final-window mean: `{float(upper_mean):.4f}`"
+                    )
+                upper_slope = screen_metrics.get("upper_block_post_warmup_mean_slope")
+                if upper_slope is not None:
+                    lines.append(
+                        f"  - Upper-block post-warmup mean slope: `{float(upper_slope):.6f}`"
+                    )
+                clip_fraction = screen_metrics.get("clipped_step_fraction")
+                if clip_fraction is not None:
+                    lines.append(
+                        f"  - Clipped-step fraction: `{float(clip_fraction):.4f}`"
+                    )
+                final_loss_ema = screen_metrics.get("final_train_loss_ema")
+                if final_loss_ema is not None:
+                    lines.append(f"  - Final train-loss EMA: `{float(final_loss_ema):.4f}`")
             inline_metrics = queue_row.get("benchmark_metrics")
             if inline_metrics:
                 best = float(inline_metrics["best_roc_auc"])

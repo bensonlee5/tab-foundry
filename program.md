@@ -40,17 +40,17 @@ not the main score.
 Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
-- active sweep id: `cuda_stability_followup`
-- anchor run id: `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
-- anchor prior run: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/train`
-- anchor benchmark: `outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_anchor_replay_batch64_sqrt/sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2/benchmark`
+- active sweep id: `cuda_stack_scale_followup`
+- anchor run id: `sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1`
+- anchor prior run: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_replay/sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1/train`
+- anchor benchmark: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_replay/sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1/benchmark`
 - canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - canonical control baseline id: `cls_benchmark_linear_v2`
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
-- canonical sweep queue: `reference/system_delta_sweeps/cuda_stability_followup/queue.yaml`
-- canonical sweep matrix: `reference/system_delta_sweeps/cuda_stability_followup/matrix.md`
+- canonical sweep queue: `reference/system_delta_sweeps/cuda_stack_scale_followup/queue.yaml`
+- canonical sweep matrix: `reference/system_delta_sweeps/cuda_stack_scale_followup/matrix.md`
 - active queue alias: `reference/system_delta_queue.yaml`
 - active matrix alias: `reference/system_delta_matrix.md`
 - research template: `reference/system_delta_campaign_template.md`
@@ -109,6 +109,7 @@ The queue must carry, at minimum:
 - `description`, `rationale`, `hypothesis`
 - model/data/preprocessing labels and the one active override family
 - `parameter_adequacy_plan`
+- `execution_policy`
 - `run_id`, `followup_run_ids`
 - `decision`, `interpretation_status`, `confounders`, `next_action`, `notes`
 
@@ -134,7 +135,7 @@ Before any empirical run for a queue row, create:
 - `outputs/staged_ladder/research/<sweep_id>/<delta_id>/research_card.md`
 - `outputs/staged_ladder/research/<sweep_id>/<delta_id>/campaign.yaml`
 
-After the run is benchmarked and registered, also create:
+After a `benchmark_full` row is benchmarked and registered, also create:
 
 - `outputs/staged_ladder/research/<sweep_id>/<delta_id>/result_card.md`
 
@@ -177,11 +178,12 @@ For each queue row:
 1. Select the next `status=ready` row from `reference/system_delta_sweeps/<sweep_id>/queue.yaml`.
 1. Write or update `research_card.md` and `campaign.yaml`.
 1. Train on the locked anchor surface, changing only the declared dimension.
-1. Benchmark on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
-1. Register the benchmark-facing run in `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its `sweep_id`.
 1. Ensure the run has `training_surface_record.json`,
    `gradient_history.jsonl`, and `telemetry.json`.
-1. Write `result_card.md`.
+1. If `execution_policy=screen_only`, stop after recording screen metrics in the queue and rerender the matrix; skip benchmark registration and do not write `result_card.md`.
+1. If `execution_policy=benchmark_full`, benchmark on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
+1. If `execution_policy=benchmark_full`, register the benchmark-facing run in `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its `sweep_id`.
+1. If `execution_policy=benchmark_full`, write `result_card.md`.
 1. Rerender `reference/system_delta_sweeps/<sweep_id>/matrix.md`.
 1. Regenerate the top-level alias files if and only if this is the active sweep.
 1. Update the queue row status, run ids, interpretation, and next action.

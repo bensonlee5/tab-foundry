@@ -18,6 +18,8 @@ from tab_foundry.research.system_delta_execute import (
     select_queue_rows,
 )
 import tab_foundry.research.system_delta_execute as execute_module
+import tab_foundry.research.sweep.runner as runner_module
+from tab_foundry.research.sweep.screening import pick_screen_winner, screen_metrics as load_screen_metrics
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -108,6 +110,18 @@ def test_select_queue_rows_requires_include_completed_for_explicit_completed_row
     queue = {
         'rows': [
             {'order': 1, 'status': 'completed'},
+            {'order': 2, 'status': 'ready'},
+        ]
+    }
+
+    with pytest.raises(RuntimeError, match='include-completed'):
+        _ = select_queue_rows(queue, orders=[1])
+
+
+def test_select_queue_rows_requires_include_completed_for_explicit_screened_rows() -> None:
+    queue = {
+        'rows': [
+            {'order': 1, 'status': 'screened'},
             {'order': 2, 'status': 'ready'},
         ]
     }
@@ -361,3 +375,313 @@ def test_result_card_text_reports_log_loss_before_roc() -> None:
     assert '- Delta final log loss vs anchor: `-0.0110`' in text
     assert '- Final ROC AUC: `0.8040`' in text
     assert text.index('Best log loss') < text.index('Best ROC AUC')
+
+
+def test_screen_metrics_reads_upper_block_summary_and_final_train_loss_ema(tmp_path: Path) -> None:
+    (tmp_path / 'telemetry.json').write_text(
+        json.dumps(
+            {
+                'diagnostics': {
+                    'grad_clip': {'clipped_step_fraction': 0.125},
+                    'activation_windows': {
+                        'upper_transformer_blocks': {
+                            'block_names': [
+                                'post_transformer_block_8',
+                                'post_transformer_block_9',
+                                'post_transformer_block_10',
+                                'post_transformer_block_11',
+                            ],
+                            'aggregate': {
+                                'final_window_mean': 12.5,
+                                'post_warmup_mean_slope': 0.03125,
+                            },
+                            'blocks': {
+                                'post_transformer_block_8': {
+                                    'final_window_mean': 10.0,
+                                    'post_warmup_slope': 0.02,
+                                },
+                            },
+                        }
+                    },
+                }
+            }
+        ),
+        encoding='utf-8',
+    )
+    (tmp_path / 'train_history.jsonl').write_text(
+        ''.join(
+            [
+                json.dumps({'step': 1, 'train_loss_ema': 0.7}) + '\n',
+                json.dumps({'step': 2, 'train_loss_ema': 0.5}) + '\n',
+            ]
+        ),
+        encoding='utf-8',
+    )
+
+    metrics = load_screen_metrics(run_dir=tmp_path)
+
+    assert metrics['upper_block_names'] == [
+        'post_transformer_block_8',
+        'post_transformer_block_9',
+        'post_transformer_block_10',
+        'post_transformer_block_11',
+    ]
+    assert metrics['upper_block_final_window_mean'] == pytest.approx(12.5)
+    assert metrics['upper_block_post_warmup_mean_slope'] == pytest.approx(0.03125)
+    assert metrics['clipped_step_fraction'] == pytest.approx(0.125)
+    assert metrics['final_train_loss_ema'] == pytest.approx(0.5)
+
+
+def test_pick_screen_winner_prefers_rmsnorm_on_full_tie() -> None:
+    resolution = pick_screen_winner(
+        candidates=[
+            {
+                'order': 2,
+                'value': 'rmsnorm',
+                'screen_metrics': {
+                    'upper_block_final_window_mean': 100.0,
+                    'upper_block_post_warmup_mean_slope': 0.02,
+                    'clipped_step_fraction': 0.1,
+                    'final_train_loss_ema': 0.6,
+                },
+            },
+            {
+                'order': 3,
+                'value': 'layernorm',
+                'screen_metrics': {
+                    'upper_block_final_window_mean': 100.0,
+                    'upper_block_post_warmup_mean_slope': 0.02,
+                    'clipped_step_fraction': 0.1,
+                    'final_train_loss_ema': 0.6,
+                },
+            },
+        ],
+        tie_break_preference='rmsnorm',
+    )
+
+    assert resolution == {
+        'winning_order': 2,
+        'winning_value': 'rmsnorm',
+        'reason': 'tie-break preference after upper-block, slope, clip-rate, and loss-ema ties',
+    }
+
+
+def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    sweep_id = 'cuda_stack_scale_followup'
+    delta_ref = 'dpnb_cuda_stack_scale_control'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'gradient_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
+    (train_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'training': {},
+        'execution_policy': 'screen_only',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'training',
+        'family': 'screening',
+        'description': 'Train-only screen.',
+        'anchor_delta': 'Keep the batch32 replay surface fixed.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=REGISTRY_PATH,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+    )
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'screen_metrics',
+        lambda **_: {
+            'upper_block_final_window_mean': 42.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.5,
+        },
+    )
+    monkeypatch.setattr(runner_module, 'run_nanotabpfn_benchmark', lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')))
+    monkeypatch.setattr(runner_module, 'register_benchmark_run', lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('registry should be skipped')))
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={'control_baseline_id': 'cls_benchmark_linear_v2', 'benchmark_bundle_path': 'bundle.json'},
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Keep as a train-only screen.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert queue_row['status'] == 'screened'
+    assert queue_row['interpretation_status'] == 'screened'
+    assert queue_row['decision'] == 'defer'
+    assert queue_row['benchmark_metrics'] is None
+    assert queue_row['screen_metrics']['upper_block_final_window_mean'] == pytest.approx(42.0)
+
+
+def test_run_row_resolves_dynamic_post_stack_norm_from_screened_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'cuda_stack_scale_followup'
+    delta_ref = 'dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner'
+    run_id = f'sd_{sweep_id}_05_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'gradient_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
+    (train_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    row2 = {
+        'order': 2,
+        'status': 'screened',
+        'screen_metrics': {
+            'upper_block_final_window_mean': 90.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.1,
+            'final_train_loss_ema': 0.5,
+        },
+    }
+    row3 = {
+        'order': 3,
+        'status': 'screened',
+        'screen_metrics': {
+            'upper_block_final_window_mean': 100.0,
+            'upper_block_post_warmup_mean_slope': 0.02,
+            'clipped_step_fraction': 0.2,
+            'final_train_loss_ema': 0.6,
+        },
+    }
+    queue_row = {
+        'order': 5,
+        'delta_ref': delta_ref,
+        'model': {
+            'stage_label': delta_ref,
+            'module_overrides': {
+                'table_block_style': 'prenorm',
+                'table_block_residual_scale': 'depth_scaled',
+            },
+        },
+        'training': {},
+        'execution_policy': 'screen_only',
+        'dynamic_model_overrides': {
+            'post_stack_norm': {
+                'kind': 'screen_winner',
+                'compare_orders': [
+                    {'order': 2, 'value': 'rmsnorm'},
+                    {'order': 3, 'value': 'layernorm'},
+                ],
+                'tie_break_preference': 'rmsnorm',
+            }
+        },
+        'notes': [],
+    }
+    queue = {'rows': [row2, row3, queue_row]}
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'model',
+        'family': 'normalization',
+        'description': 'Combine depth scaling with the winning post-stack norm.',
+        'anchor_delta': 'Keep the batch32 replay surface fixed.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {
+            'stage_label': delta_ref,
+            'module_overrides': {
+                'table_block_style': 'prenorm',
+                'table_block_residual_scale': 'depth_scaled',
+            },
+        },
+        'notes': [],
+    }
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=REGISTRY_PATH,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+    )
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'screen_metrics',
+        lambda **_: {
+            'upper_block_final_window_mean': 80.0,
+            'upper_block_post_warmup_mean_slope': 0.009,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.4,
+        },
+    )
+
+    _ = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={'control_baseline_id': 'cls_benchmark_linear_v2', 'benchmark_bundle_path': 'bundle.json'},
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Carry the winning norm into the combined row.',
+        paths=paths,
+    )
+
+    assert queue_row['model']['module_overrides']['post_stack_norm'] == 'rmsnorm'
+    assert materialized_row['model']['module_overrides']['post_stack_norm'] == 'rmsnorm'
+    assert queue_row['dynamic_model_overrides']['post_stack_norm']['resolved_value'] == 'rmsnorm'
+    assert queue_row['dynamic_model_overrides']['post_stack_norm']['resolved_from_order'] == 2

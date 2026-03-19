@@ -67,6 +67,12 @@ def build_post_encoder_norm(surface: ResolvedStageSurface, *, d_icl: int) -> nn.
     return PostEncoderNorm(d_icl, norm_type=surface.post_encoder_norm)
 
 
+def build_post_stack_norm(surface: ResolvedStageSurface, *, d_icl: int) -> nn.Module | None:
+    if surface.post_stack_norm == "none":
+        return None
+    return PostEncoderNorm(d_icl, norm_type=surface.post_stack_norm)
+
+
 def build_table_block(surface: ResolvedStageSurface, *, d_icl: int) -> nn.Module:
     if surface.table_block.style == "nano_postnorm":
         return NanoPostNormBlock(
@@ -82,6 +88,7 @@ def build_table_block(surface: ResolvedStageSurface, *, d_icl: int) -> nn.Module
             mlp_hidden_size=surface.table_block.mlp_hidden_dim,
             allow_test_self_attention=surface.table_block.allow_test_self_attention,
             norm_type=surface.table_block.norm_type,
+            residual_branch_gain=surface.table_block.residual_branch_gain,
             dropout=surface.staged_dropout,
         )
     raise RuntimeError(f"Unsupported table block style: {surface.table_block.style!r}")

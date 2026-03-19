@@ -17,7 +17,8 @@ from tab_foundry.research import system_delta
 from tab_foundry.research.system_delta_promote import promote_anchor
 
 from .artifacts import ExecutionPaths, read_yaml, result_card_text, write_research_package, write_yaml
-from .queue_updates import optional_metric, queue_metrics, update_queue_row
+from .queue_updates import append_note, optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
+from .screening import pick_screen_winner, screen_metrics
 from .selection import select_queue_rows
 
 
@@ -34,6 +35,8 @@ DEFAULT_CONCLUSION = (
     "interpret this row in the full sweep context."
 )
 ALLOWED_DECISIONS = {"keep", "defer", "reject"}
+SCREEN_ONLY_POLICY = "screen_only"
+BENCHMARK_FULL_POLICY = "benchmark_full"
 
 
 def row_id_for_order(sweep_id: str, order: int, delta_ref: str, existing_run_id: str | None) -> str:
@@ -66,6 +69,7 @@ def completed_train_artifacts_exist(run_dir: Path) -> bool:
     required_paths = (
         run_dir / "train_history.jsonl",
         run_dir / "gradient_history.jsonl",
+        run_dir / "telemetry.json",
         run_dir / "training_surface_record.json",
         run_dir / "checkpoints" / "latest.pt",
     )
@@ -150,14 +154,99 @@ def sync_active_aliases_if_active(*, sweep_id: str, paths: ExecutionPaths) -> No
     )
 
 
+def _normalize_execution_policy(queue_row: Mapping[str, Any]) -> str:
+    policy = str(queue_row.get("execution_policy", BENCHMARK_FULL_POLICY)).strip().lower()
+    if policy not in {SCREEN_ONLY_POLICY, BENCHMARK_FULL_POLICY}:
+        raise RuntimeError(f"unsupported execution_policy {policy!r}")
+    return policy
+
+
+def _resolve_dynamic_model_overrides(
+    *,
+    queue: Mapping[str, Any],
+    queue_row: dict[str, Any],
+    materialized_row: dict[str, Any],
+) -> None:
+    dynamic_overrides = queue_row.get("dynamic_model_overrides")
+    if not isinstance(dynamic_overrides, Mapping):
+        return
+    queue_rows_raw = queue.get("rows")
+    if not isinstance(queue_rows_raw, list):
+        raise RuntimeError("queue rows must be a list")
+    rows_by_order = {
+        int(raw_row["order"]): cast(dict[str, Any], raw_row)
+        for raw_row in queue_rows_raw
+        if isinstance(raw_row, dict)
+    }
+    queue_model = cast(dict[str, Any], queue_row.setdefault("model", {}))
+    queue_module_overrides = cast(dict[str, Any], queue_model.setdefault("module_overrides", {}))
+    materialized_model = cast(dict[str, Any], materialized_row.setdefault("model", {}))
+    materialized_module_overrides = cast(
+        dict[str, Any],
+        materialized_model.setdefault("module_overrides", {}),
+    )
+    queue_notes = cast(list[str], queue_row.setdefault("notes", []))
+    materialized_notes = cast(list[str], materialized_row.setdefault("notes", []))
+
+    for override_key, policy_raw in dynamic_overrides.items():
+        if not isinstance(policy_raw, dict):
+            raise RuntimeError(f"dynamic_model_overrides.{override_key} must be a mapping")
+        policy = cast(dict[str, Any], policy_raw)
+        if str(policy.get("kind")) != "screen_winner":
+            raise RuntimeError(f"unsupported dynamic override policy kind: {policy.get('kind')!r}")
+        resolved_value = policy.get("resolved_value")
+        if isinstance(resolved_value, str) and resolved_value.strip():
+            queue_module_overrides[str(override_key)] = resolved_value
+            materialized_module_overrides[str(override_key)] = resolved_value
+            continue
+        compare_orders = policy.get("compare_orders")
+        if not isinstance(compare_orders, list) or not compare_orders:
+            raise RuntimeError(
+                f"dynamic_model_overrides.{override_key}.compare_orders must be a non-empty list"
+            )
+        candidates: list[dict[str, Any]] = []
+        for candidate_raw in compare_orders:
+            if not isinstance(candidate_raw, Mapping):
+                raise RuntimeError("dynamic compare_orders entries must be mappings")
+            order = int(candidate_raw["order"])
+            value = str(candidate_raw["value"])
+            candidate_row = rows_by_order.get(order)
+            if candidate_row is None:
+                raise RuntimeError(f"dynamic compare order {order} is missing from the queue")
+            candidates.append(
+                {
+                    "order": order,
+                    "value": value,
+                    "screen_metrics": candidate_row.get("screen_metrics"),
+                }
+            )
+        resolution = pick_screen_winner(
+            candidates=candidates,
+            tie_break_preference=str(policy.get("tie_break_preference", "rmsnorm")),
+        )
+        winning_value = str(resolution["winning_value"])
+        policy["resolved_value"] = winning_value
+        policy["resolved_from_order"] = int(resolution["winning_order"])
+        policy["resolution_reason"] = str(resolution["reason"])
+        queue_module_overrides[str(override_key)] = winning_value
+        materialized_module_overrides[str(override_key)] = winning_value
+        resolution_note = (
+            f"Resolved `{override_key}` to `{winning_value}` from screen row "
+            f"`{int(resolution['winning_order'])}` ({resolution['reason']})."
+        )
+        queue_row["notes"] = append_note(queue_notes, resolution_note)
+        materialized_row["notes"] = append_note(materialized_notes, resolution_note)
+
+
 def run_row(
     *,
     sweep_id: str,
     sweep_meta: Mapping[str, Any],
     queue_row: dict[str, Any],
-    materialized_row: Mapping[str, Any],
+    materialized_row: dict[str, Any],
     anchor_run_id: str | None,
     parent_run_id: str | None,
+    queue: Mapping[str, Any],
     prior_dump: Path,
     nanotabpfn_root: Path,
     device: str,
@@ -166,6 +255,12 @@ def run_row(
     conclusion: str,
     paths: ExecutionPaths,
 ) -> str:
+    execution_policy = _normalize_execution_policy(queue_row)
+    _resolve_dynamic_model_overrides(
+        queue=queue,
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+    )
     existing_run_id = queue_row.get("run_id")
     run_id = row_id_for_order(
         sweep_id,
@@ -204,6 +299,28 @@ def run_row(
             f"output_dir={train_result.output_dir}",
             flush=True,
         )
+
+    if execution_policy == SCREEN_ONLY_POLICY:
+        row_screen_metrics = screen_metrics(run_dir=train_dir)
+        update_screened_queue_row(
+            queue_row=queue_row,
+            run_id=run_id,
+            screen_metrics=row_screen_metrics,
+            conclusion=conclusion,
+        )
+        final_window_mean = row_screen_metrics.get("upper_block_final_window_mean")
+        final_window_text = (
+            f"upper_block_final_window_mean={float(final_window_mean):.4f}"
+            if final_window_mean is not None
+            else "upper_block_final_window_mean=n/a"
+        )
+        print(
+            f"[row {int(queue_row['order']):02d}] train-only screen complete",
+            f"run_id={run_id}",
+            final_window_text,
+            flush=True,
+        )
+        return run_id
 
     _ = ensure_nanotabpfn_python(nanotabpfn_root=nanotabpfn_root, fallback_python=fallback_python)
     summary = run_nanotabpfn_benchmark(
@@ -358,6 +475,7 @@ def execute_sweep(
             materialized_row=materialized_row,
             anchor_run_id=None if promote_now else active_anchor,
             parent_run_id=None if promote_now else active_anchor,
+            queue=queue,
             prior_dump=prior_dump,
             nanotabpfn_root=nanotabpfn_root,
             device=device,

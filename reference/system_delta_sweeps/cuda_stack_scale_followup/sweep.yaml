@@ -1,0 +1,65 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: cuda_stack_scale_followup
+parent_sweep_id: cuda_stability_followup
+status: active
+complexity_level: binary_md
+anchor_run_id: sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+    - The locked anchor is the completed batch32 replay row from `cuda_stability_followup`, not the older batch64 promoted anchor.
+    - "This follow-up is stability-first: rows 1-4 are train-only screens on the same batch32 replay surface and intentionally skip benchmark registration."
+    - The active question is whether a post-stack norm alone is enough, whether depth-scaled prenorm residuals are enough, or whether the combined row is required.
+    - The row-5 norm winner is chosen from rows 2-3 by lower upper-block final-window mean first, then lower post-warmup slope, then lower clip rate, then lower final train-loss EMA, with RMSNorm winning any remaining tie.
+    - Keep width, depth, optimizer family, batch size, and preprocessing fixed; this sweep targets stack-scale stabilization, not a new capacity shape.
+  dimension_table:
+    - dimension: bridge architecture
+      upstream: The inherited large-anchor bridge remains the repo-local prenorm plus row-cls staged surface from the parent sweep.
+      anchor: Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, and `head_hidden_dim=1024` fixed.
+      interpretation: Any movement in rows 1-4 should be attributed to stack-scale interventions or the short-screen policy, not to a new capacity shape.
+    - dimension: screening budget
+      upstream: The anchor run is a full 2500-step benchmarked batch32 replay.
+      anchor: Rows 1-4 use a 1000-step train-only screen with the same batch32 replay LR surface; row 5 returns to the full 2500-step budget.
+      interpretation: Short-screen rows are diagnostic evidence only and must not be read as benchmark-facing replacements for the anchor.
+    - dimension: post-stack normalization
+      upstream: Upstream nanoTabPFN does not expose a staged post-stack norm on this large-anchor bridge path.
+      anchor: Compare `post_stack_norm=rmsnorm` and `post_stack_norm=layernorm` only on the short-screen surface.
+      interpretation: This tests whether final stack export normalization can tame the downstream interface even if prenorm blocks still grow internally.
+    - dimension: prenorm residual scaling
+      upstream: Upstream nanoTabPFN does not expose a depth-scaled residual branch on this staged prenorm path.
+      anchor: Compare `table_block_residual_scale=depth_scaled` on the same short-screen surface, then combine it with the winning post-stack norm at full budget.
+      interpretation: Residual scaling is the more direct root-cause intervention because it changes the in-stack accumulation itself.
+    - dimension: execution policy
+      upstream: Ordinary sweep rows benchmark and register immediately.
+      anchor: Rows 1-4 are `screen_only`; row 5 is `benchmark_full`.
+      interpretation: The queue itself records which rows are diagnostic screens versus benchmark-facing runs so the workflow stays reproducible.
+anchor_context:
+  run_id: sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1
+  experiment: cls_benchmark_staged_prior
+  config_profile: cls_benchmark_staged_prior
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: dpnb_cuda_large_anchor_batch32_replay
+    stage: nano_exact
+    stage_label: dpnb_cuda_large_anchor_batch32_replay
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: nano
+      head: binary_direct
+      post_encoder_norm: none
+      row_pool: row_cls
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: dpnb_cuda_large_anchor_batch32_replay
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

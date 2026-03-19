@@ -14,7 +14,7 @@ anchor_surface:
   notes:
     - This pilot still targets width-vs-depth evidence on the promoted batch64 sqrt-scaled clipped bridge winner from `input_norm_followup`.
     - The first large-anchor attempt was stopped for persistent activation drift before benchmark registration, so the pilot is now paused.
-    - Active training-surface stabilization has moved to `cuda_stability_followup`; resume this pilot only after that sweep picks a trainable large-anchor recipe.
+    - Active training-surface stabilization has moved to `cuda_stack_scale_followup`; resume this pilot only after that sweep picks a trainable large-anchor recipe.
     - "`input_norm_none_followup` completed on the same systems surface and did not justify removing explicit clipping, so input normalization stays fixed at `train_zscore_clip` on this branch."
     - Training-budget changes are intentionally excluded from this sweep and move to the draft `cuda_budget_followup` scaffold.
   dimension_table:
@@ -33,7 +33,7 @@ anchor_surface:
     - dimension: training recipe
       upstream: The registered anchor already uses the promoted `prior_linear_warmup_decay` recipe with batch size 64 and sqrt LR scaling.
       anchor: Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=64`, `prior_dump_lr_scale_rule=sqrt`, `prior_dump_batch_reference_size=32`, and `2500` steps fixed.
-      interpretation: This copied systems surface triggered activation drift on the first large-anchor attempt, so `cuda_stability_followup` now owns training-surface repair before any further capacity comparison.
+      interpretation: This copied systems surface triggered activation drift on the first large-anchor attempt, so `cuda_stack_scale_followup` now owns training-surface repair before any further capacity comparison.
 anchor_context:
   run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
   experiment: cls_benchmark_staged_prior

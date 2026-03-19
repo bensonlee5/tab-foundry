@@ -58,7 +58,7 @@ rows:
     decision: null
     interpretation_status: blocked
     confounders: []
-    next_action: Wait for `cuda_stability_followup` to pick a stable large-anchor training surface, then rerun this baseline before reading width or depth.
+    next_action: Wait for `cuda_stack_scale_followup` to pick a stable large-anchor training surface, then rerun this baseline before reading width or depth.
     notes:
       - This row is the baseline for the pilot even though the sweep anchor remains the promoted compact batch64 bridge run.
       - A first attempt was stopped for persistent activation drift and preserved under `sd_cuda_capacity_pilot_01_dpnb_cuda_large_anchor_v1_stopped_activation_drift_20260318T225450Z`.
@@ -119,7 +119,7 @@ rows:
     decision: null
     interpretation_status: blocked
     confounders: []
-    next_action: Leave this row blocked until `cuda_stability_followup` re-establishes a trainable large-anchor baseline.
+    next_action: Leave this row blocked until `cuda_stack_scale_followup` re-establishes a trainable large-anchor baseline.
     notes:
       - This row deliberately leaves `tficl_n_layers=12` fixed so the width effect stays attributable.
       - Do not run this width probe until the blocked row-1 baseline has a stable replacement.
@@ -180,7 +180,7 @@ rows:
     decision: null
     interpretation_status: blocked
     confounders: []
-    next_action: Leave this row blocked until `cuda_stability_followup` re-establishes a trainable large-anchor baseline.
+    next_action: Leave this row blocked until `cuda_stack_scale_followup` re-establishes a trainable large-anchor baseline.
     notes:
       - This row deliberately keeps the large-anchor width fixed so the depth effect stays attributable.
       - Do not run this depth probe until the blocked row-1 baseline has a stable replacement.

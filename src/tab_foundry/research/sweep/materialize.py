@@ -135,6 +135,12 @@ def materialize_row(
             dict[str, Any],
             _copy_jsonable(queue_row.get("model", default_effective_surface.get("model", {}))),
         ),
+        "dynamic_model_overrides": cast(
+            dict[str, Any] | None,
+            _copy_jsonable(queue_row.get("dynamic_model_overrides"))
+            if queue_row.get("dynamic_model_overrides")
+            else None,
+        ),
         "data": cast(
             dict[str, Any],
             _copy_jsonable(queue_row.get("data", default_effective_surface.get("data", {}))),
@@ -161,6 +167,7 @@ def materialize_row(
             ),
         ),
         "parameter_adequacy_plan": cast(list[Any], _copy_jsonable(parameter_plan)),
+        "execution_policy": str(queue_row.get("execution_policy", "benchmark_full")),
         "run_id": queue_row.get("run_id"),
         "followup_run_ids": cast(list[Any], _copy_jsonable(queue_row.get("followup_run_ids", []))),
         "decision": queue_row.get("decision"),
@@ -168,6 +175,10 @@ def materialize_row(
         "confounders": cast(list[Any], _copy_jsonable(queue_row.get("confounders", []))),
         "next_action": str(queue_row.get("next_action", "")),
         "notes": cast(list[Any], _copy_jsonable(queue_row.get("notes", []))),
+        "screen_metrics": cast(
+            dict[str, Any] | None,
+            _copy_jsonable(queue_row.get("screen_metrics")) if queue_row.get("screen_metrics") else None,
+        ),
         "benchmark_metrics": cast(
             dict[str, Any] | None,
             _copy_jsonable(queue_row.get("benchmark_metrics")) if queue_row.get("benchmark_metrics") else None,

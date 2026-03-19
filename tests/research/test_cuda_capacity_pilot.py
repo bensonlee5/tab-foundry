@@ -29,10 +29,10 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     return next(row for row in rows if row["delta_ref"] == delta_ref)
 
 
-def test_cuda_capacity_pilot_is_registered_and_active() -> None:
+def test_cuda_capacity_pilot_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "cuda_stability_followup"
+    assert index["active_sweep_id"] == "cuda_stack_scale_followup"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
@@ -85,7 +85,7 @@ def test_cuda_capacity_pilot_metadata_and_rows_match_the_capacity_plan() -> None
     assert baseline["training"]["overrides"]["runtime"]["max_steps"] == 2500
     assert baseline["run_id"] is None
     assert baseline["interpretation_status"] == "blocked"
-    assert "cuda_stability_followup" in baseline["next_action"]
+    assert "cuda_stack_scale_followup" in baseline["next_action"]
     assert any("activation drift" in note for note in baseline["notes"])
 
     width = _row_by_ref(queue, "dpnb_cuda_large_width_x2")
@@ -122,5 +122,5 @@ def test_cuda_capacity_pilot_matrix_records_the_three_row_capacity_probe() -> No
     assert "dpnb_cuda_large_width_x2" in matrix
     assert "dpnb_cuda_large_depth_plus4" in matrix
     assert "blocked_on_stability_followup" in matrix
-    assert "cuda_stability_followup" in matrix
+    assert "cuda_stack_scale_followup" in matrix
     assert "activation drift" in matrix

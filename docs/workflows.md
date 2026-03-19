@@ -552,6 +552,8 @@ Recommended loop:
      --include-completed
    ```
 
+   `--include-completed` also applies to previously `screened` train-only rows.
+
 1. Promote the first executed row to the sweep anchor during an execution pass
    when you are intentionally re-baselining the sweep:
 
@@ -596,6 +598,16 @@ Every completed benchmark-facing row should leave behind:
 - `comparison_curve.png`
 - `training_surface_record.json`
 - `outputs/staged_ladder/research/<sweep_id>/<delta_id>/result_card.md`
+
+Train-only `screen_only` rows still need:
+
+- `train_history.jsonl`
+- `gradient_history.jsonl`
+- `telemetry.json`
+- `training_surface_record.json`
+
+They intentionally skip benchmark registration and do not write
+`result_card.md`.
 
 For queue reruns used to debug instability, `train_history.jsonl` now includes
 additive `train_loss_delta`, `train_loss_ema`, `grad_clip_threshold`, and
