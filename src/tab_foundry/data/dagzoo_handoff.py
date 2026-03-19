@@ -100,6 +100,16 @@ class DagzooGeneratedIdentityAccumulator:
         )
 
 
+def is_canonical_dagzoo_id(value: Any) -> bool:
+    """Return whether a value matches the canonical dagzoo 32-char hex id shape."""
+
+    return (
+        isinstance(value, str)
+        and len(value) == _DAGZOO_ID_HEX_LENGTH
+        and all(ch in "0123456789abcdef" for ch in value)
+    )
+
+
 def _read_json_dict(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
@@ -135,9 +145,7 @@ def _require_non_empty_string(
 
 
 def _require_hex_string_value(value: Any, *, context: str) -> str:
-    if not isinstance(value, str) or len(value) != _DAGZOO_ID_HEX_LENGTH:
-        raise RuntimeError(context)
-    if any(ch not in "0123456789abcdef" for ch in value):
+    if not is_canonical_dagzoo_id(value):
         raise RuntimeError(context)
     return value
 

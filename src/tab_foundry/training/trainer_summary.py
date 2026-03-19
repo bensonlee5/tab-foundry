@@ -77,3 +77,28 @@ def _trainer_summary_payload(
     if error is not None:
         summary["error"] = {"type": type(error).__name__, "message": str(error)}
     return summary
+
+
+def _training_telemetry_summary_payload(
+    *,
+    telemetry_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    raw_artifacts = telemetry_payload.get("artifacts")
+    artifacts = raw_artifacts if isinstance(raw_artifacts, Mapping) else {}
+    return {
+        "telemetry": {
+            "success": telemetry_payload.get("success"),
+            "checkpoint_snapshot_count": len(telemetry_payload.get("checkpoint_snapshots", [])),
+        },
+        "artifacts": {
+            "train_history_jsonl": artifacts.get("train_history_jsonl"),
+            "gradient_history_jsonl": artifacts.get("gradient_history_jsonl"),
+            "telemetry_json": artifacts.get("telemetry_json"),
+            "training_surface_record_json": artifacts.get("training_surface_record_json"),
+            "best_checkpoint": artifacts.get("best_checkpoint"),
+            "latest_checkpoint": artifacts.get("latest_checkpoint"),
+        },
+        "loss_summary": telemetry_payload.get("loss_summary"),
+        "gradient_summary": telemetry_payload.get("gradient_summary"),
+        "diagnostics": telemetry_payload.get("diagnostics"),
+    }

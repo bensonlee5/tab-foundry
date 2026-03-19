@@ -218,6 +218,37 @@ def append_metric_line(
     lines.append(f"- {label}: `{format_metric(value, signed=signed)}`")
 
 
+def _stage_local_stability_lines(queue_metrics: Mapping[str, Any]) -> list[str]:
+    lines: list[str] = []
+    for stage_label, grad_key, activation_key in (
+        (
+            "Column stage",
+            "column_encoder_final_window_mean_grad_norm",
+            "column_activation_early_to_final_mean_delta",
+        ),
+        (
+            "Row stage",
+            "row_pool_final_window_mean_grad_norm",
+            "row_activation_early_to_final_mean_delta",
+        ),
+        (
+            "Context stage",
+            "context_encoder_final_window_mean_grad_norm",
+            "context_activation_early_to_final_mean_delta",
+        ),
+    ):
+        parts: list[str] = []
+        grad_value = queue_metrics.get(grad_key)
+        if grad_value is not None:
+            parts.append(f"final-window mean grad norm `{format_metric(grad_value)}`")
+        activation_value = queue_metrics.get(activation_key)
+        if activation_value is not None:
+            parts.append(f"activation early-to-final mean delta `{format_metric(activation_value, signed=True)}`")
+        if parts:
+            lines.append(f"- {stage_label}: {', '.join(parts)}")
+    return lines
+
+
 def result_card_text(
     *,
     row: Mapping[str, Any],
@@ -302,6 +333,16 @@ def result_card_text(
 
     append_metric_line(lines, label="max_grad_norm", value=queue_metrics.get("max_grad_norm"))
     append_metric_line(lines, label="clipped_step_fraction", value=queue_metrics.get("clipped_step_fraction"))
+    stage_local_lines = _stage_local_stability_lines(queue_metrics)
+    if stage_local_lines:
+        lines.extend(
+            [
+                "",
+                "## Stage-local stability",
+                "",
+            ]
+        )
+        lines.extend(stage_local_lines)
 
     lines.extend(
         [

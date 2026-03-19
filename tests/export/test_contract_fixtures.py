@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from tab_foundry.export.contracts import (
+    compute_v3_manifest_sha256,
     ExportModelSpec,
     ExportPreprocessorState,
     LegacyPreprocessorState,
@@ -50,6 +51,7 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     assert manifest.inference.group_shifts == [0, 1, 3]
     assert manifest.inference.many_class_inference_mode == "full_probs"
     assert isinstance(manifest.preprocessor, ExportPreprocessorState)
+    assert manifest.preprocessor.missing_value_policy.impute_missing is True
     assert manifest.preprocessor.classification_label_policy is not None
     assert manifest.preprocessor.classification_label_policy.mapping == "train_only_remap"
     assert manifest.weights.file == "weights.safetensors"
@@ -173,8 +175,37 @@ def test_v3_section_validation_supports_classification_policy() -> None:
 
     assert cls_inference.many_class_inference_mode == "full_probs"
     assert isinstance(cls_preprocessor, ExportPreprocessorState)
+    assert cls_preprocessor.missing_value_policy.impute_missing is True
     assert cls_preprocessor.classification_label_policy is not None
     assert cls_preprocessor.classification_label_policy.unseen_test_label == "filter"
+
+
+def test_v3_section_validation_defaults_missing_impute_missing_to_true() -> None:
+    manifest_payload = _load_fixture("manifest_v3.json")
+    preprocessor_payload = dict(manifest_payload["preprocessor"])
+    missing_value_policy = dict(preprocessor_payload["missing_value_policy"])
+    missing_value_policy.pop("impute_missing", None)
+    preprocessor_payload["missing_value_policy"] = missing_value_policy
+    manifest_payload["preprocessor"] = preprocessor_payload
+    manifest_payload["manifest_sha256"] = compute_v3_manifest_sha256(manifest_payload)
+
+    manifest = validate_manifest_dict(manifest_payload)
+
+    assert manifest.preprocessor is not None
+    assert manifest.preprocessor.missing_value_policy.impute_missing is True
+
+
+@pytest.mark.parametrize("all_nan_fill", [float("nan"), float("inf"), float("-inf")])
+def test_v3_manifest_validation_rejects_nonfinite_all_nan_fill(all_nan_fill: float) -> None:
+    manifest_payload = _load_fixture("manifest_v3.json")
+    preprocessor_payload = dict(manifest_payload["preprocessor"])
+    missing_value_policy = dict(preprocessor_payload["missing_value_policy"])
+    missing_value_policy["all_nan_fill"] = all_nan_fill
+    preprocessor_payload["missing_value_policy"] = missing_value_policy
+    manifest_payload["preprocessor"] = preprocessor_payload
+
+    with pytest.raises(ValueError, match="all_nan_fill must be finite"):
+        validate_manifest_dict(manifest_payload)
 
 
 def test_v3_preprocessor_validation_rejects_regression_task() -> None:
@@ -185,6 +216,7 @@ def test_v3_preprocessor_validation_rejects_regression_task() -> None:
                 "missing_value_policy": {
                     "strategy": "train_mean",
                     "all_nan_fill": 0.0,
+                    "impute_missing": True,
                 },
                 "classification_label_policy": None,
                 "dtype_policy": {

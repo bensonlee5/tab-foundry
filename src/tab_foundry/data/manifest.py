@@ -16,6 +16,7 @@ import pyarrow.parquet as pq
 
 from tab_foundry.data.dagzoo_handoff import (
     DagzooGeneratedIdentityAccumulator,
+    is_canonical_dagzoo_id,
     load_dagzoo_handoff_info,
     verify_dagzoo_handoff_matches_generated_corpus,
 )
@@ -90,6 +91,41 @@ def _dataset_id(
     )
     digest = md5(token.encode("utf-8")).hexdigest()[:12]
     return f"root_{root_id}/{normalized_relpath}/dataset_{dataset_index:06d}_{digest}"
+
+
+def _canonical_dagzoo_dataset_identity_key(
+    *,
+    dataset_id: str,
+    request_run: str,
+) -> str:
+    return f"dagzoo_request_{request_run}/dataset_{dataset_id}"
+
+
+def _resolved_manifest_identity(
+    *,
+    metadata: dict[str, Any],
+    root_id: str,
+    shard_relpath: str,
+    dataset_index: int,
+) -> tuple[str, str]:
+    canonical_dataset_id = metadata.get("dataset_id")
+    split_groups = metadata.get("split_groups")
+    request_run = split_groups.get("request_run") if isinstance(split_groups, dict) else None
+    if (
+        is_canonical_dagzoo_id(canonical_dataset_id)
+        and is_canonical_dagzoo_id(request_run)
+    ):
+        dataset_id = str(canonical_dataset_id)
+        return dataset_id, _canonical_dagzoo_dataset_identity_key(
+            dataset_id=dataset_id,
+            request_run=str(request_run),
+        )
+    dataset_id = _dataset_id(
+        root_id=root_id,
+        shard_relpath=shard_relpath,
+        dataset_index=dataset_index,
+    )
+    return dataset_id, dataset_id
 
 
 def _manifest_relative_path(path: Path, *, manifest_dir: Path) -> str:
@@ -405,16 +441,18 @@ def build_manifest(
                     excluded_for_missing_values += 1
                     continue
 
-                dsid = _dataset_id(
+                dsid, dataset_identity_key = _resolved_manifest_identity(
+                    metadata=meta,
                     root_id=source_root_id,
                     shard_relpath=source_shard_relpath,
                     dataset_index=dataset_index,
                 )
-                split = _stable_split(dsid, train_ratio, val_ratio)
+                split = _stable_split(dataset_identity_key, train_ratio, val_ratio)
 
                 records.append(
                     {
                         "dataset_id": dsid,
+                        "dataset_identity_key": dataset_identity_key,
                         "source_root_id": source_root_id,
                         "source_shard_relpath": source_shard_relpath,
                         "split": split,
@@ -463,6 +501,7 @@ def build_manifest(
             str(record["source_root_id"]),
             str(record["source_shard_relpath"]),
             int(record["dataset_index"]),
+            str(record["dataset_identity_key"]),
             str(record["dataset_id"]),
         )
     )

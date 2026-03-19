@@ -31,6 +31,7 @@ _export(
         "test_export_bundle_supports_tabfoundry_simple_checkpoint",
         "test_export_bundle_round_trips_staged_arch_and_stage",
         "test_export_manifest_embeds_policy_only_preprocessor",
+        "test_export_manifest_embeds_resolved_nondefault_preprocessing_policy",
         "test_export_checkpoint_uses_explicit_weights_only_false",
     ]
 )

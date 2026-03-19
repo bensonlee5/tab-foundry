@@ -68,10 +68,13 @@ Conventions:
   - nanochat is a good recipe reference for clean instrumentation and readable
     training diagnostics
 - Repo-local evidence:
-  - activation tracing already catches cell-stack drift
-  - row-first stage boundaries remain under-measured today
+  - the exact-prior path already emits module gradients, activation traces, and
+    additive telemetry summaries
+  - the regular architecture-screen trainer still lacks that parity, so the
+    most decision-critical gap is coverage on `cls_benchmark_staged`
 - Success signal:
-  - row-first rows can be judged on stage-local stability, cost, and quality
+  - row-first rows can be judged on stage-local stability and quality directly
+    from the regular architecture-screen lane
 
 ### TF-RD-003: Shared-Surface Unlock
 

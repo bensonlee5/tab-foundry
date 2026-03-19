@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from tab_foundry.preprocessing import (
@@ -140,6 +141,7 @@ def _validate_v3_missing_value_policy(payload: Any) -> ExportMissingValuePolicy:
     _require_keys(
         payload,
         keys={"strategy", "all_nan_fill"},
+        optional_keys={"impute_missing"},
         context="preprocessor_state.missing_value_policy",
     )
     strategy = _as_str(
@@ -155,12 +157,21 @@ def _validate_v3_missing_value_policy(payload: Any) -> ExportMissingValuePolicy:
         payload["all_nan_fill"],
         context="preprocessor_state.missing_value_policy.all_nan_fill",
     )
-    if all_nan_fill != EXPECTED_MISSING_VALUE_ALL_NAN_FILL:
-        raise ValueError(
-            "preprocessor_state.missing_value_policy.all_nan_fill must equal "
-            f"{EXPECTED_MISSING_VALUE_ALL_NAN_FILL}"
-        )
-    return ExportMissingValuePolicy(strategy=strategy, all_nan_fill=all_nan_fill)
+    if not math.isfinite(all_nan_fill):
+        raise ValueError("preprocessor_state.missing_value_policy.all_nan_fill must be finite")
+    impute_missing = True
+    if "impute_missing" in payload:
+        raw_impute_missing = payload["impute_missing"]
+        if not isinstance(raw_impute_missing, bool):
+            raise ValueError(
+                "preprocessor_state.missing_value_policy.impute_missing must be boolean"
+            )
+        impute_missing = raw_impute_missing
+    return ExportMissingValuePolicy(
+        strategy=strategy,
+        all_nan_fill=all_nan_fill,
+        impute_missing=impute_missing,
+    )
 
 
 def _validate_v3_classification_label_policy(

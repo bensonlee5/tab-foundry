@@ -143,6 +143,7 @@ def test_validate_preprocessor_state_dict_roundtrips_valid_v3_payloads() -> None
         "missing_value_policy": {
             "strategy": "train_mean",
             "all_nan_fill": 0.0,
+            "impute_missing": True,
         },
         "classification_label_policy": {
             "mapping": "train_only_remap",
@@ -165,6 +166,64 @@ def test_validate_preprocessor_state_dict_roundtrips_valid_v3_payloads() -> None
     assert validated.to_dict() == payload
 
 
+def test_validate_preprocessor_state_dict_defaults_missing_impute_missing_to_true() -> None:
+    payload: dict[str, object] = {
+        "feature_order_policy": "positional_feature_ids",
+        "missing_value_policy": {
+            "strategy": "train_mean",
+            "all_nan_fill": 0.0,
+        },
+        "classification_label_policy": {
+            "mapping": "train_only_remap",
+            "unseen_test_label": "filter",
+        },
+        "dtype_policy": {
+            "features": "float32",
+            "classification_labels": "int64",
+            "regression_targets": "float32",
+        },
+    }
+
+    validated = validate_preprocessor_state_dict(
+        payload,
+        schema_version=SCHEMA_VERSION_V3,
+        task="classification",
+    )
+
+    assert isinstance(validated, ExportPreprocessorState)
+    assert validated.missing_value_policy.impute_missing is True
+
+
+@pytest.mark.parametrize("all_nan_fill", [float("nan"), float("inf"), float("-inf")])
+def test_validate_preprocessor_state_dict_rejects_nonfinite_all_nan_fill(
+    all_nan_fill: float,
+) -> None:
+    payload: dict[str, object] = {
+        "feature_order_policy": "positional_feature_ids",
+        "missing_value_policy": {
+            "strategy": "train_mean",
+            "all_nan_fill": all_nan_fill,
+            "impute_missing": True,
+        },
+        "classification_label_policy": {
+            "mapping": "train_only_remap",
+            "unseen_test_label": "filter",
+        },
+        "dtype_policy": {
+            "features": "float32",
+            "classification_labels": "int64",
+            "regression_targets": "float32",
+        },
+    }
+
+    with pytest.raises(ValueError, match="all_nan_fill must be finite"):
+        validate_preprocessor_state_dict(
+            payload,
+            schema_version=SCHEMA_VERSION_V3,
+            task="classification",
+        )
+
+
 @settings(deadline=None, max_examples=25)
 @given(task=st.sampled_from(("regression", "REGRESSION")))
 def test_validate_preprocessor_state_dict_rejects_unsupported_task(task: str) -> None:
@@ -173,6 +232,7 @@ def test_validate_preprocessor_state_dict_rejects_unsupported_task(task: str) ->
         "missing_value_policy": {
             "strategy": "train_mean",
             "all_nan_fill": 0.0,
+            "impute_missing": True,
         },
         "classification_label_policy": {
             "mapping": "train_only_remap",
@@ -199,6 +259,7 @@ def test_validate_preprocessor_state_dict_rejects_missing_classification_policy(
         "missing_value_policy": {
             "strategy": "train_mean",
             "all_nan_fill": 0.0,
+            "impute_missing": True,
         },
         "classification_label_policy": None,
         "dtype_policy": {

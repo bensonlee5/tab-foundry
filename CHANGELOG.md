@@ -7,35 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.8] - 2026-03-19
+## [0.8.9] - 2026-03-19
 
 ### Added
 
-- Added `./scripts/dev verify paths <PATH...>` so repo-local affected-scope
-  verification can be driven from explicit file paths instead of only the
-  current Git diff.
+- Added the repo-local `scripts/dev` review and verification surface,
+  including `review-base`, `verify affected`, `verify audit`, `verify full`,
+  `verify paths`, and Iris smoke delegation for branch-scoped development
+  checks.
 
-- Added `tab-foundry dev run-inspect`, which summarizes one run directory's
-  local artifacts, resolved surface labels, benchmark metadata, and current
-  health verdict when enough telemetry is present.
+- Added the packaged `tab-foundry dev` inspection namespace with
+  `resolve-config`, `forward-check`, `health-check`, and `run-inspect` for
+  resolved-surface inspection, forward-only construction checks, and local run
+  artifact triage without launching a full training loop.
 
-- Added `tab-foundry research sweep inspect` and `tab-foundry research sweep diff`
-  for row-level sweep archaeology: inspecting one materialized row's resolved
-  surfaces and artifact paths, or diffing one row against the anchor or another
-  row by effective resolved surface rather than raw YAML only.
-
-## [0.8.7] - 2026-03-19
-
-### Added
-
-- Added a packaged `tab-foundry dev` namespace with
-  `resolve-config`, `forward-check`, and `health-check` for fast resolved
-  surface inspection, forward-only model construction checks, and instability
-  triage without launching a full training loop.
-
-- Added `tab-foundry research sweep summarize`, which prints a compact local
-  table of sweep row status, decisions, run ids, and key stability or benchmark
-  metrics from the active or selected system-delta sweep.
+- Added `tab-foundry research sweep summarize`, `inspect`, and `diff` for
+  local sweep archaeology, including compact result summaries, row-level
+  resolved-surface inspection, and effective row-vs-anchor or row-vs-row
+  comparisons.
 
 ### Changed
 
@@ -43,6 +32,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   forward-batch helper used by `tab-foundry dev forward-check`, so developer
   inspection commands and architecture graph rendering exercise the same
   deterministic tensor shapes.
+
+## [0.8.8] - 2026-03-19
+
+### Changed
+
+- User-facing note: canonical dagzoo corpora now use `metadata.dataset_id` as
+  the manifest `dataset_id` only when it is paired with a canonical
+  `metadata.split_groups.request_run`; copied dagzoo-generated corpora remain
+  path-independent at the public `dataset_id` layer, while a new internal
+  manifest `dataset_identity_key` that includes `request_run` preserves unique
+  manifest identity and split hashing across distinct generate runs without
+  broadening that shortcut to unrelated hex-shaped dataset ids.
+
+- User-facing note: v3 export bundles now embed the resolved runtime
+  preprocessing policy, including `missing_value_policy.impute_missing` and
+  non-default `all_nan_fill`, and the reference consumer now executes with the
+  embedded preprocessing policy instead of silently falling back to the runtime
+  default surface; bundles that disable imputation now reject runtime inputs
+  that still contain NaN or Inf instead of returning non-finite predictions.
+
+- User-facing note: v3 manifest validation now rejects non-finite
+  `preprocessor.missing_value_policy.all_nan_fill` values during parsing, so
+  manifest checksumming and bundle validation cannot proceed with non-canonical
+  `NaN` or `Infinity` metadata.
+
+## [0.8.7] - 2026-03-19
+
+### Changed
+
+- User-facing note: the regular trainer now writes `gradient_history.jsonl`
+  and `telemetry.json`, the canonical `cls_benchmark_staged` surface enables
+  activation tracing by default, and the persisted telemetry schema is now
+  `tab-foundry-training-telemetry-v2`.
+
+- Added regular-trainer parity for the TF-RD-002 stability surface: stage-local
+  activation traces and module-gradient summaries now flow through
+  `train run`, are summarized into wandb, and surface in result cards and sweep
+  matrix rows alongside the existing exact-prior telemetry.
+
+- Added the missing `post_context_encoder` activation trace to staged model
+  paths so context-enabled rows now expose column, row, and context activation
+  boundaries consistently.
+
+- Corrected activation telemetry aggregation so distributed regular-training
+  runs now reconstruct stage-local activation RMS from raw sum-squared/count
+  traces across microsteps and accelerator ranks, recursive many-class
+  forwards aggregate repeated `post_context_encoder` traces instead of keeping
+  only the last call, and `gradient_history.jsonl` distinguishes non-finite
+  global grad norms with `global_grad_norm_kind`.
 
 ## [0.8.6] - 2026-03-19
 

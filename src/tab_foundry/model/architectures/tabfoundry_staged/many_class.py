@@ -34,11 +34,13 @@ def encode_rows_with_targets(
     train_test_split_index: int,
 ) -> torch.Tensor:
     assert model.context_encoder is not None
-    return model.context_encoder(
+    conditioned = model.context_encoder(
         rows.unsqueeze(0),
         train_target_embeddings=train_targets.unsqueeze(0),
         train_test_split_index=train_test_split_index,
-    )[0]
+    )
+    model.trace_activation("post_context_encoder", conditioned)
+    return conditioned[0]
 
 
 def digit_conditioned_rows(model: Any, row_state: RowState, y_train: torch.Tensor) -> torch.Tensor:

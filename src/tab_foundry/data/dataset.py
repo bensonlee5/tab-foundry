@@ -79,6 +79,15 @@ def _resolve_record_path(manifest_path: Path, raw_path: str) -> Path:
     return (manifest_path.parent / path).resolve()
 
 
+def _record_identity_text(record: dict[str, Any]) -> str:
+    dataset_id = record.get("dataset_id", "<unknown>")
+    identity_key = record.get("dataset_identity_key")
+    parts = [f"dataset_id={dataset_id!r}"]
+    if isinstance(identity_key, str) and identity_key and identity_key != dataset_id:
+        parts.append(f"dataset_identity_key={identity_key!r}")
+    return ", ".join(parts)
+
+
 def _read_ndjson_record_by_offset(
     metadata_path: Path,
     *,
@@ -283,7 +292,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         ):
             raise RuntimeError(
                 "manifest record contains NaN or Inf while allow_missing_values=False: "
-                f"dataset_id={record.get('dataset_id')!r}, manifest_path={self.manifest_path}"
+                f"{_record_identity_text(record)}, manifest_path={self.manifest_path}"
             )
         loaded = _load_manifest_task_record(
             self.manifest_path,
@@ -306,7 +315,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
                 },
                 context=(
                     "manifest-backed task dataset "
-                    f"dataset_id={record.get('dataset_id')!r}"
+                    f"{_record_identity_text(record)}"
                 ),
             )
 
@@ -347,10 +356,10 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
                 raise RuntimeError("classification preprocessing must produce y_test")
             n_test_after = int(y_test.shape[0])
             if n_test_after <= 0:
-                dataset_id = str(record.get("dataset_id", "<unknown>"))
                 raise RuntimeError(
                     "classification test split has zero rows after filtering unseen labels; "
-                    f"dataset_id={dataset_id}, split={self.split}, n_test_after={n_test_after}"
+                    f"{_record_identity_text(record)}, split={self.split}, "
+                    f"n_test_after={n_test_after}"
                 )
             y_train_t = torch.from_numpy(np.asarray(y_train, dtype=np.int64))
             y_test_t = torch.from_numpy(np.asarray(y_test, dtype=np.int64))

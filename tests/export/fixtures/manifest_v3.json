@@ -6,7 +6,7 @@
     "git_sha": null
   },
   "task": "classification",
-  "manifest_sha256": "8fa4caefadc73c210cb45d7f8c8809acc750cf468aec52df1a98c2543c544e26",
+  "manifest_sha256": "65295530428a8ced1d9f233a6dd3cb9cdf5de0477953b3192825c68434dd6e9e",
   "model": {
     "arch": "tabfoundry_staged",
     "stage": "nano_exact",
@@ -30,7 +30,8 @@
     "feature_order_policy": "positional_feature_ids",
     "missing_value_policy": {
       "strategy": "train_mean",
-      "all_nan_fill": 0.0
+      "all_nan_fill": 0.0,
+      "impute_missing": true
     },
     "classification_label_policy": {
       "mapping": "train_only_remap",

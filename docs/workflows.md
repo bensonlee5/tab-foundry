@@ -161,7 +161,9 @@ base recipe only. The intended architecture path is the public staged ladder in
 `docs/development/model-architecture.md`. The system-delta sweep records
 isolated evidence for that ladder using `model.stage_label` and
 `model.module_overrides`, including bounded control rows when a public stage
-bundles more than one mechanism.
+bundles more than one mechanism. It now enables activation tracing by default
+so architecture-screen runs emit `gradient_history.jsonl` and `telemetry.json`
+without extra runtime overrides.
 
 Regression is intentionally removed in the current repo state. Future
 regression work will be rebuilt on top of `tabfoundry_staged`, not the retired
