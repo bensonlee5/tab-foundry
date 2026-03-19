@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-03-19
+
+### Changed
+
+- User-facing note: system-delta sweep metadata and generated research packages
+  now record the locked training experiment, config profile, and surface role,
+  and the runbook/template now makes `screen_only` rows explicitly
+  diagnostic-only while reserving benchmark-facing claims for `benchmark_full`
+  rows on the cited locked bundle/control-baseline contract.
+
+- Fixed sweep creation so overriding only `training_experiment` now also
+  derives the matching `training_config_profile` and `surface_role` instead of
+  inheriting contradictory hybrid-lane metadata from the parent sweep.
+
+- Fixed sweep graph rendering to resolve queue rows from the sweep's actual
+  `training_experiment`, and classified `cls_benchmark_linear_simple` plus
+  `cls_benchmark_linear_simple_prior` sweeps as `pfn_control` instead of
+  generic `custom`.
+
+- Fixed PFN-control sweep creation so catalog rows drop staged-only
+  `model.stage`, `model.stage_label`, and `model.module_overrides` payloads
+  while preserving portable data, preprocessing, and training overrides.
+
+- Clarified and corrected the checked-in `cls_benchmark_linear_v2`
+  control-baseline contract: the canonical medium-bundle baseline id is
+  preserved, but it now freezes the existing prior-trained staged `nano_exact`
+  anchor instead of reusing the older `cls_benchmark_linear_v1` train surface.
+
+- User-facing note: the repo now consistently targets Python `3.14` across
+  `requires-python`, Ruff, mypy, `.python-version`, GitHub Actions, and the
+  setup/workflow docs.
+
+- Restored the pre-0.8.2 legacy-sweep fallback for manifests missing
+  `training_experiment` and `training_config_profile`: execution and graph
+  resolution now keep the old `cls_benchmark_staged_prior` default instead of
+  trusting synthetic `anchor_context` names.
+
 ## [0.8.1] - 2026-03-18
 
 ### Added
@@ -685,8 +722,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   OpenML thresholds for row count, task type, feature count, class count,
   missingness, and minority-class percentage; older ad hoc bundle files
   without those fields now fail to load.
-- Normalized `TF-RD-002` to implemented in the canonical roadmap and marked the
-  TF-RD-001 kickoff on the tracker around pinned benchmark-input discipline.
+- Normalized `TF-RD-LEGACY-002` to implemented in the canonical roadmap and marked the
+  TF-RD-LEGACY-001 kickoff on the tracker around pinned benchmark-input discipline.
 
 ## [0.1.2] - 2026-03-13
 

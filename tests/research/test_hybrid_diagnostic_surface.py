@@ -5,7 +5,7 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
-from tab_foundry.research.promoted_bridge_baseline import promoted_bridge_baseline_payload
+from tab_foundry.research.hybrid_diagnostic_surface import hybrid_diagnostic_surface_payload
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -23,8 +23,8 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     return next(row for row in rows if row["delta_ref"] == delta_ref)
 
 
-def test_promoted_bridge_baseline_stays_aligned_across_config_and_sweeps() -> None:
-    payload = promoted_bridge_baseline_payload()
+def test_hybrid_diagnostic_surface_stays_aligned_across_config_and_sweeps() -> None:
+    payload = hybrid_diagnostic_surface_payload()
     stability_queue = _load_yaml(
         REPO_ROOT / "reference" / "system_delta_sweeps" / "stability_followup" / "queue.yaml"
     )
@@ -35,7 +35,7 @@ def test_promoted_bridge_baseline_stays_aligned_across_config_and_sweeps() -> No
         REPO_ROOT / "reference" / "system_delta_sweeps" / "input_norm_followup" / "queue.yaml"
     )
 
-    promoted_row = _row_by_ref(stability_queue, "dpnb_row_cls_cls2_linear_warmup_decay")
+    hybrid_row = _row_by_ref(stability_queue, "dpnb_row_cls_cls2_linear_warmup_decay")
     anchor_replay_row = _row_by_ref(input_norm_queue, "dpnb_input_norm_anchor_replay")
 
     expected_model = {
@@ -48,7 +48,7 @@ def test_promoted_bridge_baseline_stays_aligned_across_config_and_sweeps() -> No
         "tfrow_cls_tokens": payload["model"]["tfrow_cls_tokens"],
         "tfrow_norm": payload["model"]["tfrow_norm"],
     }
-    assert promoted_row["model"] == {
+    assert hybrid_row["model"] == {
         key: value
         for key, value in expected_model.items()
         if key != "input_normalization"
@@ -73,6 +73,9 @@ def test_promoted_bridge_baseline_stays_aligned_across_config_and_sweeps() -> No
         },
     }
     assert anchor_replay_row["training"] == expected_training
+    assert input_norm_sweep["training_experiment"] == "cls_benchmark_staged_prior"
+    assert input_norm_sweep["training_config_profile"] == "cls_benchmark_staged_prior"
+    assert input_norm_sweep["surface_role"] == "hybrid_diagnostic"
     assert input_norm_sweep["anchor_context"]["experiment"] == "cls_benchmark_staged_prior"
     assert input_norm_sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged_prior"
     assert input_norm_sweep["anchor_run_id"] == "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
@@ -80,6 +83,6 @@ def test_promoted_bridge_baseline_stays_aligned_across_config_and_sweeps() -> No
     assert input_norm_sweep["anchor_context"]["surface_labels"]["training"] == payload["training"]["surface_label"]
 
 
-def test_promoted_bridge_baseline_logging_name_matches_stage_label() -> None:
-    payload = promoted_bridge_baseline_payload()
+def test_hybrid_diagnostic_surface_logging_name_matches_stage_label() -> None:
+    payload = hybrid_diagnostic_surface_payload()
     assert payload["logging"]["run_name"] == payload["model"]["stage_label"]

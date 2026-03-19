@@ -88,7 +88,7 @@ retained for traceability.
 | Rank | Roadmap ID | Item | Status | Milestone |
 | ---- | ---------- | ---- | ------ | --------- |
 | 0 | TF-RD-000 | Repo foundation and staged-family split | implemented | Implemented |
-| 1 | TF-RD-001 | Control freeze and experiment trust | partial | Now |
+| 1 | TF-RD-001 | Control freeze and experiment trust | implemented | Implemented |
 | 2 | TF-RD-002 | Measurement surfaces for architecture migration | planned | Now |
 | 3 | TF-RD-003 | Shared-surface unlock | planned | Now |
 | 4 | TF-RD-004 | Tokenization migration | planned | Now |
@@ -100,6 +100,58 @@ retained for traceability.
 | 10 | TF-RD-010 | Many-class promotion on the row-first base | research | Next |
 | 11 | TF-RD-011 | Repo-wide enablers and contract fidelity | partial | Next |
 | 12 | TF-RD-012 | Regression, inference handoff, and later modalities | research | Later |
+
+## Dependency Graph
+
+```mermaid
+flowchart TD
+    RD000["TF-RD-000 ✅<br/>Repo foundation"]
+
+    subgraph ready [" Ready now — no blockers "]
+        RD001["TF-RD-001<br/>Control freeze &<br/>experiment trust"]
+        RD011["TF-RD-011<br/>Repo-wide enablers<br/>(independent)"]
+    end
+
+    RD002["TF-RD-002<br/>Measurement surfaces"]
+    RD003["TF-RD-003<br/>Shared-surface unlock"]
+    RD004["TF-RD-004<br/>Tokenization migration"]
+    RD005["TF-RD-005<br/>Row-embedding unlock"]
+    RD006["TF-RD-006<br/>Column-set integration"]
+    RD007["TF-RD-007<br/>Row-level context & QASS"]
+    RD008{{"TF-RD-008<br/>PROMOTION GATE<br/>Coherent anchor"}}
+    RD009["TF-RD-009<br/>Scaling-law measurement"]
+    RD010["TF-RD-010<br/>Many-class promotion"]
+    RD012["TF-RD-012<br/>Regression & later modalities"]
+
+    RD001 --> RD002
+    RD001 --> RD003
+    RD002 --> RD003
+    RD003 --> RD004
+    RD004 --> RD005
+    RD005 --> RD006
+    RD006 --> RD007
+    RD007 --> RD008
+    RD008 --> RD009
+    RD008 --> RD010
+    RD009 --> RD010
+    RD008 --> RD012
+
+    classDef done fill:#d4edda,stroke:#28a745,color:#155724;
+    classDef readyNow fill:#fff3cd,stroke:#ffc107,color:#856404;
+    classDef chain fill:#e8f0fe,stroke:#4285f4,color:#1a3d6e;
+    classDef gate fill:#fff1d6,stroke:#c67a00,color:#3d2a00;
+    classDef later fill:#f3e8ff,stroke:#7c3aed,color:#3b1f6e;
+
+    class RD000 done;
+    class RD001,RD011 readyNow;
+    class RD002,RD003,RD004,RD005,RD006,RD007 chain;
+    class RD008 gate;
+    class RD009,RD010,RD012 later;
+```
+
+Critical path: **001 → 002 → 003 → 004 → 005 → 006 → 007 → 008**. Everything after
+008 is post-promotion work. 011 is the only epic that proceeds fully in
+parallel.
 
 ## Current Capability Matrix
 
@@ -147,16 +199,19 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-001: Control Freeze And Experiment Trust
 
-- Status: `partial`
-- Milestone: `Now`
+- Status: `implemented`
+- Milestone: `Implemented`
 - Goal: make the PFN control lane and the row-first target lane explicit so the
   roadmap stops mixing benchmark trust with architecture aspiration
 - Current state:
-  - PFN-style controls exist and benchmark comparison tooling is in place
-  - the current large-anchor hybrid line still risks being read as the intended
-    destination
-  - benchmark trust remains bounded by no-missing/control-lane discipline
-- Required work:
+  - the PFN control lane is named explicitly as `tabfoundry_simple` plus
+    `tabfoundry_staged` with `stage=nano_exact`
+  - the current large-anchor hybrid line is documented as diagnostic rather
+    than promotable
+  - the canonical medium-bundle control-baseline id `cls_benchmark_linear_v2`
+    now resolves through the prior-trained staged `nano_exact` anchor
+    `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
+- Implemented contract:
   - keep `tabfoundry_simple` and `stage=nano_exact` as the frozen PFN control
     lane
   - document the current large-anchor hybrid line as diagnostic rather than

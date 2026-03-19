@@ -26,6 +26,18 @@ def render_model_change_payload(model_payload: Mapping[str, Any]) -> dict[str, A
     return rendered
 
 
+def effective_model_label(*, queue: Mapping[str, Any], queue_row: Mapping[str, Any]) -> str:
+    model_payload = queue_row.get("model")
+    if isinstance(model_payload, Mapping):
+        stage_label = model_payload.get("stage_label")
+        if isinstance(stage_label, str) and stage_label.strip():
+            return str(stage_label)
+    training_experiment = queue.get("training_experiment")
+    if isinstance(training_experiment, str) and training_experiment.strip():
+        return str(training_experiment)
+    return "none"
+
+
 def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str]:
     def _optional_float(value: Any) -> float | None:
         if value is None:
@@ -159,6 +171,9 @@ def render_system_delta_matrix(
     lines.append(f"- Anchor run id: `{anchor_run_id}`")
     lines.append(f"- Benchmark bundle: `{queue['benchmark_bundle_path']}`")
     lines.append(f"- Control baseline id: `{queue['control_baseline_id']}`")
+    lines.append(f"- Training experiment: `{queue.get('training_experiment')}`")
+    lines.append(f"- Training config profile: `{queue.get('training_config_profile')}`")
+    lines.append(f"- Surface role: `{queue.get('surface_role')}`")
     lines.append(f"- Comparison policy: `{queue['comparison_policy']}`")
     anchor_metric_parts: list[str] = []
     for label, key in (
@@ -219,7 +234,7 @@ def render_system_delta_matrix(
         lines.append(f"- Anchor delta: {queue_row['anchor_delta']}")
         lines.append(f"- Expected effect: {queue_row['expected_effect']}")
         lines.append(
-            f"- Effective labels: model=`{queue_row['model']['stage_label']}`, "
+            f"- Effective labels: model=`{effective_model_label(queue=queue, queue_row=queue_row)}`, "
             f"data=`{queue_row['data']['surface_label']}`, "
             f"preprocessing=`{queue_row['preprocessing']['surface_label']}`, "
             f"training=`{queue_row['training']['surface_label']}`"

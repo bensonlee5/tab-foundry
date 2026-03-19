@@ -12,7 +12,7 @@ import torch
 import tab_foundry.research.sweep.graph as graph_module
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.research.sweep.graph import GraphPaths
-from tab_foundry.research.system_delta import load_system_delta_queue
+from tab_foundry.research.system_delta import create_sweep, load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -46,7 +46,10 @@ def test_resolve_queue_row_model_spec_matches_selected_sweep_surface() -> None:
     )
     row = next(row for row in queue["rows"] if int(row["order"]) == 7)
 
-    spec = graph_module.resolve_queue_row_model_spec(row)
+    spec = graph_module.resolve_queue_row_model_spec(
+        row,
+        training_experiment=str(queue["training_experiment"]),
+    )
 
     assert spec.arch == "tabfoundry_staged"
     assert spec.stage == "nano_exact"
@@ -303,3 +306,111 @@ def test_render_sweep_graphs_writes_svg_and_index_without_mutating_sweep_metadat
     assert "row:07:dpnb_input_norm_anchor_replay_batch64_sqrt" in index_text
     assert sweep_yaml_path.read_text(encoding="utf-8") == sweep_before
     assert queue_yaml_path.read_text(encoding="utf-8") == queue_before
+
+
+def test_render_sweep_graphs_respects_non_default_sweep_training_experiment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+    _ = create_sweep(
+        sweep_id="simple_surface_graph",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="input_norm_followup",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        training_experiment="cls_benchmark_linear_simple",
+        delta_refs=["delta_anchor_activation_trace_baseline"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        sweeps_root=sweeps_root,
+    )
+
+    class _FakeVisualGraph:
+        def pipe(self, *, format: str) -> bytes:
+            assert format == "svg"
+            return b"<svg><!-- fake graph --></svg>"
+
+    class _FakeGraph:
+        def __init__(self) -> None:
+            self.visual_graph = _FakeVisualGraph()
+
+    def _fake_draw_graph(*args, **kwargs):
+        assert args
+        return _FakeGraph()
+
+    monkeypatch.setattr(graph_module.shutil, "which", lambda name: "/usr/bin/dot" if name == "dot" else None)
+    monkeypatch.setitem(sys.modules, "torchview", SimpleNamespace(draw_graph=_fake_draw_graph))
+
+    result = graph_module.render_sweep_graphs(
+        sweep_id="simple_surface_graph",
+        orders=[1],
+        out_dir=tmp_path / "graphs",
+        paths=GraphPaths(
+            index_path=sweeps_root / "index.yaml",
+            catalog_path=reference_root / "system_delta_catalog.yaml",
+            sweeps_root=sweeps_root,
+            registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        ),
+    )
+
+    index_text = Path(str(result["index_path"])).read_text(encoding="utf-8")
+    assert "row:01:delta_anchor_activation_trace_baseline" in index_text
+    assert "Model arch: `tabfoundry_simple`" in index_text
+    assert "Model stage: `None`" in index_text
+    assert "Model stage label: `None`" in index_text
+
+
+def test_render_sweep_graphs_legacy_queue_ignores_synthetic_anchor_context_experiment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    queue = {
+        "sweep_id": "legacy_graph",
+        "anchor_context": {
+            "experiment": "stability_followup",
+            "config_profile": "stability_followup",
+        },
+        "rows": [
+            {
+                "order": 1,
+                "delta_id": "delta_anchor_activation_trace_baseline",
+                "status": "ready",
+                "run_id": None,
+                "model": {},
+                "data": {},
+                "preprocessing": {},
+                "training": {"overrides": {}},
+            }
+        ],
+    }
+
+    class _FakeVisualGraph:
+        def pipe(self, *, format: str) -> bytes:
+            assert format == "svg"
+            return b"<svg><!-- fake graph --></svg>"
+
+    class _FakeGraph:
+        def __init__(self) -> None:
+            self.visual_graph = _FakeVisualGraph()
+
+    def _fake_draw_graph(*args, **kwargs):
+        assert args
+        return _FakeGraph()
+
+    monkeypatch.setattr(graph_module.shutil, "which", lambda name: "/usr/bin/dot" if name == "dot" else None)
+    monkeypatch.setattr(graph_module, "load_system_delta_queue", lambda **_: queue)
+    monkeypatch.setitem(sys.modules, "torchview", SimpleNamespace(draw_graph=_fake_draw_graph))
+
+    result = graph_module.render_sweep_graphs(
+        sweep_id="legacy_graph",
+        orders=[1],
+        out_dir=tmp_path / "graphs",
+    )
+
+    index_text = Path(str(result["index_path"])).read_text(encoding="utf-8")
+    assert "row:01:delta_anchor_activation_trace_baseline" in index_text
+    assert "Model arch: `tabfoundry_staged`" in index_text
+    assert "Model stage label: `dpnb_row_cls_cls2_linear_warmup_decay`" in index_text

@@ -4,19 +4,19 @@ rows:
 - order: 1
   delta_ref: dpnb_input_norm_anchor_replay
   status: completed
-  rationale: Reproduce the promoted bridge baseline locally before interpreting any
+  rationale: Reproduce the locked hybrid-diagnostic baseline locally before interpreting any
     normalization or batch-size movement.
-  hypothesis: The row-cls bridge winner should replay cleanly on this machine and
+  hypothesis: The row-cls hybrid-diagnostic winner should replay cleanly on this machine and
     provide the correct comparator for the rest of the queue.
   anchor_delta: Replays `dpnb_row_cls_cls2_linear_warmup_decay` exactly, keeping `train_zscore_clip`,
-    batch size 32, and the promoted linear-warmup-decay schedule.
+    batch size 32, and the locked linear-warmup-decay schedule.
   parameter_adequacy_plan:
   - Use this row as the batch32 reference for the normalization-only rows and the
     batch-size sidecars.
   - Report benchmark ROC, best-to-final drift, clipped-step fraction, and activation
     windows.
   - If a later row wins cleanly, preserve this replay as evidence rather than forcing
-    it to remain the canonical anchor.
+    it to remain the locked hybrid-diagnostic anchor.
   model:
     stage: nano_exact
     stage_label: dpnb_row_cls_cls2_linear_warmup_decay
@@ -69,9 +69,9 @@ rows:
   interpretation_status: completed
   confounders: []
   next_action: Treat this run as the batch32 reference only; row 7 (`dpnb_input_norm_anchor_replay_batch64_sqrt`)
-    is the promoted canonical anchor.
+    is the locked hybrid-diagnostic anchor.
   notes:
-  - This row is required because the promoted bridge baseline artifacts were produced
+  - This row is required because the locked hybrid-diagnostic baseline artifacts were produced
     on another machine.
   - The earlier local MPS replay is archived under `train_pre_cpu_fallback_20260317T2239`
     and is not canonical for this sweep.
@@ -81,7 +81,7 @@ rows:
     that registry entry is retained as history only.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_01_dpnb_input_norm_anchor_replay_v2`.
   - CUDA rerun established the same-machine batch32 reference, but row 7 later displaced
-    it as the canonical anchor.
+    it as the locked hybrid-diagnostic anchor.
   - Row 7 improved final ROC AUC by 0.0068 on the same clipped normalization family,
     so this row remains evidence rather than the live anchor.
 - order: 2
@@ -148,7 +148,7 @@ rows:
   interpretation_status: completed
   confounders: []
   next_action: Interpret rows 2-5 as a normalization-family wash on the weaker batch32
-    surface; keep row 7 as the canonical anchor.
+    surface; keep row 7 as the locked hybrid-diagnostic anchor.
   notes:
   - training_surface_record.json confirms this row actually resolved to input_normalization=train_zscore
     with benchmark profile dpnb_input_norm_zscore.
@@ -224,8 +224,9 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Keep this as bounded outlier-defense evidence only; row 7 stays canonical
-    because the batch64 surface moved the metric while rows 1-3 did not.
+  next_action: Keep this as bounded outlier-defense evidence only; row 7 stays the
+    locked hybrid-diagnostic anchor because the batch64 surface moved the metric while
+    rows 1-3 did not.
   notes:
   - training_surface_record.json confirms this row actually resolved to input_normalization=train_winsorize_zscore
     with benchmark profile dpnb_input_norm_winsorize_zscore.
@@ -294,8 +295,8 @@ rows:
   interpretation_status: completed
   confounders: []
   next_action: Treat this as the smooth-tail comparator only; row 9 later tied the
-    promoted winner, so row 7 stays canonical because it reaches the same result with
-    less normalization.
+    locked winner, so row 7 stays the locked hybrid-diagnostic anchor because it reaches
+    the same result with less normalization.
   notes:
   - Canonical CUDA rerun registered as `sd_input_norm_followup_04_dpnb_input_norm_zscore_tanh_v1`.
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
@@ -373,7 +374,7 @@ rows:
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
     pending full sweep interpretation.
   - Robust smooth-tail preprocessing produced no measurable upside on the locked bundle,
-    so it stays below the promoted clipped batch64 surface.
+    so it stays below the locked clipped batch64 hybrid-diagnostic surface.
   benchmark_metrics:
     best_roc_auc: 0.7634285072744538
     best_step: 750
@@ -440,7 +441,7 @@ rows:
   interpretation_status: completed
   confounders: []
   next_action: Keep this as negative batch-size evidence only; the smaller batch is
-    not competitive with the promoted row-7 anchor.
+    not competitive with the locked row-7 hybrid-diagnostic anchor.
   notes:
   - Effective LR scaling factor is approximately 0.7071, so effective lr_max is about
     0.002828 and effective min_lr is about 0.000283.
@@ -448,7 +449,7 @@ rows:
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
     pending full sweep interpretation.
   - Batch size 16 hurt final ROC AUC relative to both the batch32 reference and the
-    promoted batch64 surface.
+    locked batch64 hybrid-diagnostic surface.
   benchmark_metrics:
     best_roc_auc: 0.7595457209489976
     best_step: 2000
@@ -514,15 +515,16 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Use this run as the canonical anchor for future binary_md follow-ups;
-    it matched the best result in the sweep with the least additional normalization.
+  next_action: Use this run as the locked hybrid-diagnostic anchor for future binary_md
+    follow-ups; benchmark-facing promotion claims still need the `cls_benchmark_staged`
+    architecture-screen surface.
   notes:
   - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about
     0.005657 and effective min_lr is about 0.000566.
   - Canonical CUDA rerun registered as `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`.
   - CUDA rerun recorded the canonical benchmark comparison, but the row remains deferred
     pending full sweep interpretation.
-  - This row is promoted as the canonical anchor because it matched row 9 while keeping
+  - This row stays locked as the hybrid-diagnostic anchor because it matched row 9 while keeping
     `train_zscore_clip`, which is the less invasive preprocessing choice on this implementation.
   - Supersedes historical queue run `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v1`;
     that registry entry is retained as history only.
@@ -681,8 +683,8 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Keep this as tie evidence only; row 7 remains the promoted anchor because
-    it matched this result with less invasive preprocessing.
+  next_action: Keep this as tie evidence only; row 7 remains the locked hybrid-diagnostic
+    anchor because it matched this result with less invasive preprocessing.
   notes:
   - Effective LR scaling factor is approximately 1.4142, so effective lr_max is about
     0.005657 and effective min_lr is about 0.000566.

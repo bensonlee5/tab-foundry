@@ -31,7 +31,7 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     return next(row for row in rows if row["delta_ref"] == delta_ref)
 
 
-def test_cuda_stack_scale_followup_is_registered_and_active() -> None:
+def test_cuda_stack_scale_followup_is_registered_and_selected() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
     assert index["active_sweep_id"] == "cuda_stack_scale_followup"
@@ -40,7 +40,7 @@ def test_cuda_stack_scale_followup_is_registered_and_active() -> None:
     assert isinstance(sweeps, dict)
     assert sweeps["cuda_stack_scale_followup"] == {
         "parent_sweep_id": "cuda_stability_followup",
-        "status": "active",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -55,8 +55,11 @@ def test_cuda_stack_scale_followup_metadata_and_rows_match_the_executed_screen_r
 
     assert sweep["sweep_id"] == "cuda_stack_scale_followup"
     assert sweep["parent_sweep_id"] == "cuda_stability_followup"
-    assert sweep["status"] == "active"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
+    assert sweep["training_experiment"] == "cls_benchmark_staged_prior"
+    assert sweep["training_config_profile"] == "cls_benchmark_staged_prior"
+    assert sweep["surface_role"] == "hybrid_diagnostic"
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["model"]["stage_label"] == "dpnb_cuda_large_anchor_batch32_replay"
     assert any("train-only screens" in note for note in sweep["anchor_surface"]["notes"])
@@ -168,6 +171,8 @@ def test_cuda_stack_scale_followup_matrix_records_screen_and_benchmark_policies(
     assert "dpnb_cuda_stack_scale_poststack_ln" in matrix
     assert "dpnb_cuda_stack_scale_depth_scaled" in matrix
     assert "dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner" in matrix
+    assert "Training experiment: `cls_benchmark_staged_prior`" in matrix
+    assert "Surface role: `hybrid_diagnostic`" in matrix
     assert "Execution policy: `screen_only`" in matrix
     assert "Execution policy: `benchmark_full`" in matrix
     assert "Status: `blocked`" in matrix

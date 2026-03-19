@@ -18,7 +18,7 @@ policy.
 
 ## Environment And Quality Gate
 
-- Python `3.13` is pinned in `.python-version`.
+- Python `3.14` is pinned in `.python-version`.
 - Use the repo-local `uv` workflow for sync and command execution.
 
 Setup:
@@ -146,6 +146,10 @@ experiment default:
 ```bash
 uv run tab-foundry train prior staged
 ```
+
+`~/dev/nanoTabPFN/300k_150x5_2.h5` is an input to `tab-foundry train prior ...`
+and `tab-foundry bench compare`. Plain `tab-foundry train run ...` commands
+still consume a packed parquet manifest instead.
 
 Use the queue row plus `reference/system_delta_campaign_template.md` to decide
 the staged labels, any bounded module overrides, and the research-package paths
@@ -390,12 +394,36 @@ uv run tab-foundry bench compare \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
 
-The canonical control-baseline surface is:
+The checked-in `cls_benchmark_linear_v2` control baseline id remains the
+canonical medium-bundle comparator. Its repo-tracked registry entry now freezes
+the prior-trained staged `nano_exact` anchor run
+`01_nano_exact_md_prior_parity_fix_binary_medium_v1`, using:
+
+- `outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`
+- `outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json`
+
+That keeps the historical baseline id while aligning the canonical control
+surface with the existing prior-trained PFN-facing medium-bundle anchor.
+Refresh that control baseline through the freeze flow when you need a new run;
+do not hand-edit the registry entry.
+
+To re-freeze the checked-in entry from the current frozen anchor:
 
 ```bash
-uv run tab-foundry train run \
-  experiment=cls_benchmark_linear \
-  data.manifest_path=data/manifests/default.parquet \
+uv run tab-foundry bench registry freeze-baseline \
+  --baseline-id cls_benchmark_linear_v2 \
+  --experiment cls_benchmark_staged_prior \
+  --config-profile cls_benchmark_staged_prior \
+  --run-dir outputs/staged_ladder/01_nano_exact_md/prior_parity_fix \
+  --comparison-summary outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json
+```
+
+If you intentionally refresh the underlying control run, keep the new artifacts
+inside the repo and use the prior-trained staged path:
+
+```bash
+uv run tab-foundry train prior staged \
+  --prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5 \
   runtime.output_dir=outputs/control_baselines/cls_benchmark_linear_v2/train
 
 uv run tab-foundry bench compare \
@@ -406,15 +434,18 @@ uv run tab-foundry bench compare \
 
 uv run tab-foundry bench registry freeze-baseline \
   --baseline-id cls_benchmark_linear_v2 \
+  --experiment cls_benchmark_staged_prior \
+  --config-profile cls_benchmark_staged_prior \
   --run-dir outputs/control_baselines/cls_benchmark_linear_v2/train \
   --comparison-summary outputs/control_baselines/cls_benchmark_linear_v2/benchmark/comparison_summary.json
 ```
 
-Keep `outputs/control_baselines/cls_benchmark_linear_v2/train` empty before rerunning the
-training command; `tab-foundry train run` now fails fast if `runtime.output_dir` already contains a
-non-empty history file or checkpoint `.pt` artifacts.
+Keep the chosen refresh train directory empty before rerunning the training
+command; `tab-foundry train run` and `tab-foundry train prior staged` fail fast
+if `runtime.output_dir` already contains a non-empty history file or checkpoint
+`.pt` artifacts.
 
-`cls_benchmark_linear_v2` is the live canonical control surface for the medium
+`cls_benchmark_linear_v2` is the canonical control baseline id for the medium
 binary bundle. `cls_benchmark_linear_v1` remains in the registry unchanged as a
 historical 3-task surface and should only be used when reproducing earlier
 comparisons.
@@ -588,9 +619,15 @@ Recommended loop:
 
 Manual train, benchmark, and registry commands remain the advanced fallback when
 `tab-foundry research sweep execute` is not flexible enough for a one-off
-debugging pass. Use the packaged staged-prior, benchmark, and
+debugging pass. Use the queue-selected training experiment, benchmark, and
 benchmark-registration commands in that case, then rerender and validate the
 sweep metadata afterward.
+
+Current lane contract:
+
+- PFN control lane: `tabfoundry_simple` plus `tabfoundry_staged` with `stage=nano_exact`
+- Hybrid diagnostic lane: `cls_benchmark_staged_prior`
+- Canonical architecture-screen surface for future benchmark-facing sweeps: `cls_benchmark_staged`
 
 Every completed benchmark-facing row should leave behind:
 
@@ -613,6 +650,11 @@ Train-only `screen_only` rows still need:
 
 They intentionally skip benchmark registration and do not write
 `result_card.md`.
+
+`screen_only` rows are diagnostic only. Benchmark-facing conclusions must come
+from `benchmark_full` rows and should cite the locked bundle path,
+`cls_benchmark_linear_v2`, `training_surface_record.json`, `research_card.md`,
+`campaign.yaml`, and `result_card.md`.
 
 For queue reruns used to debug instability, `train_history.jsonl` now includes
 additive `train_loss_delta`, `train_loss_ema`, `grad_clip_threshold`, and

@@ -24,6 +24,9 @@ files explain and interpret one row; they do not redefine the row.
 - `comparison_policy: anchor_only`
 - `locked_bundle_path`
 - `locked_control_baseline_id`
+- `training_experiment`
+- `training_config_profile`
+- `surface_role`
 
 ### What Changes
 
@@ -37,6 +40,8 @@ files explain and interpret one row; they do not redefine the row.
 - why this row is entering now
 - what signal would count as informative
 - what would still be ambiguous after one run
+- whether this row belongs to the PFN control lane, the hybrid diagnostic lane,
+  or the canonical architecture-screen surface
 
 ### Adequacy Plan
 
@@ -56,6 +61,11 @@ anchor_run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
 locked_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 locked_control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged_prior
+training_config_profile: cls_benchmark_staged_prior
+surface_role: hybrid_diagnostic
+control_lane: tabfoundry_simple plus tabfoundry_staged stage=nano_exact
+hybrid_diagnostic_lane: tabfoundry_staged hybrid diagnostic surfaces built from nano_exact plus bounded overrides
+canonical_architecture_screen_surface: cls_benchmark_staged
 preserved_settings:
   model.arch: tabfoundry_staged
   model.input_normalization: train_zscore_clip
@@ -84,6 +94,10 @@ Every completed row needs a `result_card.md` before queue validation should
 pass, and the associated run must expose a `training_surface_record.json`
 artifact.
 
+`screen_only` rows are diagnostic only. They do not write `result_card.md`, they
+do not register benchmark runs, and they must not be used as benchmark-facing
+promotion evidence on their own.
+
 Required sections:
 
 - what changed
@@ -96,3 +110,7 @@ Required sections:
 
 Underperformance alone is not enough for `reject`. The result card must make
 that reasoning explicit.
+
+Benchmark-facing conclusions must cite the locked bundle path,
+`cls_benchmark_linear_v2`, `training_surface_record.json`, `research_card.md`,
+`campaign.yaml`, and `result_card.md`.

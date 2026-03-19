@@ -329,6 +329,111 @@ def test_freeze_control_baseline_accepts_richer_checkpoint_diagnostics_summary(
     assert frozen["baseline"]["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.41)
 
 
+def test_freeze_control_baseline_uses_best_step_checkpoint_when_best_pt_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    registry_path = repo_root / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
+    manifest_path = repo_root / "data" / "manifests" / "default.parquet"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_bytes(b"manifest")
+    benchmark_bundle_path = (
+        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_binary_medium_v1.json"
+    )
+    benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
+    run_dir = repo_root / "outputs" / "staged_ladder" / "01_nano_exact_md" / "prior_parity_fix"
+    best_step_path = _write_checkpoint(
+        run_dir / "checkpoints" / "step_000025.pt",
+        manifest_path="data/manifests/default.parquet",
+        seed=11,
+    )
+    _ = _write_checkpoint(
+        run_dir / "checkpoints" / "step_000050.pt",
+        manifest_path="data/manifests/default.parquet",
+        seed=11,
+    )
+    (run_dir / "train_history.jsonl").write_text("", encoding="utf-8")
+    (run_dir / "telemetry.json").write_text(
+        json.dumps(
+            {
+                "checkpoint_snapshots": [
+                    {"step": 25, "path": str(best_step_path.resolve()), "train_elapsed_seconds": 1.2},
+                    {
+                        "step": 50,
+                        "path": str((run_dir / "checkpoints" / "step_000050.pt").resolve()),
+                        "train_elapsed_seconds": 2.4,
+                    },
+                ]
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    summary_path = repo_root / "outputs" / "staged_ladder" / "01_nano_exact_md" / "prior_benchmark_binary_medium_v1" / "comparison_summary.json"
+    _ = _write_comparison_summary(
+        summary_path,
+        run_dir=run_dir,
+        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+    )
+    monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
+
+    frozen = control_baseline_module.freeze_control_baseline(
+        baseline_id="cls_benchmark_linear_v2",
+        experiment="cls_benchmark_staged_prior",
+        config_profile="cls_benchmark_staged_prior",
+        budget_class="short-run",
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        registry_path=registry_path,
+    )
+
+    assert frozen["baseline"]["run_dir"] == "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
+    assert frozen["baseline"]["seed_set"] == [11]
+    assert frozen["baseline"]["manifest_path"] == "data/manifests/default.parquet"
+
+
+def test_freeze_control_baseline_rejects_external_artifacts_for_canonical_registry(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    registry_path = repo_root / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
+    outside_root = tmp_path / "outside"
+    manifest_path = outside_root / "manifest.parquet"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_bytes(b"manifest")
+    benchmark_bundle_path = outside_root / "nanotabpfn_openml_binary_medium_v1.json"
+    benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
+    run_dir = outside_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v2" / "train"
+    _ = _write_checkpoint(
+        run_dir / "checkpoints" / "best.pt",
+        manifest_path=str(manifest_path.resolve()),
+        seed=11,
+    )
+    summary_path = outside_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v2" / "benchmark" / "comparison_summary.json"
+    _ = _write_comparison_summary(
+        summary_path,
+        run_dir=run_dir,
+        benchmark_bundle_source_path=str(benchmark_bundle_path.resolve()),
+        include_diagnostics=True,
+    )
+    monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(control_baseline_module, "default_control_baseline_registry_path", lambda: registry_path)
+
+    with pytest.raises(RuntimeError, match="canonical control baseline registry requires repo-local artifact paths"):
+        control_baseline_module.freeze_control_baseline(
+            baseline_id="cls_benchmark_linear_v2",
+            experiment="cls_benchmark_staged_prior",
+            config_profile="cls_benchmark_staged_prior",
+            budget_class="short-run",
+            run_dir=run_dir,
+            comparison_summary_path=summary_path,
+            registry_path=registry_path,
+        )
+
+
 def test_checked_in_control_baseline_registry_preserves_v1_and_adds_v2() -> None:
     registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
 
@@ -339,6 +444,14 @@ def test_checked_in_control_baseline_registry_preserves_v1_and_adds_v2() -> None
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
     )
     assert "final_log_loss" not in registry["baselines"]["cls_benchmark_linear_v1"]["tab_foundry_metrics"]
-    assert registry["baselines"]["cls_benchmark_linear_v2"]["benchmark_bundle"]["source_path"] == (
+    v2 = registry["baselines"]["cls_benchmark_linear_v2"]
+    assert v2["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
+    )
+    assert v2["experiment"] == "cls_benchmark_staged_prior"
+    assert v2["config_profile"] == "cls_benchmark_staged_prior"
+    assert v2["manifest_path"] == "data/manifests/default.parquet"
+    assert v2["run_dir"] == "outputs/staged_ladder/01_nano_exact_md/prior_parity_fix"
+    assert v2["comparison_summary_path"] == (
+        "outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json"
     )

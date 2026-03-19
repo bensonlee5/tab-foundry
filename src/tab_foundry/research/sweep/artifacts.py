@@ -8,6 +8,12 @@ from typing import Any, Mapping, cast
 
 from omegaconf import OmegaConf
 
+from tab_foundry.research.lane_contract import (
+    ARCHITECTURE_SCREEN_SURFACE,
+    HYBRID_DIAGNOSTIC_LANE_LABEL,
+    PFN_CONTROL_LANE_LABEL,
+)
+
 from .paths_io import _write_yaml as _write_yaml_file, default_catalog_path, default_registry_path, default_sweep_index_path, default_sweeps_root, repo_root as _repo_root
 
 
@@ -57,7 +63,16 @@ def write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
     _write_yaml_file(path, payload)
 
 
-def research_card_text(*, row: Mapping[str, Any], sweep_id: str, anchor_run_id: str | None) -> str:
+def research_card_text(
+    *,
+    row: Mapping[str, Any],
+    sweep_id: str,
+    anchor_run_id: str | None,
+    sweep_meta: Mapping[str, Any],
+    training_experiment: str,
+    training_config_profile: str,
+    surface_role: str,
+) -> str:
     plan = cast(list[str], row.get("parameter_adequacy_plan", []))
     plan_lines = "\n".join(f"- {item}" for item in plan) if plan else "- No extra adequacy plan recorded."
     anchor_display = anchor_run_id or "none"
@@ -73,6 +88,11 @@ def research_card_text(*, row: Mapping[str, Any], sweep_id: str, anchor_run_id: 
             f"- `family`: `{row['family']}`",
             f"- `anchor_run_id`: `{anchor_display}`",
             "- `comparison_policy`: `anchor_only`",
+            f"- `locked_bundle_path`: `{sweep_meta['benchmark_bundle_path']}`",
+            f"- `locked_control_baseline_id`: `{sweep_meta['control_baseline_id']}`",
+            f"- `training_experiment`: `{training_experiment}`",
+            f"- `training_config_profile`: `{training_config_profile}`",
+            f"- `surface_role`: `{surface_role}`",
             "",
             "## What Changes",
             "",
@@ -83,6 +103,9 @@ def research_card_text(*, row: Mapping[str, Any], sweep_id: str, anchor_run_id: 
             "",
             f"- {row['rationale']}",
             f"- Hypothesis: {row['hypothesis']}",
+            f"- PFN control lane: {PFN_CONTROL_LANE_LABEL}",
+            f"- Hybrid diagnostic lane: {HYBRID_DIAGNOSTIC_LANE_LABEL}",
+            f"- Canonical architecture-screen surface: `{ARCHITECTURE_SCREEN_SURFACE}`",
             "",
             "## Adequacy Plan",
             "",
@@ -101,6 +124,8 @@ def campaign_payload(
     anchor_run_id: str | None,
     device: str,
     training_experiment: str,
+    training_config_profile: str,
+    surface_role: str,
 ) -> dict[str, Any]:
     changed_settings: dict[str, Any] = {
         "model": cast(dict[str, Any], queue_row.get("model", {})),
@@ -118,6 +143,11 @@ def campaign_payload(
         "locked_bundle_path": str(sweep_meta["benchmark_bundle_path"]),
         "locked_control_baseline_id": str(sweep_meta["control_baseline_id"]),
         "training_experiment": training_experiment,
+        "training_config_profile": training_config_profile,
+        "surface_role": surface_role,
+        "control_lane": PFN_CONTROL_LANE_LABEL,
+        "hybrid_diagnostic_lane": HYBRID_DIAGNOSTIC_LANE_LABEL,
+        "canonical_architecture_screen_surface": ARCHITECTURE_SCREEN_SURFACE,
         "preserved_settings": {
             "queue_ref": f"reference/system_delta_sweeps/{sweep_id}/queue.yaml",
             "runtime.device": str(device),
@@ -139,10 +169,20 @@ def write_research_package(
     anchor_run_id: str | None,
     device: str,
     training_experiment: str,
+    training_config_profile: str,
+    surface_role: str,
 ) -> None:
     delta_root.mkdir(parents=True, exist_ok=True)
     (delta_root / "research_card.md").write_text(
-        research_card_text(row=materialized_row, sweep_id=sweep_id, anchor_run_id=anchor_run_id),
+        research_card_text(
+            row=materialized_row,
+            sweep_id=sweep_id,
+            anchor_run_id=anchor_run_id,
+            sweep_meta=sweep_meta,
+            training_experiment=training_experiment,
+            training_config_profile=training_config_profile,
+            surface_role=surface_role,
+        ),
         encoding="utf-8",
     )
     write_yaml(
@@ -155,6 +195,8 @@ def write_research_package(
             anchor_run_id=anchor_run_id,
             device=device,
             training_experiment=training_experiment,
+            training_config_profile=training_config_profile,
+            surface_role=surface_role,
         ),
     )
 

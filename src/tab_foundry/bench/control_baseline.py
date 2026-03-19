@@ -9,7 +9,7 @@ from typing import Any, Mapping, Sequence, cast
 import torch
 
 from tab_foundry.bench.artifacts import write_json
-from tab_foundry.bench.nanotabpfn import resolve_tab_foundry_best_checkpoint
+from tab_foundry.bench.nanotabpfn import collect_checkpoint_snapshots, resolve_tab_foundry_best_checkpoint
 from tab_foundry.bench.registry.paths import (
     normalize_path_value as _normalize_path_value_impl,
     project_root as _project_root_impl,
@@ -34,7 +34,8 @@ from tab_foundry.bench.registry.summary_metrics import (
 REGISTRY_SCHEMA = "tab-foundry-control-baselines-v1"
 REGISTRY_VERSION = 1
 DEFAULT_BASELINE_ID = "cls_benchmark_linear_v2"
-DEFAULT_CONFIG_PROFILE = "cls_benchmark_linear"
+DEFAULT_EXPERIMENT = "cls_benchmark_staged_prior"
+DEFAULT_CONFIG_PROFILE = DEFAULT_EXPERIMENT
 DEFAULT_BUDGET_CLASS = "short-run"
 
 _TOP_LEVEL_KEYS = {"schema", "version", "baselines"}
@@ -98,6 +99,36 @@ def default_control_baseline_registry_path() -> Path:
     """Return the repo-tracked control baseline registry path."""
 
     return Path(__file__).resolve().with_name("control_baselines_v1.json")
+
+
+def _canonical_registry_path() -> Path:
+    return default_control_baseline_registry_path().expanduser().resolve()
+
+
+def _ensure_repo_local_path_value(path_value: str, *, field_name: str) -> None:
+    resolved_path = resolve_registry_path_value(path_value)
+    repo_root = project_root().expanduser().resolve()
+    try:
+        resolved_path.relative_to(repo_root)
+    except ValueError as exc:
+        raise RuntimeError(
+            "canonical control baseline registry requires repo-local artifact paths: "
+            f"field={field_name}, value={path_value!r}, resolved={resolved_path}"
+        ) from exc
+
+
+def _enforce_canonical_registry_entry_paths(entry: Mapping[str, Any]) -> None:
+    _ensure_repo_local_path_value(str(entry["manifest_path"]), field_name="manifest_path")
+    _ensure_repo_local_path_value(str(entry["run_dir"]), field_name="run_dir")
+    _ensure_repo_local_path_value(
+        str(entry["comparison_summary_path"]),
+        field_name="comparison_summary_path",
+    )
+    benchmark_bundle = cast(dict[str, Any], entry["benchmark_bundle"])
+    _ensure_repo_local_path_value(
+        str(benchmark_bundle["source_path"]),
+        field_name="benchmark_bundle.source_path",
+    )
 
 
 def _empty_registry() -> dict[str, Any]:
@@ -187,6 +218,23 @@ def load_control_baseline_entry(
     return _copy_jsonable(entry)
 
 
+def _resolve_baseline_checkpoint(run_dir: Path, *, summary_tab_foundry: Mapping[str, Any]) -> Path:
+    try:
+        return resolve_tab_foundry_best_checkpoint(run_dir)
+    except RuntimeError as exc:
+        best_step_raw = summary_tab_foundry.get("best_step")
+        if not isinstance(best_step_raw, (int, float)) or isinstance(best_step_raw, bool):
+            raise
+        best_step = int(best_step_raw)
+        for snapshot in collect_checkpoint_snapshots(run_dir):
+            if int(snapshot["step"]) == best_step:
+                return Path(str(snapshot["path"])).expanduser().resolve()
+        raise RuntimeError(
+            "missing best checkpoint under "
+            f"{run_dir.expanduser().resolve()}; no checkpoint snapshot matched summary best_step={best_step}"
+        ) from exc
+
+
 def derive_control_baseline_entry(
     *,
     baseline_id: str,
@@ -212,7 +260,10 @@ def derive_control_baseline_entry(
             f"summary={summary_run_dir}, requested={resolved_run_dir}"
         )
 
-    best_checkpoint = resolve_tab_foundry_best_checkpoint(resolved_run_dir)
+    best_checkpoint = _resolve_baseline_checkpoint(
+        resolved_run_dir,
+        summary_tab_foundry=tab_foundry,
+    )
     checkpoint_payload = torch.load(best_checkpoint, map_location="cpu", weights_only=False)
     if not isinstance(checkpoint_payload, dict):
         raise RuntimeError(f"checkpoint payload must be a mapping: {best_checkpoint}")
@@ -292,7 +343,11 @@ def freeze_control_baseline(
         run_dir=run_dir,
         comparison_summary_path=comparison_summary_path,
     )
-    resolved_registry_path = upsert_control_baseline_entry(entry, registry_path=registry_path)
+    requested_registry_path = default_control_baseline_registry_path() if registry_path is None else registry_path
+    resolved_registry_path = requested_registry_path.expanduser().resolve()
+    if resolved_registry_path == _canonical_registry_path():
+        _enforce_canonical_registry_entry_paths(entry)
+    resolved_registry_path = upsert_control_baseline_entry(entry, registry_path=resolved_registry_path)
     return {
         "registry_path": str(resolved_registry_path),
         "baseline": entry,
@@ -314,7 +369,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--experiment",
-        default=DEFAULT_CONFIG_PROFILE,
+        default=DEFAULT_EXPERIMENT,
         help="Logical experiment name stored in the registry entry",
     )
     parser.add_argument(

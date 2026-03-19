@@ -167,6 +167,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Control baseline id for the new sweep",
     )
     create_parser.add_argument(
+        "--training-experiment",
+        default=None,
+        help="Optional training experiment for new rows; defaults to the parent sweep contract",
+    )
+    create_parser.add_argument(
+        "--training-config-profile",
+        default=None,
+        help="Optional training config profile for new rows; defaults to the parent sweep contract",
+    )
+    create_parser.add_argument(
+        "--surface-role",
+        default=None,
+        help="Optional lane role label such as hybrid_diagnostic or architecture_screen",
+    )
+    create_parser.add_argument(
         "--delta-ref",
         action="append",
         dest="delta_refs",
@@ -217,6 +232,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             complexity_level=str(args.complexity_level),
             benchmark_bundle_path=str(args.benchmark_bundle_path),
             control_baseline_id=str(args.control_baseline_id),
+            training_experiment=(
+                None if args.training_experiment is None else str(args.training_experiment)
+            ),
+            training_config_profile=(
+                None if args.training_config_profile is None else str(args.training_config_profile)
+            ),
+            surface_role=(None if args.surface_role is None else str(args.surface_role)),
             delta_refs=None if args.delta_refs is None else [str(value) for value in args.delta_refs],
             index_path=index_path,
             catalog_path=catalog_path,
