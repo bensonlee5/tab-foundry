@@ -68,10 +68,10 @@ def test_cuda_stability_followup_metadata_and_rows_match_the_batch32_first_debug
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
     assert [row["status"] for row in rows] == [
-        "ready",
-        "ready",
-        "ready",
-        "ready",
+        "completed",
+        "completed",
+        "completed",
+        "completed",
         "deferred_separate_workstream",
         "deferred_separate_workstream",
     ]
@@ -108,6 +108,7 @@ def test_cuda_stability_followup_metadata_and_rows_match_the_batch32_first_debug
     assert row5["interpretation_status"] == "blocked"
     assert row5["training"]["prior_dump_batch_size"] == 64
     assert "Leave deferred" in row5["next_action"]
+    assert any("second stopped diagnostic archive" in note for note in row5["notes"])
 
     row6 = _row_by_ref(queue, "dpnb_cuda_large_anchor_batch64_noscale_lr3e3")
     assert row6["status"] == "deferred_separate_workstream"

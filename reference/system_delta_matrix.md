@@ -33,10 +33,10 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `dpnb_cuda_large_anchor_batch32_replay` | batch_size | yes | ready | none | Re-run the large CUDA bridge anchor on the compact batch32 replay surface. | Run this row first as the clean batch32 discriminator before lower-LR or post-encoder-norm probes. |
-| 2 | `dpnb_cuda_large_anchor_batch32_lr3e3` | schedule | yes | ready | none | Re-run the large CUDA bridge anchor on the compact batch32 replay surface with a lower 3e-3 LR ceiling. | Run after row 1 if the clean batch32 replay still shows upward activation drift. |
-| 3 | `dpnb_cuda_large_anchor_batch32_postrms` | normalization | yes | ready | none | Keep the large CUDA bridge anchor on the batch32 replay surface and add explicit post-encoder RMSNorm before the transformer blocks. | Run after the two batch32 schedule rows if upward drift still persists. |
-| 4 | `dpnb_cuda_large_anchor_batch32_postln` | normalization | yes | ready | none | Keep the large CUDA bridge anchor on the batch32 replay surface and add explicit post-encoder LayerNorm before the transformer blocks. | Run after the RMSNorm row if the direct norm-family comparison is still needed. |
+| 1 | `dpnb_cuda_large_anchor_batch32_replay` | batch_size | yes | completed | none | Re-run the large CUDA bridge anchor on the compact batch32 replay surface. | Run this row first as the clean batch32 discriminator before lower-LR or post-encoder-norm probes. |
+| 2 | `dpnb_cuda_large_anchor_batch32_lr3e3` | schedule | yes | completed | none | Re-run the large CUDA bridge anchor on the compact batch32 replay surface with a lower 3e-3 LR ceiling. | Run after row 1 if the clean batch32 replay still shows upward activation drift. |
+| 3 | `dpnb_cuda_large_anchor_batch32_postrms` | normalization | yes | completed | none | Keep the large CUDA bridge anchor on the batch32 replay surface and add explicit post-encoder RMSNorm before the transformer blocks. | Run after the two batch32 schedule rows if upward drift still persists. |
+| 4 | `dpnb_cuda_large_anchor_batch32_postln` | normalization | yes | completed | none | Keep the large CUDA bridge anchor on the batch32 replay surface and add explicit post-encoder LayerNorm before the transformer blocks. | Run after the RMSNorm row if the direct norm-family comparison is still needed. |
 | 5 | `dpnb_cuda_large_anchor_batch64_noscale` | schedule | yes | deferred_separate_workstream | none | Re-run the large CUDA bridge anchor at batch64 without sqrt LR scaling. | Leave deferred until the batch32 ladder settles and batch64 can be revisited without first-attempt OOM fallback. |
 | 6 | `dpnb_cuda_large_anchor_batch64_noscale_lr3e3` | schedule | yes | deferred_separate_workstream | none | Re-run the large CUDA bridge anchor at batch64 without sqrt LR scaling and with a lower 3e-3 LR ceiling. | Keep deferred as backlog evidence until the batch32 ladder resolves and the batch64 memory surface is worth retesting. |
 
@@ -45,7 +45,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 1. `dpnb_cuda_large_anchor_batch32_replay`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Re-run the large CUDA bridge anchor on the compact batch32 replay surface.
@@ -65,19 +65,21 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_reference_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Stop early if upper-block norms keep a clear positive linear trend after warmup even if loss looks acceptable.
   - Use the archived batch64 diagnostics as comparators rather than as the default execution path.
+  - Canonical rerun registered as `sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_replay/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1` with final log loss `0.5865`, delta final log loss `+0.1893`, final Brier score `0.2020`, delta final Brier score `+0.0712`, best ROC AUC `0.5484`, final ROC AUC `0.5649`, final-minus-best `+0.0166`, delta final ROC AUC `-0.1985`, delta drift `+0.0166`, delta final training time `+1754.5s`
 
 ### 2. `dpnb_cuda_large_anchor_batch32_lr3e3`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Re-run the large CUDA bridge anchor on the compact batch32 replay surface with a lower 3e-3 LR ceiling.
@@ -97,19 +99,21 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_reference_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Prefer this row only if boundedness improves without an obvious quality collapse.
   - Do not reopen normalization until the batch32 LR ladder is exhausted.
+  - Canonical rerun registered as `sd_cuda_stability_followup_02_dpnb_cuda_large_anchor_batch32_lr3e3_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_lr3e3/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_cuda_stability_followup_02_dpnb_cuda_large_anchor_batch32_lr3e3_v1` with final log loss `0.6078`, delta final log loss `+0.2106`, final Brier score `0.2100`, delta final Brier score `+0.0792`, best ROC AUC `0.6755`, final ROC AUC `0.4596`, final-minus-best `-0.2159`, delta final ROC AUC `-0.3039`, delta drift `-0.2159`, delta final training time `+1761.8s`
 
 ### 3. `dpnb_cuda_large_anchor_batch32_postrms`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Keep the large CUDA bridge anchor on the batch32 replay surface and add explicit post-encoder RMSNorm before the transformer blocks.
@@ -128,19 +132,21 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - RMSNorm is intentionally ordered before LayerNorm in this sweep.
   - Keep the batch32 replay surface otherwise unchanged so the norm-family effect is attributable.
+  - Canonical rerun registered as `sd_cuda_stability_followup_03_dpnb_cuda_large_anchor_batch32_postrms_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_postrms/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_cuda_stability_followup_03_dpnb_cuda_large_anchor_batch32_postrms_v1` with final log loss `0.5932`, delta final log loss `+0.1960`, final Brier score `0.2051`, delta final Brier score `+0.0743`, best ROC AUC `0.5819`, final ROC AUC `0.5482`, final-minus-best `-0.0337`, delta final ROC AUC `-0.2153`, delta drift `-0.0337`, delta final training time `+1760.5s`
 
 ### 4. `dpnb_cuda_large_anchor_batch32_postln`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Keep the large CUDA bridge anchor on the batch32 replay surface and add explicit post-encoder LayerNorm before the transformer blocks.
@@ -159,14 +165,16 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Earlier repo evidence favored LayerNorm on a different surface, but this row exists as the same-surface comparator to RMSNorm.
   - Keep the batch32 replay surface otherwise unchanged so the norm-family comparison stays clean.
+  - Canonical rerun registered as `sd_cuda_stability_followup_04_dpnb_cuda_large_anchor_batch32_postln_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_postln/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_cuda_stability_followup_04_dpnb_cuda_large_anchor_batch32_postln_v1` with final log loss `0.5901`, delta final log loss `+0.1929`, final Brier score `0.2035`, delta final Brier score `+0.0727`, best ROC AUC `0.5565`, final ROC AUC `0.5841`, final-minus-best `+0.0277`, delta final ROC AUC `-0.1793`, delta drift `+0.0277`, delta final training time `+1761.3s`
 
 ### 5. `dpnb_cuda_large_anchor_batch64_noscale`
 
@@ -175,7 +183,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Binary applicable: `True`
 - Legacy stage alias: `none`
 - Description: Re-run the large CUDA bridge anchor at batch64 without sqrt LR scaling.
-- Rationale: Keep the first batch64 no-scale probe as backlog evidence rather than the next execution target because the live diagnostic still drifted and retried every step.
+- Rationale: Keep the batch64 no-scale probe as backlog evidence rather than the next execution target because both no-scale diagnostics drifted and retried on essentially every step.
 - Hypothesis: Removing sqrt LR scaling may still matter, but batch64 remains a confounded surface until it can run without constant first-attempt OOM fallback.
 - Upstream delta: Not applicable; this is a repo-local training-surface stabilization probe on the large CUDA anchor.
 - Anchor delta: Keeps the large CUDA anchor architecture fixed but removes sqrt LR scaling by setting `prior_dump_lr_scale_rule=none` and `prior_dump_batch_reference_size=64`.
@@ -184,7 +192,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'min_lr': 0.0004}, 'runtime': {'grad_clip': 1.0, 'max_steps': 2500, 'trace_activations': True}, 'schedule': {'stages': [{'name': 'prior_dump', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
   - Revisit only if the batch32 ladder settles or batch64 memory behavior becomes interpretable without first-attempt fallback.
-  - Compare against the archived batch64-sqrt and archived batch64-no-scale diagnostics before treating any future batch64 retry as new evidence.
+  - Compare against the archived batch64-sqrt and both archived batch64-no-scale diagnostics before treating any future batch64 retry as new evidence.
 - Adequacy knobs to dimension explicitly:
   - training.prior_dump_batch_size
   - training.prior_dump_lr_scale_rule
@@ -195,6 +203,8 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Decision: `None`
 - Notes:
   - A stopped diagnostic archive exists at `sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch64_noscale_v1_stopped_activation_drift_20260318T233315Z`.
+  - A second stopped diagnostic archive exists at `sd_cuda_stability_followup_05_dpnb_cuda_large_anchor_batch64_noscale_v1_stopped_activation_drift_20260319T043910Z`.
+  - The second attempted execution was stopped at step `2025` without benchmark registration after continued activation drift and `2026` first-attempt OOM retries to `microbatch_size=32`.
   - Do not use this row as the default next execution target.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch64_noscale/result_card.md`

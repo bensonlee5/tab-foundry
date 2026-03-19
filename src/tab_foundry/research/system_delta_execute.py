@@ -155,7 +155,12 @@ def _materialized_row_map(*, sweep_id: str, paths: ExecutionPaths) -> dict[str, 
 
 def _apply_mapping(cfg: DictConfig, prefix: str, payload: Mapping[str, Any]) -> None:
     for key, value in payload.items():
-        OmegaConf.update(cfg, f"{prefix}.{key}", value, merge=True)
+        merge = not (
+            prefix == "model"
+            and key == "module_overrides"
+            and isinstance(value, Mapping)
+        )
+        OmegaConf.update(cfg, f"{prefix}.{key}", value, merge=merge)
 
 
 def _queue_aware_run_name(*, run_dir: Path) -> str:

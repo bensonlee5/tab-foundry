@@ -14,6 +14,8 @@ anchor_surface:
   notes:
   - This sweep exists because the first `cuda_capacity_pilot` large-anchor run drifted upward in activation scale and was stopped before benchmark registration.
   - Both batch64 diagnostics were also operationally confounded by first-attempt OOM fallback to microbatch 32, so `batch32` is now the clean discriminator surface.
+  - Rows 1-4 all completed and underperformed the locked anchor on final log loss, so this sweep still has no stable competitive large-anchor winner.
+  - A second batch64 no-scale attempt was stopped at step `2025` after continued activation drift and `2026` first-attempt OOM retries, so batch64 remains backlog-only.
   - 'Use an ordered ladder: `batch32` replay first, then lower LR on `batch32`, then compare post-encoder `rmsnorm` and `layernorm` on the same `batch32` surface.'
   - Keep `input_normalization` and capacity shape fixed; the goal is to stabilize the existing large anchor, not to promote a new width/depth variant.
   - Keep the earlier batch64 rows as deferred backlog evidence rather than the default execution path until batch64 can be evaluated without constant fallback.

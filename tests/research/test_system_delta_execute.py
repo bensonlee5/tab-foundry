@@ -241,6 +241,32 @@ def test_compose_cfg_sets_queue_aware_wandb_run_name(tmp_path: Path) -> None:
     assert str(cfg.model.stage_label) == 'dpnb_cuda_large_anchor'
 
 
+def test_compose_cfg_replaces_module_overrides_to_allow_post_encoder_norm(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'outputs' / 'staged_ladder' / 'research' / 'cuda_stability_followup' / 'train'
+
+    cfg = _compose_cfg(
+        row={
+            'model': {
+                'module_overrides': {
+                    'table_block_style': 'prenorm',
+                    'allow_test_self_attention': False,
+                    'row_pool': 'row_cls',
+                    'post_encoder_norm': 'rmsnorm',
+                }
+            }
+        },
+        run_dir=run_dir,
+        device='cuda',
+    )
+
+    assert cfg.model.module_overrides == {
+        'table_block_style': 'prenorm',
+        'allow_test_self_attention': False,
+        'row_pool': 'row_cls',
+        'post_encoder_norm': 'rmsnorm',
+    }
+
+
 def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> None:
     (tmp_path / 'gradient_history.jsonl').write_text(
         ''.join(

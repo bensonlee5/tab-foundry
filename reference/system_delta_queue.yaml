@@ -21,6 +21,10 @@ anchor_surface:
     upward in activation scale and was stopped before benchmark registration.
   - Both batch64 diagnostics were also operationally confounded by first-attempt OOM
     fallback to microbatch 32, so `batch32` is now the clean discriminator surface.
+  - Rows 1-4 all completed and underperformed the locked anchor on final log loss,
+    so this sweep still has no stable competitive large-anchor winner.
+  - A second batch64 no-scale attempt was stopped at step `2025` after continued activation
+    drift and `2026` first-attempt OOM retries, so batch64 remains backlog-only.
   - 'Use an ordered ladder: `batch32` replay first, then lower LR on `batch32`, then
     compare post-encoder `rmsnorm` and `layernorm` on the same `batch32` surface.'
   - Keep `input_normalization` and capacity shape fixed; the goal is to stabilize
@@ -96,7 +100,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: dpnb_cuda_large_anchor_batch32_replay
-  status: ready
+  status: completed
   dimension_family: training
   family: batch_size
   binary_applicable: true
@@ -177,10 +181,10 @@ rows:
     bundles before attributing any gain to architecture.
   - Treat this as the clean batch32 discriminator and only promote it if it is both
     stable and benchmark-competitive.
-  run_id: null
+  run_id: sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run this row first as the clean batch32 discriminator before lower-LR
     or post-encoder-norm probes.
@@ -189,10 +193,37 @@ rows:
     even if loss looks acceptable.
   - Use the archived batch64 diagnostics as comparators rather than as the default
     execution path.
-  benchmark_metrics: null
+  - Canonical rerun registered as `sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 1650
+    max_grad_norm: 170.08177185058594
+    clipped_step_fraction: 0.0536
+    best_log_loss: 0.5826663400063581
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.58646981293547
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.20005862076818284
+    nanotabpfn_best_brier_score: 0.14642705664899075
+    final_brier_score: 0.20196999111001515
+    nanotabpfn_final_brier_score: 0.14745454546536443
+    best_roc_auc: 0.5483682500342333
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5649198708675752
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.003803472929111873
+    final_minus_best_brier_score: 0.001911370341832308
+    final_minus_best_roc_auc: 0.01655162083334194
+    drift: 0.01655162083334194
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 0.1892823244058287
+    delta_final_brier_score: 0.07122265782757603
+    delta_final_roc_auc: -0.19853001754053778
 - order: 2
   delta_id: dpnb_cuda_large_anchor_batch32_lr3e3
-  status: ready
+  status: completed
   dimension_family: training
   family: schedule
   binary_applicable: true
@@ -274,20 +305,47 @@ rows:
     gain to architecture rather than LR softness.
   - Treat this as the last schedule-only rung before reopening architecture on the
     same batch32 surface.
-  run_id: null
+  run_id: sd_cuda_stability_followup_02_dpnb_cuda_large_anchor_batch32_lr3e3_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run after row 1 if the clean batch32 replay still shows upward activation
     drift.
   notes:
   - Prefer this row only if boundedness improves without an obvious quality collapse.
   - Do not reopen normalization until the batch32 LR ladder is exhausted.
-  benchmark_metrics: null
+  - Canonical rerun registered as `sd_cuda_stability_followup_02_dpnb_cuda_large_anchor_batch32_lr3e3_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 100
+    max_grad_norm: 580.5244140625
+    clipped_step_fraction: 0.1316
+    best_log_loss: 0.5777004420883054
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.6077807641944213
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.1980944823032378
+    nanotabpfn_best_brier_score: 0.14642705664899075
+    final_brier_score: 0.2099927473508867
+    nanotabpfn_final_brier_score: 0.14745454546536443
+    best_roc_auc: 0.675495925554438
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.4595856778331223
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.030080322106115887
+    final_minus_best_brier_score: 0.011898265047648876
+    final_minus_best_roc_auc: -0.21591024772131573
+    drift: -0.21591024772131573
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 0.21059327566478003
+    delta_final_brier_score: 0.07924541406844757
+    delta_final_roc_auc: -0.3038642105749907
 - order: 3
   delta_id: dpnb_cuda_large_anchor_batch32_postrms
-  status: ready
+  status: completed
   dimension_family: model
   family: normalization
   binary_applicable: true
@@ -368,20 +426,47 @@ rows:
     rather than LR softness.
   - Only benchmark this row if the activation traces are materially flatter than the
     schedule-only batch32 rows.
-  run_id: null
+  run_id: sd_cuda_stability_followup_03_dpnb_cuda_large_anchor_batch32_postrms_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run after the two batch32 schedule rows if upward drift still persists.
   notes:
   - RMSNorm is intentionally ordered before LayerNorm in this sweep.
   - Keep the batch32 replay surface otherwise unchanged so the norm-family effect
     is attributable.
-  benchmark_metrics: null
+  - Canonical rerun registered as `sd_cuda_stability_followup_03_dpnb_cuda_large_anchor_batch32_postrms_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 925
+    max_grad_norm: 1355.1287841796875
+    clipped_step_fraction: 0.044
+    best_log_loss: 0.5905024008066736
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.593194655115733
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.20371608506218158
+    nanotabpfn_best_brier_score: 0.14642705664899075
+    final_brier_score: 0.20505340645809672
+    nanotabpfn_final_brier_score: 0.14745454546536443
+    best_roc_auc: 0.5818941512802852
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5481698468592733
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0026922543090593942
+    final_minus_best_brier_score: 0.0013373213959151364
+    final_minus_best_roc_auc: -0.03372430442101193
+    drift: -0.03372430442101193
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 0.19600716658609174
+    delta_final_brier_score: 0.0743060731756576
+    delta_final_roc_auc: -0.21528004154883973
 - order: 4
   delta_id: dpnb_cuda_large_anchor_batch32_postln
-  status: ready
+  status: completed
   dimension_family: model
   family: normalization
   binary_applicable: true
@@ -462,10 +547,10 @@ rows:
     preferring one normalization family.
   - Only treat this row as a winner if it improves boundedness without giving back
     too much benchmark quality.
-  run_id: null
+  run_id: sd_cuda_stability_followup_04_dpnb_cuda_large_anchor_batch32_postln_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run after the RMSNorm row if the direct norm-family comparison is still
     needed.
@@ -474,7 +559,34 @@ rows:
     as the same-surface comparator to RMSNorm.
   - Keep the batch32 replay surface otherwise unchanged so the norm-family comparison
     stays clean.
-  benchmark_metrics: null
+  - Canonical rerun registered as `sd_cuda_stability_followup_04_dpnb_cuda_large_anchor_batch32_postln_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 700
+    max_grad_norm: 1229.4461669921875
+    clipped_step_fraction: 0.288
+    best_log_loss: 0.5839140032952959
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5901006112749565
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.20249657229468446
+    nanotabpfn_best_brier_score: 0.14642705664899075
+    final_brier_score: 0.20345102528827513
+    nanotabpfn_final_brier_score: 0.14745454546536443
+    best_roc_auc: 0.5564500723672567
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5841008479870587
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.006186607979660641
+    final_minus_best_brier_score: 0.0009544529935906765
+    final_minus_best_roc_auc: 0.027650775619802004
+    drift: 0.027650775619802004
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 0.19291312274531525
+    delta_final_brier_score: 0.07270369200583601
+    delta_final_roc_auc: -0.17934904042105426
 - order: 5
   delta_id: dpnb_cuda_large_anchor_batch64_noscale
   status: deferred_separate_workstream
@@ -482,8 +594,8 @@ rows:
   family: schedule
   binary_applicable: true
   description: Re-run the large CUDA bridge anchor at batch64 without sqrt LR scaling.
-  rationale: Keep the first batch64 no-scale probe as backlog evidence rather than
-    the next execution target because the live diagnostic still drifted and retried
+  rationale: Keep the batch64 no-scale probe as backlog evidence rather than the next
+    execution target because both no-scale diagnostics drifted and retried on essentially
     every step.
   hypothesis: Removing sqrt LR scaling may still matter, but batch64 remains a confounded
     surface until it can run without constant first-attempt OOM fallback.
@@ -557,7 +669,7 @@ rows:
   parameter_adequacy_plan:
   - Revisit only if the batch32 ladder settles or batch64 memory behavior becomes
     interpretable without first-attempt fallback.
-  - Compare against the archived batch64-sqrt and archived batch64-no-scale diagnostics
+  - Compare against the archived batch64-sqrt and both archived batch64-no-scale diagnostics
     before treating any future batch64 retry as new evidence.
   run_id: null
   followup_run_ids: []
@@ -568,6 +680,9 @@ rows:
     revisited without first-attempt OOM fallback.
   notes:
   - A stopped diagnostic archive exists at `sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch64_noscale_v1_stopped_activation_drift_20260318T233315Z`.
+  - A second stopped diagnostic archive exists at `sd_cuda_stability_followup_05_dpnb_cuda_large_anchor_batch64_noscale_v1_stopped_activation_drift_20260319T043910Z`.
+  - The second attempted execution was stopped at step `2025` without benchmark registration
+    after continued activation drift and `2026` first-attempt OOM retries to `microbatch_size=32`.
   - Do not use this row as the default next execution target.
   benchmark_metrics: null
 - order: 6
