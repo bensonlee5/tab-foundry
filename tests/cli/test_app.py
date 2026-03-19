@@ -5,6 +5,7 @@ import pytest
 import tab_foundry.bench.prior_train as prior_train_module
 import tab_foundry.cli as cli_module
 import tab_foundry.research.system_delta as system_delta_module
+import tab_foundry.research.sweep.graph as graph_module
 
 
 def test_nested_cli_bench_compare_delegates_to_compare_main(
@@ -72,3 +73,20 @@ def test_nested_cli_research_sweep_render_delegates_to_system_delta_main(
 
     assert exit_code == 0
     assert captured["argv"] == ["render", "--sweep-id", "binary_md_v1"]
+
+
+def test_nested_cli_research_sweep_graph_delegates_to_graph_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_graph_main(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(graph_module, "main", _fake_graph_main)
+
+    exit_code = cli_module.main(["research", "sweep", "graph", "--anchor", "--order", "7"])
+
+    assert exit_code == 0
+    assert captured["argv"] == ["--anchor", "--order", "7"]

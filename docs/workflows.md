@@ -521,6 +521,21 @@ Recommended loop:
    uv run tab-foundry research sweep next
    ```
 
+1. Render architecture graphs for the anchor or selected rows when you need a
+   structural view of the current sweep surface:
+
+   ```bash
+   uv sync
+   brew install graphviz
+   uv run tab-foundry research sweep graph --anchor
+   uv run tab-foundry research sweep graph --sweep-id <sweep_id> --order <order>
+   ```
+
+   The graph command writes SVGs and an `index.md` summary under
+   `outputs/staged_ladder/research/<sweep_id>/architecture_graphs` by default.
+   Run `tab-foundry research sweep graph --anchor` for the current canonical
+   surface. The command requires the Graphviz `dot` binary on `PATH`.
+
 1. Execute the active sweep's `ready` rows with the generic executor:
 
    ```bash

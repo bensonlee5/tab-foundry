@@ -82,6 +82,7 @@ Current canonical CLI namespaces:
 - `tab-foundry research sweep validate`
 - `tab-foundry research sweep set-active`
 - `tab-foundry research sweep execute`
+- `tab-foundry research sweep graph`
 - `tab-foundry research sweep promote`
 
 Shell helpers such as `scripts/build_manifest.sh`, `scripts/train_smoke.sh`,

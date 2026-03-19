@@ -54,6 +54,12 @@ def _run_sweep_execute(argv: Sequence[str] | None = None) -> int:
     return execute_main(None if argv is None else list(argv))
 
 
+def _run_sweep_graph(argv: Sequence[str] | None = None) -> int:
+    from tab_foundry.research.sweep.graph import main as graph_main
+
+    return graph_main(None if argv is None else list(argv))
+
+
 def _run_sweep_promote(argv: Sequence[str] | None = None) -> int:
     from tab_foundry.research.system_delta_promote import main as promote_main
 
@@ -107,6 +113,12 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "execute",
         help="Execute selected system-delta sweep rows",
         delegate=_run_sweep_execute,
+    )
+    register_delegate_leaf(
+        sweep_nested,
+        "graph",
+        help="Render torchview architecture graphs for sweep targets",
+        delegate=_run_sweep_graph,
     )
     register_delegate_leaf(
         sweep_nested,

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-03-18
+
+### Added
+
+- Added `tab-foundry research sweep graph`, a torchview-based architecture
+  renderer for sweep anchors and selected sweep rows. The command writes SVG
+  outputs plus an `index.md` manifest under
+  `outputs/staged_ladder/research/<sweep_id>/architecture_graphs` by default.
+
+### Changed
+
+- User-facing note: repo installs now include the Python graph-rendering
+  dependencies needed for sweep architecture graphs. Rendering still requires
+  the Graphviz `dot` binary to be installed on the machine.
+
 ## [0.8.0] - 2026-03-18
 
 ### Changed
