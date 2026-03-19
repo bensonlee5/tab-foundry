@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-03-19
+
+### Changed
+
+- User-facing note: `tab-foundry bench smoke dagzoo` now reuses the shared
+  dagzoo handoff-manifest workflow instead of owning a separate raw
+  `dagzoo generate --out` path, and its smoke telemetry now records the
+  validated `dagzoo_handoff` identity plus a combined
+  `timings_seconds.dagzoo_generate_manifest` stage.
+
 ## [0.8.4] - 2026-03-19
 
 ### Changed
