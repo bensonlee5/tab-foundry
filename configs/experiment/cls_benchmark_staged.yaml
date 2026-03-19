@@ -9,5 +9,6 @@ model:
   stage: nano_exact
 runtime:
   output_dir: outputs/cls_benchmark_staged
+  trace_activations: true
 logging:
   run_name: cls-benchmark-staged

@@ -230,19 +230,27 @@ This roadmap assumes the following repo truths:
 - Goal: add the telemetry needed to interpret row-first architecture changes
   structurally rather than by end metrics alone
 - Current state:
-  - activation tracing exists for the cell-table stack
-  - row-first stage boundaries are under-instrumented
-  - runtime and memory cost are not yet first-class promotion signals by stage
+  - the exact-prior diagnostic lane already emits rich module-gradient and
+    activation telemetry
+  - the canonical architecture-screen surface still lacks that same telemetry
+    parity in the regular trainer
+  - row-first stage boundaries are partially traced, but `post_context_encoder`
+    is still missing
 - Required work:
   - emit and persist `post_column_encoder`, `post_row_pool`, and
-    `post_context_encoder`
-  - add stage-local runtime and memory summaries for column, row, and context
-    stages
-  - make these metrics available in sweep artifacts and result cards
+    `post_context_encoder` on the regular training path
+  - write `gradient_history.jsonl` and `telemetry.json` from the regular
+    trainer, not only the prior-dump loop
+  - sync selected stage-local stability summaries to wandb and expose them in
+    sweep artifacts and result cards
+  - defer per-stage runtime and memory profiling until later architecture
+    tickets prove those costs are decision-critical
 - Exit criteria:
-  - row-first rows can be compared on quality, stability, runtime, and memory
-  - later TFCol and QASS rows are attributable without relying only on wandb
-    charts
+  - regular training emits the same class of module-gradient and activation
+    telemetry as the exact-prior path
+  - row-first rows can be compared on quality and stage-local stability without
+    relying only on raw wandb charts
+  - runtime and memory are explicitly out of scope for closing TF-RD-002
 
 ### TF-RD-003: Shared-Surface Unlock
 

@@ -9,6 +9,7 @@ from tab_foundry.bench.benchmark_run_registry import load_benchmark_run_registry
 
 from .materialize import load_system_delta_queue, ordered_rows
 from .paths_io import _render_path, _write_text, default_catalog_path, default_registry_path, repo_root, sweep_matrix_path, sweep_queue_path
+from .queue_updates import stage_local_telemetry_metrics
 from .validation import ensure_non_empty_string
 
 
@@ -71,6 +72,16 @@ def _expected_completed_queue_metrics(run: Mapping[str, Any]) -> dict[str, float
         value = _optional_float(vs_anchor.get(registry_key))
         if value is not None:
             expected[queue_key] = value
+    artifacts = cast(dict[str, Any], run.get("artifacts", {}))
+    run_dir_value = artifacts.get("run_dir")
+    if isinstance(run_dir_value, str) and run_dir_value.strip():
+        run_dir = resolve_registry_path_value(run_dir_value)
+        expected.update(
+            {
+                key: float(value)
+                for key, value in stage_local_telemetry_metrics(run_dir).items()
+            }
+        )
     return expected
 
 
@@ -150,6 +161,41 @@ def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str
         "final_picp_90": _format(final_picp_90),
         "delta_final_picp_90": "n/a" if final_picp_90 is None or anchor_final_picp_90 is None else f"{final_picp_90 - anchor_final_picp_90:+.4f}",
     }
+
+
+def _stage_local_stability_summary(queue_metrics: Mapping[str, Any] | None) -> str | None:
+    if not isinstance(queue_metrics, Mapping):
+        return None
+    parts: list[str] = []
+    for stage_label, grad_key, activation_key in (
+        (
+            "column",
+            "column_encoder_final_window_mean_grad_norm",
+            "column_activation_early_to_final_mean_delta",
+        ),
+        (
+            "row",
+            "row_pool_final_window_mean_grad_norm",
+            "row_activation_early_to_final_mean_delta",
+        ),
+        (
+            "context",
+            "context_encoder_final_window_mean_grad_norm",
+            "context_activation_early_to_final_mean_delta",
+        ),
+    ):
+        stage_parts: list[str] = []
+        grad_value = queue_metrics.get(grad_key)
+        if grad_value is not None:
+            stage_parts.append(f"grad `{float(grad_value):.4f}`")
+        activation_value = queue_metrics.get(activation_key)
+        if activation_value is not None:
+            stage_parts.append(f"act delta `{float(activation_value):+.4f}`")
+        if stage_parts:
+            parts.append(f"{stage_label} ({', '.join(stage_parts)})")
+    if not parts:
+        return None
+    return "; ".join(parts)
 
 
 def result_card_path(*, sweep_id: str, delta_id: str) -> Path:
@@ -293,6 +339,9 @@ def render_system_delta_matrix(
         delta_id = str(queue_row["delta_id"])
         run_id = queue_row.get("run_id")
         run = runs.get(run_id) if isinstance(run_id, str) else None
+        stage_local_stability = _stage_local_stability_summary(
+            cast(Mapping[str, Any] | None, queue_row.get("benchmark_metrics"))
+        )
         lines.append(f"### {queue_row['order']}. `{delta_id}`")
         lines.append("")
         lines.append(f"- Dimension family: `{queue_row['dimension_family']}`")
@@ -311,6 +360,8 @@ def render_system_delta_matrix(
             f"preprocessing=`{queue_row['preprocessing']['surface_label']}`, "
             f"training=`{queue_row['training']['surface_label']}`"
         )
+        if stage_local_stability is not None:
+            lines.append(f"- Stage-local stability: {stage_local_stability}")
         if queue_row["dimension_family"] == "model":
             lines.append(f"- Model overrides: `{render_model_change_payload(cast(Mapping[str, Any], queue_row['model']))}`")
             dynamic_model_overrides = queue_row.get("dynamic_model_overrides")

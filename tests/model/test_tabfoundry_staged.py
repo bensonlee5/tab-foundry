@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import pytest
 import torch
 
@@ -474,7 +476,7 @@ def test_activation_trace_records_expected_points_and_resets() -> None:
     assert model.flush_activation_trace() is None
 
 
-def test_activation_trace_uses_shape_normalized_rms() -> None:
+def test_activation_trace_aggregates_repeated_names_using_element_weighted_rms() -> None:
     model = _staged(
         "nano_exact",
         d_icl=32,
@@ -485,14 +487,75 @@ def test_activation_trace_uses_shape_normalized_rms() -> None:
 
     model.enable_activation_trace()
     model.trace_activation("constant", torch.full((1, 2, 3), 2.0, dtype=torch.float32))
-    first_snapshot = model.flush_activation_trace()
     model.trace_activation("constant", torch.full((2, 5, 7), 2.0, dtype=torch.float32))
-    second_snapshot = model.flush_activation_trace()
+    model.trace_activation("constant", torch.full((1, 1, 1), 4.0, dtype=torch.float32))
+    snapshot = model.flush_activation_trace()
 
-    assert first_snapshot is not None
-    assert second_snapshot is not None
-    assert first_snapshot["constant"] == pytest.approx(2.0)
-    assert second_snapshot["constant"] == pytest.approx(2.0)
+    assert snapshot is not None
+    expected = math.sqrt(((6 * 4.0) + (70 * 4.0) + (1 * 16.0)) / 77.0)
+    assert snapshot["constant"] == pytest.approx(expected)
+
+
+def test_activation_trace_stats_expose_raw_sum_sq_and_count() -> None:
+    model = _staged(
+        "nano_exact",
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=1,
+        head_hidden_dim=64,
+    )
+
+    model.enable_activation_trace()
+    model.trace_activation("constant", torch.full((1, 2, 3), 2.0, dtype=torch.float32))
+    model.trace_activation("constant", torch.full((2, 5, 7), 2.0, dtype=torch.float32))
+    model.trace_activation("constant", torch.full((1, 1, 1), 4.0, dtype=torch.float32))
+    snapshot = model.flush_activation_trace_stats()
+
+    assert snapshot == {"constant": (320.0, 77)}
+    assert model.flush_activation_trace_stats() == {}
+    model.disable_activation_trace()
+    assert model.flush_activation_trace_stats() is None
+
+
+def test_many_class_activation_trace_aggregates_recursive_context_calls() -> None:
+    model = _staged("many_class", many_class_base=4, input_normalization="none")
+    model.train()
+    batch = TaskBatch(
+        x_train=torch.randn(24, 12),
+        y_train=torch.randint(0, 6, (24,)),
+        x_test=torch.randn(8, 12),
+        y_test=torch.randint(0, 12, (8,)),
+        metadata={},
+        num_classes=12,
+    )
+    expected_sum_sq = 0.0
+    expected_count = 0
+
+    def _capture_context_output(
+        _module: torch.nn.Module,
+        _inputs: tuple[torch.Tensor, ...],
+        output: torch.Tensor,
+    ) -> None:
+        nonlocal expected_sum_sq, expected_count
+        trace_tensor = output.detach().to(torch.float32)
+        expected_sum_sq += float(trace_tensor.square().sum().item())
+        expected_count += int(trace_tensor.numel())
+
+    assert model.context_encoder is not None
+    handle = model.context_encoder.register_forward_hook(_capture_context_output)
+    try:
+        model.enable_activation_trace()
+        _ = model(batch)
+        snapshot = model.flush_activation_trace()
+    finally:
+        handle.remove()
+
+    assert snapshot is not None
+    assert "post_context_encoder" in snapshot
+    assert expected_count > 0
+    assert snapshot["post_context_encoder"] == pytest.approx(
+        math.sqrt(expected_sum_sq / float(expected_count))
+    )
 
 
 def test_shared_normalization_matches_stacked_2d_behavior_for_batched_forward_inputs() -> None:

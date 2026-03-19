@@ -213,6 +213,7 @@ def condition_rows(
             train_target_embeddings=train_target_embeddings,
             train_test_split_index=row_state.train_test_split_index,
         )
+        model.trace_activation("post_context_encoder", rows)
     return HeadOutputState(
         rows=rows,
         train_test_split_index=row_state.train_test_split_index,
