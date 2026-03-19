@@ -78,8 +78,16 @@ def _fit_fill_values(
     *,
     all_nan_fill: float,
 ) -> list[float]:
-    means = np.nanmean(x_train, axis=0)
-    means = np.where(np.isnan(means), float(all_nan_fill), means)
+    finite_mask = ~np.isnan(x_train)
+    finite_counts = finite_mask.sum(axis=0)
+    finite_sums = np.where(finite_mask, x_train, 0.0).sum(axis=0)
+    means = np.divide(
+        finite_sums,
+        finite_counts,
+        out=np.full(x_train.shape[1], np.nan, dtype=np.float64),
+        where=finite_counts > 0,
+    )
+    means = np.where(finite_counts == 0, float(all_nan_fill), means)
     return [float(value) for value in means.astype(np.float32, copy=False).tolist()]
 
 

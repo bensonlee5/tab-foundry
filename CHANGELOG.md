@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.8] - 2026-03-19
+
+### Changed
+
+- User-facing note: canonical dagzoo corpora now use `metadata.dataset_id` as
+  the manifest `dataset_id` only when it is paired with a canonical
+  `metadata.split_groups.request_run`; copied dagzoo-generated corpora remain
+  path-independent at the public `dataset_id` layer, while a new internal
+  manifest `dataset_identity_key` that includes `request_run` preserves unique
+  manifest identity and split hashing across distinct generate runs without
+  broadening that shortcut to unrelated hex-shaped dataset ids.
+
+- User-facing note: v3 export bundles now embed the resolved runtime
+  preprocessing policy, including `missing_value_policy.impute_missing` and
+  non-default `all_nan_fill`, and the reference consumer now executes with the
+  embedded preprocessing policy instead of silently falling back to the runtime
+  default surface; bundles that disable imputation now reject runtime inputs
+  that still contain NaN or Inf instead of returning non-finite predictions.
+
+- User-facing note: v3 manifest validation now rejects non-finite
+  `preprocessor.missing_value_policy.all_nan_fill` values during parsing, so
+  manifest checksumming and bundle validation cannot proceed with non-canonical
+  `NaN` or `Infinity` metadata.
+
 ## [0.8.7] - 2026-03-19
 
 ### Changed

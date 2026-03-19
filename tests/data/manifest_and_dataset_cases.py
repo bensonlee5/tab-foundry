@@ -14,7 +14,7 @@ import torch
 
 from tab_foundry.cli import build_parser
 from tab_foundry.data.dataset import PackedParquetTaskDataset
-from tab_foundry.data.manifest import build_manifest
+from tab_foundry.data.manifest import _stable_split, build_manifest
 from tab_foundry.export.exporter import export_checkpoint
 from tab_foundry.export.loader_ref import run_reference_consumer
 from tab_foundry.model.factory import build_model
@@ -148,6 +148,7 @@ def _write_dataset(
     filter_status: str | None = "not_run",
     filter_accepted: bool | None = None,
     include_filter: bool = True,
+    metadata_overrides: dict[str, Any] | None = None,
 ) -> dict[int, tuple[int, int, str]]:
     x_train, y_train, x_test, y_test = _classification_arrays(
         n_train=n_train,
@@ -162,6 +163,8 @@ def _write_dataset(
         filter_accepted=filter_accepted,
         include_filter=include_filter,
     )
+    if metadata_overrides is not None:
+        metadata.update(metadata_overrides)
     dataset = {
         "dataset_index": dataset_index,
         "x_train": x_train,
@@ -586,6 +589,106 @@ def test_manifest_dataset_id_and_split_are_stable_across_root_paths(tmp_path: Pa
     assert row_b["dataset_id"].startswith("root_")
 
 
+def test_manifest_prefers_canonical_dagzoo_dataset_id_across_root_paths(tmp_path: Path) -> None:
+    canonical_dataset_id = "a" * 32
+    generate_run_id = "b" * 32
+    root_a = tmp_path / "root_a" / "run" / "shard_00000"
+    root_b = tmp_path / "root_b" / "run" / "shard_00000"
+    _ = _write_dataset(
+        root_a,
+        metadata_overrides={
+            "dataset_id": canonical_dataset_id,
+            "split_groups": {"request_run": generate_run_id},
+        },
+    )
+    _ = _write_dataset(
+        root_b,
+        metadata_overrides={
+            "dataset_id": canonical_dataset_id,
+            "split_groups": {"request_run": generate_run_id},
+        },
+    )
+
+    manifest_a = tmp_path / "manifest_a.parquet"
+    manifest_b = tmp_path / "manifest_b.parquet"
+    _ = build_manifest([tmp_path / "root_a" / "run"], manifest_a)
+    _ = build_manifest([tmp_path / "root_b" / "run"], manifest_b)
+
+    row_a = pq.read_table(manifest_a).to_pylist()[0]
+    row_b = pq.read_table(manifest_b).to_pylist()[0]
+    assert row_a["dataset_id"] == canonical_dataset_id
+    assert row_b["dataset_id"] == canonical_dataset_id
+    assert row_a["dataset_identity_key"] == row_b["dataset_identity_key"] == (
+        f"dagzoo_request_{generate_run_id}/dataset_{canonical_dataset_id}"
+    )
+    assert row_a["split"] == row_b["split"]
+    assert row_a["source_root_id"] != row_b["source_root_id"]
+    assert row_a["source_shard_relpath"] == row_b["source_shard_relpath"] == "shard_00000"
+
+
+def test_manifest_canonical_dagzoo_identity_key_is_unique_across_request_runs(
+    tmp_path: Path,
+) -> None:
+    canonical_dataset_id = "a" * 32
+    generate_run_id_a = "b" * 32
+    generate_run_id_b = "c" * 32
+    root_a = tmp_path / "root_a" / "run" / "shard_00000"
+    root_b = tmp_path / "root_b" / "run" / "shard_00000"
+    _ = _write_dataset(
+        root_a,
+        metadata_overrides={
+            "dataset_id": canonical_dataset_id,
+            "split_groups": {"request_run": generate_run_id_a},
+        },
+    )
+    _ = _write_dataset(
+        root_b,
+        metadata_overrides={
+            "dataset_id": canonical_dataset_id,
+            "split_groups": {"request_run": generate_run_id_b},
+        },
+    )
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "root_a" / "run", tmp_path / "root_b" / "run"], manifest_path)
+
+    rows = pq.read_table(manifest_path).to_pylist()
+    assert len(rows) == 2
+    assert {str(row["dataset_id"]) for row in rows} == {canonical_dataset_id}
+    expected_identity_keys = {
+        f"dagzoo_request_{generate_run_id_a}/dataset_{canonical_dataset_id}",
+        f"dagzoo_request_{generate_run_id_b}/dataset_{canonical_dataset_id}",
+    }
+    assert {str(row["dataset_identity_key"]) for row in rows} == expected_identity_keys
+
+    rows_by_identity = {str(row["dataset_identity_key"]): row for row in rows}
+    for identity_key, row in rows_by_identity.items():
+        assert str(row["split"]) == _stable_split(identity_key, 0.8, 0.1)
+
+
+def test_manifest_keeps_root_derived_dataset_id_for_non_dagzoo_hex_metadata_id(
+    tmp_path: Path,
+) -> None:
+    hex_dataset_id = "a" * 32
+    root_a = tmp_path / "root_a" / "run" / "shard_00000"
+    root_b = tmp_path / "root_b" / "run" / "shard_00000"
+    _ = _write_dataset(root_a, metadata_overrides={"dataset_id": hex_dataset_id})
+    _ = _write_dataset(root_b, metadata_overrides={"dataset_id": hex_dataset_id})
+
+    manifest_a = tmp_path / "manifest_a.parquet"
+    manifest_b = tmp_path / "manifest_b.parquet"
+    _ = build_manifest([tmp_path / "root_a" / "run"], manifest_a)
+    _ = build_manifest([tmp_path / "root_b" / "run"], manifest_b)
+
+    row_a = pq.read_table(manifest_a).to_pylist()[0]
+    row_b = pq.read_table(manifest_b).to_pylist()[0]
+    assert row_a["dataset_id"] != hex_dataset_id
+    assert row_b["dataset_id"] != hex_dataset_id
+    assert row_a["dataset_id"] != row_b["dataset_id"]
+    assert row_a["dataset_id"].startswith("root_")
+    assert row_b["dataset_id"].startswith("root_")
+
+
 def test_manifest_dataset_id_is_unique_across_nested_runs_with_same_root(tmp_path: Path) -> None:
     root = tmp_path / "root"
     _ = _write_dataset(root / "run_a" / "shard_00000", dataset_index=0)
@@ -681,6 +784,37 @@ def test_manifest_multi_root_order_is_deterministic(tmp_path: Path) -> None:
     assert rows_ab == rows_ba
 
 
+def test_manifest_canonical_dagzoo_multi_root_order_is_deterministic(tmp_path: Path) -> None:
+    canonical_dataset_id = "a" * 32
+    generate_run_id_a = "b" * 32
+    generate_run_id_b = "c" * 32
+    root_a = tmp_path / "root_a" / "run" / "shard_00000"
+    root_b = tmp_path / "root_b" / "run" / "shard_00000"
+    _ = _write_dataset(
+        root_a,
+        metadata_overrides={
+            "dataset_id": canonical_dataset_id,
+            "split_groups": {"request_run": generate_run_id_a},
+        },
+    )
+    _ = _write_dataset(
+        root_b,
+        metadata_overrides={
+            "dataset_id": canonical_dataset_id,
+            "split_groups": {"request_run": generate_run_id_b},
+        },
+    )
+
+    manifest_ab = tmp_path / "manifest_ab.parquet"
+    manifest_ba = tmp_path / "manifest_ba.parquet"
+    _ = build_manifest([tmp_path / "root_a" / "run", tmp_path / "root_b" / "run"], manifest_ab)
+    _ = build_manifest([tmp_path / "root_b" / "run", tmp_path / "root_a" / "run"], manifest_ba)
+
+    rows_ab = pq.read_table(manifest_ab).to_pylist()
+    rows_ba = pq.read_table(manifest_ba).to_pylist()
+    assert rows_ab == rows_ba
+
+
 def test_manifest_handles_null_n_features_in_metadata(tmp_path: Path) -> None:
     shard_dir = tmp_path / "run" / "shard_00000"
     shard_dir.mkdir(parents=True, exist_ok=True)
@@ -734,3 +868,49 @@ def test_dataset_rejects_metadata_checksum_mismatch(tmp_path: Path) -> None:
     ds = PackedParquetTaskDataset(manifest_path, split=str(row["split"]), task="classification")
     with pytest.raises(RuntimeError, match="checksum mismatch"):
         _ = ds[0]
+
+
+def test_dataset_error_includes_dataset_identity_key_for_canonical_dagzoo_manifest_rows(
+    tmp_path: Path,
+) -> None:
+    canonical_dataset_id = "a" * 32
+    generate_run_id_a = "b" * 32
+    generate_run_id_b = "c" * 32
+    for root_name, request_run in (("root_a", generate_run_id_a), ("root_b", generate_run_id_b)):
+        shard_dir = tmp_path / root_name / "run" / "shard_00000"
+        dataset = {
+            "dataset_index": 0,
+            "x_train": np.array([[0.0, 1.0], [1.0, 2.0], [2.0, 3.0]], dtype=np.float32),
+            "y_train": np.array([0, 0, 0], dtype=np.int64),
+            "x_test": np.array([[4.0, 6.0], [5.0, 7.0]], dtype=np.float32),
+            "y_test": np.array([1, 1], dtype=np.int64),
+            "feature_types": ["num", "num"],
+            "metadata": {
+                **_classification_metadata(
+                    n_features=2,
+                    n_classes=2,
+                    seed=7,
+                    filter_status="accepted",
+                    filter_accepted=True,
+                ),
+                "dataset_id": canonical_dataset_id,
+                "split_groups": {"request_run": request_run},
+            },
+        }
+        _ = _write_packed_shard(shard_dir, datasets=[dataset])
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "root_a" / "run", tmp_path / "root_b" / "run"], manifest_path)
+    rows = pq.read_table(manifest_path).to_pylist()
+    assert {str(row["dataset_id"]) for row in rows} == {canonical_dataset_id}
+    assert len({str(row["dataset_identity_key"]) for row in rows}) == 2
+
+    split = str(rows[0]["split"])
+    expected_identity_key = str(rows[0]["dataset_identity_key"])
+    ds = PackedParquetTaskDataset(manifest_path=manifest_path, split=split, task="classification")
+    with pytest.raises(RuntimeError) as excinfo:
+        _ = ds[0]
+    message = str(excinfo.value)
+    assert "dataset_identity_key" in message
+    assert canonical_dataset_id in message
+    assert expected_identity_key in message

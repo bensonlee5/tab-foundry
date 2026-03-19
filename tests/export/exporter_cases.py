@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 import typing
 
 import numpy as np
@@ -11,6 +12,7 @@ import pytest
 import torch
 
 import tab_foundry.export.exporter as exporter_module
+import tab_foundry.export.loader_ref as loader_ref_module
 import tab_foundry.training.evaluate as evaluate_module
 from tab_foundry.export.contracts import (
     ExportPreprocessorState,
@@ -55,6 +57,7 @@ def _make_config(
     *,
     input_normalization: str = "none",
     model_overrides: dict[str, object] | None = None,
+    preprocessing_cfg: dict[str, object] | None = None,
 ) -> dict[str, object]:
     model_cfg: dict[str, object] = {
         "arch": "tabfoundry_staged",
@@ -87,10 +90,13 @@ def _make_config(
         model_cfg.pop("stage", None)
     elif model_cfg.get("stage") is None:
         model_cfg["stage"] = "small_class_head"
-    return {
+    cfg: dict[str, object] = {
         "task": task,
         "model": model_cfg,
     }
+    if preprocessing_cfg is not None:
+        cfg["preprocessing"] = preprocessing_cfg
+    return cfg
 
 
 def _write_checkpoint(
@@ -99,12 +105,14 @@ def _write_checkpoint(
     task: str,
     input_normalization: str = "none",
     model_overrides: dict[str, object] | None = None,
+    preprocessing_cfg: dict[str, object] | None = None,
     seed: int = 0,
 ) -> torch.nn.Module:
     cfg = _make_config(
         task,
         input_normalization=input_normalization,
         model_overrides=model_overrides,
+        preprocessing_cfg=preprocessing_cfg,
     )
     model_cfg = cfg["model"]
     assert isinstance(model_cfg, dict)
@@ -670,9 +678,38 @@ def test_export_manifest_embeds_policy_only_preprocessor(tmp_path: Path) -> None
 
     assert preproc["classification_label_policy"]["mapping"] == "train_only_remap"
     assert preproc["classification_label_policy"]["unseen_test_label"] == "filter"
+    assert preproc["missing_value_policy"]["impute_missing"] is True
     assert "feature_ids" not in preproc
     assert "fill_values" not in preproc["missing_value_policy"]
     assert "label_values" not in preproc["classification_label_policy"]
+
+
+def test_export_manifest_embeds_resolved_nondefault_preprocessing_policy(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_nondefault_preproc.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        preprocessing_cfg={
+            "surface_label": "runtime_fill_one",
+            "overrides": {"impute_missing": False, "all_nan_fill": 1.0},
+        },
+    )
+    out_dir = tmp_path / "export_nondefault_preproc"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    with (out_dir / "manifest.json").open("r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    preproc = manifest["preprocessor"]
+
+    assert preproc["missing_value_policy"] == {
+        "strategy": "train_mean",
+        "all_nan_fill": 1.0,
+        "impute_missing": False,
+    }
+    assert preproc["classification_label_policy"] == {
+        "mapping": "train_only_remap",
+        "unseen_test_label": "filter",
+    }
 
 
 def test_validate_export_rejects_fixed_inference_contract_drift(tmp_path: Path) -> None:
@@ -982,6 +1019,23 @@ def test_reference_consumer_derives_preprocessing_from_runtime_support_set(tmp_p
 
     assert output.batch.y_train.tolist() == [0, 1, 0]
     assert output.batch.num_classes == 2
+    assert output.batch.metadata["preprocessor_policy"] == {
+        "feature_order_policy": "positional_feature_ids",
+        "missing_value_policy": {
+            "strategy": "train_mean",
+            "all_nan_fill": 0.0,
+            "impute_missing": True,
+        },
+        "classification_label_policy": {
+            "mapping": "train_only_remap",
+            "unseen_test_label": "filter",
+        },
+        "dtype_policy": {
+            "features": "float32",
+            "classification_labels": "int64",
+            "regression_targets": "float32",
+        },
+    }
     assert torch.allclose(
         output.batch.x_train,
         torch.tensor([[1.0, 6.0], [3.0, 5.0], [5.0, 7.0]], dtype=torch.float32),
@@ -990,3 +1044,161 @@ def test_reference_consumer_derives_preprocessing_from_runtime_support_set(tmp_p
         output.batch.x_test,
         torch.tensor([[3.0, 11.0]], dtype=torch.float32),
     )
+
+
+def test_reference_consumer_rejects_missing_inputs_for_embedded_no_impute_policy(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_no_impute.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="none",
+        preprocessing_cfg={
+            "surface_label": "runtime_no_impute",
+            "overrides": {"impute_missing": False, "all_nan_fill": 1.0},
+        },
+        seed=11,
+    )
+    out_dir = tmp_path / "export_runtime_no_impute"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    with pytest.raises(RuntimeError, match="cannot execute missing-valued inputs"):
+        _ = run_reference_consumer(
+            out_dir,
+            x_train=np.asarray(
+                [
+                    [1.0, np.nan],
+                    [3.0, 5.0],
+                    [5.0, 7.0],
+                ],
+                dtype=np.float32,
+            ),
+            y_train=np.asarray([100, 200, 100], dtype=np.int64),
+            x_test=np.asarray([[np.nan, 11.0]], dtype=np.float32),
+        )
+
+
+def test_reference_consumer_executes_embedded_no_impute_policy_on_finite_inputs(
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_no_impute_finite.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="none",
+        preprocessing_cfg={
+            "surface_label": "runtime_no_impute",
+            "overrides": {"impute_missing": False, "all_nan_fill": 1.0},
+        },
+        seed=17,
+    )
+    out_dir = tmp_path / "export_runtime_no_impute_finite"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    output = run_reference_consumer(
+        out_dir,
+        x_train=np.asarray(
+            [
+                [1.0, 2.0],
+                [3.0, 5.0],
+                [5.0, 7.0],
+            ],
+            dtype=np.float32,
+        ),
+        y_train=np.asarray([100, 200, 100], dtype=np.int64),
+        x_test=np.asarray([[9.0, 11.0]], dtype=np.float32),
+    )
+
+    assert output.batch.metadata["preprocessor_policy"]["missing_value_policy"] == {
+        "strategy": "train_mean",
+        "all_nan_fill": 1.0,
+        "impute_missing": False,
+    }
+    assert output.batch.y_train.tolist() == [0, 1, 0]
+    assert output.batch.num_classes == 2
+    assert torch.allclose(
+        output.batch.x_train,
+        torch.tensor([[1.0, 2.0], [3.0, 5.0], [5.0, 7.0]], dtype=torch.float32),
+    )
+    assert torch.allclose(
+        output.batch.x_test,
+        torch.tensor([[9.0, 11.0]], dtype=torch.float32),
+    )
+    assert output.class_probs is not None
+    assert np.isfinite(output.class_probs).all()
+
+
+def test_reference_consumer_applies_embedded_nondefault_all_nan_fill(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_fill_one.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="none",
+        preprocessing_cfg={
+            "surface_label": "runtime_fill_one",
+            "overrides": {"all_nan_fill": 1.0},
+        },
+        seed=13,
+    )
+    out_dir = tmp_path / "export_runtime_fill_one"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    output = run_reference_consumer(
+        out_dir,
+        x_train=np.asarray(
+            [
+                [np.nan, 2.0],
+                [np.nan, 4.0],
+                [np.nan, 6.0],
+            ],
+            dtype=np.float32,
+        ),
+        y_train=np.asarray([1, 2, 1], dtype=np.int64),
+        x_test=np.asarray([[np.nan, 8.0]], dtype=np.float32),
+    )
+
+    assert output.batch.metadata["preprocessor_policy"]["missing_value_policy"] == {
+        "strategy": "train_mean",
+        "all_nan_fill": 1.0,
+        "impute_missing": True,
+    }
+    assert torch.allclose(
+        output.batch.x_train,
+        torch.tensor([[1.0, 2.0], [1.0, 4.0], [1.0, 6.0]], dtype=torch.float32),
+    )
+    assert torch.allclose(
+        output.batch.x_test,
+        torch.tensor([[1.0, 8.0]], dtype=torch.float32),
+    )
+
+
+def test_reference_consumer_rejects_nonfinite_class_probabilities(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_nonfinite_probs.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=19)
+    out_dir = tmp_path / "export_nonfinite_probs"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+    loaded = load_export_bundle(out_dir)
+
+    class _NaNModel:
+        def __call__(self, batch: TaskBatch) -> SimpleNamespace:
+            logits = torch.full((batch.x_test.shape[0], int(batch.num_classes or 0)), float("nan"))
+            return SimpleNamespace(
+                class_probs=None,
+                logits=logits,
+                num_classes=int(batch.num_classes or 0),
+            )
+
+    loaded.model = _NaNModel()  # type: ignore[assignment]
+    monkeypatch.setattr(loader_ref_module, "load_export_bundle", lambda _bundle_dir: loaded)
+
+    with pytest.raises(RuntimeError, match="non-finite class probabilities"):
+        _ = run_reference_consumer(
+            out_dir,
+            x_train=np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
+            y_train=np.asarray([0, 1], dtype=np.int64),
+            x_test=np.asarray([[5.0, 6.0]], dtype=np.float32),
+        )

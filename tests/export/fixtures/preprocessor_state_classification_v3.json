@@ -2,7 +2,8 @@
   "feature_order_policy": "positional_feature_ids",
   "missing_value_policy": {
     "strategy": "train_mean",
-    "all_nan_fill": 0.0
+    "all_nan_fill": 0.0,
+    "impute_missing": true
   },
   "classification_label_policy": {
     "mapping": "train_only_remap",

@@ -62,7 +62,10 @@ Required keys:
   - `many_class_inference_mode` (`full_probs`)
 - `preprocessor`
   - `feature_order_policy` (`positional_feature_ids`)
-  - `missing_value_policy` (`strategy=train_mean`, `all_nan_fill=0.0`)
+  - `missing_value_policy`
+    - `strategy` (`train_mean`)
+    - `all_nan_fill` (resolved runtime fill value, default `0.0`)
+    - `impute_missing` (resolved runtime imputation toggle, default `true`)
   - `classification_label_policy`
     - `{mapping=train_only_remap, unseen_test_label=filter}`
   - `dtype_policy` (`features=float32`, `classification_labels=int64`, `regression_targets=float32`)
@@ -75,8 +78,14 @@ Required keys:
   persist dataset-specific fitted preprocessing values.
 - Runtime preprocessing is always derived from the incoming support set
   (`x_train`, `y_train`) before applying the model.
-- The bundled `preprocessor` section is used for invariant contract checks and
-  conformance, not as a cache of export-time train statistics.
+- The bundled `preprocessor` section is the executable runtime policy surface
+  for the reference consumer, not a cache of export-time train statistics.
+- Bundles with `preprocessor.missing_value_policy.impute_missing=false` remain
+  policy-valid, but the reference consumer only executes them when runtime
+  feature inputs are already finite; otherwise it raises instead of returning
+  non-finite predictions.
+- Older v3 bundles that omit `preprocessor.missing_value_policy.impute_missing`
+  remain readable and default that field to `true`.
 - `manifest_sha256` protects the embedded `model`, `inference`,
   `preprocessor`, `weights`, and other top-level v3 manifest metadata against
   post-export edits.
@@ -137,6 +146,8 @@ Out of scope here:
 - Existing single-manifest v3 bundles without `manifest_sha256` are
   intentionally obsolete after the metadata-integrity fix and must be
   regenerated.
+- Existing v3 bundles without `preprocessor.missing_value_policy.impute_missing`
+  remain validator-readable and default to `true` until regenerated.
 - `tab-foundry-export-v2` bundles remain validator-readable during migration.
 - `tab-foundry-export-v1` bundles are intentionally unsupported and must be
   regenerated onto the current classification-only staged/simple surface.
