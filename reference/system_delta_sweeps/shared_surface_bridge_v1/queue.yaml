@@ -1,0 +1,182 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: shared_surface_bridge_v1
+rows:
+- order: 1
+  delta_ref: delta_architecture_screen_nano_exact_replay
+  status: ready
+  rationale: >-
+    Replay the public `nano_exact` stage on `cls_benchmark_staged` so the bridge sweep
+    has a same-lane local comparator before any shared-surface row is judged.
+  hypothesis: >-
+    The replay should recover the expected benchmark range while emitting the architecture-screen
+    telemetry artifacts missing from the older prior-lane anchor run.
+  anchor_delta: >-
+    Keep the public `nano_exact` stage fixed and only move execution onto the
+    benchmark-facing architecture-screen lane.
+  model:
+    stage: nano_exact
+    stage_label: delta_architecture_screen_nano_exact_replay
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: training_default
+    overrides: {}
+  parameter_adequacy_plan:
+  - Run this row first so the bridge sweep has a local `cls_benchmark_staged` comparator
+    with `gradient_history.jsonl` and `telemetry.json`.
+  - Compare later bridge rows against this replay rather than treating the older prior-lane
+    anchor as artifact-complete.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run first to establish the architecture-screen replay baseline for
+    the shared-surface bridge.
+  notes:
+  - Treat the older `01_nano_exact_md_prior_parity_fix_binary_medium_v1` registry run as historical anchor evidence only until this replay lands locally.
+- order: 2
+  delta_ref: delta_architecture_screen_shared_norm
+  status: ready
+  rationale: >-
+    Make `shared_norm` the first explicit step off the PFN-only encoder path on the
+    benchmark-facing architecture-screen surface.
+  hypothesis: >-
+    The public shared encoder should keep the bridge finite and interpretable enough to
+    serve as the first mandatory shared-surface comparator.
+  anchor_delta: >-
+    Starting from the architecture-screen `nano_exact` replay, switch only to the public
+    `shared_norm` stage.
+  model:
+    stage: shared_norm
+    stage_label: delta_architecture_screen_shared_norm
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: training_default
+    overrides: {}
+  parameter_adequacy_plan:
+  - Treat this as the first mandatory shared-surface comparator, not as a tokenizer
+    or row-pool experiment.
+  - If weak, keep the result as bridge evidence and do not skip straight to later
+    shared-surface rows without recording the regression.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Compare directly against the architecture-screen `nano_exact` replay
+    before moving deeper into the bridge.
+  notes:
+  - Historical hybrid-diagnostic `delta_shared_feature_norm` evidence remains context only; this row is the stage-native benchmark-facing shared-surface read.
+- order: 3
+  delta_ref: delta_architecture_screen_prenorm_block
+  status: ready
+  rationale: >-
+    Test whether the public `prenorm_block` stage is the first viable shared-surface backbone
+    change once the bridge is already off the PFN-only encoder.
+  hypothesis: >-
+    The stage-native pre-norm block should be more informative than the earlier hybrid-diagnostic
+    prenorm evidence because it runs on the public shared surface rather than on `nano_exact`
+    with bounded overrides.
+  anchor_delta: >-
+    Starting from the stage-native `shared_norm` bridge row, switch only to the public
+    `prenorm_block` stage.
+  model:
+    stage: prenorm_block
+    stage_label: delta_architecture_screen_prenorm_block
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: training_default
+    overrides: {}
+  parameter_adequacy_plan:
+  - Treat this row as the first backbone change after the shared encoder is active.
+  - If mixed, preserve it as explicit bridge evidence rather than collapsing the result
+    into the older hybrid-diagnostic prenorm evidence.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Compare against the shared-norm row before deciding whether the bridge
+    should advance through the pre-norm block.
+  notes:
+  - Do not collapse this row back into the older `delta_prenorm_block` conclusion; this is the first benchmark-facing stage-native prenorm read.
+- order: 4
+  delta_ref: delta_architecture_screen_small_class_head
+  status: ready
+  rationale: >-
+    Evaluate whether `small_class_head` should become the first explicit grouped-token
+    predecessor row on the public shared-surface bridge.
+  hypothesis: >-
+    The small-class head may improve bridge coherence enough that later grouped-token work
+    should inherit it instead of stopping at the pre-norm block.
+  anchor_delta: >-
+    Starting from the public `prenorm_block` bridge row, switch only to the public
+    `small_class_head` stage.
+  model:
+    stage: small_class_head
+    stage_label: delta_architecture_screen_small_class_head
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: training_default
+    overrides: {}
+  parameter_adequacy_plan:
+  - Treat this as a bridge row, not as a many-class promotion or tokenization change.
+  - Use it to decide whether later grouped-token work should inherit the small-class
+    head rather than stopping at the pre-norm block.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Compare directly against `prenorm_block` to decide whether the bridge
+    should carry the small-class head forward.
+  notes:
+  - This row exists to make the grouped-token handoff explicit; do not interpret it as many-class promotion work.
+- order: 5
+  delta_ref: delta_architecture_screen_test_self
+  status: ready
+  rationale: >-
+    Evaluate whether `test_self` should displace `small_class_head` as the single grouped-token
+    predecessor on the public shared-surface bridge.
+  hypothesis: >-
+    Test-self attention may repair the late bridge rows enough to justify locking `test_self`
+    as the grouped-token handoff row, but the effect may remain only locally beneficial.
+  anchor_delta: >-
+    Starting from the public `small_class_head` bridge row, switch only to the public
+    `test_self` stage.
+  model:
+    stage: test_self
+    stage_label: delta_architecture_screen_test_self
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: training_default
+    overrides: {}
+  parameter_adequacy_plan:
+  - Treat this as the final shared-surface bridge candidate before grouped tokens,
+    not as tokenizer work.
+  - Pick between `small_class_head` and `test_self` only after the full five-row bridge
+    sweep is visible together.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Compare directly against `small_class_head` and lock only one grouped-token
+    predecessor after the full bridge sweep.
+  notes:
+  - Earlier hybrid-diagnostic `delta_test_self_attention` evidence is historical context only; the keep/defer decision here must come from the stage-native bridge.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import shutil
+import subprocess
 from types import SimpleNamespace
 from typing import Any
 
@@ -94,6 +95,19 @@ def _make_exec_sweep(tmp_path: Path) -> tuple[str, ExecutionPaths, Path]:
     return sweep_id, paths, queue_path
 
 
+def _write_python_probe_stub(path: Path, *, torch_import_exit_code: int) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [ \"$1\" = \"-c\" ] && [ \"$2\" = \"import torch\" ]; then\n"
+        f"  exit {torch_import_exit_code}\n"
+        "fi\n"
+        "exit 0\n",
+        encoding='utf-8',
+    )
+    path.chmod(0o755)
+
+
 def test_select_queue_rows_defaults_to_ready_rows() -> None:
     queue = {
         'rows': [
@@ -118,6 +132,126 @@ def test_select_queue_rows_requires_include_completed_for_explicit_completed_row
 
     with pytest.raises(RuntimeError, match='include-completed'):
         _ = select_queue_rows(queue, orders=[1])
+
+
+def test_ensure_nanotabpfn_python_rewrites_existing_interpreter_without_torch(tmp_path: Path) -> None:
+    nanotabpfn_root = tmp_path / 'nanoTabPFN'
+    nanotab_python = nanotabpfn_root / '.venv' / 'bin' / 'python'
+    fallback_python = tmp_path / 'fallback' / 'bin' / 'python'
+
+    _write_python_probe_stub(nanotab_python, torch_import_exit_code=1)
+    _write_python_probe_stub(fallback_python, torch_import_exit_code=0)
+
+    observed = runner_module.ensure_nanotabpfn_python(
+        nanotabpfn_root=nanotabpfn_root,
+        fallback_python=fallback_python,
+    )
+
+    assert observed == nanotab_python
+    assert str(fallback_python) in observed.read_text(encoding='utf-8')
+    assert subprocess.run(
+        [str(observed), '-c', 'import torch'],
+        check=False,
+    ).returncode == 0
+
+
+def test_ensure_nanotabpfn_python_keeps_existing_usable_interpreter(tmp_path: Path) -> None:
+    nanotabpfn_root = tmp_path / 'nanoTabPFN'
+    nanotab_python = nanotabpfn_root / '.venv' / 'bin' / 'python'
+    fallback_python = tmp_path / 'fallback' / 'bin' / 'python'
+
+    _write_python_probe_stub(nanotab_python, torch_import_exit_code=0)
+    _write_python_probe_stub(fallback_python, torch_import_exit_code=1)
+    original_contents = nanotab_python.read_text(encoding='utf-8')
+
+    observed = runner_module.ensure_nanotabpfn_python(
+        nanotabpfn_root=nanotabpfn_root,
+        fallback_python=fallback_python,
+    )
+
+    assert observed == nanotab_python
+    assert observed.read_text(encoding='utf-8') == original_contents
+
+
+def test_ensure_nanotabpfn_python_preserves_fallback_symlink_path(tmp_path: Path) -> None:
+    nanotabpfn_root = tmp_path / 'nanoTabPFN'
+    nanotab_python = nanotabpfn_root / '.venv' / 'bin' / 'python'
+    fallback_python = tmp_path / 'fallback' / '.venv' / 'bin' / 'python'
+    resolved_target = tmp_path / 'pyenv' / 'versions' / '3.14.3' / 'bin' / 'python3.14'
+
+    _write_python_probe_stub(nanotab_python, torch_import_exit_code=1)
+    resolved_target.parent.mkdir(parents=True, exist_ok=True)
+    resolved_target.write_text(
+        "#!/usr/bin/env bash\n"
+        "if [ \"$1\" = \"-c\" ] && [ \"$2\" = \"import torch\" ]; then\n"
+        "  case \"$0\" in\n"
+        "    */.venv/bin/python) exit 0 ;;\n"
+        "    *) exit 1 ;;\n"
+        "  esac\n"
+        "fi\n"
+        "exit 0\n",
+        encoding='utf-8',
+    )
+    resolved_target.chmod(0o755)
+    fallback_python.parent.mkdir(parents=True, exist_ok=True)
+    fallback_python.symlink_to(resolved_target)
+
+    observed = runner_module.ensure_nanotabpfn_python(
+        nanotabpfn_root=nanotabpfn_root,
+        fallback_python=fallback_python,
+    )
+
+    shim = observed.read_text(encoding='utf-8')
+    assert str(fallback_python) in shim
+    assert str(resolved_target) not in shim
+    assert subprocess.run(
+        [str(observed), '-c', 'import torch'],
+        check=False,
+    ).returncode == 0
+
+
+def test_main_preserves_tab_foundry_python_symlink_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    prior_dump = tmp_path / 'prior.h5'
+    nanotabpfn_root = tmp_path / 'nanoTabPFN'
+    resolved_target = tmp_path / 'pyenv' / 'versions' / '3.14.3' / 'bin' / 'python3.14'
+    fallback_python = tmp_path / '.venv' / 'bin' / 'python'
+
+    prior_dump.write_text('stub', encoding='utf-8')
+    nanotabpfn_root.mkdir(parents=True, exist_ok=True)
+    resolved_target.parent.mkdir(parents=True, exist_ok=True)
+    resolved_target.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    resolved_target.chmod(0o755)
+    fallback_python.parent.mkdir(parents=True, exist_ok=True)
+    fallback_python.symlink_to(resolved_target)
+
+    captured: dict[str, Any] = {}
+
+    def fake_execute_sweep(**kwargs: Any) -> list[str]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(execute_module, 'execute_sweep', fake_execute_sweep)
+
+    exit_code = execute_module.main(
+        [
+            '--sweep-id',
+            'shared_surface_bridge_v1',
+            '--prior-dump',
+            str(prior_dump),
+            '--nanotabpfn-root',
+            str(nanotabpfn_root),
+            '--tab-foundry-python',
+            str(fallback_python),
+            '--device',
+            'cpu',
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured['fallback_python'] == fallback_python
 
 
 def test_select_queue_rows_requires_include_completed_for_explicit_screened_rows() -> None:

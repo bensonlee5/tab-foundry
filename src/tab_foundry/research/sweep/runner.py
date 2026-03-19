@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import shlex
+import subprocess
 from pathlib import Path
 from typing import Any, Mapping, cast
 
@@ -55,16 +56,42 @@ def row_id_for_order(sweep_id: str, order: int, delta_ref: str, existing_run_id:
     return f"{base}_v{int(match.group(1)) + 1}"
 
 
+def _python_can_import_torch(python_path: Path) -> bool:
+    try:
+        result = subprocess.run(
+            [str(python_path), "-c", "import torch"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        return False
+    return result.returncode == 0
+
+
+def _absolute_path_without_resolving_symlinks(path: Path) -> Path:
+    expanded = path.expanduser()
+    if expanded.is_absolute():
+        return expanded
+    return Path.cwd() / expanded
+
+
 def ensure_nanotabpfn_python(*, nanotabpfn_root: Path, fallback_python: Path) -> Path:
     nanotab_python = nanotabpfn_root / ".venv" / "bin" / "python"
+    fallback_executable = _absolute_path_without_resolving_symlinks(fallback_python)
     nanotab_python.parent.mkdir(parents=True, exist_ok=True)
-    if nanotab_python.exists() and not nanotab_python.is_symlink():
+    if nanotab_python.exists() and _python_can_import_torch(nanotab_python):
         return nanotab_python
     if nanotab_python.exists() or nanotab_python.is_symlink():
         nanotab_python.unlink()
+    if not _python_can_import_torch(fallback_executable):
+        raise RuntimeError(
+            "fallback interpreter cannot import torch: "
+            f"{fallback_executable}"
+        )
     nanotab_python.write_text(
         "#!/usr/bin/env bash\n"
-        f"exec {shlex.quote(str(fallback_python.resolve()))} \"$@\"\n",
+        f"exec {shlex.quote(str(fallback_executable))} \"$@\"\n",
         encoding="utf-8",
     )
     nanotab_python.chmod(0o755)
