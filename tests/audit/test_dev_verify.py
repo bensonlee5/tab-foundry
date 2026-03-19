@@ -41,6 +41,35 @@ def test_docs_only_diff_selects_mdformat_and_audit() -> None:
     assert plan.scope.subsystem_paths == {"docs": ("README.md",)}
 
 
+def test_system_delta_catalog_diff_includes_research_checks() -> None:
+    index = dev_verify.load_dev_index()
+
+    plan = dev_verify.build_verification_plan(["reference/system_delta_catalog.yaml"], index)
+
+    assert plan.escalated_to_full is False
+    assert {"mdformat", "audit", "ruff", "mypy", "pytest_research", "pytest_benchmark"}.issubset(
+        plan.check_ids
+    )
+    assert plan.scope.subsystem_paths["research"] == ("reference/system_delta_catalog.yaml",)
+
+
+def test_system_delta_sweep_queue_diff_includes_research_checks() -> None:
+    index = dev_verify.load_dev_index()
+
+    plan = dev_verify.build_verification_plan(
+        ["reference/system_delta_sweeps/input_norm_followup/queue.yaml"],
+        index,
+    )
+
+    assert plan.escalated_to_full is False
+    assert {"mdformat", "audit", "ruff", "mypy", "pytest_research", "pytest_benchmark"}.issubset(
+        plan.check_ids
+    )
+    assert plan.scope.subsystem_paths["research"] == (
+        "reference/system_delta_sweeps/input_norm_followup/queue.yaml",
+    )
+
+
 def test_training_only_diff_selects_training_slice() -> None:
     index = dev_verify.load_dev_index()
 

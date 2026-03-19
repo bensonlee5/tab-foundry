@@ -32,6 +32,21 @@ def test_summarize_sweep_captures_completed_benchmark_metrics() -> None:
     assert first_completed["delta_final_roc_auc"] is None
 
 
+def test_summarize_sweep_marks_missing_stability_metrics_as_not_available() -> None:
+    payload = summarize_sweep(sweep_id="binary_md_v1")
+
+    rows_without_stability_metrics = [
+        row
+        for row in payload["rows"]
+        if row["status"] in {"completed", "screened"}
+        and row["clipped_step_fraction"] is None
+        and row["upper_block_post_warmup_mean_slope"] is None
+    ]
+
+    assert rows_without_stability_metrics
+    assert all(row["stability"] == "n/a" for row in rows_without_stability_metrics)
+
+
 def test_render_sweep_summary_table_handles_empty_rows() -> None:
     rendered = render_sweep_summary_table(
         {"sweep_id": "empty_sweep", "row_count": 0, "rows": []}

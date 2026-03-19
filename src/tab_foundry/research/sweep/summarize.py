@@ -39,6 +39,7 @@ def _stability_verdict(row: Mapping[str, Any], metrics: Mapping[str, Any]) -> st
         return "blocked"
     clipped_step_fraction = _optional_float(metrics.get("clipped_step_fraction"))
     upper_block_slope = _optional_float(metrics.get("upper_block_post_warmup_mean_slope"))
+    has_stability_signal = clipped_step_fraction is not None or upper_block_slope is not None
     if clipped_step_fraction is not None and clipped_step_fraction > _FAIL_CLIPPED_STEP_FRACTION:
         return "fail"
     if upper_block_slope is not None and upper_block_slope > _FAIL_UPPER_BLOCK_SLOPE:
@@ -47,7 +48,7 @@ def _stability_verdict(row: Mapping[str, Any], metrics: Mapping[str, Any]) -> st
         return "warn"
     if upper_block_slope is not None and upper_block_slope > _WARN_UPPER_BLOCK_SLOPE:
         return "warn"
-    if status in {"completed", "screened"}:
+    if status in {"completed", "screened"} and has_stability_signal:
         return "ok"
     return "n/a"
 
