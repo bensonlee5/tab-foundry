@@ -19,6 +19,8 @@ _WINDOW_EARLY = "early_1_25"
 _WINDOW_POST_WARMUP = "post_warmup_100"
 _WINDOW_FINAL = "final_10pct"
 _TRACKED_ACTIVATIONS = ("post_feature_encoder", "pre_transformer")
+_UPPER_BLOCK_START = 8
+_UPPER_BLOCK_END = 11
 
 _TOP_LEVEL_GRADIENT_MODULES = (
     "tokenizer",
@@ -201,6 +203,20 @@ def _mean_or_none(values: Sequence[float]) -> float | None:
     return float(sum(values) / float(len(values)))
 
 
+def _linear_slope_or_none(points: Sequence[tuple[float, float]]) -> float | None:
+    if len(points) < 2:
+        return None
+    xs = [float(x_value) for x_value, _ in points]
+    ys = [float(y_value) for _, y_value in points]
+    mean_x = sum(xs) / float(len(xs))
+    mean_y = sum(ys) / float(len(ys))
+    denom = sum((x_value - mean_x) ** 2 for x_value in xs)
+    if denom == 0.0:
+        return None
+    numer = sum((x_value - mean_x) * (y_value - mean_y) for x_value, y_value in zip(xs, ys, strict=True))
+    return float(numer / denom)
+
+
 def _ratio_or_none(numerator: float | None, denominator: float | None) -> float | None:
     if numerator is None or denominator is None or denominator == 0.0:
         return None
@@ -334,6 +350,95 @@ def _activation_summary(
     return {
         "warmup_end_step": int(warmup_end_step),
         "tracked_activations": tracked,
+        "upper_transformer_blocks": _upper_transformer_block_summary(
+            records,
+            warmup_end_step=warmup_end_step,
+        ),
+    }
+
+
+def _upper_transformer_block_summary(
+    records: Sequence[Mapping[str, Any]],
+    *,
+    warmup_end_step: int,
+) -> dict[str, Any]:
+    ordered = _sorted_records(records)
+    windows = _windowed_gradient_records(ordered, warmup_end_step=warmup_end_step)
+    activation_history = _mapping_value_history(ordered, key="activation_norms")
+    transformer_block_names = [
+        activation_name
+        for activation_name in activation_history
+        if activation_name.startswith("post_transformer_block_")
+    ]
+    selected_names = [
+        activation_name
+        for activation_name in sorted(
+            transformer_block_names,
+            key=lambda name: int(name.removeprefix("post_transformer_block_")),
+        )
+        if _UPPER_BLOCK_START
+        <= int(activation_name.removeprefix("post_transformer_block_"))
+        <= _UPPER_BLOCK_END
+    ]
+    if not selected_names:
+        return {
+            "block_names": [],
+            "aggregate": {
+                "final_window_mean": None,
+                "post_warmup_mean_slope": None,
+            },
+            "blocks": {},
+        }
+
+    blocks: dict[str, Any] = {}
+    final_window_means: list[float] = []
+    post_warmup_slopes: list[float] = []
+    post_warmup_records = windows[_WINDOW_POST_WARMUP]
+    final_records = windows[_WINDOW_FINAL]
+    for block_name in selected_names:
+        final_points: list[float] = []
+        slope_points: list[tuple[float, float]] = []
+        for record in final_records:
+            raw_activations = record.get("activation_norms")
+            if not isinstance(raw_activations, Mapping):
+                continue
+            raw_value = raw_activations.get(block_name)
+            if raw_value is None:
+                continue
+            value = float(raw_value)
+            if math.isfinite(value):
+                final_points.append(value)
+        for record in post_warmup_records:
+            raw_activations = record.get("activation_norms")
+            if not isinstance(raw_activations, Mapping):
+                continue
+            raw_value = raw_activations.get(block_name)
+            if raw_value is None:
+                continue
+            value = float(raw_value)
+            if not math.isfinite(value):
+                continue
+            slope_points.append((float(record.get("step", 0)), value))
+        final_window_mean = _mean_or_none(final_points)
+        post_warmup_slope = _linear_slope_or_none(slope_points)
+        if final_window_mean is not None:
+            final_window_means.append(final_window_mean)
+        if post_warmup_slope is not None:
+            post_warmup_slopes.append(post_warmup_slope)
+        blocks[block_name] = {
+            "final_window_mean": final_window_mean,
+            "post_warmup_slope": post_warmup_slope,
+            "final_window_record_count": int(len(final_points)),
+            "post_warmup_record_count": int(len(slope_points)),
+        }
+
+    return {
+        "block_names": selected_names,
+        "aggregate": {
+            "final_window_mean": _mean_or_none(final_window_means),
+            "post_warmup_mean_slope": _mean_or_none(post_warmup_slopes),
+        },
+        "blocks": blocks,
     }
 
 

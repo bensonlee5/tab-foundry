@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/cuda_stability_followu
 ## Sweep
 
 - Sweep id: `cuda_stability_followup`
-- Sweep status: `active`
+- Sweep status: `completed`
 - Parent sweep id: `cuda_capacity_pilot`
 - Complexity level: `binary_md`
 
@@ -65,6 +65,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_reference_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
+- Execution policy: `benchmark_full`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -99,6 +100,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_reference_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
+- Execution policy: `benchmark_full`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -132,6 +134,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
+- Execution policy: `benchmark_full`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -165,6 +168,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
+- Execution policy: `benchmark_full`
 - Interpretation status: `completed`
 - Decision: `defer`
 - Notes:
@@ -199,6 +203,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_reference_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
+- Execution policy: `benchmark_full`
 - Interpretation status: `blocked`
 - Decision: `None`
 - Notes:
@@ -233,6 +238,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.prior_dump_batch_reference_size
   - training.overrides.optimizer.min_lr
   - training.overrides.schedule.stages[0].lr_max
+- Execution policy: `benchmark_full`
 - Interpretation status: `blocked`
 - Decision: `None`
 - Notes:

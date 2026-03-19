@@ -2609,6 +2609,356 @@ deltas:
     default_next_action: Run after the RMSNorm row if you still need the direct post-encoder norm-family comparison on the batch32 surface.
     applicability_guards: []
 
+  dpnb_cuda_stack_scale_control:
+    dimension_family: training
+    family: screening
+    binary_applicable: true
+    description: Re-screen the large-anchor batch32 replay surface with a short activation-first diagnostic run.
+    upstream_delta: Not applicable; this is a repo-local control screen for the stack-scale follow-up.
+    expected_effect: Reconfirm the control upper-block activation drift on the short screen budget before reading any new stabilization change.
+    adequacy_knobs:
+      - training.overrides.runtime.max_steps
+      - training.overrides.schedule.stages[0].steps
+      - training.overrides.schedule.stages[0].warmup_ratio
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this row as the short-screen control, not as a benchmark-facing replacement for the registered anchor.
+        - Compare the same upper-block screen diagnostics against rows 2-4 before choosing any combined full-budget row.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_stack_scale_control
+        d_col: 128
+        d_icl: 512
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+          row_pool: row_cls
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        head_hidden_dim: 1024
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 1000
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 1000
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run this short-screen control first, then compare the two post-stack norm candidates before deciding on the combined benchmark row.
+    applicability_guards: []
+
+  dpnb_cuda_stack_scale_poststack_rms:
+    dimension_family: model
+    family: normalization
+    binary_applicable: true
+    description: Add post-stack RMSNorm after the prenorm table-block stack on the batch32 replay control screen.
+    upstream_delta: Upstream nanoTabPFN does not expose this staged post-stack normalization probe on the large-anchor bridge surface.
+    expected_effect: A post-stack RMSNorm may bound the exported residual stream even if internal prenorm blocks still grow.
+    adequacy_knobs:
+      - model.module_overrides.post_stack_norm
+      - training.overrides.runtime.max_steps
+      - training.overrides.schedule.stages[0].steps
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the matching LayerNorm row on the same short-screen surface.
+        - Use the short-screen upper-block diagnostics to decide whether post-stack normalization is enough on its own.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_stack_scale_poststack_rms
+        d_col: 128
+        d_icl: 512
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+          row_pool: row_cls
+          post_stack_norm: rmsnorm
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        head_hidden_dim: 1024
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 1000
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 1000
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run after the short-screen control and compare directly against the LayerNorm variant before carrying one norm into a full benchmark row.
+    applicability_guards: []
+
+  dpnb_cuda_stack_scale_poststack_ln:
+    dimension_family: model
+    family: normalization
+    binary_applicable: true
+    description: Add post-stack LayerNorm after the prenorm table-block stack on the batch32 replay control screen.
+    upstream_delta: Upstream nanoTabPFN does not expose this staged post-stack normalization probe on the large-anchor bridge surface.
+    expected_effect: A post-stack LayerNorm is the direct norm-family comparator to the RMSNorm probe on the same short-screen surface.
+    adequacy_knobs:
+      - model.module_overrides.post_stack_norm
+      - training.overrides.runtime.max_steps
+      - training.overrides.schedule.stages[0].steps
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the matching RMSNorm row on the same short-screen surface.
+        - Prefer the lower upper-block scale winner and only use training loss as a late tie-breaker.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_stack_scale_poststack_ln
+        d_col: 128
+        d_icl: 512
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          allow_test_self_attention: false
+          row_pool: row_cls
+          post_stack_norm: layernorm
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        head_hidden_dim: 1024
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 1000
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 1000
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run after the RMSNorm short screen so the post-stack norm family comparison is available for a winner-take-forward decision.
+    applicability_guards: []
+
+  dpnb_cuda_stack_scale_depth_scaled:
+    dimension_family: model
+    family: residual_scaling
+    binary_applicable: true
+    description: Keep the batch32 replay control screen fixed and depth-scale each prenorm residual branch by stack depth.
+    upstream_delta: Upstream nanoTabPFN does not expose this staged depth-scaled prenorm residual probe on the large-anchor bridge surface.
+    expected_effect: Depth-scaled residual branches should target the source of the in-stack activation ratchet more directly than a final normalization alone.
+    adequacy_knobs:
+      - model.module_overrides.table_block_residual_scale
+      - training.overrides.runtime.max_steps
+      - training.overrides.schedule.stages[0].steps
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the control and post-stack norm rows on the same short-screen surface.
+        - Use this row to test root-cause stabilization before spending a full benchmark row on a combined intervention.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_stack_scale_depth_scaled
+        d_col: 128
+        d_icl: 512
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          table_block_residual_scale: depth_scaled
+          allow_test_self_attention: false
+          row_pool: row_cls
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        head_hidden_dim: 1024
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 1000
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 1000
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run after the norm-family screens so the final full-budget row can combine depth scaling with the winning post-stack norm if needed.
+    applicability_guards: []
+
+  dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner:
+    dimension_family: model
+    family: normalization
+    binary_applicable: true
+    description: Run the full batch32 replay benchmark with depth-scaled prenorm residuals plus whichever post-stack norm wins the short-screen comparison.
+    upstream_delta: Not applicable; this is the combined full-budget follow-up row derived from the repo-local stack-scale screens.
+    expected_effect: The combined row should test whether root-cause residual scaling plus the better downstream stack export norm is enough to produce a benchmarkable large-anchor candidate.
+    adequacy_knobs:
+      - model.module_overrides.table_block_residual_scale
+      - model.module_overrides.post_stack_norm
+      - training.overrides.runtime.max_steps
+      - training.overrides.schedule.stages[0].steps
+    parameter_adequacy_policy:
+      default_plan:
+        - Resolve the winning post-stack norm from rows 2-3 using upper-block final-window scale first, then post-warmup slope, then clip rate, then loss EMA, with RMSNorm as the final tie-breaker.
+        - Benchmark only this combined row at full budget after the short-screen control and component rows complete.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner
+        d_col: 128
+        d_icl: 512
+        input_normalization: train_zscore_clip
+        module_overrides:
+          table_block_style: prenorm
+          table_block_residual_scale: depth_scaled
+          allow_test_self_attention: false
+          row_pool: row_cls
+        tfrow_n_heads: 8
+        tfrow_n_layers: 3
+        tfrow_cls_tokens: 2
+        tfrow_norm: layernorm
+        tficl_n_heads: 8
+        tficl_n_layers: 12
+        head_hidden_dim: 1024
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: true
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Wait for the short-screen norm comparison to resolve, then benchmark the combined depth-scaled row with the winning post-stack norm.
+    applicability_guards: []
+
   dpnb_cuda_budget_5k:
     dimension_family: training
     family: budget

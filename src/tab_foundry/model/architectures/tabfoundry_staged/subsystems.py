@@ -146,10 +146,12 @@ class PreNormCellBlock(nn.Module):
         *,
         allow_test_self_attention: bool,
         norm_type: str,
+        residual_branch_gain: float = 1.0,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.allow_test_self_attention = allow_test_self_attention
+        self.residual_branch_gain = float(residual_branch_gain)
         self.self_attention_between_features = MultiheadAttention(
             embedding_size,
             nhead,
@@ -194,7 +196,7 @@ class PreNormCellBlock(nn.Module):
         feat_out = self.self_attention_between_features(
             feat_norm, feat_norm, feat_norm
         )[0]
-        feat_out = self.attn_dropout(feat_out)
+        feat_out = self.attn_dropout(feat_out) * self.residual_branch_gain
         cells = (feat_in + feat_out).reshape(
             batch_size, rows_size, col_size, embedding_size
         )
@@ -214,14 +216,15 @@ class PreNormCellBlock(nn.Module):
             row_norm,
             attn_mask=row_mask,
         )[0]
-        row_out = self.attn_dropout(row_out)
+        row_out = self.attn_dropout(row_out) * self.residual_branch_gain
         row_residual = row_in + row_out
         cells = row_residual.reshape(
             batch_size, col_size, rows_size, embedding_size
         ).transpose(2, 1)
 
         ff_norm = self.ff_norm(cells)
-        return self.ff_dropout(self.linear2(F.gelu(self.linear1(ff_norm)))) + cells
+        ff_out = self.ff_dropout(self.linear2(F.gelu(self.linear1(ff_norm)))) * self.residual_branch_gain
+        return ff_out + cells
 
 
 class IdentityColumnEncoder(nn.Module):

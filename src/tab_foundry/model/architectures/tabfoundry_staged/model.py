@@ -21,6 +21,7 @@ from .builders import (
     build_direct_head,
     build_feature_encoder,
     build_post_encoder_norm,
+    build_post_stack_norm,
     build_row_pool,
     build_table_block,
     build_target_conditioner,
@@ -161,6 +162,7 @@ class TabFoundryStagedClassifier(nn.Module):
             many_class_base=self.many_class_base,
         )
         self.post_encoder_norm = build_post_encoder_norm(self.surface, d_icl=self.d_icl)
+        self.post_stack_norm = build_post_stack_norm(self.surface, d_icl=self.d_icl)
         self.digit_position_embed = build_digit_position_embed(
             self.surface,
             d_icl=self.d_icl,

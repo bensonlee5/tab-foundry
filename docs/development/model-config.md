@@ -108,7 +108,7 @@ did not yet serialize every reconstruction field.
 | `arch` | `str` | `"tabfoundry_staged"` | classification | Model architecture. Supported values are the frozen binary repro architecture `tabfoundry_simple` and the staged classification family `tabfoundry_staged`. |
 | `stage` | `str \| null` | `null` | classification | Stage selector for `tabfoundry_staged`. `null` resolves to `nano_exact` when `arch=tabfoundry_staged`; non-null values are rejected for `tabfoundry_simple`. |
 | `stage_label` | `str \| null` | `null` | classification | Optional reporting label for staged runs. When present, benchmark/profile metadata uses this label while the underlying recipe still resolves from `stage`. |
-| `module_overrides` | `mapping \| null` | `null` | classification | Additive atomic staged-surface overrides. Supported top-level keys are `feature_encoder`, `post_encoder_norm`, `target_conditioner`, `tokenizer`, `column_encoder`, `row_pool`, `context_encoder`, `head`, `table_block_style`, and `allow_test_self_attention`. |
+| `module_overrides` | `mapping \| null` | `null` | classification | Additive atomic staged-surface overrides. Supported top-level keys are `feature_encoder`, `post_encoder_norm`, `post_stack_norm`, `target_conditioner`, `tokenizer`, `column_encoder`, `row_pool`, `context_encoder`, `head`, `table_block_style`, `table_block_residual_scale`, and `allow_test_self_attention`. |
 | `d_col` | `int` | `128` | both | Width of grouped feature tokens and the column encoder. |
 | `d_icl` | `int` | `512` | both | Width of row embeddings and the final in-context encoder. |
 | `input_normalization` | `str` | `"none"` | both | Train/test feature normalization mode. Supported values are `none`, `train_zscore`, and `train_zscore_clip`. |
@@ -212,6 +212,7 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
 - `module_overrides` supports these atomic change families:
   - `feature_encoder`
   - `post_encoder_norm`
+  - `post_stack_norm`
   - `target_conditioner`
   - `tokenizer`
   - `column_encoder`
@@ -219,6 +220,7 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
   - `context_encoder`
   - `head`
   - `table_block_style`
+  - `table_block_residual_scale`
   - `allow_test_self_attention`
 - Important staged override constraints:
   - `tokenizer` overrides are ineffective while the effective feature encoder is
@@ -226,6 +228,10 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
   - `post_encoder_norm` defaults to `none` and applies to the full cell table
     immediately before the transformer stack when set to `layernorm` or
     `rmsnorm`
+  - `post_stack_norm` defaults to `none` and applies after the full
+    transformer-block stack but before row pooling
+  - `table_block_residual_scale` defaults to `none`; `depth_scaled` multiplies
+    each prenorm residual branch by `1 / sqrt(3 * tficl_n_layers)`
   - `allow_test_self_attention=true` is only valid with
     `table_block_style=prenorm`
   - `head=many_class` requires a non-`none` `context_encoder`

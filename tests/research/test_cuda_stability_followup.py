@@ -32,16 +32,16 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     return next(row for row in rows if row["delta_ref"] == delta_ref)
 
 
-def test_cuda_stability_followup_is_registered_and_active() -> None:
+def test_cuda_stability_followup_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "cuda_stability_followup"
+    assert index["active_sweep_id"] == "cuda_stack_scale_followup"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps["cuda_stability_followup"] == {
         "parent_sweep_id": "cuda_capacity_pilot",
-        "status": "active",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -56,7 +56,7 @@ def test_cuda_stability_followup_metadata_and_rows_match_the_batch32_first_debug
 
     assert sweep["sweep_id"] == "cuda_stability_followup"
     assert sweep["parent_sweep_id"] == "cuda_capacity_pilot"
-    assert sweep["status"] == "active"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["model"]["stage_label"] == "dpnb_input_norm_anchor_replay_batch64_sqrt"

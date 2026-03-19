@@ -26,7 +26,7 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 def test_input_norm_none_followup_is_registered_and_completed() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "cuda_stability_followup"
+    assert index["active_sweep_id"] == "cuda_stack_scale_followup"
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {

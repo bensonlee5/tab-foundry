@@ -247,6 +247,47 @@ def test_build_training_surface_record_captures_post_encoder_norm_component(tmp_
     }
 
 
+def test_build_training_surface_record_captures_post_stack_norm_and_residual_scale(tmp_path: Path) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_post_stack_norm.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "nano_exact",
+                "stage_label": "delta_stack_scale_followup",
+                "module_overrides": {
+                    "table_block_style": "prenorm",
+                    "table_block_residual_scale": "depth_scaled",
+                    "post_stack_norm": "rmsnorm",
+                },
+                "d_icl": 96,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 4,
+                "head_hidden_dim": 192,
+            },
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+                "surface_label": "anchor_manifest_default",
+            },
+        },
+        run_dir=tmp_path / "run_post_stack_norm",
+    )
+
+    assert record["model"]["module_selection"]["post_stack_norm"] == "rmsnorm"
+    assert record["model"]["module_selection"]["table_block_residual_scale"] == "depth_scaled"
+    assert record["model"]["module_hyperparameters"]["post_stack_norm"] == {
+        "name": "rmsnorm",
+        "norm_type": "rmsnorm",
+    }
+    assert record["model"]["module_hyperparameters"]["table_block"]["residual_scale"] == "depth_scaled"
+    assert record["model"]["module_hyperparameters"]["table_block"]["residual_branch_gain"] > 0.0
+
+
 def test_build_training_surface_record_marks_legacy_manifest_missingness_as_unknown(
     tmp_path: Path,
 ) -> None:

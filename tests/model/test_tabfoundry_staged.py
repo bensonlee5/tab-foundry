@@ -10,6 +10,7 @@ from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     staged_surface_uses_internal_benchmark_normalization,
 )
 from tab_foundry.model.architectures.tabfoundry_staged.subsystems import (
+    PreNormCellBlock,
     ScalarPerFeatureMissingnessTokenizer,
 )
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
@@ -381,6 +382,55 @@ def test_module_overrides_surface_post_encoder_norm(post_encoder_norm: str) -> N
     assert model.module_hyperparameters["post_encoder_norm"]["norm_type"] == expected_norm
     assert out.logits is not None
     assert tuple(out.logits.shape) == (2, 2)
+
+
+@pytest.mark.parametrize("post_stack_norm", ["none", "layernorm", "rmsnorm"])
+def test_module_overrides_surface_post_stack_norm(post_stack_norm: str) -> None:
+    module_overrides: dict[str, object] = {"feature_encoder": "shared"}
+    if post_stack_norm != "none":
+        module_overrides["post_stack_norm"] = post_stack_norm
+    model = _staged(
+        "nano_exact",
+        stage_label=f"delta_post_stack_norm_{post_stack_norm}",
+        module_overrides=module_overrides,
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=1,
+        head_hidden_dim=64,
+    )
+
+    out = model(_batch())
+
+    assert model.module_selection["post_stack_norm"] == post_stack_norm
+    assert model.module_hyperparameters["post_stack_norm"]["name"] == post_stack_norm
+    expected_norm = None if post_stack_norm == "none" else post_stack_norm
+    assert model.module_hyperparameters["post_stack_norm"]["norm_type"] == expected_norm
+    assert out.logits is not None
+    assert tuple(out.logits.shape) == (2, 2)
+
+
+def test_module_overrides_surface_prenorm_depth_scaled_residual_gain() -> None:
+    model = _staged(
+        "nano_exact",
+        stage_label="delta_depth_scaled_prenorm",
+        module_overrides={
+            "table_block_style": "prenorm",
+            "table_block_residual_scale": "depth_scaled",
+        },
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=4,
+        head_hidden_dim=64,
+    )
+
+    assert model.module_selection["table_block_residual_scale"] == "depth_scaled"
+    expected_gain = pytest.approx((3.0 * 4.0) ** -0.5)
+    assert model.module_hyperparameters["table_block"]["residual_scale"] == "depth_scaled"
+    assert model.module_hyperparameters["table_block"]["residual_branch_gain"] == expected_gain
+    assert all(
+        isinstance(block, PreNormCellBlock) and block.residual_branch_gain == expected_gain
+        for block in model.transformer_blocks
+    )
 
 
 def test_activation_trace_records_expected_points_and_resets() -> None:

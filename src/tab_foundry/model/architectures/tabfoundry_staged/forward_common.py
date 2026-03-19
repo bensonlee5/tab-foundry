@@ -142,6 +142,8 @@ def encode_table_batched(
     for index, block in enumerate(model.transformer_blocks):
         cells = block(cells, train_test_split_index=train_test_split_index)
         model.trace_activation(f"post_transformer_block_{index}", cells)
+    if model.post_stack_norm is not None:
+        cells = model.post_stack_norm(cells)
     return cells
 
 
@@ -175,6 +177,8 @@ def encode_to_cell_state(model: Any, raw_state: RawInputState) -> CellTableState
     for index, block in enumerate(model.transformer_blocks):
         cells = block(cells, train_test_split_index=raw_state.train_test_split_index)
         model.trace_activation(f"post_transformer_block_{index}", cells)
+    if model.post_stack_norm is not None:
+        cells = model.post_stack_norm(cells)
     return CellTableState(
         cells=cells,
         train_test_split_index=raw_state.train_test_split_index,

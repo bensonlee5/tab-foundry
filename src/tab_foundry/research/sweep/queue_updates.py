@@ -165,3 +165,30 @@ def update_queue_row(
     notes = append_note(notes, f"Canonical rerun registered as `{run_id}`.")
     notes = append_note(notes, conclusion)
     queue_row["notes"] = notes
+
+
+def update_screened_queue_row(
+    *,
+    queue_row: dict[str, Any],
+    run_id: str,
+    screen_metrics: Mapping[str, Any],
+    conclusion: str,
+) -> None:
+    original_run_id = queue_row.get("run_id")
+    queue_row["status"] = "screened"
+    queue_row["run_id"] = run_id
+    queue_row["followup_run_ids"] = []
+    queue_row["decision"] = "defer"
+    queue_row["interpretation_status"] = "screened"
+    queue_row["screen_metrics"] = dict(screen_metrics)
+    queue_row["benchmark_metrics"] = None
+    queue_row["confounders"] = []
+    notes = cast(list[str], queue_row.get("notes", []))
+    if isinstance(original_run_id, str) and original_run_id.strip() and original_run_id != run_id:
+        notes = append_note(
+            notes,
+            f"Supersedes historical queue run `{original_run_id}`; that train-only screen is retained as history only.",
+        )
+    notes = append_note(notes, f"Train-only screen recorded as `{run_id}`.")
+    notes = append_note(notes, conclusion)
+    queue_row["notes"] = notes

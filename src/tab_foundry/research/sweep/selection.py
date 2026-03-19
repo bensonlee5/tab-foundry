@@ -59,11 +59,11 @@ def select_queue_rows(
         completed_orders = [
             int(row["order"])
             for row in selected
-            if str(row.get("status", "")).strip().lower() == "completed"
+            if str(row.get("status", "")).strip().lower() in {"completed", "screened"}
         ]
         if completed_orders:
             raise RuntimeError(
                 "explicitly selected completed rows require --include-completed; "
-                f"got completed orders {completed_orders}"
+                f"got completed or screened orders {completed_orders}"
             )
     return selected

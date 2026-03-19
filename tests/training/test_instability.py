@@ -26,6 +26,10 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
             "activation_norms": {
                 "post_feature_encoder": 1.0 + (0.1 * step),
                 "pre_transformer": 2.0 + (0.2 * step),
+                "post_transformer_block_8": 10.0 + (0.3 * step),
+                "post_transformer_block_9": 11.0 + (0.3 * step),
+                "post_transformer_block_10": 12.0 + (0.3 * step),
+                "post_transformer_block_11": 13.0 + (0.3 * step),
             },
         }
         for step in range(1, 101)
@@ -73,3 +77,12 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
     assert activations["post_feature_encoder"]["windows"]["early_1_25"]["record_count"] == 25
     assert activations["pre_transformer"]["windows"]["final_10pct"]["record_count"] == 10
     assert activations["post_feature_encoder"]["early_to_final_mean_delta"] > 0.0
+    upper_blocks = diagnostics["activation_windows"]["upper_transformer_blocks"]
+    assert upper_blocks["block_names"] == [
+        "post_transformer_block_8",
+        "post_transformer_block_9",
+        "post_transformer_block_10",
+        "post_transformer_block_11",
+    ]
+    assert upper_blocks["aggregate"]["final_window_mean"] > 0.0
+    assert upper_blocks["aggregate"]["post_warmup_mean_slope"] is None
