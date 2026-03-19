@@ -1,0 +1,56 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: cuda_budget_followup
+parent_sweep_id: cuda_capacity_pilot
+status: draft
+complexity_level: binary_md
+anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+    - This follow-up is scaffolded now but remains blocked until `cuda_capacity_pilot` identifies the winning architecture.
+    - It temporarily reuses the promoted batch64 sqrt-scaled clipped bridge anchor from `input_norm_followup` so the sweep metadata can be rendered and tested immediately.
+    - Before any run is launched here, replace the provisional large-anchor model surface with the winning capacity row from `cuda_capacity_pilot`.
+    - This sweep answers training-budget adequacy only; it is not architecture-promotion evidence.
+  dimension_table:
+    - dimension: bridge architecture
+      upstream: The capacity pilot will choose between the large anchor, width, and depth probes.
+      anchor: Use the provisional large-anchor model surface for now, then re-anchor this sweep to the winning capacity row before execution.
+      interpretation: Architecture choice must be settled before any budget result is interpreted.
+    - dimension: training budget
+      upstream: The capacity pilot fixes `2500` steps across all rows.
+      anchor: This follow-up isolates `5000` and `10000` steps with the same optimizer and schedule family.
+      interpretation: Budget wins indicate undertraining of the chosen architecture, not a new architecture family.
+    - dimension: input normalization
+      upstream: The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up underperformed on that same systems surface.
+      anchor: Keep `train_zscore_clip` fixed until new evidence reopens preprocessing.
+      interpretation: Budget rows must not be conflated with preprocessing experiments.
+anchor_context:
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+  experiment: cls_benchmark_staged_prior
+  config_profile: cls_benchmark_staged_prior
+  model:
+    arch: tabfoundry_staged
+    stage: nano_exact
+    benchmark_profile: dpnb_input_norm_anchor_replay_batch64_sqrt
+    stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: nano
+      head: binary_direct
+      post_encoder_norm: none
+      row_pool: row_cls
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: dpnb_input_norm_anchor_replay_batch64_sqrt
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

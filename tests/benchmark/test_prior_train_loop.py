@@ -24,6 +24,7 @@ _export(
     [
         "test_train_tabfoundry_simple_prior_averages_task_loss_and_steps_per_batch",
         "test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode",
+        "test_train_tabfoundry_simple_prior_retries_with_smaller_microbatches_on_oom",
         "test_train_tabfoundry_simple_prior_matches_nanotabpfn_loss_for_one_batch",
         "test_train_tabfoundry_staged_prior_writes_staged_gradient_keys",
         "test_train_tabfoundry_staged_prior_writes_activation_norms_when_enabled",

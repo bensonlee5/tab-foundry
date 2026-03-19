@@ -34,13 +34,20 @@ class ModuleGraphReport:
 
 def discover_top_level_modules(source_root: Path = SOURCE_ROOT) -> list[str]:
     modules = ["tab_foundry.__main__"]
+    seen = set(modules)
     for path in sorted(source_root.iterdir()):
         if path.name in {"__init__.py", "__main__.py", "__pycache__"}:
             continue
         if path.is_dir():
-            modules.append(f"tab_foundry.{path.name}")
+            module_name = f"tab_foundry.{path.name}"
         elif path.suffix == ".py":
-            modules.append(f"tab_foundry.{path.stem}")
+            module_name = f"tab_foundry.{path.stem}"
+        else:
+            continue
+        if module_name in seen:
+            continue
+        seen.add(module_name)
+        modules.append(module_name)
     return modules
 
 

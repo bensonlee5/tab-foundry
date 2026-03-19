@@ -23,15 +23,15 @@ def _load_yaml(path: Path) -> dict[str, Any]:
     return payload
 
 
-def test_input_norm_none_followup_is_registered_and_active() -> None:
+def test_input_norm_none_followup_is_registered_and_completed() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == SWEEP_ID
+    assert index["active_sweep_id"] == "cuda_stability_followup"
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "input_norm_followup",
-        "status": "active",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -46,7 +46,7 @@ def test_input_norm_none_followup_metadata_and_result_match_the_deferred_result(
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] == "input_norm_followup"
-    assert sweep["status"] == "active"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert any("batch size was the only clear source of lift" in note for note in sweep["anchor_surface"]["notes"])
 

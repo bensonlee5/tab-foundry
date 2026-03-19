@@ -122,16 +122,30 @@ def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> PriorDumpNonFinite
         raise ValueError(
             "training.prior_dump_non_finite_policy must be one of {'error', 'skip'}, "
             f"got {raw_value!r}"
-        )
+    )
     return cast(PriorDumpNonFinitePolicy, normalized)
 
 
+def _queue_aware_run_name_from_output_dir(output_dir: Path) -> str | None:
+    candidate = output_dir.parent.name if output_dir.name == "train" else output_dir.name
+    if not candidate.startswith("sd_"):
+        return None
+    stem, separator, version = candidate.rpartition("_v")
+    if not separator or not stem or not version.isdigit():
+        return None
+    return candidate
+
+
 def _resolve_prior_wandb_run_name(cfg: DictConfig) -> str:
+    output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
+    queue_aware_run_name = _queue_aware_run_name_from_output_dir(output_dir)
+    if queue_aware_run_name is not None:
+        return queue_aware_run_name
+
     raw_run_name = str(getattr(cfg.logging, "run_name", "") or "").strip()
     if raw_run_name and raw_run_name != _DEFAULT_STAGED_PRIOR_WANDB_RUN_NAME:
         return raw_run_name
 
-    output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
     candidate = output_dir.parent.name if output_dir.name == "train" else output_dir.name
     if candidate.startswith("sd_stability_followup_dpnb_") and candidate.endswith("_v1"):
         parts = candidate.split("_", 5)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 import time
 from typing import Any, cast
 
@@ -53,6 +54,131 @@ class PriorTrainingDeps:
     save_eval_mode_checkpoint: Any
     build_training_telemetry: Any
     write_training_telemetry: Any
+
+
+def _merge_activation_norms(
+    weighted_sums: dict[str, float],
+    weight_totals: dict[str, float],
+) -> dict[str, float] | None:
+    if not weighted_sums:
+        return None
+    merged: dict[str, float] = {}
+    for name, value in weighted_sums.items():
+        weight = float(weight_totals.get(name, 0.0))
+        if weight <= 0.0:
+            continue
+        merged[name] = float(value / weight)
+    return merged or None
+
+
+def _run_prior_step_with_microbatch_retry(
+    *,
+    deps: PriorTrainingDeps,
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    x_batch: torch.Tensor,
+    y_train_batch: torch.Tensor,
+    y_all_batch: torch.Tensor,
+    train_test_split_index: int,
+    trace_activations: bool,
+    flush_activation_trace: object,
+) -> tuple[float, float, dict[str, float] | None, int, int]:
+    forward_batched = getattr(model, "forward_batched", None)
+    if not callable(forward_batched):
+        raise RuntimeError("prior-dump training requires a model with forward_batched()")
+
+    total_batch_size = int(x_batch.shape[0])
+    if total_batch_size <= 0:
+        raise RuntimeError("prior-dump training requires batch_size >= 1")
+
+    def _attempt(microbatch_size: int) -> tuple[float, float, dict[str, float] | None, int]:
+        weighted_loss = 0.0
+        weighted_acc = 0.0
+        activation_weighted_sums: dict[str, float] = {}
+        activation_weight_totals: dict[str, float] = {}
+        microbatch_count = 0
+        for start in range(0, total_batch_size, microbatch_size):
+            stop = min(start + microbatch_size, total_batch_size)
+            microbatch_count += 1
+            weight = float(stop - start) / float(total_batch_size)
+            logits = forward_batched(
+                x_all=x_batch[start:stop],
+                y_train=y_train_batch[start:stop],
+                train_test_split_index=train_test_split_index,
+            )
+            if not isinstance(logits, torch.Tensor):
+                raise RuntimeError("prior-dump training requires tensor logits")
+            activation_norms = (
+                flush_activation_trace()
+                if trace_activations and callable(flush_activation_trace)
+                else None
+            )
+            targets = y_all_batch[start:stop, train_test_split_index:].reshape(-1).to(torch.int64)
+            loss = deps.classification_loss(
+                logits.reshape(-1, int(logits.shape[-1])),
+                targets,
+            )
+            (loss * weight).backward()
+            weighted_loss += float(loss.detach().item()) * weight
+            weighted_acc += (
+                float(
+                    (
+                        logits.argmax(dim=-1)
+                        == y_all_batch[start:stop, train_test_split_index:].to(torch.int64)
+                    )
+                    .float()
+                    .mean()
+                    .item()
+                )
+                * weight
+            )
+            if activation_norms is not None:
+                for activation_name, activation_value in activation_norms.items():
+                    activation_weighted_sums[activation_name] = (
+                        activation_weighted_sums.get(activation_name, 0.0)
+                        + (float(activation_value) * weight)
+                    )
+                    activation_weight_totals[activation_name] = (
+                        activation_weight_totals.get(activation_name, 0.0) + weight
+                    )
+        return (
+            weighted_loss,
+            weighted_acc,
+            _merge_activation_norms(activation_weighted_sums, activation_weight_totals),
+            microbatch_count,
+        )
+
+    microbatch_size = total_batch_size
+    while True:
+        optimizer.zero_grad(set_to_none=True)
+        try:
+            loss_value, acc_value, activation_norms, microbatch_count = _attempt(microbatch_size)
+            return (
+                loss_value,
+                acc_value,
+                activation_norms,
+                microbatch_size,
+                microbatch_count,
+            )
+        except torch.OutOfMemoryError:
+            if callable(flush_activation_trace):
+                _ = flush_activation_trace()
+            optimizer.zero_grad(set_to_none=True)
+            if x_batch.device.type == "cuda":
+                torch.cuda.empty_cache()
+            if microbatch_size <= 1:
+                raise
+            next_microbatch_size = max(1, microbatch_size // 2)
+            if next_microbatch_size == microbatch_size:
+                next_microbatch_size = microbatch_size - 1
+            print(
+                "Warning: prior-dump step hit OOM; "
+                f"retrying with microbatch_size={next_microbatch_size} "
+                f"(effective_batch_size={total_batch_size})",
+                file=sys.stderr,
+                flush=True,
+            )
+            microbatch_size = next_microbatch_size
 
 
 def run_prior_training(
@@ -218,7 +344,6 @@ def run_prior_training(
                     missingness_summary,
                     batch_missingness=prior_step.missingness,
                 )
-            optimizer.zero_grad(set_to_none=True)
             step_train_start = time.perf_counter()
             if prior_stage is not None:
                 current_base_lr = float(
@@ -243,31 +368,22 @@ def run_prior_training(
                 missingness_summary,
                 batch_missingness=synthetic_missingness,
             )
-            logits = forward_batched(
-                x_all=x_batch,
-                y_train=y_train_batch,
+            (
+                history_step_loss,
+                history_step_acc,
+                activation_norms,
+                microbatch_size_used,
+                microbatch_count,
+            ) = _run_prior_step_with_microbatch_retry(
+                deps=deps,
+                model=model,
+                optimizer=optimizer,
+                x_batch=x_batch,
+                y_train_batch=y_train_batch,
+                y_all_batch=y_all_batch,
                 train_test_split_index=prior_step.train_test_split_index,
-            )
-            if not isinstance(logits, torch.Tensor):
-                raise RuntimeError("prior-dump training requires tensor logits")
-            activation_norms = (
-                flush_activation_trace() if trace_activations and callable(flush_activation_trace) else None
-            )
-            targets = y_all_batch[:, prior_step.train_test_split_index :].reshape(-1).to(torch.int64)
-            loss = deps.classification_loss(
-                logits.reshape(-1, int(logits.shape[-1])),
-                targets,
-            )
-            loss.backward()
-            history_step_loss = float(loss.detach().item())
-            history_step_acc = float(
-                (
-                    logits.argmax(dim=-1)
-                    == y_all_batch[:, prior_step.train_test_split_index :].to(torch.int64)
-                )
-                .float()
-                .mean()
-                .item()
+                trace_activations=trace_activations,
+                flush_activation_trace=flush_activation_trace,
             )
 
             pre_clip_module_grad_norms = deps.module_grad_norms(model)
@@ -314,6 +430,8 @@ def run_prior_training(
                 "train/prior_dump_non_finite_feature_count": int(prior_dump_missingness["non_finite_feature_count"]),
                 "train/prior_dump_non_finite_label_count": int(prior_dump_missingness["non_finite_label_count"]),
                 "train/synthetic_prior_masked_feature_count": int(synthetic_prior_missingness["masked_feature_count"]),
+                "train/prior_dump_microbatch_size": int(microbatch_size_used),
+                "train/prior_dump_microbatch_count": int(microbatch_count),
                 "train/stage": _PRIOR_STAGE_NAME,
             }
             for module_name, module_value in pre_clip_module_grad_norms.items():

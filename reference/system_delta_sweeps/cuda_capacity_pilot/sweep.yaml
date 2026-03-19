@@ -1,0 +1,61 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: cuda_capacity_pilot
+parent_sweep_id: input_norm_followup
+status: blocked_on_stability_followup
+complexity_level: binary_md
+anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+    - This pilot still targets width-vs-depth evidence on the promoted batch64 sqrt-scaled clipped bridge winner from `input_norm_followup`.
+    - The first large-anchor attempt was stopped for persistent activation drift before benchmark registration, so the pilot is now paused.
+    - Active training-surface stabilization has moved to `cuda_stability_followup`; resume this pilot only after that sweep picks a trainable large-anchor recipe.
+    - "`input_norm_none_followup` completed on the same systems surface and did not justify removing explicit clipping, so input normalization stays fixed at `train_zscore_clip` on this branch."
+    - Training-budget changes are intentionally excluded from this sweep and move to the draft `cuda_budget_followup` scaffold.
+  dimension_table:
+    - dimension: bridge architecture
+      upstream: The registered anchor remains the promoted prenorm plus row-cls bridge recipe from the completed follow-up.
+      anchor: Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `tfrow_cls_tokens=2`, and `post_encoder_norm=none` fixed.
+      interpretation: Capacity rows should be read as model-size probes on the bridge surface, not as reopened module-selection experiments.
+    - dimension: model capacity
+      upstream: The promoted anchor run keeps the compact bridge width while moving to the batch64 sqrt-scaled training surface.
+      anchor: Row 1 moves to the large CUDA base `d_col=128`, `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, `head_hidden_dim=1024`.
+      interpretation: Rows 2 and 3 remain blocked until a stable row-1-equivalent large-anchor recipe exists again.
+    - dimension: input normalization
+      upstream: The completed normalization follow-up promoted the clipped batch64 row, and the no-normalization follow-up underperformed on the same systems surface.
+      anchor: Keep `train_zscore_clip` fixed across this pilot because `input_norm_none_followup` underperformed and did not justify removing explicit clipping.
+      interpretation: Any movement in this sweep should not be attributed to preprocessing changes.
+    - dimension: training recipe
+      upstream: The registered anchor already uses the promoted `prior_linear_warmup_decay` recipe with batch size 64 and sqrt LR scaling.
+      anchor: Keep `prior_linear_warmup_decay`, `prior_dump_batch_size=64`, `prior_dump_lr_scale_rule=sqrt`, `prior_dump_batch_reference_size=32`, and `2500` steps fixed.
+      interpretation: This copied systems surface triggered activation drift on the first large-anchor attempt, so `cuda_stability_followup` now owns training-surface repair before any further capacity comparison.
+anchor_context:
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+  experiment: cls_benchmark_staged_prior
+  config_profile: cls_benchmark_staged_prior
+  model:
+    arch: tabfoundry_staged
+    stage: nano_exact
+    benchmark_profile: dpnb_input_norm_anchor_replay_batch64_sqrt
+    stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: nano
+      head: binary_direct
+      post_encoder_norm: none
+      row_pool: row_cls
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: dpnb_input_norm_anchor_replay_batch64_sqrt
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

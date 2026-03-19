@@ -1,5 +1,5 @@
 schema: tab-foundry-system-delta-sweep-index-v1
-active_sweep_id: input_norm_none_followup
+active_sweep_id: cuda_stability_followup
 sweeps:
   binary_md_v1:
     parent_sweep_id: null
@@ -52,6 +52,27 @@ sweeps:
     control_baseline_id: cls_benchmark_linear_v2
   input_norm_none_followup:
     parent_sweep_id: input_norm_followup
+    status: completed
+    anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+  cuda_capacity_pilot:
+    parent_sweep_id: input_norm_followup
+    status: blocked_on_stability_followup
+    anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+  cuda_budget_followup:
+    parent_sweep_id: cuda_capacity_pilot
+    status: draft
+    anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+  cuda_stability_followup:
+    parent_sweep_id: cuda_capacity_pilot
     status: active
     anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
     complexity_level: binary_md

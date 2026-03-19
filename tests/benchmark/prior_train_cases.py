@@ -346,6 +346,28 @@ class _TracingConstantLogitModel(_ConstantLogitModel):
         }
 
 
+class _OOMRetryConstantLogitModel(_ConstantLogitModel):
+    def __init__(self) -> None:
+        super().__init__()
+        self.seen_batch_sizes: list[int] = []
+
+    def forward_batched(
+        self,
+        *,
+        x_all: torch.Tensor,
+        y_train: torch.Tensor,
+        train_test_split_index: int,
+    ) -> torch.Tensor:
+        self.seen_batch_sizes.append(int(x_all.shape[0]))
+        if int(x_all.shape[0]) > 1:
+            raise torch.OutOfMemoryError("simulated oom")
+        return super().forward_batched(
+            x_all=x_all,
+            y_train=y_train,
+            train_test_split_index=train_test_split_index,
+        )
+
+
 class _CountingOptimizer:
     def __init__(self) -> None:
         self.step_count = 0
@@ -957,6 +979,76 @@ def test_train_tabfoundry_simple_prior_scales_lr_with_prior_dump_batch_size(
     assert training_surface_record["training"]["schedule_stages"][0]["lr_max"] == pytest.approx(
         4.0e-3 * scale
     )
+
+
+def test_train_tabfoundry_simple_prior_retries_with_smaller_microbatches_on_oom(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_oom_retry.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+                [[2.0, 1.0], [4.0, 3.0], [6.0, 5.0], [8.0, 7.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 1],
+            ],
+            dtype=np.int64,
+        ),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+    )
+    model = _OOMRetryConstantLogitModel()
+    optimizer = _CountingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+
+    cfg = _prior_cfg(
+        tmp_path,
+        max_steps=1,
+        training_cfg={"surface_label": "prior_linear_warmup_decay", "apply_schedule": True},
+        schedule_cfg={
+            "stages": [
+                {
+                    "name": "prior_dump",
+                    "steps": 1,
+                    "lr_max": 4.0e-3,
+                    "lr_schedule": "linear",
+                    "warmup_ratio": 0.0,
+                }
+            ]
+        },
+    )
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=2,
+    )
+
+    assert result.global_step == 1
+    assert optimizer.step_count == 1
+    assert model.seen_batch_sizes == [2, 1, 1]
+    gradient_records = (
+        tmp_path / "train_out" / "gradient_history.jsonl"
+    ).read_text(encoding="utf-8").splitlines()
+    assert len(gradient_records) == 1
 
 
 def test_train_tabfoundry_simple_prior_matches_nanotabpfn_loss_for_one_batch(
@@ -1730,9 +1822,9 @@ def test_train_tabfoundry_simple_prior_writes_failure_telemetry_for_nonfinite_la
     assert telemetry["missingness"]["prior_dump"]["non_finite_label_count"] == 1
 
 
-def test_resolve_prior_wandb_run_name_uses_stability_followup_output_slug(tmp_path: Path) -> None:
+def test_resolve_prior_wandb_run_name_prefers_queue_run_id_from_output_dir(tmp_path: Path) -> None:
     cfg = _prior_cfg(tmp_path, max_steps=1)
-    cfg.logging.run_name = "cls-benchmark-staged-prior"
+    cfg.logging.run_name = "dpnb_row_cls_cls2_linear_warmup_decay"
     cfg.model.stage_label = "linear_warmup_decay_lr4e3_warm10"
     cfg.runtime.output_dir = str(
         tmp_path
@@ -1742,7 +1834,10 @@ def test_resolve_prior_wandb_run_name_uses_stability_followup_output_slug(tmp_pa
         / "train"
     )
 
-    assert prior_train_module._resolve_prior_wandb_run_name(cfg) == "dpnb_row_cls_cls2_linear_warmup_decay_warm10"
+    assert (
+        prior_train_module._resolve_prior_wandb_run_name(cfg)
+        == "sd_stability_followup_dpnb_12_row_cls_cls2_linear_warmup_decay_warm10_v1"
+    )
 
 
 def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(

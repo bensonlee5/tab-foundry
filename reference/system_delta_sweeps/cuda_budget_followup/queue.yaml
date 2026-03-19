@@ -1,0 +1,123 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: cuda_budget_followup
+rows:
+  - order: 1
+    delta_ref: dpnb_cuda_budget_5k
+    status: blocked_on_anchor_selection
+    rationale: Extend the winning capacity row to `5000` steps only after the architecture choice is complete.
+    hypothesis: If the chosen large-capacity row is compute-limited at `2500` steps, doubling the budget should improve the task-family primary final metric without reopening architecture questions.
+    anchor_delta: Keeps the provisional large-anchor model surface for scaffolding now, but this row must be rebound to the winning capacity architecture before execution.
+    parameter_adequacy_plan:
+      - Do not run this row until `cuda_capacity_pilot` identifies the winning architecture.
+      - Re-anchor the model surface first, then compare directly against that winning `2500`-step row.
+      - Treat any gain as budget adequacy evidence only.
+    model:
+      stage: nano_exact
+      stage_label: dpnb_cuda_large_anchor
+      d_col: 128
+      d_icl: 512
+      input_normalization: train_zscore_clip
+      module_overrides:
+        table_block_style: prenorm
+        allow_test_self_attention: false
+        row_pool: row_cls
+      tfrow_n_heads: 8
+      tfrow_n_layers: 3
+      tfrow_cls_tokens: 2
+      tfrow_norm: layernorm
+      tficl_n_heads: 8
+      tficl_n_layers: 12
+      head_hidden_dim: 1024
+    data:
+      surface_label: anchor_manifest_default
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_linear_warmup_decay
+      prior_dump_non_finite_policy: skip
+      prior_dump_batch_size: 64
+      prior_dump_lr_scale_rule: sqrt
+      prior_dump_batch_reference_size: 32
+      overrides:
+        apply_schedule: true
+        optimizer:
+          min_lr: 0.0004
+        runtime:
+          grad_clip: 1.0
+          max_steps: 5000
+          trace_activations: true
+        schedule:
+          stages:
+            - name: prior_dump
+              steps: 5000
+              lr_max: 0.004
+              lr_schedule: linear
+              warmup_ratio: 0.05
+    run_id: null
+    followup_run_ids: []
+    decision: null
+    interpretation_status: blocked
+    confounders: []
+    next_action: Wait for `cuda_capacity_pilot` to choose the winning architecture, then replace the provisional model surface before running this budget row.
+    notes:
+      - The model payload is intentionally provisional and mirrors the large anchor only to keep the scaffold renderable.
+  - order: 2
+    delta_ref: dpnb_cuda_budget_10k
+    status: blocked_on_anchor_selection
+    rationale: Test whether the chosen capacity winner is still compute-limited even after a `5000`-step rerun.
+    hypothesis: A further increase to `10000` steps should help only if the winning architecture remains undertrained after the `5000`-step row.
+    anchor_delta: Keeps the provisional large-anchor model surface for scaffolding now, but this row must be rebound to the winning capacity architecture before execution.
+    parameter_adequacy_plan:
+      - Do not run this row until `cuda_capacity_pilot` completes and the `5000`-step row is interpretable.
+      - Re-anchor the model surface first, then compare against the winning `2500`-step row and the `5000`-step follow-up.
+      - Stop if `5000` steps already saturates the benchmark outcome.
+    model:
+      stage: nano_exact
+      stage_label: dpnb_cuda_large_anchor
+      d_col: 128
+      d_icl: 512
+      input_normalization: train_zscore_clip
+      module_overrides:
+        table_block_style: prenorm
+        allow_test_self_attention: false
+        row_pool: row_cls
+      tfrow_n_heads: 8
+      tfrow_n_layers: 3
+      tfrow_cls_tokens: 2
+      tfrow_norm: layernorm
+      tficl_n_heads: 8
+      tficl_n_layers: 12
+      head_hidden_dim: 1024
+    data:
+      surface_label: anchor_manifest_default
+    preprocessing:
+      surface_label: runtime_default
+    training:
+      surface_label: prior_linear_warmup_decay
+      prior_dump_non_finite_policy: skip
+      prior_dump_batch_size: 64
+      prior_dump_lr_scale_rule: sqrt
+      prior_dump_batch_reference_size: 32
+      overrides:
+        apply_schedule: true
+        optimizer:
+          min_lr: 0.0004
+        runtime:
+          grad_clip: 1.0
+          max_steps: 10000
+          trace_activations: true
+        schedule:
+          stages:
+            - name: prior_dump
+              steps: 10000
+              lr_max: 0.004
+              lr_schedule: linear
+              warmup_ratio: 0.05
+    run_id: null
+    followup_run_ids: []
+    decision: null
+    interpretation_status: blocked
+    confounders: []
+    next_action: Leave this row blocked until the capacity winner is known and the `5000`-step result shows remaining headroom.
+    notes:
+      - This row should remain dormant unless the `5000`-step follow-up still looks compute-limited.
