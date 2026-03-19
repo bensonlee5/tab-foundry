@@ -28,6 +28,14 @@ evolve through:
 - literature-guided exploration
 - scaling-law-driven planning rather than one-off model guesses
 
+Near-term architecture direction is now explicit:
+
+- keep a frozen PFN-style control lane for benchmark trust
+- evolve `tabfoundry_staged` toward a coherent row-first classifier inspired
+  primarily by TabICLv2
+- remain free to borrow specific components from TabPFN or other references
+  when they fit better than a literal TabICLv2 copy
+
 The primary project objective is predictable scaling behavior. Broader
 prediction-mode coverage comes after that, and tertiary modalities are
 intentionally deferred further still.
@@ -36,7 +44,7 @@ intentionally deferred further still.
 
 - Scaling predictability comes first.
 - Classification remains the anchor workload until the scaling-oriented control
-  family is stable.
+  family and the row-first classification target are stable.
 - Regression is intentionally deferred until it can be rebuilt on top of
   `tabfoundry_staged`.
 - Many-class expansion beyond maintenance, time series, text-conditioned inputs,
@@ -54,6 +62,15 @@ intentionally deferred further still.
 - New feature work should not create a second live family unless it is planned
   as an explicit replacement of `tabfoundry_staged`.
 
+### PFN Control, Row-First Target
+
+- `tabfoundry_simple` and `stage=nano_exact` are the frozen PFN-style control
+  lane.
+- The active architecture target is a row-first staged classifier inspired by
+  TabICLv2, not a permanent hybrid made from `nano_exact` plus more overrides.
+- Architecture promotion should prefer coherent staged surfaces over piling
+  structurally unrelated deltas onto the PFN control path.
+
 ### Modular Model Construction
 
 The model stack should be decomposable enough to compare changes without
@@ -65,12 +82,14 @@ forking the repo. Core swap points include:
 - QASS versus non-QASS attention
 - backbone depth and width schedules
 - readout and head choices
+- coherent staged-surface promotion rather than override accumulation
 
 ### QASS Remains Optional
 
 - Shared components and family configs should support both QASS and non-QASS
   paths.
-- Architecture work should not assume QASS is structurally mandatory.
+- Architecture work should not assume QASS is structurally mandatory, even on a
+  TabICLv2-inspired path.
 - Comparisons should run through the same training and evaluation stack.
 
 ### Role-Based Repo Structure

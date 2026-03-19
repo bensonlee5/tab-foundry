@@ -16,6 +16,7 @@ now and will be rebuilt later on top of `tabfoundry_staged`.
 Related docs:
 
 - `docs/development/model-config.md`
+- `docs/development/architecture-deltas.md`
 - `docs/inference.md`
 
 Related code paths:
