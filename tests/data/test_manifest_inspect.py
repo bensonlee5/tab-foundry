@@ -127,6 +127,70 @@ def test_manifest_inspect_compatibility_rejects_nonfinite_rows_when_missing_valu
     assert "allow_missing_values=false" in compatibility["summary"]
 
 
+def test_manifest_inspect_compatibility_ignores_nonfinite_rows_from_other_tasks(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "run"
+    clean_x_train, clean_y_train, clean_x_test, clean_y_test = cases._classification_arrays(
+        seed=23,
+        n_classes=2,
+    )
+    dirty_x_train, dirty_y_train, dirty_x_test, dirty_y_test = cases._classification_arrays(seed=29)
+    dirty_x_train[0, 0] = float("nan")
+    dirty_x_test[0, 1] = float("inf")
+    _ = cases._write_packed_shard(
+        root / "shard_00000",
+        datasets=[
+            {
+                "dataset_index": 0,
+                "x_train": clean_x_train,
+                "y_train": clean_y_train,
+                "x_test": clean_x_test,
+                "y_test": clean_y_test,
+                "feature_types": ["num"] * clean_x_train.shape[1],
+                "metadata": cases._classification_metadata(
+                    n_features=clean_x_train.shape[1],
+                    n_classes=2,
+                    filter_status="accepted",
+                    filter_accepted=True,
+                ),
+            },
+            {
+                "dataset_index": 1,
+                "x_train": dirty_x_train,
+                "y_train": dirty_y_train,
+                "x_test": dirty_x_test,
+                "y_test": dirty_y_test,
+                "feature_types": ["num"] * dirty_x_train.shape[1],
+                "metadata": {
+                    **cases._classification_metadata(
+                        n_features=dirty_x_train.shape[1],
+                        filter_status="accepted",
+                        filter_accepted=True,
+                    ),
+                    "n_classes": None,
+                    "config": {"dataset": {"task": "regression"}},
+                },
+            },
+        ],
+    )
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([root], manifest_path, filter_policy="accepted_only", missing_value_policy="allow_any")
+
+    payload = manifest_inspect_payload(
+        manifest_path,
+        experiment="cls_smoke",
+        overrides=[f"data.manifest_path={manifest_path}"],
+    )
+
+    assert payload["missing_value_status_counts"]["contains_nan_or_inf"] == 1
+    assert payload["task_missing_value_status_counts"]["classification"] == {"clean": 1}
+    assert payload["task_missing_value_status_counts"]["regression"] == {"contains_nan_or_inf": 1}
+    compatibility = payload["compatibility"]
+    assert compatibility["verdict"] == "compatible"
+    assert compatibility["contains_non_finite_rows"] is False
+
+
 def test_manifest_inspect_compatibility_rejects_missing_task_rows(tmp_path: Path) -> None:
     shard_dir = tmp_path / "run" / "shard_00000"
     _ = cases._write_dataset(

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,7 @@ import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.graph as graph_module
 import tab_foundry.research.sweep.inspect as inspect_module
 from tab_foundry.config import compose_config
+from tab_foundry.model.spec import model_build_spec_from_mappings
 
 
 def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
@@ -62,6 +64,43 @@ def _anchor_checkpoint_payload(run_dir: Path) -> dict[str, Any]:
     payload = OmegaConf.to_container(cfg, resolve=True)
     assert isinstance(payload, dict)
     return payload
+
+
+def _training_surface_record_payload(
+    *,
+    stage_label: str,
+    data_surface_label: str,
+    preprocessing_surface_label: str,
+    training_surface_label: str,
+    tfrow_norm: str | None = None,
+) -> dict[str, Any]:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": "tabfoundry_staged",
+            **_row_model_payload(stage_label=stage_label, tfrow_norm=tfrow_norm),
+        },
+    )
+    return {
+        "labels": {
+            "model": stage_label,
+            "data": data_surface_label,
+            "preprocessing": preprocessing_surface_label,
+            "training": training_surface_label,
+        },
+        "model": {
+            "build_spec": spec.to_dict(),
+        },
+        "data": {
+            "surface_label": data_surface_label,
+        },
+        "preprocessing": {
+            "surface_label": preprocessing_surface_label,
+        },
+        "training": {
+            "surface_label": training_surface_label,
+        },
+    }
 
 
 def _mini_sweep_workspace(
@@ -333,3 +372,42 @@ def test_diff_sweep_row_reports_anchor_and_row_differences(
     )
     assert row_diff["against"]["order"] == 1
     assert row_diff["differences"]["resolved.model.build_spec.tfrow_norm"]["target"] == "rmsnorm"
+
+
+def test_inspect_sweep_row_prefers_persisted_training_surface_record_for_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+    persisted_record_path = tmp_path / "row_one_run" / "train" / "training_surface_record.json"
+    persisted_record_path.parent.mkdir(parents=True, exist_ok=True)
+    persisted_record_path.write_text(
+        json.dumps(
+            _training_surface_record_payload(
+                stage_label="persisted_row_surface",
+                data_surface_label="persisted_data_surface",
+                preprocessing_surface_label="persisted_preprocessing_surface",
+                training_surface_label="persisted_training_surface",
+                tfrow_norm="rmsnorm",
+            ),
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    payload = inspect_module.inspect_sweep_row(
+        order=1,
+        sweep_id="mini_sweep",
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
+    )
+
+    resolved = payload["target"]["resolved"]
+    assert resolved["model"]["stage_label"] == "persisted_row_surface"
+    assert resolved["model"]["build_spec"]["tfrow_norm"] == "rmsnorm"
+    assert resolved["data"]["surface_label"] == "persisted_data_surface"
+    assert resolved["training"]["surface_label"] == "persisted_training_surface"

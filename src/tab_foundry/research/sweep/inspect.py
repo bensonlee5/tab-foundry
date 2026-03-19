@@ -17,7 +17,11 @@ from tab_foundry.bench.benchmark_run_registry import (
 from tab_foundry.model.inspection import model_surface_payload, parameter_counts_from_model_spec
 from tab_foundry.training.surface import build_training_surface_record
 
-from .graph import resolve_anchor_model_spec, resolve_queue_row_model_spec
+from .graph import (
+    _training_surface_record_model_spec,
+    resolve_anchor_model_spec,
+    resolve_queue_row_model_spec,
+)
 from .materialize import load_system_delta_queue, ordered_rows
 from .paths_io import (
     _copy_jsonable,
@@ -227,24 +231,33 @@ def resolve_row_target(
     registry_path: Path,
 ) -> dict[str, Any]:
     artifacts = _row_artifacts(queue=queue, row=row, registry_path=registry_path)
-    run_dir_entry = artifacts.get("run_dir")
-    if not isinstance(run_dir_entry, Mapping):
-        raise RuntimeError(f"row {int(row['order']):02d} has no resolvable run directory")
-    run_dir = Path(str(run_dir_entry["path"]))
-    spec = resolve_queue_row_model_spec(
-        row,
-        training_experiment=str(queue["training_experiment"]),
-    )
-    cfg = compose_cfg(
-        row=row,
-        run_dir=run_dir,
-        device="cpu",
-        training_experiment=str(queue["training_experiment"]),
-    )
-    training_surface_record = _build_lightweight_training_surface_record(
-        raw_cfg=_cfg_mapping(cfg),
-        run_dir=run_dir,
-    )
+    training_surface_entry = artifacts.get("training_surface_record_json")
+    if isinstance(training_surface_entry, Mapping) and bool(training_surface_entry.get("exists")):
+        training_surface_path = Path(str(training_surface_entry["path"]))
+        spec = _training_surface_record_model_spec(training_surface_path)
+        training_surface_record = _load_json_mapping(
+            training_surface_path,
+            context=f"row {int(row['order']):02d} training surface record",
+        )
+    else:
+        run_dir_entry = artifacts.get("run_dir")
+        if not isinstance(run_dir_entry, Mapping):
+            raise RuntimeError(f"row {int(row['order']):02d} has no resolvable run directory")
+        run_dir = Path(str(run_dir_entry["path"]))
+        spec = resolve_queue_row_model_spec(
+            row,
+            training_experiment=str(queue["training_experiment"]),
+        )
+        cfg = compose_cfg(
+            row=row,
+            run_dir=run_dir,
+            device="cpu",
+            training_experiment=str(queue["training_experiment"]),
+        )
+        training_surface_record = _build_lightweight_training_surface_record(
+            raw_cfg=_cfg_mapping(cfg),
+            run_dir=run_dir,
+        )
     metrics = row.get("benchmark_metrics")
     if not isinstance(metrics, Mapping):
         metrics = row.get("screen_metrics")

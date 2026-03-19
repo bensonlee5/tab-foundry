@@ -157,3 +157,47 @@ def test_run_inspect_keeps_partial_runs_inspectable_when_health_is_unavailable(t
     assert payload["surface_labels"]["model"] == "row_cls_pool_test"
     assert payload["health"] is None
     assert "health-check requires telemetry.json" in payload["health_error"]
+
+
+def test_run_inspect_falls_back_to_benchmark_training_surface_record(tmp_path: Path) -> None:
+    run_dir = tmp_path / "benchmarked_run" / "train"
+    benchmark_dir = run_dir.parent / "benchmark"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    benchmark_dir.mkdir(parents=True, exist_ok=True)
+    benchmark_surface_record = _training_surface_record()
+    benchmark_surface_record["labels"] = {
+        "model": "benchmark_row_cls_pool_test",
+        "data": "benchmark_anchor_manifest_default",
+        "preprocessing": "benchmark_runtime_default",
+        "training": "benchmark_training_default",
+    }
+    benchmark_surface_record_path = benchmark_dir / "training_surface_record.json"
+    benchmark_surface_record_path.write_text(
+        json.dumps(benchmark_surface_record, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    (benchmark_dir / "benchmark_run_record.json").write_text(
+        json.dumps(
+            {
+                "run_id": "benchmarked_run",
+                "surface_labels": {
+                    "model": "benchmark_row_cls_pool_test",
+                },
+                "artifacts": {
+                    "training_surface_record_path": str(benchmark_surface_record_path),
+                },
+            },
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    payload = run_inspect(run_dir)
+
+    assert payload["surface_labels"]["model"] == "benchmark_row_cls_pool_test"
+    assert payload["training_surface_record"]["labels"]["training"] == "benchmark_training_default"
+    assert payload["artifacts"]["training_surface_record_json"]["exists"] is True
+    assert payload["artifacts"]["training_surface_record_json"]["path"] == str(
+        benchmark_surface_record_path.resolve()
+    )

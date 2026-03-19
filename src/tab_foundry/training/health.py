@@ -27,6 +27,10 @@ _FAIL_UPPER_BLOCK_FINAL_TO_EARLY_RATIO = 2.0
 _WARN_FINAL_TRAIN_LOSS_MULTIPLIER = 1.05
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
 def _read_json_mapping(path: Path) -> dict[str, Any] | None:
     if not path.exists():
         return None
@@ -47,6 +51,48 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
         if isinstance(payload, dict):
             records.append(cast(dict[str, Any], payload))
     return records
+
+
+def _resolve_registry_path_value(value: str) -> Path:
+    path = Path(str(value)).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (_repo_root() / path).resolve()
+
+
+def _benchmark_training_surface_record_path(
+    benchmark_run_record: Mapping[str, Any] | None,
+) -> Path | None:
+    if not isinstance(benchmark_run_record, Mapping):
+        return None
+    raw_artifacts = benchmark_run_record.get("artifacts")
+    if not isinstance(raw_artifacts, Mapping):
+        return None
+    raw_path = raw_artifacts.get("training_surface_record_path")
+    if not isinstance(raw_path, str) or not raw_path.strip():
+        return None
+    return _resolve_registry_path_value(raw_path)
+
+
+def _run_inspect_training_surface_record_path(
+    *,
+    run_dir: Path,
+    benchmark_dir: Path,
+    benchmark_run_record: Mapping[str, Any] | None,
+) -> Path:
+    run_record_path = run_dir / "training_surface_record.json"
+    benchmark_record_path = benchmark_dir / "training_surface_record.json"
+    registry_record_path = _benchmark_training_surface_record_path(benchmark_run_record)
+
+    candidates = [run_record_path, benchmark_record_path]
+    if registry_record_path is not None and registry_record_path not in candidates:
+        candidates.append(registry_record_path)
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    if registry_record_path is not None:
+        return registry_record_path
+    return benchmark_record_path if benchmark_record_path != run_record_path else run_record_path
 
 
 def _optional_finite_float(value: Any, *, context: str) -> float | None:
@@ -377,12 +423,19 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         if resolved_run_dir.name == "train"
         else resolved_run_dir / "benchmark"
     )
+    comparison_summary = _read_json_mapping(benchmark_dir / "comparison_summary.json")
+    benchmark_run_record = _read_json_mapping(benchmark_dir / "benchmark_run_record.json")
+    training_surface_record_path = _run_inspect_training_surface_record_path(
+        run_dir=resolved_run_dir,
+        benchmark_dir=benchmark_dir,
+        benchmark_run_record=benchmark_run_record,
+    )
     artifacts = {
         "run_dir": _artifact_entry(resolved_run_dir),
         "train_history_jsonl": _artifact_entry(resolved_run_dir / "train_history.jsonl"),
         "gradient_history_jsonl": _artifact_entry(gradient_history_path(resolved_run_dir)),
         "telemetry_json": _artifact_entry(telemetry_path(resolved_run_dir)),
-        "training_surface_record_json": _artifact_entry(resolved_run_dir / "training_surface_record.json"),
+        "training_surface_record_json": _artifact_entry(training_surface_record_path),
         "best_checkpoint_pt": _artifact_entry(resolved_run_dir / "checkpoints" / "best.pt"),
         "latest_checkpoint_pt": _artifact_entry(resolved_run_dir / "checkpoints" / "latest.pt"),
         "comparison_summary_json": _artifact_entry(benchmark_dir / "comparison_summary.json"),
@@ -390,9 +443,7 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         "summary_md": _artifact_entry(resolved_run_dir / "summary.md"),
     }
 
-    training_surface_record = _read_json_mapping(resolved_run_dir / "training_surface_record.json")
-    comparison_summary = _read_json_mapping(benchmark_dir / "comparison_summary.json")
-    benchmark_run_record = _read_json_mapping(benchmark_dir / "benchmark_run_record.json")
+    training_surface_record = _read_json_mapping(training_surface_record_path)
 
     health_payload: dict[str, Any] | None = None
     health_error: str | None = None

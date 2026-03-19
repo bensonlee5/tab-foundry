@@ -42,6 +42,7 @@ def inspect_manifest(manifest_path: Path) -> dict[str, Any]:
     task_split_counts: dict[str, Counter[str]] = {}
     filter_status_counts: Counter[str] = Counter()
     missing_value_status_counts: Counter[str] = Counter()
+    task_missing_value_status_counts: dict[str, Counter[str]] = {}
     n_features_values: list[int] = []
     classification_n_classes: list[int] = []
     source_roots: set[str] = set()
@@ -63,6 +64,7 @@ def inspect_manifest(manifest_path: Path) -> dict[str, Any]:
             "missing" if raw_missing_value_status is None else str(raw_missing_value_status)
         )
         missing_value_status_counts[missing_value_status] += 1
+        task_missing_value_status_counts.setdefault(task, Counter())[missing_value_status] += 1
 
         raw_n_features = record.get("n_features")
         if raw_n_features is not None:
@@ -90,6 +92,10 @@ def inspect_manifest(manifest_path: Path) -> dict[str, Any]:
         },
         "filter_status_counts": dict(sorted(filter_status_counts.items())),
         "missing_value_status_counts": dict(sorted(missing_value_status_counts.items())),
+        "task_missing_value_status_counts": {
+            str(task): dict(sorted(counts.items()))
+            for task, counts in sorted(task_missing_value_status_counts.items())
+        },
         "n_features": (
             None
             if not n_features_values

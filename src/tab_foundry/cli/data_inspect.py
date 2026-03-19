@@ -107,6 +107,12 @@ def _manifest_compatibility(
     task_split_counts = cast(dict[str, dict[str, int]], manifest_payload["task_split_counts"])
     task_counts = cast(dict[str, int], manifest_payload["task_counts"])
     missing_value_status_counts = cast(dict[str, int], manifest_payload["missing_value_status_counts"])
+    raw_task_missing_value_status_counts = manifest_payload.get("task_missing_value_status_counts")
+    task_missing_value_status_counts = (
+        cast(dict[str, dict[str, int]], raw_task_missing_value_status_counts)
+        if isinstance(raw_task_missing_value_status_counts, Mapping)
+        else {}
+    )
 
     issues: list[str] = []
     warnings: list[str] = []
@@ -147,7 +153,12 @@ def _manifest_compatibility(
     task_splits = task_split_counts.get(task, {})
     has_train_rows = int(task_splits.get("train", 0)) > 0
     has_test_rows = int(task_splits.get("test", 0)) > 0
-    contains_non_finite_rows = int(missing_value_status_counts.get("contains_nan_or_inf", 0)) > 0
+    task_missing_value_counts = task_missing_value_status_counts.get(task)
+    contains_non_finite_rows = (
+        int(task_missing_value_counts.get("contains_nan_or_inf", 0)) > 0
+        if isinstance(task_missing_value_counts, Mapping)
+        else int(missing_value_status_counts.get("contains_nan_or_inf", 0)) > 0
+    )
 
     if not has_task_rows:
         issues.append(f"manifest has no rows for task={task!r}")
