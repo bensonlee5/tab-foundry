@@ -7,6 +7,7 @@ import argparse
 from collections import defaultdict
 from dataclasses import dataclass
 import fnmatch
+import os
 from pathlib import Path
 import shlex
 import subprocess
@@ -441,15 +442,66 @@ def render_review_report(plan: VerificationPlan, *, base_ref: str, merge_base: s
     return "\n".join(lines)
 
 
+def _is_pytest_command(argv: Sequence[str]) -> bool:
+    return len(argv) >= 3 and argv[1] == "-m" and argv[2] == "pytest"
+
+
+def _live_pytest_progress_requested() -> bool:
+    raw = os.environ.get("TAB_FOUNDRY_LIVE_PYTEST", "")
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _should_live_stream(argv: Sequence[str]) -> bool:
+    return _live_pytest_progress_requested() and _is_pytest_command(argv) and not sys.stdout.isatty()
+
+
+def _run_live_streamed(argv: Sequence[str]) -> int:
+    try:
+        tty_handle = open("/dev/tty", "wb", buffering=0)
+    except OSError:
+        result = subprocess.run(argv, cwd=REPO_ROOT, check=False)
+        return int(result.returncode)
+
+    process = subprocess.Popen(
+        list(argv),
+        cwd=REPO_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        bufsize=0,
+    )
+    try:
+        assert process.stdout is not None
+        while True:
+            chunk = os.read(process.stdout.fileno(), 1024)
+            if not chunk:
+                break
+            sys.stdout.buffer.write(chunk)
+            sys.stdout.buffer.flush()
+            tty_handle.write(chunk)
+            tty_handle.flush()
+        return int(process.wait())
+    finally:
+        if process.stdout is not None:
+            process.stdout.close()
+        tty_handle.close()
+
+
+def run_check_command(argv: Sequence[str]) -> int:
+    if _should_live_stream(argv):
+        return _run_live_streamed(argv)
+    result = subprocess.run(argv, cwd=REPO_ROOT, check=False)
+    return int(result.returncode)
+
+
 def execute_check_ids(check_ids: Sequence[str]) -> int:
     for check_id in check_ids:
         spec = CHECK_SPECS[check_id]
         print(f"[dev] {spec.description}", flush=True)
         for argv in spec.argv_groups:
             print(f"+ {shlex.join(argv)}", flush=True)
-            result = subprocess.run(argv, cwd=REPO_ROOT, check=False)
-            if result.returncode != 0:
-                return int(result.returncode)
+            result = run_check_command(argv)
+            if result != 0:
+                return int(result)
     return 0
 
 

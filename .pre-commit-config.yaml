@@ -24,7 +24,7 @@ repos:
     pass_filenames: false
   - id: verify-paths
     name: verify (paths)
-    entry: ./.venv/bin/python scripts/audit/dev_verify.py verify paths
+    entry: env TAB_FOUNDRY_LIVE_PYTEST=1 ./.venv/bin/python scripts/audit/dev_verify.py verify paths
     language: system
     types_or: [python, pyi]
     files: ^(src/|tests/)

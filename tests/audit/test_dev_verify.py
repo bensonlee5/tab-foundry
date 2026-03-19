@@ -3,6 +3,9 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import sys
+from types import SimpleNamespace
+
+import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -192,3 +195,61 @@ def test_verify_paths_reuses_affected_scope_mapping_for_explicit_paths() -> None
         "pytest_smoke",
         "pytest_property",
     )
+
+
+def test_should_live_stream_only_for_pytest_when_requested(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("TAB_FOUNDRY_LIVE_PYTEST", "1")
+    monkeypatch.setattr(dev_verify.sys.stdout, "isatty", lambda: False)
+
+    assert dev_verify._should_live_stream((str(dev_verify.VENV_PYTHON), "-m", "pytest", "-q", "tests/cli")) is True
+    assert dev_verify._should_live_stream((str(dev_verify.VENV_RUFF), "check", "src")) is False
+
+
+def test_run_check_command_prefers_live_stream_runner_for_pytest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, tuple[str, ...]]] = []
+    monkeypatch.setenv("TAB_FOUNDRY_LIVE_PYTEST", "1")
+    monkeypatch.setattr(dev_verify.sys.stdout, "isatty", lambda: False)
+
+    def _fake_live(argv):
+        calls.append(("live", tuple(argv)))
+        return 0
+
+    def _fake_run(argv, *, cwd, check):
+        calls.append(("run", tuple(argv)))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(dev_verify, "_run_live_streamed", _fake_live)
+    monkeypatch.setattr(dev_verify.subprocess, "run", _fake_run)
+
+    result = dev_verify.run_check_command((str(dev_verify.VENV_PYTHON), "-m", "pytest", "-q", "tests/cli"))
+
+    assert result == 0
+    assert calls == [("live", (str(dev_verify.VENV_PYTHON), "-m", "pytest", "-q", "tests/cli"))]
+
+
+def test_run_check_command_uses_plain_subprocess_for_non_pytest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, tuple[str, ...]]] = []
+    monkeypatch.setenv("TAB_FOUNDRY_LIVE_PYTEST", "1")
+    monkeypatch.setattr(dev_verify.sys.stdout, "isatty", lambda: False)
+
+    def _fake_live(argv):
+        calls.append(("live", tuple(argv)))
+        return 0
+
+    def _fake_run(argv, *, cwd, check):
+        calls.append(("run", tuple(argv)))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(dev_verify, "_run_live_streamed", _fake_live)
+    monkeypatch.setattr(dev_verify.subprocess, "run", _fake_run)
+
+    result = dev_verify.run_check_command((str(dev_verify.VENV_RUFF), "check", "src"))
+
+    assert result == 0
+    assert calls == [("run", (str(dev_verify.VENV_RUFF), "check", "src"))]
