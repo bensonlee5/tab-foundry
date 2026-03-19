@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
+
+from tab_foundry.timestamps import utc_now as utc_now
 
 DIAGNOSIS_SCHEMA = "benchmark_bounce_diagnosis_v1"
 
@@ -27,11 +29,6 @@ class BenchmarkBounceDiagnosisConfig:
     dense_run_dir: Path | None = None
     rerun_mode: RerunMode = "none"
     run_id: str | None = None
-
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
 
 def default_out_root(run_dir: Path) -> Path:
     stamp = datetime.now().strftime("%Y%m%dT%H%M%S")

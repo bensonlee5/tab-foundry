@@ -10,13 +10,15 @@ import torch
 
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.bench.nanotabpfn import resolve_tab_foundry_best_checkpoint
+from tab_foundry.bench.registry.paths import (
+    normalize_path_value as _normalize_path_value_impl,
+    project_root as _project_root_impl,
+    resolve_config_path as _resolve_config_path_impl,
+    resolve_registry_path_value as _resolve_registry_path_value_impl,
+)
 from tab_foundry.bench.registry_common import (
     copy_jsonable as _copy_jsonable,
     load_comparison_summary as _load_comparison_summary,
-    normalize_path_value as _common_normalize_path_value,
-    project_root as _project_root,
-    resolve_config_path as _common_resolve_config_path,
-    resolve_registry_path_value as _common_resolve_registry_path_value,
 )
 from tab_foundry.bench.registry.storage import (
     ensure_registry_payload as _ensure_registry_payload_common,
@@ -75,21 +77,21 @@ _TAB_FOUNDRY_METRIC_KEYS = _REQUIRED_TAB_FOUNDRY_METRIC_KEYS | _OPTIONAL_TAB_FOU
 def project_root() -> Path:
     """Return the repository root for repo-relative artifact paths."""
 
-    return _project_root()
+    return _project_root_impl()
 
 
 def _normalize_path_value(path: Path) -> str:
-    return _common_normalize_path_value(path, root=project_root())
+    return _normalize_path_value_impl(path, root_fn=project_root)
 
 
 def resolve_registry_path_value(value: str) -> Path:
     """Resolve a registry path value to an absolute path."""
 
-    return _common_resolve_registry_path_value(value, root=project_root())
+    return _resolve_registry_path_value_impl(value, root_fn=project_root)
 
 
 def _resolve_config_path(raw_value: Any) -> Path:
-    return _common_resolve_config_path(raw_value, root=project_root())
+    return _resolve_config_path_impl(raw_value, root_fn=project_root)
 
 
 def default_control_baseline_registry_path() -> Path:

@@ -160,7 +160,7 @@ surface. Use the canonical docs instead:
 - Repo touchpoints:
   - `.github/workflows/test.yml`
   - `src/tab_foundry/bench/dagzoo_smoke.py`
-  - `src/tab_foundry/bench/iris_smoke.py`
+  - `src/tab_foundry/bench/iris_smoke/`
   - `src/tab_foundry/bench/checkpoint.py`
   - `src/tab_foundry/bench/bounce_diagnosis.py`
   - `src/tab_foundry/bench/nanotabpfn/`

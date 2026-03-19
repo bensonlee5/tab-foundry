@@ -4,72 +4,58 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any, Mapping, Sequence, cast
-import torch
+from typing import Any, Mapping, Sequence
 
-from tab_foundry.bench.artifacts import load_history, write_json
-from tab_foundry.bench.nanotabpfn import resolve_tab_foundry_run_artifact_paths
-from tab_foundry.bench.registry_common import (
-    copy_jsonable as _copy_jsonable,
-    load_comparison_summary as _load_comparison_summary,
-    normalize_path_value as _common_normalize_path_value,
-    project_root as _project_root,
-    resolve_config_path as _common_resolve_config_path,
-    resolve_registry_path_value as _common_resolve_registry_path_value,
+from tab_foundry.bench.artifacts import write_json
+from tab_foundry.bench.registry.paths import (
+    normalize_path_value as _normalize_path_value_impl,
+    project_root as _project_root_impl,
+    resolve_config_path as _resolve_config_path_impl,
+    resolve_registry_path_value as _resolve_registry_path_value_impl,
 )
-from tab_foundry.bench.registry.record_helpers import (
-    _count_parameters_from_cfg,
-    _model_payload_from_cfg,
-    _resolve_record_checkpoint_path,
-    _training_diagnostics_from_history,
-    _training_surface_record,
+from tab_foundry.bench.registry.run_derivation import (
+    comparison_delta as _comparison_delta_impl,
+    derive_benchmark_run_entry as _derive_benchmark_run_entry_impl,
+    derive_benchmark_run_record as _derive_benchmark_run_record_impl,
+    empty_registry as _empty_registry_impl,
+    load_registry_payload as _load_registry_payload_impl,
+    sweep_payload as _sweep_payload_impl,
+    validate_record_payload as _validate_record_payload_impl,
+    validate_run_entry as _validate_run_entry_impl,
 )
 from tab_foundry.bench.registry.schema import (
-    _BenchmarkRunEntryPayload,
-    _BenchmarkRunRecordPayload,
-    _TOP_LEVEL_KEYS,
-    _validate_payload_model,
     ALLOWED_DECISIONS,
     DEFAULT_BUDGET_CLASS,
-    REGISTRY_SCHEMA,
-    REGISTRY_VERSION,
+)
+from tab_foundry.bench.registry.summary_metrics import (
+    ensure_optional_finite_number as _ensure_optional_finite_number_impl,
 )
 from tab_foundry.bench.registry.storage import (
     ensure_registry_payload as _ensure_registry_payload_common,
-    load_versioned_registry_payload as _load_versioned_registry_payload,
     upsert_registry_entry as _upsert_registry_entry_common,
     utc_now as _utc_now_common,
 )
-from tab_foundry.bench.registry.summary_metrics import (
-    benchmark_bundle_payload_from_summary as _benchmark_bundle_payload_from_summary,
-    ensure_mapping as _ensure_mapping_common,
-    ensure_non_empty_string as _ensure_non_empty_string_common,
-    ensure_optional_finite_number as _ensure_optional_finite_number_common,
-    ensure_optional_positive_int as _ensure_optional_positive_int_common,
-    ensure_optional_string as _ensure_optional_string_common,
-    tab_foundry_metrics_from_summary as _tab_foundry_metrics_from_summary_common,
-)
-from tab_foundry.data.surface import resolve_data_surface
+from tab_foundry.bench.registry_common import copy_jsonable as _copy_jsonable
 
 
 def project_root() -> Path:
     """Return the repository root for repo-relative artifact paths."""
 
-    return _project_root()
+    return _project_root_impl()
 
 
 def _normalize_path_value(path: Path) -> str:
-    return _common_normalize_path_value(path, root=project_root())
+    return _normalize_path_value_impl(path, root_fn=project_root)
 
 
 def resolve_registry_path_value(value: str) -> Path:
     """Resolve a registry path value to an absolute path."""
 
-    return _common_resolve_registry_path_value(value, root=project_root())
+    return _resolve_registry_path_value_impl(value, root_fn=project_root)
 
 
 def _resolve_config_path(raw_value: Any) -> Path:
-    return _common_resolve_config_path(raw_value, root=project_root())
+    return _resolve_config_path_impl(raw_value, root_fn=project_root)
 
 
 def default_benchmark_run_registry_path() -> Path:
@@ -83,23 +69,7 @@ def _utc_now() -> str:
 
 
 def _empty_registry() -> dict[str, Any]:
-    return {
-        "schema": REGISTRY_SCHEMA,
-        "version": REGISTRY_VERSION,
-        "runs": {},
-    }
-
-
-def _ensure_non_empty_string(value: Any, *, context: str) -> str:
-    return _ensure_non_empty_string_common(value, context=context)
-
-
-def _ensure_optional_string(value: Any, *, context: str) -> str | None:
-    return _ensure_optional_string_common(value, context=context)
-
-
-def _ensure_optional_positive_int(value: Any, *, context: str) -> int | None:
-    return _ensure_optional_positive_int_common(value, context=context)
+    return _empty_registry_impl()
 
 
 def _sweep_payload(
@@ -110,53 +80,17 @@ def _sweep_payload(
     queue_order: int | None,
     run_kind: str | None,
 ) -> dict[str, Any] | None:
-    raw_values = (sweep_id, delta_id, parent_sweep_id, queue_order, run_kind)
-    if all(value is None for value in raw_values):
-        return None
-    normalized_sweep_id = _ensure_non_empty_string(sweep_id, context="sweep_id")
-    normalized_delta_id = _ensure_non_empty_string(delta_id, context="delta_id")
-    normalized_parent_sweep_id = _ensure_optional_string(
-        parent_sweep_id,
-        context="parent_sweep_id",
+    return _sweep_payload_impl(
+        sweep_id=sweep_id,
+        delta_id=delta_id,
+        parent_sweep_id=parent_sweep_id,
+        queue_order=queue_order,
+        run_kind=run_kind,
     )
-    normalized_queue_order = _ensure_optional_positive_int(queue_order, context="queue_order")
-    normalized_run_kind = _ensure_non_empty_string(run_kind, context="run_kind").lower()
-    if normalized_run_kind not in {"primary", "followup"}:
-        raise RuntimeError("run_kind must be 'primary' or 'followup'")
-    return {
-        "sweep_id": normalized_sweep_id,
-        "delta_id": normalized_delta_id,
-        "parent_sweep_id": normalized_parent_sweep_id,
-        "queue_order": normalized_queue_order,
-        "run_kind": normalized_run_kind,
-    }
-
-
-def _ensure_optional_finite_number(value: Any, *, context: str) -> float | None:
-    return _ensure_optional_finite_number_common(value, context=context)
-
-
-def _ensure_mapping(value: Any, *, context: str) -> dict[str, Any]:
-    return _ensure_mapping_common(value, context=context)
-
-
-def _tab_foundry_metrics_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str, float | None]:
-    return _tab_foundry_metrics_from_summary_common(tab_foundry)
 
 
 def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
-    return _load_versioned_registry_payload(
-        path,
-        allow_missing=allow_missing,
-        empty_payload=_empty_registry(),
-        top_level_keys=_TOP_LEVEL_KEYS,
-        schema=REGISTRY_SCHEMA,
-        version=REGISTRY_VERSION,
-        entries_key="runs",
-        registry_label="benchmark run registry",
-        validate_entry_fn=_validate_run_entry,
-        entry_label="run_id",
-    )
+    return _load_registry_payload_impl(path, allow_missing=allow_missing)
 
 
 def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
@@ -187,139 +121,29 @@ def derive_benchmark_run_record(
 ) -> dict[str, Any]:
     """Derive one machine-readable benchmark run record from current artifacts."""
 
-    resolved_run_dir = run_dir.expanduser().resolve()
-    resolved_summary_path = comparison_summary_path.expanduser().resolve()
-    summary = _load_comparison_summary(resolved_summary_path)
-    tab_foundry = _ensure_mapping(summary["tab_foundry"], context="comparison_summary.tab_foundry")
-    summary_run_dir = resolve_registry_path_value(
-        _ensure_non_empty_string(
-            tab_foundry.get("run_dir"),
-            context="comparison_summary.tab_foundry.run_dir",
-        )
-    )
-    if summary_run_dir != resolved_run_dir:
-        raise RuntimeError(
-            "comparison summary run_dir does not match requested run dir: "
-            f"summary={summary_run_dir}, requested={resolved_run_dir}"
-        )
-
-    history_path, _checkpoint_dir = resolve_tab_foundry_run_artifact_paths(resolved_run_dir)
-    best_checkpoint_path = _resolve_record_checkpoint_path(
-        resolved_run_dir,
-        summary_tab_foundry=tab_foundry,
-    )
-    checkpoint_payload = torch.load(best_checkpoint_path, map_location="cpu", weights_only=False)
-    if not isinstance(checkpoint_payload, dict):
-        raise RuntimeError(f"checkpoint payload must be a mapping: {best_checkpoint_path}")
-    raw_cfg = checkpoint_payload.get("config")
-    if not isinstance(raw_cfg, dict):
-        raise RuntimeError(f"checkpoint config must be a mapping: {best_checkpoint_path}")
-    raw_state_dict = checkpoint_payload.get("model")
-    if raw_state_dict is not None and not isinstance(raw_state_dict, dict):
-        raise RuntimeError(f"checkpoint model state_dict must be a mapping: {best_checkpoint_path}")
-    data_cfg = raw_cfg.get("data")
-    runtime_cfg = raw_cfg.get("runtime")
-    if not isinstance(data_cfg, dict) or not isinstance(runtime_cfg, dict):
-        raise RuntimeError(f"checkpoint config must include data/runtime mappings: {best_checkpoint_path}")
-    data_surface = resolve_data_surface(data_cfg)
-    manifest_path_raw = (
-        data_surface.overrides["manifest_path"]
-        if "manifest_path" in data_surface.overrides
-        else data_cfg.get("manifest_path")
-    )
-    if manifest_path_raw is None:
-        raise RuntimeError(
-            "checkpoint config must include a non-empty effective data.manifest_path"
-        )
-    manifest_path = _resolve_config_path(manifest_path_raw)
-    seed_raw = runtime_cfg.get("seed")
-    if not isinstance(seed_raw, int) or isinstance(seed_raw, bool):
-        raise RuntimeError(f"checkpoint runtime.seed must be an int: {best_checkpoint_path}")
-
-    history = load_history(history_path)
-    benchmark_bundle = _ensure_mapping(summary["benchmark_bundle"], context="comparison_summary.benchmark_bundle")
-    raw_artifacts = summary.get("artifacts")
-    comparison_curve_path: Path | None = None
-    if isinstance(raw_artifacts, dict):
-        raw_curve = raw_artifacts.get("comparison_curve_png")
-        if isinstance(raw_curve, str) and raw_curve.strip():
-            comparison_curve_path = Path(str(raw_curve)).expanduser().resolve()
-    if comparison_curve_path is None:
-        comparison_curve_path = resolved_summary_path.parent / "comparison_curve.png"
-    training_surface_payload, training_surface_path = _training_surface_record(
-        run_dir=resolved_run_dir,
-        raw_cfg=raw_cfg,
-        raw_state_dict=raw_state_dict,
+    return _derive_benchmark_run_record_impl(
+        run_dir=run_dir,
+        comparison_summary_path=comparison_summary_path,
+        prior_dir=prior_dir,
         benchmark_run_record_path=benchmark_run_record_path,
+        sweep_id=sweep_id,
+        delta_id=delta_id,
+        parent_sweep_id=parent_sweep_id,
+        queue_order=queue_order,
+        run_kind=run_kind,
+        normalize_path_value_fn=_normalize_path_value,
+        resolve_registry_path_value_fn=resolve_registry_path_value,
+        resolve_config_path_fn=_resolve_config_path,
+        utc_now_fn=_utc_now,
     )
-
-    record = {
-        "manifest_path": _normalize_path_value(manifest_path),
-        "seed_set": [int(seed_raw)],
-        "model": _model_payload_from_cfg(
-            raw_cfg,
-            state_dict=raw_state_dict,
-            summary_tab_foundry=tab_foundry,
-        ),
-        "benchmark_bundle": _benchmark_bundle_payload_from_summary(
-            benchmark_bundle,
-            source_context="comparison_summary.benchmark_bundle.source_path",
-            normalize_path_value_fn=_normalize_path_value,
-            resolve_registry_path_value_fn=resolve_registry_path_value,
-        ),
-        "artifacts": {
-            "run_dir": _normalize_path_value(resolved_run_dir),
-            "benchmark_dir": _normalize_path_value(resolved_summary_path.parent),
-            "prior_dir": None if prior_dir is None else _normalize_path_value(prior_dir),
-            "history_path": _normalize_path_value(history_path),
-            "best_checkpoint_path": _normalize_path_value(best_checkpoint_path),
-            "comparison_summary_path": _normalize_path_value(resolved_summary_path),
-            "comparison_curve_path": _normalize_path_value(comparison_curve_path),
-            "benchmark_run_record_path": None
-            if benchmark_run_record_path is None
-            else _normalize_path_value(benchmark_run_record_path),
-            "training_surface_record_path": None
-            if training_surface_path is None
-            else _normalize_path_value(training_surface_path),
-        },
-        "tab_foundry_metrics": _tab_foundry_metrics_from_summary(tab_foundry),
-        "training_diagnostics": _training_diagnostics_from_history(history, raw_cfg=raw_cfg),
-        "model_size": _count_parameters_from_cfg(raw_cfg, state_dict=raw_state_dict),
-        "surface_labels": None
-        if training_surface_payload is None
-        else dict(cast(dict[str, Any], training_surface_payload["labels"])),
-        "sweep": _sweep_payload(
-            sweep_id=sweep_id,
-            delta_id=delta_id,
-            parent_sweep_id=parent_sweep_id,
-            queue_order=queue_order,
-            run_kind=run_kind,
-        ),
-        "generated_at_utc": _utc_now(),
-    }
-    _validate_record_payload(record)
-    return record
 
 
 def _validate_record_payload(payload: Any) -> None:
-    _ = _validate_payload_model(
-        _BenchmarkRunRecordPayload,
-        payload,
-        context="benchmark run record",
-    )
+    _validate_record_payload_impl(payload)
 
 
 def _validate_run_entry(entry: Any, *, run_id: str) -> None:
-    validated = _validate_payload_model(
-        _BenchmarkRunEntryPayload,
-        entry,
-        context=f"benchmark run entry {run_id}",
-    )
-    if str(validated.run_id) != run_id:
-        raise RuntimeError(
-            "benchmark run entry run_id mismatch: "
-            f"expected={run_id!r}, actual={validated.run_id!r}"
-        )
+    _validate_run_entry_impl(entry, run_id=run_id)
 
 
 def _comparison_delta(
@@ -328,43 +152,15 @@ def _comparison_delta(
     current_metrics: Mapping[str, Any],
     reference_metrics: Mapping[str, Any],
 ) -> dict[str, Any]:
-    def _metric_delta(metric_name: str) -> float | None:
-        current_value = _ensure_optional_finite_number(
-            current_metrics.get(metric_name),
-            context=f"current_metrics.{metric_name}",
-        )
-        reference_value = _ensure_optional_finite_number(
-            reference_metrics.get(metric_name),
-            context=f"reference_metrics.{metric_name}",
-        )
-        if current_value is None or reference_value is None:
-            return None
-        return float(current_value) - float(reference_value)
+    return _comparison_delta_impl(
+        reference_run_id=reference_run_id,
+        current_metrics=current_metrics,
+        reference_metrics=reference_metrics,
+    )
 
-    current_final_log_loss = _ensure_optional_finite_number(
-        current_metrics.get("final_log_loss"),
-        context="current_metrics.final_log_loss",
-    )
-    reference_final_log_loss = _ensure_optional_finite_number(
-        reference_metrics.get("final_log_loss"),
-        context="reference_metrics.final_log_loss",
-    )
-    return {
-        "reference_run_id": str(reference_run_id),
-        "best_roc_auc_delta": _metric_delta("best_roc_auc"),
-        "final_roc_auc_delta": _metric_delta("final_roc_auc"),
-        "final_log_loss_delta": None
-        if current_final_log_loss is None or reference_final_log_loss is None
-        else float(current_final_log_loss) - float(reference_final_log_loss),
-        "final_brier_score_delta": _metric_delta("final_brier_score"),
-        "final_crps_delta": _metric_delta("final_crps"),
-        "final_avg_pinball_loss_delta": _metric_delta("final_avg_pinball_loss"),
-        "final_picp_90_delta": _metric_delta("final_picp_90"),
-        "best_training_time_delta": float(current_metrics["best_training_time"])
-        - float(reference_metrics["best_training_time"]),
-        "final_training_time_delta": float(current_metrics["final_training_time"])
-        - float(reference_metrics["final_training_time"]),
-    }
+
+def _ensure_optional_finite_number(value: Any, *, context: str) -> float | None:
+    return _ensure_optional_finite_number_impl(value, context=context)
 
 
 def derive_benchmark_run_entry(
@@ -391,90 +187,33 @@ def derive_benchmark_run_entry(
 ) -> dict[str, Any]:
     """Derive one benchmark registry entry from benchmark artifacts and lineage."""
 
-    normalized_run_id = _ensure_non_empty_string(run_id, context="run_id")
-    normalized_track = _ensure_non_empty_string(track, context="track")
-    normalized_experiment = _ensure_non_empty_string(experiment, context="experiment")
-    normalized_config_profile = _ensure_non_empty_string(config_profile, context="config_profile")
-    normalized_budget_class = _ensure_non_empty_string(budget_class, context="budget_class")
-    normalized_decision = _ensure_non_empty_string(decision, context="decision").lower()
-    if normalized_decision not in ALLOWED_DECISIONS:
-        raise RuntimeError(f"decision must be one of {sorted(ALLOWED_DECISIONS)}, got {decision!r}")
-    normalized_conclusion = _ensure_non_empty_string(conclusion, context="conclusion")
-
-    resolved_summary_path = comparison_summary_path.expanduser().resolve()
-    resolved_record_path = resolved_summary_path.parent / "benchmark_run_record.json"
-    record = derive_benchmark_run_record(
+    return _derive_benchmark_run_entry_impl(
+        run_id=run_id,
+        track=track,
+        experiment=experiment,
+        config_profile=config_profile,
+        budget_class=budget_class,
         run_dir=run_dir,
-        comparison_summary_path=resolved_summary_path,
+        comparison_summary_path=comparison_summary_path,
+        decision=decision,
+        conclusion=conclusion,
+        parent_run_id=parent_run_id,
+        anchor_run_id=anchor_run_id,
         prior_dir=prior_dir,
-        benchmark_run_record_path=resolved_record_path,
+        control_baseline_id=control_baseline_id,
         sweep_id=sweep_id,
         delta_id=delta_id,
         parent_sweep_id=parent_sweep_id,
         queue_order=queue_order,
         run_kind=run_kind,
+        registry_path=registry_path,
+        ensure_registry_payload_fn=_ensure_registry_payload,
+        derive_benchmark_run_record_fn=derive_benchmark_run_record,
+        comparison_delta_fn=_comparison_delta,
+        validate_run_entry_fn=_validate_run_entry,
+        utc_now_fn=_utc_now,
+        write_json_fn=write_json,
     )
-    write_json(resolved_record_path, record)
-
-    _resolved_registry_path, payload = _ensure_registry_payload(registry_path)
-    runs = cast(dict[str, Any], payload["runs"])
-    if normalized_run_id in {str(parent_run_id), str(anchor_run_id)}:
-        raise RuntimeError("run_id must not match parent_run_id or anchor_run_id")
-
-    parent_entry = None
-    if parent_run_id is not None:
-        parent_entry = runs.get(str(parent_run_id))
-        if parent_entry is None:
-            raise RuntimeError(f"unknown parent_run_id: {parent_run_id}")
-    anchor_entry = None
-    if anchor_run_id is not None:
-        anchor_entry = runs.get(str(anchor_run_id))
-        if anchor_entry is None:
-            raise RuntimeError(f"unknown anchor_run_id: {anchor_run_id}")
-
-    entry = {
-        "run_id": normalized_run_id,
-        "track": normalized_track,
-        "experiment": normalized_experiment,
-        "config_profile": normalized_config_profile,
-        "budget_class": normalized_budget_class,
-        "model": record["model"],
-        "lineage": {
-            "parent_run_id": None if parent_run_id is None else str(parent_run_id),
-            "anchor_run_id": None if anchor_run_id is None else str(anchor_run_id),
-            "control_baseline_id": None if control_baseline_id is None else str(control_baseline_id),
-        },
-        "manifest_path": str(record["manifest_path"]),
-        "seed_set": list(record["seed_set"]),
-        "benchmark_bundle": record["benchmark_bundle"],
-        "artifacts": record["artifacts"],
-        "tab_foundry_metrics": record["tab_foundry_metrics"],
-        "training_diagnostics": record["training_diagnostics"],
-        "model_size": record["model_size"],
-        "surface_labels": record.get("surface_labels"),
-        "sweep": record.get("sweep"),
-        "comparisons": {
-            "vs_parent": None
-            if parent_entry is None
-            else _comparison_delta(
-                reference_run_id=str(parent_run_id),
-                current_metrics=cast(dict[str, Any], record["tab_foundry_metrics"]),
-                reference_metrics=cast(dict[str, Any], parent_entry["tab_foundry_metrics"]),
-            ),
-            "vs_anchor": None
-            if anchor_entry is None
-            else _comparison_delta(
-                reference_run_id=str(anchor_run_id),
-                current_metrics=cast(dict[str, Any], record["tab_foundry_metrics"]),
-                reference_metrics=cast(dict[str, Any], anchor_entry["tab_foundry_metrics"]),
-            ),
-        },
-        "decision": normalized_decision,
-        "conclusion": normalized_conclusion,
-        "registered_at_utc": _utc_now(),
-    }
-    _validate_run_entry(entry, run_id=normalized_run_id)
-    return entry
 
 
 def upsert_benchmark_run_entry(

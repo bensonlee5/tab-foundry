@@ -37,7 +37,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 ## Queue Summary
 
-| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |
+| Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `delta_preproc_norm_zscore` | input_normalization | yes | ready | none | Apply train-only z-score normalization (no clipping) to input features before encoding, changing model.input_normalization from none to train_zscore. | Run and compare against the anchor and other normalization rows. |
 | 2 | `delta_preproc_norm_rankgauss` | input_normalization | yes | ready | none | Apply train-only rank-Gauss (quantile-to-normal via erfinv) normalization to input features before encoding, changing model.input_normalization from none to train_rankgauss. | Run and compare against the anchor and other normalization rows. |
@@ -55,7 +55,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Apply train-only z-score normalization (no clipping) to input features before encoding, changing model.input_normalization from none to train_zscore.
 - Rationale: Contextualize `delta_preproc_norm_zscore` against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
@@ -80,7 +80,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Apply train-only rank-Gauss (quantile-to-normal via erfinv) normalization to input features before encoding, changing model.input_normalization from none to train_rankgauss.
 - Rationale: Contextualize `delta_preproc_norm_rankgauss` against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
@@ -105,7 +105,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Apply train-only robust (median / IQR) normalization to input features before encoding, changing model.input_normalization from none to train_robust.
 - Rationale: Contextualize `delta_preproc_norm_robust` against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
@@ -130,7 +130,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Clip input features at the 1st/99th train percentiles, then apply z-score normalization, changing model.input_normalization from none to train_winsorize_zscore.
 - Rationale: Contextualize `delta_preproc_norm_winsorize_zscore` against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
@@ -155,7 +155,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Apply train-only z-score normalization (no clipping) to input features before encoding, changing model.input_normalization from none to train_zscore.
 - Rationale: Contextualize `delta_preproc_norm_zscore` with LayerNorm post-encoder against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
@@ -180,7 +180,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Apply train-only rank-Gauss (quantile-to-normal via erfinv) normalization to input features before encoding, changing model.input_normalization from none to train_rankgauss.
 - Rationale: Contextualize `delta_preproc_norm_rankgauss` with LayerNorm post-encoder against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
@@ -205,7 +205,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Apply train-only robust (median / IQR) normalization to input features before encoding, changing model.input_normalization from none to train_robust.
 - Rationale: Contextualize `delta_preproc_norm_robust` with LayerNorm post-encoder against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:
@@ -230,7 +230,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Dimension family: `preprocessing`
 - Status: `ready`
 - Binary applicable: `True`
-- Legacy stage alias: `none`
+- Recipe alias: `none`
 - Description: Clip input features at the 1st/99th train percentiles, then apply z-score normalization, changing model.input_normalization from none to train_winsorize_zscore.
 - Rationale: Contextualize `delta_preproc_norm_winsorize_zscore` with LayerNorm post-encoder against anchor `01_shared_norm_post_ln_binary_medium_v1` for sweep `binary_md_v4`.
 - Hypothesis:

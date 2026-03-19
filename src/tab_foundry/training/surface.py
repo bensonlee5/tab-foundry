@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -19,13 +18,14 @@ from tab_foundry.model.spec import (
     model_build_spec_from_mappings,
 )
 from tab_foundry.preprocessing import resolve_preprocessing_surface
+from tab_foundry.timestamps import utc_now as _shared_utc_now
 
 
 TRAINING_SURFACE_SCHEMA = "tab-foundry-training-surface-v1"
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return _shared_utc_now()
 
 
 def _sha256_path(path: Path) -> str:

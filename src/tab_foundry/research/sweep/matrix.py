@@ -190,7 +190,7 @@ def render_system_delta_matrix(
     lines.append("")
     lines.append("## Queue Summary")
     lines.append("")
-    lines.append("| Order | Delta | Family | Binary | Status | Legacy stage alias | Effective change | Next action |")
+    lines.append("| Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |")
     lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
     for queue_row in ordered_rows(queue):
         lines.append(
@@ -211,7 +211,7 @@ def render_system_delta_matrix(
         lines.append(f"- Dimension family: `{queue_row['dimension_family']}`")
         lines.append(f"- Status: `{queue_row['status']}`")
         lines.append(f"- Binary applicable: `{queue_row.get('binary_applicable', False)}`")
-        lines.append(f"- Legacy stage alias: `{queue_row.get('entangled_legacy_stage', 'none')}`")
+        lines.append(f"- Recipe alias: `{queue_row.get('entangled_legacy_stage', 'none')}`")
         lines.append(f"- Description: {queue_row['description']}")
         lines.append(f"- Rationale: {queue_row['rationale']}")
         lines.append(f"- Hypothesis: {queue_row['hypothesis']}")
