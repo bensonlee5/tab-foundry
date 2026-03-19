@@ -36,6 +36,10 @@ check_version_bump = _load_script_module(
     REPO_ROOT / "scripts" / "audit" / "check_version_bump.py",
     "check_version_bump_script",
 )
+bump_version = _load_script_module(
+    REPO_ROOT / "scripts" / "bump_version.py",
+    "bump_version_script",
+)
 
 
 def test_check_repo_paths_reports_missing_reference(tmp_path: Path) -> None:
@@ -220,3 +224,47 @@ def test_read_version_from_git_ref_reports_git_errors(monkeypatch: pytest.Monkey
 
     with pytest.raises(RuntimeError, match="invalid object name"):
         check_version_bump.read_version_from_git_ref(REPO_ROOT, ref="missing")
+
+
+def test_refresh_uv_lock_uses_uv_lock(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[object] = []
+
+    def fake_run(*args, **kwargs):
+        calls.append((args, kwargs))
+        return bump_version.subprocess.CompletedProcess(
+            args=["uv", "lock"],
+            returncode=0,
+            stdout="locked",
+            stderr="",
+        )
+
+    monkeypatch.setattr(bump_version.subprocess, "run", fake_run)
+
+    bump_version.refresh_uv_lock(REPO_ROOT)
+
+    assert calls == [
+        (
+            (["uv", "lock"],),
+            {
+                "cwd": REPO_ROOT,
+                "capture_output": True,
+                "text": True,
+                "check": False,
+            },
+        )
+    ]
+
+
+def test_refresh_uv_lock_reports_subprocess_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_run(*_args, **_kwargs):
+        return bump_version.subprocess.CompletedProcess(
+            args=["uv", "lock"],
+            returncode=2,
+            stdout="",
+            stderr="network error",
+        )
+
+    monkeypatch.setattr(bump_version.subprocess, "run", fake_run)
+
+    with pytest.raises(RuntimeError, match="network error"):
+        bump_version.refresh_uv_lock(REPO_ROOT)

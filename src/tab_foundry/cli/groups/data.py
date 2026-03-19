@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 import subprocess
 
+from tab_foundry.cli.helpers import register_delegate_leaf
 from tab_foundry.data.dagzoo_workflow import (
     DagzooGenerateManifestConfig,
     run_dagzoo_generate_manifest,
@@ -166,6 +167,12 @@ def _run_dagzoo_generate_manifest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_manifest_inspect(argv=None) -> int:
+    from tab_foundry.cli.data_inspect import main as inspect_main
+
+    return inspect_main(None if argv is None else list(argv))
+
+
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser = subparsers.add_parser("data", help="Data workflows")
     nested = parser.add_subparsers(dest="data_command", required=True)
@@ -204,6 +211,13 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         help="Dataset selection policy for NaN/Inf-containing inputs",
     )
     build_parser.set_defaults(func=_run_build_manifest)
+
+    register_delegate_leaf(
+        nested,
+        "manifest-inspect",
+        help="Inspect one manifest parquet and optionally preflight compatibility",
+        delegate=_run_manifest_inspect,
+    )
 
     dagzoo_parser = nested.add_parser("dagzoo", help="dagzoo-backed data workflows")
     dagzoo_nested = dagzoo_parser.add_subparsers(dest="dagzoo_command", required=True)

@@ -652,6 +652,20 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
     assert queue_row['screen_metrics']['upper_block_final_window_mean'] == pytest.approx(42.0)
 
 
+def test_completed_train_artifacts_exist_accepts_stage_scoped_latest_checkpoint(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / 'completed_train_run'
+    (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (run_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (run_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
+    (run_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    (run_dir / 'checkpoints' / 'latest_stage1.pt').write_text('stub', encoding='utf-8')
+
+    assert runner_module.completed_train_artifacts_exist(run_dir) is True
+
+
 def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

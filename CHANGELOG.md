@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.9] - 2026-03-19
+
+### Added
+
+- Added the repo-local `scripts/dev` review and verification surface,
+  including `review-base`, `verify affected`, `verify audit`, `verify full`,
+  `verify paths`, and Iris smoke delegation for branch-scoped development
+  checks.
+
+- Added the packaged `tab-foundry dev` inspection namespace with
+  `resolve-config`, `forward-check`, `health-check`, and `run-inspect` for
+  resolved-surface inspection, forward-only construction checks, and local run
+  artifact triage without launching a full training loop.
+
+- Added `tab-foundry research sweep summarize`, `inspect`, and `diff` for
+  local sweep archaeology, including compact result summaries, row-level
+  resolved-surface inspection, and effective row-vs-anchor or row-vs-row
+  comparisons.
+
+- Added `tab-foundry dev diff-config` for resolved-surface comparison across
+  two override sets, `tab-foundry dev export-check` for export bundle
+  validation plus reference-consumer smoke, and `tab-foundry data manifest-inspect` for manifest summaries with optional resolved-config
+  compatibility preflight.
+
+### Changed
+
+- User-facing note: the sweep graph renderer now reuses the shared synthetic
+  forward-batch helper used by `tab-foundry dev forward-check`, so developer
+  inspection commands and architecture graph rendering exercise the same
+  deterministic tensor shapes.
+
 ## [0.8.8] - 2026-03-19
 
 ### Changed

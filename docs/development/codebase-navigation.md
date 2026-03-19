@@ -12,9 +12,12 @@ into the canonical library modules.
 
 - `src/tab_foundry/__main__.py`: packaged CLI entrypoint for `tab-foundry`.
 - `src/tab_foundry/cli/`: nested CLI registration and dispatch for
-  `data`, `train`, `eval`, `export`, `bench`, and `research` workflows.
+  `data`, `dev`, `train`, `eval`, `export`, `bench`, and `research`
+  workflows.
 - `scripts/`: shell convenience helpers plus audit tooling only. Python
   workflow entrypoints have been retired in favor of the packaged CLI.
+- `scripts/dev`: diff-aware repo-local review and verification wrapper that
+  delegates to the audit tooling and packaged CLI.
 
 ## 2. Canonical Library Areas
 
@@ -28,7 +31,9 @@ into the canonical library modules.
   than an implicit training detail.
 - `src/tab_foundry/model/`: model namespace package. Direct imports should
   target `tab_foundry.model.factory`, `tab_foundry.model.spec`, or concrete
-  family modules under `tab_foundry.model.architectures`.
+  family modules under `tab_foundry.model.architectures`. Shared developer
+  inspection helpers such as resolved-surface rendering and synthetic
+  forward-check batches now live here too.
 - `src/tab_foundry/model/components/`: reusable blocks, QASS primitives, and
   many-class helpers shared across families.
 - `src/tab_foundry/model/architectures/`: the current two-family model
@@ -37,14 +42,15 @@ into the canonical library modules.
   - `tabfoundry_staged`: the staged classification family and the only active
     architecture-development surface
 - `src/tab_foundry/training/`: family-agnostic training loops, batching,
-  schedules, optimizers, runtime policy, and evaluation helpers.
+  schedules, optimizers, runtime policy, evaluation helpers, and telemetry
+  health summaries.
 - `src/tab_foundry/export/`: export bundle construction, loading, and
   validation contracts.
 - `src/tab_foundry/bench/`: benchmark bundles, comparison flows, benchmark
   env/bootstrap helpers, smoke harnesses, prior-dump wiring, and shared
   artifact helpers.
 - `src/tab_foundry/research/`: system-delta sweep state, queue/matrix
-  rendering, and research-package path conventions.
+  rendering, sweep-result summaries, and research-package path conventions.
 
 ## 3. Workflow Surfaces
 
@@ -55,11 +61,21 @@ The repo uses three stable workflow layers:
   registry, and research-sweep flows.
 - Shell helpers under `scripts/*.sh` plus `scripts/audit/` as repo-local
   convenience and verification surfaces only.
+- `scripts/dev` as the canonical repo-local entrypoint for branch review,
+  affected-scope verification, explicit-path verification, full verification,
+  and Iris smoke delegation.
 - Reference YAML/Markdown artifacts for the active system-delta sweep.
 
 Current canonical CLI namespaces:
 
 - `tab-foundry data build-manifest`
+- `tab-foundry data manifest-inspect`
+- `tab-foundry dev resolve-config`
+- `tab-foundry dev forward-check`
+- `tab-foundry dev diff-config`
+- `tab-foundry dev export-check`
+- `tab-foundry dev health-check`
+- `tab-foundry dev run-inspect`
 - `tab-foundry train run`
 - `tab-foundry train prior simple`
 - `tab-foundry train prior staged`
@@ -84,6 +100,9 @@ Current canonical CLI namespaces:
 - `tab-foundry research sweep execute`
 - `tab-foundry research sweep graph`
 - `tab-foundry research sweep promote`
+- `tab-foundry research sweep summarize`
+- `tab-foundry research sweep inspect`
+- `tab-foundry research sweep diff`
 
 Shell helpers such as `scripts/build_manifest.sh`, `scripts/train_smoke.sh`,
 and `scripts/eval_smoke.sh` are repo-local convenience entrypoints and should

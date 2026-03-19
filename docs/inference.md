@@ -45,11 +45,16 @@ Required keys:
 - `model`: `{arch, d_col, d_icl, input_normalization, feature_group_size, many_class_train_mode, max_mixed_radix_digits}`
   - `stage` is an additive optional field and is emitted only for
     `arch=tabfoundry_staged`.
+  - `stage_label`, `module_overrides`, `staged_dropout`, and
+    `pre_encoder_clip` are additive optional staged-surface fields. Newly
+    regenerated staged bundles persist them when present so export/load replay
+    matches the training checkpoint surface exactly.
   - Exporter also emits architecture reconstruction fields:
     `{tfcol_n_heads, tfcol_n_layers, tfcol_n_inducing, tfrow_n_heads, tfrow_n_layers, tfrow_cls_tokens, tficl_n_heads, tficl_n_layers, tficl_ff_expansion, many_class_base, head_hidden_dim, use_digit_position_embed}`.
   - Validators accept manifests that omit the optional reconstruction fields and
     apply the current model defaults.
-  - Validators also accept older manifests that omit `stage`.
+  - Validators also accept older manifests that omit `stage` and the additive
+    staged-surface fields, applying current defaults for omitted values.
   - See `docs/development/model-config.md` for the meaning of each model field
     and the current canonical defaults.
 - `inference`
@@ -148,6 +153,8 @@ Out of scope here:
   regenerated.
 - Existing v3 bundles without `preprocessor.missing_value_policy.impute_missing`
   remain validator-readable and default to `true` until regenerated.
+- Existing v3 bundles without the additive staged-surface model fields remain
+  validator-readable and default those values until regenerated.
 - `tab-foundry-export-v2` bundles remain validator-readable during migration.
 - `tab-foundry-export-v1` bundles are intentionally unsupported and must be
   regenerated onto the current classification-only staged/simple surface.

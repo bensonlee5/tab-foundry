@@ -19,6 +19,7 @@ from tab_foundry.bench.benchmark_run_registry import (
     resolve_registry_path_value,
 )
 from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.inspection import synthetic_forward_batch
 from tab_foundry.model.spec import (
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
@@ -316,18 +317,6 @@ def _build_targets(
     return targets
 
 
-def _synthetic_inputs(spec: ModelBuildSpec) -> tuple[torch.Tensor, torch.Tensor, int]:
-    train_rows = 3
-    test_rows = 2
-    feature_count = 4
-    total_rows = train_rows + test_rows
-    x_all = torch.arange(total_rows * feature_count, dtype=torch.float32).reshape(1, total_rows, feature_count)
-    x_all = (x_all / float(feature_count)) - 1.0
-    max_classes = 2 if spec.arch == "tabfoundry_simple" else max(2, min(int(spec.many_class_base), 4))
-    y_train = torch.arange(train_rows, dtype=torch.int64).remainder(max_classes).reshape(1, train_rows)
-    return x_all, y_train, train_rows
-
-
 def _import_draw_graph() -> Any:
     try:
         from torchview import draw_graph
@@ -363,13 +352,16 @@ def render_graph_target(target: GraphTarget, *, out_dir: Path) -> Path:
             f"got staged head='many_class' for target {target.title!r}"
         )
 
-    x_all, y_train, train_test_split_index = _synthetic_inputs(target.model_spec)
-    wrapper = _ForwardBatchedWrapper(model, train_test_split_index=train_test_split_index)
+    forward_batch = synthetic_forward_batch(target.model_spec)
+    wrapper = _ForwardBatchedWrapper(
+        model,
+        train_test_split_index=forward_batch.train_test_split_index,
+    )
     wrapper.eval()
     with torch.no_grad():
         graph = draw_graph(
             wrapper,
-            input_data=[x_all, y_train],
+            input_data=[forward_batch.x_all, forward_batch.y_train_batched],
             graph_name=target.title,
             mode="eval",
             expand_nested=True,

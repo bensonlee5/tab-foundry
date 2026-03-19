@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from typing import Sequence
 
-from .groups import bench, data, eval_, export, research, train
+from .groups import bench, data, dev, eval_, export, research, train
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -13,6 +13,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     data.register(subparsers)
+    dev.register(subparsers)
     train.register(subparsers)
     eval_.register(subparsers)
     export.register(subparsers)

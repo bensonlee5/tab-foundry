@@ -30,8 +30,18 @@ jobs:
       - name: Install uv
         run: python -m pip install --upgrade uv
 
+      - name: Restore uv cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: ${{ runner.os }}-py314-uv-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-py314-uv-
+
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --frozen --group dev
 
       - name: Fetch main for version audit
         if: github.event_name == 'pull_request'
@@ -41,17 +51,8 @@ jobs:
         if: github.event_name == 'pull_request'
         run: uv run python scripts/audit/check_version_bump.py --base-ref origin/main
 
-      - name: Markdown format
-        run: uv run mdformat --check AGENTS.md README.md docs reference CHANGELOG.md
-
-      - name: Ruff
-        run: uv run ruff check src tests scripts
-
-      - name: Mypy
-        run: uv run mypy src
-
-      - name: Pytest
-        run: uv run pytest -q
+      - name: Quality and unit verification
+        run: ./scripts/dev verify full
 
   iris-smoke:
     runs-on: ubuntu-latest
@@ -68,11 +69,21 @@ jobs:
       - name: Install uv
         run: python -m pip install --upgrade uv
 
+      - name: Restore uv cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: ${{ runner.os }}-py314-uv-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-py314-uv-
+
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --frozen --group dev
 
       - name: Run iris smoke
-        run: uv run tab-foundry bench smoke iris --out-root benchmarks/results/ci_iris_smoke
+        run: ./scripts/dev smoke iris --out-root benchmarks/results/ci_iris_smoke
 
       - name: Upload iris smoke artifacts
         if: always()

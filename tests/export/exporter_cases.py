@@ -352,6 +352,46 @@ def test_export_bundle_round_trips_staged_arch_and_stage(tmp_path: Path) -> None
     assert loaded.validated.manifest.inference.model_stage == "nano_exact"
 
 
+def test_export_bundle_round_trips_additive_staged_surface_fields(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_staged_surface.pt"
+    module_overrides = {
+        "post_stack_norm": "rmsnorm",
+        "table_block_style": "prenorm",
+    }
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="train_zscore_clip",
+        model_overrides={
+            "arch": "tabfoundry_staged",
+            "stage": "row_cls_pool",
+            "stage_label": "row_cls_pool_replay",
+            "module_overrides": module_overrides,
+            "staged_dropout": 0.1,
+            "pre_encoder_clip": 10.0,
+        },
+    )
+
+    out_dir = tmp_path / "export_staged_surface"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+    manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    validated = validate_export_bundle(out_dir)
+    loaded = load_export_bundle(out_dir)
+
+    assert manifest["model"]["stage_label"] == "row_cls_pool_replay"
+    assert manifest["model"]["module_overrides"] == module_overrides
+    assert manifest["model"]["staged_dropout"] == pytest.approx(0.1)
+    assert manifest["model"]["pre_encoder_clip"] == pytest.approx(10.0)
+    assert validated.manifest.model.stage_label == "row_cls_pool_replay"
+    assert validated.manifest.model.module_overrides == module_overrides
+    assert validated.manifest.model.staged_dropout == pytest.approx(0.1)
+    assert validated.manifest.model.pre_encoder_clip == pytest.approx(10.0)
+    assert loaded.model.model_spec.stage_label == "row_cls_pool_replay"
+    assert loaded.model.model_spec.module_overrides == module_overrides
+    assert loaded.model.model_spec.staged_dropout == pytest.approx(0.1)
+    assert loaded.model.model_spec.pre_encoder_clip == pytest.approx(10.0)
+
+
 def test_validate_export_rejects_tabfoundry_simple_manifest_that_breaks_constructor_invariants(
     tmp_path: Path,
 ) -> None:

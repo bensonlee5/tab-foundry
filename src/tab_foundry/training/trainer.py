@@ -19,10 +19,12 @@ from .artifacts import (
     append_history_record,
     append_jsonl_record,
     assert_clean_training_output,
+    canonical_latest_checkpoint_path,
     gradient_history_record,
     history_path_from_cfg,
     history_record,
     save_checkpoint,
+    stage_latest_checkpoint_path,
 )
 from .batching import move_batch
 from .distributed import _reduction_float_dtype, _reduce_keyed_weighted_scalars
@@ -600,10 +602,17 @@ def train(cfg: DictConfig) -> TrainResult:
                 if stop_requested:
                     break
 
-            latest_checkpoint = output_dir / "checkpoints" / f"latest_{stage.name}.pt"
+            latest_checkpoint = stage_latest_checkpoint_path(output_dir, stage_name=stage.name)
+            compatibility_latest_checkpoint = canonical_latest_checkpoint_path(output_dir)
             if accelerator.is_main_process:
                 save_checkpoint(
                     latest_checkpoint,
+                    model_state=accelerator.get_state_dict(model),
+                    global_step=global_step,
+                    cfg=cfg,
+                )
+                save_checkpoint(
+                    compatibility_latest_checkpoint,
                     model_state=accelerator.get_state_dict(model),
                     global_step=global_step,
                     cfg=cfg,

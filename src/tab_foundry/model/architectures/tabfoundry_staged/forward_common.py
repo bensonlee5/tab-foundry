@@ -43,7 +43,9 @@ def validate_batched_inputs(
         raise ValueError("y_train length must match train_test_split_index")
 
 
-def normalize_x_all(model: Any, x_all: torch.Tensor, *, train_test_split_index: int) -> torch.Tensor:
+def normalize_x_all(
+    model: Any, x_all: torch.Tensor, *, train_test_split_index: int
+) -> torch.Tensor:
     if model.surface.normalization_mode != "shared":
         return x_all
     x_train = x_all[:, :train_test_split_index, :]
@@ -222,5 +224,6 @@ def condition_rows(
 
 
 def context_train_embeddings(model: Any, y_train: torch.Tensor) -> torch.Tensor:
-    assert model.context_label_embed is not None
+    if model.context_label_embed is None:
+        raise RuntimeError("context_label_embed must be initialized for context train embeddings")
     return model.context_label_embed(y_train.clamp(max=model.many_class_base - 1))

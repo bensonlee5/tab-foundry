@@ -89,7 +89,7 @@ retained for traceability.
 | ---- | ---------- | ---- | ------ | --------- |
 | 0 | TF-RD-000 | Repo foundation and staged-family split | implemented | Implemented |
 | 1 | TF-RD-001 | Control freeze and experiment trust | implemented | Implemented |
-| 2 | TF-RD-002 | Measurement surfaces for architecture migration | planned | Now |
+| 2 | TF-RD-002 | Measurement surfaces for architecture migration | implemented | Implemented |
 | 3 | TF-RD-003 | Shared-surface unlock | planned | Now |
 | 4 | TF-RD-004 | Tokenization migration | planned | Now |
 | 5 | TF-RD-005 | Row-embedding unlock | planned | Now |
@@ -98,7 +98,7 @@ retained for traceability.
 | 8 | TF-RD-008 | Coherent classification anchor promotion | planned | Next |
 | 9 | TF-RD-009 | Scaling-law measurement on the promoted anchor | planned | Next |
 | 10 | TF-RD-010 | Many-class promotion on the row-first base | research | Next |
-| 11 | TF-RD-011 | Repo-wide enablers and contract fidelity | partial | Next |
+| 11 | TF-RD-011 | Repo-wide enablers and contract fidelity | implemented | Implemented |
 | 12 | TF-RD-012 | Regression, inference handoff, and later modalities | research | Later |
 
 ## Dependency Graph
@@ -107,13 +107,13 @@ retained for traceability.
 flowchart TD
     RD000["TF-RD-000 ✅<br/>Repo foundation"]
 
-    subgraph ready [" Ready now — no blockers "]
-        RD001["TF-RD-001<br/>Control freeze &<br/>experiment trust"]
-        RD011["TF-RD-011<br/>Repo-wide enablers<br/>(independent)"]
-    end
+    RD001["TF-RD-001 ✅<br/>Control freeze &<br/>experiment trust"]
+    RD002["TF-RD-002 ✅<br/>Measurement surfaces"]
+    RD011["TF-RD-011 ✅<br/>Repo-wide enablers<br/>(independent)"]
 
-    RD002["TF-RD-002<br/>Measurement surfaces"]
-    RD003["TF-RD-003<br/>Shared-surface unlock"]
+    subgraph ready [" Ready now — no blockers "]
+        RD003["TF-RD-003<br/>Shared-surface unlock"]
+    end
     RD004["TF-RD-004<br/>Tokenization migration"]
     RD005["TF-RD-005<br/>Row-embedding unlock"]
     RD006["TF-RD-006<br/>Column-set integration"]
@@ -142,16 +142,15 @@ flowchart TD
     classDef gate fill:#fff1d6,stroke:#c67a00,color:#3d2a00;
     classDef later fill:#f3e8ff,stroke:#7c3aed,color:#3b1f6e;
 
-    class RD000 done;
-    class RD001,RD011 readyNow;
-    class RD002,RD003,RD004,RD005,RD006,RD007 chain;
+    class RD000,RD001,RD002,RD011 done;
+    class RD003 readyNow;
+    class RD004,RD005,RD006,RD007 chain;
     class RD008 gate;
     class RD009,RD010,RD012 later;
 ```
 
-Critical path: **001 → 002 → 003 → 004 → 005 → 006 → 007 → 008**. Everything after
-008 is post-promotion work. 011 is the only epic that proceeds fully in
-parallel.
+Critical path: **003 → 004 → 005 → 006 → 007 → 008**. 000, 001, 002, and 011
+are implemented. Everything after 008 is post-promotion work.
 
 ## Current Capability Matrix
 
@@ -225,8 +224,8 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-002: Measurement Surfaces For Architecture Migration
 
-- Status: `planned`
-- Milestone: `Now`
+- Status: `implemented`
+- Milestone: `Implemented`
 - Goal: add the telemetry needed to interpret row-first architecture changes
   structurally rather than by end metrics alone
 - Current state:
@@ -420,8 +419,8 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-011: Repo-Wide Enablers And Contract Fidelity
 
-- Status: `partial`
-- Milestone: `Next`
+- Status: `implemented`
+- Milestone: `Implemented`
 - Goal: keep the repo-wide data, preprocessing, and export surfaces healthy
   enough to support the architecture program without letting them dominate it
 - Current state:

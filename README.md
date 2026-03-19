@@ -10,22 +10,57 @@ Modular tabular prior-data fitted network training on `dagzoo` packed shard outp
 ## Setup
 
 ```bash
+./scripts/dev bootstrap
+```
+
+`./scripts/dev bootstrap` wraps the canonical repo-local setup:
+
+```bash
 uv sync
 uv run pre-commit install
 ```
 
-`uv sync` is the canonical repo-local setup and includes the benchmark helper
-dependencies plus Muon through the dev environment. For a minimal non-dev
-install, opt into the extra surfaces explicitly:
+Repo-local `uv sync` includes the benchmark helper dependencies plus Muon
+through the dev environment. For a minimal non-dev install, opt into the extra
+surfaces explicitly:
 
 ```bash
 uv sync --no-dev --extra benchmark --extra muon
 ```
 
-Run the local quality gate:
+Summarize the current diff against `origin/main` and run the smallest safe
+verification slice:
 
 ```bash
-uv run pre-commit run --all-files
+./scripts/dev review-base
+./scripts/dev verify affected
+./scripts/dev verify paths src/tab_foundry/model/architectures/tabfoundry_staged/subsystems.py
+```
+
+Run the full local quality gate:
+
+```bash
+./scripts/dev verify full
+```
+
+Inspect one resolved config or run a forward-only construction smoke check:
+
+```bash
+uv run tab-foundry dev resolve-config experiment=cls_smoke
+uv run tab-foundry dev forward-check experiment=cls_smoke
+uv run tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
+```
+
+Summarize one run's instability telemetry or one sweep's local results:
+
+```bash
+uv run tab-foundry dev health-check --run-dir outputs/cls_smoke
+uv run tab-foundry dev run-inspect --run-dir outputs/cls_smoke
+uv run tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
+uv run tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
+uv run tab-foundry research sweep summarize --include-screened
+uv run tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
+uv run tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1
 ```
 
 ## Quickstart
@@ -67,7 +102,7 @@ uv run tab-foundry export validate \
 Run the Iris smoke harness:
 
 ```bash
-uv run tab-foundry bench smoke iris
+./scripts/dev smoke iris
 ```
 
 Repo-local `uv sync` includes Muon. If you are using a minimal install without

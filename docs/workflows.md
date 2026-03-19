@@ -24,34 +24,64 @@ policy.
 Setup:
 
 ```bash
+./scripts/dev bootstrap
+```
+
+`./scripts/dev bootstrap` wraps the canonical repo-local setup:
+
+```bash
 uv sync
 uv run pre-commit install
 ```
 
-`uv sync` is the canonical repo-local setup and includes the benchmark helper
-dependencies plus Muon through the dev environment. For a minimal non-dev
-install, opt into those optional surfaces explicitly:
+Repo-local `uv sync` includes the benchmark helper dependencies plus Muon
+through the dev environment. For a minimal non-dev install, opt into those
+optional surfaces explicitly:
 
 ```bash
 uv sync --no-dev --extra benchmark --extra muon
 ```
 
+Review the current diff against `origin/main` and run the smallest safe
+verification slice:
+
+```bash
+./scripts/dev review-base
+./scripts/dev verify affected
+./scripts/dev verify paths src/tab_foundry/model/factory.py
+```
+
 Run the full local quality gate:
 
 ```bash
-uv run pre-commit run --all-files
+./scripts/dev verify full
+```
+
+Fast developer-facing inspection commands:
+
+```bash
+uv run tab-foundry dev resolve-config experiment=cls_smoke
+uv run tab-foundry dev forward-check experiment=cls_smoke
+uv run tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
+uv run tab-foundry dev health-check --run-dir outputs/cls_smoke
+uv run tab-foundry dev run-inspect --run-dir outputs/cls_smoke
+uv run tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
+uv run tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
+uv run tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
+uv run tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1
 ```
 
 Format markdown directly:
 
 ```bash
-uv run mdformat README.md docs reference CHANGELOG.md AGENTS.md
+./.venv/bin/mdformat AGENTS.md README.md CHANGELOG.md program.md docs reference
 ```
 
 CI workflow `test` runs two required jobs on pull requests and `main`:
 
-- `quality-and-unit`: `mdformat --check`, `ruff`, `mypy`, `pytest -q`
-- `iris-smoke`: the Iris-backed smoke harness with uploaded artifacts and markdown summary
+- `quality-and-unit`: `./scripts/dev verify full`
+- `iris-smoke`: `./scripts/dev smoke iris --out-root benchmarks/results/ci_iris_smoke`
+  plus uploaded artifacts and markdown summary
 
 Apply matching branch protection with:
 
@@ -183,6 +213,26 @@ uv run tab-foundry export validate \
   --bundle-dir outputs/exports/cls_smoke_v3
 ```
 
+For model-surface work, prefer the fast dev commands before launching a full
+smoke or training loop:
+
+```bash
+uv run tab-foundry dev resolve-config experiment=cls_smoke
+uv run tab-foundry dev forward-check experiment=cls_smoke
+uv run tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
+uv run tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
+uv run tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
+```
+
+`resolve-config` prints the resolved model/data/preprocessing/training surface,
+including staged module selection and parameter counts. `forward-check` builds
+the resolved model and runs one deterministic synthetic forward pass without
+starting training. `diff-config` compares two fully resolved surfaces and only
+prints effective deltas. `export-check` wraps bundle export, bundle validation,
+and one deterministic reference-consumer smoke. `manifest-inspect` summarizes a
+manifest parquet and can preflight one resolved experiment against its task,
+missing-value, and class-count contract.
+
 ## Standard Workflow Artifacts
 
 These artifacts are the minimum handoff surface for reviewable runs:
@@ -207,7 +257,7 @@ Smoke and benchmark-style runs may also persist generated datasets, manifests, a
 Run the repo-local Iris-backed smoke harness:
 
 ```bash
-uv run tab-foundry bench smoke iris
+./scripts/dev smoke iris
 ```
 
 This generates manifest-compatible packed Iris tasks, trains a small classification checkpoint on CPU by default, evaluates it on the manifest test split, then runs the binary-Iris checkpoint benchmark.
@@ -557,6 +607,7 @@ Recommended loop:
    ```bash
    uv run tab-foundry research sweep list
    uv run tab-foundry research sweep next
+   uv run tab-foundry research sweep summarize --include-screened
    ```
 
 1. Render architecture graphs for the anchor or selected rows when you need a
@@ -573,6 +624,14 @@ Recommended loop:
    `outputs/staged_ladder/research/<sweep_id>/architecture_graphs` by default.
    Run `tab-foundry research sweep graph --anchor` for the current canonical
    surface. The command requires the Graphviz `dot` binary on `PATH`.
+
+1. Summarize completed and screened rows into one compact local table when you
+   need to answer "how is this sweep going?" without reopening queue YAML by
+   hand:
+
+   ```bash
+   uv run tab-foundry research sweep summarize --sweep-id <sweep_id> --include-screened
+   ```
 
 1. Execute the active sweep's `ready` rows with the generic executor:
 
