@@ -8,6 +8,7 @@ import importlib.metadata
 import json
 from pathlib import Path
 import subprocess
+import tomllib
 from typing import Any
 
 from safetensors.torch import save_file
@@ -62,14 +63,29 @@ def _git_sha() -> str | None:
     return value or None
 
 
-def _producer_info() -> ProducerInfo:
+def _package_version() -> str:
     try:
         version = importlib.metadata.version("tab-foundry")
+        if isinstance(version, str) and version.strip():
+            return version
     except Exception:
-        version = "0.0.0"
+        pass
+    try:
+        pyproject_path = Path(__file__).resolve().parents[3] / "pyproject.toml"
+        with pyproject_path.open("rb") as handle:
+            payload = tomllib.load(handle)
+        version = payload["project"]["version"]
+        if isinstance(version, str) and version.strip():
+            return version
+    except Exception:
+        pass
+    return "0.0.0"
+
+
+def _producer_info() -> ProducerInfo:
     return ProducerInfo(
         name="tab-foundry",
-        version=version,
+        version=_package_version(),
         git_sha=_git_sha(),
     )
 
