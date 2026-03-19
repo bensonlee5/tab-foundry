@@ -136,6 +136,8 @@ def test_workflows_runbook_reflects_system_delta_surface() -> None:
         "`cls_benchmark_linear_v2`",
         "`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`",
         "`training_surface_record.json`",
+        "`tab-foundry research sweep graph --anchor`",
+        "Graphviz `dot`",
     ]
     for statement in required_statements:
         assert statement in contents
