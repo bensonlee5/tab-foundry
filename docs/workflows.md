@@ -129,9 +129,12 @@ and `many_class_base=2`.
 
 `cls_benchmark_staged` is the staged research counterpart. It defaults to
 `model.arch=tabfoundry_staged` and `model.stage=nano_exact`. Treat that as the
-base recipe only. The live staged workflow now records isolated changes through
-the active system-delta sweep using `model.stage_label` and
-`model.module_overrides`, not through a promotion ladder in this runbook.
+base recipe only. The intended architecture path is the public staged ladder in
+`docs/development/roadmap.md` and
+`docs/development/model-architecture.md`. The system-delta sweep records
+isolated evidence for that ladder using `model.stage_label` and
+`model.module_overrides`, including bounded control rows when a public stage
+bundles more than one mechanism.
 
 Regression is intentionally removed in the current repo state. Future
 regression work will be rebuilt on top of `tabfoundry_staged`, not the retired
@@ -145,8 +148,8 @@ uv run tab-foundry train prior staged
 ```
 
 Use the queue row plus `reference/system_delta_campaign_template.md` to decide
-the staged labels, module overrides, and research-package paths for each
-benchmark-facing delta.
+the staged labels, any bounded module overrides, and the research-package paths
+for each benchmark-facing delta.
 
 Repo-local `uv sync` includes Muon. If you are using a minimal install without
 the `muon` extra, run without Muon explicitly:
@@ -501,7 +504,9 @@ Tier 2 milestones or whenever any of those inputs changes.
 ### System-Delta Sweep Runbook
 
 Treat `program.md` as the canonical staged-research contract. The live staged
-workflow is an anchor-only system-delta sweep, not a promotion ladder.
+workflow is an anchor-only system-delta sweep: it measures rows against a
+locked anchor and does not by itself define the long-term promotion path. Use
+the roadmap and architecture docs for the intended public stage progression.
 
 Canonical sources of truth:
 

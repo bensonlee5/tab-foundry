@@ -39,9 +39,9 @@ Related docs:
 in `tab-foundry`.
 
 The canonical planning unit is the local roadmap item `TF-RD-###`. External BL
-issues can track execution work when needed, but missing BL chains should not
-block planning. If another document disagrees with this file, this file is
-authoritative.
+issues or GitHub issues can track execution work when needed, but missing
+external issue chains should not block planning. If another document disagrees
+with this file, this file is authoritative.
 
 ## Program Statement
 
@@ -74,8 +74,8 @@ Important non-goals for this roadmap:
 - Architecture conclusions should come from coherent staged surfaces, not from
   piling more overrides onto `nano_exact`.
 - Row-first migration work should move one architectural boundary at a time:
-  shared surface, grouped tokens, row embedding, column set reasoning, then
-  row-level context.
+  shared surface, small-class/test-self bridge, grouped tokens, row
+  embedding, column set reasoning, then row-level context.
 - Many-class, regression, inference handoff, and modality expansion remain
   later unless earlier evidence shows they are blocking the main architecture
   program.
@@ -106,7 +106,7 @@ retained for traceability.
 | Objective / Claim | Current State | Evidence In Repo | Current Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, benchmark comparison tooling, and prior-trained PFN-facing lanes already exist | The current large-anchor hybrid line is still easy to confuse with the intended destination | `TF-RD-001` |
-| Coherent row-first migration ladder exists in code | `partial` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class` | The roadmap and sweep system do not yet treat that ladder as the primary migration program | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
+| Coherent row-first migration ladder exists in code | `partial` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class` | The roadmap and sweep system do not yet treat that ladder as the primary migration program | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
 | Architecture comparisons are attributable | `partial` | Isolated row-CLS, TFCol, and QASS evidence exists on compact surfaces | Negative evidence is easy to overgeneralize because stage-local telemetry and matched controls are still incomplete | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
 | One promoted row-first classification anchor exists | `planned` | The ingredients exist in `tabfoundry_staged`, but no coherent row-first anchor has been promoted | The active architecture target is still split across compact-ladder evidence and the current large hybrid line | `TF-RD-008` |
 | Scaling-law work targets the right architecture | `partial` | Tuning and benchmark-adjacent tooling already exist | There is no canonical scaling artifact path on a promoted row-first anchor yet | `TF-RD-009` |
@@ -121,8 +121,9 @@ This roadmap assumes the following repo truths:
 - `tabfoundry_staged` is the only active architecture-development surface.
 - `tabfoundry_simple` is the frozen exact PFN-style anchor.
 - the staged family already contains the intended migration ladder through
-  `shared_norm`, `grouped_tokens`, `row_cls_pool`, `column_set`,
-  `qass_context`, and `many_class`
+  `shared_norm`, `prenorm_block`, `small_class_head`, `test_self`,
+  `grouped_tokens`, `row_cls_pool`, `column_set`, `qass_context`, and
+  `many_class`
 - current negative row-CLS, TFCol, and QASS evidence was gathered mostly on
   compact or PFN-adjacent anchor surfaces and should not be treated as a final
   rejection of the row-first direction
@@ -195,17 +196,22 @@ This roadmap assumes the following repo truths:
 - Goal: move the active architecture program off the PFN-only `nano` encoder
   path and onto the coherent shared staged surface
 - Current state:
-  - `shared_norm` and `prenorm_block` already exist as public staged recipes
+  - `shared_norm`, `prenorm_block`, `small_class_head`, and `test_self`
+    already exist as public staged recipes
   - tokenizer changes remain ineffective while `feature_encoder=nano`
   - the active large-anchor work still leans on `nano_exact` plus overrides
 - Required work:
   - establish `shared_norm` as the first mandatory step out of the PFN control
     lane
   - establish `prenorm_block` as the first shared-surface backbone change
+  - treat `small_class_head` and `test_self` as the explicit bridge rows that
+    grouped-token work should inherit from, rather than skipping directly from
+    pre-norm blocks to grouped tokenization
   - stop treating `nano_exact` overrides as the main path for TabICL-inspired
     work
 - Exit criteria:
   - the architecture target lane starts from a shared surface
+  - one explicit shared-surface handoff row is locked for grouped-token work
   - later tokenization and row-first rows are tested only where they are
     actually active
 
@@ -219,6 +225,8 @@ This roadmap assumes the following repo truths:
   - `grouped_tokens` already exists in the staged recipe ladder
   - compact-ladder evidence showed that tokenizer changes under the nano encoder
     were not isolatable
+  - grouped-token work should inherit from the shared-surface bridge that now
+    includes the `small_class_head` and `test_self` handoff rows
 - Required work:
   - evaluate `grouped_tokens` directly on top of the shared/prenorm path
   - treat grouped tokenization as a structural milestone rather than a minor

@@ -27,7 +27,7 @@ Use this directory to make explicit judgments, not just collect papers.
   - table-aware text models
   - expensive optimizers beyond current defaults, especially because the intended transformer family is small
   - retrieval-heavy or interaction-heavy mechanisms that materially change the inductive bias
-- `Later / BL-192`
+- `Later / TF-RD-012`
   - text-conditioned column handling via external text embeddings and table-aware text encoders
 - `Probably low relevance`
   - RoPE and similar positional schemes whose main value comes from token order in language
@@ -39,7 +39,7 @@ These are the core domain papers. Many overlap with dagzoo's collection but are 
 
 | arXiv ID | Title | Why it matters for tab-foundry | Source |
 |----------|-------|-------------------------------|--------|
-| 2602.11139 | TabICLv2: A better, faster, scalable, and open tabular foundation model | Primary external architecture reference for the starting tabfoundry family. Defines QASS attention, feature tokenization, and the staged training recipe that informed the initial implementation. | https://arxiv.org/abs/2602.11139 |
+| 2602.11139 | TabICLv2: A better, faster, scalable, and open tabular foundation model | Primary external architecture reference for the row-first target lane. Defines QASS attention, feature tokenization, and the staged training recipe that informs the migration ladder. | https://arxiv.org/abs/2602.11139 |
 | 2502.05564 | TabICL: A Tabular Foundation Model for In-Context Learning on Large Data | Predecessor architecture; curriculum and staged complexity training details that inform the training loop design. | https://arxiv.org/abs/2502.05564 |
 | — | Accurate predictions on small data with a tabular foundation model (TabPFN v2, Nature 2024) | Core PFN architecture and synthetic prior design; attention patterns and in-context learning mechanics that underpin the model family. | https://doi.org/10.1038/s41586-024-08328-6 |
 | 2502.17361 | A Closer Look at TabPFN v2: Understanding Its Strengths and Extending Its Capabilities | Strengths/limitations analysis; meta-feature sensitivity insights relevant to architecture robustness. | https://arxiv.org/abs/2502.17361 |
@@ -92,7 +92,7 @@ Categorical columns should default to learned embeddings before more expensive c
 | 1604.06737 | Entity Embeddings of Categorical Variables | Likely-adopt baseline for categorical columns, especially when cardinality is high enough that one-hot handling is a poor fit. | https://arxiv.org/abs/1604.06737 |
 | 2012.06678 | TabTransformer: Tabular Data Modeling Using Contextual Embeddings | Benchmark-first contextualization reference for categorical columns. Useful when plain learned embeddings are not enough. | https://arxiv.org/abs/2012.06678 |
 
-### Text-Conditioned Columns (Later / BL-192)
+### Text-Conditioned Columns (Later / TF-RD-012)
 
 These references belong to the later text-conditioned-input lane. The default direction is to use external text embeddings first, not raw subword tokenization inside the small tabular backbone.
 
@@ -135,8 +135,8 @@ Default filter for this section:
 |----------|-------|-------------------------------|--------|
 | 2203.15556 | Training Compute-Optimal Large Language Models (Chinchilla) | Core reference for the repo's primary goal of scaling predictability. Defines the methodology for fitting compute-optimal curves across model sizes. | https://arxiv.org/abs/2203.15556 |
 | 2001.08361 | Scaling Laws for Neural Language Models | Foundational scaling law methodology; establishes the power-law relationships between compute, data, and model size that this repo aims to replicate for tabular models. | https://arxiv.org/abs/2001.08361 |
-| 2203.03466 | Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer (muP) | Width-independent hyperparameter transfer across model sizes. Directly relevant to model size sweeps (BL-164) — enables tuning at small scale and transferring to larger models. | https://arxiv.org/abs/2203.03466 |
-| 1608.03983 | SGDR: Stochastic Gradient Descent with Warm Restarts | Cosine annealing with warm restarts; directly relevant to the schedule sweep work (BL-160) and short-run training budget optimization. | https://arxiv.org/abs/1608.03983 |
+| 2203.03466 | Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer (muP) | Width-independent hyperparameter transfer across model sizes. Directly relevant to scaling-law measurement on the promoted anchor (`TF-RD-009`). | https://arxiv.org/abs/2203.03466 |
+| 1608.03983 | SGDR: Stochastic Gradient Descent with Warm Restarts | Cosine annealing with warm restarts; relevant to training-recipe work that supports the promoted anchor rather than replacing architecture migration (`TF-RD-009`). | https://arxiv.org/abs/1608.03983 |
 | 2412.19437 | DeepSeek-V3 Technical Report | Multi-token prediction and modern training recipe details for compact transformers. Informs architecture choices for cross-feature dependency modeling. | https://arxiv.org/abs/2412.19437 |
 
 ## Scaling Laws
@@ -145,7 +145,7 @@ Dedicated section since scaling predictability is the repo's primary goal.
 
 | arXiv ID | Title | Why it matters for tab-foundry | Source |
 |----------|-------|-------------------------------|--------|
-| 2203.15556 | Training Compute-Optimal Large Language Models (Chinchilla) | Direct methodology reference for fitting compute-optimal curves. The primary template for the scaling-law measurement work (BL-174). | https://arxiv.org/abs/2203.15556 |
+| 2203.15556 | Training Compute-Optimal Large Language Models (Chinchilla) | Direct methodology reference for fitting compute-optimal curves. The primary template for the scaling-law measurement work (`TF-RD-009`). | https://arxiv.org/abs/2203.15556 |
 | 2001.08361 | Scaling Laws for Neural Language Models | Foundational; establishes power-law relationships between compute budget, dataset size, and model parameters. | https://arxiv.org/abs/2001.08361 |
 | 2505.13738 | Power Lines: Scaling Laws for Language Models | Scaling law methodology refinements; directly relevant to building the scaling predictability measurement infrastructure. | https://arxiv.org/abs/2505.13738 |
 | 2305.16264 | Scaling Data-Constrained Language Models | Relevant when synthetic data budget is the bottleneck; analyzes how data repetition and mixing affects scaling behavior. | https://arxiv.org/abs/2305.16264 |
@@ -159,7 +159,7 @@ Adjacent repo references that inform architecture and training decisions. Detail
 |------|------|---------------|
 | nanoTabPFN | https://github.com/automl/nanoTabPFN | Benchmark comparison target; training recipe choices and model sizing decisions provide direct baseline for tab-foundry. |
 | nanochat | https://github.com/karpathy/nanochat | Optimizer, LR schedule, model sizing, and clean training loop patterns. Reference for compact transformer training infrastructure. |
-| Muon optimizer | https://github.com/KellerJordan/Muon | Modern optimizer treating weights as orthogonal matrices. Relevant to optimizer sweep work (BL-161). |
+| Muon optimizer | https://github.com/KellerJordan/Muon | Modern optimizer treating weights as orthogonal matrices. Relevant to later training-recipe work on the promoted anchor (`TF-RD-009`). |
 
 ## External Baseline Borrowing Rules
 
@@ -172,7 +172,7 @@ Default transfer rule for repo references:
 ### nanoTabPFN
 
 - **URL:** https://github.com/automl/nanoTabPFN
-- **Roadmap relevance:** BL-173 (external baseline configs), BL-155 (control baseline)
+- **Roadmap relevance:** TF-RD-001 (PFN control lane), TF-RD-008 (anchor promotion)
 
 What it does well:
 
@@ -194,7 +194,7 @@ Success signal:
 ### nanochat
 
 - **URL:** https://github.com/karpathy/nanochat
-- **Roadmap relevance:** BL-173 (external baseline configs), BL-160 (schedule sweep), BL-161 (optimizer sweep), BL-169 (QASS and encoder simplification)
+- **Roadmap relevance:** TF-RD-002 (measurement surfaces), TF-RD-007 (QASS attribution), TF-RD-009 (training and scaling work on the promoted anchor)
 
 What it does well:
 
@@ -230,7 +230,7 @@ Success signal:
 ### Set / Permutation-Aware Priority Note
 
 - **Type:** paper-backed priority rule rather than a single external repo
-- **Roadmap relevance:** BL-165 (feature tokenization ablation), BL-167 (row-attention ablation), BL-169 (QASS and encoder simplification)
+- **Roadmap relevance:** TF-RD-004 (tokenization migration), TF-RD-005 (row-embedding unlock), TF-RD-007 (QASS attribution)
 
 Why it matters:
 
@@ -252,7 +252,7 @@ Success signal:
 ### Muon Optimizer
 
 - **URL:** https://github.com/KellerJordan/Muon
-- **Roadmap relevance:** BL-161 (optimizer sweep)
+- **Roadmap relevance:** TF-RD-009 (training work on the promoted anchor)
 
 What it does well:
 

@@ -188,7 +188,8 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
 - `tabfoundry_staged` is the classification-only staged research family.
   `model.stage` defaults to `nano_exact`, and non-null `model.stage` is
   rejected for `tabfoundry_simple`.
-- `model.stage` remains the legacy recipe-selector and compatibility surface.
+- `model.stage` remains the stable public recipe selector and compatibility
+  surface.
   Supported recipe names are:
   - `nano_exact`
   - `label_token`
@@ -201,9 +202,11 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
   - `column_set`
   - `qass_context`
   - `many_class`
-- New isolated staged experiments should prefer queue-managed
-  `stage_label + module_overrides` on top of the base recipe rather than
-  treating the legacy stage list as a promotion ladder.
+- Treat the public `stage` surface as the canonical migration ladder for live
+  architecture work.
+- Use queue-managed `stage_label + module_overrides` to make isolated
+  attribution rows explicit, especially when a public stage bundles more than
+  one mechanism or when a control row needs to hold the ladder steady.
 - On the resolved staged surface, normalization mode depends on the effective
   feature encoder:
   - `feature_encoder=nano` keeps internal benchmark normalization
@@ -239,7 +242,7 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
   `d_icl`, `tficl_n_heads`, `tficl_n_layers`, `head_hidden_dim`, and
   `input_normalization`. The sweep system adds `stage_label` and
   `module_overrides` so isolated structural changes are explicit and
-  attributable.
+  attributable without replacing the public stage ladder.
 - `feature_group_size` changes both compute and inductive bias. Larger groups
   reduce token count but make each token represent a wider local feature bundle.
 - `many_class_base` affects both the small-class classifier head width and the

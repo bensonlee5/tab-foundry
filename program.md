@@ -7,6 +7,12 @@ Use `docs/workflows.md` for command syntax and artifact expectations. Use this
 file for the objective, the locked comparison surface, the queue discipline,
 and the interpretation policy.
 
+This file is a research-execution contract, not the architecture roadmap. The
+active sweep may intentionally hold a PFN-adjacent or hybrid diagnostic surface
+fixed while isolating one question. The long-term direction for the public
+model surface still comes from `docs/development/roadmap.md` and
+`docs/development/model-architecture.md`.
+
 ## Objective
 
 Optimize for attributable evidence against the locked anchor
