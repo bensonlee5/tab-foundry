@@ -70,7 +70,7 @@ def _nested_mapping_value(payload: Mapping[str, Any], *keys: str) -> Mapping[str
     return current
 
 
-def _stage_local_telemetry_metrics(run_dir: Path) -> dict[str, Any]:
+def stage_local_telemetry_metrics(run_dir: Path) -> dict[str, Any]:
     telemetry_payload = read_json(run_dir / "telemetry.json")
     if telemetry_payload is None:
         return {}
@@ -216,7 +216,7 @@ def queue_metrics(
             if value is not None:
                 metrics[queue_key] = value
 
-    metrics.update(_stage_local_telemetry_metrics(run_dir))
+    metrics.update(stage_local_telemetry_metrics(run_dir))
 
     return metrics
 

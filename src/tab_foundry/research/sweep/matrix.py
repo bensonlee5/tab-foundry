@@ -9,6 +9,7 @@ from tab_foundry.bench.benchmark_run_registry import load_benchmark_run_registry
 
 from .materialize import load_system_delta_queue, ordered_rows
 from .paths_io import _render_path, _write_text, default_catalog_path, default_registry_path, repo_root, sweep_matrix_path, sweep_queue_path
+from .queue_updates import stage_local_telemetry_metrics
 from .validation import ensure_non_empty_string
 
 
@@ -71,6 +72,16 @@ def _expected_completed_queue_metrics(run: Mapping[str, Any]) -> dict[str, float
         value = _optional_float(vs_anchor.get(registry_key))
         if value is not None:
             expected[queue_key] = value
+    artifacts = cast(dict[str, Any], run.get("artifacts", {}))
+    run_dir_value = artifacts.get("run_dir")
+    if isinstance(run_dir_value, str) and run_dir_value.strip():
+        run_dir = resolve_registry_path_value(run_dir_value)
+        expected.update(
+            {
+                key: float(value)
+                for key, value in stage_local_telemetry_metrics(run_dir).items()
+            }
+        )
     return expected
 
 

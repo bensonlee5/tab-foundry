@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 from pathlib import Path
 import shutil
 
@@ -604,6 +605,93 @@ def test_system_delta_queue_validation_detects_completed_metric_mismatch(
 
     assert any(
         "dpnb_input_norm_none_batch64_sqrt: benchmark_metrics.final_brier_score mismatch" in issue
+        for issue in issues
+    )
+
+
+def test_system_delta_queue_validation_detects_stage_local_metric_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    result_card = tmp_path / "result_card.md"
+    result_card.write_text("# Result Card\n", encoding="utf-8")
+    training_surface_record = tmp_path / "training_surface_record.json"
+    training_surface_record.write_text("{}", encoding="utf-8")
+    run_dir = tmp_path / "run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "telemetry.json").write_text(
+        json.dumps(
+            {
+                "diagnostics": {
+                    "stage_local_gradients": {
+                        "modules": {
+                            "column_encoder": {
+                                "windows": {"final_10pct": {"mean_grad_norm": 0.42}}
+                            }
+                        }
+                    },
+                    "activation_windows": {
+                        "tracked_activations": {
+                            "post_column_encoder": {
+                                "early_to_final_mean_delta": 0.12,
+                                "windows": {"final_10pct": {"mean": 1.3}},
+                            }
+                        }
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    registry = {
+        "runs": {
+            "run_1": {
+                "artifacts": {
+                    "run_dir": str(run_dir),
+                    "training_surface_record_path": "training_surface_record.json",
+                },
+                "tab_foundry_metrics": {},
+                "training_diagnostics": {},
+                "comparisons": {},
+            }
+        }
+    }
+
+    monkeypatch.setattr(matrix_module, "load_benchmark_run_registry", lambda _path: registry)
+    monkeypatch.setattr(matrix_module, "result_card_path", lambda **_: result_card)
+
+    def _resolve_registry_path_value(path: str) -> Path:
+        if path == "training_surface_record.json":
+            return training_surface_record
+        return Path(path)
+
+    monkeypatch.setattr(
+        matrix_module,
+        "resolve_registry_path_value",
+        _resolve_registry_path_value,
+    )
+
+    issues = validate_system_delta_queue(
+        {
+            "sweep_id": "validation_test",
+            "rows": [
+                {
+                    "order": 1,
+                    "delta_id": "delta_stage_local",
+                    "status": "completed",
+                    "run_id": "run_1",
+                    "benchmark_metrics": {
+                        "column_encoder_final_window_mean_grad_norm": 0.0,
+                        "column_activation_early_to_final_mean_delta": 0.12,
+                    },
+                }
+            ],
+        }
+    )
+
+    assert any(
+        "delta_stage_local: benchmark_metrics.column_encoder_final_window_mean_grad_norm mismatch"
+        in issue
         for issue in issues
     )
 
