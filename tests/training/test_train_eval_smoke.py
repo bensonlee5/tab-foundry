@@ -16,6 +16,7 @@ import tab_foundry.training.evaluate as evaluate_module
 import tab_foundry.training.distributed as distributed_module
 import tab_foundry.training.trainer as trainer_module
 from tab_foundry.model.outputs import ClassificationOutput
+from tab_foundry.training.optimizer import OptimizerSelection
 from tab_foundry.training.schedule import build_stage_configs
 from tab_foundry.types import TaskBatch
 
@@ -87,6 +88,25 @@ class _FakeMultiProcessActivationAccelerator(_FakeAccelerator):
                 total_sum_sq, total_count = self.remote_activation_trace_stats[key]
                 remote_tensor[2 * index] = float(total_sum_sq)
                 remote_tensor[2 * index + 1] = float(total_count)
+            return tensor + remote_tensor
+        return tensor * 2
+
+
+class _FakeMultiProcessNanGuardAccelerator(_FakeAccelerator):
+    def __init__(self, *, remote_nan_detected: bool) -> None:
+        super().__init__()
+        self.num_processes = 2
+        self.remote_nan_detected = bool(remote_nan_detected)
+
+    def reduce(self, tensor: torch.Tensor, reduction: str = "sum") -> torch.Tensor:
+        if reduction != "sum":
+            raise ValueError("only sum reduction is supported in fake accelerator")
+        if int(tensor.numel()) == 1 and tensor.dtype == torch.int64:
+            remote_tensor = torch.tensor(
+                1 if self.remote_nan_detected else 0,
+                device=tensor.device,
+                dtype=tensor.dtype,
+            )
             return tensor + remote_tensor
         return tensor * 2
 
@@ -331,6 +351,23 @@ class _FakeWandbRun:
 
     def finish(self) -> None:
         self.finished = True
+
+
+class _CountingOptimizer:
+    def __init__(self, optimizer: torch.optim.Optimizer) -> None:
+        self._optimizer = optimizer
+        self.param_groups = optimizer.param_groups
+        self.step_calls = 0
+
+    def __getattr__(self, name: str) -> object:
+        return getattr(self._optimizer, name)
+
+    def zero_grad(self, set_to_none: bool = False) -> None:
+        self._optimizer.zero_grad(set_to_none=set_to_none)
+
+    def step(self, closure=None):
+        self.step_calls += 1
+        return self._optimizer.step(closure)
 
 
 class _UnevenActivationTraceClassifier(nn.Module):
@@ -713,6 +750,38 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert fake_run.summary["artifacts/telemetry_json"].endswith("telemetry.json")
 
 
+def test_train_closes_wandb_and_writes_failure_telemetry_for_setup_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    cfg.logging.use_wandb = True
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_stage_configs",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("simulated setup failure")),
+    )
+
+    with pytest.raises(RuntimeError, match="simulated setup failure"):
+        _ = trainer_module.train(cfg)
+
+    telemetry_path = Path(str(cfg.runtime.output_dir)).expanduser().resolve() / "telemetry.json"
+    telemetry = json.loads(telemetry_path.read_text(encoding="utf-8"))
+
+    assert fake_run.finished is True
+    assert telemetry["success"] is False
+    assert telemetry["error"] == {
+        "type": "RuntimeError",
+        "message": "simulated setup failure",
+    }
+    assert fake_run.summary["telemetry/success"] is False
+    assert fake_run.summary["error/type"] == "RuntimeError"
+    assert fake_run.summary["error/message"] == "simulated setup failure"
+
+
 def test_train_writes_regular_gradient_history_and_telemetry_with_stage_local_traces(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -910,6 +979,51 @@ def test_train_skips_activation_rank_reduction_when_tracing_disabled(
         if line.strip()
     ]
     assert "activation_norms" not in gradient_history[0]
+
+
+def test_train_skips_optimizer_step_when_remote_rank_reports_nan(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    fake_run = _FakeWandbRun()
+    counting_optimizer: _CountingOptimizer | None = None
+
+    def _build_counting_optimizer(model: nn.Module, **_kwargs: object) -> OptimizerSelection:
+        nonlocal counting_optimizer
+        base_optimizer = torch.optim.AdamW(
+            [param for param in model.parameters() if param.requires_grad],
+            lr=1.0e-3,
+            weight_decay=0.0,
+            betas=(0.9, 0.95),
+        )
+        counting_optimizer = _CountingOptimizer(base_optimizer)
+        return OptimizerSelection(
+            optimizers=[("adamw", counting_optimizer)],
+            requested_name="adamw",
+            resolved_name="adamw",
+            fallback_reason=None,
+        )
+
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeMultiProcessNanGuardAccelerator(remote_nan_detected=True),
+    )
+    monkeypatch.setattr(trainer_module, "build_optimizer", _build_counting_optimizer)
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    cfg = _classification_cfg(tmp_path)
+    cfg.logging.use_wandb = True
+
+    result = trainer_module.train(cfg)
+
+    assert result.metrics["nan_skip_count"] == 1.0
+    assert counting_optimizer is not None
+    assert counting_optimizer.step_calls == 0
+    assert any(
+        step == 1 and payload.get("train/nan_guard_triggered") is True
+        for payload, step in fake_run.logged
+    )
 
 
 def test_train_aggregates_activation_norms_across_grad_accum_with_exact_trace_sizes(

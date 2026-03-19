@@ -27,7 +27,7 @@ from .artifacts import (
     stage_latest_checkpoint_path,
 )
 from .batching import move_batch
-from .distributed import _reduction_float_dtype, _reduce_keyed_weighted_scalars
+from .distributed import _reduce_any_flag, _reduction_float_dtype, _reduce_keyed_weighted_scalars
 from .instability import (
     build_training_telemetry,
     gradient_history_path,
@@ -209,57 +209,13 @@ def train(cfg: DictConfig) -> TrainResult:
             }
         return None
 
+    run = None
     training_surface_payload: dict[str, Any] | None = None
-    if accelerator.is_main_process:
-        raw_cfg = cast(dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
-        training_surface_payload = write_training_surface_record(
-            training_surface_path,
-            raw_cfg=raw_cfg,
-            run_dir=output_dir,
-        )
-
-    run = init_wandb_run(
-        cfg,
-        enabled=bool(getattr(cfg.logging, "use_wandb", False) and accelerator.is_main_process),
-    )
-
-    raw_stages = cast(list[dict[str, object]], OmegaConf.to_container(cfg.schedule.stages, resolve=True))
-    stage_configs = build_stage_configs(raw_stages)
-    if not stage_configs:
-        raise RuntimeError("schedule.stages must contain at least one stage")
-    train_iter = cycle_loader(train_loader)
-
-    first_stage = stage_configs[0]
-    optimizer_sel = build_optimizer(
-        accelerator.unwrap_model(model),
-        name=str(cfg.optimizer.name),
-        lr=first_stage.lr_max,
-        weight_decay=float(cfg.optimizer.weight_decay),
-        extra_kwargs={"betas": tuple(cfg.optimizer.betas)},
-        require_requested=bool(cfg.optimizer.require_requested),
-        muon_per_parameter_lr=bool(cfg.optimizer.muon_per_parameter_lr),
-        muon_lr_scale_base=float(cfg.optimizer.muon_lr_scale_base),
-        muon_partition_non2d=bool(cfg.optimizer.muon_partition_non2d),
-    )
-    if optimizer_sel.fallback_reason is None:
-        accelerator.print(
-            f"[optimizer] requested={optimizer_sel.requested_name} "
-            f"resolved={optimizer_sel.resolved_name}"
-        )
-    else:
-        accelerator.print(
-            f"[optimizer] requested={optimizer_sel.requested_name} "
-            f"resolved={optimizer_sel.resolved_name} fallback={optimizer_sel.fallback_reason}"
-        )
-
+    optimizer_requested_name = str(cfg.optimizer.name)
+    optimizer_resolved_name = optimizer_requested_name
+    optimizer_fallback_reason: str | None = None
     prepared_opts: list[tuple[str, torch.optim.Optimizer]] = []
     lr_scales: dict[str, list[float]] = {}
-    for opt_name, opt in optimizer_sel.optimizers:
-        prepared = accelerator.prepare_optimizer(opt)
-        prepared_opts.append((opt_name, prepared))
-        lr_scales[opt_name] = _optimizer_lr_scales(prepared, base_lr=first_stage.lr_max)
-
-    expected_keys = _expected_metric_keys(task)
 
     global_step = 0
     best_checkpoint: Path | None = None
@@ -296,6 +252,58 @@ def train(cfg: DictConfig) -> TrainResult:
         }
 
     try:
+        if accelerator.is_main_process:
+            raw_cfg = cast(dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
+            training_surface_payload = write_training_surface_record(
+                training_surface_path,
+                raw_cfg=raw_cfg,
+                run_dir=output_dir,
+            )
+
+        run = init_wandb_run(
+            cfg,
+            enabled=bool(getattr(cfg.logging, "use_wandb", False) and accelerator.is_main_process),
+        )
+
+        raw_stages = cast(list[dict[str, object]], OmegaConf.to_container(cfg.schedule.stages, resolve=True))
+        stage_configs = build_stage_configs(raw_stages)
+        if not stage_configs:
+            raise RuntimeError("schedule.stages must contain at least one stage")
+        train_iter = cycle_loader(train_loader)
+
+        first_stage = stage_configs[0]
+        optimizer_sel = build_optimizer(
+            accelerator.unwrap_model(model),
+            name=optimizer_requested_name,
+            lr=first_stage.lr_max,
+            weight_decay=float(cfg.optimizer.weight_decay),
+            extra_kwargs={"betas": tuple(cfg.optimizer.betas)},
+            require_requested=bool(cfg.optimizer.require_requested),
+            muon_per_parameter_lr=bool(cfg.optimizer.muon_per_parameter_lr),
+            muon_lr_scale_base=float(cfg.optimizer.muon_lr_scale_base),
+            muon_partition_non2d=bool(cfg.optimizer.muon_partition_non2d),
+        )
+        optimizer_requested_name = optimizer_sel.requested_name
+        optimizer_resolved_name = optimizer_sel.resolved_name
+        optimizer_fallback_reason = optimizer_sel.fallback_reason
+        if optimizer_sel.fallback_reason is None:
+            accelerator.print(
+                f"[optimizer] requested={optimizer_sel.requested_name} "
+                f"resolved={optimizer_sel.resolved_name}"
+            )
+        else:
+            accelerator.print(
+                f"[optimizer] requested={optimizer_sel.requested_name} "
+                f"resolved={optimizer_sel.resolved_name} fallback={optimizer_sel.fallback_reason}"
+            )
+
+        for opt_name, opt in optimizer_sel.optimizers:
+            prepared = accelerator.prepare_optimizer(opt)
+            prepared_opts.append((opt_name, prepared))
+            lr_scales[opt_name] = _optimizer_lr_scales(prepared, base_lr=first_stage.lr_max)
+
+        expected_keys = _expected_metric_keys(task)
+
         for stage in stage_configs:
             _set_optimizer_training_mode(prepared_opts, training=True)
 
@@ -345,8 +353,13 @@ def train(cfg: DictConfig) -> TrainResult:
                                 + float(activation_count)
                             )
 
-                nan_detected = not math.isfinite(train_loss_sum)
-                if nan_detected:
+                local_nan_detected = not math.isfinite(train_loss_sum)
+                global_nan_detected = _reduce_any_flag(
+                    accelerator,
+                    local_nan_detected,
+                    device=accelerator.device,
+                )
+                if global_nan_detected:
                     _ = _flush_activation_trace_stats()
                     nan_skip_count += 1
                     for _opt_name, opt in prepared_opts:
@@ -671,9 +684,9 @@ def train(cfg: DictConfig) -> TrainResult:
             run,
             _trainer_summary_payload(
                 output_dir=output_dir,
-                optimizer_requested_name=optimizer_sel.requested_name,
-                optimizer_resolved_name=optimizer_sel.resolved_name,
-                optimizer_fallback_reason=optimizer_sel.fallback_reason,
+                optimizer_requested_name=optimizer_requested_name,
+                optimizer_resolved_name=optimizer_resolved_name,
+                optimizer_fallback_reason=optimizer_fallback_reason,
                 global_step=global_step,
                 best_checkpoint=best_checkpoint,
                 latest_checkpoint=latest_checkpoint,
@@ -714,9 +727,9 @@ def train(cfg: DictConfig) -> TrainResult:
             run,
             _trainer_summary_payload(
                 output_dir=output_dir,
-                optimizer_requested_name=optimizer_sel.requested_name,
-                optimizer_resolved_name=optimizer_sel.resolved_name,
-                optimizer_fallback_reason=optimizer_sel.fallback_reason,
+                optimizer_requested_name=optimizer_requested_name,
+                optimizer_resolved_name=optimizer_resolved_name,
+                optimizer_fallback_reason=optimizer_fallback_reason,
                 global_step=global_step,
                 best_checkpoint=best_checkpoint,
                 latest_checkpoint=latest_checkpoint,

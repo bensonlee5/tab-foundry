@@ -25,6 +25,17 @@ def _reduce_count_scalar(accelerator: Accelerator, value: int, *, device: torch.
     return int(reduced.item())
 
 
+def _reduce_any_flag(
+    accelerator: Accelerator,
+    value: bool | int,
+    *,
+    device: torch.device,
+) -> bool:
+    tensor = torch.tensor(1 if bool(value) else 0, device=device, dtype=torch.int64)
+    reduced = accelerator.reduce(tensor, reduction="sum")
+    return int(reduced.item()) > 0
+
+
 def _global_mean_from_local(
     accelerator: Accelerator,
     *,
