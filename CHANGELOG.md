@@ -13,8 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - User-facing note: canonical dagzoo corpora now use `metadata.dataset_id` as
   the manifest `dataset_id` only when it is paired with a canonical
-  `metadata.split_groups.request_run`, keeping copied dagzoo-generated corpora
-  path-independent at the manifest identity and split layers without
+  `metadata.split_groups.request_run`; copied dagzoo-generated corpora remain
+  path-independent at the public `dataset_id` layer, while a new internal
+  manifest `dataset_identity_key` that includes `request_run` preserves unique
+  manifest identity and split hashing across distinct generate runs without
   broadening that shortcut to unrelated hex-shaped dataset ids.
 
 - User-facing note: v3 export bundles now embed the resolved runtime

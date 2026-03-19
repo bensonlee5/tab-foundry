@@ -407,4 +407,7 @@ def test_build_manifest_prefers_canonical_dataset_id_for_generated_corpus(tmp_pa
     row = pq.read_table(manifest_path).to_pylist()[0]
 
     assert row["dataset_id"] == _TEST_DATASET_ID
+    assert row["dataset_identity_key"] == (
+        f"dagzoo_request_{_TEST_GENERATE_RUN_ID}/dataset_{_TEST_DATASET_ID}"
+    )
     assert row["source_shard_relpath"] == "shard_00000"
