@@ -873,6 +873,44 @@ def test_train_reduces_activation_norms_across_accelerator_ranks(
     assert train_payload["train/activation_norm/post_context_encoder"] == pytest.approx(32.0)
 
 
+def test_train_skips_activation_rank_reduction_when_tracing_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    _install_deterministic_trace_classifier(monkeypatch)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeMultiProcessActivationAccelerator(
+            remote_activation_trace_stats={},
+        ),
+    )
+    monkeypatch.setattr(
+        distributed_module,
+        "gather_object",
+        lambda *_args, **_kwargs: pytest.fail("gather_object should not run when tracing is disabled"),
+    )
+    monkeypatch.setattr(
+        distributed_module,
+        "broadcast_object_list",
+        lambda *_args, **_kwargs: pytest.fail(
+            "broadcast_object_list should not run when tracing is disabled"
+        ),
+    )
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.trace_activations = False
+
+    result = trainer_module.train(cfg)
+
+    gradient_history = [
+        json.loads(line)
+        for line in (result.output_dir / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert "activation_norms" not in gradient_history[0]
+
+
 def test_train_aggregates_activation_norms_across_grad_accum_with_exact_trace_sizes(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

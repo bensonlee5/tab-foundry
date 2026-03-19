@@ -383,16 +383,18 @@ def train(cfg: DictConfig) -> TrainResult:
                         break
                     continue
 
-                activation_sum_sqs, activation_element_counts = _reduce_keyed_weighted_scalars(
-                    accelerator,
-                    weighted_sums=activation_sum_sqs,
-                    weights=activation_element_counts,
-                    device=accelerator.device,
-                )
-                activation_norms = _merge_activation_norms(
-                    activation_sum_sqs,
-                    activation_element_counts,
-                )
+                activation_norms: dict[str, float] | None = None
+                if trace_activations:
+                    activation_sum_sqs, activation_element_counts = _reduce_keyed_weighted_scalars(
+                        accelerator,
+                        weighted_sums=activation_sum_sqs,
+                        weights=activation_element_counts,
+                        device=accelerator.device,
+                    )
+                    activation_norms = _merge_activation_norms(
+                        activation_sum_sqs,
+                        activation_element_counts,
+                    )
                 pre_clip_module_grad_norms = (
                     module_grad_norms(base_model) if accelerator.is_main_process else {}
                 )
