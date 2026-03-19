@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-03-19
+
+### Changed
+
+- User-facing note: `tab-foundry data build-manifest` and
+  `data dagzoo generate-manifest` now reject invalid or non-finite split ratios
+  before doing work, the dagzoo wrapper preserves dagzoo-root-relative
+  handoff/diagnostics paths, rejects non-directory dagzoo roots before launch,
+  preserves upstream non-zero exit codes instead of surfacing a Python
+  traceback on generate failures, and now rejects stale or copied handoff
+  manifests whose `generate_run_id` or `generated_corpus_id` do not match the
+  scanned generated corpus.
+
 ## [0.8.2] - 2026-03-19
 
 ### Changed
