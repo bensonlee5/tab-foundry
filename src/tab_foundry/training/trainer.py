@@ -27,7 +27,7 @@ from .artifacts import (
     stage_latest_checkpoint_path,
 )
 from .batching import move_batch
-from .distributed import _reduction_float_dtype, _reduce_keyed_weighted_scalars
+from .distributed import _reduce_any_flag, _reduction_float_dtype, _reduce_keyed_weighted_scalars
 from .instability import (
     build_training_telemetry,
     gradient_history_path,
@@ -353,8 +353,13 @@ def train(cfg: DictConfig) -> TrainResult:
                                 + float(activation_count)
                             )
 
-                nan_detected = not math.isfinite(train_loss_sum)
-                if nan_detected:
+                local_nan_detected = not math.isfinite(train_loss_sum)
+                global_nan_detected = _reduce_any_flag(
+                    accelerator,
+                    local_nan_detected,
+                    device=accelerator.device,
+                )
+                if global_nan_detected:
                     _ = _flush_activation_trace_stats()
                     nan_skip_count += 1
                     for _opt_name, opt in prepared_opts:
