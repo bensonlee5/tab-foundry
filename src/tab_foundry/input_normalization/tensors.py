@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import overload
+
 import torch
 
 from .rankgauss import rankgauss_test_torch, rankgauss_train_torch
@@ -17,6 +19,24 @@ from .shared import (
     smooth_tanh_torch,
     tensor_stats_dtype,
 )
+
+
+@overload
+def _postprocess_zscore_torch(
+    train_norm: torch.Tensor,
+    test_norm: torch.Tensor,
+    *,
+    normalized_mode: str,
+) -> tuple[torch.Tensor, torch.Tensor]: ...
+
+
+@overload
+def _postprocess_zscore_torch(
+    train_norm: torch.Tensor,
+    test_norm: None,
+    *,
+    normalized_mode: str,
+) -> tuple[torch.Tensor, None]: ...
 
 
 def _postprocess_zscore_torch(
@@ -73,9 +93,7 @@ def _normalize_train_test_tensors_2d(
                     hi = torch.quantile(finite_train, WINSORIZE_HI / 100.0)
                     finite_train = finite_train.clamp(min=lo, max=hi)
                     finite_test = (
-                        test_col[test_mask].clamp(min=lo, max=hi)
-                        if torch.any(test_mask)
-                        else None
+                        test_col[test_mask].clamp(min=lo, max=hi) if torch.any(test_mask) else None
                     )
                 else:
                     finite_test = test_col[test_mask] if torch.any(test_mask) else None
@@ -155,7 +173,6 @@ def _normalize_train_test_tensors_2d(
             test_norm,
             normalized_mode=normalized_mode,
         )
-        assert processed_test_norm is not None
         return processed_train_norm, processed_test_norm
 
     if normalized_mode == "train_rankgauss":
@@ -169,7 +186,9 @@ def _normalize_train_test_tensors_2d(
                 continue
             train_out[:, c] = rankgauss_train_torch(train_stats[:, c])
             train_sorted, _ = train_stats[:, c].sort()
-            test_out[:, c] = rankgauss_test_torch(train_sorted, train_stats.shape[0], test_stats[:, c])
+            test_out[:, c] = rankgauss_test_torch(
+                train_sorted, train_stats.shape[0], test_stats[:, c]
+            )
         return train_out.to(torch.float32), test_out.to(torch.float32)
 
     if normalized_mode in ROBUST_MODES:
@@ -259,7 +278,6 @@ def _normalize_train_test_tensors_3d_zscore(
             test_norm,
             normalized_mode=normalized_mode,
         )
-        assert processed_test_norm is not None
 
         train_out = train.clone()
         test_out = test.clone()
@@ -286,7 +304,6 @@ def _normalize_train_test_tensors_3d_zscore(
         test_norm,
         normalized_mode=normalized_mode,
     )
-    assert processed_test_norm is not None
     return processed_train_norm, processed_test_norm
 
 

@@ -106,6 +106,12 @@ def _manifest_compatibility(
     allow_missing_values = bool(data_payload.get("allow_missing_values", False))
     task_split_counts = cast(dict[str, dict[str, int]], manifest_payload["task_split_counts"])
     task_counts = cast(dict[str, int], manifest_payload["task_counts"])
+    raw_task_train_test_record_counts = manifest_payload.get("task_train_test_record_counts")
+    task_train_test_record_counts = (
+        cast(dict[str, dict[str, int]], raw_task_train_test_record_counts)
+        if isinstance(raw_task_train_test_record_counts, Mapping)
+        else {}
+    )
     missing_value_status_counts = cast(dict[str, int], manifest_payload["missing_value_status_counts"])
     raw_task_missing_value_status_counts = manifest_payload.get("task_missing_value_status_counts")
     task_missing_value_status_counts = (
@@ -151,8 +157,17 @@ def _manifest_compatibility(
     task_row_count = int(task_counts.get(task, 0))
     has_task_rows = task_row_count > 0
     task_splits = task_split_counts.get(task, {})
-    has_train_rows = int(task_splits.get("train", 0)) > 0
-    has_test_rows = int(task_splits.get("test", 0)) > 0
+    task_train_test_counts = task_train_test_record_counts.get(task, {})
+    has_train_rows = (
+        int(task_train_test_counts.get("train", 0)) > 0
+        if isinstance(task_train_test_counts, Mapping)
+        else int(task_splits.get("train", 0)) > 0
+    )
+    has_test_rows = (
+        int(task_train_test_counts.get("test", 0)) > 0
+        if isinstance(task_train_test_counts, Mapping)
+        else int(task_splits.get("test", 0)) > 0
+    )
     task_missing_value_counts = task_missing_value_status_counts.get(task)
     contains_non_finite_rows = (
         int(task_missing_value_counts.get("contains_nan_or_inf", 0)) > 0

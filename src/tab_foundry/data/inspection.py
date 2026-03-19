@@ -40,6 +40,7 @@ def inspect_manifest(manifest_path: Path) -> dict[str, Any]:
     split_counts: Counter[str] = Counter()
     task_counts: Counter[str] = Counter()
     task_split_counts: dict[str, Counter[str]] = {}
+    task_train_test_record_counts: dict[str, Counter[str]] = {}
     filter_status_counts: Counter[str] = Counter()
     missing_value_status_counts: Counter[str] = Counter()
     task_missing_value_status_counts: dict[str, Counter[str]] = {}
@@ -54,6 +55,10 @@ def inspect_manifest(manifest_path: Path) -> dict[str, Any]:
         split_counts[split] += 1
         task_counts[task] += 1
         task_split_counts.setdefault(task, Counter())[split] += 1
+        if record.get("n_train") is not None and int(record["n_train"]) > 0:
+            task_train_test_record_counts.setdefault(task, Counter())["train"] += 1
+        if record.get("n_test") is not None and int(record["n_test"]) > 0:
+            task_train_test_record_counts.setdefault(task, Counter())["test"] += 1
 
         raw_filter_status = record.get("filter_status")
         filter_status = "missing" if raw_filter_status is None else str(raw_filter_status)
@@ -89,6 +94,10 @@ def inspect_manifest(manifest_path: Path) -> dict[str, Any]:
         "task_split_counts": {
             str(task): dict(sorted(counts.items()))
             for task, counts in sorted(task_split_counts.items())
+        },
+        "task_train_test_record_counts": {
+            str(task): dict(sorted(counts.items()))
+            for task, counts in sorted(task_train_test_record_counts.items())
         },
         "filter_status_counts": dict(sorted(filter_status_counts.items())),
         "missing_value_status_counts": dict(sorted(missing_value_status_counts.items())),

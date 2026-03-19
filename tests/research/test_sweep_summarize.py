@@ -47,6 +47,15 @@ def test_summarize_sweep_marks_missing_stability_metrics_as_not_available() -> N
     assert all(row["stability"] == "n/a" for row in rows_without_stability_metrics)
 
 
+def test_summarize_sweep_reads_archived_queue_without_live_catalog_delta() -> None:
+    payload = summarize_sweep(sweep_id="missingness_followup")
+
+    assert payload["sweep_id"] == "missingness_followup"
+    assert payload["row_count"] == 2
+    assert payload["rows"][0]["delta_id"] == "nan_token_no_prior_missingness"
+    assert payload["rows"][0]["run_id"] is None
+
+
 def test_render_sweep_summary_table_handles_empty_rows() -> None:
     rendered = render_sweep_summary_table(
         {"sweep_id": "empty_sweep", "row_count": 0, "rows": []}

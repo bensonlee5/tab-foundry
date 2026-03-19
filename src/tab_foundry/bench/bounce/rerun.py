@@ -16,6 +16,7 @@ from tab_foundry.bench.benchmark_run_registry import (
     resolve_registry_path_value,
 )
 from tab_foundry.bench.bounce.config import BenchmarkBounceDiagnosisConfig, RerunMode, resolve_positive_int
+from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
 
 
 def resolve_run_dir_from_registry(
@@ -40,15 +41,19 @@ def resolve_run_dir_from_registry(
 
 def resolve_latest_checkpoint(run_dir: Path) -> Path:
     resolved_run_dir = run_dir.expanduser().resolve()
+    checkpoint_path = resolve_latest_checkpoint_path(
+        resolved_run_dir,
+        additional_run_dirs=(resolved_run_dir / "train_outputs",),
+        include_best_fallback=True,
+    )
+    if checkpoint_path is not None:
+        return checkpoint_path
     candidates = [
         resolved_run_dir / "checkpoints" / "latest.pt",
         resolved_run_dir / "train_outputs" / "checkpoints" / "latest.pt",
         resolved_run_dir / "checkpoints" / "best.pt",
         resolved_run_dir / "train_outputs" / "checkpoints" / "best.pt",
     ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
     expected = ", ".join(str(path) for path in candidates)
     raise RuntimeError(f"missing checkpoint config under {resolved_run_dir}; checked {expected}")
 

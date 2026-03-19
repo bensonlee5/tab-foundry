@@ -140,6 +140,73 @@ def test_health_check_reconstructs_telemetry_when_missing(tmp_path: Path) -> Non
     assert payload["metrics"]["upper_block_final_to_early_ratio"] is not None
 
 
+def test_health_check_accepts_alternate_training_surface_record_path(tmp_path: Path) -> None:
+    run_dir = tmp_path / "alternate_surface_run"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    history_records = _history_records(initial_loss=1.0, delta=-0.002)
+    gradient_records = []
+    for step in range(1, 41):
+        if step <= 20:
+            block_value = 6.0 + (0.05 * float(step))
+        else:
+            block_value = 7.0
+        gradient_records.append(
+            {
+                "step": step,
+                "global_grad_norm": 0.5 + (0.01 * float(step)),
+                "grad_clip_triggered": False,
+                "module_grad_norms": {
+                    "feature_encoder": 1.0,
+                    "direct_head": 4.0,
+                },
+                "activation_norms": {
+                    "post_feature_encoder": 2.0,
+                    "pre_transformer": 3.0,
+                    "post_transformer_block_8": block_value,
+                    "post_transformer_block_9": block_value + 0.2,
+                    "post_transformer_block_10": block_value + 0.4,
+                    "post_transformer_block_11": block_value + 0.6,
+                },
+            }
+        )
+    _write_jsonl(run_dir / "train_history.jsonl", history_records)
+    _write_jsonl(run_dir / "gradient_history.jsonl", gradient_records)
+
+    benchmark_surface_record_path = tmp_path / "benchmark" / "training_surface_record.json"
+    benchmark_surface_record_path.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_surface_record_path.write_text(
+        json.dumps(
+            {
+                "training": {
+                    "schedule_stages": [
+                        {
+                            "name": "stage1",
+                            "steps": 40,
+                            "lr_max": 1.0e-3,
+                            "warmup_ratio": 0.5,
+                        }
+                    ]
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    local_payload = health_check(run_dir)
+    alternate_payload = health_check(
+        run_dir,
+        training_surface_record_path=benchmark_surface_record_path,
+    )
+
+    assert local_payload["source"] == "reconstructed"
+    assert alternate_payload["source"] == "reconstructed"
+    assert local_payload["metrics"]["upper_block_post_warmup_mean_slope"] > (
+        alternate_payload["metrics"]["upper_block_post_warmup_mean_slope"]
+    )
+
+
 def test_health_check_reports_warn_for_loss_regression(tmp_path: Path) -> None:
     run_dir = tmp_path / "warn_run"
     _write_run_artifacts(

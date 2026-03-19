@@ -5,7 +5,17 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, FiniteFloat, StrictBool, StrictInt, StrictStr, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    FiniteFloat,
+    StrictBool,
+    StrictInt,
+    StrictStr,
+    field_validator,
+)
+
+from tab_foundry.model.spec import STAGED_MODEL_ARCH
 
 
 SCHEMA_VERSION_V2 = "tab-foundry-export-v2"
@@ -57,6 +67,10 @@ class _ManifestModelPayloadV2(_ContractsPayloadModel):
 
 class _ManifestModelPayloadV3(_ManifestModelPayloadV2):
     input_normalization: StrictStr
+    stage_label: StrictStr | None = None
+    module_overrides: dict[StrictStr, Any] | None = None
+    staged_dropout: FiniteFloat | None = None
+    pre_encoder_clip: FiniteFloat | None = None
 
 
 class _InferenceConfigPayload(_ContractsPayloadModel):
@@ -84,6 +98,8 @@ class ProducerInfo:
 class ExportModelSpec:
     arch: str
     stage: str | None
+    stage_label: str | None
+    module_overrides: dict[str, Any] | None
     d_col: int
     d_icl: int
     input_normalization: str
@@ -104,6 +120,8 @@ class ExportModelSpec:
     many_class_base: int
     head_hidden_dim: int
     use_digit_position_embed: bool
+    staged_dropout: float
+    pre_encoder_clip: float | None
 
     @classmethod
     def from_build_spec(
@@ -115,6 +133,8 @@ class ExportModelSpec:
         return cls(
             arch=str(spec.arch if arch is None else arch),
             stage=None if spec.stage is None else str(spec.stage),
+            stage_label=None if spec.stage_label is None else str(spec.stage_label),
+            module_overrides=None if spec.module_overrides is None else dict(spec.module_overrides),
             d_col=int(spec.d_col),
             d_icl=int(spec.d_icl),
             input_normalization=str(spec.input_normalization),
@@ -135,6 +155,10 @@ class ExportModelSpec:
             many_class_base=int(spec.many_class_base),
             head_hidden_dim=int(spec.head_hidden_dim),
             use_digit_position_embed=bool(spec.use_digit_position_embed),
+            staged_dropout=float(spec.staged_dropout),
+            pre_encoder_clip=None
+            if spec.pre_encoder_clip is None
+            else float(spec.pre_encoder_clip),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -145,6 +169,8 @@ class ExportModelSpec:
             primary={
                 "arch": self.arch,
                 "stage": self.stage,
+                "stage_label": self.stage_label,
+                "module_overrides": self.module_overrides,
                 "d_col": self.d_col,
                 "d_icl": self.d_icl,
                 "input_normalization": self.input_normalization,
@@ -165,13 +191,33 @@ class ExportModelSpec:
                 "many_class_base": self.many_class_base,
                 "head_hidden_dim": self.head_hidden_dim,
                 "use_digit_position_embed": self.use_digit_position_embed,
+                "staged_dropout": self.staged_dropout,
+                "pre_encoder_clip": self.pre_encoder_clip,
             },
         )
 
     def to_dict(self) -> dict[str, Any]:
         payload = dict(asdict(self))
+        if self.arch != STAGED_MODEL_ARCH:
+            for field_name in (
+                "stage",
+                "stage_label",
+                "module_overrides",
+                "staged_dropout",
+                "pre_encoder_clip",
+            ):
+                payload.pop(field_name, None)
+            return payload
         if self.stage is None:
             payload.pop("stage", None)
+        if self.stage_label is None:
+            payload.pop("stage_label", None)
+        if self.module_overrides is None:
+            payload.pop("module_overrides", None)
+        if self.pre_encoder_clip is None:
+            payload.pop("pre_encoder_clip", None)
+        if self.staged_dropout is None:
+            payload.pop("staged_dropout", None)
         return payload
 
 
@@ -286,6 +332,8 @@ class ExportManifest:
             if self.manifest_sha256 is not None:
                 payload["manifest_sha256"] = self.manifest_sha256
             return payload
+        for field_name in ("stage_label", "module_overrides", "staged_dropout", "pre_encoder_clip"):
+            payload["model"].pop(field_name, None)
         if self.files is None or self.checksums is None:
             raise RuntimeError("v2 manifest requires files and checksums")
         payload["files"] = self.files.to_dict()

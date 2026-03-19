@@ -17,6 +17,7 @@ from .instability import (
     gradient_history_path,
     telemetry_path,
 )
+from .artifacts import canonical_latest_checkpoint_path, resolve_latest_checkpoint_path
 
 
 _WARN_CLIPPED_STEP_FRACTION = 0.05
@@ -154,6 +155,7 @@ def _rebuild_telemetry(
     history_records: list[dict[str, Any]],
     gradient_records: list[dict[str, Any]],
     training_surface_record: Mapping[str, Any] | None,
+    training_surface_record_path: Path | None,
 ) -> dict[str, Any]:
     return build_training_telemetry(
         run_dir=run_dir,
@@ -164,8 +166,8 @@ def _rebuild_telemetry(
             "telemetry_json": str(telemetry_path(run_dir)),
             "training_surface_record_json": (
                 None
-                if training_surface_record is None
-                else str((run_dir / "training_surface_record.json").resolve())
+                if training_surface_record is None or training_surface_record_path is None
+                else str(training_surface_record_path.expanduser().resolve())
             ),
         },
         checkpoint_snapshots=[],
@@ -257,19 +259,27 @@ def _summary_for_verdict(
     )
 
 
-def health_check(run_dir: Path) -> dict[str, Any]:
+def health_check(
+    run_dir: Path,
+    *,
+    training_surface_record_path: Path | None = None,
+) -> dict[str, Any]:
     """Summarize run telemetry into one triage verdict."""
 
     resolved_run_dir = run_dir.expanduser().resolve()
     telemetry_json_path = telemetry_path(resolved_run_dir)
     history_jsonl_path = resolved_run_dir / "train_history.jsonl"
     gradient_jsonl_path = gradient_history_path(resolved_run_dir)
-    training_surface_record_path = resolved_run_dir / "training_surface_record.json"
+    resolved_training_surface_record_path = (
+        training_surface_record_path.expanduser().resolve()
+        if training_surface_record_path is not None
+        else resolved_run_dir / "training_surface_record.json"
+    )
 
     telemetry_payload = _read_json_mapping(telemetry_json_path)
     history_records = _read_jsonl(history_jsonl_path)
     gradient_records = _read_jsonl(gradient_jsonl_path)
-    training_surface_record = _read_json_mapping(training_surface_record_path)
+    training_surface_record = _read_json_mapping(resolved_training_surface_record_path)
 
     if telemetry_payload is None:
         if not history_records or not gradient_records:
@@ -282,6 +292,7 @@ def health_check(run_dir: Path) -> dict[str, Any]:
             history_records=history_records,
             gradient_records=gradient_records,
             training_surface_record=training_surface_record,
+            training_surface_record_path=resolved_training_surface_record_path,
         )
         source = "reconstructed"
     else:
@@ -430,6 +441,7 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         benchmark_dir=benchmark_dir,
         benchmark_run_record=benchmark_run_record,
     )
+    latest_checkpoint_path = resolve_latest_checkpoint_path(resolved_run_dir)
     artifacts = {
         "run_dir": _artifact_entry(resolved_run_dir),
         "train_history_jsonl": _artifact_entry(resolved_run_dir / "train_history.jsonl"),
@@ -437,7 +449,11 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         "telemetry_json": _artifact_entry(telemetry_path(resolved_run_dir)),
         "training_surface_record_json": _artifact_entry(training_surface_record_path),
         "best_checkpoint_pt": _artifact_entry(resolved_run_dir / "checkpoints" / "best.pt"),
-        "latest_checkpoint_pt": _artifact_entry(resolved_run_dir / "checkpoints" / "latest.pt"),
+        "latest_checkpoint_pt": _artifact_entry(
+            canonical_latest_checkpoint_path(resolved_run_dir)
+            if latest_checkpoint_path is None
+            else latest_checkpoint_path
+        ),
         "comparison_summary_json": _artifact_entry(benchmark_dir / "comparison_summary.json"),
         "benchmark_run_record_json": _artifact_entry(benchmark_dir / "benchmark_run_record.json"),
         "summary_md": _artifact_entry(resolved_run_dir / "summary.md"),
@@ -448,7 +464,10 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
     health_payload: dict[str, Any] | None = None
     health_error: str | None = None
     try:
-        health_payload = health_check(resolved_run_dir)
+        health_payload = health_check(
+            resolved_run_dir,
+            training_surface_record_path=training_surface_record_path,
+        )
     except RuntimeError as exc:
         health_error = str(exc)
 

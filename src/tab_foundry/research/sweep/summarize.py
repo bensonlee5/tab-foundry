@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
-from .materialize import load_system_delta_queue, ordered_rows
+from .materialize import load_system_delta_queue_for_inspection, ordered_rows
 from .paths_io import default_catalog_path, default_sweep_index_path, default_sweeps_root
 
 
@@ -61,7 +61,7 @@ def summarize_sweep(
     catalog_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
-    queue = load_system_delta_queue(
+    queue = load_system_delta_queue_for_inspection(
         sweep_id=sweep_id,
         index_path=index_path,
         catalog_path=catalog_path,

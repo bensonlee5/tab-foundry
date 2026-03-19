@@ -44,6 +44,10 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     assert manifest.model.input_normalization == "train_zscore"
     assert manifest.model.norm_type == "layernorm"
     assert manifest.model.tfrow_norm == "layernorm"
+    assert manifest.model.stage_label is None
+    assert manifest.model.module_overrides is None
+    assert manifest.model.staged_dropout == 0.0
+    assert manifest.model.pre_encoder_clip is None
     assert manifest.manifest_sha256 is not None
     assert manifest.inference is not None
     assert manifest.preprocessor is not None
@@ -63,6 +67,35 @@ def test_manifest_v3_fixture_validates_and_roundtrips_embedded_sections() -> Non
     assert build_spec.input_normalization == "train_zscore"
     assert build_spec.norm_type == "layernorm"
     assert build_spec.tfrow_norm == "layernorm"
+
+
+def test_manifest_v3_validation_accepts_additive_staged_surface_fields() -> None:
+    payload = _load_fixture("manifest_v3.json")
+    model_payload = dict(payload["model"])
+    model_payload["stage"] = "row_cls_pool"
+    model_payload["stage_label"] = "row_cls_pool_replay"
+    model_payload["module_overrides"] = {
+        "post_stack_norm": "rmsnorm",
+        "table_block_style": "prenorm",
+    }
+    model_payload["staged_dropout"] = 0.1
+    model_payload["pre_encoder_clip"] = 10.0
+    payload["model"] = model_payload
+    inference_payload = dict(payload["inference"])
+    inference_payload["model_stage"] = "row_cls_pool"
+    payload["inference"] = inference_payload
+    payload["manifest_sha256"] = compute_v3_manifest_sha256(payload)
+
+    manifest = validate_manifest_dict(payload)
+
+    assert manifest.model.stage == "row_cls_pool"
+    assert manifest.model.stage_label == "row_cls_pool_replay"
+    assert manifest.model.module_overrides == {
+        "post_stack_norm": "rmsnorm",
+        "table_block_style": "prenorm",
+    }
+    assert manifest.model.staged_dropout == pytest.approx(0.1)
+    assert manifest.model.pre_encoder_clip == pytest.approx(10.0)
 
 
 def test_manifest_v2_validation_applies_model_defaults_via_canonical_spec() -> None:

@@ -514,6 +514,7 @@ def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     assert result.latest_checkpoint is not None
     assert result.best_checkpoint.exists()
     assert result.latest_checkpoint.exists()
+    assert (result.output_dir / "checkpoints" / "latest.pt").exists()
     assert result.metrics["best_val_loss"] >= 0.0
     assert result.metrics["final_val_loss"] >= 0.0
     assert result.metrics["max_grad_norm"] >= 0.0

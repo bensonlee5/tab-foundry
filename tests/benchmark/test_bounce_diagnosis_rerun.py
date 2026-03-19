@@ -6,7 +6,19 @@ from typing import Any
 from omegaconf import OmegaConf
 import pytest
 
+import tab_foundry.bench.bounce.rerun as rerun_module
 import tab_foundry.bench.bounce_diagnosis as diagnosis_module
+
+
+def test_resolve_latest_checkpoint_accepts_stage_scoped_train_outputs(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    checkpoint_dir = run_dir / "train_outputs" / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    stage_latest = checkpoint_dir / "latest_stage2.pt"
+    stage_latest.write_bytes(b"latest")
+    (checkpoint_dir / "best.pt").write_bytes(b"best")
+
+    assert rerun_module.resolve_latest_checkpoint(run_dir) == stage_latest.resolve()
 
 
 def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_aliasing(

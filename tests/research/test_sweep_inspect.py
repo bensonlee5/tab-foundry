@@ -261,6 +261,26 @@ def _mini_sweep_workspace(
                     "next_action": "",
                     "notes": [],
                 },
+                {
+                    "order": 3,
+                    "delta_ref": "delta_row_cls_pool",
+                    "status": "ready",
+                    "rationale": "Queued row without artifacts.",
+                    "hypothesis": "Queued rows should still be inspectable.",
+                    "anchor_delta": "target_column -> row_cls queued",
+                    "model": _row_model_payload(stage_label="row_cls_pool_ready_test"),
+                    "data": {"surface_label": "anchor_manifest_default"},
+                    "preprocessing": {"surface_label": "runtime_default"},
+                    "training": {"surface_label": "training_default", "overrides": {}},
+                    "execution_policy": "benchmark_full",
+                    "run_id": None,
+                    "followup_run_ids": [],
+                    "decision": None,
+                    "interpretation_status": "pending",
+                    "confounders": [],
+                    "next_action": "",
+                    "notes": [],
+                },
             ],
         },
     )
@@ -411,3 +431,36 @@ def test_inspect_sweep_row_prefers_persisted_training_surface_record_for_rows(
     assert resolved["model"]["build_spec"]["tfrow_norm"] == "rmsnorm"
     assert resolved["data"]["surface_label"] == "persisted_data_surface"
     assert resolved["training"]["surface_label"] == "persisted_training_surface"
+
+
+def test_inspect_sweep_row_allows_ready_rows_without_run_artifacts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+
+    payload = inspect_module.inspect_sweep_row(
+        order=3,
+        sweep_id="mini_sweep",
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
+    )
+
+    assert payload["target"]["identity"]["run_id"] is None
+    assert payload["target"]["artifacts"]["run_dir"] is None
+    assert payload["target"]["resolved"]["model"]["stage_label"] == "row_cls_pool_ready_test"
+    assert payload["target"]["resolved"]["training"]["surface_label"] == "training_default"
+
+
+def test_diff_sweep_row_uses_anchor_context_when_anchor_run_is_unavailable() -> None:
+    payload = diff_module.diff_sweep_row(
+        order=1,
+        sweep_id="missingness_followup",
+    )
+
+    assert payload["against"]["run_id"] is None
+    assert payload["against"]["source"] == "anchor_context"
+    assert payload["difference_count"] > 0

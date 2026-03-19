@@ -50,6 +50,49 @@ def _exportable_model_spec(
         stage = draw(st.one_of(st.none(), st.sampled_from([stage.value for stage in ModelStage])))
         if stage is not None:
             primary["stage"] = stage
+        stage_label = draw(st.one_of(st.none(), st.sampled_from(["row_cls_pool_replay", "nano_exact_anchor"])))
+        if stage_label is not None:
+            primary["stage_label"] = stage_label
+        module_overrides = draw(
+            st.one_of(
+                st.none(),
+                st.sampled_from(
+                    [
+                        {"post_stack_norm": "rmsnorm"},
+                        {"table_block_style": "prenorm"},
+                        {
+                            "post_stack_norm": "layernorm",
+                            "table_block_style": "nano_postnorm",
+                        },
+                    ]
+                ),
+            )
+        )
+        if module_overrides is not None:
+            primary["module_overrides"] = module_overrides
+        primary["staged_dropout"] = draw(
+            st.floats(
+                min_value=0.0,
+                max_value=0.5,
+                allow_nan=False,
+                allow_infinity=False,
+                width=32,
+            )
+        )
+        pre_encoder_clip = draw(
+            st.one_of(
+                st.none(),
+                st.floats(
+                    min_value=0.01,
+                    max_value=10.0,
+                    allow_nan=False,
+                    allow_infinity=False,
+                    width=64,
+                ),
+            )
+        )
+        if pre_encoder_clip is not None:
+            primary["pre_encoder_clip"] = pre_encoder_clip
     spec = model_build_spec_from_mappings(task=task, primary=primary)
     return task, spec
 

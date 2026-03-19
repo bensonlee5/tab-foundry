@@ -33,7 +33,8 @@ def encode_rows_with_targets(
     train_targets: torch.Tensor,
     train_test_split_index: int,
 ) -> torch.Tensor:
-    assert model.context_encoder is not None
+    if model.context_encoder is None:
+        raise RuntimeError("context_encoder must be initialized for many-class conditioning")
     conditioned = model.context_encoder(
         rows.unsqueeze(0),
         train_target_embeddings=train_targets.unsqueeze(0),
@@ -56,7 +57,7 @@ def digit_conditioned_rows(model: Any, row_state: RowState, y_train: torch.Tenso
             "mixed-radix depth exceeds model.max_mixed_radix_digits; "
             f"got {int(digits.shape[0])} > {model.max_mixed_radix_digits}"
         )
-    accum: torch.Tensor | None = None
+    accum = torch.zeros_like(row_state.rows[0])
     for view in range(int(digits.shape[0])):
         train_targets = context_train_embeddings(model, digits[view].unsqueeze(0))[0]
         if model.digit_position_embed is not None:
@@ -70,8 +71,7 @@ def digit_conditioned_rows(model: Any, row_state: RowState, y_train: torch.Tenso
             train_targets=train_targets,
             train_test_split_index=row_state.train_test_split_index,
         )
-        accum = conditioned if accum is None else accum + conditioned
-    assert accum is not None
+        accum = accum + conditioned
     return accum / float(digits.shape[0])
 
 
@@ -107,7 +107,11 @@ def hierarchical_probs(
             return
 
         node_train_embed = row_embeddings[idx]
-        mapped = map_labels_to_child_groups(y_train[idx], node).clamp(max=model.many_class_base - 1).to(torch.int64)
+        mapped = (
+            map_labels_to_child_groups(y_train[idx], node)
+            .clamp(max=model.many_class_base - 1)
+            .to(torch.int64)
+        )
         seq = torch.cat([node_train_embed, test_embeddings], dim=0)
         conditioned = encode_rows_with_targets(
             model,
@@ -159,9 +163,11 @@ def hierarchical_path_terms(
         nodes_visited += 1
         total_path_steps += int(sample_idx.numel())
 
-        mapped_test = map_labels_to_child_groups(y_test[sample_idx].to(torch.int64), node).clamp(
-            max=model.many_class_base - 1
-        ).to(torch.int64)
+        mapped_test = (
+            map_labels_to_child_groups(y_test[sample_idx].to(torch.int64), node)
+            .clamp(max=model.many_class_base - 1)
+            .to(torch.int64)
+        )
         n_choices = len(node.classes) if node.is_leaf else len(node.children)
         idx = node_train_indices(model, node=node, y_train=y_train)
         if idx.numel() == 0:
@@ -173,8 +179,10 @@ def hierarchical_path_terms(
             )
         else:
             node_train_embed = row_embeddings[idx]
-            mapped_train = map_labels_to_child_groups(y_train[idx], node).clamp(max=model.many_class_base - 1).to(
-                torch.int64
+            mapped_train = (
+                map_labels_to_child_groups(y_train[idx], node)
+                .clamp(max=model.many_class_base - 1)
+                .to(torch.int64)
             )
             seq = torch.cat([node_train_embed, test_embeddings[sample_idx]], dim=0)
             conditioned = encode_rows_with_targets(
@@ -196,15 +204,21 @@ def hierarchical_path_terms(
 
     _recurse(tree, torch.arange(n_test, device=row_embeddings.device))
     avg_path_depth = float(total_path_steps) / float(max(1, n_test))
-    return logits_terms, target_terms, sample_counts, {
-        "many_class_nodes_visited": float(nodes_visited),
-        "many_class_avg_path_depth": float(avg_path_depth),
-        "many_class_empty_nodes": float(empty_nodes),
-    }
+    return (
+        logits_terms,
+        target_terms,
+        sample_counts,
+        {
+            "many_class_nodes_visited": float(nodes_visited),
+            "many_class_avg_path_depth": float(avg_path_depth),
+            "many_class_empty_nodes": float(empty_nodes),
+        },
+    )
 
 
 def forward_many_class(model: Any, raw_state: RawInputState) -> ClassificationOutput:
-    assert raw_state.y_test is not None
+    if raw_state.y_test is None:
+        raise RuntimeError("forward_many_class requires y_test in raw input state")
     if int(raw_state.x_all.shape[0]) != 1:
         raise RuntimeError(
             "staged many_class currently requires a single task (batch dimension 1); "
@@ -273,8 +287,7 @@ def validate_num_classes(model: Any, num_classes: int) -> None:
                     f"got {num_classes}"
                 )
             raise RuntimeError(
-                f"stage={model.stage!r} only supports num_classes <= "
-                f"{limit}, got {num_classes}"
+                f"stage={model.stage!r} only supports num_classes <= {limit}, got {num_classes}"
             )
         raise RuntimeError(f"stage={model.stage!r} does not support num_classes={num_classes}")
     if model.surface.head != "many_class" and num_classes > model.many_class_base:

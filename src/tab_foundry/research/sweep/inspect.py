@@ -14,15 +14,17 @@ from tab_foundry.bench.benchmark_run_registry import (
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
+from tab_foundry.config import compose_config
 from tab_foundry.model.inspection import model_surface_payload, parameter_counts_from_model_spec
+from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.training.surface import build_training_surface_record
 
+from .anchor import anchor_training_surface_label
 from .graph import (
     _training_surface_record_model_spec,
     resolve_anchor_model_spec,
-    resolve_queue_row_model_spec,
 )
-from .materialize import load_system_delta_queue, ordered_rows
+from .materialize import load_system_delta_queue_for_inspection, ordered_rows
 from .paths_io import (
     _copy_jsonable,
     default_catalog_path,
@@ -31,9 +33,6 @@ from .paths_io import (
     default_sweeps_root,
     repo_root,
 )
-from .runner import compose_cfg
-
-
 def _load_json_mapping(path: Path, *, context: str) -> dict[str, Any]:
     payload = json.loads(path.expanduser().resolve().read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -49,10 +48,16 @@ def _artifact_entry(path: Path) -> dict[str, Any]:
     }
 
 
+def _optional_string(value: Any) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return str(value)
+
+
 def _queue_metadata_payload(queue: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "sweep_id": str(queue["sweep_id"]),
-        "anchor_run_id": str(queue["anchor_run_id"]),
+        "anchor_run_id": None if queue.get("anchor_run_id") is None else str(queue["anchor_run_id"]),
         "training_experiment": str(queue["training_experiment"]),
         "training_config_profile": str(queue["training_config_profile"]),
         "surface_role": str(queue["surface_role"]),
@@ -105,6 +110,78 @@ def _canonical_row_run_root(*, sweep_id: str, delta_id: str, run_id: str) -> Pat
     return repo_root() / "outputs" / "staged_ladder" / "research" / sweep_id / delta_id / run_id
 
 
+def _inspection_run_dir(
+    *,
+    sweep_id: str,
+    target_kind: str,
+    target_id: str,
+) -> Path:
+    return repo_root() / "outputs" / ".inspection" / "research" / sweep_id / target_kind / target_id / "train"
+
+
+def _anchor_row_payload(queue: Mapping[str, Any]) -> dict[str, Any]:
+    anchor_context = queue.get("anchor_context")
+    raw_model = cast(Mapping[str, Any], anchor_context.get("model", {})) if isinstance(anchor_context, Mapping) else {}
+    raw_module_selection = raw_model.get("module_selection")
+    module_overrides = (
+        dict(cast(Mapping[str, Any], raw_module_selection))
+        if isinstance(raw_module_selection, Mapping)
+        else {}
+    )
+    surface_labels = (
+        cast(Mapping[str, Any], anchor_context.get("surface_labels"))
+        if isinstance(anchor_context, Mapping) and isinstance(anchor_context.get("surface_labels"), Mapping)
+        else {}
+    )
+    model_payload: dict[str, Any] = {}
+    for key in (
+        "arch",
+        "stage",
+        "stage_label",
+        "d_icl",
+        "input_normalization",
+        "feature_group_size",
+        "many_class_base",
+        "tficl_n_heads",
+        "tficl_n_layers",
+        "head_hidden_dim",
+        "tfrow_n_heads",
+        "tfrow_n_layers",
+        "tfrow_cls_tokens",
+        "tfrow_norm",
+        "tfcol_n_heads",
+        "tfcol_n_layers",
+        "tfcol_n_inducing",
+    ):
+        if key in raw_model:
+            model_payload[key] = raw_model[key]
+    if module_overrides:
+        model_payload["module_overrides"] = module_overrides
+    return {
+        "order": 0,
+        "delta_id": "anchor",
+        "status": "anchor",
+        "model": model_payload,
+        "data": (
+            {"surface_label": str(surface_labels["data"])}
+            if isinstance(surface_labels.get("data"), str) and str(surface_labels["data"]).strip()
+            else {}
+        ),
+        "preprocessing": (
+            {"surface_label": str(surface_labels["preprocessing"])}
+            if isinstance(surface_labels.get("preprocessing"), str) and str(surface_labels["preprocessing"]).strip()
+            else {}
+        ),
+        "training": {
+            "surface_label": anchor_training_surface_label(
+                cast(Mapping[str, Any], anchor_context) if isinstance(anchor_context, Mapping) else {}
+            ),
+            "overrides": {},
+        },
+        "run_id": queue.get("anchor_run_id"),
+    }
+
+
 def _row_artifacts(
     *,
     queue: Mapping[str, Any],
@@ -116,11 +193,11 @@ def _row_artifacts(
     sweep_id = str(queue["sweep_id"])
     expected_root = (
         None
-        if not isinstance(run_id, str) or not run_id.strip()
-        else _canonical_row_run_root(sweep_id=sweep_id, delta_id=delta_id, run_id=run_id)
+        if _optional_string(run_id) is None
+        else _canonical_row_run_root(sweep_id=sweep_id, delta_id=delta_id, run_id=str(run_id))
     )
     registry_run = _registry_run_entry(
-        None if not isinstance(run_id, str) else run_id,
+        _optional_string(run_id),
         registry_path=registry_path,
     )
 
@@ -210,6 +287,94 @@ def _cfg_mapping(cfg: Any) -> dict[str, Any]:
     return {str(key): value for key, value in payload.items()}
 
 
+def _merge_plain_mapping(
+    target: dict[str, Any],
+    *,
+    prefix: str,
+    payload: Mapping[str, Any],
+) -> None:
+    destination = target.get(prefix)
+    if not isinstance(destination, dict):
+        destination = {}
+        target[prefix] = destination
+    for key, value in payload.items():
+        if prefix == "model" and key == "module_overrides" and isinstance(value, Mapping):
+            destination[key] = dict(cast(Mapping[str, Any], _copy_jsonable(value)))
+            continue
+        current = destination.get(key)
+        if isinstance(current, dict) and isinstance(value, Mapping):
+            nested = dict(current)
+            for nested_key, nested_value in cast(Mapping[str, Any], value).items():
+                if isinstance(nested.get(nested_key), dict) and isinstance(nested_value, Mapping):
+                    nested_current = cast(dict[str, Any], nested[nested_key])
+                    nested_current.update(
+                        cast(dict[str, Any], _copy_jsonable(cast(Mapping[str, Any], nested_value)))
+                    )
+                    nested[nested_key] = nested_current
+                else:
+                    nested[nested_key] = (
+                        _copy_jsonable(nested_value)
+                        if isinstance(nested_value, (dict, list))
+                        else nested_value
+                    )
+            destination[key] = nested
+            continue
+        destination[key] = _copy_jsonable(value) if isinstance(value, (dict, list)) else value
+
+
+def _inspection_raw_cfg(
+    *,
+    row: Mapping[str, Any],
+    training_experiment: str,
+) -> dict[str, Any]:
+    cfg = compose_config([f"experiment={training_experiment}"])
+    raw_cfg = _cfg_mapping(cfg)
+    _merge_plain_mapping(raw_cfg, prefix="model", payload=cast(Mapping[str, Any], row.get("model", {})))
+    _merge_plain_mapping(raw_cfg, prefix="data", payload=cast(Mapping[str, Any], row.get("data", {})))
+    _merge_plain_mapping(
+        raw_cfg,
+        prefix="preprocessing",
+        payload=cast(Mapping[str, Any], row.get("preprocessing", {})),
+    )
+
+    training_payload = cast(Mapping[str, Any], row.get("training", {}))
+    _merge_plain_mapping(raw_cfg, prefix="training", payload=training_payload)
+    overrides = cast(Mapping[str, Any], training_payload.get("overrides", {}))
+    if "apply_schedule" in overrides:
+        training_cfg = raw_cfg.get("training")
+        if not isinstance(training_cfg, dict):
+            training_cfg = {}
+            raw_cfg["training"] = training_cfg
+        training_cfg["apply_schedule"] = overrides["apply_schedule"]
+    for key in ("optimizer", "runtime", "schedule"):
+        override_payload = overrides.get(key)
+        if isinstance(override_payload, Mapping):
+            _merge_plain_mapping(raw_cfg, prefix=key, payload=cast(Mapping[str, Any], override_payload))
+    return raw_cfg
+
+
+def _inspection_spec_and_record(
+    *,
+    row: Mapping[str, Any],
+    run_dir: Path,
+    training_experiment: str,
+) -> tuple[Any, dict[str, Any]]:
+    raw_cfg = _inspection_raw_cfg(row=row, training_experiment=training_experiment)
+    task = str(raw_cfg.get("task", "classification")).strip().lower()
+    raw_model_cfg = raw_cfg.get("model")
+    if not isinstance(raw_model_cfg, Mapping):
+        raise RuntimeError("inspection fallback requires cfg.model to resolve to a mapping")
+    spec = model_build_spec_from_mappings(
+        task=task,
+        primary={str(key): value for key, value in raw_model_cfg.items()},
+    )
+    training_surface_record = _build_lightweight_training_surface_record(
+        raw_cfg=raw_cfg,
+        run_dir=run_dir,
+    )
+    return spec, training_surface_record
+
+
 def _build_lightweight_training_surface_record(
     *,
     raw_cfg: Mapping[str, Any],
@@ -241,22 +406,19 @@ def resolve_row_target(
         )
     else:
         run_dir_entry = artifacts.get("run_dir")
-        if not isinstance(run_dir_entry, Mapping):
-            raise RuntimeError(f"row {int(row['order']):02d} has no resolvable run directory")
-        run_dir = Path(str(run_dir_entry["path"]))
-        spec = resolve_queue_row_model_spec(
-            row,
-            training_experiment=str(queue["training_experiment"]),
+        run_dir = (
+            Path(str(run_dir_entry["path"]))
+            if isinstance(run_dir_entry, Mapping)
+            else _inspection_run_dir(
+                sweep_id=str(queue["sweep_id"]),
+                target_kind="row",
+                target_id=f"{int(row['order']):02d}_{str(row['delta_id'])}",
+            )
         )
-        cfg = compose_cfg(
+        spec, training_surface_record = _inspection_spec_and_record(
             row=row,
             run_dir=run_dir,
-            device="cpu",
             training_experiment=str(queue["training_experiment"]),
-        )
-        training_surface_record = _build_lightweight_training_surface_record(
-            raw_cfg=_cfg_mapping(cfg),
-            run_dir=run_dir,
         )
     metrics = row.get("benchmark_metrics")
     if not isinstance(metrics, Mapping):
@@ -281,7 +443,7 @@ def _anchor_run_artifacts(
     queue: Mapping[str, Any],
     registry_path: Path,
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    anchor_run_id = str(queue["anchor_run_id"])
+    anchor_run_id = _optional_string(queue.get("anchor_run_id"))
     registry_run = _registry_run_entry(anchor_run_id, registry_path=registry_path)
     run_dir = _registry_artifact_path(registry_run, "run_dir")
     comparison_summary = _registry_artifact_path(registry_run, "comparison_summary_path")
@@ -398,13 +560,27 @@ def resolve_anchor_target(
     queue: Mapping[str, Any],
     registry_path: Path,
 ) -> dict[str, Any]:
-    spec, metadata = resolve_anchor_model_spec(queue=queue, registry_path=registry_path)
     artifacts, registry_run = _anchor_run_artifacts(queue=queue, registry_path=registry_path)
-    training_surface_record = _anchor_training_surface_record(queue=queue, artifacts=artifacts)
+    anchor_row = _anchor_row_payload(queue)
+    try:
+        spec, metadata = resolve_anchor_model_spec(queue=queue, registry_path=registry_path)
+        training_surface_record = _anchor_training_surface_record(queue=queue, artifacts=artifacts)
+    except RuntimeError:
+        run_dir = _inspection_run_dir(
+            sweep_id=str(queue["sweep_id"]),
+            target_kind="anchor",
+            target_id="anchor",
+        )
+        spec, training_surface_record = _inspection_spec_and_record(
+            row=anchor_row,
+            run_dir=run_dir,
+            training_experiment=str(queue["training_experiment"]),
+        )
+        metadata = {"source": "anchor_context"}
     return {
         "kind": "anchor",
         "identity": {
-            "run_id": str(queue["anchor_run_id"]),
+            "run_id": _optional_string(queue.get("anchor_run_id")),
             "source": str(metadata["source"]),
         },
         "artifacts": artifacts,
@@ -422,7 +598,7 @@ def inspect_sweep_row(
     sweeps_root: Path | None = None,
     registry_path: Path | None = None,
 ) -> dict[str, Any]:
-    queue = load_system_delta_queue(
+    queue = load_system_delta_queue_for_inspection(
         sweep_id=sweep_id,
         index_path=index_path,
         catalog_path=catalog_path,

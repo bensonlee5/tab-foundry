@@ -75,12 +75,18 @@ def screen_metrics(*, run_dir: Path) -> dict[str, Any]:
         "upper_block_names": [str(name) for name in block_names],
         "upper_block_final_window_mean": _optional_float(aggregate, "final_window_mean"),
         "upper_block_post_warmup_mean_slope": _optional_float(aggregate, "post_warmup_mean_slope"),
-        "clipped_step_fraction": _optional_float(cast(Mapping[str, Any], grad_clip), "clipped_step_fraction"),
+        "clipped_step_fraction": _optional_float(
+            cast(Mapping[str, Any], grad_clip), "clipped_step_fraction"
+        ),
         "final_train_loss_ema": final_train_loss_ema,
         "upper_blocks": {
             str(name): {
-                "final_window_mean": _optional_float(cast(Mapping[str, Any], payload), "final_window_mean"),
-                "post_warmup_slope": _optional_float(cast(Mapping[str, Any], payload), "post_warmup_slope"),
+                "final_window_mean": _optional_float(
+                    cast(Mapping[str, Any], payload), "final_window_mean"
+                ),
+                "post_warmup_slope": _optional_float(
+                    cast(Mapping[str, Any], payload), "post_warmup_slope"
+                ),
             }
             for name, payload in block_payloads.items()
             if isinstance(payload, Mapping)
@@ -103,12 +109,19 @@ def pick_screen_winner(
             raise RuntimeError(f"candidate row {candidate.get('order')} is missing screen_metrics")
         return _optional_float(cast(Mapping[str, Any], metrics), key)
 
+    def _required_metric(candidate: Mapping[str, Any], key: str) -> float:
+        value = _metric(candidate, key)
+        if value is None:
+            raise RuntimeError(
+                f"candidate row {candidate.get('order')} omitted required metric {key!r}"
+            )
+        return value
+
     best_primary_candidate = _best_by_from_pool(
         normalized_candidates,
         key="upper_block_final_window_mean",
     )[0]
-    best_primary = _metric(best_primary_candidate, "upper_block_final_window_mean")
-    assert best_primary is not None
+    best_primary = _required_metric(best_primary_candidate, "upper_block_final_window_mean")
     tied_primary = [
         candidate
         for candidate in normalized_candidates
@@ -124,12 +137,15 @@ def pick_screen_winner(
             key="upper_block_post_warmup_mean_slope",
         )
         best_secondary_candidate = secondary_pool[0]
-        best_secondary = _metric(best_secondary_candidate, "upper_block_post_warmup_mean_slope")
-        assert best_secondary is not None
+        best_secondary = _required_metric(
+            best_secondary_candidate,
+            "upper_block_post_warmup_mean_slope",
+        )
         tied_secondary = [
             candidate
             for candidate in tied_primary
-            if (candidate_secondary := _metric(candidate, "upper_block_post_warmup_mean_slope")) is not None
+            if (candidate_secondary := _metric(candidate, "upper_block_post_warmup_mean_slope"))
+            is not None
             and _relative_gap(candidate_secondary, best_secondary) <= SECONDARY_TOLERANCE
         ]
         if len(tied_secondary) == 1:
@@ -179,7 +195,9 @@ def _best_by_from_pool(pool: list[dict[str, Any]], *, key: str) -> list[dict[str
             raise RuntimeError(f"candidate row {candidate.get('order')} is missing screen_metrics")
         value = _optional_float(cast(Mapping[str, Any], metrics), key)
         if value is None:
-            raise RuntimeError(f"candidate row {candidate.get('order')} omitted required metric {key!r}")
+            raise RuntimeError(
+                f"candidate row {candidate.get('order')} omitted required metric {key!r}"
+            )
         if best_value is None or value < best_value:
             best_value = value
             best = [candidate]

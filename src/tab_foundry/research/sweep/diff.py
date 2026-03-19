@@ -13,7 +13,7 @@ from .inspect import (
     resolve_anchor_target,
     resolve_row_target,
 )
-from .materialize import load_system_delta_queue
+from .materialize import load_system_delta_queue_for_inspection
 from .paths_io import (
     default_catalog_path,
     default_registry_path,
@@ -55,7 +55,7 @@ def diff_sweep_row(
     registry_path: Path | None = None,
 ) -> dict[str, Any]:
     resolved_registry_path = registry_path or default_registry_path()
-    queue = load_system_delta_queue(
+    queue = load_system_delta_queue_for_inspection(
         sweep_id=sweep_id,
         index_path=index_path,
         catalog_path=catalog_path,

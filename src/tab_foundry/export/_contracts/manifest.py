@@ -9,6 +9,7 @@ from tab_foundry.model.spec import SUPPORTED_MODEL_ARCHES, model_build_spec_from
 
 from .common import (
     _as_bool,
+    _as_float,
     _as_int,
     _as_str,
     _require_keys,
@@ -55,6 +56,16 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
     }
     if "stage" in model_raw:
         primary["stage"] = model_raw["stage"]
+    if "stage_label" in model_raw:
+        primary["stage_label"] = _as_str(
+            model_raw["stage_label"],
+            context="manifest.model.stage_label",
+        )
+    if "module_overrides" in model_raw:
+        module_overrides = model_raw["module_overrides"]
+        if not isinstance(module_overrides, dict):
+            raise ValueError("manifest.model.module_overrides must be object")
+        primary["module_overrides"] = module_overrides
     optional_fields: tuple[tuple[str, str], ...] = (
         ("input_normalization", "manifest.model.input_normalization"),
         ("norm_type", "manifest.model.norm_type"),
@@ -70,6 +81,8 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
         ("tficl_ff_expansion", "manifest.model.tficl_ff_expansion"),
         ("many_class_base", "manifest.model.many_class_base"),
         ("head_hidden_dim", "manifest.model.head_hidden_dim"),
+        ("staged_dropout", "manifest.model.staged_dropout"),
+        ("pre_encoder_clip", "manifest.model.pre_encoder_clip"),
     )
     for field_name, context in optional_fields:
         if field_name not in model_raw:
@@ -78,6 +91,8 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
             primary[field_name] = _validate_input_normalization(model_raw[field_name], context=context)
         elif field_name in {"norm_type", "tfrow_norm"}:
             primary[field_name] = _as_str(model_raw[field_name], context=context)
+        elif field_name in {"staged_dropout", "pre_encoder_clip"}:
+            primary[field_name] = _as_float(model_raw[field_name], context=context)
         else:
             primary[field_name] = _as_int(model_raw[field_name], context=context)
     if "use_digit_position_embed" in model_raw:
@@ -141,6 +156,14 @@ def _validate_model_spec(
     }
     if schema_version == SCHEMA_VERSION_V3:
         required_model_keys.add("input_normalization")
+        optional_model_keys.update(
+            {
+                "stage_label",
+                "module_overrides",
+                "staged_dropout",
+                "pre_encoder_clip",
+            }
+        )
     else:
         optional_model_keys.add("input_normalization")
     _require_keys(

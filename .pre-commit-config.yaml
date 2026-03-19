@@ -26,8 +26,7 @@ repos:
     name: verify (paths)
     entry: env TAB_FOUNDRY_LIVE_PYTEST=1 ./.venv/bin/python scripts/audit/dev_verify.py verify paths
     language: system
-    types_or: [python, pyi]
-    files: ^(src/|tests/)
+    files: ^(AGENTS\.md|README\.md|CHANGELOG\.md|program\.md|src/|tests/|scripts/dev$|scripts/audit/|configs/|reference/|docs/)
     pass_filenames: true
   - id: mdformat
     name: mdformat

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import re
 import sys
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -195,6 +197,18 @@ def test_verify_paths_reuses_affected_scope_mapping_for_explicit_paths() -> None
         "pytest_smoke",
         "pytest_property",
     )
+
+
+def test_pre_commit_verify_paths_covers_non_python_mapped_paths() -> None:
+    payload = yaml.safe_load((REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    hooks = payload["repos"][0]["hooks"]
+    verify_hook = next(hook for hook in hooks if hook["id"] == "verify-paths")
+    pattern = str(verify_hook["files"])
+
+    assert "types_or" not in verify_hook
+    assert re.search(pattern, "configs/config.yaml") is not None
+    assert re.search(pattern, "reference/system_delta_sweeps/input_norm_followup/queue.yaml") is not None
+    assert re.search(pattern, "scripts/audit/dev_verify.py") is not None
 
 
 def test_should_live_stream_only_for_pytest_when_requested(

@@ -20,6 +20,7 @@ from tab_foundry.research.lane_contract import (
 )
 from tab_foundry.research import system_delta
 from tab_foundry.research.system_delta_promote import promote_anchor
+from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
 
 from .artifacts import ExecutionPaths, read_yaml, result_card_text, write_research_package, write_yaml
 from .queue_updates import append_note, optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
@@ -76,9 +77,10 @@ def completed_train_artifacts_exist(run_dir: Path) -> bool:
         run_dir / "gradient_history.jsonl",
         run_dir / "telemetry.json",
         run_dir / "training_surface_record.json",
-        run_dir / "checkpoints" / "latest.pt",
     )
-    return all(path.exists() for path in required_paths)
+    return all(path.exists() for path in required_paths) and (
+        resolve_latest_checkpoint_path(run_dir) is not None
+    )
 
 
 def materialized_row_map(*, sweep_id: str, paths: ExecutionPaths) -> dict[str, dict[str, Any]]:
