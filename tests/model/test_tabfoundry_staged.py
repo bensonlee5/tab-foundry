@@ -496,6 +496,27 @@ def test_activation_trace_aggregates_repeated_names_using_element_weighted_rms()
     assert snapshot["constant"] == pytest.approx(expected)
 
 
+def test_activation_trace_stats_expose_raw_sum_sq_and_count() -> None:
+    model = _staged(
+        "nano_exact",
+        d_icl=32,
+        tficl_n_heads=4,
+        tficl_n_layers=1,
+        head_hidden_dim=64,
+    )
+
+    model.enable_activation_trace()
+    model.trace_activation("constant", torch.full((1, 2, 3), 2.0, dtype=torch.float32))
+    model.trace_activation("constant", torch.full((2, 5, 7), 2.0, dtype=torch.float32))
+    model.trace_activation("constant", torch.full((1, 1, 1), 4.0, dtype=torch.float32))
+    snapshot = model.flush_activation_trace_stats()
+
+    assert snapshot == {"constant": (320.0, 77)}
+    assert model.flush_activation_trace_stats() == {}
+    model.disable_activation_trace()
+    assert model.flush_activation_trace_stats() is None
+
+
 def test_many_class_activation_trace_aggregates_recursive_context_calls() -> None:
     model = _staged("many_class", many_class_base=4, input_normalization="none")
     model.train()

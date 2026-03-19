@@ -136,3 +136,30 @@ def test_build_training_telemetry_handles_missing_context_stage_metrics(tmp_path
         ]
         == 0
     )
+
+
+def test_build_training_telemetry_tracks_non_finite_global_grad_norm_kinds(tmp_path: Path) -> None:
+    telemetry = build_training_telemetry(
+        run_dir=tmp_path,
+        success=True,
+        artifacts={},
+        checkpoint_snapshots=[],
+        history_records=[{"step": 1, "train_loss": 1.0, "train_loss_delta": None}],
+        gradient_records=[
+            {"step": 1, "global_grad_norm": None, "global_grad_norm_kind": "pos_inf"},
+            {"step": 2, "global_grad_norm": 0.5, "global_grad_norm_kind": "finite"},
+            {"step": 3, "global_grad_norm": None, "global_grad_norm_kind": "nan"},
+            {"step": 4, "global_grad_norm": None, "global_grad_norm_kind": "neg_inf"},
+        ],
+    )
+
+    gradient_summary = telemetry["gradient_summary"]
+    assert gradient_summary["global"]["mean_grad_norm"] == 0.5
+    assert gradient_summary["global"]["max_grad_norm"] == 0.5
+    assert gradient_summary["global"]["final_grad_norm"] == 0.5
+    assert gradient_summary["non_finite_global_grad_norm_counts"] == {
+        "nan": 1,
+        "pos_inf": 1,
+        "neg_inf": 1,
+    }
+    assert gradient_summary["final_global_grad_norm_kind"] == "neg_inf"

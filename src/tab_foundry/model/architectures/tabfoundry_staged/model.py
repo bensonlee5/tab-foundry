@@ -197,16 +197,26 @@ class TabFoundryStagedClassifier(nn.Module):
             total_count + trace_count,
         )
 
-    def flush_activation_trace(self) -> dict[str, float] | None:
+    def flush_activation_trace_stats(self) -> dict[str, tuple[float, int]] | None:
         if self._activation_trace is None:
             return None
         snapshot = {
-            name: float(math.sqrt(total_sum_sq / float(total_count)))
+            name: (float(total_sum_sq), int(total_count))
             for name, (total_sum_sq, total_count) in self._activation_trace.items()
             if total_count > 0
         }
         self._activation_trace = {}
         return snapshot
+
+    def flush_activation_trace(self) -> dict[str, float] | None:
+        snapshot = self.flush_activation_trace_stats()
+        if snapshot is None:
+            return None
+        return {
+            name: float(math.sqrt(total_sum_sq / float(total_count)))
+            for name, (total_sum_sq, total_count) in snapshot.items()
+            if total_count > 0
+        }
 
     @staticmethod
     def _task_num_classes(batch: TaskBatch) -> int:

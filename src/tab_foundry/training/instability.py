@@ -47,6 +47,7 @@ _TOP_LEVEL_GRADIENT_MODULES = (
     "direct_head",
     "decoder",
 )
+_GLOBAL_GRAD_NORM_KINDS = ("finite", "nan", "pos_inf", "neg_inf")
 
 
 def _utc_now() -> str:
@@ -206,6 +207,26 @@ def _mapping_value_history(
                 continue
             history.setdefault(str(name), []).append(value_f)
     return history
+
+
+def _record_global_grad_norm_kind(record: Mapping[str, Any]) -> str | None:
+    raw_kind = record.get("global_grad_norm_kind")
+    if isinstance(raw_kind, str):
+        normalized_kind = raw_kind.strip()
+        if normalized_kind in _GLOBAL_GRAD_NORM_KINDS:
+            return normalized_kind
+
+    raw_value = record.get("global_grad_norm")
+    if raw_value is None:
+        return None
+    value = float(raw_value)
+    if math.isnan(value):
+        return "nan"
+    if math.isinf(value):
+        return "pos_inf" if value > 0.0 else "neg_inf"
+    if math.isfinite(value):
+        return "finite"
+    return None
 
 
 def _mean_or_none(values: Sequence[float]) -> float | None:
@@ -553,6 +574,12 @@ def gradient_trace_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, An
         if record.get("global_grad_norm") is not None
         and math.isfinite(float(record["global_grad_norm"]))
     ]
+    non_finite_global_grad_norm_counts = {kind: 0 for kind in _GLOBAL_GRAD_NORM_KINDS if kind != "finite"}
+    for record in records:
+        kind = _record_global_grad_norm_kind(record)
+        if kind in non_finite_global_grad_norm_counts:
+            non_finite_global_grad_norm_counts[kind] += 1
+
     module_history = _mapping_value_history(records, key="module_grad_norms")
     activation_history = _mapping_value_history(records, key="activation_norms")
 
@@ -565,6 +592,10 @@ def gradient_trace_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, An
             "max_grad_norm": None if not global_grad_norms else float(max(global_grad_norms)),
             "final_grad_norm": None if not global_grad_norms else float(global_grad_norms[-1]),
         },
+        "non_finite_global_grad_norm_counts": non_finite_global_grad_norm_counts,
+        "final_global_grad_norm_kind": None
+        if not records
+        else _record_global_grad_norm_kind(records[-1]),
         "modules": {
             name: {
                 "mean_grad_norm": float(sum(values) / float(len(values))),

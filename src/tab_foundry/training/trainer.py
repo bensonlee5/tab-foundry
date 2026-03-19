@@ -63,18 +63,37 @@ from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_w
 
 
 def _merge_activation_norms(
-    weighted_sums: dict[str, float],
-    weight_totals: dict[str, float],
+    sum_sqs: dict[str, float],
+    element_counts: dict[str, float],
 ) -> dict[str, float] | None:
-    if not weighted_sums:
+    if not sum_sqs:
         return None
     merged: dict[str, float] = {}
-    for name, value in weighted_sums.items():
-        weight = float(weight_totals.get(name, 0.0))
-        if weight <= 0.0:
+    for name, value in sum_sqs.items():
+        count = float(element_counts.get(name, 0.0))
+        if count <= 0.0:
             continue
-        merged[name] = float(value / weight)
+        merged[name] = float(math.sqrt(float(value) / count))
     return merged or None
+
+
+def _accelerator_num_processes(accelerator: Any) -> int:
+    raw_num_processes = getattr(accelerator, "num_processes", None)
+    if isinstance(raw_num_processes, int) and raw_num_processes > 0:
+        return raw_num_processes
+    raw_state = getattr(accelerator, "state", None)
+    state_num_processes = getattr(raw_state, "num_processes", None)
+    if isinstance(state_num_processes, int) and state_num_processes > 0:
+        return state_num_processes
+    return 1
+
+
+def _global_grad_norm_kind(value: float) -> str:
+    if math.isnan(value):
+        return "nan"
+    if math.isinf(value):
+        return "pos_inf" if value > 0.0 else "neg_inf"
+    return "finite"
 
 
 def train(cfg: DictConfig) -> TrainResult:
@@ -140,8 +159,54 @@ def train(cfg: DictConfig) -> TrainResult:
     trace_activations = bool(getattr(cfg.runtime, "trace_activations", False))
     enable_activation_trace = getattr(base_model, "enable_activation_trace", None)
     flush_activation_trace = getattr(base_model, "flush_activation_trace", None)
+    flush_activation_trace_stats = getattr(base_model, "flush_activation_trace_stats", None)
+    requires_exact_activation_trace_stats = bool(
+        trace_activations
+        and (
+            grad_accum_steps > 1
+            or _accelerator_num_processes(accelerator) > 1
+        )
+    )
+    if (
+        requires_exact_activation_trace_stats
+        and not callable(flush_activation_trace_stats)
+        and callable(flush_activation_trace)
+    ):
+        raise RuntimeError(
+            "trace_activations with grad_accum_steps > 1 or multi-process execution "
+            "requires flush_activation_trace_stats()"
+        )
     if trace_activations and callable(enable_activation_trace):
         enable_activation_trace()
+
+    def _flush_activation_trace_stats() -> dict[str, tuple[float, int]] | None:
+        if not trace_activations:
+            return None
+        if callable(flush_activation_trace_stats):
+            raw_snapshot = flush_activation_trace_stats()
+            if raw_snapshot is None:
+                return None
+            return {
+                str(name): (float(total_sum_sq), int(total_count))
+                for name, (total_sum_sq, total_count) in raw_snapshot.items()
+                if int(total_count) > 0
+            }
+        if callable(flush_activation_trace):
+            legacy_snapshot = flush_activation_trace()
+            if legacy_snapshot is None:
+                return None
+            if requires_exact_activation_trace_stats:
+                raise RuntimeError(
+                    "trace_activations with grad_accum_steps > 1 or multi-process execution "
+                    "requires flush_activation_trace_stats()"
+                )
+            return {
+                str(name): (float(value) * float(value), 1)
+                for name, value in legacy_snapshot.items()
+                if math.isfinite(float(value))
+            }
+        return None
+
     training_surface_payload: dict[str, Any] | None = None
     if accelerator.is_main_process:
         raw_cfg = cast(dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
@@ -251,8 +316,8 @@ def train(cfg: DictConfig) -> TrainResult:
                 train_loss_count = 0
                 train_metric_sums: dict[str, float] = {}
                 train_metric_counts: dict[str, int] = {}
-                activation_weighted_sums: dict[str, float] = {}
-                activation_weight_totals: dict[str, float] = {}
+                activation_sum_sqs: dict[str, float] = {}
+                activation_element_counts: dict[str, float] = {}
                 step_train_start = time.perf_counter()
                 for _micro_step in range(grad_accum_steps):
                     batch = move_batch(next(train_iter), accelerator.device)
@@ -266,26 +331,21 @@ def train(cfg: DictConfig) -> TrainResult:
                     for key, value in metrics.items():
                         train_metric_sums[key] = train_metric_sums.get(key, 0.0) + float(value)
                         train_metric_counts[key] = train_metric_counts.get(key, 0) + 1
-                    batch_activation_norms = (
-                        flush_activation_trace()
-                        if trace_activations and callable(flush_activation_trace)
-                        else None
-                    )
-                    if batch_activation_norms is not None:
-                        activation_weight = float(max(1, int(batch.y_test.numel())))
-                        for activation_name, activation_value in batch_activation_norms.items():
-                            activation_weighted_sums[activation_name] = (
-                                activation_weighted_sums.get(activation_name, 0.0)
-                                + (float(activation_value) * activation_weight)
+                    batch_activation_trace_stats = _flush_activation_trace_stats()
+                    if batch_activation_trace_stats is not None:
+                        for activation_name, (activation_sum_sq, activation_count) in batch_activation_trace_stats.items():
+                            activation_sum_sqs[activation_name] = (
+                                activation_sum_sqs.get(activation_name, 0.0)
+                                + float(activation_sum_sq)
                             )
-                            activation_weight_totals[activation_name] = (
-                                activation_weight_totals.get(activation_name, 0.0) + activation_weight
+                            activation_element_counts[activation_name] = (
+                                activation_element_counts.get(activation_name, 0.0)
+                                + float(activation_count)
                             )
 
                 nan_detected = not math.isfinite(train_loss_sum)
                 if nan_detected:
-                    if callable(flush_activation_trace):
-                        _ = flush_activation_trace()
+                    _ = _flush_activation_trace_stats()
                     nan_skip_count += 1
                     for _opt_name, opt in prepared_opts:
                         opt.zero_grad(set_to_none=True)
@@ -323,15 +383,15 @@ def train(cfg: DictConfig) -> TrainResult:
                         break
                     continue
 
-                activation_weighted_sums, activation_weight_totals = _reduce_keyed_weighted_scalars(
+                activation_sum_sqs, activation_element_counts = _reduce_keyed_weighted_scalars(
                     accelerator,
-                    weighted_sums=activation_weighted_sums,
-                    weights=activation_weight_totals,
+                    weighted_sums=activation_sum_sqs,
+                    weights=activation_element_counts,
                     device=accelerator.device,
                 )
                 activation_norms = _merge_activation_norms(
-                    activation_weighted_sums,
-                    activation_weight_totals,
+                    activation_sum_sqs,
+                    activation_element_counts,
                 )
                 pre_clip_module_grad_norms = (
                     module_grad_norms(base_model) if accelerator.is_main_process else {}
@@ -383,11 +443,12 @@ def train(cfg: DictConfig) -> TrainResult:
                     g_sum = reduced[2 + 2 * i].item()
                     g_count = reduced[2 + 2 * i + 1].item()
                     metric_mean = g_sum / g_count if g_count > 0 else float("nan")
+                    if key == "grad_norm":
+                        grad_norm_value = float(metric_mean)
                     if math.isfinite(metric_mean):
                         current_train_metrics[key] = float(metric_mean)
                         train_log[f"train/{key}"] = metric_mean
                         if key == "grad_norm":
-                            grad_norm_value = float(metric_mean)
                             grad_norm_sum += grad_norm_value
                             grad_norm_count += 1
                             max_grad_norm = max(max_grad_norm, grad_norm_value)
@@ -407,6 +468,7 @@ def train(cfg: DictConfig) -> TrainResult:
                     and math.isfinite(grad_norm_value)
                     and float(grad_norm_value) > grad_clip_threshold
                 )
+                global_grad_norm_kind = _global_grad_norm_kind(float(grad_norm_value))
                 train_log["train/loss_delta"] = loss_delta_value
                 train_log["train/loss_ema"] = loss_ema
                 train_log["train/elapsed_seconds"] = elapsed_seconds
@@ -432,8 +494,7 @@ def train(cfg: DictConfig) -> TrainResult:
 
                 history_val_metrics: dict[str, float] | None = None
                 if global_step % int(cfg.runtime.eval_every) == 0:
-                    if callable(flush_activation_trace):
-                        _ = flush_activation_trace()
+                    _ = _flush_activation_trace_stats()
                     _set_optimizer_training_mode(prepared_opts, training=False)
                     val_metrics = _evaluate_loader(
                         model,
@@ -449,8 +510,7 @@ def train(cfg: DictConfig) -> TrainResult:
                     )
                     history_val_metrics = val_metrics
                     last_val_metrics = val_metrics
-                    if callable(flush_activation_trace):
-                        _ = flush_activation_trace()
+                    _ = _flush_activation_trace_stats()
 
                     if val_metrics["val_loss"] < best_val:
                         best_val = val_metrics["val_loss"]
@@ -517,9 +577,10 @@ def train(cfg: DictConfig) -> TrainResult:
                         train_loss=float(train_loss),
                         train_acc=current_train_metrics.get("acc"),
                         lr=float(first_lr),
-                        global_grad_norm=0.0
+                        global_grad_norm=None
                         if not math.isfinite(grad_norm_value)
                         else float(grad_norm_value),
+                        global_grad_norm_kind=global_grad_norm_kind,
                         module_grad_norms=pre_clip_module_grad_norms,
                         activation_norms=activation_norms,
                         elapsed_seconds=elapsed_seconds,

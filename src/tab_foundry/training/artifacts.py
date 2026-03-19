@@ -125,7 +125,8 @@ def gradient_history_record(
     train_loss: float,
     train_acc: float | None,
     lr: float,
-    global_grad_norm: float,
+    global_grad_norm: float | None,
+    global_grad_norm_kind: str | None = None,
     module_grad_norms: Mapping[str, float],
     activation_norms: Mapping[str, float] | None = None,
     elapsed_seconds: float,
@@ -135,6 +136,39 @@ def gradient_history_record(
 ) -> dict[str, Any]:
     """Build one detailed module-gradient record for JSONL output."""
 
+    resolved_global_grad_norm = None
+    if global_grad_norm is not None:
+        value_f = float(global_grad_norm)
+        if math.isfinite(value_f):
+            resolved_global_grad_norm = value_f
+
+    inferred_global_grad_norm_kind: str | None = None
+    if global_grad_norm is not None:
+        value_f = float(global_grad_norm)
+        if math.isnan(value_f):
+            inferred_global_grad_norm_kind = "nan"
+        elif math.isinf(value_f):
+            inferred_global_grad_norm_kind = "pos_inf" if value_f > 0.0 else "neg_inf"
+        elif math.isfinite(value_f):
+            inferred_global_grad_norm_kind = "finite"
+    if global_grad_norm_kind is None:
+        if inferred_global_grad_norm_kind is None:
+            raise ValueError("global_grad_norm_kind is required when global_grad_norm is None")
+        resolved_global_grad_norm_kind = inferred_global_grad_norm_kind
+    else:
+        resolved_global_grad_norm_kind = str(global_grad_norm_kind)
+        if resolved_global_grad_norm_kind not in {"finite", "nan", "pos_inf", "neg_inf"}:
+            raise ValueError(
+                "global_grad_norm_kind must be one of 'finite', 'nan', 'pos_inf', or 'neg_inf'"
+            )
+        if (
+            inferred_global_grad_norm_kind is not None
+            and inferred_global_grad_norm_kind != resolved_global_grad_norm_kind
+        ):
+            raise ValueError(
+                "global_grad_norm_kind does not match the provided global_grad_norm value"
+            )
+
     record: dict[str, Any] = {
         "step": int(global_step),
         "stage": stage_name,
@@ -143,7 +177,8 @@ def gradient_history_record(
         if train_acc is None or not math.isfinite(float(train_acc))
         else float(train_acc),
         "lr": float(lr),
-        "global_grad_norm": float(global_grad_norm),
+        "global_grad_norm": resolved_global_grad_norm,
+        "global_grad_norm_kind": resolved_global_grad_norm_kind,
         "module_grad_norms": {
             str(name): float(value)
             for name, value in sorted(module_grad_norms.items())

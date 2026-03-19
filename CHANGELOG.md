@@ -26,9 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   boundaries consistently.
 
 - Corrected activation telemetry aggregation so distributed regular-training
-  runs reduce stage-local activation norms across accelerator ranks and
-  recursive many-class forwards aggregate repeated `post_context_encoder`
-  traces instead of keeping only the last call.
+  runs now reconstruct stage-local activation RMS from raw sum-squared/count
+  traces across microsteps and accelerator ranks, recursive many-class
+  forwards aggregate repeated `post_context_encoder` traces instead of keeping
+  only the last call, and `gradient_history.jsonl` distinguishes non-finite
+  global grad norms with `global_grad_norm_kind`.
 
 ## [0.8.6] - 2026-03-19
 
