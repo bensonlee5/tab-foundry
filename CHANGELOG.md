@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.7] - 2026-03-19
+## [0.8.8] - 2026-03-19
 
 ### Changed
 
@@ -25,6 +25,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   embedded preprocessing policy instead of silently falling back to the runtime
   default surface; bundles that disable imputation now reject runtime inputs
   that still contain NaN or Inf instead of returning non-finite predictions.
+
+- User-facing note: v3 manifest validation now rejects non-finite
+  `preprocessor.missing_value_policy.all_nan_fill` values during parsing, so
+  manifest checksumming and bundle validation cannot proceed with non-canonical
+  `NaN` or `Infinity` metadata.
+
+## [0.8.7] - 2026-03-19
+
+### Changed
+
+- User-facing note: the regular trainer now writes `gradient_history.jsonl`
+  and `telemetry.json`, the canonical `cls_benchmark_staged` surface enables
+  activation tracing by default, and the persisted telemetry schema is now
+  `tab-foundry-training-telemetry-v2`.
+
+- Added regular-trainer parity for the TF-RD-002 stability surface: stage-local
+  activation traces and module-gradient summaries now flow through
+  `train run`, are summarized into wandb, and surface in result cards and sweep
+  matrix rows alongside the existing exact-prior telemetry.
+
+- Added the missing `post_context_encoder` activation trace to staged model
+  paths so context-enabled rows now expose column, row, and context activation
+  boundaries consistently.
+
+- Corrected activation telemetry aggregation so distributed regular-training
+  runs now reconstruct stage-local activation RMS from raw sum-squared/count
+  traces across microsteps and accelerator ranks, recursive many-class
+  forwards aggregate repeated `post_context_encoder` traces instead of keeping
+  only the last call, and `gradient_history.jsonl` distinguishes non-finite
+  global grad norms with `global_grad_norm_kind`.
 
 ## [0.8.6] - 2026-03-19
 

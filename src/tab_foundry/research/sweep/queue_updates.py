@@ -21,6 +21,15 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def read_json(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"expected JSON mapping at {path}")
+    return cast(dict[str, Any], payload)
+
+
 def clipped_step_fraction(records: list[dict[str, Any]]) -> float:
     ordered_records = sorted(records, key=lambda record: int(record.get("step", 0)))
     if not ordered_records:
@@ -47,6 +56,83 @@ def comparison_metric(run_entry: Mapping[str, Any], key: str) -> float | None:
     if not isinstance(vs_anchor, Mapping):
         return None
     return optional_metric(cast(Mapping[str, Any], vs_anchor), key)
+
+
+def _nested_mapping_value(payload: Mapping[str, Any], *keys: str) -> Mapping[str, Any] | None:
+    current: Mapping[str, Any] | None = payload
+    for key in keys:
+        if current is None:
+            return None
+        next_value = current.get(key)
+        if not isinstance(next_value, Mapping):
+            return None
+        current = cast(Mapping[str, Any], next_value)
+    return current
+
+
+def stage_local_telemetry_metrics(run_dir: Path) -> dict[str, Any]:
+    telemetry_payload = read_json(run_dir / "telemetry.json")
+    if telemetry_payload is None:
+        return {}
+    diagnostics = telemetry_payload.get("diagnostics")
+    if not isinstance(diagnostics, Mapping):
+        return {}
+
+    metrics: dict[str, Any] = {}
+    stage_local_gradients = diagnostics.get("stage_local_gradients")
+    if isinstance(stage_local_gradients, Mapping):
+        modules = stage_local_gradients.get("modules")
+        if isinstance(modules, Mapping):
+            for module_name in ("column_encoder", "row_pool", "context_encoder"):
+                final_window = _nested_mapping_value(
+                    cast(Mapping[str, Any], modules),
+                    module_name,
+                    "windows",
+                    "final_10pct",
+                )
+                final_window_mean = (
+                    None
+                    if final_window is None
+                    else optional_metric(final_window, "mean_grad_norm")
+                )
+                if final_window_mean is not None:
+                    metrics[f"{module_name}_final_window_mean_grad_norm"] = final_window_mean
+
+    activation_windows = diagnostics.get("activation_windows")
+    tracked_activations = (
+        activation_windows.get("tracked_activations")
+        if isinstance(activation_windows, Mapping)
+        else None
+    )
+    if isinstance(tracked_activations, Mapping):
+        for activation_name, prefix in (
+            ("post_column_encoder", "column"),
+            ("post_row_pool", "row"),
+            ("post_context_encoder", "context"),
+        ):
+            activation_payload = tracked_activations.get(activation_name)
+            if not isinstance(activation_payload, Mapping):
+                continue
+            early_to_final_mean_delta = optional_metric(
+                cast(Mapping[str, Any], activation_payload),
+                "early_to_final_mean_delta",
+            )
+            if early_to_final_mean_delta is not None:
+                metrics[f"{prefix}_activation_early_to_final_mean_delta"] = early_to_final_mean_delta
+            final_window = _nested_mapping_value(
+                cast(Mapping[str, Any], activation_payload),
+                "windows",
+                "final_10pct",
+            )
+            final_window_mean = (
+                None
+                if final_window is None
+                else optional_metric(final_window, "mean")
+            )
+            if final_window_mean is not None:
+                metrics[f"{prefix}_activation_final_window_mean"] = final_window_mean
+
+    return metrics
 
 
 def queue_metrics(
@@ -129,6 +215,8 @@ def queue_metrics(
             value = comparison_metric(run_entry, comparison_key)
             if value is not None:
                 metrics[queue_key] = value
+
+    metrics.update(stage_local_telemetry_metrics(run_dir))
 
     return metrics
 

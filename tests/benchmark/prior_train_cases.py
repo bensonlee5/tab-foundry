@@ -1560,6 +1560,7 @@ def test_train_tabfoundry_staged_prior_writes_context_gradient_keys_when_active(
                 "device": "cpu",
                 "mixed_precision": "no",
                 "grad_clip": 1.0,
+                "trace_activations": True,
                 "max_steps": 1,
                 "eval_every": 1,
                 "checkpoint_every": 1,
@@ -1604,6 +1605,7 @@ def test_train_tabfoundry_staged_prior_writes_context_gradient_keys_when_active(
         "tokenizer",
         "transformer_blocks.0",
     }
+    assert "post_context_encoder" in gradient_history[0]["activation_norms"]
     assert "digit_position_embed" not in gradient_history[0]["module_grad_norms"]
 
 

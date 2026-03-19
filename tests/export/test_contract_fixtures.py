@@ -195,6 +195,19 @@ def test_v3_section_validation_defaults_missing_impute_missing_to_true() -> None
     assert manifest.preprocessor.missing_value_policy.impute_missing is True
 
 
+@pytest.mark.parametrize("all_nan_fill", [float("nan"), float("inf"), float("-inf")])
+def test_v3_manifest_validation_rejects_nonfinite_all_nan_fill(all_nan_fill: float) -> None:
+    manifest_payload = _load_fixture("manifest_v3.json")
+    preprocessor_payload = dict(manifest_payload["preprocessor"])
+    missing_value_policy = dict(preprocessor_payload["missing_value_policy"])
+    missing_value_policy["all_nan_fill"] = all_nan_fill
+    preprocessor_payload["missing_value_policy"] = missing_value_policy
+    manifest_payload["preprocessor"] = preprocessor_payload
+
+    with pytest.raises(ValueError, match="all_nan_fill must be finite"):
+        validate_manifest_dict(manifest_payload)
+
+
 def test_v3_preprocessor_validation_rejects_regression_task() -> None:
     with pytest.raises(ValueError, match="Unsupported preprocessor_state task"):
         validate_preprocessor_state_dict(
