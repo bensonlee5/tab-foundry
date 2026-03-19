@@ -113,16 +113,16 @@ def test_promote_anchor_updates_program_for_active_sweep(
     )
 
     _ = promote_anchor(
-        sweep_id='cuda_capacity_pilot',
-        anchor_run_id='sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1',
+        sweep_id='cuda_stability_followup',
+        anchor_run_id='sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1',
         paths=paths,
     )
 
     program_text = paths.program_path.read_text(encoding='utf-8')
 
-    assert rendered == ['cuda_capacity_pilot']
-    assert synced == ['cuda_capacity_pilot']
-    assert 'sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1' in program_text
-    assert 'outputs/staged_ladder/research/input_norm_followup/dpnb_input_norm_zscore_tanh_batch64_sqrt/sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1/train' in program_text
-    assert '- active sweep id: `cuda_capacity_pilot`' in program_text
-    assert '- canonical sweep queue: `reference/system_delta_sweeps/cuda_capacity_pilot/queue.yaml`' in program_text
+    assert rendered == ['cuda_stability_followup']
+    assert synced == ['cuda_stability_followup']
+    assert 'sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1' in program_text
+    assert 'outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_replay/sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1/train' in program_text
+    assert '- active sweep id: `cuda_stability_followup`' in program_text
+    assert '- canonical sweep queue: `reference/system_delta_sweeps/cuda_stability_followup/queue.yaml`' in program_text

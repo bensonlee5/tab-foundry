@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-03-18
+
+### Added
+
+- Added the CUDA-scale experiment profile `cls_benchmark_staged_prior_cuda_scale` for large-anchor exact-prior benchmarking on the locked prenorm plus row-cls bridge surface.
+
+- Added CUDA capacity, stability, and budget system-delta sweep metadata, queues, matrices, catalog entries, and research tests, including completed `cuda_stability_followup` benchmark registry entries and deferred batch64 backlog tracking.
+
+### Changed
+
+- Changed system-delta execution to use queue-aware wandb run IDs and to replace `model.module_overrides` cleanly for row-specific overrides such as `post_encoder_norm`.
+
+- Changed prior-dump training to retry `torch.OutOfMemoryError` batches with smaller microbatches while preserving aggregated loss, accuracy, and activation-trace logging, and switched the active sweep metadata to `cuda_stability_followup`.
+
+- User-facing note: research metadata now includes the CUDA sweep family, exact-prior prior-dump runs may automatically fall back to smaller microbatches after OOM, and the package version is now `0.7.3`.
+
 ## [0.7.2] - 2026-03-18
 
 ### Added
