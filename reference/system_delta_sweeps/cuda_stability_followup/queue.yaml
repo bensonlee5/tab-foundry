@@ -80,22 +80,22 @@ rows:
     nanotabpfn_best_log_loss: 0.4510985126422435
     final_log_loss: 0.58646981293547
     nanotabpfn_final_log_loss: 0.453973433403279
-    best_brier_score: 0.20005862076818284
+    best_brier_score: 0.4001172415363657
     nanotabpfn_best_brier_score: 0.14642705664899075
-    final_brier_score: 0.20196999111001515
+    final_brier_score: 0.4039399822200303
     nanotabpfn_final_brier_score: 0.14745454546536443
     best_roc_auc: 0.5483682500342333
     nanotabpfn_best_roc_auc: 0.7482958403555632
     final_roc_auc: 0.5649198708675752
     nanotabpfn_final_roc_auc: 0.7446752311186746
     final_minus_best_log_loss: 0.003803472929111873
-    final_minus_best_brier_score: 0.001911370341832308
+    final_minus_best_brier_score: 0.003822740683664616
     final_minus_best_roc_auc: 0.01655162083334194
     drift: 0.01655162083334194
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.1892823244058287
-    delta_final_brier_score: 0.07122265782757603
+    delta_final_brier_score: 0.14244531565515206
     delta_final_roc_auc: -0.19853001754053778
 - order: 2
   delta_ref: dpnb_cuda_large_anchor_batch32_lr3e3
@@ -174,22 +174,22 @@ rows:
     nanotabpfn_best_log_loss: 0.4510985126422435
     final_log_loss: 0.6077807641944213
     nanotabpfn_final_log_loss: 0.453973433403279
-    best_brier_score: 0.1980944823032378
+    best_brier_score: 0.3961889646064756
     nanotabpfn_best_brier_score: 0.14642705664899075
-    final_brier_score: 0.2099927473508867
+    final_brier_score: 0.4199854947017734
     nanotabpfn_final_brier_score: 0.14745454546536443
     best_roc_auc: 0.675495925554438
     nanotabpfn_best_roc_auc: 0.7482958403555632
     final_roc_auc: 0.4595856778331223
     nanotabpfn_final_roc_auc: 0.7446752311186746
     final_minus_best_log_loss: 0.030080322106115887
-    final_minus_best_brier_score: 0.011898265047648876
+    final_minus_best_brier_score: 0.023796530095297752
     final_minus_best_roc_auc: -0.21591024772131573
     drift: -0.21591024772131573
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.21059327566478003
-    delta_final_brier_score: 0.07924541406844757
+    delta_final_brier_score: 0.15849082813689513
     delta_final_roc_auc: -0.3038642105749907
 - order: 3
   delta_ref: dpnb_cuda_large_anchor_batch32_postrms
@@ -268,22 +268,22 @@ rows:
     nanotabpfn_best_log_loss: 0.4510985126422435
     final_log_loss: 0.593194655115733
     nanotabpfn_final_log_loss: 0.453973433403279
-    best_brier_score: 0.20371608506218158
+    best_brier_score: 0.40743217012436317
     nanotabpfn_best_brier_score: 0.14642705664899075
-    final_brier_score: 0.20505340645809672
+    final_brier_score: 0.41010681291619344
     nanotabpfn_final_brier_score: 0.14745454546536443
     best_roc_auc: 0.5818941512802852
     nanotabpfn_best_roc_auc: 0.7482958403555632
     final_roc_auc: 0.5481698468592733
     nanotabpfn_final_roc_auc: 0.7446752311186746
     final_minus_best_log_loss: 0.0026922543090593942
-    final_minus_best_brier_score: 0.0013373213959151364
+    final_minus_best_brier_score: 0.002674642791830273
     final_minus_best_roc_auc: -0.03372430442101193
     drift: -0.03372430442101193
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.19600716658609174
-    delta_final_brier_score: 0.0743060731756576
+    delta_final_brier_score: 0.1486121463513152
     delta_final_roc_auc: -0.21528004154883973
 - order: 4
   delta_ref: dpnb_cuda_large_anchor_batch32_postln
@@ -364,22 +364,22 @@ rows:
     nanotabpfn_best_log_loss: 0.4510985126422435
     final_log_loss: 0.5901006112749565
     nanotabpfn_final_log_loss: 0.453973433403279
-    best_brier_score: 0.20249657229468446
+    best_brier_score: 0.4049931445893689
     nanotabpfn_best_brier_score: 0.14642705664899075
-    final_brier_score: 0.20345102528827513
+    final_brier_score: 0.40690205057655027
     nanotabpfn_final_brier_score: 0.14745454546536443
     best_roc_auc: 0.5564500723672567
     nanotabpfn_best_roc_auc: 0.7482958403555632
     final_roc_auc: 0.5841008479870587
     nanotabpfn_final_roc_auc: 0.7446752311186746
     final_minus_best_log_loss: 0.006186607979660641
-    final_minus_best_brier_score: 0.0009544529935906765
+    final_minus_best_brier_score: 0.001908905987181353
     final_minus_best_roc_auc: 0.027650775619802004
     drift: 0.027650775619802004
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.19291312274531525
-    delta_final_brier_score: 0.07270369200583601
+    delta_final_brier_score: 0.14540738401167203
     delta_final_roc_auc: -0.17934904042105426
 - order: 5
   delta_ref: dpnb_cuda_large_anchor_batch64_noscale
