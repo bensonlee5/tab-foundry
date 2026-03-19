@@ -138,6 +138,7 @@ def build_training_surface_record(
     raw_cfg: Mapping[str, Any],
     run_dir: Path,
     state_dict: Mapping[str, Any] | None = None,
+    include_manifest_characteristics: bool = True,
 ) -> dict[str, Any]:
     """Build one machine-readable training-surface record."""
 
@@ -196,11 +197,12 @@ def build_training_surface_record(
             "manifest_path": str(data_surface.manifest_path),
             "manifest_sha256": _sha256_path(data_surface.manifest_path),
         }
-        try:
-            manifest_payload["characteristics"] = _manifest_characteristics(data_surface.manifest_path)
-        except Exception as exc:  # pragma: no cover - defensive compatibility fallback
-            manifest_payload["characteristics"] = None
-            manifest_payload["characteristics_error"] = str(exc)
+        if include_manifest_characteristics:
+            try:
+                manifest_payload["characteristics"] = _manifest_characteristics(data_surface.manifest_path)
+            except Exception as exc:  # pragma: no cover - defensive compatibility fallback
+                manifest_payload["characteristics"] = None
+                manifest_payload["characteristics_error"] = str(exc)
 
     model_payload: dict[str, Any] = {
         "arch": str(model_spec.arch),

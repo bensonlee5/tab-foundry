@@ -9,7 +9,9 @@ import tab_foundry.cli as cli_module
 import tab_foundry.cli.groups.dev as dev_group
 import tab_foundry.cli.groups.data as data_group
 import tab_foundry.research.system_delta as system_delta_module
+import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.graph as graph_module
+import tab_foundry.research.sweep.inspect as inspect_module
 import tab_foundry.research.sweep.summarize as summarize_module
 
 
@@ -116,6 +118,42 @@ def test_nested_cli_research_sweep_summarize_delegates_to_summarize_main(
     assert captured["argv"] == ["--sweep-id", "cuda_stack_scale_followup", "--json"]
 
 
+def test_nested_cli_research_sweep_inspect_delegates_to_inspect_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_inspect_main(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(inspect_module, "main", _fake_inspect_main)
+
+    exit_code = cli_module.main(["research", "sweep", "inspect", "--order", "6", "--json"])
+
+    assert exit_code == 0
+    assert captured["argv"] == ["--order", "6", "--json"]
+
+
+def test_nested_cli_research_sweep_diff_delegates_to_diff_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_diff_main(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(diff_module, "main", _fake_diff_main)
+
+    exit_code = cli_module.main(
+        ["research", "sweep", "diff", "--order", "7", "--against-order", "6"]
+    )
+
+    assert exit_code == 0
+    assert captured["argv"] == ["--order", "7", "--against-order", "6"]
+
+
 def test_nested_cli_dev_resolve_config_delegates_to_dev_main(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -131,6 +169,23 @@ def test_nested_cli_dev_resolve_config_delegates_to_dev_main(
 
     assert exit_code == 0
     assert captured["argv"] == ["--json", "experiment=cls_smoke"]
+
+
+def test_nested_cli_dev_run_inspect_delegates_to_dev_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run_inspect(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(dev_group, "_run_run_inspect", _fake_run_inspect)
+
+    exit_code = cli_module.main(["dev", "run-inspect", "--run-dir", "/tmp/run"])
+
+    assert exit_code == 0
+    assert captured["argv"] == ["--run-dir", "/tmp/run"]
 
 
 def test_nested_cli_data_dagzoo_generate_manifest_dispatches_to_data_handler(

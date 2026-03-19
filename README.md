@@ -34,6 +34,7 @@ verification slice:
 ```bash
 ./scripts/dev review-base
 ./scripts/dev verify affected
+./scripts/dev verify paths src/tab_foundry/model/architectures/tabfoundry_staged/subsystems.py
 ```
 
 Run the full local quality gate:
@@ -53,7 +54,10 @@ Summarize one run's instability telemetry or one sweep's local results:
 
 ```bash
 uv run tab-foundry dev health-check --run-dir outputs/cls_smoke
+uv run tab-foundry dev run-inspect --run-dir outputs/cls_smoke
 uv run tab-foundry research sweep summarize --include-screened
+uv run tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
+uv run tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1
 ```
 
 ## Quickstart

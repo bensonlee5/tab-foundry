@@ -70,6 +70,24 @@ def test_system_delta_sweep_queue_diff_includes_research_checks() -> None:
     )
 
 
+def test_verify_paths_parser_accepts_explicit_paths() -> None:
+    args = dev_verify.parse_args(
+        [
+            "verify",
+            "paths",
+            "src/tab_foundry/model/factory.py",
+            "tests/model/test_factory.py",
+        ]
+    )
+
+    assert args.command == "verify"
+    assert args.verify_command == "paths"
+    assert args.paths == [
+        "src/tab_foundry/model/factory.py",
+        "tests/model/test_factory.py",
+    ]
+
+
 def test_training_only_diff_selects_training_slice() -> None:
     index = dev_verify.load_dev_index()
 
@@ -150,5 +168,27 @@ def test_verify_affected_plan_covers_each_rule_minimum_checks() -> None:
         plan = dev_verify.build_verification_plan([sample_path], index)
         expected_rule = rules_by_name[rule_name]
 
-        assert plan.escalated_to_full is False
-        assert set(expected_rule.checks).issubset(plan.check_ids)
+    assert plan.escalated_to_full is False
+    assert set(expected_rule.checks).issubset(plan.check_ids)
+
+
+def test_verify_paths_reuses_affected_scope_mapping_for_explicit_paths() -> None:
+    index = dev_verify.load_dev_index()
+
+    plan = dev_verify.build_verification_plan(
+        [
+            "src/tab_foundry/model/factory.py",
+            "tests/model/test_factory.py",
+        ],
+        index,
+    )
+
+    assert plan.escalated_to_full is False
+    assert plan.check_ids == (
+        "ruff",
+        "mypy",
+        "pytest_model",
+        "pytest_training",
+        "pytest_smoke",
+        "pytest_property",
+    )

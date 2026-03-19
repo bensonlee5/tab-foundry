@@ -469,6 +469,12 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     )
     verify_affected_parser.add_argument("--base-ref", default=None, help="Git ref used as the diff base")
 
+    verify_paths_parser = verify_subparsers.add_parser(
+        "paths",
+        help="Run the smallest safe verification slice for explicit repo paths",
+    )
+    verify_paths_parser.add_argument("paths", nargs="+", help="Repo-relative paths to verify")
+
     verify_subparsers.add_parser("audit", help="Run audit scripts only")
     verify_subparsers.add_parser("full", help="Run the full verification suite")
 
@@ -500,6 +506,14 @@ def main(argv: Iterable[str] | None = None) -> int:
         plan = build_verification_plan(changed_paths, index)
         if plan.escalated_to_full:
             print("Affected verification escalated to full verification:")
+            for reason in plan.escalation_reasons:
+                print(f"- {reason}")
+        return execute_check_ids(plan.check_ids)
+    if args.verify_command == "paths":
+        explicit_paths = [str(path).strip() for path in args.paths if str(path).strip()]
+        plan = build_verification_plan(explicit_paths, index)
+        if plan.escalated_to_full:
+            print("Explicit path verification escalated to full verification:")
             for reason in plan.escalation_reasons:
                 print(f"- {reason}")
         return execute_check_ids(plan.check_ids)

@@ -62,7 +62,8 @@ The repo uses three stable workflow layers:
 - Shell helpers under `scripts/*.sh` plus `scripts/audit/` as repo-local
   convenience and verification surfaces only.
 - `scripts/dev` as the canonical repo-local entrypoint for branch review,
-  affected-scope verification, full verification, and Iris smoke delegation.
+  affected-scope verification, explicit-path verification, full verification,
+  and Iris smoke delegation.
 - Reference YAML/Markdown artifacts for the active system-delta sweep.
 
 Current canonical CLI namespaces:
@@ -71,6 +72,7 @@ Current canonical CLI namespaces:
 - `tab-foundry dev resolve-config`
 - `tab-foundry dev forward-check`
 - `tab-foundry dev health-check`
+- `tab-foundry dev run-inspect`
 - `tab-foundry train run`
 - `tab-foundry train prior simple`
 - `tab-foundry train prior staged`
@@ -96,6 +98,8 @@ Current canonical CLI namespaces:
 - `tab-foundry research sweep graph`
 - `tab-foundry research sweep promote`
 - `tab-foundry research sweep summarize`
+- `tab-foundry research sweep inspect`
+- `tab-foundry research sweep diff`
 
 Shell helpers such as `scripts/build_manifest.sh`, `scripts/train_smoke.sh`,
 and `scripts/eval_smoke.sh` are repo-local convenience entrypoints and should

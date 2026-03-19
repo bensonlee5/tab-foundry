@@ -288,3 +288,136 @@ def health_check(run_dir: Path) -> dict[str, Any]:
         "metrics": metrics,
         "telemetry_error": raw_error,
     }
+
+
+def _artifact_entry(path: Path) -> dict[str, Any]:
+    resolved = path.expanduser().resolve()
+    return {
+        "path": str(resolved),
+        "exists": bool(resolved.exists()),
+    }
+
+
+def _summary_value(payload: Mapping[str, Any], key: str) -> Any:
+    value = payload.get(key)
+    return value if value is None or isinstance(value, (str, int, float, bool, list, dict)) else str(value)
+
+
+def _comparison_summary_excerpt(summary: Mapping[str, Any]) -> dict[str, Any]:
+    tab_foundry = summary.get("tab_foundry")
+    if not isinstance(tab_foundry, Mapping):
+        return {}
+    return {
+        "benchmark_profile": _summary_value(tab_foundry, "benchmark_profile"),
+        "model_arch": _summary_value(tab_foundry, "model_arch"),
+        "model_stage": _summary_value(tab_foundry, "model_stage"),
+        "run_dir": _summary_value(tab_foundry, "run_dir"),
+        "best_roc_auc": _summary_value(tab_foundry, "best_roc_auc"),
+        "final_roc_auc": _summary_value(tab_foundry, "final_roc_auc"),
+        "best_log_loss": _summary_value(tab_foundry, "best_log_loss"),
+        "final_log_loss": _summary_value(tab_foundry, "final_log_loss"),
+        "training_diagnostics": (
+            dict(cast(Mapping[str, Any], tab_foundry.get("training_diagnostics")))
+            if isinstance(tab_foundry.get("training_diagnostics"), Mapping)
+            else None
+        ),
+        "model_size": (
+            dict(cast(Mapping[str, Any], tab_foundry.get("model_size")))
+            if isinstance(tab_foundry.get("model_size"), Mapping)
+            else None
+        ),
+    }
+
+
+def _benchmark_run_record_excerpt(record: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "run_id": _summary_value(record, "run_id"),
+        "track": _summary_value(record, "track"),
+        "experiment": _summary_value(record, "experiment"),
+        "config_profile": _summary_value(record, "config_profile"),
+        "surface_labels": (
+            dict(cast(Mapping[str, Any], record.get("surface_labels")))
+            if isinstance(record.get("surface_labels"), Mapping)
+            else None
+        ),
+        "tab_foundry_metrics": (
+            dict(cast(Mapping[str, Any], record.get("tab_foundry_metrics")))
+            if isinstance(record.get("tab_foundry_metrics"), Mapping)
+            else None
+        ),
+        "training_diagnostics": (
+            dict(cast(Mapping[str, Any], record.get("training_diagnostics")))
+            if isinstance(record.get("training_diagnostics"), Mapping)
+            else None
+        ),
+        "model_size": (
+            dict(cast(Mapping[str, Any], record.get("model_size")))
+            if isinstance(record.get("model_size"), Mapping)
+            else None
+        ),
+        "artifacts": (
+            dict(cast(Mapping[str, Any], record.get("artifacts")))
+            if isinstance(record.get("artifacts"), Mapping)
+            else None
+        ),
+    }
+
+
+def run_inspect(run_dir: Path) -> dict[str, Any]:
+    """Inspect one run directory and summarize available local artifacts."""
+
+    resolved_run_dir = run_dir.expanduser().resolve()
+    if not resolved_run_dir.exists():
+        raise RuntimeError(f"run directory does not exist: {resolved_run_dir}")
+    if not resolved_run_dir.is_dir():
+        raise RuntimeError(f"run directory is not a directory: {resolved_run_dir}")
+
+    benchmark_dir = (
+        resolved_run_dir.parent / "benchmark"
+        if resolved_run_dir.name == "train"
+        else resolved_run_dir / "benchmark"
+    )
+    artifacts = {
+        "run_dir": _artifact_entry(resolved_run_dir),
+        "train_history_jsonl": _artifact_entry(resolved_run_dir / "train_history.jsonl"),
+        "gradient_history_jsonl": _artifact_entry(gradient_history_path(resolved_run_dir)),
+        "telemetry_json": _artifact_entry(telemetry_path(resolved_run_dir)),
+        "training_surface_record_json": _artifact_entry(resolved_run_dir / "training_surface_record.json"),
+        "best_checkpoint_pt": _artifact_entry(resolved_run_dir / "checkpoints" / "best.pt"),
+        "latest_checkpoint_pt": _artifact_entry(resolved_run_dir / "checkpoints" / "latest.pt"),
+        "comparison_summary_json": _artifact_entry(benchmark_dir / "comparison_summary.json"),
+        "benchmark_run_record_json": _artifact_entry(benchmark_dir / "benchmark_run_record.json"),
+        "summary_md": _artifact_entry(resolved_run_dir / "summary.md"),
+    }
+
+    training_surface_record = _read_json_mapping(resolved_run_dir / "training_surface_record.json")
+    comparison_summary = _read_json_mapping(benchmark_dir / "comparison_summary.json")
+    benchmark_run_record = _read_json_mapping(benchmark_dir / "benchmark_run_record.json")
+
+    health_payload: dict[str, Any] | None = None
+    health_error: str | None = None
+    try:
+        health_payload = health_check(resolved_run_dir)
+    except RuntimeError as exc:
+        health_error = str(exc)
+
+    surface_labels = None
+    if isinstance(training_surface_record, Mapping) and isinstance(training_surface_record.get("labels"), Mapping):
+        surface_labels = dict(cast(Mapping[str, Any], training_surface_record["labels"]))
+    elif isinstance(benchmark_run_record, Mapping) and isinstance(benchmark_run_record.get("surface_labels"), Mapping):
+        surface_labels = dict(cast(Mapping[str, Any], benchmark_run_record["surface_labels"]))
+
+    return {
+        "run_dir": str(resolved_run_dir),
+        "artifacts": artifacts,
+        "surface_labels": surface_labels,
+        "training_surface_record": training_surface_record,
+        "comparison_summary": None
+        if comparison_summary is None
+        else _comparison_summary_excerpt(comparison_summary),
+        "benchmark_run_record": None
+        if benchmark_run_record is None
+        else _benchmark_run_record_excerpt(benchmark_run_record),
+        "health": health_payload,
+        "health_error": health_error,
+    }

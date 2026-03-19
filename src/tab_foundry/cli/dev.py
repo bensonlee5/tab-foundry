@@ -23,7 +23,7 @@ from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import resolve_preprocessing_surface
 from tab_foundry.training.batching import move_batch
-from tab_foundry.training.health import health_check
+from tab_foundry.training.health import health_check, run_inspect
 
 
 _DEVICE_CHOICES = ("auto", "cpu", "cuda", "mps")
@@ -363,6 +363,63 @@ def render_health_check_text(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def render_run_inspect_text(payload: Mapping[str, Any]) -> str:
+    lines = [
+        "Run inspection.",
+        f"run_dir={payload['run_dir']}",
+    ]
+    surface_labels = payload.get("surface_labels")
+    if isinstance(surface_labels, Mapping):
+        lines.append(f"surface_labels={_format_jsonable(dict(surface_labels))}")
+
+    health_payload = payload.get("health")
+    if isinstance(health_payload, Mapping):
+        lines.append(
+            f"health={health_payload['verdict']}: {health_payload['summary']}"
+        )
+    elif payload.get("health_error") is not None:
+        lines.append(f"health=unavailable: {payload['health_error']}")
+
+    training_surface_record = payload.get("training_surface_record")
+    if isinstance(training_surface_record, Mapping):
+        model_payload = training_surface_record.get("model")
+        if isinstance(model_payload, Mapping):
+            lines.append(f"model.stage_label={model_payload.get('stage_label')}")
+            lines.append(f"model.arch={model_payload.get('arch')}")
+        data_payload = training_surface_record.get("data")
+        if isinstance(data_payload, Mapping):
+            lines.append(f"data.surface_label={data_payload.get('surface_label')}")
+        preprocessing_payload = training_surface_record.get("preprocessing")
+        if isinstance(preprocessing_payload, Mapping):
+            lines.append(f"preprocessing.surface_label={preprocessing_payload.get('surface_label')}")
+        training_payload = training_surface_record.get("training")
+        if isinstance(training_payload, Mapping):
+            lines.append(f"training.surface_label={training_payload.get('surface_label')}")
+
+    comparison_summary = payload.get("comparison_summary")
+    if isinstance(comparison_summary, Mapping):
+        lines.append(f"benchmark_profile={comparison_summary.get('benchmark_profile')}")
+        if comparison_summary.get("best_roc_auc") is not None:
+            lines.append(f"best_roc_auc={comparison_summary['best_roc_auc']}")
+        if comparison_summary.get("final_roc_auc") is not None:
+            lines.append(f"final_roc_auc={comparison_summary['final_roc_auc']}")
+
+    benchmark_run_record = payload.get("benchmark_run_record")
+    if isinstance(benchmark_run_record, Mapping) and benchmark_run_record.get("run_id") is not None:
+        lines.append(f"registry.run_id={benchmark_run_record['run_id']}")
+        lines.append(f"registry.track={benchmark_run_record.get('track')}")
+
+    artifacts = payload.get("artifacts")
+    if isinstance(artifacts, Mapping):
+        present = sorted(
+            name
+            for name, entry in artifacts.items()
+            if isinstance(entry, Mapping) and bool(entry.get("exists"))
+        )
+        lines.append(f"artifacts.present={_format_jsonable(present)}")
+    return "\n".join(lines)
+
+
 def _run_resolve_config(args: argparse.Namespace) -> int:
     payload = resolve_config_payload(args.overrides)
     if bool(args.json):
@@ -391,6 +448,15 @@ def _run_health_check(args: argparse.Namespace) -> int:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print(render_health_check_text(payload))
+    return 0
+
+
+def _run_run_inspect(args: argparse.Namespace) -> int:
+    payload = run_inspect(Path(str(args.run_dir)))
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(render_run_inspect_text(payload))
     return 0
 
 
@@ -433,6 +499,14 @@ def build_parser() -> argparse.ArgumentParser:
     health_parser.add_argument("--run-dir", required=True, help="Run directory to inspect")
     health_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     health_parser.set_defaults(func=_run_health_check)
+
+    inspect_parser = subparsers.add_parser(
+        "run-inspect",
+        help="Inspect one run directory, its local artifacts, and any available benchmark metadata",
+    )
+    inspect_parser.add_argument("--run-dir", required=True, help="Run directory to inspect")
+    inspect_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    inspect_parser.set_defaults(func=_run_run_inspect)
     return parser
 
 

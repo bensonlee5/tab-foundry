@@ -22,13 +22,13 @@ repos:
     types_or: [python, pyi]
     files: ^src/
     pass_filenames: false
-  - id: pytest
-    name: pytest
-    entry: ./.venv/bin/python -m pytest tests
+  - id: verify-paths
+    name: verify (paths)
+    entry: ./.venv/bin/python scripts/audit/dev_verify.py verify paths
     language: system
     types_or: [python, pyi]
     files: ^(src/|tests/)
-    pass_filenames: false
+    pass_filenames: true
   - id: mdformat
     name: mdformat
     entry: ./.venv/bin/mdformat AGENTS.md README.md docs reference CHANGELOG.md

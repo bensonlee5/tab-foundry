@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.8] - 2026-03-19
+
+### Added
+
+- Added `./scripts/dev verify paths <PATH...>` so repo-local affected-scope
+  verification can be driven from explicit file paths instead of only the
+  current Git diff.
+
+- Added `tab-foundry dev run-inspect`, which summarizes one run directory's
+  local artifacts, resolved surface labels, benchmark metadata, and current
+  health verdict when enough telemetry is present.
+
+- Added `tab-foundry research sweep inspect` and `tab-foundry research sweep diff`
+  for row-level sweep archaeology: inspecting one materialized row's resolved
+  surfaces and artifact paths, or diffing one row against the anchor or another
+  row by effective resolved surface rather than raw YAML only.
+
 ## [0.8.7] - 2026-03-19
 
 ### Added

@@ -30,6 +30,12 @@ def _run_health_check(argv: Sequence[str] | None = None) -> int:
     return dev_main(_prepend_command("health-check", argv))
 
 
+def _run_run_inspect(argv: Sequence[str] | None = None) -> int:
+    from tab_foundry.cli.dev import main as dev_main
+
+    return dev_main(_prepend_command("run-inspect", argv))
+
+
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser = subparsers.add_parser("dev", help="Developer-focused inspection tools")
     nested = parser.add_subparsers(dest="dev_command", required=True)
@@ -50,4 +56,10 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "health-check",
         help="Summarize run telemetry and instability signals",
         delegate=_run_health_check,
+    )
+    register_delegate_leaf(
+        nested,
+        "run-inspect",
+        help="Inspect one run directory and summarize local artifacts plus benchmark metadata",
+        delegate=_run_run_inspect,
     )

@@ -9,6 +9,7 @@ Usage:
   ./scripts/dev bootstrap
   ./scripts/dev review-base [--base-ref <git-ref>]
   ./scripts/dev verify affected [--base-ref <git-ref>]
+  ./scripts/dev verify paths <PATH...>
   ./scripts/dev verify audit
   ./scripts/dev verify full
   ./scripts/dev smoke iris [tab-foundry bench smoke iris args...]
