@@ -16,6 +16,7 @@ import pyarrow.parquet as pq
 
 from tab_foundry.data.dagzoo_handoff import (
     DagzooGeneratedIdentityAccumulator,
+    is_canonical_dagzoo_id,
     load_dagzoo_handoff_info,
     verify_dagzoo_handoff_matches_generated_corpus,
 )
@@ -90,6 +91,28 @@ def _dataset_id(
     )
     digest = md5(token.encode("utf-8")).hexdigest()[:12]
     return f"root_{root_id}/{normalized_relpath}/dataset_{dataset_index:06d}_{digest}"
+
+
+def _resolved_manifest_dataset_id(
+    *,
+    metadata: dict[str, Any],
+    root_id: str,
+    shard_relpath: str,
+    dataset_index: int,
+) -> str:
+    canonical_dataset_id = metadata.get("dataset_id")
+    split_groups = metadata.get("split_groups")
+    request_run = split_groups.get("request_run") if isinstance(split_groups, dict) else None
+    if (
+        is_canonical_dagzoo_id(canonical_dataset_id)
+        and is_canonical_dagzoo_id(request_run)
+    ):
+        return str(canonical_dataset_id)
+    return _dataset_id(
+        root_id=root_id,
+        shard_relpath=shard_relpath,
+        dataset_index=dataset_index,
+    )
 
 
 def _manifest_relative_path(path: Path, *, manifest_dir: Path) -> str:
@@ -405,7 +428,8 @@ def build_manifest(
                     excluded_for_missing_values += 1
                     continue
 
-                dsid = _dataset_id(
+                dsid = _resolved_manifest_dataset_id(
+                    metadata=meta,
                     root_id=source_root_id,
                     shard_relpath=source_shard_relpath,
                     dataset_index=dataset_index,

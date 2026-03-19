@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
+import pyarrow.parquet as pq
 import pytest
 
 from tab_foundry.data.dagzoo_handoff import (
@@ -395,3 +396,15 @@ def test_build_manifest_omits_dagzoo_handoff_summary_when_not_supplied(tmp_path:
 
     persisted_summary = cases._manifest_summary_metadata(manifest_path)
     assert "dagzoo_handoff" not in persisted_summary
+
+
+def test_build_manifest_prefers_canonical_dataset_id_for_generated_corpus(tmp_path: Path) -> None:
+    generated_dir = tmp_path / "handoff" / "generated"
+    _ = _write_generated_dataset(generated_dir / "shard_00000")
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([generated_dir], manifest_path)
+    row = pq.read_table(manifest_path).to_pylist()[0]
+
+    assert row["dataset_id"] == _TEST_DATASET_ID
+    assert row["source_shard_relpath"] == "shard_00000"

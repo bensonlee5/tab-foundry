@@ -26,5 +26,9 @@ _export(
         "test_reference_consumer_classification_matches_golden_fixture",
         "test_reference_consumer_rejects_v2_bundle",
         "test_reference_consumer_derives_preprocessing_from_runtime_support_set",
+        "test_reference_consumer_rejects_missing_inputs_for_embedded_no_impute_policy",
+        "test_reference_consumer_executes_embedded_no_impute_policy_on_finite_inputs",
+        "test_reference_consumer_applies_embedded_nondefault_all_nan_fill",
+        "test_reference_consumer_rejects_nonfinite_class_probabilities",
     ]
 )

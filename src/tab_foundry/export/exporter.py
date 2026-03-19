@@ -9,12 +9,16 @@ import json
 from pathlib import Path
 import subprocess
 import tomllib
-from typing import Any
+from typing import Any, Mapping
 
 from safetensors.torch import save_file
 import torch
 
 from tab_foundry.model.spec import ModelBuildSpec, checkpoint_model_build_spec_from_mappings
+from tab_foundry.preprocessing import (
+    MISSING_VALUE_STRATEGY_TRAIN_MEAN,
+    resolve_preprocessing_surface,
+)
 
 from .checksums import sha256_file
 from .contracts import (
@@ -146,22 +150,26 @@ def _preprocessor_state_v2() -> LegacyPreprocessorState:
     )
 
 
-def _preprocessor_state_v3() -> ExportPreprocessorState:
+def _preprocessor_state_v3(cfg: Mapping[str, Any]) -> ExportPreprocessorState:
+    raw_preprocessing_cfg = cfg.get("preprocessing")
+    preprocessing_cfg = (
+        raw_preprocessing_cfg
+        if isinstance(raw_preprocessing_cfg, Mapping)
+        else None
+    )
+    resolved = resolve_preprocessing_surface(preprocessing_cfg)
     return ExportPreprocessorState(
-        feature_order_policy="positional_feature_ids",
+        feature_order_policy=str(resolved.feature_order_policy),
         missing_value_policy=ExportMissingValuePolicy(
-            strategy="train_mean",
-            all_nan_fill=0.0,
+            strategy=MISSING_VALUE_STRATEGY_TRAIN_MEAN,
+            all_nan_fill=float(resolved.all_nan_fill),
+            impute_missing=bool(resolved.impute_missing),
         ),
         classification_label_policy=ExportClassificationLabelPolicy(
-            mapping="train_only_remap",
-            unseen_test_label="filter",
+            mapping=str(resolved.label_mapping),
+            unseen_test_label=str(resolved.unseen_test_label_policy),
         ),
-        dtype_policy={
-            "features": "float32",
-            "classification_labels": "int64",
-            "regression_targets": "float32",
-        },
+        dtype_policy=dict(resolved.dtype_policy),
     )
 
 
@@ -225,7 +233,7 @@ def export_checkpoint(
             model=model_spec,
             created_at_utc=datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z"),
             inference=_inference_config(task, model_spec),
-            preprocessor=_preprocessor_state_v3(),
+            preprocessor=_preprocessor_state_v3(cfg),
             weights=ExportWeights(
                 file=weights_name,
                 sha256=sha256_file(weights_path),

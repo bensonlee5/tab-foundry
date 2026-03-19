@@ -80,6 +80,17 @@ def _dummy_y_test(task: str, *, row_count: int) -> np.ndarray:
     raise RuntimeError(f"Unsupported reference-consumer task: {task!r}")
 
 
+def _non_finite_feature_names(*, x_train: Any, x_test: Any) -> list[str]:
+    offenders: list[str] = []
+    train = np.asarray(x_train)
+    test = np.asarray(x_test)
+    if train.size > 0 and bool(np.any(~np.isfinite(train))):
+        offenders.append("x_train")
+    if test.size > 0 and bool(np.any(~np.isfinite(test))):
+        offenders.append("x_test")
+    return offenders
+
+
 def _reference_batch(
     bundle: LoadedExportBundle,
     *,
@@ -89,13 +100,32 @@ def _reference_batch(
 ) -> TaskBatch:
     manifest = bundle.validated.manifest
     policy = _require_preprocessor_policy(bundle)
+    classification_policy = policy.classification_label_policy
+    if classification_policy is None:
+        raise RuntimeError("classification reference consumer requires label preprocessing policy")
     processed = preprocess_runtime_task_arrays(
         task=manifest.task,
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
         y_test=None,
+        impute_missing=bool(policy.missing_value_policy.impute_missing),
+        all_nan_fill=float(policy.missing_value_policy.all_nan_fill),
+        label_mapping=str(classification_policy.mapping),
+        unseen_test_label_policy=str(classification_policy.unseen_test_label),
     )
+    if not bool(policy.missing_value_policy.impute_missing):
+        offenders = _non_finite_feature_names(
+            x_train=processed.x_train,
+            x_test=processed.x_test,
+        )
+        if offenders:
+            joined = ", ".join(offenders)
+            raise RuntimeError(
+                "reference consumer cannot execute missing-valued inputs when the "
+                "embedded preprocessing policy sets impute_missing=false; "
+                f"non-finite values remain in {joined}"
+            )
     if manifest.task != "classification":
         raise RuntimeError(
             "Reference consumer only supports classification bundles in this branch; "
@@ -141,6 +171,8 @@ def run_reference_consumer(
         probs = torch.softmax(output.logits[:, : output.num_classes], dim=-1)
     else:
         raise RuntimeError("classification reference consumer did not produce probabilities")
+    if not bool(torch.all(torch.isfinite(probs)).item()):
+        raise RuntimeError("reference consumer produced non-finite class probabilities")
     return ReferenceConsumerOutput(
         task="classification",
         batch=batch,

@@ -23,6 +23,8 @@ def _export(names: list[str]) -> None:
 _export(
     [
         "test_manifest_dataset_id_and_split_are_stable_across_root_paths",
+        "test_manifest_prefers_canonical_dagzoo_dataset_id_across_root_paths",
+        "test_manifest_keeps_root_derived_dataset_id_for_non_dagzoo_hex_metadata_id",
         "test_manifest_dataset_id_is_unique_across_nested_runs_with_same_root",
         "test_dataset_resolves_relative_paths_from_manifest_location",
         "test_manifest_paths_are_relative_to_manifest_dir",

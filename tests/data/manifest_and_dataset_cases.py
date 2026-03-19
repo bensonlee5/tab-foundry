@@ -148,6 +148,7 @@ def _write_dataset(
     filter_status: str | None = "not_run",
     filter_accepted: bool | None = None,
     include_filter: bool = True,
+    metadata_overrides: dict[str, Any] | None = None,
 ) -> dict[int, tuple[int, int, str]]:
     x_train, y_train, x_test, y_test = _classification_arrays(
         n_train=n_train,
@@ -162,6 +163,8 @@ def _write_dataset(
         filter_accepted=filter_accepted,
         include_filter=include_filter,
     )
+    if metadata_overrides is not None:
+        metadata.update(metadata_overrides)
     dataset = {
         "dataset_index": dataset_index,
         "x_train": x_train,
@@ -582,6 +585,63 @@ def test_manifest_dataset_id_and_split_are_stable_across_root_paths(tmp_path: Pa
     row_b = pq.read_table(manifest_b).to_pylist()[0]
     assert row_a["dataset_id"] != row_b["dataset_id"]
     assert row_a["source_root_id"] != row_b["source_root_id"]
+    assert row_a["dataset_id"].startswith("root_")
+    assert row_b["dataset_id"].startswith("root_")
+
+
+def test_manifest_prefers_canonical_dagzoo_dataset_id_across_root_paths(tmp_path: Path) -> None:
+    canonical_dataset_id = "a" * 32
+    generate_run_id = "b" * 32
+    root_a = tmp_path / "root_a" / "run" / "shard_00000"
+    root_b = tmp_path / "root_b" / "run" / "shard_00000"
+    _ = _write_dataset(
+        root_a,
+        metadata_overrides={
+            "dataset_id": canonical_dataset_id,
+            "split_groups": {"request_run": generate_run_id},
+        },
+    )
+    _ = _write_dataset(
+        root_b,
+        metadata_overrides={
+            "dataset_id": canonical_dataset_id,
+            "split_groups": {"request_run": generate_run_id},
+        },
+    )
+
+    manifest_a = tmp_path / "manifest_a.parquet"
+    manifest_b = tmp_path / "manifest_b.parquet"
+    _ = build_manifest([tmp_path / "root_a" / "run"], manifest_a)
+    _ = build_manifest([tmp_path / "root_b" / "run"], manifest_b)
+
+    row_a = pq.read_table(manifest_a).to_pylist()[0]
+    row_b = pq.read_table(manifest_b).to_pylist()[0]
+    assert row_a["dataset_id"] == canonical_dataset_id
+    assert row_b["dataset_id"] == canonical_dataset_id
+    assert row_a["split"] == row_b["split"]
+    assert row_a["source_root_id"] != row_b["source_root_id"]
+    assert row_a["source_shard_relpath"] == row_b["source_shard_relpath"] == "shard_00000"
+
+
+def test_manifest_keeps_root_derived_dataset_id_for_non_dagzoo_hex_metadata_id(
+    tmp_path: Path,
+) -> None:
+    hex_dataset_id = "a" * 32
+    root_a = tmp_path / "root_a" / "run" / "shard_00000"
+    root_b = tmp_path / "root_b" / "run" / "shard_00000"
+    _ = _write_dataset(root_a, metadata_overrides={"dataset_id": hex_dataset_id})
+    _ = _write_dataset(root_b, metadata_overrides={"dataset_id": hex_dataset_id})
+
+    manifest_a = tmp_path / "manifest_a.parquet"
+    manifest_b = tmp_path / "manifest_b.parquet"
+    _ = build_manifest([tmp_path / "root_a" / "run"], manifest_a)
+    _ = build_manifest([tmp_path / "root_b" / "run"], manifest_b)
+
+    row_a = pq.read_table(manifest_a).to_pylist()[0]
+    row_b = pq.read_table(manifest_b).to_pylist()[0]
+    assert row_a["dataset_id"] != hex_dataset_id
+    assert row_b["dataset_id"] != hex_dataset_id
+    assert row_a["dataset_id"] != row_b["dataset_id"]
     assert row_a["dataset_id"].startswith("root_")
     assert row_b["dataset_id"].startswith("root_")
 

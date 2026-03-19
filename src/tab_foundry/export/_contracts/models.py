@@ -229,6 +229,7 @@ class LegacyPreprocessorState:
 class ExportMissingValuePolicy:
     strategy: str
     all_nan_fill: float
+    impute_missing: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return dict(asdict(self))
