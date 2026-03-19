@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from hashlib import sha256
+from dataclasses import dataclass, field
+from hashlib import blake2s, sha256
 import json
 from pathlib import Path
 from typing import Any, Mapping, cast
@@ -11,6 +11,7 @@ from typing import Any, Mapping, cast
 
 DAGZOO_HANDOFF_SCHEMA_NAME = "dagzoo_generate_handoff_manifest"
 DAGZOO_HANDOFF_SCHEMA_VERSION = 1
+_DAGZOO_ID_HEX_LENGTH = 32
 
 
 @dataclass(slots=True, frozen=True)
@@ -39,6 +40,64 @@ class DagzooHandoffInfo:
             "recommended_training_artifact_key": self.recommended_training_artifact_key,
             "curation_policy": self.curation_policy,
         }
+
+
+@dataclass(slots=True)
+class DagzooGeneratedIdentityAccumulator:
+    """Scan-time dagzoo identity derived from packed shard metadata."""
+
+    generate_run_id: str | None = None
+    dataset_ids: list[str] = field(default_factory=list)
+
+    def add_metadata(
+        self,
+        metadata: Mapping[str, Any],
+        *,
+        metadata_path: Path,
+        dataset_index: int,
+    ) -> None:
+        split_groups = metadata.get("split_groups")
+        if not isinstance(split_groups, Mapping):
+            raise RuntimeError(
+                "dagzoo dataset metadata missing object payload at key 'split_groups': "
+                f"path={metadata_path}, dataset_index={dataset_index}"
+            )
+        current_generate_run_id = _require_hex_string_value(
+            split_groups.get("request_run"),
+            context=(
+                "dagzoo dataset metadata field must be a "
+                f"{_DAGZOO_ID_HEX_LENGTH}-character lowercase hex string: "
+                f"path={metadata_path}, dataset_index={dataset_index}, "
+                "key=metadata.split_groups.request_run"
+            ),
+        )
+        dataset_id = _require_hex_string_value(
+            metadata.get("dataset_id"),
+            context=(
+                "dagzoo dataset metadata field must be a "
+                f"{_DAGZOO_ID_HEX_LENGTH}-character lowercase hex string: "
+                f"path={metadata_path}, dataset_index={dataset_index}, key=metadata.dataset_id"
+            ),
+        )
+        if self.generate_run_id is None:
+            self.generate_run_id = current_generate_run_id
+        elif self.generate_run_id != current_generate_run_id:
+            raise RuntimeError(
+                "dagzoo generated corpus contains multiple request_run identities: "
+                f"path={metadata_path}, dataset_index={dataset_index}, "
+                f"expected={self.generate_run_id!r}, found={current_generate_run_id!r}"
+            )
+        self.dataset_ids.append(dataset_id)
+
+    def generated_corpus_id(self) -> str:
+        if self.generate_run_id is None or not self.dataset_ids:
+            raise RuntimeError(
+                "dagzoo handoff verification requires at least one scanned dagzoo dataset record"
+            )
+        return stable_dagzoo_generated_corpus_id(
+            generate_run_id=self.generate_run_id,
+            dataset_ids=self.dataset_ids,
+        )
 
 
 def _read_json_dict(path: Path) -> dict[str, Any]:
@@ -75,6 +134,14 @@ def _require_non_empty_string(
     return value
 
 
+def _require_hex_string_value(value: Any, *, context: str) -> str:
+    if not isinstance(value, str) or len(value) != _DAGZOO_ID_HEX_LENGTH:
+        raise RuntimeError(context)
+    if any(ch not in "0123456789abcdef" for ch in value):
+        raise RuntimeError(context)
+    return value
+
+
 def _require_relative_path(
     payload: Mapping[str, Any],
     key: str,
@@ -99,6 +166,44 @@ def _sha256_path(path: Path) -> str:
                 break
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def stable_dagzoo_generated_corpus_id(*, generate_run_id: str, dataset_ids: list[str]) -> str:
+    payload = {
+        "generate_run_id": str(generate_run_id),
+        "dataset_ids": list(dataset_ids),
+    }
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return blake2s(encoded, digest_size=16).hexdigest()
+
+
+def verify_dagzoo_handoff_matches_generated_corpus(
+    handoff: DagzooHandoffInfo,
+    *,
+    scanned_identity: DagzooGeneratedIdentityAccumulator,
+) -> None:
+    if scanned_identity.generate_run_id is None or not scanned_identity.dataset_ids:
+        raise RuntimeError(
+            "dagzoo handoff verification requires at least one scanned dagzoo dataset record"
+        )
+    if handoff.generate_run_id != scanned_identity.generate_run_id:
+        raise RuntimeError(
+            "dagzoo handoff generate_run_id does not match scanned corpus metadata: "
+            f"handoff={handoff.generate_run_id!r}, scanned={scanned_identity.generate_run_id!r}, "
+            f"path={handoff.handoff_manifest_path}"
+        )
+    scanned_generated_corpus_id = scanned_identity.generated_corpus_id()
+    if handoff.generated_corpus_id != scanned_generated_corpus_id:
+        raise RuntimeError(
+            "dagzoo handoff generated_corpus_id does not match scanned corpus metadata: "
+            f"handoff={handoff.generated_corpus_id!r}, scanned={scanned_generated_corpus_id!r}, "
+            f"path={handoff.handoff_manifest_path}"
+        )
 
 
 def load_dagzoo_handoff_info(handoff_manifest_path: Path) -> DagzooHandoffInfo:

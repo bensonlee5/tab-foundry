@@ -11,6 +11,7 @@ from tab_foundry.data.dagzoo_handoff import (
     DAGZOO_HANDOFF_SCHEMA_NAME,
     DAGZOO_HANDOFF_SCHEMA_VERSION,
     load_dagzoo_handoff_info,
+    stable_dagzoo_generated_corpus_id,
 )
 from tab_foundry.data.dagzoo_workflow import (
     DagzooGenerateManifestConfig,
@@ -19,6 +20,14 @@ from tab_foundry.data.dagzoo_workflow import (
 from tab_foundry.data.manifest import build_manifest
 
 from . import manifest_and_dataset_cases as cases
+
+
+_TEST_GENERATE_RUN_ID = "1" * 32
+_TEST_DATASET_ID = "2" * 32
+_TEST_GENERATED_CORPUS_ID = stable_dagzoo_generated_corpus_id(
+    generate_run_id=_TEST_GENERATE_RUN_ID,
+    dataset_ids=[_TEST_DATASET_ID],
+)
 
 
 def _write_handoff_manifest(
@@ -30,14 +39,16 @@ def _write_handoff_manifest(
     include_generated_dir: bool = True,
     include_generated_corpus_id: bool = True,
     run_root: str = ".",
+    generate_run_id: str = _TEST_GENERATE_RUN_ID,
+    generated_corpus_id: str = _TEST_GENERATED_CORPUS_ID,
 ) -> Path:
     handoff_root.mkdir(parents=True, exist_ok=True)
     identity: dict[str, Any] = {
         "source_family": "dagzoo.fixed_layout_scm",
-        "generate_run_id": "run-id-123",
+        "generate_run_id": generate_run_id,
     }
     if include_generated_corpus_id:
-        identity["generated_corpus_id"] = "corpus-id-456"
+        identity["generated_corpus_id"] = generated_corpus_id
     artifacts_relative: dict[str, Any] = {
         "run_root": run_root,
     }
@@ -59,6 +70,37 @@ def _write_handoff_manifest(
     return handoff_manifest_path
 
 
+def _write_generated_dataset(
+    shard_dir: Path,
+    *,
+    generate_run_id: str = _TEST_GENERATE_RUN_ID,
+    dataset_id: str = _TEST_DATASET_ID,
+    dataset_index: int = 0,
+    seed: int = 7,
+    filter_status: str = "accepted",
+    filter_accepted: bool = True,
+) -> dict[int, tuple[int, int, str]]:
+    x_train, y_train, x_test, y_test = cases._classification_arrays(seed=seed)
+    metadata = cases._classification_metadata(
+        n_features=x_train.shape[1],
+        seed=seed,
+        filter_status=filter_status,
+        filter_accepted=filter_accepted,
+    )
+    metadata["dataset_id"] = dataset_id
+    metadata["split_groups"] = {"request_run": generate_run_id}
+    dataset = {
+        "dataset_index": dataset_index,
+        "x_train": x_train,
+        "y_train": y_train,
+        "x_test": x_test,
+        "y_test": y_test,
+        "feature_types": ["num"] * x_train.shape[1],
+        "metadata": metadata,
+    }
+    return cases._write_packed_shard(shard_dir, datasets=[dataset])
+
+
 def test_load_dagzoo_handoff_info_accepts_minimal_consumed_subset(tmp_path: Path) -> None:
     handoff_manifest_path = _write_handoff_manifest(
         tmp_path / "handoff",
@@ -68,8 +110,8 @@ def test_load_dagzoo_handoff_info_accepts_minimal_consumed_subset(tmp_path: Path
     info = load_dagzoo_handoff_info(handoff_manifest_path)
 
     assert info.source_family == "dagzoo.fixed_layout_scm"
-    assert info.generate_run_id == "run-id-123"
-    assert info.generated_corpus_id == "corpus-id-456"
+    assert info.generate_run_id == _TEST_GENERATE_RUN_ID
+    assert info.generated_corpus_id == _TEST_GENERATED_CORPUS_ID
     assert info.generated_dir == (handoff_manifest_path.parent / "nested" / "generated").resolve()
     assert info.to_summary_dict()["recommended_training_artifact_key"] == "generated_dir"
 
@@ -141,10 +183,8 @@ def test_run_dagzoo_generate_manifest_uses_handoff_generated_dir_and_persists_me
 
     handoff_root = tmp_path / "handoff"
     generated_dir = handoff_root / "nested" / "generated"
-    _ = cases._write_dataset(
+    _ = _write_generated_dataset(
         generated_dir / "shard_00000",
-        filter_status="accepted",
-        filter_accepted=True,
     )
     handoff_manifest_path = _write_handoff_manifest(
         handoff_root,
@@ -207,8 +247,8 @@ def test_run_dagzoo_generate_manifest_uses_handoff_generated_dir_and_persists_me
     assert result.handoff.generated_dir == generated_dir.resolve()
     assert result.summary.total_records == 1
     persisted_summary = cases._manifest_summary_metadata(out_manifest)
-    assert persisted_summary["dagzoo_handoff"]["generate_run_id"] == "run-id-123"
-    assert persisted_summary["dagzoo_handoff"]["generated_corpus_id"] == "corpus-id-456"
+    assert persisted_summary["dagzoo_handoff"]["generate_run_id"] == _TEST_GENERATE_RUN_ID
+    assert persisted_summary["dagzoo_handoff"]["generated_corpus_id"] == _TEST_GENERATED_CORPUS_ID
     assert persisted_summary["dagzoo_handoff"]["generated_dir"] == str(generated_dir.resolve())
     assert persisted_summary["dagzoo_handoff"]["handoff_manifest_path"] == str(
         handoff_manifest_path.resolve()
@@ -226,10 +266,8 @@ def test_run_dagzoo_generate_manifest_resolves_relative_paths_against_dagzoo_roo
 
     handoff_root = dagzoo_root / "handoffs" / "tab_foundry"
     generated_dir = handoff_root / "generated"
-    _ = cases._write_dataset(
+    _ = _write_generated_dataset(
         generated_dir / "shard_00000",
-        filter_status="accepted",
-        filter_accepted=True,
     )
     handoff_manifest_path = _write_handoff_manifest(handoff_root, generated_dir_rel="generated")
     out_manifest = tmp_path / "outputs" / "manifest.parquet"
@@ -316,6 +354,35 @@ def test_run_dagzoo_generate_manifest_rejects_non_directory_dagzoo_root(tmp_path
                 handoff_root=tmp_path / "handoff",
                 out_manifest=tmp_path / "manifest.parquet",
             )
+        )
+
+
+@pytest.mark.parametrize(
+    ("generate_run_id", "generated_corpus_id", "match"),
+    [
+        ("9" * 32, _TEST_GENERATED_CORPUS_ID, "generate_run_id"),
+        (_TEST_GENERATE_RUN_ID, "9" * 32, "generated_corpus_id"),
+    ],
+)
+def test_build_manifest_rejects_mismatched_dagzoo_handoff_identity(
+    tmp_path: Path,
+    generate_run_id: str,
+    generated_corpus_id: str,
+    match: str,
+) -> None:
+    generated_dir = tmp_path / "handoff" / "generated"
+    _ = _write_generated_dataset(generated_dir / "shard_00000")
+    handoff_manifest_path = _write_handoff_manifest(
+        tmp_path / "handoff",
+        generate_run_id=generate_run_id,
+        generated_corpus_id=generated_corpus_id,
+    )
+
+    with pytest.raises(RuntimeError, match=match):
+        _ = build_manifest(
+            [generated_dir],
+            tmp_path / "manifest.parquet",
+            dagzoo_handoff_manifest_path=handoff_manifest_path,
         )
 
 

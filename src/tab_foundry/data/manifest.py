@@ -14,7 +14,11 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from tab_foundry.data.dagzoo_handoff import load_dagzoo_handoff_info
+from tab_foundry.data.dagzoo_handoff import (
+    DagzooGeneratedIdentityAccumulator,
+    load_dagzoo_handoff_info,
+    verify_dagzoo_handoff_matches_generated_corpus,
+)
 from tab_foundry.data.validation import (
     MISSING_VALUE_STATUS_CLEAN,
     MISSING_VALUE_STATUS_CONTAINS_NAN_OR_INF,
@@ -330,6 +334,11 @@ def build_manifest(
     status_counts: Counter[str] = Counter()
     missing_value_status_counts: Counter[str] = Counter()
     excluded_for_missing_values = 0
+    dagzoo_generated_identity = (
+        None
+        if dagzoo_handoff_manifest_path is None
+        else DagzooGeneratedIdentityAccumulator()
+    )
     for root in roots:
         if not root.exists():
             continue
@@ -358,6 +367,12 @@ def build_manifest(
                     )
                 meta = meta_raw
                 discovered_records += 1
+                if dagzoo_generated_identity is not None:
+                    dagzoo_generated_identity.add_metadata(
+                        meta,
+                        metadata_path=metadata_path,
+                        dataset_index=dataset_index,
+                    )
 
                 source_shard_relpath = _shard_relpath(root, shard_dir)
                 filter_mode, filter_status, filter_accepted = _parse_filter_metadata(meta)
@@ -461,7 +476,10 @@ def build_manifest(
     dagzoo_handoff = (
         None
         if dagzoo_handoff_manifest_path is None
-        else load_dagzoo_handoff_info(dagzoo_handoff_manifest_path).to_summary_dict()
+        else _verified_dagzoo_handoff_summary(
+            dagzoo_handoff_manifest_path=dagzoo_handoff_manifest_path,
+            dagzoo_generated_identity=dagzoo_generated_identity,
+        )
     )
     summary = ManifestSummary(
         out_path=out_path,
@@ -491,3 +509,18 @@ def build_manifest(
     )
     pq.write_table(table, out_path, compression="zstd")
     return summary
+
+
+def _verified_dagzoo_handoff_summary(
+    *,
+    dagzoo_handoff_manifest_path: Path,
+    dagzoo_generated_identity: DagzooGeneratedIdentityAccumulator | None,
+) -> dict[str, Any]:
+    if dagzoo_generated_identity is None:
+        raise RuntimeError("dagzoo handoff verification state was not initialized")
+    handoff = load_dagzoo_handoff_info(dagzoo_handoff_manifest_path)
+    verify_dagzoo_handoff_matches_generated_corpus(
+        handoff,
+        scanned_identity=dagzoo_generated_identity,
+    )
+    return handoff.to_summary_dict()
