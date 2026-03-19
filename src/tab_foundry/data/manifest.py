@@ -14,6 +14,7 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from tab_foundry.data.dagzoo_handoff import load_dagzoo_handoff_info
 from tab_foundry.data.validation import (
     MISSING_VALUE_STATUS_CLEAN,
     MISSING_VALUE_STATUS_CONTAINS_NAN_OR_INF,
@@ -42,6 +43,7 @@ class ManifestSummary:
     filter_status_counts: dict[str, int] = field(default_factory=dict)
     missing_value_status_counts: dict[str, int] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    dagzoo_handoff: dict[str, Any] | None = None
 
 
 SUPPORTED_FILTER_POLICIES = ("include_all", "accepted_only")
@@ -288,6 +290,8 @@ def _manifest_schema_metadata(*, summary: ManifestSummary) -> dict[bytes, bytes]
         "filter_status_counts": dict(summary.filter_status_counts),
         "missing_value_status_counts": dict(summary.missing_value_status_counts),
     }
+    if summary.dagzoo_handoff is not None:
+        payload["dagzoo_handoff"] = dict(summary.dagzoo_handoff)
     return {MANIFEST_SUMMARY_METADATA_KEY: json.dumps(payload, sort_keys=True).encode("utf-8")}
 
 
@@ -299,6 +303,7 @@ def build_manifest(
     val_ratio: float = 0.05,
     filter_policy: str = "include_all",
     missing_value_policy: str = "allow_any",
+    dagzoo_handoff_manifest_path: Path | None = None,
 ) -> ManifestSummary:
     """Scan parquet roots and persist manifest parquet."""
 
@@ -453,6 +458,11 @@ def build_manifest(
     val_records = sum(1 for record in records if record["split"] == "val")
     test_records = sum(1 for record in records if record["split"] == "test")
     excluded_records = discovered_records - len(records)
+    dagzoo_handoff = (
+        None
+        if dagzoo_handoff_manifest_path is None
+        else load_dagzoo_handoff_info(dagzoo_handoff_manifest_path).to_summary_dict()
+    )
     summary = ManifestSummary(
         out_path=out_path,
         filter_policy=filter_policy,
@@ -474,6 +484,7 @@ def build_manifest(
             excluded_for_missing_values=excluded_for_missing_values,
             filter_status_counts=status_counts,
         ),
+        dagzoo_handoff=dagzoo_handoff,
     )
     table = pa.Table.from_pylist(records).replace_schema_metadata(
         _manifest_schema_metadata(summary=summary)
