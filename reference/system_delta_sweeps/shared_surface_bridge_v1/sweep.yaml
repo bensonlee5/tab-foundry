@@ -1,0 +1,108 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: shared_surface_bridge_v1
+parent_sweep_id: binary_md_v1
+status: draft
+complexity_level: binary_md
+anchor_run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+training_experiment: cls_benchmark_staged
+training_config_profile: cls_benchmark_staged
+surface_role: architecture_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+  - The locked anchor is benchmark registry run `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
+    on bundle `nanotabpfn_openml_binary_medium` (10 tasks).
+  - This sweep is the first benchmark-facing, stage-native shared-surface bridge
+    on `cls_benchmark_staged`; it does not reuse the hybrid-diagnostic lane as its
+    execution surface.
+  - Earlier hybrid-diagnostic results for `delta_shared_feature_norm`, `delta_prenorm_block`,
+    and `delta_test_self_attention` remain historical input only and do not close
+    TF-RD-003 by themselves.
+  - The local registry anchor does not include `gradient_history.jsonl` or `telemetry.json`,
+    so row 1 replays `nano_exact` on the architecture-screen lane before the shared-surface
+    bridge rows are compared.
+  - Data and preprocessing remain part of the comparison surface and must stay fixed
+    unless the queue row declares that exact dimension.
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Same nano feature encoder path with internal benchmark normalization.
+    interpretation: Feature encoding remains close to upstream parity; later deltas
+      should be attributed elsewhere.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Same mean-padded linear target conditioner.
+    interpretation: The anchor preserves the upstream label-conditioning mechanism.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Same nano post-norm cell transformer block.
+    interpretation: This keeps the strongest structural tie to upstream nanoTabPFN.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Same scalar-per-feature tokenizer.
+    interpretation: Tokenization remains aligned with upstream parity.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: No column-set encoder on the anchor path.
+    interpretation: Column-set modeling remains absent and should not explain anchor
+      behavior.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Same target-column row pool.
+    interpretation: Readout remains on the direct upstream-style path.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: None on the anchor path.
+    interpretation: Context encoding remains absent; later context rows will change
+      both depth and label-flow semantics.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Direct binary logits head.
+    interpretation: The prediction head remains on the narrow upstream-style binary
+      path.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark bundle `nanotabpfn_openml_binary_medium` (10 tasks) with data
+      surface label `registry surface label unavailable`.
+    interpretation: Bundle and training-data changes are first-class sweep rows and
+      should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `registry surface label unavailable`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_constant_lr`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
+  experiment: cls_benchmark_staged_prior
+  config_profile: cls_benchmark_staged_prior
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: nano_exact
+    stage: nano_exact
+    stage_label: null
+    module_selection:
+      feature_encoder: nano
+      post_encoder_norm: none
+      post_stack_norm: none
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+      column_encoder: none
+      row_pool: target_column
+      context_encoder: none
+      head: binary_direct
+      table_block_style: nano_postnorm
+      table_block_residual_scale: none
+      allow_test_self_attention: false
+  surface_labels: null

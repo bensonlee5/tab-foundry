@@ -47,6 +47,7 @@ _apply_mapping = _runner.apply_mapping
 _compose_cfg = _runner.compose_cfg
 _sync_sweep_matrix = _runner.sync_sweep_matrix
 _sync_active_aliases_if_active = _runner.sync_active_aliases_if_active
+_absolute_path_without_resolving_symlinks = _runner._absolute_path_without_resolving_symlinks
 _optional_metric = _optional_metric_impl
 _queue_metrics = _queue_metrics_impl
 _read_yaml = read_yaml
@@ -172,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     prior_dump = Path(str(args.prior_dump)).expanduser().resolve()
     nanotabpfn_root = Path(str(args.nanotabpfn_root)).expanduser().resolve()
-    fallback_python = Path(str(args.tab_foundry_python)).expanduser().resolve()
+    fallback_python = _absolute_path_without_resolving_symlinks(Path(str(args.tab_foundry_python)))
     if not prior_dump.exists():
         raise RuntimeError(f"prior dump does not exist: {prior_dump}")
     if not fallback_python.exists():

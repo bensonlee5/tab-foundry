@@ -274,6 +274,186 @@ deltas:
     default_next_action: Queue after the pre-norm-only run so the masking effect has a local comparator.
     applicability_guards: []
 
+  delta_architecture_screen_nano_exact_replay:
+    dimension_family: training
+    family: baseline_replay
+    binary_applicable: true
+    description: Replay the public `nano_exact` stage on `cls_benchmark_staged` before comparing the shared-surface bridge rows.
+    upstream_delta: Not applicable; this is a repo-local architecture-screen replay of the public `nano_exact` stage.
+    expected_effect: Establish a telemetry-complete local comparator for the stage-native bridge rows without changing the public model stage.
+    adequacy_knobs:
+      - Keep data, preprocessing, and training surfaces fixed to the canonical architecture-screen contract.
+      - Treat benchmark ROC as primary and use emitted telemetry only to confirm same-lane artifact parity.
+    parameter_adequacy_policy:
+      default_plan:
+        - Run this row first so the bridge sweep has a local `cls_benchmark_staged` comparator with `gradient_history.jsonl` and `telemetry.json`.
+        - Compare later bridge rows against this replay rather than treating the older prior-lane anchor as artifact-complete.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: nano_exact
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: nano_exact
+        stage_label: delta_architecture_screen_nano_exact_replay
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: training_default
+        overrides: {}
+    default_next_action: Run first to establish the architecture-screen replay baseline for the shared-surface bridge.
+    applicability_guards: []
+
+  delta_architecture_screen_shared_norm:
+    dimension_family: model
+    family: feature_encoding
+    binary_applicable: true
+    description: Evaluate the public `shared_norm` stage as the first stage-native step off the PFN-only encoder path on `cls_benchmark_staged`.
+    upstream_delta: Upstream nanoTabPFN does not expose the public shared-surface bridge row represented by `shared_norm`.
+    expected_effect: Move feature handling onto the shared staged surface while keeping scalar-per-feature tokenization and the post-norm table block fixed.
+    adequacy_knobs:
+      - Compare directly against the architecture-screen `nano_exact` replay before attributing later bridge changes.
+      - Use activation and gradient telemetry to confirm whether the shared encoder remains stable enough to serve as the first bridge step.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as the first mandatory shared-surface comparator, not as a tokenizer or row-pool experiment.
+        - If weak, keep the result as bridge evidence and do not skip straight to later shared-surface rows without recording the regression.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: shared_norm
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: shared_norm
+        stage_label: delta_architecture_screen_shared_norm
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: training_default
+        overrides: {}
+    default_next_action: Compare directly against the architecture-screen `nano_exact` replay before moving deeper into the bridge.
+    applicability_guards: []
+
+  delta_architecture_screen_prenorm_block:
+    dimension_family: model
+    family: table_block
+    binary_applicable: true
+    description: Evaluate the public `prenorm_block` stage as the first stage-native backbone change on the shared architecture-screen surface.
+    upstream_delta: Upstream nanoTabPFN does not expose the public staged pre-norm bridge row represented by `prenorm_block`.
+    expected_effect: Keep the shared encoder fixed while switching the main table block to the staged pre-norm implementation.
+    adequacy_knobs:
+      - Compare against both the architecture-screen `nano_exact` replay and the public `shared_norm` row.
+      - Use final-vs-best benchmark behavior plus stage-local telemetry to separate outright regressions from bridge instability.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this row as the first backbone change after the shared encoder is active.
+        - If mixed, preserve it as explicit bridge evidence rather than collapsing the result into the older hybrid-diagnostic prenorm evidence.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: prenorm_block
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: prenorm_block
+        stage_label: delta_architecture_screen_prenorm_block
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: training_default
+        overrides: {}
+    default_next_action: Compare against the shared-norm row before deciding whether the bridge should advance through the pre-norm block.
+    applicability_guards: []
+
+  delta_architecture_screen_small_class_head:
+    dimension_family: model
+    family: head
+    binary_applicable: true
+    description: Evaluate the public `small_class_head` stage as the first shared-surface bridge row with the small-class head contract enabled.
+    upstream_delta: Upstream nanoTabPFN does not expose the public staged small-class bridge row represented by `small_class_head`.
+    expected_effect: Keep the shared encoder and pre-norm block fixed while promoting the head to the small-class contract that later grouped-token work should inherit from.
+    adequacy_knobs:
+      - Compare against `prenorm_block` before attributing any effect to grouped-token readiness.
+      - Watch whether head-contract changes are neutral, stabilizing, or clearly harmful on the fixed binary architecture-screen surface.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as a bridge row, not as a many-class promotion or tokenization change.
+        - Use it to decide whether later grouped-token work should inherit the small-class head rather than stopping at the pre-norm block.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: small_class_head
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: small_class_head
+        stage_label: delta_architecture_screen_small_class_head
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: training_default
+        overrides: {}
+    default_next_action: Compare directly against `prenorm_block` to decide whether the bridge should carry the small-class head forward.
+    applicability_guards: []
+
+  delta_architecture_screen_test_self:
+    dimension_family: model
+    family: table_block
+    binary_applicable: true
+    description: Evaluate the public `test_self` stage as the last shared-surface bridge row before grouped-token work.
+    upstream_delta: Upstream nanoTabPFN does not expose the public staged test-self bridge row represented by `test_self`.
+    expected_effect: Keep the shared bridge surface fixed while enabling the public test-self attention setting that later grouped-token work may inherit.
+    adequacy_knobs:
+      - Compare against both `prenorm_block` and `small_class_head` before concluding that test-self attention should be the grouped-token predecessor.
+      - Use stage-local telemetry to distinguish a local repair from a genuinely stronger bridge handoff row.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as the final shared-surface bridge candidate before grouped tokens, not as tokenizer work.
+        - Pick between `small_class_head` and `test_self` only after the full five-row bridge sweep is visible together.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: test_self
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: test_self
+        stage_label: delta_architecture_screen_test_self
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: training_default
+        overrides: {}
+    default_next_action: Compare directly against `small_class_head` and lock only one grouped-token predecessor after the full bridge sweep.
+    applicability_guards: []
+
   delta_shifted_grouped_tokenizer:
     dimension_family: model
     family: tokenization
