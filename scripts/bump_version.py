@@ -14,20 +14,16 @@ import re
 import sys
 import datetime
 from pathlib import Path
+import subprocess
 from typing import Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
 CHANGELOG_PATH = REPO_ROOT / "CHANGELOG.md"
-UV_LOCK_PATH = REPO_ROOT / "uv.lock"
 
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 PYPROJECT_VERSION_RE = re.compile(r'^(version\s*=\s*")([^"]+)(")', re.MULTILINE)
 UNRELEASED_RE = re.compile(r"^## \[Unreleased\]\s*$", re.MULTILINE)
-UV_LOCK_VERSION_RE = re.compile(
-    r'(\[\[package\]\]\nname = "tab-foundry"\nversion = ")([^"]+)(")',
-    re.MULTILINE,
-)
 
 
 def parse_version(version: str) -> tuple[int, int, int]:
@@ -67,17 +63,17 @@ def update_changelog(path: Path, new_version: str) -> None:
     path.write_text(updated, encoding="utf-8")
 
 
-def update_uv_lock(path: Path, new_version: str) -> bool:
-    if not path.exists():
-        return False
-    text = path.read_text(encoding="utf-8")
-    updated, count = UV_LOCK_VERSION_RE.subn(rf"\g<1>{new_version}\3", text, count=1)
-    if count != 1:
-        raise RuntimeError("Could not find the editable tab-foundry package entry in uv.lock")
-    if updated == text:
-        return False
-    path.write_text(updated, encoding="utf-8")
-    return True
+def refresh_uv_lock(repo_root: Path) -> None:
+    result = subprocess.run(
+        ["uv", "lock"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "`uv lock` failed"
+        raise RuntimeError(f"`uv lock` failed: {detail}")
 
 
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
@@ -102,13 +98,12 @@ def main(argv: Iterable[str] | None = None) -> int:
     new_version = bump(old_version, args.level)
     update_pyproject(PYPROJECT_PATH, new_version)
     update_changelog(CHANGELOG_PATH, new_version)
-    uv_lock_updated = update_uv_lock(UV_LOCK_PATH, new_version)
+    refresh_uv_lock(REPO_ROOT)
 
     print(f"{old_version} -> {new_version}")
     print("  Updated: pyproject.toml")
     print("  Updated: CHANGELOG.md")
-    if uv_lock_updated:
-        print("  Updated: uv.lock")
+    print("  Refreshed: uv.lock")
     return 0
 
 
