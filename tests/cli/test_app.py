@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import subprocess
+
 import pytest
 
 import tab_foundry.bench.prior_train as prior_train_module
 import tab_foundry.cli as cli_module
+import tab_foundry.cli.groups.data as data_group
 import tab_foundry.research.system_delta as system_delta_module
 import tab_foundry.research.sweep.graph as graph_module
 
@@ -90,3 +93,173 @@ def test_nested_cli_research_sweep_graph_delegates_to_graph_main(
 
     assert exit_code == 0
     assert captured["argv"] == ["--anchor", "--order", "7"]
+
+
+def test_nested_cli_data_dagzoo_generate_manifest_dispatches_to_data_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_handler(args):
+        captured["dagzoo_root"] = str(args.dagzoo_root)
+        captured["dagzoo_config"] = str(args.dagzoo_config)
+        captured["handoff_root"] = str(args.handoff_root)
+        captured["out_manifest"] = str(args.out_manifest)
+        captured["num_datasets"] = int(args.num_datasets)
+        return 0
+
+    monkeypatch.setattr(data_group, "_run_dagzoo_generate_manifest", _fake_handler)
+
+    exit_code = cli_module.main(
+        [
+            "data",
+            "dagzoo",
+            "generate-manifest",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--dagzoo-config",
+            "configs/default.yaml",
+            "--handoff-root",
+            "/tmp/handoff",
+            "--out-manifest",
+            "/tmp/manifest.parquet",
+            "--num-datasets",
+            "32",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {
+        "dagzoo_root": "/tmp/dagzoo",
+        "dagzoo_config": "configs/default.yaml",
+        "handoff_root": "/tmp/handoff",
+        "out_manifest": "/tmp/manifest.parquet",
+        "num_datasets": 32,
+    }
+
+
+def test_nested_cli_data_build_manifest_rejects_invalid_split_ratios(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called = False
+
+    def _fake_build_manifest(**_kwargs):
+        nonlocal called
+        called = True
+        return None
+
+    monkeypatch.setattr(data_group, "build_manifest", _fake_build_manifest)
+
+    with pytest.raises(SystemExit, match="invalid split ratios"):
+        _ = cli_module.main(
+            [
+                "data",
+                "build-manifest",
+                "--data-root",
+                "/tmp/run",
+                "--out-manifest",
+                "/tmp/manifest.parquet",
+                "--train-ratio",
+                "1.0",
+            ]
+        )
+
+    assert called is False
+
+
+def test_nested_cli_data_dagzoo_generate_manifest_rejects_invalid_split_ratios(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called = False
+
+    def _fake_workflow(_config):
+        nonlocal called
+        called = True
+        return None
+
+    monkeypatch.setattr(data_group, "run_dagzoo_generate_manifest", _fake_workflow)
+
+    with pytest.raises(SystemExit, match="invalid split ratios"):
+        _ = cli_module.main(
+            [
+                "data",
+                "dagzoo",
+                "generate-manifest",
+                "--dagzoo-root",
+                "/tmp/dagzoo",
+                "--dagzoo-config",
+                "configs/default.yaml",
+                "--handoff-root",
+                "/tmp/handoff",
+                "--out-manifest",
+                "/tmp/manifest.parquet",
+                "--train-ratio",
+                "0.95",
+                "--val-ratio",
+                "0.05",
+            ]
+        )
+
+    assert called is False
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        [
+            "data",
+            "build-manifest",
+            "--data-root",
+            "/tmp/run",
+            "--out-manifest",
+            "/tmp/manifest.parquet",
+            "--train-ratio",
+            "nan",
+        ],
+        [
+            "data",
+            "dagzoo",
+            "generate-manifest",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--dagzoo-config",
+            "configs/default.yaml",
+            "--handoff-root",
+            "/tmp/handoff",
+            "--out-manifest",
+            "/tmp/manifest.parquet",
+            "--val-ratio",
+            "inf",
+        ],
+    ],
+)
+def test_nested_cli_data_commands_reject_non_finite_split_ratios(argv: list[str]) -> None:
+    with pytest.raises(SystemExit):
+        _ = cli_module.build_parser().parse_args(argv)
+
+
+def test_nested_cli_data_dagzoo_generate_manifest_returns_subprocess_exit_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _fake_workflow(_config):
+        raise subprocess.CalledProcessError(2, ["uv", "run", "dagzoo", "generate"])
+
+    monkeypatch.setattr(data_group, "run_dagzoo_generate_manifest", _fake_workflow)
+
+    exit_code = cli_module.main(
+        [
+            "data",
+            "dagzoo",
+            "generate-manifest",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--dagzoo-config",
+            "configs/default.yaml",
+            "--handoff-root",
+            "/tmp/handoff",
+            "--out-manifest",
+            "/tmp/manifest.parquet",
+        ]
+    )
+
+    assert exit_code == 2
