@@ -33,10 +33,10 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `dpnb_cuda_stack_scale_control` | screening | yes | ready | none | Re-screen the large-anchor batch32 replay surface with a short activation-first diagnostic run. | Run this short-screen control first, then compare the two post-stack norm candidates before deciding on the combined benchmark row. |
-| 2 | `dpnb_cuda_stack_scale_poststack_rms` | normalization | yes | ready | none | Add post-stack RMSNorm after the prenorm table-block stack on the batch32 replay control screen. | Run after the short-screen control and compare directly against the LayerNorm variant before carrying one norm into a full benchmark row. |
-| 3 | `dpnb_cuda_stack_scale_poststack_ln` | normalization | yes | ready | none | Add post-stack LayerNorm after the prenorm table-block stack on the batch32 replay control screen. | Run after the RMSNorm short screen so the post-stack norm family comparison is available for a winner-take-forward decision. |
-| 4 | `dpnb_cuda_stack_scale_depth_scaled` | residual_scaling | yes | ready | none | Keep the batch32 replay control screen fixed and depth-scale each prenorm residual branch by stack depth. | Run after the norm-family screens so the final full-budget row can combine depth scaling with the winning post-stack norm if needed. |
+| 1 | `dpnb_cuda_stack_scale_control` | screening | yes | screened | none | Re-screen the large-anchor batch32 replay surface with a short activation-first diagnostic run. | Run this short-screen control first, then compare the two post-stack norm candidates before deciding on the combined benchmark row. |
+| 2 | `dpnb_cuda_stack_scale_poststack_rms` | normalization | yes | screened | none | Add post-stack RMSNorm after the prenorm table-block stack on the batch32 replay control screen. | Run after the short-screen control and compare directly against the LayerNorm variant before carrying one norm into a full benchmark row. |
+| 3 | `dpnb_cuda_stack_scale_poststack_ln` | normalization | yes | screened | none | Add post-stack LayerNorm after the prenorm table-block stack on the batch32 replay control screen. | Run after the RMSNorm short screen so the post-stack norm family comparison is available for a winner-take-forward decision. |
+| 4 | `dpnb_cuda_stack_scale_depth_scaled` | residual_scaling | yes | screened | none | Keep the batch32 replay control screen fixed and depth-scale each prenorm residual branch by stack depth. | Run after the norm-family screens so the final full-budget row can combine depth scaling with the winning post-stack norm if needed. |
 | 5 | `dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner` | normalization | yes | ready | none | Run the full batch32 replay benchmark with depth-scaled prenorm residuals plus whichever post-stack norm wins the short-screen comparison. | Wait for the short-screen norm comparison to resolve, then benchmark the combined depth-scaled row with the winning post-stack norm. |
 
 ## Detailed Rows
@@ -44,7 +44,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 1. `dpnb_cuda_stack_scale_control`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `screened`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Re-screen the large-anchor batch32 replay surface with a short activation-first diagnostic run.
@@ -63,18 +63,25 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.overrides.schedule.stages[0].steps
   - training.overrides.schedule.stages[0].warmup_ratio
 - Execution policy: `screen_only`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `screened`
+- Decision: `defer`
 - Notes:
   - If upper-block means remain clearly upward after warmup, treat the control as reproduced even if train loss looks superficially acceptable.
+  - Train-only screen recorded as `sd_cuda_stack_scale_followup_01_dpnb_cuda_stack_scale_control_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stack_scale_followup/dpnb_cuda_stack_scale_control/result_card.md`
+- Screen metrics:
+  - Upper-block final-window mean: `240.4640`
+  - Upper-block post-warmup mean slope: `0.125654`
+  - Clipped-step fraction: `0.0320`
+  - Final train-loss EMA: `0.6933`
 - Benchmark metrics: pending
 
 ### 2. `dpnb_cuda_stack_scale_poststack_rms`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `screened`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Add post-stack RMSNorm after the prenorm table-block stack on the batch32 replay control screen.
@@ -93,16 +100,24 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.overrides.runtime.max_steps
   - training.overrides.schedule.stages[0].steps
 - Execution policy: `screen_only`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `screened`
+- Decision: `defer`
+- Notes:
+  - Train-only screen recorded as `sd_cuda_stack_scale_followup_02_dpnb_cuda_stack_scale_poststack_rms_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stack_scale_followup/dpnb_cuda_stack_scale_poststack_rms/result_card.md`
+- Screen metrics:
+  - Upper-block final-window mean: `176.0736`
+  - Upper-block post-warmup mean slope: `0.022245`
+  - Clipped-step fraction: `0.0190`
+  - Final train-loss EMA: `0.6932`
 - Benchmark metrics: pending
 
 ### 3. `dpnb_cuda_stack_scale_poststack_ln`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `screened`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Add post-stack LayerNorm after the prenorm table-block stack on the batch32 replay control screen.
@@ -121,16 +136,24 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.overrides.runtime.max_steps
   - training.overrides.schedule.stages[0].steps
 - Execution policy: `screen_only`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `screened`
+- Decision: `defer`
+- Notes:
+  - Train-only screen recorded as `sd_cuda_stack_scale_followup_03_dpnb_cuda_stack_scale_poststack_ln_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stack_scale_followup/dpnb_cuda_stack_scale_poststack_ln/result_card.md`
+- Screen metrics:
+  - Upper-block final-window mean: `604.5930`
+  - Upper-block post-warmup mean slope: `-0.003931`
+  - Clipped-step fraction: `0.4400`
+  - Final train-loss EMA: `0.5141`
 - Benchmark metrics: pending
 
 ### 4. `dpnb_cuda_stack_scale_depth_scaled`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `screened`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Keep the batch32 replay control screen fixed and depth-scale each prenorm residual branch by stack depth.
@@ -149,10 +172,18 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - training.overrides.runtime.max_steps
   - training.overrides.schedule.stages[0].steps
 - Execution policy: `screen_only`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `screened`
+- Decision: `defer`
+- Notes:
+  - Train-only screen recorded as `sd_cuda_stack_scale_followup_04_dpnb_cuda_stack_scale_depth_scaled_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/cuda_stack_scale_followup/dpnb_cuda_stack_scale_depth_scaled/result_card.md`
+- Screen metrics:
+  - Upper-block final-window mean: `77.8339`
+  - Upper-block post-warmup mean slope: `0.006561`
+  - Clipped-step fraction: `0.4330`
+  - Final train-loss EMA: `0.5122`
 - Benchmark metrics: pending
 
 ### 5. `dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner`

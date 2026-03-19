@@ -1,313 +1,468 @@
 schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: cuda_stack_scale_followup
 rows:
-  - order: 1
-    delta_ref: dpnb_cuda_stack_scale_control
-    status: ready
-    rationale: Reconfirm the inherited batch32 replay activation-drift profile on a short diagnostic budget before reading any new stabilization change.
-    hypothesis: The batch32 replay control will still show steadily rising upper-block activation norms over 1000 steps, reproducing the parent-sweep failure mode on a cheaper screen.
-    anchor_delta: Keep the large-anchor batch32 replay surface fixed, but replace the full benchmarked run with a short 1000-step train-only screen.
-    model:
-      stage: nano_exact
-      stage_label: dpnb_cuda_stack_scale_control
-      d_col: 128
-      d_icl: 512
-      input_normalization: train_zscore_clip
-      module_overrides:
-        table_block_style: prenorm
-        allow_test_self_attention: false
-        row_pool: row_cls
-      tfrow_n_heads: 8
-      tfrow_n_layers: 3
-      tfrow_cls_tokens: 2
-      tfrow_norm: layernorm
-      tficl_n_heads: 8
-      tficl_n_layers: 12
-      head_hidden_dim: 1024
-    data:
-      surface_label: anchor_manifest_default
-    preprocessing:
-      surface_label: runtime_default
-    training:
-      surface_label: prior_linear_warmup_decay
-      prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
-      prior_dump_batch_reference_size: 32
-      overrides:
-        apply_schedule: true
-        optimizer:
-          min_lr: 0.0004
-        runtime:
-          grad_clip: 1.0
-          max_steps: 1000
-          trace_activations: true
-        schedule:
-          stages:
-            - name: prior_dump
-              steps: 1000
-              lr_max: 0.004
-              lr_schedule: linear
-              warmup_ratio: 0.05
-    parameter_adequacy_plan:
-      - Treat this row as the short-screen control, not as a benchmark-facing replacement for the registered anchor.
-      - Compare the same upper-block screen diagnostics against rows 2-4 before choosing any combined full-budget row.
-    execution_policy: screen_only
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Run this short-screen control first, then compare the two post-stack norm candidates before deciding on the combined benchmark row.
-    notes:
-      - If upper-block means remain clearly upward after warmup, treat the control as reproduced even if train loss looks superficially acceptable.
-  - order: 2
-    delta_ref: dpnb_cuda_stack_scale_poststack_rms
-    status: ready
-    rationale: Test the cheapest downstream stabilization path first by adding only a post-stack RMSNorm on the same short-screen control surface.
-    hypothesis: RMSNorm after the full block stack may reduce the exported residual scale enough to beat the control on upper-block final-window mean, even if it does not fully address in-stack growth.
-    anchor_delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.post_stack_norm=rmsnorm` after the full prenorm table-block stack.
-    model:
-      stage: nano_exact
-      stage_label: dpnb_cuda_stack_scale_poststack_rms
-      d_col: 128
-      d_icl: 512
-      input_normalization: train_zscore_clip
-      module_overrides:
-        table_block_style: prenorm
-        allow_test_self_attention: false
-        row_pool: row_cls
-        post_stack_norm: rmsnorm
-      tfrow_n_heads: 8
-      tfrow_n_layers: 3
-      tfrow_cls_tokens: 2
-      tfrow_norm: layernorm
-      tficl_n_heads: 8
-      tficl_n_layers: 12
-      head_hidden_dim: 1024
-    data:
-      surface_label: anchor_manifest_default
-    preprocessing:
-      surface_label: runtime_default
-    training:
-      surface_label: prior_linear_warmup_decay
-      prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
-      prior_dump_batch_reference_size: 32
-      overrides:
-        apply_schedule: true
-        optimizer:
-          min_lr: 0.0004
-        runtime:
-          grad_clip: 1.0
-          max_steps: 1000
-          trace_activations: true
-        schedule:
-          stages:
-            - name: prior_dump
-              steps: 1000
-              lr_max: 0.004
-              lr_schedule: linear
-              warmup_ratio: 0.05
-    parameter_adequacy_plan:
-      - Compare directly against the matching LayerNorm row on the same short-screen surface.
-      - Use upper-block final-window mean as the first discriminator and keep train loss secondary.
-    execution_policy: screen_only
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Run after the short-screen control and compare directly against the LayerNorm variant before carrying one norm into a full benchmark row.
-    notes: []
-  - order: 3
-    delta_ref: dpnb_cuda_stack_scale_poststack_ln
-    status: ready
-    rationale: Complete the norm-family comparison on the same short-screen surface so the combined row can choose a downstream norm mechanically instead of by inspection.
-    hypothesis: LayerNorm may outperform RMSNorm on upper-block boundedness and clip rate on this large-anchor bridge surface, even though both act only after the block stack.
-    anchor_delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.post_stack_norm=layernorm` after the full prenorm table-block stack.
-    model:
-      stage: nano_exact
-      stage_label: dpnb_cuda_stack_scale_poststack_ln
-      d_col: 128
-      d_icl: 512
-      input_normalization: train_zscore_clip
-      module_overrides:
-        table_block_style: prenorm
-        allow_test_self_attention: false
-        row_pool: row_cls
-        post_stack_norm: layernorm
-      tfrow_n_heads: 8
-      tfrow_n_layers: 3
-      tfrow_cls_tokens: 2
-      tfrow_norm: layernorm
-      tficl_n_heads: 8
-      tficl_n_layers: 12
-      head_hidden_dim: 1024
-    data:
-      surface_label: anchor_manifest_default
-    preprocessing:
-      surface_label: runtime_default
-    training:
-      surface_label: prior_linear_warmup_decay
-      prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
-      prior_dump_batch_reference_size: 32
-      overrides:
-        apply_schedule: true
-        optimizer:
-          min_lr: 0.0004
-        runtime:
-          grad_clip: 1.0
-          max_steps: 1000
-          trace_activations: true
-        schedule:
-          stages:
-            - name: prior_dump
-              steps: 1000
-              lr_max: 0.004
-              lr_schedule: linear
-              warmup_ratio: 0.05
-    parameter_adequacy_plan:
-      - Compare directly against the matching RMSNorm row on the same short-screen surface.
-      - Use the same upper-block-first winner rule so the combined row remains reproducible.
-    execution_policy: screen_only
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Run after the RMSNorm short screen so the post-stack norm family comparison is available for a winner-take-forward decision.
-    notes: []
-  - order: 4
-    delta_ref: dpnb_cuda_stack_scale_depth_scaled
-    status: ready
-    rationale: Test the root-cause intervention separately by reducing every prenorm residual branch before it is added back into the stack.
-    hypothesis: Depth-scaled residual branches should lower the upper-block growth rate more effectively than a post-stack norm alone because they change the in-stack accumulation itself.
-    anchor_delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.table_block_residual_scale=depth_scaled`.
-    model:
-      stage: nano_exact
-      stage_label: dpnb_cuda_stack_scale_depth_scaled
-      d_col: 128
-      d_icl: 512
-      input_normalization: train_zscore_clip
-      module_overrides:
-        table_block_style: prenorm
-        table_block_residual_scale: depth_scaled
-        allow_test_self_attention: false
-        row_pool: row_cls
-      tfrow_n_heads: 8
-      tfrow_n_layers: 3
-      tfrow_cls_tokens: 2
-      tfrow_norm: layernorm
-      tficl_n_heads: 8
-      tficl_n_layers: 12
-      head_hidden_dim: 1024
-    data:
-      surface_label: anchor_manifest_default
-    preprocessing:
-      surface_label: runtime_default
-    training:
-      surface_label: prior_linear_warmup_decay
-      prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
-      prior_dump_batch_reference_size: 32
-      overrides:
-        apply_schedule: true
-        optimizer:
-          min_lr: 0.0004
-        runtime:
-          grad_clip: 1.0
-          max_steps: 1000
-          trace_activations: true
-        schedule:
-          stages:
-            - name: prior_dump
-              steps: 1000
-              lr_max: 0.004
-              lr_schedule: linear
-              warmup_ratio: 0.05
-    parameter_adequacy_plan:
-      - Compare directly against the control and post-stack norm rows on the same short-screen surface.
-      - Use this row to decide whether the root-cause residual intervention deserves the one full-budget benchmark row.
-    execution_policy: screen_only
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Run after the norm-family screens so the final full-budget row can combine depth scaling with the winning post-stack norm if needed.
-    notes: []
-  - order: 5
-    delta_ref: dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner
-    status: ready
-    rationale: Spend the full benchmark budget only once, after the short screens identify the better downstream norm to pair with depth-scaled residuals.
-    hypothesis: Depth-scaled prenorm residuals plus the winning post-stack norm will produce the strongest stability evidence and the best chance of a benchmarkable large-anchor candidate.
-    anchor_delta: Keep the large-anchor batch32 replay benchmark surface fixed, add `table_block_residual_scale=depth_scaled`, and resolve `post_stack_norm` dynamically from rows 2-3 with RMSNorm winning any unresolved tie.
-    model:
-      stage: nano_exact
-      stage_label: dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner
-      d_col: 128
-      d_icl: 512
-      input_normalization: train_zscore_clip
-      module_overrides:
-        table_block_style: prenorm
-        table_block_residual_scale: depth_scaled
-        allow_test_self_attention: false
-        row_pool: row_cls
-      tfrow_n_heads: 8
-      tfrow_n_layers: 3
-      tfrow_cls_tokens: 2
-      tfrow_norm: layernorm
-      tficl_n_heads: 8
-      tficl_n_layers: 12
-      head_hidden_dim: 1024
-    dynamic_model_overrides:
-      post_stack_norm:
-        kind: screen_winner
-        compare_orders:
-          - order: 2
-            value: rmsnorm
-          - order: 3
-            value: layernorm
-        tie_break_preference: rmsnorm
-    data:
-      surface_label: anchor_manifest_default
-    preprocessing:
-      surface_label: runtime_default
-    training:
-      surface_label: prior_linear_warmup_decay
-      prior_dump_non_finite_policy: skip
-      prior_dump_batch_size: 32
-      prior_dump_lr_scale_rule: none
-      prior_dump_batch_reference_size: 32
-      overrides:
-        apply_schedule: true
-        optimizer:
-          min_lr: 0.0004
-        runtime:
-          grad_clip: 1.0
-          max_steps: 2500
-          trace_activations: true
-        schedule:
-          stages:
-            - name: prior_dump
-              steps: 2500
-              lr_max: 0.004
-              lr_schedule: linear
-              warmup_ratio: 0.05
-    parameter_adequacy_plan:
-      - Resolve the winning post-stack norm from rows 2-3 using upper-block final-window scale first, then post-warmup slope, then clip rate, then loss EMA, with RMSNorm as the final tie-breaker.
-      - Benchmark only this combined row at full budget after the short-screen control and component rows complete.
-    execution_policy: benchmark_full
-    run_id: null
-    followup_run_ids: []
-    decision: null
-    interpretation_status: pending
-    confounders: []
-    next_action: Wait for the short-screen norm comparison to resolve, then benchmark the combined depth-scaled row with the winning post-stack norm.
-    notes:
-      - The runner resolves `model.module_overrides.post_stack_norm` at execution time from the recorded screen metrics in rows 2-3.
+- order: 1
+  delta_ref: dpnb_cuda_stack_scale_control
+  status: screened
+  rationale: Reconfirm the inherited batch32 replay activation-drift profile on a
+    short diagnostic budget before reading any new stabilization change.
+  hypothesis: The batch32 replay control will still show steadily rising upper-block
+    activation norms over 1000 steps, reproducing the parent-sweep failure mode on
+    a cheaper screen.
+  anchor_delta: Keep the large-anchor batch32 replay surface fixed, but replace the
+    full benchmarked run with a short 1000-step train-only screen.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_cuda_stack_scale_control
+    d_col: 128
+    d_icl: 512
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+    tficl_n_heads: 8
+    tficl_n_layers: 12
+    head_hidden_dim: 1024
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 1000
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1000
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Treat this row as the short-screen control, not as a benchmark-facing replacement
+    for the registered anchor.
+  - Compare the same upper-block screen diagnostics against rows 2-4 before choosing
+    any combined full-budget row.
+  execution_policy: screen_only
+  run_id: sd_cuda_stack_scale_followup_01_dpnb_cuda_stack_scale_control_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: interpreted
+  confounders: []
+  next_action: Keep this row as the reproduced drift control; do not spend benchmark
+    budget on the unchanged short-screen surface.
+  notes:
+  - If upper-block means remain clearly upward after warmup, treat the control as
+    reproduced even if train loss looks superficially acceptable.
+  - Train-only screen recorded as `sd_cuda_stack_scale_followup_01_dpnb_cuda_stack_scale_control_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  screen_metrics:
+    upper_block_names:
+    - post_transformer_block_8
+    - post_transformer_block_9
+    - post_transformer_block_10
+    - post_transformer_block_11
+    upper_block_final_window_mean: 240.46404994964598
+    upper_block_post_warmup_mean_slope: 0.12565366989064783
+    clipped_step_fraction: 0.032
+    final_train_loss_ema: 0.6933284903267384
+    upper_blocks:
+      post_transformer_block_10:
+        final_window_mean: 244.74366317749025
+        post_warmup_slope: 0.12509827017819886
+      post_transformer_block_11:
+        final_window_mean: 253.9668894958496
+        post_warmup_slope: 0.12337037010089864
+      post_transformer_block_8:
+        final_window_mean: 226.47746688842773
+        post_warmup_slope: 0.1271027539050368
+      post_transformer_block_9:
+        final_window_mean: 236.6681802368164
+        post_warmup_slope: 0.12704328537845697
+  benchmark_metrics: null
+- order: 2
+  delta_ref: dpnb_cuda_stack_scale_poststack_rms
+  status: screened
+  rationale: Test the cheapest downstream stabilization path first by adding only
+    a post-stack RMSNorm on the same short-screen control surface.
+  hypothesis: RMSNorm after the full block stack may reduce the exported residual
+    scale enough to beat the control on upper-block final-window mean, even if it
+    does not fully address in-stack growth.
+  anchor_delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.post_stack_norm=rmsnorm`
+    after the full prenorm table-block stack.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_cuda_stack_scale_poststack_rms
+    d_col: 128
+    d_icl: 512
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+      post_stack_norm: rmsnorm
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+    tficl_n_heads: 8
+    tficl_n_layers: 12
+    head_hidden_dim: 1024
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 1000
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1000
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against the matching LayerNorm row on the same short-screen surface.
+  - Use upper-block final-window mean as the first discriminator and keep train loss
+    secondary.
+  execution_policy: screen_only
+  run_id: sd_cuda_stack_scale_followup_02_dpnb_cuda_stack_scale_poststack_rms_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: interpreted
+  confounders: []
+  next_action: Carry RMSNorm forward only as the winning norm-family comparator;
+    it beat LayerNorm on upper-block scale but still trailed depth scaling overall.
+  notes:
+  - Train-only screen recorded as `sd_cuda_stack_scale_followup_02_dpnb_cuda_stack_scale_poststack_rms_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  screen_metrics:
+    upper_block_names:
+    - post_transformer_block_8
+    - post_transformer_block_9
+    - post_transformer_block_10
+    - post_transformer_block_11
+    upper_block_final_window_mean: 176.073586807251
+    upper_block_post_warmup_mean_slope: 0.022245198218199428
+    clipped_step_fraction: 0.019
+    final_train_loss_ema: 0.6932266288255998
+    upper_blocks:
+      post_transformer_block_10:
+        final_window_mean: 178.18615966796875
+        post_warmup_slope: 0.021900453647621537
+      post_transformer_block_11:
+        final_window_mean: 181.24376953125
+        post_warmup_slope: 0.020984049452842622
+      post_transformer_block_8:
+        final_window_mean: 170.40656799316406
+        post_warmup_slope: 0.023430166018463417
+      post_transformer_block_9:
+        final_window_mean: 174.4578500366211
+        post_warmup_slope: 0.022666123753870136
+  benchmark_metrics: null
+- order: 3
+  delta_ref: dpnb_cuda_stack_scale_poststack_ln
+  status: screened
+  rationale: Complete the norm-family comparison on the same short-screen surface
+    so the combined row can choose a downstream norm mechanically instead of by inspection.
+  hypothesis: LayerNorm may outperform RMSNorm on upper-block boundedness and clip
+    rate on this large-anchor bridge surface, even though both act only after the
+    block stack.
+  anchor_delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.post_stack_norm=layernorm`
+    after the full prenorm table-block stack.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_cuda_stack_scale_poststack_ln
+    d_col: 128
+    d_icl: 512
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+      post_stack_norm: layernorm
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+    tficl_n_heads: 8
+    tficl_n_layers: 12
+    head_hidden_dim: 1024
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 1000
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1000
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against the matching RMSNorm row on the same short-screen surface.
+  - Use the same upper-block-first winner rule so the combined row remains reproducible.
+  execution_policy: screen_only
+  run_id: sd_cuda_stack_scale_followup_03_dpnb_cuda_stack_scale_poststack_ln_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: interpreted
+  confounders: []
+  next_action: Do not carry LayerNorm forward; despite the lower loss trace, it lost
+    the norm-family comparison on upper-block scale and clip rate.
+  notes:
+  - Train-only screen recorded as `sd_cuda_stack_scale_followup_03_dpnb_cuda_stack_scale_poststack_ln_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  screen_metrics:
+    upper_block_names:
+    - post_transformer_block_8
+    - post_transformer_block_9
+    - post_transformer_block_10
+    - post_transformer_block_11
+    upper_block_final_window_mean: 604.592961883545
+    upper_block_post_warmup_mean_slope: -0.003930782465615718
+    clipped_step_fraction: 0.44
+    final_train_loss_ema: 0.5141133480012727
+    upper_blocks:
+      post_transformer_block_10:
+        final_window_mean: 614.2869708251953
+        post_warmup_slope: -0.004704136042991201
+      post_transformer_block_11:
+        final_window_mean: 642.7586364746094
+        post_warmup_slope: -0.006055017543418465
+      post_transformer_block_8:
+        final_window_mean: 569.5431329345703
+        post_warmup_slope: -0.0016911822741646112
+      post_transformer_block_9:
+        final_window_mean: 591.7831072998047
+        post_warmup_slope: -0.003272794001888592
+  benchmark_metrics: null
+- order: 4
+  delta_ref: dpnb_cuda_stack_scale_depth_scaled
+  status: screened
+  rationale: Test the root-cause intervention separately by reducing every prenorm
+    residual branch before it is added back into the stack.
+  hypothesis: Depth-scaled residual branches should lower the upper-block growth rate
+    more effectively than a post-stack norm alone because they change the in-stack
+    accumulation itself.
+  anchor_delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.table_block_residual_scale=depth_scaled`.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_cuda_stack_scale_depth_scaled
+    d_col: 128
+    d_icl: 512
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      table_block_residual_scale: depth_scaled
+      post_stack_norm: rmsnorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+    tficl_n_heads: 8
+    tficl_n_layers: 12
+    head_hidden_dim: 1024
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 1000
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 1000
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against the control and post-stack norm rows on the same short-screen
+    surface.
+  - Use this row to decide whether the root-cause residual intervention deserves the
+    one full-budget benchmark row.
+  execution_policy: screen_only
+  run_id: sd_cuda_stack_scale_followup_04_dpnb_cuda_stack_scale_depth_scaled_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: interpreted
+  confounders: []
+  next_action: Keep depth scaling as the preferred stack-scale intervention if this
+    sweep is revisited; it produced the strongest short-screen stability signal.
+  notes:
+  - Train-only screen recorded as `sd_cuda_stack_scale_followup_04_dpnb_cuda_stack_scale_depth_scaled_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  screen_metrics:
+    upper_block_names:
+    - post_transformer_block_8
+    - post_transformer_block_9
+    - post_transformer_block_10
+    - post_transformer_block_11
+    upper_block_final_window_mean: 77.8338779258728
+    upper_block_post_warmup_mean_slope: 0.006561147310588584
+    clipped_step_fraction: 0.433
+    final_train_loss_ema: 0.5121660022585572
+    upper_blocks:
+      post_transformer_block_10:
+        final_window_mean: 78.53663200378418
+        post_warmup_slope: 0.005943047496029968
+      post_transformer_block_11:
+        final_window_mean: 82.13937690734863
+        post_warmup_slope: 0.0044013715527131325
+      post_transformer_block_8:
+        final_window_mean: 74.03247116088868
+        post_warmup_slope: 0.008466101608367929
+      post_transformer_block_9:
+        final_window_mean: 76.62703163146972
+        post_warmup_slope: 0.0074340685852433055
+  benchmark_metrics: null
+- order: 5
+  delta_ref: dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner
+  status: blocked
+  rationale: Spend the full benchmark budget only once, after the short screens identify
+    the better downstream norm to pair with depth-scaled residuals.
+  hypothesis: Depth-scaled prenorm residuals plus the winning post-stack norm will
+    produce the strongest stability evidence and the best chance of a benchmarkable
+    large-anchor candidate.
+  anchor_delta: Keep the large-anchor batch32 replay benchmark surface fixed, add
+    `table_block_residual_scale=depth_scaled`, and resolve `post_stack_norm` dynamically
+    from rows 2-3 with RMSNorm winning any unresolved tie.
+  model:
+    stage: nano_exact
+    stage_label: dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner
+    d_col: 128
+    d_icl: 512
+    input_normalization: train_zscore_clip
+    module_overrides:
+      table_block_style: prenorm
+      table_block_residual_scale: depth_scaled
+      post_stack_norm: rmsnorm
+      allow_test_self_attention: false
+      row_pool: row_cls
+    tfrow_n_heads: 8
+    tfrow_n_layers: 3
+    tfrow_cls_tokens: 2
+    tfrow_norm: layernorm
+    tficl_n_heads: 8
+    tficl_n_layers: 12
+    head_hidden_dim: 1024
+  dynamic_model_overrides:
+    post_stack_norm:
+      kind: screen_winner
+      compare_orders:
+      - order: 2
+        value: rmsnorm
+      - order: 3
+        value: layernorm
+      tie_break_preference: rmsnorm
+      resolved_value: rmsnorm
+      resolved_from_order: 2
+      resolution_reason: lower upper-block final-window mean
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: true
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Resolve the winning post-stack norm from rows 2-3 using upper-block final-window
+    scale first, then post-warmup slope, then clip rate, then loss EMA, with RMSNorm
+    as the final tie-breaker.
+  - Benchmark only this combined row at full budget after the short-screen control
+    and component rows complete.
+  execution_policy: benchmark_full
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Leave the combined benchmark row blocked until there is a materially
+    stronger reason to spend full-budget benchmark time on the depth-scaled plus
+    RMSNorm surface.
+  notes:
+  - The runner resolves `model.module_overrides.post_stack_norm` at execution time
+    from the recorded screen metrics in rows 2-3.
+  - Resolved `post_stack_norm` to `rmsnorm` from screen row `2` (lower upper-block
+    final-window mean).
+  - A stopped diagnostic archive exists at `sd_cuda_stack_scale_followup_05_dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner_v1_stopped_user_interrupt_20260319T161805Z`.
+  - The first full-budget attempt was stopped manually at step `475` before benchmark
+    registration after the partial trace still looked mediocre relative to the screen
+    evidence.
