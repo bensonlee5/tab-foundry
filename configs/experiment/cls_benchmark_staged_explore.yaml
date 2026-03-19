@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_staged
+  - _shared/explore_runtime_standard
+  - _self_
+
+runtime:
+  output_dir: outputs/cls_benchmark_staged_explore
+
+logging:
+  run_name: cls-benchmark-staged-explore

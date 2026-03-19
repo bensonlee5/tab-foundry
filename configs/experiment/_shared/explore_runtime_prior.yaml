@@ -1,0 +1,6 @@
+# @package _global_
+
+runtime:
+  trace_activations: false
+  eval_every: 250
+  checkpoint_every: 250

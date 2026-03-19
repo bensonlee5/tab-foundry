@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_staged_prior_cuda_scale
+  - _shared/explore_runtime_prior
+  - _self_
+
+runtime:
+  output_dir: outputs/cls_benchmark_staged_prior_cuda_scale_explore
+
+logging:
+  run_name: dpnb_cuda_large_anchor_explore
