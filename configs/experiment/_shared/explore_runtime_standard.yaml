@@ -1,0 +1,8 @@
+# @package _global_
+
+runtime:
+  num_workers: 2
+  trace_activations: false
+  eval_every: 100
+  checkpoint_every: null
+  val_batches: 8

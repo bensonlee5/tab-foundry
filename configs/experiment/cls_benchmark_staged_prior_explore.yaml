@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_staged_prior
+  - _shared/explore_runtime_prior
+  - _self_
+
+runtime:
+  output_dir: outputs/cls_benchmark_staged_prior_explore
+
+logging:
+  run_name: dpnb_row_cls_cls2_linear_warmup_decay_explore
