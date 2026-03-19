@@ -6,9 +6,11 @@ import pytest
 
 import tab_foundry.bench.prior_train as prior_train_module
 import tab_foundry.cli as cli_module
+import tab_foundry.cli.groups.dev as dev_group
 import tab_foundry.cli.groups.data as data_group
 import tab_foundry.research.system_delta as system_delta_module
 import tab_foundry.research.sweep.graph as graph_module
+import tab_foundry.research.sweep.summarize as summarize_module
 
 
 def test_nested_cli_bench_compare_delegates_to_compare_main(
@@ -93,6 +95,42 @@ def test_nested_cli_research_sweep_graph_delegates_to_graph_main(
 
     assert exit_code == 0
     assert captured["argv"] == ["--anchor", "--order", "7"]
+
+
+def test_nested_cli_research_sweep_summarize_delegates_to_summarize_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_summarize_main(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(summarize_module, "main", _fake_summarize_main)
+
+    exit_code = cli_module.main(
+        ["research", "sweep", "summarize", "--sweep-id", "cuda_stack_scale_followup", "--json"]
+    )
+
+    assert exit_code == 0
+    assert captured["argv"] == ["--sweep-id", "cuda_stack_scale_followup", "--json"]
+
+
+def test_nested_cli_dev_resolve_config_delegates_to_dev_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run_resolve_config(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(dev_group, "_run_resolve_config", _fake_run_resolve_config)
+
+    exit_code = cli_module.main(["dev", "resolve-config", "--json", "experiment=cls_smoke"])
+
+    assert exit_code == 0
+    assert captured["argv"] == ["--json", "experiment=cls_smoke"]
 
 
 def test_nested_cli_data_dagzoo_generate_manifest_dispatches_to_data_handler(

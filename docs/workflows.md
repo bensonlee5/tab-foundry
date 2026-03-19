@@ -56,6 +56,14 @@ Run the full local quality gate:
 ./scripts/dev verify full
 ```
 
+Fast developer-facing inspection commands:
+
+```bash
+uv run tab-foundry dev resolve-config experiment=cls_smoke
+uv run tab-foundry dev forward-check experiment=cls_smoke
+uv run tab-foundry dev health-check --run-dir outputs/cls_smoke
+```
+
 Format markdown directly:
 
 ```bash
@@ -195,6 +203,19 @@ uv run tab-foundry export bundle \
 uv run tab-foundry export validate \
   --bundle-dir outputs/exports/cls_smoke_v3
 ```
+
+For model-surface work, prefer the fast dev commands before launching a full
+smoke or training loop:
+
+```bash
+uv run tab-foundry dev resolve-config experiment=cls_smoke
+uv run tab-foundry dev forward-check experiment=cls_smoke
+```
+
+`resolve-config` prints the resolved model/data/preprocessing/training surface,
+including staged module selection and parameter counts. `forward-check` builds
+the resolved model and runs one deterministic synthetic forward pass without
+starting training.
 
 ## Standard Workflow Artifacts
 
@@ -570,6 +591,7 @@ Recommended loop:
    ```bash
    uv run tab-foundry research sweep list
    uv run tab-foundry research sweep next
+   uv run tab-foundry research sweep summarize --include-screened
    ```
 
 1. Render architecture graphs for the anchor or selected rows when you need a
@@ -586,6 +608,14 @@ Recommended loop:
    `outputs/staged_ladder/research/<sweep_id>/architecture_graphs` by default.
    Run `tab-foundry research sweep graph --anchor` for the current canonical
    surface. The command requires the Graphviz `dot` binary on `PATH`.
+
+1. Summarize completed and screened rows into one compact local table when you
+   need to answer "how is this sweep going?" without reopening queue YAML by
+   hand:
+
+   ```bash
+   uv run tab-foundry research sweep summarize --sweep-id <sweep_id> --include-screened
+   ```
 
 1. Execute the active sweep's `ready` rows with the generic executor:
 

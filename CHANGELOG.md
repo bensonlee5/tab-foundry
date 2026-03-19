@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.7] - 2026-03-19
+
+### Added
+
+- Added a packaged `tab-foundry dev` namespace with
+  `resolve-config`, `forward-check`, and `health-check` for fast resolved
+  surface inspection, forward-only model construction checks, and instability
+  triage without launching a full training loop.
+
+- Added `tab-foundry research sweep summarize`, which prints a compact local
+  table of sweep row status, decisions, run ids, and key stability or benchmark
+  metrics from the active or selected system-delta sweep.
+
+### Changed
+
+- User-facing note: the sweep graph renderer now reuses the shared synthetic
+  forward-batch helper used by `tab-foundry dev forward-check`, so developer
+  inspection commands and architecture graph rendering exercise the same
+  deterministic tensor shapes.
+
 ## [0.8.6] - 2026-03-19
 
 ### Changed

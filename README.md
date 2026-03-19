@@ -42,6 +42,20 @@ Run the full local quality gate:
 ./scripts/dev verify full
 ```
 
+Inspect one resolved config or run a forward-only construction smoke check:
+
+```bash
+uv run tab-foundry dev resolve-config experiment=cls_smoke
+uv run tab-foundry dev forward-check experiment=cls_smoke
+```
+
+Summarize one run's instability telemetry or one sweep's local results:
+
+```bash
+uv run tab-foundry dev health-check --run-dir outputs/cls_smoke
+uv run tab-foundry research sweep summarize --include-screened
+```
+
 ## Quickstart
 
 Build a manifest:

@@ -66,6 +66,12 @@ def _run_sweep_promote(argv: Sequence[str] | None = None) -> int:
     return promote_main(None if argv is None else list(argv))
 
 
+def _run_sweep_summarize(argv: Sequence[str] | None = None) -> int:
+    from tab_foundry.research.sweep.summarize import main as summarize_main
+
+    return summarize_main(None if argv is None else list(argv))
+
+
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser = subparsers.add_parser("research", help="Research workflows")
     nested = parser.add_subparsers(dest="research_command", required=True)
@@ -125,4 +131,10 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "promote",
         help="Promote a completed run to the sweep anchor",
         delegate=_run_sweep_promote,
+    )
+    register_delegate_leaf(
+        sweep_nested,
+        "summarize",
+        help="Summarize local sweep results into one compact table",
+        delegate=_run_sweep_summarize,
     )

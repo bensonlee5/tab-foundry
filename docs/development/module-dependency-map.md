@@ -18,6 +18,7 @@ section factual and keep design intent in the policy section below it.
   and `tab_foundry.types`.
 - `tab_foundry.cli` depends on `tab_foundry.bench`,
   `tab_foundry.config`, `tab_foundry.data`, `tab_foundry.export`,
+  `tab_foundry.model`, `tab_foundry.preprocessing`,
   `tab_foundry.research`, and `tab_foundry.training`.
 - `tab_foundry.data` depends on `tab_foundry.preprocessing` and
   `tab_foundry.types`.
