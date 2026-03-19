@@ -6,7 +6,6 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-import subprocess
 import time
 from typing import Any, Sequence
 
@@ -21,7 +20,10 @@ from tab_foundry.bench.smoke_common import (
     build_cls_smoke_train_config,
     build_manifest_payload,
 )
-from tab_foundry.data.manifest import build_manifest
+from tab_foundry.data.dagzoo_workflow import (
+    DagzooGenerateManifestConfig,
+    run_dagzoo_generate_manifest,
+)
 from tab_foundry.training.evaluate import evaluate_checkpoint
 from tab_foundry.training.trainer import train
 
@@ -60,25 +62,25 @@ def _default_out_root() -> Path:
     return Path("/tmp") / f"tab_foundry_dagzoo_smoke_{stamp}"
 
 
-def _dagzoo_generate_command(config: SmokeConfig, *, generated_dir: Path) -> list[str]:
-    return [
-        "uv",
-        "run",
-        "dagzoo",
-        "generate",
-        "--config",
-        "configs/default.yaml",
-        "--num-datasets",
-        str(config.num_datasets),
-        "--rows",
-        str(config.rows),
-        "--seed",
-        str(config.seed),
-        "--device",
-        config.device,
-        "--out",
-        str(generated_dir),
-    ]
+def _build_dagzoo_generate_manifest_config(
+    config: SmokeConfig,
+    *,
+    dagzoo_root: Path,
+    out_root: Path,
+) -> DagzooGenerateManifestConfig:
+    return DagzooGenerateManifestConfig(
+        dagzoo_root=dagzoo_root,
+        dagzoo_config=Path("configs/default.yaml"),
+        handoff_root=out_root,
+        out_manifest=out_root / "manifest.parquet",
+        num_datasets=int(config.num_datasets),
+        seed=int(config.seed),
+        rows=str(config.rows),
+        device=str(config.device),
+        train_ratio=float(config.train_ratio),
+        val_ratio=float(config.val_ratio),
+        filter_policy=str(config.filter_policy),
+    )
 
 
 def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
@@ -100,7 +102,6 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
         raise RuntimeError(f"dagzoo config missing at {dagzoo_root / 'configs' / 'default.yaml'}")
 
     out_root.mkdir(parents=True, exist_ok=True)
-    generated_dir = out_root / "generated"
     manifest_path = out_root / "manifest.parquet"
     train_output_dir = out_root / "train_outputs"
     history_path = train_output_dir / "train_history.jsonl"
@@ -120,7 +121,7 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
             "checkpoint_every": int(config.checkpoint_every),
         },
         "artifacts": {
-            "generated_dir": str(generated_dir),
+            "generated_dir": None,
             "manifest_path": str(manifest_path),
             "train_output_dir": str(train_output_dir),
             "train_history_jsonl": str(history_path),
@@ -132,22 +133,19 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
     total_start = time.perf_counter()
     try:
         stage_start = time.perf_counter()
-        subprocess.run(
-            _dagzoo_generate_command(config, generated_dir=generated_dir),
-            cwd=dagzoo_root,
-            check=True,
+        workflow_result = run_dagzoo_generate_manifest(
+            _build_dagzoo_generate_manifest_config(
+                config,
+                dagzoo_root=dagzoo_root,
+                out_root=out_root,
+            )
         )
-        timings_seconds["dagzoo_generate"] = time.perf_counter() - stage_start
-
-        stage_start = time.perf_counter()
-        manifest_summary = build_manifest(
-            data_roots=[generated_dir],
-            out_path=manifest_path,
-            train_ratio=config.train_ratio,
-            val_ratio=config.val_ratio,
-            filter_policy=config.filter_policy,
-        )
-        timings_seconds["build_manifest"] = time.perf_counter() - stage_start
+        timings_seconds["dagzoo_generate_manifest"] = time.perf_counter() - stage_start
+        manifest_summary = workflow_result.summary
+        manifest_path = manifest_summary.out_path.resolve()
+        telemetry["dagzoo_handoff"] = workflow_result.handoff.to_summary_dict()
+        telemetry["artifacts"]["generated_dir"] = str(workflow_result.handoff.generated_dir)
+        telemetry["artifacts"]["manifest_path"] = str(manifest_path)
 
         stage_start = time.perf_counter()
         train_result = train(

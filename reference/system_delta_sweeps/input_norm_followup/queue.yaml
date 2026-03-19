@@ -539,9 +539,9 @@ rows:
     nanotabpfn_best_log_loss: 0.4510985126422435
     final_log_loss: 0.39718748852964125
     nanotabpfn_final_log_loss: 0.453973433403279
-    best_brier_score: 0.13074733328243912
+    best_brier_score: 0.26149466656487824
     nanotabpfn_best_brier_score: 0.14642705664899075
-    final_brier_score: 0.13074733328243912
+    final_brier_score: 0.26149466656487824
     nanotabpfn_final_brier_score: 0.14745454546536443
     best_roc_auc: 0.763449888408113
     nanotabpfn_best_roc_auc: 0.7482958403555632

@@ -31,6 +31,8 @@ BATCH16_DRIFT = -0.003893703684912264
 BATCH64_BEST_ROC_AUC = 0.763449888408113
 BATCH64_FINAL_ROC_AUC = 0.763449888408113
 BATCH64_DRIFT = 0.0
+BATCH64_BEST_BRIER_SCORE = 0.26149466656487824
+BATCH64_FINAL_BRIER_SCORE = 0.26149466656487824
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -171,6 +173,8 @@ def test_input_norm_followup_metadata_and_rows_match_the_bridge_baseline_plan() 
     assert batch64["benchmark_metrics"]["best_roc_auc"] == BATCH64_BEST_ROC_AUC
     assert batch64["benchmark_metrics"]["final_roc_auc"] == BATCH64_FINAL_ROC_AUC
     assert batch64["benchmark_metrics"]["drift"] == BATCH64_DRIFT
+    assert batch64["benchmark_metrics"]["best_brier_score"] == BATCH64_BEST_BRIER_SCORE
+    assert batch64["benchmark_metrics"]["final_brier_score"] == BATCH64_FINAL_BRIER_SCORE
     assert batch64["decision"] == "defer"
     assert "locked hybrid-diagnostic anchor" in batch64["next_action"]
     assert "1.4142" in batch64["notes"][0]

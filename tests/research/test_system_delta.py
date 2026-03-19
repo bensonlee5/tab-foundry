@@ -7,6 +7,7 @@ import shutil
 from omegaconf import OmegaConf
 import pytest
 
+import tab_foundry.research.sweep.matrix as matrix_module
 from tab_foundry.research.lane_contract import (
     ARCHITECTURE_SCREEN_LANE,
     HYBRID_DIAGNOSTIC_LANE,
@@ -49,6 +50,19 @@ def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:
             continue
         shutil.copytree(source_dir, sweeps_root / source_dir.name)
     return reference_root, sweeps_root
+
+
+def _stub_validation_artifacts(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    result_card = tmp_path / "result_card.md"
+    result_card.write_text("# Result Card\n", encoding="utf-8")
+    training_surface_record = tmp_path / "training_surface_record.json"
+    training_surface_record.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(matrix_module, "result_card_path", lambda **_: result_card)
+    monkeypatch.setattr(
+        matrix_module,
+        "resolve_registry_path_value",
+        lambda _path: training_surface_record,
+    )
 
 
 def _anchor_dimension_anchor_text(sweep: dict[str, object], *, dimension: str) -> str:
@@ -568,6 +582,51 @@ def test_system_delta_queue_validation_passes_when_no_rows_are_completed() -> No
         queue_without_completed_rows,
         registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
     ) == []
+
+
+def test_system_delta_queue_validation_detects_completed_metric_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _stub_validation_artifacts(monkeypatch, tmp_path)
+    queue = load_system_delta_queue(
+        sweep_id="input_norm_none_followup",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+    )
+    row = next(row for row in queue["rows"] if row["delta_id"] == "dpnb_input_norm_none_batch64_sqrt")
+    row["benchmark_metrics"]["final_brier_score"] = 0.0
+
+    issues = validate_system_delta_queue(
+        queue,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+    )
+
+    assert any(
+        "dpnb_input_norm_none_batch64_sqrt: benchmark_metrics.final_brier_score mismatch" in issue
+        for issue in issues
+    )
+
+
+def test_checked_in_completed_system_delta_queues_validate_against_registry(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _stub_validation_artifacts(monkeypatch, tmp_path)
+    for sweep_id in (
+        "cuda_stability_followup",
+        "input_norm_followup",
+        "input_norm_none_followup",
+    ):
+        queue = load_system_delta_queue(
+            sweep_id=sweep_id,
+            index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+            catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+        )
+        assert validate_system_delta_queue(
+            queue,
+            registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        ) == []
 
 
 def test_checked_in_system_delta_matrix_matches_rendered_active_sweep() -> None:

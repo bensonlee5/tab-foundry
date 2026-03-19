@@ -15,6 +15,10 @@ RUN_ID = "sd_input_norm_none_followup_01_dpnb_input_norm_none_batch64_sqrt_v2"
 BEST_ROC_AUC = 0.7597362859021641
 FINAL_ROC_AUC = 0.7586267171926775
 DRIFT = -0.0011095687094866413
+BEST_BRIER_SCORE = 0.2663285277943073
+FINAL_BRIER_SCORE = 0.2664769224520448
+FINAL_MINUS_BEST_BRIER_SCORE = 0.00014839465773747174
+DELTA_FINAL_BRIER_SCORE = 0.004982255887166553
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -63,6 +67,13 @@ def test_input_norm_none_followup_metadata_and_result_match_the_deferred_result(
     assert row["benchmark_metrics"]["best_roc_auc"] == BEST_ROC_AUC
     assert row["benchmark_metrics"]["final_roc_auc"] == FINAL_ROC_AUC
     assert row["benchmark_metrics"]["drift"] == DRIFT
+    assert row["benchmark_metrics"]["best_brier_score"] == BEST_BRIER_SCORE
+    assert row["benchmark_metrics"]["final_brier_score"] == FINAL_BRIER_SCORE
+    assert (
+        row["benchmark_metrics"]["final_minus_best_brier_score"]
+        == FINAL_MINUS_BEST_BRIER_SCORE
+    )
+    assert row["benchmark_metrics"]["delta_final_brier_score"] == DELTA_FINAL_BRIER_SCORE
     assert any("lost 0.0048 final ROC AUC" in note for note in row["notes"])
     assert "do not reopen `input_normalization=none`" in row["next_action"]
 

@@ -12,6 +12,68 @@ from .paths_io import _render_path, _write_text, default_catalog_path, default_r
 from .validation import ensure_non_empty_string
 
 
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    return float(value)
+
+
+def _expected_completed_queue_metrics(run: Mapping[str, Any]) -> dict[str, float]:
+    metrics = cast(dict[str, Any], run["tab_foundry_metrics"])
+    diagnostics = cast(dict[str, Any], run["training_diagnostics"])
+    comparisons = cast(dict[str, Any], run.get("comparisons", {}))
+    raw_vs_anchor = comparisons.get("vs_anchor", {})
+    vs_anchor = cast(dict[str, Any], raw_vs_anchor if isinstance(raw_vs_anchor, Mapping) else {})
+    expected: dict[str, float] = {}
+
+    best_step = _optional_float(metrics.get("best_step"))
+    if best_step is not None:
+        expected["best_step"] = best_step
+    max_grad_norm = _optional_float(diagnostics.get("max_grad_norm"))
+    if max_grad_norm is not None:
+        expected["max_grad_norm"] = max_grad_norm
+
+    metric_suffixes = (
+        "roc_auc",
+        "log_loss",
+        "brier_score",
+        "crps",
+        "avg_pinball_loss",
+        "picp_90",
+    )
+    for prefix in ("best", "final"):
+        for suffix in metric_suffixes:
+            key = f"{prefix}_{suffix}"
+            value = _optional_float(metrics.get(key))
+            if value is not None:
+                expected[key] = value
+
+    for suffix in metric_suffixes:
+        best_key = f"best_{suffix}"
+        final_key = f"final_{suffix}"
+        best_value = expected.get(best_key)
+        final_value = expected.get(final_key)
+        if best_value is None or final_value is None:
+            continue
+        expected[f"final_minus_best_{suffix}"] = final_value - best_value
+    if "final_minus_best_roc_auc" in expected:
+        expected["drift"] = expected["final_minus_best_roc_auc"]
+
+    comparison_keys = {
+        "final_log_loss_delta": "delta_final_log_loss",
+        "final_brier_score_delta": "delta_final_brier_score",
+        "final_roc_auc_delta": "delta_final_roc_auc",
+        "final_crps_delta": "delta_final_crps",
+        "final_avg_pinball_loss_delta": "delta_final_avg_pinball_loss",
+        "final_picp_90_delta": "delta_final_picp_90",
+    }
+    for registry_key, queue_key in comparison_keys.items():
+        value = _optional_float(vs_anchor.get(registry_key))
+        if value is not None:
+            expected[queue_key] = value
+    return expected
+
+
 def render_model_change_payload(model_payload: Mapping[str, Any]) -> dict[str, Any]:
     rendered: dict[str, Any] = {}
     module_overrides = model_payload.get("module_overrides")
@@ -39,11 +101,6 @@ def effective_model_label(*, queue: Mapping[str, Any], queue_row: Mapping[str, A
 
 
 def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str]:
-    def _optional_float(value: Any) -> float | None:
-        if value is None:
-            return None
-        return float(value)
-
     def _format(value: float | None, *, suffix: str = "", signed: bool = False) -> str:
         if value is None:
             return "n/a"
@@ -166,6 +223,21 @@ def validate_system_delta_queue(
             resolved = resolve_registry_path_value(training_surface_record_path)
             if not resolved.exists():
                 issues.append(f"{delta_id}: training surface artifact does not exist at {resolved}")
+        benchmark_metrics = row.get("benchmark_metrics")
+        if not isinstance(benchmark_metrics, Mapping):
+            issues.append(f"{delta_id}: completed rows must include benchmark_metrics")
+            continue
+        expected_metrics = _expected_completed_queue_metrics(run)
+        for metric_key, expected_value in expected_metrics.items():
+            if metric_key not in benchmark_metrics:
+                continue
+            actual_raw = benchmark_metrics.get(metric_key)
+            actual_value = _optional_float(actual_raw)
+            if actual_value is None or abs(actual_value - expected_value) > 1.0e-12:
+                issues.append(
+                    f"{delta_id}: benchmark_metrics.{metric_key} mismatch "
+                    f"(queue={actual_raw!r}, registry={expected_value!r})"
+                )
     return issues
 
 

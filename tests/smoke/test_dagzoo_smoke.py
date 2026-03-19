@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import subprocess
 from typing import Any
 
 import tab_foundry.bench.dagzoo_smoke as smoke_module
+from tab_foundry.data.dagzoo_handoff import DagzooHandoffInfo
+from tab_foundry.data.dagzoo_workflow import DagzooGenerateManifestResult
 from tab_foundry.data.manifest import ManifestSummary
 from tab_foundry.types import EvalResult, TrainResult
 
@@ -68,26 +69,38 @@ def test_run_dagzoo_smoke_writes_expected_telemetry(
     (dagzoo_root / "configs").mkdir(parents=True)
     (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
     out_root = tmp_path / "run"
+    generated_dir = out_root / "nested" / "generated"
+    handoff_manifest_path = out_root / "handoff_manifest.json"
 
     captured: dict[str, Any] = {}
 
-    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
-        captured["dagzoo_cmd"] = cmd
-        captured["dagzoo_cwd"] = cwd
-        captured["dagzoo_check"] = check
-        return subprocess.CompletedProcess(cmd, 0)
-
-    def _fake_build_manifest(**_kwargs: Any) -> ManifestSummary:
-        return ManifestSummary(
-            out_path=out_root / "manifest.parquet",
-            filter_policy="include_all",
-            discovered_records=128,
-            excluded_records=0,
-            total_records=128,
-            train_records=80,
-            val_records=24,
-            test_records=24,
-            warnings=[],
+    def _fake_run_dagzoo_generate_manifest(
+        cfg: Any,
+    ) -> DagzooGenerateManifestResult:
+        captured["workflow_cfg"] = cfg
+        return DagzooGenerateManifestResult(
+            handoff=DagzooHandoffInfo(
+                handoff_manifest_path=handoff_manifest_path,
+                handoff_manifest_sha256="a" * 64,
+                source_family="dagzoo.fixed_layout_scm",
+                generate_run_id="1" * 32,
+                generated_corpus_id="2" * 32,
+                generated_dir=generated_dir,
+                recommended_training_corpus="generated",
+                recommended_training_artifact_key="generated_dir",
+                curation_policy="none",
+            ),
+            summary=ManifestSummary(
+                out_path=out_root / "manifest.parquet",
+                filter_policy="include_all",
+                discovered_records=128,
+                excluded_records=0,
+                total_records=128,
+                train_records=80,
+                val_records=24,
+                test_records=24,
+                warnings=[],
+            ),
         )
 
     def _fake_train(cfg: Any) -> TrainResult:
@@ -147,8 +160,11 @@ def test_run_dagzoo_smoke_writes_expected_telemetry(
         captured["eval_cfg"] = cfg
         return EvalResult(checkpoint=Path(str(cfg.eval.checkpoint)), metrics={"loss": 0.7, "acc": 0.8})
 
-    monkeypatch.setattr(smoke_module.subprocess, "run", _fake_run)
-    monkeypatch.setattr(smoke_module, "build_manifest", _fake_build_manifest)
+    monkeypatch.setattr(
+        smoke_module,
+        "run_dagzoo_generate_manifest",
+        _fake_run_dagzoo_generate_manifest,
+    )
     monkeypatch.setattr(smoke_module, "train", _fake_train)
     monkeypatch.setattr(smoke_module, "evaluate_checkpoint", _fake_eval)
 
@@ -159,13 +175,27 @@ def test_run_dagzoo_smoke_writes_expected_telemetry(
         )
     )
 
+    workflow_cfg = captured["workflow_cfg"]
+    assert workflow_cfg.dagzoo_root == dagzoo_root.resolve()
+    assert workflow_cfg.dagzoo_config == Path("configs/default.yaml")
+    assert workflow_cfg.handoff_root == out_root.resolve()
+    assert workflow_cfg.out_manifest == (out_root / "manifest.parquet").resolve()
+    assert workflow_cfg.num_datasets == 128
+    assert workflow_cfg.rows == "1024"
+    assert workflow_cfg.seed == 1
+    assert workflow_cfg.device == "cpu"
+    assert workflow_cfg.train_ratio == smoke_module.DEFAULT_TRAIN_RATIO
+    assert workflow_cfg.val_ratio == smoke_module.DEFAULT_VAL_RATIO
+    assert workflow_cfg.filter_policy == smoke_module.DEFAULT_FILTER_POLICY
+
     assert telemetry["success"] is True
-    assert "--rows" in captured["dagzoo_cmd"]
-    assert "1024" in captured["dagzoo_cmd"]
-    assert "--num-datasets" in captured["dagzoo_cmd"]
-    assert "128" in captured["dagzoo_cmd"]
-    assert captured["dagzoo_cwd"] == dagzoo_root
-    assert captured["dagzoo_check"] is True
+    assert telemetry["dagzoo_handoff"]["generate_run_id"] == "1" * 32
+    assert telemetry["dagzoo_handoff"]["generated_corpus_id"] == "2" * 32
+    assert telemetry["dagzoo_handoff"]["handoff_manifest_path"] == str(handoff_manifest_path)
+    assert telemetry["artifacts"]["generated_dir"] == str(generated_dir)
+    assert "dagzoo_generate_manifest" in telemetry["timings_seconds"]
+    assert "dagzoo_generate" not in telemetry["timings_seconds"]
+    assert "build_manifest" not in telemetry["timings_seconds"]
 
     train_stage = captured["train_cfg"].schedule.stages[0]
     assert int(train_stage["steps"]) == 250
@@ -180,8 +210,15 @@ def test_run_dagzoo_smoke_writes_expected_telemetry(
     telemetry_path = out_root / "telemetry.json"
     assert telemetry_path.exists()
     payload = json.loads(telemetry_path.read_text(encoding="utf-8"))
+    assert payload["artifacts"]["generated_dir"] == str(generated_dir)
     assert payload["artifacts"]["train_history_jsonl"].endswith("train_history.jsonl")
     assert payload["artifacts"]["loss_curve_png"].endswith("loss_curve.png")
+    assert payload["dagzoo_handoff"]["generate_run_id"] == "1" * 32
+    assert payload["dagzoo_handoff"]["generated_corpus_id"] == "2" * 32
+    assert payload["dagzoo_handoff"]["handoff_manifest_path"] == str(handoff_manifest_path)
+    assert "dagzoo_generate_manifest" in payload["timings_seconds"]
+    assert "dagzoo_generate" not in payload["timings_seconds"]
+    assert "build_manifest" not in payload["timings_seconds"]
     assert payload["manifest"]["train_records"] == 80
     assert payload["checkpoint_snapshots"][0]["step"] == 25
     assert payload["checkpoint_snapshots"][-1]["step"] == 250

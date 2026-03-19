@@ -79,20 +79,20 @@ rows:
     nanotabpfn_best_log_loss: 0.4510985126422435
     final_log_loss: 0.4052133821597301
     nanotabpfn_final_log_loss: 0.453973433403279
-    best_brier_score: 0.13316426389715366
+    best_brier_score: 0.2663285277943073
     nanotabpfn_best_brier_score: 0.14642705664899075
-    final_brier_score: 0.1332384612260224
+    final_brier_score: 0.2664769224520448
     nanotabpfn_final_brier_score: 0.14745454546536443
     best_roc_auc: 0.7597362859021641
     nanotabpfn_best_roc_auc: 0.7482958403555632
     final_roc_auc: 0.7586267171926775
     nanotabpfn_final_roc_auc: 0.7446752311186746
     final_minus_best_log_loss: 0.0012738198792660027
-    final_minus_best_brier_score: 7.419732886873587e-05
+    final_minus_best_brier_score: 0.00014839465773747174
     final_minus_best_roc_auc: -0.0011095687094866413
     drift: -0.0011095687094866413
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
     delta_final_log_loss: 0.00802589363008882
-    delta_final_brier_score: 0.0024911279435832767
+    delta_final_brier_score: 0.004982255887166553
     delta_final_roc_auc: -0.004823171215435518
