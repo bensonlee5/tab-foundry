@@ -223,7 +223,8 @@ def _classification_brier_score(targets: np.ndarray, probabilities: np.ndarray) 
     probability_array = np.asarray(probabilities, dtype=np.float64)
     one_hot = np.zeros_like(probability_array, dtype=np.float64)
     one_hot[np.arange(target_array.shape[0]), target_array] = 1.0
-    return float(np.mean(np.square(probability_array - one_hot)))
+    squared_error = np.square(probability_array - one_hot)
+    return float(np.mean(np.sum(squared_error, axis=1)))
 
 
 def _normalize_quantile_predictions(
