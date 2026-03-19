@@ -333,7 +333,7 @@ uv run tab-foundry bench bundle build-openml \
 Discover a fresh no-missing large binary candidate surface with:
 
 ```bash
-uv run python scripts/build_openml_benchmark_bundle.py \
+uv run tab-foundry bench bundle build-openml \
   --out-path /tmp/nanotabpfn_openml_binary_large_no_missing_candidate.json \
   --bundle-name nanotabpfn_openml_binary_large_no_missing_candidate \
   --version 1 \
@@ -351,7 +351,7 @@ uv run python scripts/build_openml_benchmark_bundle.py \
 Rebuild the checked-in reviewed no-missing large bundle exactly with:
 
 ```bash
-uv run python scripts/build_openml_benchmark_bundle.py \
+uv run tab-foundry bench bundle build-openml \
   --out-path src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json \
   --bundle-name nanotabpfn_openml_binary_large_no_missing \
   --version 1 \

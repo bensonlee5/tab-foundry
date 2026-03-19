@@ -83,7 +83,7 @@ uv run tab-foundry train run experiment=cls_smoke optimizer=adamw
 - `docs/inference.md`: export bundle schema and validation contract
 - `docs/development/roadmap.md`: canonical planning state and ranked roadmap
 - `docs/development/design-decisions.md`: architecture direction, repo-structure policy, and compatibility guidance
-- `docs/development/model-architecture.md`: detailed architecture reference for the current tabfoundry transformer family
+- `docs/development/model-architecture.md`: detailed architecture reference for the current staged/simple model surfaces
 - `docs/development/model-config.md`: model configuration reference, defaults, and resolution rules
 - `docs/development/codebase-navigation.md`: current package layout and workflow entry surfaces
 - `docs/development/module-dependency-map.md`: maintained baseline dependency view for repo evolution
