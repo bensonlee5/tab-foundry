@@ -24,6 +24,18 @@ def _run_forward_check(argv: Sequence[str] | None = None) -> int:
     return dev_main(_prepend_command("forward-check", argv))
 
 
+def _run_diff_config(argv: Sequence[str] | None = None) -> int:
+    from tab_foundry.cli.dev import main as dev_main
+
+    return dev_main(_prepend_command("diff-config", argv))
+
+
+def _run_export_check(argv: Sequence[str] | None = None) -> int:
+    from tab_foundry.cli.dev import main as dev_main
+
+    return dev_main(_prepend_command("export-check", argv))
+
+
 def _run_health_check(argv: Sequence[str] | None = None) -> int:
     from tab_foundry.cli.dev import main as dev_main
 
@@ -50,6 +62,18 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "forward-check",
         help="Build one model and run a synthetic forward-only smoke check",
         delegate=_run_forward_check,
+    )
+    register_delegate_leaf(
+        nested,
+        "diff-config",
+        help="Compare two resolved config surfaces and print only effective differences",
+        delegate=_run_diff_config,
+    )
+    register_delegate_leaf(
+        nested,
+        "export-check",
+        help="Export one checkpoint, validate the bundle, and run a reference smoke",
+        delegate=_run_export_check,
     )
     register_delegate_leaf(
         nested,

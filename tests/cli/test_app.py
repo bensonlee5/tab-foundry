@@ -171,6 +171,47 @@ def test_nested_cli_dev_resolve_config_delegates_to_dev_main(
     assert captured["argv"] == ["--json", "experiment=cls_smoke"]
 
 
+def test_nested_cli_dev_diff_config_delegates_to_dev_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run_diff_config(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(dev_group, "_run_diff_config", _fake_run_diff_config)
+
+    exit_code = cli_module.main(
+        ["dev", "diff-config", "--left", "experiment=cls_smoke", "--right", "experiment=cls_workstation"]
+    )
+
+    assert exit_code == 0
+    assert captured["argv"] == [
+        "--left",
+        "experiment=cls_smoke",
+        "--right",
+        "experiment=cls_workstation",
+    ]
+
+
+def test_nested_cli_dev_export_check_delegates_to_dev_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run_export_check(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(dev_group, "_run_export_check", _fake_run_export_check)
+
+    exit_code = cli_module.main(["dev", "export-check", "--checkpoint", "/tmp/checkpoint.pt", "--json"])
+
+    assert exit_code == 0
+    assert captured["argv"] == ["--checkpoint", "/tmp/checkpoint.pt", "--json"]
+
+
 def test_nested_cli_dev_run_inspect_delegates_to_dev_main(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -258,6 +299,43 @@ def test_nested_cli_data_build_manifest_rejects_invalid_split_ratios(
         )
 
     assert called is False
+
+
+def test_nested_cli_data_manifest_inspect_delegates_to_data_inspect_main(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run_manifest_inspect(argv=None):
+        captured["argv"] = list(argv) if argv is not None else None
+        return 0
+
+    monkeypatch.setattr(data_group, "_run_manifest_inspect", _fake_run_manifest_inspect)
+
+    exit_code = cli_module.main(
+        [
+            "data",
+            "manifest-inspect",
+            "--manifest",
+            "/tmp/manifest.parquet",
+            "--experiment",
+            "cls_smoke",
+            "--override",
+            "data.manifest_path=/tmp/manifest.parquet",
+            "--json",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["argv"] == [
+        "--manifest",
+        "/tmp/manifest.parquet",
+        "--experiment",
+        "cls_smoke",
+        "--override",
+        "data.manifest_path=/tmp/manifest.parquet",
+        "--json",
+    ]
 
 
 def test_nested_cli_data_dagzoo_generate_manifest_rejects_invalid_split_ratios(

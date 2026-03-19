@@ -48,6 +48,7 @@ Inspect one resolved config or run a forward-only construction smoke check:
 ```bash
 uv run tab-foundry dev resolve-config experiment=cls_smoke
 uv run tab-foundry dev forward-check experiment=cls_smoke
+uv run tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
 ```
 
 Summarize one run's instability telemetry or one sweep's local results:
@@ -55,6 +56,8 @@ Summarize one run's instability telemetry or one sweep's local results:
 ```bash
 uv run tab-foundry dev health-check --run-dir outputs/cls_smoke
 uv run tab-foundry dev run-inspect --run-dir outputs/cls_smoke
+uv run tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
+uv run tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
 uv run tab-foundry research sweep summarize --include-screened
 uv run tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
 uv run tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1

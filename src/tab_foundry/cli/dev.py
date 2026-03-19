@@ -13,6 +13,8 @@ import torch
 
 from tab_foundry.config import compose_config, config_dir
 from tab_foundry.data.surface import resolve_data_surface
+from tab_foundry.export.contracts import SCHEMA_VERSION_V3
+from tab_foundry.export.inspection import export_check
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.inspection import (
     model_surface_payload,
@@ -27,6 +29,8 @@ from tab_foundry.training.health import health_check, run_inspect
 
 
 _DEVICE_CHOICES = ("auto", "cpu", "cuda", "mps")
+_MISSING_MARKER = "<missing>"
+_DIFF_EXCLUDED_PATHS = {"runtime.output_dir"}
 
 
 def _mapping_from_node(value: Any, *, context: str) -> dict[str, Any]:
@@ -143,6 +147,60 @@ def _format_jsonable(value: Any) -> str:
     return json.dumps(value, sort_keys=True)
 
 
+def _diff_path(prefix: str, key: str) -> str:
+    return key if not prefix else f"{prefix}.{key}"
+
+
+def _diff_config_values(
+    left: Any,
+    right: Any,
+    *,
+    path: str,
+    differences: list[dict[str, Any]],
+) -> None:
+    if path in _DIFF_EXCLUDED_PATHS:
+        return
+    if isinstance(left, Mapping) and isinstance(right, Mapping):
+        for key in sorted(set(left) | set(right)):
+            _diff_config_values(
+                left.get(key, _MISSING_MARKER),
+                right.get(key, _MISSING_MARKER),
+                path=_diff_path(path, str(key)),
+                differences=differences,
+            )
+        return
+    if isinstance(left, list) and isinstance(right, list):
+        if left != right:
+            differences.append({"path": path, "left": left, "right": right})
+        return
+    if left != right:
+        differences.append({"path": path, "left": left, "right": right})
+
+
+def diff_config_payloads(
+    left_overrides: Sequence[str],
+    right_overrides: Sequence[str],
+) -> dict[str, Any]:
+    left = resolve_config_payload(left_overrides)
+    right = resolve_config_payload(right_overrides)
+    differences: list[dict[str, Any]] = []
+    _diff_config_values(left, right, path="", differences=differences)
+    normalized_differences = [
+        {
+            "path": difference["path"],
+            "left": None if difference["left"] == _MISSING_MARKER else difference["left"],
+            "right": None if difference["right"] == _MISSING_MARKER else difference["right"],
+        }
+        for difference in differences
+        if difference["path"]
+    ]
+    return {
+        "left": left,
+        "right": right,
+        "differences": normalized_differences,
+    }
+
+
 def render_resolve_config_text(payload: Mapping[str, Any]) -> str:
     model_payload = cast(Mapping[str, Any], payload["model"])
     parameter_counts = cast(Mapping[str, int], model_payload["parameter_counts"])
@@ -174,6 +232,23 @@ def render_resolve_config_text(payload: Mapping[str, Any]) -> str:
     schedule_stages = training_payload.get("schedule_stages")
     if isinstance(schedule_stages, list) and schedule_stages:
         lines.append(f"training.schedule_stages={_format_jsonable(schedule_stages)}")
+    return "\n".join(lines)
+
+
+def render_diff_config_text(payload: Mapping[str, Any]) -> str:
+    lines = [
+        "Resolved config diff.",
+        f"left.experiment={cast(Mapping[str, Any], payload['left']).get('experiment') or 'unknown'}",
+        f"right.experiment={cast(Mapping[str, Any], payload['right']).get('experiment') or 'unknown'}",
+    ]
+    differences = cast(list[Mapping[str, Any]], payload["differences"])
+    if not differences:
+        lines.append("differences=none")
+        return "\n".join(lines)
+    for difference in differences:
+        lines.append(
+            f"{difference['path']}: {_format_jsonable(difference['left'])} -> {_format_jsonable(difference['right'])}"
+        )
     return "\n".join(lines)
 
 
@@ -347,6 +422,40 @@ def render_forward_check_text(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def render_export_check_text(payload: Mapping[str, Any]) -> str:
+    model_payload = cast(Mapping[str, Any], payload["model"])
+    reference_smoke = cast(Mapping[str, Any], payload["reference_smoke"])
+    preprocessor = cast(Mapping[str, Any] | None, payload.get("preprocessor"))
+    lines = [
+        "Export check passed.",
+        f"checkpoint={payload['checkpoint']}",
+        f"bundle_dir={payload['bundle_dir']}",
+        f"bundle_dir_kept={payload['bundle_dir_kept']}",
+        f"schema_version={payload['schema_version']}",
+        f"task={payload['task']}",
+        f"model.arch={model_payload['arch']}",
+        f"model.stage={model_payload['stage']}",
+        f"model.stage_label={model_payload['stage_label']}",
+        f"reference_output_shape={reference_smoke['output_shape']}",
+        f"reference_output_dtype={reference_smoke['output_dtype']}",
+        f"reference_num_classes={reference_smoke['num_classes']}",
+        f"reference_used_missing_inputs={reference_smoke['used_missing_inputs']}",
+        f"elapsed_seconds={payload['elapsed_seconds']:.3f}",
+    ]
+    if isinstance(preprocessor, Mapping):
+        missing_value_policy = preprocessor.get("missing_value_policy")
+        classification_label_policy = preprocessor.get("classification_label_policy")
+        lines.append(f"preprocessor.feature_order_policy={preprocessor.get('feature_order_policy')}")
+        if isinstance(missing_value_policy, Mapping):
+            lines.append(f"preprocessor.missing_value_policy={_format_jsonable(dict(missing_value_policy))}")
+        if isinstance(classification_label_policy, Mapping):
+            lines.append(
+                "preprocessor.classification_label_policy="
+                f"{_format_jsonable(dict(classification_label_policy))}"
+            )
+    return "\n".join(lines)
+
+
 def render_health_check_text(payload: Mapping[str, Any]) -> str:
     metrics = cast(Mapping[str, Any], payload["metrics"])
     lines = [
@@ -442,6 +551,31 @@ def _run_forward_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_diff_config(args: argparse.Namespace) -> int:
+    payload = diff_config_payloads(
+        [str(value) for value in args.left],
+        [str(value) for value in args.right],
+    )
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(render_diff_config_text(payload))
+    return 0
+
+
+def _run_export_check(args: argparse.Namespace) -> int:
+    payload = export_check(
+        Path(str(args.checkpoint)),
+        out_dir=None if args.out_dir is None else Path(str(args.out_dir)),
+        artifact_version=str(args.artifact_version),
+    )
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(render_export_check_text(payload))
+    return 0
+
+
 def _run_health_check(args: argparse.Namespace) -> int:
     payload = health_check(Path(str(args.run_dir)))
     if bool(args.json):
@@ -491,6 +625,43 @@ def build_parser() -> argparse.ArgumentParser:
     )
     forward_parser.add_argument("overrides", nargs="*", help="Hydra override strings")
     forward_parser.set_defaults(func=_run_forward_check)
+
+    diff_parser = subparsers.add_parser(
+        "diff-config",
+        help="Compare two resolved config surfaces and print only effective differences",
+    )
+    diff_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    diff_parser.add_argument(
+        "--left",
+        action="append",
+        default=[],
+        help="Hydra override applied to the left-hand config",
+    )
+    diff_parser.add_argument(
+        "--right",
+        action="append",
+        default=[],
+        help="Hydra override applied to the right-hand config",
+    )
+    diff_parser.set_defaults(func=_run_diff_config)
+
+    export_parser = subparsers.add_parser(
+        "export-check",
+        help="Export one checkpoint, validate the bundle, and run a reference smoke",
+    )
+    export_parser.add_argument("--checkpoint", required=True, help="Input training checkpoint path")
+    export_parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Optional output bundle directory; omit to use a temporary bundle",
+    )
+    export_parser.add_argument(
+        "--artifact-version",
+        default=SCHEMA_VERSION_V3,
+        help="Export artifact schema version",
+    )
+    export_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    export_parser.set_defaults(func=_run_export_check)
 
     health_parser = subparsers.add_parser(
         "health-check",

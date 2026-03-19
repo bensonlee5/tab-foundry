@@ -69,8 +69,11 @@ The repo uses three stable workflow layers:
 Current canonical CLI namespaces:
 
 - `tab-foundry data build-manifest`
+- `tab-foundry data manifest-inspect`
 - `tab-foundry dev resolve-config`
 - `tab-foundry dev forward-check`
+- `tab-foundry dev diff-config`
+- `tab-foundry dev export-check`
 - `tab-foundry dev health-check`
 - `tab-foundry dev run-inspect`
 - `tab-foundry train run`

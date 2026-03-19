@@ -28,6 +28,16 @@ class SyntheticForwardBatch:
     expected_test_rows: int
 
 
+@dataclass(slots=True, frozen=True)
+class SyntheticReferenceArrays:
+    """Deterministic runtime arrays for export/reference smoke checks."""
+
+    x_train: torch.Tensor
+    y_train: torch.Tensor
+    x_test: torch.Tensor
+    expected_num_classes: int
+
+
 def parameter_counts_from_model_spec(spec: ModelBuildSpec) -> dict[str, int]:
     """Return total and trainable parameter counts for one resolved model spec."""
 
@@ -100,6 +110,37 @@ def synthetic_forward_batch(spec: ModelBuildSpec) -> SyntheticForwardBatch:
         expected_output_kind=output_kind,
         expected_num_classes=int(num_classes),
         expected_test_rows=int(test_rows),
+    )
+
+
+def synthetic_reference_arrays(
+    spec: ModelBuildSpec,
+    *,
+    include_missing_inputs: bool,
+) -> SyntheticReferenceArrays:
+    """Build deterministic runtime arrays for reference-consumer smoke checks."""
+
+    num_classes, _ = _resolved_forward_shape(spec)
+    train_rows = max(int(num_classes) + 1, 4)
+    test_rows = 2
+    feature_count = 3
+    total_rows = train_rows + test_rows
+
+    x_all = torch.arange(total_rows * feature_count, dtype=torch.float32).reshape(total_rows, feature_count)
+    x_all = (x_all / float(feature_count)) + 1.0
+    x_train = x_all[:train_rows].clone()
+    x_test = x_all[train_rows:].clone()
+    if include_missing_inputs:
+        x_train[0, 1] = float("nan")
+        x_test[0, 0] = float("nan")
+
+    y_train = torch.arange(train_rows, dtype=torch.int64).remainder(int(num_classes))
+    y_train = y_train + 100
+    return SyntheticReferenceArrays(
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        expected_num_classes=int(num_classes),
     )
 
 

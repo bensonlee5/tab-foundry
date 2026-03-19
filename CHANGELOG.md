@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   resolved-surface inspection, and effective row-vs-anchor or row-vs-row
   comparisons.
 
+- Added `tab-foundry dev diff-config` for resolved-surface comparison across
+  two override sets, `tab-foundry dev export-check` for export bundle
+  validation plus reference-consumer smoke, and `tab-foundry data manifest-inspect` for manifest summaries with optional resolved-config
+  compatibility preflight.
+
 ### Changed
 
 - User-facing note: the sweep graph renderer now reuses the shared synthetic
