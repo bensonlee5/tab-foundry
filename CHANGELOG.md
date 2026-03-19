@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-03-19
+
+### Changed
+
+- Tightened completed-row system-delta queue validation so checked-in
+  `benchmark_metrics` must stay consistent with the canonical benchmark run
+  registry for registry-backed tab-foundry metrics and anchor deltas.
+
+- Refreshed stale Brier-score fields in the checked-in
+  `cuda_stability_followup`, `input_norm_followup`, and
+  `input_norm_none_followup` sweep queues so their completed-row
+  `benchmark_metrics` match the corrected registry-backed Brier definition.
+
+- Export bundle producer metadata now falls back to the checked-in
+  `pyproject.toml` version when editable-install package metadata is missing or
+  malformed, keeping manifest validation stable under local `uv` environments.
+
 ## [0.8.4] - 2026-03-19
 
 ### Changed

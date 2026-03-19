@@ -18,6 +18,32 @@ EXPECTED_ROWS = [
     "dpnb_cuda_large_anchor_batch64_noscale",
     "dpnb_cuda_large_anchor_batch64_noscale_lr3e3",
 ]
+EXPECTED_BRIER_METRICS = {
+    "dpnb_cuda_large_anchor_batch32_replay": {
+        "best_brier_score": 0.4001172415363657,
+        "final_brier_score": 0.4039399822200303,
+        "final_minus_best_brier_score": 0.003822740683664616,
+        "delta_final_brier_score": 0.14244531565515206,
+    },
+    "dpnb_cuda_large_anchor_batch32_lr3e3": {
+        "best_brier_score": 0.3961889646064756,
+        "final_brier_score": 0.4199854947017734,
+        "final_minus_best_brier_score": 0.023796530095297752,
+        "delta_final_brier_score": 0.15849082813689513,
+    },
+    "dpnb_cuda_large_anchor_batch32_postrms": {
+        "best_brier_score": 0.40743217012436317,
+        "final_brier_score": 0.41010681291619344,
+        "final_minus_best_brier_score": 0.002674642791830273,
+        "delta_final_brier_score": 0.1486121463513152,
+    },
+    "dpnb_cuda_large_anchor_batch32_postln": {
+        "best_brier_score": 0.4049931445893689,
+        "final_brier_score": 0.40690205057655027,
+        "final_minus_best_brier_score": 0.001908905987181353,
+        "delta_final_brier_score": 0.14540738401167203,
+    },
+}
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -102,6 +128,11 @@ def test_cuda_stability_followup_metadata_and_rows_match_the_batch32_first_debug
     assert row4["training"]["prior_dump_batch_size"] == 32
     assert row4["training"]["overrides"]["optimizer"] == {"min_lr": 0.0004}
     assert row4["training"]["overrides"]["schedule"]["stages"][0]["lr_max"] == 0.004
+
+    for delta_ref, expected_metrics in EXPECTED_BRIER_METRICS.items():
+        benchmark_metrics = _row_by_ref(queue, delta_ref)["benchmark_metrics"]
+        for metric_key, expected_value in expected_metrics.items():
+            assert benchmark_metrics[metric_key] == expected_value
 
     row5 = _row_by_ref(queue, "dpnb_cuda_large_anchor_batch64_noscale")
     assert row5["status"] == "deferred_separate_workstream"
