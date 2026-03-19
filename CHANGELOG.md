@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.5] - 2026-03-19
+## [0.8.7] - 2026-03-19
 
 ### Changed
 
@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added the missing `post_context_encoder` activation trace to staged model
   paths so context-enabled rows now expose column, row, and context activation
   boundaries consistently.
+
+- Corrected activation telemetry aggregation so distributed regular-training
+  runs reduce stage-local activation norms across accelerator ranks and
+  recursive many-class forwards aggregate repeated `post_context_encoder`
+  traces instead of keeping only the last call.
 
 ## [0.8.4] - 2026-03-19
 

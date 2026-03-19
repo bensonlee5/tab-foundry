@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 import json
+import math
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,6 +13,7 @@ from torch import nn
 from torch.utils.data import Dataset
 
 import tab_foundry.training.evaluate as evaluate_module
+import tab_foundry.training.distributed as distributed_module
 import tab_foundry.training.trainer as trainer_module
 from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.training.schedule import build_stage_configs
@@ -59,6 +61,54 @@ class _FakeAccelerator:
 
     def wait_for_everyone(self) -> None:
         return None
+
+
+class _FakeMultiProcessActivationAccelerator(_FakeAccelerator):
+    def __init__(
+        self,
+        *,
+        remote_activation_norms: dict[str, float],
+        activation_weight: int,
+    ) -> None:
+        super().__init__()
+        self.remote_activation_norms = {
+            str(key): float(value) for key, value in remote_activation_norms.items()
+        }
+        self.activation_weight = int(activation_weight)
+
+    def reduce(self, tensor: torch.Tensor, reduction: str = "sum") -> torch.Tensor:
+        if reduction != "sum":
+            raise ValueError("only sum reduction is supported in fake accelerator")
+        if int(tensor.numel()) == 2 * len(self.remote_activation_norms):
+            ordered_keys = sorted(self.remote_activation_norms)
+            remote_tensor = torch.zeros_like(tensor)
+            for index, key in enumerate(ordered_keys):
+                remote_tensor[2 * index] = (
+                    float(self.remote_activation_norms[key]) * float(self.activation_weight)
+                )
+                remote_tensor[2 * index + 1] = float(self.activation_weight)
+            return tensor + remote_tensor
+        return tensor * 2
+
+
+def _trace_activation_accumulate(
+    buffer: dict[str, tuple[float, int]],
+    name: str,
+    tensor: torch.Tensor,
+) -> None:
+    trace_tensor = tensor.detach().to(torch.float32)
+    trace_sum_sq = float(trace_tensor.square().sum().item())
+    trace_count = int(trace_tensor.numel())
+    total_sum_sq, total_count = buffer.get(name, (0.0, 0))
+    buffer[name] = (total_sum_sq + trace_sum_sq, total_count + trace_count)
+
+
+def _trace_activation_snapshot(buffer: dict[str, tuple[float, int]]) -> dict[str, float]:
+    return {
+        name: math.sqrt(total_sum_sq / float(total_count))
+        for name, (total_sum_sq, total_count) in buffer.items()
+        if total_count > 0
+    }
 
 
 class _FakeTaskDataset(Dataset[TaskBatch]):
@@ -132,7 +182,7 @@ class _TraceableStageLocalClassifier(nn.Module):
         self.context_label_embed = nn.Embedding(8, 4) if use_context else None
         self.context_encoder = _TraceableContextEncoder() if use_context else None
         self.direct_head = nn.Linear(4, 3)
-        self._activation_trace: dict[str, list[float]] | None = None
+        self._activation_trace: dict[str, tuple[float, int]] | None = None
 
     def enable_activation_trace(self) -> None:
         self._activation_trace = {}
@@ -143,14 +193,12 @@ class _TraceableStageLocalClassifier(nn.Module):
     def trace_activation(self, name: str, tensor: torch.Tensor) -> None:
         if self._activation_trace is None:
             return
-        self._activation_trace.setdefault(name, []).append(
-            float(tensor.detach().to(torch.float32).square().mean().sqrt().item())
-        )
+        _trace_activation_accumulate(self._activation_trace, name, tensor)
 
     def flush_activation_trace(self) -> dict[str, float] | None:
         if self._activation_trace is None:
             return None
-        snapshot = {name: values[-1] for name, values in self._activation_trace.items() if values}
+        snapshot = _trace_activation_snapshot(self._activation_trace)
         self._activation_trace = {}
         return snapshot
 
@@ -170,6 +218,52 @@ class _TraceableStageLocalClassifier(nn.Module):
             )
             self.trace_activation("post_context_encoder", rows)
         return ClassificationOutput(logits=self.direct_head(rows), num_classes=3)
+
+
+class _DeterministicTraceClassifier(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.direct_head = nn.Linear(1, 3)
+        self._activation_trace: dict[str, tuple[float, int]] | None = None
+
+    def enable_activation_trace(self) -> None:
+        self._activation_trace = {}
+
+    def disable_activation_trace(self) -> None:
+        self._activation_trace = None
+
+    def trace_activation(self, name: str, tensor: torch.Tensor) -> None:
+        if self._activation_trace is None:
+            return
+        _trace_activation_accumulate(self._activation_trace, name, tensor)
+
+    def flush_activation_trace(self) -> dict[str, float] | None:
+        if self._activation_trace is None:
+            return None
+        snapshot = _trace_activation_snapshot(self._activation_trace)
+        self._activation_trace = {}
+        return snapshot
+
+    def forward(self, batch: TaskBatch) -> ClassificationOutput:
+        batch_size = int(batch.y_test.shape[0])
+        self.trace_activation(
+            "post_feature_encoder",
+            torch.full((batch_size, 1), 2.0, dtype=torch.float32),
+        )
+        self.trace_activation(
+            "post_column_encoder",
+            torch.full((batch_size, 1), 4.0, dtype=torch.float32),
+        )
+        self.trace_activation(
+            "post_row_pool",
+            torch.full((batch_size, 1), 6.0, dtype=torch.float32),
+        )
+        self.trace_activation(
+            "post_context_encoder",
+            torch.full((batch_size, 1), 8.0, dtype=torch.float32),
+        )
+        logits = self.direct_head(torch.ones((batch_size, 1), dtype=torch.float32))
+        return ClassificationOutput(logits=logits, num_classes=3)
 
 
 class _FakeWandbRun:
@@ -254,6 +348,16 @@ def _install_traceable_classifier(
         trainer_module,
         "build_model_from_spec",
         lambda _spec: _TraceableStageLocalClassifier(use_context=use_context),
+    )
+
+
+def _install_deterministic_trace_classifier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        trainer_module,
+        "build_model_from_spec",
+        lambda _spec: _DeterministicTraceClassifier(),
     )
 
 
@@ -567,6 +671,66 @@ def test_train_trace_activations_handles_context_disabled_surface(
         ]["record_count"]
         == 0
     )
+
+
+def test_train_reduces_activation_norms_across_accelerator_ranks(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    _install_deterministic_trace_classifier(monkeypatch)
+    remote_activation_norms = {
+        "post_column_encoder": 20.0,
+        "post_context_encoder": 40.0,
+        "post_feature_encoder": 10.0,
+        "post_row_pool": 30.0,
+    }
+    activation_weight = 3
+    fake_run = _FakeWandbRun()
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeMultiProcessActivationAccelerator(
+            remote_activation_norms=remote_activation_norms,
+            activation_weight=activation_weight,
+        ),
+    )
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(
+        distributed_module,
+        "gather_object",
+        lambda local_keys: [list(local_keys), sorted(remote_activation_norms)],
+    )
+    monkeypatch.setattr(
+        distributed_module,
+        "broadcast_object_list",
+        lambda object_list, from_process=0: object_list,
+    )
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.trace_activations = True
+    cfg.logging.use_wandb = True
+
+    result = trainer_module.train(cfg)
+
+    gradient_history = [
+        json.loads(line)
+        for line in (result.output_dir / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    expected_activation_norms = {
+        "post_feature_encoder": 6.0,
+        "post_column_encoder": 12.0,
+        "post_row_pool": 18.0,
+        "post_context_encoder": 24.0,
+    }
+    assert gradient_history[0]["activation_norms"] == pytest.approx(expected_activation_norms)
+    train_payload = next(
+        payload
+        for payload, step in fake_run.logged
+        if step == 1 and "train/activation_norm/post_feature_encoder" in payload
+    )
+    assert train_payload["train/activation_norm/post_feature_encoder"] == pytest.approx(6.0)
+    assert train_payload["train/activation_norm/post_context_encoder"] == pytest.approx(24.0)
 
 
 def test_evaluate_checkpoint_logs_wandb_metrics_for_classification(

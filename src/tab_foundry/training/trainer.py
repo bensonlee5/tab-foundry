@@ -25,7 +25,7 @@ from .artifacts import (
     save_checkpoint,
 )
 from .batching import move_batch
-from .distributed import _reduction_float_dtype
+from .distributed import _reduction_float_dtype, _reduce_keyed_weighted_scalars
 from .instability import (
     build_training_telemetry,
     gradient_history_path,
@@ -323,6 +323,12 @@ def train(cfg: DictConfig) -> TrainResult:
                         break
                     continue
 
+                activation_weighted_sums, activation_weight_totals = _reduce_keyed_weighted_scalars(
+                    accelerator,
+                    weighted_sums=activation_weighted_sums,
+                    weights=activation_weight_totals,
+                    device=accelerator.device,
+                )
                 activation_norms = _merge_activation_norms(
                     activation_weighted_sums,
                     activation_weight_totals,

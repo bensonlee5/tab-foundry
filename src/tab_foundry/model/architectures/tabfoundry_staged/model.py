@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import torch
 from torch import nn
 
@@ -175,7 +177,7 @@ class TabFoundryStagedClassifier(nn.Module):
             head_hidden_dim=self.head_hidden_dim,
             many_class_base=self.many_class_base,
         )
-        self._activation_trace: dict[str, list[float]] | None = None
+        self._activation_trace: dict[str, tuple[float, int]] | None = None
 
     def enable_activation_trace(self) -> None:
         self._activation_trace = {}
@@ -186,13 +188,23 @@ class TabFoundryStagedClassifier(nn.Module):
     def trace_activation(self, name: str, tensor: torch.Tensor) -> None:
         if self._activation_trace is None:
             return
-        trace_value = float(tensor.detach().to(torch.float32).square().mean().sqrt().item())
-        self._activation_trace.setdefault(name, []).append(trace_value)
+        trace_tensor = tensor.detach().to(torch.float32)
+        trace_sum_sq = float(trace_tensor.square().sum().item())
+        trace_count = int(trace_tensor.numel())
+        total_sum_sq, total_count = self._activation_trace.get(name, (0.0, 0))
+        self._activation_trace[name] = (
+            total_sum_sq + trace_sum_sq,
+            total_count + trace_count,
+        )
 
     def flush_activation_trace(self) -> dict[str, float] | None:
         if self._activation_trace is None:
             return None
-        snapshot = {name: values[-1] for name, values in self._activation_trace.items() if values}
+        snapshot = {
+            name: float(math.sqrt(total_sum_sq / float(total_count)))
+            for name, (total_sum_sq, total_count) in self._activation_trace.items()
+            if total_count > 0
+        }
         self._activation_trace = {}
         return snapshot
 
