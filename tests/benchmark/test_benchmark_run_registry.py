@@ -619,15 +619,14 @@ def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_f
     run_dir, summary_path = _prepare_run(repo_root, run_name="legacy_grouped")
     monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
 
-    grouped_model = build_model(task="classification", feature_group_size=32)
     torch.save(
         {
-            "model": grouped_model.state_dict(),
+            "model": {"group_linear.weight": torch.zeros((128, 96))},
             "config": {
                 "task": "classification",
                 "data": {"manifest_path": "data/manifests/default.parquet"},
                 "runtime": {"seed": 1},
-                "model": {"arch": "tabfoundry"},
+                "model": {},
                 "schedule": {
                     "stages": [
                         {
@@ -644,7 +643,7 @@ def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_f
         run_dir / "checkpoints" / "best.pt",
     )
 
-    with pytest.raises(ValueError, match="omitted feature_group_size"):
+    with pytest.raises(ValueError, match="Legacy tabfoundry checkpoints"):
         registry_module.derive_benchmark_run_record(
             run_dir=run_dir,
             comparison_summary_path=summary_path,

@@ -46,21 +46,6 @@ def _classification_reference_arrays() -> tuple[np.ndarray, np.ndarray, np.ndarr
     )
 
 
-def _regression_reference_arrays() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    return (
-        np.asarray(
-            [
-                [1.0, np.nan],
-                [3.0, 4.0],
-                [5.0, 8.0],
-            ],
-            dtype=np.float32,
-        ),
-        np.asarray([0.25, 0.75, 1.25], dtype=np.float32),
-        np.asarray([[np.nan, 6.0]], dtype=np.float32),
-    )
-
-
 def _export_v3_checkpoint(checkpoint: Path, out_dir: Path) -> object:
     return export_checkpoint(checkpoint, out_dir)
 
@@ -72,7 +57,8 @@ def _make_config(
     model_overrides: dict[str, object] | None = None,
 ) -> dict[str, object]:
     model_cfg: dict[str, object] = {
-        "arch": "tabfoundry",
+        "arch": "tabfoundry_staged",
+        "stage": "small_class_head",
         "d_col": 128,
         "d_icl": 512,
         "input_normalization": input_normalization,
@@ -96,6 +82,11 @@ def _make_config(
     }
     if model_overrides is not None:
         model_cfg.update(model_overrides)
+    normalized_arch = str(model_cfg.get("arch", "tabfoundry_staged")).strip().lower()
+    if normalized_arch != "tabfoundry_staged":
+        model_cfg.pop("stage", None)
+    elif model_cfg.get("stage") is None:
+        model_cfg["stage"] = "small_class_head"
     return {
         "task": task,
         "model": model_cfg,
@@ -171,11 +162,13 @@ def test_export_bundle_defaults_to_v3_and_embeds_single_manifest(tmp_path: Path)
         manifest = json.load(handle)
 
     assert manifest["schema_version"] == SCHEMA_VERSION_V3
-    assert manifest["model"]["arch"] == "tabfoundry"
+    assert manifest["model"]["arch"] == "tabfoundry_staged"
+    assert manifest["model"]["stage"] == "small_class_head"
     assert manifest["model"]["input_normalization"] == "train_zscore"
     assert isinstance(manifest["manifest_sha256"], str)
     assert len(manifest["manifest_sha256"]) == 64
-    assert manifest["inference"]["model_arch"] == "tabfoundry"
+    assert manifest["inference"]["model_arch"] == "tabfoundry_staged"
+    assert manifest["inference"]["model_stage"] == "small_class_head"
     assert manifest["inference"]["many_class_inference_mode"] == "full_probs"
     assert manifest["preprocessor"]["feature_order_policy"] == "positional_feature_ids"
     assert manifest["preprocessor"]["classification_label_policy"]["mapping"] == "train_only_remap"
@@ -263,21 +256,17 @@ def test_export_bundle_rejects_legacy_grouped_weights_when_feature_group_size_is
     cfg = _make_config("classification")
     model_cfg = cfg["model"]
     assert isinstance(model_cfg, dict)
-    legacy_model_cfg = dict(model_cfg)
     model_cfg.pop("feature_group_size", None)
-    legacy_model_cfg.pop("feature_group_size", None)
-    torch.manual_seed(0)
-    model = build_model(task="classification", feature_group_size=32, **legacy_model_cfg)
     torch.save(
         {
-            "model": model.state_dict(),
+            "model": {"group_linear.weight": torch.zeros((128, 96))},
             "global_step": 1,
             "config": cfg,
         },
         checkpoint,
     )
 
-    with pytest.raises(ValueError, match="omitted feature_group_size"):
+    with pytest.raises(ValueError, match="Legacy tabfoundry checkpoints"):
         _ = _export_v3_checkpoint(checkpoint, tmp_path / "export_legacy_group")
 
 
@@ -631,38 +620,18 @@ def test_validate_export_rejects_manifest_model_tamper_with_stale_manifest_sha25
         _ = validate_export_bundle(out_dir)
 
 
-def test_validate_export_requires_quantile_levels_for_regression(tmp_path: Path) -> None:
-    checkpoint = tmp_path / "ckpt.pt"
-    _ = _write_checkpoint(checkpoint, task="regression")
-    out_dir = tmp_path / "export_reg"
-    _ = _export_v3_checkpoint(checkpoint, out_dir)
-
-    manifest_path = out_dir / "manifest.json"
-    with manifest_path.open("r", encoding="utf-8") as handle:
-        manifest = json.load(handle)
-    manifest["inference"].pop("quantile_levels", None)
-    with manifest_path.open("w", encoding="utf-8") as handle:
-        json.dump(manifest, handle, indent=2, sort_keys=True)
-        handle.write("\n")
-
-    with pytest.raises(ValueError, match="quantile_levels"):
-        _ = validate_export_bundle(out_dir)
-
-
 def test_validate_export_rejects_manifest_inference_tamper_with_stale_manifest_sha256(
     tmp_path: Path,
 ) -> None:
     checkpoint = tmp_path / "ckpt.pt"
-    _ = _write_checkpoint(checkpoint, task="regression")
-    out_dir = tmp_path / "export_reg"
+    _ = _write_checkpoint(checkpoint, task="classification")
+    out_dir = tmp_path / "export_cls"
     _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     manifest_path = out_dir / "manifest.json"
     with manifest_path.open("r", encoding="utf-8") as handle:
         manifest = json.load(handle)
-    quantile_levels = manifest["inference"]["quantile_levels"]
-    assert isinstance(quantile_levels, list)
-    manifest["inference"]["quantile_levels"] = list(reversed(quantile_levels))
+    manifest["weights"]["sha256"] = "1" * 64
     with manifest_path.open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
@@ -685,7 +654,7 @@ def test_validate_export_rejects_quantile_levels_for_classification(tmp_path: Pa
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
 
-    with pytest.raises(ValueError, match="only valid for regression"):
+    with pytest.raises(ValueError, match="quantile_levels"):
         _ = validate_export_bundle(out_dir)
 
 
@@ -856,33 +825,6 @@ def test_reference_loader_round_trip_classification_logits(tmp_path: Path) -> No
     assert torch.allclose(src_out.logits, dst_out.logits)
 
 
-def test_reference_loader_round_trip_regression_quantiles(tmp_path: Path) -> None:
-    checkpoint = tmp_path / "ckpt_reg.pt"
-    source_model = _write_checkpoint(checkpoint, task="regression")
-    source_model.eval()
-    out_dir = tmp_path / "export_reg"
-    _ = _export_v3_checkpoint(checkpoint, out_dir)
-
-    loaded = load_export_bundle(out_dir)
-    assert loaded.validated.inference_config.quantile_levels is not None
-    assert len(loaded.validated.inference_config.quantile_levels) == 999
-
-    torch.manual_seed(456)
-    batch = TaskBatch(
-        x_train=torch.randn(10, 6),
-        y_train=torch.randn(10),
-        x_test=torch.randn(4, 6),
-        y_test=torch.randn(4),
-        metadata={},
-        num_classes=None,
-    )
-    with torch.no_grad():
-        src_out = source_model(batch)
-        dst_out = loaded.model(batch)
-
-    assert torch.allclose(src_out.quantiles, dst_out.quantiles)
-
-
 def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt_custom.pt"
     cfg = _make_config(
@@ -892,6 +834,7 @@ def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -
             "d_col": 64,
             "d_icl": 256,
             "feature_group_size": 1,
+            "stage": "many_class",
             "many_class_train_mode": "full_probs",
             "max_mixed_radix_digits": 32,
             "tfcol_n_layers": 2,
@@ -956,9 +899,9 @@ def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -
     assert eval_spec.head_hidden_dim == loaded.validated.manifest.model.head_hidden_dim
     assert eval_spec.use_digit_position_embed == loaded.validated.manifest.model.use_digit_position_embed
     assert getattr(loaded.model, "input_normalization") == eval_spec.input_normalization
-    assert getattr(loaded.model, "norm_type") == eval_spec.norm_type
+    assert loaded.model.model_spec.norm_type == eval_spec.norm_type
     assert getattr(loaded.model, "many_class_train_mode") == eval_spec.many_class_train_mode
-    assert getattr(loaded.model, "tfrow_norm") == eval_spec.tfrow_norm
+    assert loaded.model.model_spec.tfrow_norm == eval_spec.tfrow_norm
     assert getattr(loaded.model, "many_class_base") == eval_spec.many_class_base
     assert getattr(loaded.model, "head_hidden_dim") == eval_spec.head_hidden_dim
     assert bool(getattr(loaded.model, "use_digit_position_embed")) is eval_spec.use_digit_position_embed
@@ -1003,55 +946,6 @@ def test_reference_consumer_classification_matches_golden_fixture(tmp_path: Path
         np.asarray(fixture["expected_class_probs"], dtype=np.float32),
         rtol=1e-6,
         atol=1e-6,
-    )
-
-
-def test_reference_consumer_regression_matches_golden_fixture(tmp_path: Path) -> None:
-    checkpoint = tmp_path / "ckpt_reference_reg.pt"
-    _ = _write_checkpoint(
-        checkpoint,
-        task="regression",
-        input_normalization="train_zscore_clip",
-        model_overrides={
-            "d_col": 16,
-            "d_icl": 32,
-            "tfcol_n_heads": 4,
-            "tfcol_n_layers": 1,
-            "tfcol_n_inducing": 8,
-            "tfrow_n_heads": 4,
-            "tfrow_n_layers": 1,
-            "tfrow_cls_tokens": 2,
-            "tficl_n_heads": 4,
-            "tficl_n_layers": 2,
-            "tficl_ff_expansion": 2,
-            "head_hidden_dim": 32,
-        },
-        seed=5678,
-    )
-    out_dir = tmp_path / "export_reference_reg"
-    _ = _export_v3_checkpoint(checkpoint, out_dir)
-
-    fixture = _load_fixture("reference_consumer_regression_v3.json")
-    output = run_reference_consumer(
-        out_dir,
-        x_train=fixture["x_train"],
-        y_train=fixture["y_train"],
-        x_test=fixture["x_test"],
-    )
-
-    assert output.quantiles is not None
-    assert output.quantile_levels is not None
-    np.testing.assert_allclose(
-        output.quantiles[:, fixture["expected_quantile_indices"]],
-        np.asarray([fixture["expected_quantiles_at_indices"]], dtype=np.float32),
-        rtol=1e-6,
-        atol=1e-6,
-    )
-    np.testing.assert_allclose(
-        output.quantile_levels[fixture["expected_quantile_indices"]],
-        np.asarray(fixture["expected_quantile_levels_at_indices"], dtype=np.float32),
-        rtol=1e-7,
-        atol=1e-7,
     )
 
 

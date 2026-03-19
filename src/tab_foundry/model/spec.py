@@ -10,9 +10,9 @@ from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES
 
 
-SUPPORTED_MODEL_TASKS = ("classification", "regression")
+SUPPORTED_MODEL_TASKS = ("classification",)
 STAGED_MODEL_ARCH = "tabfoundry_staged"
-SUPPORTED_MODEL_ARCHES = ("tabfoundry", "tabfoundry_simple", STAGED_MODEL_ARCH)
+SUPPORTED_MODEL_ARCHES = ("tabfoundry_simple", STAGED_MODEL_ARCH)
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -121,7 +121,7 @@ class ModelBuildSpec:
     """Canonical model-construction settings shared across train/eval/export/load."""
 
     task: str
-    arch: str = "tabfoundry"
+    arch: str = STAGED_MODEL_ARCH
     stage: str | None = None
     stage_label: str | None = None
     module_overrides: dict[str, Any] | None = None
@@ -280,7 +280,7 @@ def model_build_spec_from_mappings(
 
     return ModelBuildSpec(
         task=str(task).strip().lower(),
-        arch=str(_pick("arch", "tabfoundry")),
+        arch=str(_pick("arch", STAGED_MODEL_ARCH)),
         stage=_pick("stage", None),
         stage_label=_pick("stage_label", None),
         module_overrides=_pick("module_overrides", None),
@@ -371,6 +371,26 @@ def checkpoint_model_build_spec_from_mappings(
 
     primary_map = dict(primary) if primary is not None else {}
     fallback_map = fallback if fallback is not None else {}
+    for source_name, mapping in (("primary", primary_map), ("fallback", fallback_map)):
+        raw_arch = mapping.get("arch")
+        if raw_arch is None:
+            continue
+        normalized_arch = str(raw_arch).strip().lower()
+        if normalized_arch == "tabfoundry":
+            raise ValueError(
+                "Legacy model.arch='tabfoundry' is no longer supported; "
+                "rebuild or export this checkpoint with model.arch='tabfoundry_staged' "
+                "or 'tabfoundry_simple'."
+            )
+        if normalized_arch not in SUPPORTED_MODEL_ARCHES:
+            raise ValueError(f"Unsupported model arch in {source_name} mapping: {raw_arch!r}")
+    if _GROUP_LINEAR_WEIGHT_KEY in (state_dict or {}):
+        raise ValueError(
+            "Legacy tabfoundry checkpoints are no longer supported; "
+            "this checkpoint contains grouped-token weights under "
+            f"{_GROUP_LINEAR_WEIGHT_KEY!r}. Rebuild it on tabfoundry_staged or "
+            "tabfoundry_simple before loading."
+        )
     feature_group_size_is_configured = (
         primary_map.get("feature_group_size") is not None
         or fallback_map.get("feature_group_size") is not None

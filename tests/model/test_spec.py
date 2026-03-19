@@ -6,6 +6,7 @@ import torch
 from tab_foundry.model.factory import build_model
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import (
+    STAGED_MODEL_ARCH,
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
     model_build_spec_from_mappings,
@@ -18,16 +19,19 @@ def test_model_build_spec_defaults_feature_group_size_to_one() -> None:
         primary={},
     )
 
-    assert spec.arch == "tabfoundry"
+    assert spec.arch == STAGED_MODEL_ARCH
     assert spec.feature_group_size == 1
 
 
 def test_build_model_defaults_feature_group_size_to_one() -> None:
     cls_model = build_model(task="classification")
-    reg_model = build_model(task="regression")
 
-    assert getattr(cls_model, "feature_group_size") == 1
-    assert getattr(reg_model, "feature_group_size") == 1
+    assert int(cls_model.model_spec.feature_group_size) == 1
+
+
+def test_build_model_rejects_regression() -> None:
+    with pytest.raises(ValueError, match="classification"):
+        _ = build_model(task="regression")
 
 
 def test_build_model_supports_tabfoundry_simple_classification() -> None:
@@ -45,38 +49,9 @@ def test_build_model_supports_tabfoundry_simple_classification() -> None:
     assert isinstance(model, TabFoundrySimpleClassifier)
 
 
-def test_build_model_rejects_tabfoundry_simple_regression() -> None:
-    with pytest.raises(ValueError, match="classification"):
-        _ = build_model(task="regression", arch="tabfoundry_simple")
-
-
-def test_checkpoint_build_spec_defaults_omitted_feature_group_size_to_one() -> None:
-    spec = checkpoint_model_build_spec_from_mappings(
-        task="classification",
-        primary={},
-        state_dict={"group_linear.weight": torch.zeros((128, 3))},
-    )
-
-    assert spec.feature_group_size == 1
-
-
-def test_checkpoint_build_spec_rejects_legacy_grouped_weights_without_override() -> None:
-    with pytest.raises(ValueError, match="omitted feature_group_size"):
-        _ = checkpoint_model_build_spec_from_mappings(
-            task="classification",
-            primary={},
-            state_dict={"group_linear.weight": torch.zeros((128, 96))},
-        )
-
-
-def test_checkpoint_build_spec_supports_explicit_nondefault_feature_group_size() -> None:
-    spec = checkpoint_model_build_spec_from_mappings(
-        task="classification",
-        primary={"feature_group_size": 32},
-        state_dict={"group_linear.weight": torch.zeros((128, 96))},
-    )
-
-    assert spec.feature_group_size == 32
+def test_build_model_rejects_legacy_tabfoundry_arch() -> None:
+    with pytest.raises(ValueError, match="Legacy model arch"):
+        _ = build_model(task="classification", arch="tabfoundry")
 
 
 def test_staged_model_defaults_stage_to_nano_exact() -> None:
@@ -107,20 +82,20 @@ def test_staged_model_spec_accepts_stage_label_and_module_overrides() -> None:
 
 def test_non_staged_arch_rejects_stage() -> None:
     with pytest.raises(ValueError, match="model.stage"):
-        _ = ModelBuildSpec(task="classification", arch="tabfoundry", stage="nano_exact")
+        _ = ModelBuildSpec(task="classification", arch="tabfoundry_simple", stage="nano_exact")
 
 
 def test_non_staged_arch_rejects_stage_surface_fields() -> None:
     with pytest.raises(ValueError, match="stage_label"):
         _ = ModelBuildSpec(
             task="classification",
-            arch="tabfoundry",
+            arch="tabfoundry_simple",
             stage_label="delta_label_token",
         )
     with pytest.raises(ValueError, match="module_overrides"):
         _ = ModelBuildSpec(
             task="classification",
-            arch="tabfoundry",
+            arch="tabfoundry_simple",
             module_overrides={"row_pool": "row_cls"},
         )
 
@@ -133,3 +108,26 @@ def test_checkpoint_build_spec_round_trips_model_arch() -> None:
     )
 
     assert spec.arch == "tabfoundry_simple"
+
+
+def test_model_build_spec_rejects_regression_task() -> None:
+    with pytest.raises(ValueError, match="Unsupported task"):
+        _ = ModelBuildSpec(task="regression")
+
+
+def test_checkpoint_build_spec_rejects_legacy_tabfoundry_arch() -> None:
+    with pytest.raises(ValueError, match="model.arch='tabfoundry'"):
+        _ = checkpoint_model_build_spec_from_mappings(
+            task="classification",
+            primary={"arch": "tabfoundry"},
+            state_dict={},
+        )
+
+
+def test_checkpoint_build_spec_rejects_legacy_tabfoundry_state_dict() -> None:
+    with pytest.raises(ValueError, match="Legacy tabfoundry checkpoints"):
+        _ = checkpoint_model_build_spec_from_mappings(
+            task="classification",
+            primary={},
+            state_dict={"group_linear.weight": torch.zeros((128, 96))},
+        )

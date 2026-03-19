@@ -6,9 +6,10 @@
     "git_sha": null
   },
   "task": "classification",
-  "manifest_sha256": "5afd96523f55878f7930fc2ebd9964c03600429ad9295978a946f375c59542fd",
+  "manifest_sha256": "8fa4caefadc73c210cb45d7f8c8809acc750cf468aec52df1a98c2543c544e26",
   "model": {
-    "arch": "tabfoundry",
+    "arch": "tabfoundry_staged",
+    "stage": "nano_exact",
     "d_col": 128,
     "d_icl": 512,
     "input_normalization": "train_zscore",
@@ -18,7 +19,8 @@
   },
   "inference": {
     "task": "classification",
-    "model_arch": "tabfoundry",
+    "model_arch": "tabfoundry_staged",
+    "model_stage": "nano_exact",
     "group_shifts": [0, 1, 3],
     "feature_group_size": 1,
     "many_class_threshold": 10,

@@ -71,8 +71,6 @@ def _valid_inference_payload(draw: st.DrawFn) -> tuple[dict[str, object], str | 
         stage_token = draw(_case_variants("nano_exact"))
         expected_stage = "nano_exact"
         payload["model_stage"] = stage_token
-    if task == "regression":
-        payload["quantile_levels"] = [float(index) / 1_000.0 for index in range(1, 1_000)]
     return payload, expected_stage
 
 
@@ -110,13 +108,8 @@ def test_validate_inference_config_dict_normalizes_supported_payloads(
     else:
         assert validated.model_stage is None
         assert "model_stage" not in rendered
-    if payload["task"] == "regression":
-        assert validated.quantile_levels is not None
-        assert len(validated.quantile_levels) == 999
-        assert rendered["quantile_levels"] == validated.quantile_levels
-    else:
-        assert validated.quantile_levels is None
-        assert "quantile_levels" not in rendered
+    assert validated.quantile_levels is None
+    assert "quantile_levels" not in rendered
 
 
 @settings(deadline=None, max_examples=35)

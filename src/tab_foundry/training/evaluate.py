@@ -87,8 +87,11 @@ def _checkpoint_model_settings(
     checkpoint_cfg = _checkpoint_config_mapping(payload)
     task_raw = checkpoint_cfg.get("task", cfg.task)
     task = str(task_raw).strip().lower()
-    if task not in {"classification", "regression"}:
-        raise RuntimeError(f"Unsupported checkpoint task value: {task!r}")
+    if task != "classification":
+        raise RuntimeError(
+            "Only classification checkpoints are supported in this branch; "
+            f"got task={task!r}."
+        )
 
     raw_fallback = OmegaConf.to_container(cfg.model, resolve=True)
     fallback_model_cfg: dict[str, Any] = {}
@@ -195,7 +198,7 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     score_sum = 0.0
     count = 0
 
-    metric_name = "acc" if task == "classification" else "rmse"
+    metric_name = "acc"
 
     try:
         with torch.no_grad():

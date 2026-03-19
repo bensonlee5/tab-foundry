@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, FiniteFloat, StrictBool, StrictInt, 
 SCHEMA_VERSION_V2 = "tab-foundry-export-v2"
 SCHEMA_VERSION_V3 = "tab-foundry-export-v3"
 SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V2, SCHEMA_VERSION_V3)
-SUPPORTED_TASKS = ("classification", "regression")
+SUPPORTED_TASKS = ("classification",)
 SUPPORTED_MANY_CLASS_INFERENCE_MODES = ("full_probs",)
 EXPECTED_GROUP_SHIFTS = [0, 1, 3]
 EXPECTED_MANY_CLASS_THRESHOLD = 10

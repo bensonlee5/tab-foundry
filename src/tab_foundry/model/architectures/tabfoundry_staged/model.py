@@ -6,7 +6,7 @@ import torch
 from torch import nn
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
-from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
+from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.model.spec import ModelBuildSpec, ModelStage, SUPPORTED_MANY_CLASS_TRAIN_MODES
 from tab_foundry.types import TaskBatch
 

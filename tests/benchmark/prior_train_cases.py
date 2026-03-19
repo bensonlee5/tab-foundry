@@ -2100,7 +2100,7 @@ def test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint(
         def __init__(self, checkpoint_path: Path, *, device: str = "cpu") -> None:
             self.checkpoint_path = checkpoint_path
             self.device = device
-            self.model_spec = SimpleNamespace(arch="tabfoundry", stage=None)
+            self.model_spec = SimpleNamespace(arch="tabfoundry_staged", stage="nano_exact")
             self.model = SimpleNamespace(benchmark_profile=None)
 
         def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_FakeClassifier":

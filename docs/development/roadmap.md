@@ -8,9 +8,9 @@ It mirrors the planning format used in `dagzoo`, but the content is specific to
 - predictable scaling for short-run compact tabular transformers
 - benchmark-facing experiment discipline without making the benchmark the repo's
   identity
-- modular architecture evolution instead of hard-coding the repo around one
-  family
-- broader prediction-mode coverage only after the scaling-oriented control path
+- modular architecture evolution centered on one active family,
+  `tabfoundry_staged`
+- prediction-mode expansion only after the staged classification control path
   is stable
 
 Related docs:
@@ -83,7 +83,7 @@ for traceability.
 | 8 | TF-RD-007 | Current-architecture tuning and control promotion | partial | Now | `BL-153 -> BL-160 -> BL-161 -> BL-162 -> BL-164 -> BL-163` |
 | 9 | TF-RD-008 | Architecture ablations against the control baseline | planned | Next | `BL-165 -> BL-166 -> BL-167 -> BL-169 -> BL-168` |
 | 10 | TF-RD-013 | Separate-repo inference handoff and conformance | planned | Next | `no active issue yet; open BL inference chain after TF-RD-012` |
-| 11 | TF-RD-009 | Core prediction mode parity | partial | Next | `BL-183 -> BL-185 -> BL-186 -> BL-187 -> BL-188 -> BL-189` |
+| 11 | TF-RD-009 | Regression rebuild on the staged base | research | Next | `BL-183 -> BL-185 -> BL-186 -> BL-187 -> BL-188 -> BL-189` |
 | 12 | TF-RD-010 | Extended prediction modes and modalities | research | Later | `BL-184 -> BL-191 -> BL-190 -> BL-192 -> BL-193` |
 | 13 | TF-RD-011 | Conditional prior/data alignment when architecture is not the bottleneck | research | Later | `no active issue yet; gated follow-on after TF-RD-007 and TF-RD-008` |
 
@@ -98,7 +98,7 @@ for traceability.
 | Scaling-oriented architecture planning | `partial` | Architecture guidance, literature references, and evidence mapping are now first-class planning artifacts | Neutral registry, modular backbones, and canonical scaling-law measurement are not complete | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006` |
 | Export-grade preprocessing fidelity | `partial` | Shared preprocessing code now exists and v3 bundles persist fitted feature fill values, label values, and model `input_normalization` | The fitted preprocessing surface is not yet promoted as the settled producer contract across every downstream workflow and tracker lane | `TF-RD-012` |
 | Separate-runtime handoff readiness | `partial` | The repo now ships a v3 reference consumer plus golden bundle conformance fixtures while keeping runtime ownership out of this package | Separate-repo adoption, broader conformance reuse, and downstream stabilization are still unfinished | `TF-RD-013` |
-| Core prediction mode coverage | `partial` | Classification and regression flows exist in the common train/eval stack | Shared mode contracts, missing-data task support, and mode-specific reporting are incomplete | `TF-RD-009` |
+| Core prediction mode coverage | `partial` | Classification is the only active supported mode on the common train/eval/export stack | Regression has been intentionally removed and will be rebuilt later on top of `tabfoundry_staged`; missing-data task support and mode-specific reporting are still incomplete | `TF-RD-009` |
 | Extended modality readiness | `partial` | Many-class support exists, and time-series plus text-conditioned inputs are explicitly deferred rather than ignored | No scoped time-series path, text-conditioned path, or readiness gates exist yet | `TF-RD-010` |
 | Prior/source extensibility beyond the current manifest path | `partial` | Neutral package structure now exists for future extension and the roadmap explicitly preserves space for source/prior work | No concrete non-manifest source/prior interface or alignment study path exists yet | `TF-RD-004`, `TF-RD-011` |
 
@@ -119,7 +119,8 @@ surface. Use the canonical docs instead:
 - The benchmark-facing control remains `experiment=cls_benchmark_linear` until a
   later ticket explicitly promotes a replacement.
 - The manifest-backed data path is the canonical training/evaluation baseline.
-- Export and inference compatibility now use the `tabfoundry` contract across
+- Export and inference compatibility now use the classification-only
+  `tabfoundry_simple` and `tabfoundry_staged` surfaces across
   `tab-foundry-export-v2` and `tab-foundry-export-v3`.
 - Bundle validation exists, and the current v3 contract now uses one embedded
   manifest plus a policy-only preprocessing section while executable inference
@@ -251,7 +252,7 @@ surface. Use the canonical docs instead:
   - v3 bundles contain sufficient policy metadata for downstream execution and
     conformance testing without reusing export-time support-set statistics.
   - `input_normalization` round-trips through export and load.
-  - Classification and regression both have golden v3 fixtures.
+  - Classification has stable golden v3 fixtures.
 
 ### TF-RD-002: Repo Foundation and Dagzoo-Style Organization
 
@@ -337,8 +338,8 @@ surface. Use the canonical docs instead:
 - Current state:
   - Shared factories and role-based packages exist, and reusable model
     components now live separately from family-specific assembly code.
-  - The repo still centers much of the implementation around the `tabfoundry`
-    family.
+  - The repo now centers the active implementation around
+    `tabfoundry_staged`, but family-neutral composition is still incomplete.
   - The manifest path is canonical, and source modularity is still mostly a
     roadmap direction.
   - Family-neutral registration and naming are still incomplete.
@@ -361,7 +362,7 @@ surface. Use the canonical docs instead:
 - Repo touchpoints:
   - `src/tab_foundry/model/components/qass.py`
   - `src/tab_foundry/model/components/blocks.py`
-  - `src/tab_foundry/model/architectures/tabfoundry.py`
+  - `src/tab_foundry/model/architectures/tabfoundry_staged/`
   - `src/tab_foundry/model/factory.py`
   - `src/tab_foundry/training/evaluate.py`
 - Current state:
@@ -439,7 +440,7 @@ surface. Use the canonical docs instead:
 - Repo touchpoints:
   - `src/tab_foundry/model/components/blocks.py`
   - `src/tab_foundry/model/components/qass.py`
-  - `src/tab_foundry/model/architectures/tabfoundry.py`
+  - `src/tab_foundry/model/architectures/tabfoundry_staged/`
   - `src/tab_foundry/model/components/many_class.py`
   - `reference/papers.md`
 - Current state:
@@ -474,27 +475,26 @@ surface. Use the canonical docs instead:
   - `docs/inference.md`
 - Current state:
   - A v3 reference consumer now loads bundles, applies persisted preprocessing,
-    constructs a model batch, and emits classification probabilities or
-    regression quantiles.
-  - Golden conformance fixtures now exist for one classification path and one
-    regression path.
+    constructs a model batch, and emits classification probabilities.
+  - Golden conformance fixtures now exist for the staged/simple
+    classification path.
   - Downstream-repo stabilization, broader fixture reuse, and ownership
     boundaries beyond the reference path remain unfinished.
 - Exit criteria:
   - The reference consumer runs end to end on v3 bundles only.
   - Downstream repos can reuse the golden fixtures and checksum validation
     surface.
-  - Classification and regression both have stable expected outputs.
+  - Classification has stable expected outputs.
   - Runtime ownership remains separate-repo by docs and package boundaries.
 
-### TF-RD-009: Core Prediction Mode Parity
+### TF-RD-009: Regression Rebuild On The Staged Base
 
-- Status: `partial`
+- Status: `research`
 - Milestone: `Next`
 - Goal alignment: `Goal 2: Core Prediction Modes`
 - Pillar alignment: `mode coverage`
-- Goal: broaden the common experiment stack from classification-first work into
-  stable shared support for regression and missing-data prediction.
+- Goal: rebuild regression as a staged-family extension after the
+  classification-first stack is stable enough to support it cleanly.
 - Linear tracking: `BL-183 -> BL-185 -> BL-186 -> BL-187 -> BL-188 -> BL-189`
 - Repo touchpoints:
   - `src/tab_foundry/training/evaluate.py`
@@ -503,14 +503,16 @@ surface. Use the canonical docs instead:
   - `src/tab_foundry/bench/checkpoint.py`
   - `src/tab_foundry/cli/groups/`
 - Current state:
-  - Classification and regression flows exist.
+  - Classification is the only active supported prediction mode.
+  - Legacy regression support has been intentionally removed.
   - Classification remains the anchor workload.
   - Missing-data task support and prediction-mode-specific summaries are not
     yet complete.
 - Exit criteria:
-  - A shared mode interface exists across at least classification and
-    regression.
-  - Regression reaches parity on the common experiment stack.
+  - A staged-family regression path exists without reviving the removed legacy
+    `tabfoundry` family.
+  - Regression reaches parity on the common experiment stack from the staged
+    base.
   - Missing-data tasks and evaluation summaries are implemented.
   - Artifact reporting can break out metrics by prediction mode without
     coupling mode parity work to bundle-schema or runtime-handoff changes.

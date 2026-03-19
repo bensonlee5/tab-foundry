@@ -24,7 +24,6 @@ _export(
     [
         "test_model_config_round_trip_across_eval_export_and_loader",
         "test_reference_consumer_classification_matches_golden_fixture",
-        "test_reference_consumer_regression_matches_golden_fixture",
         "test_reference_consumer_rejects_v2_bundle",
         "test_reference_consumer_derives_preprocessing_from_runtime_support_set",
     ]

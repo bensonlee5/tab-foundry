@@ -1,7 +1,7 @@
 # Model Config Reference
 
-This document describes the `tabfoundry` model configuration surface, the
-default values used in the repo, and how those values are resolved across
+This document describes the active classification model configuration surface,
+the default values used in the repo, and how those values are resolved across
 training, evaluation, export, and bundle loading.
 
 Related docs:
@@ -32,11 +32,12 @@ The model config surface is shared across several layers, but the roles differ:
 
 Current canonical default:
 
+- `arch = tabfoundry_staged`
 - `feature_group_size = 1`
 
-That means the default model uses one token per feature. Larger values such as
-`32` are non-default grouped-token experiments that reduce token count and
-change the inductive bias.
+That means the default model uses the staged classification family with one
+token per feature. Larger values such as `32` are non-default grouped-token
+experiments that reduce token count and change the inductive bias.
 
 ## Resolution Order
 
@@ -104,8 +105,8 @@ did not yet serialize every reconstruction field.
 
 | Name | Type | Default | Applies To | Meaning |
 | ---- | ---- | ---- | ---- | ---- |
-| `arch` | `str` | `"tabfoundry"` | both | Model architecture. Supported values are `tabfoundry`, the frozen binary repro architecture `tabfoundry_simple`, and the staged classification research family `tabfoundry_staged`. |
-| `stage` | `str \| null` | `null` | classification | Stage selector for `tabfoundry_staged`. `null` resolves to `nano_exact` when `arch=tabfoundry_staged`; non-null values are rejected for `tabfoundry` and `tabfoundry_simple`. |
+| `arch` | `str` | `"tabfoundry_staged"` | classification | Model architecture. Supported values are the frozen binary repro architecture `tabfoundry_simple` and the staged classification family `tabfoundry_staged`. |
+| `stage` | `str \| null` | `null` | classification | Stage selector for `tabfoundry_staged`. `null` resolves to `nano_exact` when `arch=tabfoundry_staged`; non-null values are rejected for `tabfoundry_simple`. |
 | `stage_label` | `str \| null` | `null` | classification | Optional reporting label for staged runs. When present, benchmark/profile metadata uses this label while the underlying recipe still resolves from `stage`. |
 | `module_overrides` | `mapping \| null` | `null` | classification | Additive atomic staged-surface overrides. Supported top-level keys are `feature_encoder`, `post_encoder_norm`, `target_conditioner`, `tokenizer`, `column_encoder`, `row_pool`, `context_encoder`, `head`, `table_block_style`, and `allow_test_self_attention`. |
 | `d_col` | `int` | `128` | both | Width of grouped feature tokens and the column encoder. |
@@ -169,7 +170,8 @@ enters the many-class path.
 
 - `head_hidden_dim`
 
-Regression also has a fixed, non-configurable `999`-quantile output grid.
+The repo is currently classification-only. Regression will be rebuilt later on
+top of `tabfoundry_staged` rather than restored from the removed legacy family.
 
 ## Interaction Notes
 
@@ -181,11 +183,11 @@ Regression also has a fixed, non-configurable `999`-quantile output grid.
   - `input_normalization=train_zscore_clip`
   - `many_class_base=2`
     It reuses `d_icl`, `tficl_n_heads`, `tficl_n_layers`, and `head_hidden_dim`,
-    and rejects non-default tabfoundry-only knobs such as grouped-token,
-    row/column encoder, and many-class-path settings.
+    and rejects staged-only knobs such as grouped-token, row/column encoder,
+    and many-class-path settings.
 - `tabfoundry_staged` is the classification-only staged research family.
-  `model.stage` defaults to `nano_exact`, and non-null `model.stage` is rejected
-  for `tabfoundry` and `tabfoundry_simple`.
+  `model.stage` defaults to `nano_exact`, and non-null `model.stage` is
+  rejected for `tabfoundry_simple`.
 - `model.stage` remains the legacy recipe-selector and compatibility surface.
   Supported recipe names are:
   - `nano_exact`
@@ -319,7 +321,8 @@ If you add, remove, or rename a model config field, update all of these:
 - `configs/model/default.yaml`
 - `src/tab_foundry/model/spec.py`
 - `src/tab_foundry/model/factory.py`
-- `src/tab_foundry/model/architectures/tabfoundry.py` if constructor defaults change
+- `src/tab_foundry/model/architectures/tabfoundry_staged/model.py`
+- `src/tab_foundry/model/architectures/tabfoundry_simple.py`
 - `docs/development/model-architecture.md`
 - `docs/inference.md` if the field is serialized into export bundles
 - tests that validate config resolution, export manifests, or checkpoint loading

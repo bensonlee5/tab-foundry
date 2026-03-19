@@ -17,11 +17,11 @@ Related docs:
 
 ## Direction
 
-`tab-foundry` should not ossify around the current `tabfoundry` family as the
-final architecture identity.
+`tab-foundry` should not fragment across multiple live model families.
 
-The current `tabfoundry` family started from the TabICLv2 paper and adjacent
-references, but the repo should evolve through:
+The active architecture surface is now `tabfoundry_staged`, with
+`tabfoundry_simple` retained only as the frozen exact anchor. The repo should
+evolve through:
 
 - modular building blocks
 - explicit baseline comparisons against adjacent repos
@@ -37,7 +37,8 @@ intentionally deferred further still.
 - Scaling predictability comes first.
 - Classification remains the anchor workload until the scaling-oriented control
   family is stable.
-- Regression comes next, then missing-data prediction.
+- Regression is intentionally deferred until it can be rebuilt on top of
+  `tabfoundry_staged`.
 - Many-class expansion beyond maintenance, time series, text-conditioned inputs,
   and similar modalities are explicitly later work.
 - Benchmark gains matter, but they are a constraint and feedback signal rather
@@ -45,14 +46,13 @@ intentionally deferred further still.
 
 ## Enduring Decisions
 
-### Neutral Architecture Naming
+### Single Active Architecture Surface
 
-- Internal code should not assume `tabfoundry` is the long-term architecture
-  name.
-- Multiple model families should be able to coexist behind a shared builder or
-  factory surface.
-- The current `tabfoundry` export contract is a user-facing boundary, not the
-  final internal taxonomy.
+- Internal code should optimize for one active model-development surface:
+  `tabfoundry_staged`.
+- `tabfoundry_simple` remains only as the frozen compatibility anchor.
+- New feature work should not create a second live family unless it is planned
+  as an explicit replacement of `tabfoundry_staged`.
 
 ### Modular Model Construction
 
@@ -159,15 +159,15 @@ Notes:
 - `src/tab_foundry/model/` is a namespace package. Direct imports should target
   stable submodules like `model.factory` and `model.spec`, while
   `model/components` and `model/architectures` carry the internal split.
-- Current export compatibility constraints around `tabfoundry` are part of the
-  boundary, but should not re-anchor internal architecture structure.
+- Current export compatibility constraints should follow the active staged and
+  simple classification surfaces, not a removed legacy family.
 
 ## Naming And Compatibility Guidance
 
-- Prefer neutral family ids over architecture names that assume permanence.
-- Use `tabfoundry` for the current family rather than a paper-derived,
-  versioned name.
-- Export and inference compatibility now follow the current family id; any
-  future rename must be planned as an explicit schema migration.
-- Optimize naming for future coexistence of multiple model families, data
-  sources, and baseline-inspired variants.
+- Prefer family ids that reflect current ownership and scope.
+- `tabfoundry_staged` is the active development family and
+  `tabfoundry_simple` is the frozen anchor.
+- Export and inference compatibility changes still require explicit schema
+  migration planning.
+- Optimize naming for clear role separation, not for keeping retired families
+  alive indefinitely.

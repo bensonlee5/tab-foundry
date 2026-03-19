@@ -77,7 +77,7 @@ def _require_preprocessor_policy(bundle: LoadedExportBundle) -> ExportPreprocess
 def _dummy_y_test(task: str, *, row_count: int) -> np.ndarray:
     if task == "classification":
         return np.zeros((row_count,), dtype=np.int64)
-    return np.zeros((row_count,), dtype=np.float32)
+    raise RuntimeError(f"Unsupported reference-consumer task: {task!r}")
 
 
 def _reference_batch(
@@ -96,18 +96,16 @@ def _reference_batch(
         x_test=x_test,
         y_test=None,
     )
-    if manifest.task == "classification":
-        y_train_tensor = torch.from_numpy(np.asarray(processed.y_train, dtype=np.int64))
-        y_test_tensor = torch.from_numpy(
-            _dummy_y_test("classification", row_count=int(processed.x_test.shape[0]))
+    if manifest.task != "classification":
+        raise RuntimeError(
+            "Reference consumer only supports classification bundles in this branch; "
+            f"got task={manifest.task!r}."
         )
-        num_classes = processed.num_classes
-    else:
-        y_train_tensor = torch.from_numpy(np.asarray(processed.y_train, dtype=np.float32))
-        y_test_tensor = torch.from_numpy(
-            _dummy_y_test("regression", row_count=int(processed.x_test.shape[0]))
-        )
-        num_classes = None
+    y_train_tensor = torch.from_numpy(np.asarray(processed.y_train, dtype=np.int64))
+    y_test_tensor = torch.from_numpy(
+        _dummy_y_test("classification", row_count=int(processed.x_test.shape[0]))
+    )
+    num_classes = processed.num_classes
     return TaskBatch(
         x_train=torch.from_numpy(np.asarray(processed.x_train, dtype=np.float32)),
         y_train=y_train_tensor,
@@ -137,24 +135,14 @@ def run_reference_consumer(
     with torch.no_grad():
         output = bundle.model(batch)
 
-    if bundle.validated.manifest.task == "classification":
-        if output.class_probs is not None:
-            probs = output.class_probs
-        elif output.logits is not None:
-            probs = torch.softmax(output.logits[:, : output.num_classes], dim=-1)
-        else:
-            raise RuntimeError("classification reference consumer did not produce probabilities")
-        return ReferenceConsumerOutput(
-            task="classification",
-            batch=batch,
-            class_probs=probs.detach().cpu().numpy(),
-        )
-
+    if output.class_probs is not None:
+        probs = output.class_probs
+    elif output.logits is not None:
+        probs = torch.softmax(output.logits[:, : output.num_classes], dim=-1)
+    else:
+        raise RuntimeError("classification reference consumer did not produce probabilities")
     return ReferenceConsumerOutput(
-        task="regression",
+        task="classification",
         batch=batch,
-        quantiles=output.quantiles.detach().cpu().numpy(),
-        quantile_levels=None
-        if output.quantile_levels is None
-        else output.quantile_levels.detach().cpu().numpy(),
+        class_probs=probs.detach().cpu().numpy(),
     )

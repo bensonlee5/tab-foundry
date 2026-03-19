@@ -3,49 +3,25 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tab_foundry.model.architectures.tabfoundry import (
-    ClassificationOutput,
-    RegressionOutput,
-    TabFoundryClassifier,
-)
+from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.training.trainer import _compute_loss_and_metrics
+from tab_foundry.model.factory import build_model
 from tab_foundry.types import TaskBatch
 
 
-def test_regression_metrics_do_not_include_acc() -> None:
-    output = RegressionOutput(quantiles=torch.randn(6, 999))
+def test_metrics_reject_non_classification_task() -> None:
+    output = ClassificationOutput(logits=torch.randn(6, 4), num_classes=4)
     batch = TaskBatch(
         x_train=torch.randn(8, 4),
-        y_train=torch.randn(8),
+        y_train=torch.randint(0, 4, (8,)),
         x_test=torch.randn(6, 4),
-        y_test=torch.randn(6),
+        y_test=torch.randint(0, 4, (6,)),
         metadata={},
-        num_classes=None,
+        num_classes=4,
     )
 
-    loss, metrics = _compute_loss_and_metrics(output, batch, task="regression")
-    assert torch.isfinite(loss)
-    assert "rmse" in metrics
-    assert "acc" not in metrics
-
-
-def test_regression_uses_output_quantile_levels() -> None:
-    levels = torch.full((999,), 0.9, dtype=torch.float32)
-    output = RegressionOutput(
-        quantiles=torch.zeros(6, 999),
-        quantile_levels=levels,
-    )
-    batch = TaskBatch(
-        x_train=torch.randn(8, 4),
-        y_train=torch.randn(8),
-        x_test=torch.randn(6, 4),
-        y_test=torch.ones(6),
-        metadata={},
-        num_classes=None,
-    )
-
-    loss, _ = _compute_loss_and_metrics(output, batch, task="regression")
-    assert torch.isclose(loss, torch.tensor(0.9), atol=1e-4)
+    with pytest.raises(RuntimeError, match="classification"):
+        _ = _compute_loss_and_metrics(output, batch, task="regression")
 
 
 def test_manyclass_path_metrics_do_not_require_acc() -> None:
@@ -73,7 +49,7 @@ def test_manyclass_path_metrics_do_not_require_acc() -> None:
 
 
 def test_manyclass_path_loss_is_finite_with_sparse_train_labels() -> None:
-    model = TabFoundryClassifier()
+    model = build_model(task="classification", arch="tabfoundry_staged", stage="many_class")
     model.train()
     batch = TaskBatch(
         x_train=torch.randn(24, 12),

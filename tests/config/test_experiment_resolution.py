@@ -14,7 +14,7 @@ def _compose(*overrides: str):
 def test_cls_workstation_task_resolution() -> None:
     cfg = _compose("experiment=cls_workstation")
     assert str(cfg.task) == "classification"
-    assert str(cfg.model.arch) == "tabfoundry"
+    assert str(cfg.model.arch) == "tabfoundry_staged"
     assert cfg.model.stage is None
     assert int(cfg.model.feature_group_size) == 1
     assert bool(cfg.preprocessing.impute_missing) is True
@@ -22,36 +22,9 @@ def test_cls_workstation_task_resolution() -> None:
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
 
-
-def test_reg_workstation_task_resolution() -> None:
-    cfg = _compose("experiment=reg_workstation")
-    assert str(cfg.task) == "regression"
-    assert str(cfg.model.arch) == "tabfoundry"
-    assert cfg.model.stage is None
-    assert int(cfg.model.feature_group_size) == 1
-    assert str(cfg.optimizer.name) == "muon"
-    assert bool(cfg.optimizer.require_requested) is True
-
-
-def test_reg_smoke_task_and_runtime_resolution() -> None:
-    cfg = _compose("experiment=reg_smoke")
-    assert str(cfg.task) == "regression"
-    assert str(cfg.model.arch) == "tabfoundry"
-    assert cfg.model.stage is None
-    assert str(cfg.runtime.device) == "cpu"
-    assert str(cfg.runtime.mixed_precision) == "no"
-    assert int(cfg.runtime.grad_accum_steps) == 1
-    assert int(cfg.model.feature_group_size) == 1
-    assert str(cfg.model.many_class_train_mode) == "path_nll"
-    assert int(cfg.model.many_class_base) == 10
-    assert bool(cfg.model.use_digit_position_embed) is True
-    assert str(cfg.optimizer.name) == "muon"
-    assert bool(cfg.optimizer.require_requested) is True
-
-
 def test_cls_smoke_optimizer_resolution() -> None:
     cfg = _compose("experiment=cls_smoke")
-    assert str(cfg.model.arch) == "tabfoundry"
+    assert str(cfg.model.arch) == "tabfoundry_staged"
     assert cfg.model.stage is None
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
@@ -74,7 +47,7 @@ def test_cls_smoke_adamw_override_resolution() -> None:
 def test_cls_benchmark_linear_resolution() -> None:
     cfg = _compose("experiment=cls_benchmark_linear")
     assert str(cfg.task) == "classification"
-    assert str(cfg.model.arch) == "tabfoundry"
+    assert str(cfg.model.arch) == "tabfoundry_staged"
     assert cfg.model.stage is None
     assert int(cfg.model.feature_group_size) == 1
     assert str(cfg.optimizer.name) == "adamw"

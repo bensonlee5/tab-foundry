@@ -154,14 +154,15 @@ def test_v2_section_fixtures_validate() -> None:
     v2_cfg = validate_inference_config_dict(v2_inference_payload)
     v2_state = validate_preprocessor_state_dict(v2_preproc_payload, schema_version=SCHEMA_VERSION_V2)
 
-    assert v2_cfg.model_arch == "tabfoundry"
+    assert v2_cfg.model_arch == "tabfoundry_staged"
+    assert v2_cfg.model_stage == "nano_exact"
     assert v2_cfg.feature_group_size == 1
     assert isinstance(v2_state, LegacyPreprocessorState)
     assert v2_state.feature_order_policy == "lexicographic_f_columns"
     assert v2_state.classification_label_policy["unseen_test_label"] == "filter"
 
 
-def test_v3_section_validation_supports_classification_and_regression_policies() -> None:
+def test_v3_section_validation_supports_classification_policy() -> None:
     manifest_payload = _load_fixture("manifest_v3.json")
     cls_inference = validate_inference_config_dict(manifest_payload["inference"])
     cls_preprocessor = validate_preprocessor_state_dict(
@@ -169,30 +170,32 @@ def test_v3_section_validation_supports_classification_and_regression_policies()
         schema_version=SCHEMA_VERSION_V3,
         task="classification",
     )
-    reg_preprocessor = validate_preprocessor_state_dict(
-        {
-            "feature_order_policy": "positional_feature_ids",
-            "missing_value_policy": {
-                "strategy": "train_mean",
-                "all_nan_fill": 0.0,
-            },
-            "classification_label_policy": None,
-            "dtype_policy": {
-                "features": "float32",
-                "classification_labels": "int64",
-                "regression_targets": "float32",
-            },
-        },
-        schema_version=SCHEMA_VERSION_V3,
-        task="regression",
-    )
 
     assert cls_inference.many_class_inference_mode == "full_probs"
     assert isinstance(cls_preprocessor, ExportPreprocessorState)
     assert cls_preprocessor.classification_label_policy is not None
     assert cls_preprocessor.classification_label_policy.unseen_test_label == "filter"
-    assert isinstance(reg_preprocessor, ExportPreprocessorState)
-    assert reg_preprocessor.classification_label_policy is None
+
+
+def test_v3_preprocessor_validation_rejects_regression_task() -> None:
+    with pytest.raises(ValueError, match="Unsupported preprocessor_state task"):
+        validate_preprocessor_state_dict(
+            {
+                "feature_order_policy": "positional_feature_ids",
+                "missing_value_policy": {
+                    "strategy": "train_mean",
+                    "all_nan_fill": 0.0,
+                },
+                "classification_label_policy": None,
+                "dtype_policy": {
+                    "features": "float32",
+                    "classification_labels": "int64",
+                    "regression_targets": "float32",
+                },
+            },
+            schema_version=SCHEMA_VERSION_V3,
+            task="regression",
+        )
 
 
 def test_manifest_validation_rejects_old_model_arch() -> None:

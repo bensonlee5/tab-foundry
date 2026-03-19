@@ -168,10 +168,8 @@ def _validate_v3_classification_label_policy(
     *,
     task: str,
 ) -> ExportClassificationLabelPolicy | None:
-    if task == "regression":
-        if payload is not None:
-            raise ValueError("preprocessor_state.classification_label_policy must be null for regression")
-        return None
+    if task != "classification":
+        raise ValueError(f"Unsupported preprocessor_state task: {task!r}")
     if not isinstance(payload, dict):
         raise ValueError("preprocessor_state.classification_label_policy must be object for classification")
     _require_keys(

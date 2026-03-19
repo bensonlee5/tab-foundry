@@ -110,9 +110,7 @@ Common training profiles:
 
 ```bash
 uv run tab-foundry train run experiment=cls_smoke
-uv run tab-foundry train run experiment=reg_smoke
 uv run tab-foundry train run experiment=cls_workstation
-uv run tab-foundry train run experiment=reg_workstation
 uv run tab-foundry train run \
   experiment=cls_benchmark_linear \
   data.manifest_path=data/manifests/default.parquet
@@ -134,6 +132,10 @@ and `many_class_base=2`.
 base recipe only. The live staged workflow now records isolated changes through
 the active system-delta sweep using `model.stage_label` and
 `model.module_overrides`, not through a promotion ladder in this runbook.
+
+Regression is intentionally removed in the current repo state. Future
+regression work will be rebuilt on top of `tabfoundry_staged`, not the retired
+legacy `tabfoundry` family.
 
 Prior-dump training for the staged family uses the same harness with the staged
 experiment default:

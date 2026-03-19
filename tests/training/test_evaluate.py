@@ -70,7 +70,7 @@ def test_evaluate_checkpoint_uses_checkpoint_model_config(
         return {
             "model": {},
             "config": {
-                "task": "regression",
+                "task": "classification",
                 "model": {
                     "arch": "tabfoundry_simple",
                     "d_col": 64,
@@ -113,12 +113,41 @@ def test_evaluate_checkpoint_uses_checkpoint_model_config(
     with pytest.raises(RuntimeError, match="stop_after_build"):
         _ = evaluate_module.evaluate_checkpoint(cfg)
 
-    assert captured["task"] == "regression"
+    assert captured["task"] == "classification"
     assert captured["arch"] == "tabfoundry_simple"
     assert captured["d_col"] == 64
     assert captured["d_icl"] == 256
     assert captured["input_normalization"] == "train_zscore"
     assert captured["feature_group_size"] == 1
+
+
+def test_evaluate_checkpoint_rejects_regression_checkpoint_task(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "regression",
+                "model": {},
+            },
+        }
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {},
+            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="classification checkpoints"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
 
 
 def test_evaluate_checkpoint_prefers_checkpoint_preprocessing_config(
@@ -426,20 +455,24 @@ def test_checkpoint_model_settings_rejects_legacy_grouped_weights_without_overri
         }
     )
 
-    with pytest.raises(ValueError, match="Resolved feature_group_size=1 is incompatible"):
+    with pytest.raises(ValueError, match="Legacy tabfoundry checkpoints"):
         _ = evaluate_module._checkpoint_model_settings(payload, cfg)
 
 
-def test_checkpoint_model_settings_supports_explicit_override_for_legacy_weights() -> None:
+def test_checkpoint_model_settings_accepts_supported_arch_from_checkpoint_payload() -> None:
     payload = {
-        "model": {
-            "group_linear.weight": torch.zeros((128, 96)),
-        },
+        "model": {},
         "config": {
             "task": "classification",
             "model": {
+                "arch": "tabfoundry_simple",
                 "d_col": 128,
                 "d_icl": 512,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
             },
@@ -451,7 +484,7 @@ def test_checkpoint_model_settings_supports_explicit_override_for_legacy_weights
             "model": {
                 "d_col": 128,
                 "d_icl": 512,
-                "feature_group_size": 32,
+                "feature_group_size": 1,
                 "many_class_train_mode": "path_nll",
                 "max_mixed_radix_digits": 64,
             },
@@ -460,4 +493,4 @@ def test_checkpoint_model_settings_supports_explicit_override_for_legacy_weights
 
     spec = evaluate_module._checkpoint_model_settings(payload, cfg)
 
-    assert spec.feature_group_size == 32
+    assert spec.arch == "tabfoundry_simple"

@@ -23,6 +23,5 @@ def _export(names: list[str]) -> None:
 _export(
     [
         "test_reference_loader_round_trip_classification_logits",
-        "test_reference_loader_round_trip_regression_quantiles",
     ]
 )

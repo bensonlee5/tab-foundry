@@ -33,7 +33,6 @@ _export(
         "test_validate_export_v2_rejects_inference_model_stage_mismatch",
         "test_validate_export_rejects_invalid_input_normalization",
         "test_validate_export_rejects_manifest_model_tamper_with_stale_manifest_sha256",
-        "test_validate_export_requires_quantile_levels_for_regression",
         "test_validate_export_rejects_manifest_inference_tamper_with_stale_manifest_sha256",
         "test_validate_export_rejects_quantile_levels_for_classification",
         "test_validate_export_rejects_fixed_inference_contract_drift",

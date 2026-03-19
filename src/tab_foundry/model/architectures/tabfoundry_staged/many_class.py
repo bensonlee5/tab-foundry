@@ -6,7 +6,6 @@ from typing import Any
 
 import torch
 
-from tab_foundry.model.architectures.tabfoundry import ClassificationOutput
 from tab_foundry.model.components.many_class import (
     HierNode,
     balanced_bases,
@@ -14,6 +13,7 @@ from tab_foundry.model.components.many_class import (
     encode_mixed_radix,
     map_labels_to_child_groups,
 )
+from tab_foundry.model.outputs import ClassificationOutput
 
 from .forward_common import context_train_embeddings, encode_to_cell_state, pool_rows
 from .states import RawInputState, RowState

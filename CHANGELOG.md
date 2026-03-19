@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-03-18
+
+### Changed
+
+- Broad user-facing break: removed the legacy `tabfoundry` architecture family
+  from supported build, training, evaluation, checkpoint-loading, export, and
+  benchmark paths. The active model-development surface is now
+  `tabfoundry_staged`, with `tabfoundry_simple` retained only as the frozen
+  exact anchor.
+
+- Broad user-facing break: removed regression from the active train/eval/export
+  surface. The repo is now classification-only until regression is rebuilt on
+  top of `tabfoundry_staged`.
+
+- The canonical model default now resolves to `model.arch=tabfoundry_staged`,
+  and legacy `tabfoundry` checkpoints now fail fast with explicit unsupported
+  compatibility errors instead of attempting reconstruction.
+
+- Updated the model, workflow, inference, and roadmap documentation to describe
+  the single active staged surface and the classification-only contract.
+
 ## [0.7.3] - 2026-03-18
 
 ### Changed

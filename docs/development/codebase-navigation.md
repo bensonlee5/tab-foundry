@@ -31,12 +31,11 @@ into the canonical library modules.
   family modules under `tab_foundry.model.architectures`.
 - `src/tab_foundry/model/components/`: reusable blocks, QASS primitives, and
   many-class helpers shared across families.
-- `src/tab_foundry/model/architectures/`: the current three-family model
+- `src/tab_foundry/model/architectures/`: the current two-family model
   surface:
-  - `tabfoundry`: the main grouped-token backbone family
-  - `tabfoundry_simple`: the exact nanoTabPFN-style benchmark anchor
-  - `tabfoundry_staged`: the staged research family with atomic surface
-    resolution and queue-driven overrides
+  - `tabfoundry_simple`: the frozen exact nanoTabPFN-style benchmark anchor
+  - `tabfoundry_staged`: the staged classification family and the only active
+    architecture-development surface
 - `src/tab_foundry/training/`: family-agnostic training loops, batching,
   schedules, optimizers, runtime policy, and evaluation helpers.
 - `src/tab_foundry/export/`: export bundle construction, loading, and
@@ -112,9 +111,9 @@ not absorb new orchestration logic.
 - `src/tab_foundry/research/` is the canonical home for sweep queue/matrix
   management; do not recreate parallel queue logic in shell helpers or
   docs-only tooling.
-- The three model families are intentional. Shared logic should continue to
-  move into `model/components/`, `model/spec.py`, and family-neutral helpers
-  instead of forking duplicate pathways.
+- `tabfoundry_staged` is the only active architecture surface. Shared logic
+  should continue to move into `model/components/`, `model/spec.py`, and
+  family-neutral helpers instead of reintroducing parallel model pathways.
 - The active system-delta aliases are generated views. Docs and scripts should
   describe them as such and should resolve canonical state through the sweep
   index and per-sweep sources.

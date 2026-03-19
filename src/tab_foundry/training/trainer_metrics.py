@@ -8,12 +8,12 @@ from accelerate import Accelerator
 import torch
 from torch.utils.data import DataLoader
 
-from tab_foundry.model.architectures.tabfoundry import ClassificationOutput, RegressionOutput
+from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.types import TaskBatch
 
 from .batching import move_batch
 from .distributed import _global_mean_from_local
-from .losses import classification_loss, hierarchical_nll_loss, quantile_pinball_loss
+from .losses import classification_loss, hierarchical_nll_loss
 
 
 def cycle_loader(loader: DataLoader[TaskBatch]) -> Iterator[TaskBatch]:
@@ -22,80 +22,73 @@ def cycle_loader(loader: DataLoader[TaskBatch]) -> Iterator[TaskBatch]:
 
 
 def _compute_loss_and_metrics(
-    output: ClassificationOutput | RegressionOutput,
+    output: ClassificationOutput,
     batch: TaskBatch,
     *,
     task: str,
 ) -> tuple[torch.Tensor, dict[str, float]]:
-    if task == "classification":
-        if not isinstance(output, ClassificationOutput):
-            raise TypeError("classification run expected ClassificationOutput")
-        n_test = int(batch.y_test.shape[0])
-        if n_test <= 0:
-            raise RuntimeError("classification batch has zero test labels")
-
-        if output.logits is not None:
-            logits = output.logits[:, : output.num_classes]
-            target = batch.y_test.to(torch.int64)
-            loss = classification_loss(logits, target)
-            acc = (logits.argmax(dim=-1) == target).float().mean().item()
-            cls_metrics = {"acc": float(acc)}
-            if output.aux_metrics is not None:
-                cls_metrics.update(output.aux_metrics)
-            return loss, cls_metrics
-
-        if output.class_probs is not None:
-            probs = output.class_probs
-            target = batch.y_test.to(torch.int64)
-            loss = hierarchical_nll_loss(probs, target)
-            acc = (probs.argmax(dim=-1) == target).float().mean().item()
-            cls_metrics = {"acc": float(acc)}
-            if output.aux_metrics is not None:
-                cls_metrics.update(output.aux_metrics)
-            return loss, cls_metrics
-
-        if output.path_logits is None or output.path_targets is None:
-            raise RuntimeError("many-class output missing class_probs and path terms")
-        if len(output.path_logits) != len(output.path_targets):
-            raise RuntimeError("path_logits and path_targets length mismatch")
-
-        counts = (
-            output.path_sample_counts
-            if output.path_sample_counts is not None
-            else [int(logits.shape[0]) for logits in output.path_logits]
+    if task != "classification":
+        raise RuntimeError(
+            "Only classification training/evaluation is supported in this branch; "
+            f"got task={task!r}."
         )
-        if len(counts) != len(output.path_logits):
-            raise RuntimeError("path_sample_counts length mismatch")
-        weighted_total: torch.Tensor | None = None
-        total_edges = 0
-        for logits, targets, sample_count in zip(
-            output.path_logits, output.path_targets, counts, strict=True
-        ):
-            count_i = int(sample_count)
-            if count_i <= 0:
-                continue
-            term = classification_loss(logits, targets.to(torch.int64))
-            contrib = term * float(count_i)
-            weighted_total = contrib if weighted_total is None else weighted_total + contrib
-            total_edges += count_i
-        if weighted_total is None or total_edges <= 0 or n_test <= 0:
-            raise RuntimeError("path-based many-class output has no valid terms")
-        loss = weighted_total / float(n_test)
-        path_metrics: dict[str, float] = {}
-        if output.aux_metrics is not None:
-            path_metrics.update(output.aux_metrics)
-        return loss, path_metrics
+    if not isinstance(output, ClassificationOutput):
+        raise TypeError("classification run expected ClassificationOutput")
+    n_test = int(batch.y_test.shape[0])
+    if n_test <= 0:
+        raise RuntimeError("classification batch has zero test labels")
 
-    if not isinstance(output, RegressionOutput):
-        raise TypeError("regression run expected RegressionOutput")
-    target = batch.y_test.to(torch.float32)
-    levels = output.quantile_levels
-    if levels is None:
-        levels = torch.arange(1, 1000, device=target.device, dtype=torch.float32) / 1000.0
-    loss = quantile_pinball_loss(output.quantiles, target, quantile_levels=levels)
-    pred_mean = output.quantiles.mean(dim=-1)
-    rmse = torch.sqrt(torch.mean((pred_mean - target) ** 2)).item()
-    return loss, {"rmse": float(rmse)}
+    if output.logits is not None:
+        logits = output.logits[:, : output.num_classes]
+        target = batch.y_test.to(torch.int64)
+        loss = classification_loss(logits, target)
+        acc = (logits.argmax(dim=-1) == target).float().mean().item()
+        cls_metrics = {"acc": float(acc)}
+        if output.aux_metrics is not None:
+            cls_metrics.update(output.aux_metrics)
+        return loss, cls_metrics
+
+    if output.class_probs is not None:
+        probs = output.class_probs
+        target = batch.y_test.to(torch.int64)
+        loss = hierarchical_nll_loss(probs, target)
+        acc = (probs.argmax(dim=-1) == target).float().mean().item()
+        cls_metrics = {"acc": float(acc)}
+        if output.aux_metrics is not None:
+            cls_metrics.update(output.aux_metrics)
+        return loss, cls_metrics
+
+    if output.path_logits is None or output.path_targets is None:
+        raise RuntimeError("many-class output missing class_probs and path terms")
+    if len(output.path_logits) != len(output.path_targets):
+        raise RuntimeError("path_logits and path_targets length mismatch")
+
+    counts = (
+        output.path_sample_counts
+        if output.path_sample_counts is not None
+        else [int(logits.shape[0]) for logits in output.path_logits]
+    )
+    if len(counts) != len(output.path_logits):
+        raise RuntimeError("path_sample_counts length mismatch")
+    weighted_total: torch.Tensor | None = None
+    total_edges = 0
+    for logits, targets, sample_count in zip(
+        output.path_logits, output.path_targets, counts, strict=True
+    ):
+        count_i = int(sample_count)
+        if count_i <= 0:
+            continue
+        term = classification_loss(logits, targets.to(torch.int64))
+        contrib = term * float(count_i)
+        weighted_total = contrib if weighted_total is None else weighted_total + contrib
+        total_edges += count_i
+    if weighted_total is None or total_edges <= 0 or n_test <= 0:
+        raise RuntimeError("path-based many-class output has no valid terms")
+    loss = weighted_total / float(n_test)
+    path_metrics: dict[str, float] = {}
+    if output.aux_metrics is not None:
+        path_metrics.update(output.aux_metrics)
+    return loss, path_metrics
 
 
 def _evaluate_loader(
@@ -110,7 +103,12 @@ def _evaluate_loader(
     loss_sum = 0.0
     score_sum = 0.0
     count = 0
-    metric_name = "acc" if task == "classification" else "rmse"
+    if task != "classification":
+        raise RuntimeError(
+            "Only classification evaluation is supported in this branch; "
+            f"got task={task!r}."
+        )
+    metric_name = "acc"
 
     with torch.no_grad():
         for step, batch in enumerate(loader):
@@ -144,12 +142,15 @@ def _evaluate_loader(
 
 
 def _expected_metric_keys(task: str) -> set[str]:
-    if task == "classification":
-        return {
-            "acc",
-            "grad_norm",
-            "many_class_nodes_visited",
-            "many_class_avg_path_depth",
-            "many_class_empty_nodes",
-        }
-    return {"rmse", "grad_norm"}
+    if task != "classification":
+        raise RuntimeError(
+            "Only classification metrics are supported in this branch; "
+            f"got task={task!r}."
+        )
+    return {
+        "acc",
+        "grad_norm",
+        "many_class_nodes_visited",
+        "many_class_avg_path_depth",
+        "many_class_empty_nodes",
+    }

@@ -27,11 +27,7 @@ def validate_inference_config_dict(payload: dict[str, object]) -> InferenceConfi
         "many_class_threshold",
         "many_class_inference_mode",
     }
-    optional_keys = {"model_stage"}
-    if task == "regression":
-        keys.add("quantile_levels")
-    elif "quantile_levels" in payload:
-        keys.add("quantile_levels")
+    optional_keys = {"model_stage", "quantile_levels"}
     _require_keys(payload, keys=keys, context="inference_config", optional_keys=optional_keys)
 
     validated_payload = _validate_payload_model(
@@ -89,13 +85,10 @@ def validate_inference_config_dict(payload: dict[str, object]) -> InferenceConfi
     quantile_levels_raw = validated_payload.quantile_levels
     quantile_levels: list[float] | None = None
     if quantile_levels_raw is not None:
-        if task != "regression":
-            raise ValueError("inference_config.quantile_levels is only valid for regression")
-        quantile_levels = [float(v) for v in quantile_levels_raw]
-        if len(quantile_levels) != 999:
-            raise ValueError("inference_config.quantile_levels must contain 999 values")
-    elif task == "regression":
-        raise ValueError("inference_config.quantile_levels is required for regression")
+        raise ValueError(
+            "inference_config.quantile_levels is not supported in this branch; "
+            "regression export has been removed pending a staged rebuild."
+        )
 
     return InferenceConfig(
         task=task,

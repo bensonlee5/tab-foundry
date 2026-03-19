@@ -10,17 +10,13 @@ import numpy as np
 
 from tab_foundry.bench.artifacts import checkpoint_snapshots_from_history
 
-from .bundle import _CLASSIFICATION_TASK_TYPE, _REGRESSION_TASK_TYPE
+from .bundle import _CLASSIFICATION_TASK_TYPE
 from .datasets import BenchmarkDatasetEvaluationError
 from .metrics import (
-    dataset_avg_pinball_loss_metrics,
     dataset_brier_score_metrics,
-    dataset_crps_metrics,
     dataset_log_loss_metrics,
-    dataset_picp_90_metrics,
     dataset_roc_auc_metrics,
     evaluate_classifier,
-    evaluate_regressor,
 )
 
 
@@ -126,7 +122,7 @@ def evaluate_tab_foundry_run(
 ) -> list[dict[str, Any]]:
     """Evaluate smoke-run checkpoints on the notebook benchmark suite."""
 
-    from tab_foundry.bench.checkpoint import TabFoundryClassifier, TabFoundryRegressor
+    from tab_foundry.bench.checkpoint import TabFoundryClassifier
 
     resolved_device = resolve_device(device)
     curve_records: list[dict[str, Any]] = []
@@ -141,15 +137,11 @@ def evaluate_tab_foundry_run(
                     datasets,
                     allow_missing_values=allow_missing_values,
                 )
-            elif task_type == _REGRESSION_TASK_TYPE:
-                predictor = TabFoundryRegressor(checkpoint_path, device=resolved_device)
-                metrics = evaluate_regressor(
-                    predictor,
-                    datasets,
-                    allow_missing_values=allow_missing_values,
-                )
             else:
-                raise RuntimeError(f"unsupported benchmark task_type: {task_type!r}")
+                raise RuntimeError(
+                    "tab-foundry benchmark checkpoint evaluation is classification-only in this branch; "
+                    f"got task_type={task_type!r}"
+                )
         except Exception as exc:
             if not allow_checkpoint_failures:
                 raise
@@ -169,7 +161,7 @@ def evaluate_tab_foundry_run(
                 }
             )
             continue
-        model_arch = str(getattr(predictor.model_spec, "arch", "tabfoundry")).strip().lower()
+        model_arch = str(getattr(predictor.model_spec, "arch", "tabfoundry_staged")).strip().lower()
         model_stage_raw = getattr(predictor.model_spec, "stage", None)
         model_stage = None if model_stage_raw is None else str(model_stage_raw).strip().lower()
         benchmark_profile_raw = getattr(predictor.model, "benchmark_profile", None)
@@ -192,14 +184,5 @@ def evaluate_tab_foundry_run(
         if "Brier Score" in metrics:
             record["brier_score"] = float(metrics["Brier Score"])
             record["dataset_brier_score"] = dataset_brier_score_metrics(metrics)
-        if "CRPS" in metrics:
-            record["crps"] = float(metrics["CRPS"])
-            record["dataset_crps"] = dataset_crps_metrics(metrics)
-        if "Average Pinball Loss" in metrics:
-            record["avg_pinball_loss"] = float(metrics["Average Pinball Loss"])
-            record["dataset_avg_pinball_loss"] = dataset_avg_pinball_loss_metrics(metrics)
-        if "PICP 90" in metrics:
-            record["picp_90"] = float(metrics["PICP 90"])
-            record["dataset_picp_90"] = dataset_picp_90_metrics(metrics)
         curve_records.append(record)
     return curve_records
