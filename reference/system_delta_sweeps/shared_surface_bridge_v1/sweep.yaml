@@ -1,9 +1,9 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: shared_surface_bridge_v1
 parent_sweep_id: binary_md_v1
-status: draft
+status: completed
 complexity_level: binary_md
-anchor_run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
+anchor_run_id: sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged
@@ -15,17 +15,17 @@ upstream_reference:
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-  - The locked anchor is benchmark registry run `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
+  - The locked anchor is benchmark registry run `sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1`
     on bundle `nanotabpfn_openml_binary_medium` (10 tasks).
-  - This sweep is the first benchmark-facing, stage-native shared-surface bridge
-    on `cls_benchmark_staged`; it does not reuse the hybrid-diagnostic lane as its
-    execution surface.
+  - This sweep is the first benchmark-facing, stage-native shared-surface bridge on
+    `cls_benchmark_staged`; it does not reuse the hybrid-diagnostic lane as its execution
+    surface.
   - Earlier hybrid-diagnostic results for `delta_shared_feature_norm`, `delta_prenorm_block`,
     and `delta_test_self_attention` remain historical input only and do not close
     TF-RD-003 by themselves.
-  - The local registry anchor does not include `gradient_history.jsonl` or `telemetry.json`,
-    so row 1 replays `nano_exact` on the architecture-screen lane before the shared-surface
-    bridge rows are compared.
+  - Treat the older `01_nano_exact_md_prior_parity_fix_binary_medium_v1` registry run
+    as historical anchor evidence only; row 1 established the same-lane replay anchor
+    with the missing telemetry artifacts.
   - Data and preprocessing remain part of the comparison surface and must stay fixed
     unless the queue row declares that exact dimension.
   dimension_table:
@@ -70,39 +70,43 @@ anchor_surface:
     upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
       manifest contract.
     anchor: Benchmark bundle `nanotabpfn_openml_binary_medium` (10 tasks) with data
-      surface label `registry surface label unavailable`.
+      surface label `anchor_manifest_default`.
     interpretation: Bundle and training-data changes are first-class sweep rows and
       should not be inherited from parent sweep prose.
   - dimension: preprocessing
     upstream: Notebook preprocessing inside the benchmark helper.
-    anchor: Benchmark preprocessing surface label `registry surface label unavailable`.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
     interpretation: Preprocessing changes can alter the effective task definition
       and must be tracked explicitly.
   - dimension: training recipe
     upstream: No repo-local prior-dump training-surface contract.
-    anchor: Training surface label `prior_constant_lr`.
+    anchor: Training surface label `training_default`.
     interpretation: Optimizer and schedule changes are first-class sweep rows, not
       background recipe assumptions.
 anchor_context:
-  run_id: 01_nano_exact_md_prior_parity_fix_binary_medium_v1
-  experiment: cls_benchmark_staged_prior
-  config_profile: cls_benchmark_staged_prior
+  run_id: sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1
+  experiment: cls_benchmark_staged
+  config_profile: cls_benchmark_staged
   model:
     arch: tabfoundry_staged
-    benchmark_profile: nano_exact
+    benchmark_profile: delta_architecture_screen_nano_exact_replay
     stage: nano_exact
-    stage_label: null
+    stage_label: delta_architecture_screen_nano_exact_replay
     module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
       feature_encoder: nano
+      head: binary_direct
       post_encoder_norm: none
       post_stack_norm: none
+      row_pool: target_column
+      table_block_residual_scale: none
+      table_block_style: nano_postnorm
       target_conditioner: mean_padded_linear
       tokenizer: scalar_per_feature
-      column_encoder: none
-      row_pool: target_column
-      context_encoder: none
-      head: binary_direct
-      table_block_style: nano_postnorm
-      table_block_residual_scale: none
-      allow_test_self_attention: false
-  surface_labels: null
+  surface_labels:
+    data: anchor_manifest_default
+    model: delta_architecture_screen_nano_exact_replay
+    preprocessing: runtime_default
+    training: training_default
