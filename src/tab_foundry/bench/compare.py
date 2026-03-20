@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 import subprocess
 import sys
-from typing import Any, Sequence, cast
+from typing import Any, Mapping, Sequence, cast
 
 from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
 from tab_foundry.bench.benchmark_run_registry import derive_benchmark_run_record
@@ -146,6 +146,35 @@ def _validate_config(
     return tab_foundry_run_dir, nanotabpfn_root, prior_dump
 
 
+def _nanotabpfn_execution_metadata(
+    *,
+    config: NanoTabPFNBenchmarkConfig,
+    nanotabpfn_root: Path | None,
+    nanotabpfn_python: Path | None,
+    prior_dump: Path | None,
+    reuse_curve_path: Path | None,
+) -> dict[str, Any]:
+    return {
+        "root": None if nanotabpfn_root is None else str(nanotabpfn_root.expanduser().resolve()),
+        "python": None
+        if nanotabpfn_python is None
+        else str(nanotabpfn_python.expanduser().resolve()),
+        "num_seeds": int(config.nanotabpfn_seeds),
+        "device": str(config.device),
+        "prior_dump_path": None if prior_dump is None else str(prior_dump.expanduser().resolve()),
+        "steps": int(config.nanotabpfn_steps),
+        "eval_every": int(config.nanotabpfn_eval_every),
+        "batch_size": int(config.nanotabpfn_batch_size),
+        "lr": float(config.nanotabpfn_lr),
+        "curve_source_mode": "reused" if reuse_curve_path is not None else "fresh",
+        "reused_curve_path": (
+            None
+            if reuse_curve_path is None
+            else str(reuse_curve_path.expanduser().resolve())
+        ),
+    }
+
+
 def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any]:
     """Run the notebook-style tab-foundry vs nanoTabPFN comparison."""
 
@@ -159,9 +188,12 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     )
     task_type = benchmark_bundle_task_type(benchmark_bundle)
     require_external_control = task_type != "supervised_regression"
-    tab_foundry_run_dir, nanotabpfn_root, _prior_dump = _validate_config(
+    tab_foundry_run_dir, nanotabpfn_root, prior_dump = _validate_config(
         config,
         require_external_control=require_external_control,
+    )
+    nanotabpfn_python = (
+        None if nanotabpfn_root is None else _nanotabpfn_python(nanotabpfn_root)
     )
     out_root = config.out_root.expanduser().resolve()
     out_root.mkdir(parents=True, exist_ok=True)
@@ -211,12 +243,16 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     write_jsonl(tab_foundry_curve_path, tab_foundry_records)
 
     nanotabpfn_records: list[dict[str, Any]] = []
+    reuse_curve_path = (
+        None
+        if config.reuse_nanotabpfn_curve_path is None
+        else config.reuse_nanotabpfn_curve_path.expanduser().resolve()
+    )
     if require_external_control:
-        if config.reuse_nanotabpfn_curve_path is not None:
-            reuse_path = config.reuse_nanotabpfn_curve_path.expanduser().resolve()
-            nanotabpfn_records = load_jsonl(reuse_path)
+        if reuse_curve_path is not None:
+            nanotabpfn_records = load_jsonl(reuse_curve_path)
             if not nanotabpfn_records:
-                raise RuntimeError(f"reused nanoTabPFN curve is empty: {reuse_path}")
+                raise RuntimeError(f"reused nanoTabPFN curve is empty: {reuse_curve_path}")
             write_jsonl(nanotabpfn_curve_path, nanotabpfn_records)
         else:
             assert nanotabpfn_root is not None
@@ -248,11 +284,20 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         tab_foundry_run_dir=tab_foundry_run_dir,
         task_type=task_type,
         nanotabpfn_root=nanotabpfn_root,
-        nanotabpfn_python=(
-            None if nanotabpfn_root is None else _nanotabpfn_python(nanotabpfn_root)
-        ),
+        nanotabpfn_python=nanotabpfn_python,
         control_baseline=control_baseline,
     )
+    nanotabpfn_summary = summary.get("nanotabpfn")
+    if require_external_control and isinstance(nanotabpfn_summary, Mapping):
+        cast(dict[str, Any], nanotabpfn_summary).update(
+            _nanotabpfn_execution_metadata(
+                config=config,
+                nanotabpfn_root=nanotabpfn_root,
+                nanotabpfn_python=nanotabpfn_python,
+                prior_dump=prior_dump,
+                reuse_curve_path=reuse_curve_path,
+            )
+        )
     gradient_history_jsonl = gradient_history_path(tab_foundry_run_dir)
     telemetry_json = telemetry_path(tab_foundry_run_dir)
     summary["artifacts"] = {

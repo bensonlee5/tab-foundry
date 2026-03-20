@@ -454,6 +454,43 @@ deltas:
     default_next_action: Compare directly against `small_class_head` and lock only one grouped-token predecessor after the full bridge sweep.
     applicability_guards: []
 
+  delta_architecture_screen_grouped_tokens:
+    dimension_family: model
+    family: tokenization
+    binary_applicable: true
+    description: Replace scalar-per-feature tokenization with the public grouped-token staged recipe on the locked shared-surface handoff.
+    upstream_delta: Upstream nanoTabPFN keeps one scalar token per feature on the direct binary path.
+    expected_effect: The tokenizer change becomes active on the shared surface and should be interpreted as the first stage-native row-first preparation step.
+    adequacy_knobs:
+      - Treat this as a structural milestone before row-CLS, TFCol, or QASS follow-ons.
+      - If the benchmark read is mixed, follow with bounded stability tracing before redirecting later migration rows.
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the locked `prenorm_block` shared-surface handoff on the architecture-screen lane.
+        - Treat the first run as tokenizer evidence, not as row-pool or context evidence.
+        - Require a bounded stability read before treating a weak benchmark result as decisive rejection.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: grouped_tokens
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: grouped_tokens
+        stage_label: delta_architecture_screen_grouped_tokens
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: training_default
+        overrides: {}
+    default_next_action: Run the first stage-native grouped-token benchmark row on top of the locked `prenorm_block` handoff.
+    applicability_guards: []
+
   delta_shifted_grouped_tokenizer:
     dimension_family: model
     family: tokenization

@@ -620,6 +620,14 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert summary["nanotabpfn"]["final_log_loss"] == pytest.approx(0.48)
     assert summary["nanotabpfn"]["final_dataset_roc_auc"] == {"toy": pytest.approx(0.78)}
     assert summary["nanotabpfn"]["final_dataset_log_loss"] == {"toy": pytest.approx(0.48)}
+    assert summary["nanotabpfn"]["device"] == "auto"
+    assert summary["nanotabpfn"]["prior_dump_path"] == str(prior_dump.resolve())
+    assert summary["nanotabpfn"]["steps"] == compare_module.DEFAULT_NANOTABPFN_STEPS
+    assert summary["nanotabpfn"]["eval_every"] == compare_module.DEFAULT_NANOTABPFN_EVAL_EVERY
+    assert summary["nanotabpfn"]["batch_size"] == compare_module.DEFAULT_NANOTABPFN_BATCH_SIZE
+    assert summary["nanotabpfn"]["lr"] == pytest.approx(compare_module.DEFAULT_NANOTABPFN_LR)
+    assert summary["nanotabpfn"]["curve_source_mode"] == "fresh"
+    assert summary["nanotabpfn"]["reused_curve_path"] is None
     assert summary["benchmark_bundle"]["name"] == "test_bundle"
     assert summary["benchmark_bundle"]["version"] == 1
     assert summary["benchmark_bundle"]["task_count"] == 1
@@ -809,6 +817,9 @@ def test_run_nanotabpfn_benchmark_explicit_large_bundle_allows_missing_inputs(
 
     assert policy_calls == {"load": [True], "datasets": [True], "evaluate": [True]}
     assert summary["benchmark_bundle"]["allow_missing_values"] is True
+    assert summary["nanotabpfn"]["curve_source_mode"] == "reused"
+    assert summary["nanotabpfn"]["reused_curve_path"] == str(reuse_curve_path.resolve())
+    assert summary["nanotabpfn"]["prior_dump_path"] == str(prior_dump.resolve())
 
 
 def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
