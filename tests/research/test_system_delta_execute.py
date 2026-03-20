@@ -1775,7 +1775,7 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
     assert selection.source_label == 'anchor'
 
 
-def test_resolve_reusable_nanotabpfn_curve_requires_resolved_device_match_even_when_requested_device_matches(
+def test_resolve_reusable_nanotabpfn_curve_allows_cross_device_reuse_on_the_same_host(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1856,11 +1856,15 @@ def test_resolve_reusable_nanotabpfn_curve_requires_resolved_device_match_even_w
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
         prior_dump=prior_dump,
-        requested_device='auto',
+        requested_device='cpu',
         paths=paths,
     )
 
-    assert selection is None
+    assert selection is not None
+    assert selection.curve_path == anchor_curve_path.resolve()
+    assert selection.source_label == 'anchor'
+    assert selection.metadata['device'] == 'auto'
+    assert selection.metadata['resolved_device'] == 'cpu'
 
 
 def test_resolve_reusable_nanotabpfn_curve_requires_host_fingerprint_match(

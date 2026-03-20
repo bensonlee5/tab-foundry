@@ -468,7 +468,6 @@ def _matching_nanotabpfn_curve(
     comparable_keys = (
         "benchmark_bundle_path",
         "control_baseline_id",
-        "resolved_device",
         "benchmark_host_fingerprint",
         "steps",
         "eval_every",
@@ -478,6 +477,9 @@ def _matching_nanotabpfn_curve(
     for key in comparable_keys:
         if candidate_signature[key] != current_signature[key]:
             return None
+    # The cached nanoTabPFN curve is a benchmark artifact, not a training artifact.
+    # Reuse should therefore survive a device change on the same host when the
+    # rest of the benchmark contract is identical.
     for key in ("nanotabpfn_root", "nanotabpfn_python", "prior_dump_path"):
         candidate_value = candidate_signature[key]
         current_value = current_signature[key]
