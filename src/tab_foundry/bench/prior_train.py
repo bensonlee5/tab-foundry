@@ -71,7 +71,9 @@ from tab_foundry.training.wandb import (
     finish_wandb_run,
     init_wandb_run,
     log_wandb_metrics,
+    training_surface_wandb_summary_payload,
     update_wandb_summary,
+    wandb_identity_payload,
 )
 from tab_foundry.types import TrainResult
 
@@ -128,6 +130,8 @@ def _build_prior_training_deps() -> PriorTrainingDeps:
         init_wandb_run=init_wandb_run,
         finish_wandb_run=finish_wandb_run,
         log_wandb_metrics=log_wandb_metrics,
+        update_wandb_summary=update_wandb_summary,
+        training_surface_wandb_summary_payload=training_surface_wandb_summary_payload,
         update_prior_wandb_summary=lambda run, *, output_dir, global_step, telemetry_payload: update_prior_wandb_summary(
             run,
             output_dir=output_dir,
@@ -136,6 +140,7 @@ def _build_prior_training_deps() -> PriorTrainingDeps:
             prior_wandb_summary_payload_fn=_prior_wandb_summary_payload,
             update_wandb_summary_fn=update_wandb_summary,
         ),
+        wandb_identity_payload=wandb_identity_payload,
         initial_missingness_summary=_initial_missingness_summary,
         build_optimizer=build_optimizer,
         optimizer_kwargs=_optimizer_kwargs,

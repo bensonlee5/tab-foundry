@@ -458,6 +458,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         encoding="utf-8",
     )
     policy_calls: dict[str, list[bool]] = {"load": [], "datasets": [], "evaluate": []}
+    captured_posthoc: dict[str, Any] = {}
 
     monkeypatch.setattr(
         compare_module,
@@ -594,6 +595,14 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
+    monkeypatch.setattr(
+        compare_module,
+        "posthoc_update_wandb_summary",
+        lambda *, telemetry_path, payload: captured_posthoc.update(
+            {"telemetry_path": telemetry_path, "payload": payload}
+        )
+        or True,
+    )
 
     summary = compare_module.run_nanotabpfn_benchmark(
         compare_module.NanoTabPFNBenchmarkConfig(
@@ -675,6 +684,11 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         (smoke_run_dir / "telemetry.json").resolve()
     )
     assert written_summary["tab_foundry"]["checkpoint_diagnostics"]["failed_checkpoint_count"] == 1
+    assert captured_posthoc["telemetry_path"] == smoke_run_dir / "telemetry.json"
+    assert captured_posthoc["payload"]["benchmark"]["tab_foundry"]["final_log_loss"] == pytest.approx(0.42)
+    assert captured_posthoc["payload"]["benchmark"]["tab_foundry"]["training_diagnostics"]["mean_grad_norm"] == pytest.approx(0.4)
+    assert captured_posthoc["payload"]["benchmark"]["model_size"]["total_params"] == 1234
+    assert captured_posthoc["payload"]["benchmark"]["nanotabpfn"]["final_log_loss"] == pytest.approx(0.48)
     written_bundle = json.loads((out_root / "benchmark_tasks.json").read_text(encoding="utf-8"))
     assert written_bundle == benchmark_bundle
 
@@ -1041,6 +1055,7 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
         ],
     )
     benchmark_bundle = json.loads(source_bundle_path.read_text(encoding="utf-8"))
+    posthoc_called = {"value": False}
 
     monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: source_bundle_path)
     monkeypatch.setattr(
@@ -1112,6 +1127,11 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
         return subprocess.CompletedProcess(cmd, 0)
 
     monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
+    monkeypatch.setattr(
+        compare_module,
+        "posthoc_update_wandb_summary",
+        lambda **_kwargs: posthoc_called.__setitem__("value", True),
+    )
 
     summary = compare_module.run_nanotabpfn_benchmark(
         compare_module.NanoTabPFNBenchmarkConfig(
@@ -1130,6 +1150,7 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     assert "persisted model.arch" in summary["tab_foundry"]["benchmark_run_record_warning"]
     assert "persisted model.arch" in written_summary["tab_foundry"]["benchmark_run_record_warning"]
     assert not (out_root / "benchmark_run_record.json").exists()
+    assert posthoc_called["value"] is False
     assert "Skipping benchmark_run_record.json derivation" in capsys.readouterr().err
 
 

@@ -186,6 +186,28 @@ def test_python_runtime_and_tooling_contracts_are_aligned() -> None:
     assert 'python-version: "3.13"' not in ci_workflow
 
 
+def test_editable_lockfile_version_matches_pyproject() -> None:
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    uv_lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))
+
+    packages = uv_lock.get("package")
+    assert isinstance(packages, list)
+
+    editable_package = next(
+        (
+            package
+            for package in packages
+            if isinstance(package, dict)
+            and package.get("name") == "tab-foundry"
+            and package.get("source") == {"editable": "."}
+        ),
+        None,
+    )
+
+    assert editable_package is not None
+    assert editable_package["version"] == pyproject["project"]["version"]
+
+
 def test_model_config_documents_staged_override_surface() -> None:
     contents = (REPO_ROOT / "docs" / "development" / "model-config.md").read_text(
         encoding="utf-8"

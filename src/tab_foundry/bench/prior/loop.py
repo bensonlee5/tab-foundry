@@ -29,7 +29,10 @@ class PriorTrainingDeps:
     init_wandb_run: Any
     finish_wandb_run: Any
     log_wandb_metrics: Any
+    update_wandb_summary: Any
+    training_surface_wandb_summary_payload: Any
     update_prior_wandb_summary: Any
+    wandb_identity_payload: Any
     initial_missingness_summary: Any
     build_optimizer: Any
     optimizer_kwargs: Any
@@ -303,6 +306,10 @@ def run_prior_training(
             cfg,
             enabled=bool(getattr(cfg.logging, "use_wandb", False)),
         )
+        deps.update_wandb_summary(
+            run,
+            deps.training_surface_wandb_summary_payload(training_surface_payload),
+        )
         missingness_summary = deps.initial_missingness_summary(
             prior_dump_path,
             prior_missingness_config=prior_missingness_config,
@@ -540,6 +547,7 @@ def run_prior_training(
             gradient_records=gradient_records,
             missingness=missingness_summary,
             training_surface_record=training_surface_payload,
+            wandb=deps.wandb_identity_payload(run, cfg=cfg),
         )
         deps.write_training_telemetry(telemetry_output_path, telemetry_payload)
         deps.update_prior_wandb_summary(
@@ -573,6 +581,7 @@ def run_prior_training(
             gradient_records=gradient_records,
             missingness=missingness_summary,
             training_surface_record=training_surface_payload,
+            wandb=deps.wandb_identity_payload(run, cfg=cfg),
             error=exc,
         )
         deps.write_training_telemetry(telemetry_output_path, telemetry_payload)

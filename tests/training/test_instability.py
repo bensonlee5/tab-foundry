@@ -163,3 +163,42 @@ def test_build_training_telemetry_tracks_non_finite_global_grad_norm_kinds(tmp_p
         "neg_inf": 1,
     }
     assert gradient_summary["final_global_grad_norm_kind"] == "neg_inf"
+
+
+def test_build_training_telemetry_persists_wandb_identity_when_available(tmp_path: Path) -> None:
+    telemetry = build_training_telemetry(
+        run_dir=tmp_path,
+        success=True,
+        artifacts={},
+        checkpoint_snapshots=[],
+        history_records=[{"step": 1, "train_loss": 1.0, "train_loss_delta": None}],
+        gradient_records=[],
+        wandb={
+            "entity": "test-entity",
+            "project": "test-project",
+            "run_id": "run-123",
+            "run_name": "demo-run",
+            "mode": "online",
+        },
+    )
+
+    assert telemetry["wandb"] == {
+        "entity": "test-entity",
+        "project": "test-project",
+        "run_id": "run-123",
+        "run_name": "demo-run",
+        "mode": "online",
+    }
+
+
+def test_build_training_telemetry_leaves_wandb_empty_when_unavailable(tmp_path: Path) -> None:
+    telemetry = build_training_telemetry(
+        run_dir=tmp_path,
+        success=True,
+        artifacts={},
+        checkpoint_snapshots=[],
+        history_records=[{"step": 1, "train_loss": 1.0, "train_loss_delta": None}],
+        gradient_records=[],
+    )
+
+    assert telemetry["wandb"] is None

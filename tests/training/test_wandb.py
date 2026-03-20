@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,6 +23,30 @@ class _FakeRun:
 
     def finish(self) -> None:
         self.finished = True
+
+
+class _FakePublicSummary(dict):
+    def __init__(self) -> None:
+        super().__init__()
+        self.update_calls = 0
+
+    def update(self) -> None:
+        self.update_calls += 1
+
+
+class _FakePublicRun:
+    def __init__(self) -> None:
+        self.summary = _FakePublicSummary()
+
+
+class _FakeApi:
+    def __init__(self, run: _FakePublicRun) -> None:
+        self._run = run
+        self.requested_path: str | None = None
+
+    def run(self, path: str) -> _FakePublicRun:
+        self.requested_path = path
+        return self._run
 
 
 def _wandb_cfg(tmp_path: Path):
@@ -127,3 +152,188 @@ def test_wandb_helpers_normalize_metrics_and_summary() -> None:
     assert "metrics/bad" not in run.summary
     wandb_module.finish_wandb_run(run)
     assert run.finished is True
+
+
+def test_training_surface_wandb_summary_payload_keeps_resolved_surface_fields() -> None:
+    payload = wandb_module.training_surface_wandb_summary_payload(
+        {
+            "labels": {"model": "row_cls_pool", "training": "training_default"},
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "row_cls_pool",
+                "stage_label": "row_cls_pool",
+                "benchmark_profile": "row_cls_pool",
+                "input_normalization": "train_zscore_clip",
+                "feature_group_size": 1,
+                "many_class_base": 2,
+                "module_selection": {
+                    "row_pool": "row_cls",
+                    "context_encoder": "plain",
+                },
+                "module_hyperparameters": {
+                    "row_pool": {"cls_tokens": 4, "n_heads": 8},
+                },
+            },
+        }
+    )
+
+    flattened = {}
+    run = _FakeRun()
+    wandb_module.update_wandb_summary(run, payload)
+    flattened.update(run.summary)
+
+    assert flattened["surface/labels/model"] == "row_cls_pool"
+    assert flattened["surface/model/arch"] == "tabfoundry_staged"
+    assert flattened["surface/model/module_selection/row_pool"] == "row_cls"
+    assert flattened["surface/model/module_hyperparameters/row_pool/cls_tokens"] == 4
+
+
+def test_wandb_identity_payload_reads_string_public_path(
+    tmp_path: Path,
+) -> None:
+    payload = wandb_module.wandb_identity_payload(
+        SimpleNamespace(
+            path="test-entity/test-project/run-123",
+            settings=SimpleNamespace(mode="online"),
+        ),
+        cfg=_wandb_cfg(tmp_path),
+    )
+
+    assert payload == {
+        "entity": "test-entity",
+        "project": "test-project",
+        "run_id": "run-123",
+        "run_name": f"run-{tmp_path.name}",
+        "mode": "online",
+    }
+
+
+def test_posthoc_update_wandb_summary_updates_online_run(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    telemetry_path = tmp_path / "telemetry.json"
+    telemetry_path.write_text(
+        json.dumps(
+            {
+                "wandb": {
+                    "entity": "test-entity",
+                    "project": "test-project",
+                    "run_id": "run-123",
+                    "run_name": "demo-run",
+                    "mode": "online",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    fake_public_run = _FakePublicRun()
+    fake_api = _FakeApi(fake_public_run)
+    monkeypatch.setitem(sys.modules, "wandb", SimpleNamespace(Api=lambda: fake_api))
+
+    updated = wandb_module.posthoc_update_wandb_summary(
+        telemetry_path=telemetry_path,
+        payload={"benchmark": {"model_size": {"total_params": 1234}}},
+    )
+
+    assert updated is True
+    assert fake_api.requested_path == "test-entity/test-project/run-123"
+    assert fake_public_run.summary["benchmark/model_size/total_params"] == 1234
+    assert fake_public_run.summary.update_calls == 1
+
+
+def test_posthoc_update_wandb_summary_updates_run_without_entity_when_project_and_run_id_present(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    telemetry_path = tmp_path / "telemetry.json"
+    telemetry_path.write_text(
+        json.dumps(
+            {
+                "wandb": {
+                    "project": "test-project",
+                    "run_id": "run-123",
+                    "run_name": "demo-run",
+                    "mode": "online",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    fake_public_run = _FakePublicRun()
+    fake_api = _FakeApi(fake_public_run)
+    monkeypatch.setitem(sys.modules, "wandb", SimpleNamespace(Api=lambda: fake_api))
+
+    updated = wandb_module.posthoc_update_wandb_summary(
+        telemetry_path=telemetry_path,
+        payload={"benchmark": {"model_size": {"total_params": 1234}}},
+    )
+
+    assert updated is True
+    assert fake_api.requested_path == "test-project/run-123"
+    assert fake_public_run.summary["benchmark/model_size/total_params"] == 1234
+    assert fake_public_run.summary.update_calls == 1
+
+
+def test_posthoc_update_wandb_summary_skips_offline_or_incomplete_metadata(
+    tmp_path: Path,
+) -> None:
+    offline_telemetry_path = tmp_path / "offline_telemetry.json"
+    offline_telemetry_path.write_text(
+        json.dumps({"wandb": {"project": "test-project", "run_name": "demo-run", "mode": "offline"}}),
+        encoding="utf-8",
+    )
+    missing_telemetry_path = tmp_path / "missing_telemetry.json"
+    missing_telemetry_path.write_text(
+        json.dumps({"wandb": {"project": "test-project", "mode": "online"}}),
+        encoding="utf-8",
+    )
+
+    assert (
+        wandb_module.posthoc_update_wandb_summary(
+            telemetry_path=offline_telemetry_path,
+            payload={"benchmark": {"tab_foundry": {"final_roc_auc": 0.8}}},
+        )
+        is False
+    )
+    assert (
+        wandb_module.posthoc_update_wandb_summary(
+            telemetry_path=missing_telemetry_path,
+            payload={"benchmark": {"tab_foundry": {"final_roc_auc": 0.8}}},
+        )
+        is False
+    )
+
+
+def test_posthoc_update_wandb_summary_returns_false_when_api_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    telemetry_path = tmp_path / "telemetry.json"
+    telemetry_path.write_text(
+        json.dumps(
+            {
+                "wandb": {
+                    "entity": "test-entity",
+                    "project": "test-project",
+                    "run_id": "run-123",
+                    "run_name": "demo-run",
+                    "mode": "online",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "wandb",
+        SimpleNamespace(Api=lambda: (_ for _ in ()).throw(RuntimeError("missing auth"))),
+    )
+
+    assert (
+        wandb_module.posthoc_update_wandb_summary(
+            telemetry_path=telemetry_path,
+            payload={"benchmark": {"tab_foundry": {"final_roc_auc": 0.8}}},
+        )
+        is False
+    )

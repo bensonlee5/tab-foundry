@@ -91,6 +91,23 @@ def test_verify_paths_parser_accepts_explicit_paths() -> None:
         "src/tab_foundry/model/factory.py",
         "tests/model/test_factory.py",
     ]
+    assert args.pre_commit is False
+
+
+def test_verify_paths_parser_accepts_pre_commit_profile() -> None:
+    args = dev_verify.parse_args(
+        [
+            "verify",
+            "paths",
+            "--pre-commit",
+            "src/tab_foundry/training/trainer.py",
+        ]
+    )
+
+    assert args.command == "verify"
+    assert args.verify_command == "paths"
+    assert args.pre_commit is True
+    assert args.paths == ["src/tab_foundry/training/trainer.py"]
 
 
 def test_training_only_diff_selects_training_slice() -> None:
@@ -205,10 +222,105 @@ def test_pre_commit_verify_paths_covers_non_python_mapped_paths() -> None:
     verify_hook = next(hook for hook in hooks if hook["id"] == "verify-paths")
     pattern = str(verify_hook["files"])
 
+    assert "--pre-commit" in str(verify_hook["entry"])
     assert "types_or" not in verify_hook
     assert re.search(pattern, "configs/config.yaml") is not None
     assert re.search(pattern, "reference/system_delta_sweeps/input_norm_followup/queue.yaml") is not None
     assert re.search(pattern, "scripts/audit/dev_verify.py") is not None
+
+
+def test_build_precommit_check_ids_drops_expensive_cross_suite_pytest() -> None:
+    index = dev_verify.load_dev_index()
+
+    plan, explicit_pytest_paths = dev_verify.build_precommit_check_ids(
+        ["src/tab_foundry/training/trainer.py"],
+        index,
+    )
+
+    assert explicit_pytest_paths == ()
+    assert plan.check_ids == ("ruff", "mypy", "pytest_training")
+
+
+def test_build_precommit_check_ids_prefers_changed_test_files_over_directory_pytest() -> None:
+    index = dev_verify.load_dev_index()
+
+    plan, explicit_pytest_paths = dev_verify.build_precommit_check_ids(
+        [
+            "src/tab_foundry/training/trainer.py",
+            "tests/training/test_wandb.py",
+            "tests/runtime/test_program_contract.py",
+        ],
+        index,
+    )
+
+    assert explicit_pytest_paths == (
+        "tests/training/test_wandb.py",
+        "tests/runtime/test_program_contract.py",
+    )
+    assert plan.check_ids == ("ruff", "mypy")
+
+
+def test_execute_precommit_paths_adds_n0_to_bucket_pytest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    index = dev_verify.load_dev_index()
+    calls: list[tuple[str, ...]] = []
+
+    def _fake_run(argv):
+        calls.append(tuple(argv))
+        return 0
+
+    monkeypatch.setattr(dev_verify, "run_check_command", _fake_run)
+
+    result = dev_verify.execute_precommit_paths(
+        ["src/tab_foundry/training/trainer.py"],
+        index,
+    )
+
+    assert result == 0
+    assert calls == [
+        (str(dev_verify.VENV_RUFF), "check", "src", "tests", "scripts"),
+        (str(dev_verify.VENV_PYTHON), "-m", "mypy", "src"),
+        (str(dev_verify.VENV_PYTHON), "-m", "pytest", "-q", "tests/training", "-n", "0"),
+    ]
+
+
+def test_execute_precommit_paths_adds_n0_to_changed_test_file_pytest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    index = dev_verify.load_dev_index()
+    calls: list[tuple[str, ...]] = []
+
+    def _fake_run(argv):
+        calls.append(tuple(argv))
+        return 0
+
+    monkeypatch.setattr(dev_verify, "run_check_command", _fake_run)
+
+    result = dev_verify.execute_precommit_paths(
+        [
+            "src/tab_foundry/training/trainer.py",
+            "tests/training/test_wandb.py",
+            "tests/runtime/test_program_contract.py",
+        ],
+        index,
+    )
+
+    assert result == 0
+    assert calls == [
+        (str(dev_verify.VENV_RUFF), "check", "src", "tests", "scripts"),
+        (str(dev_verify.VENV_PYTHON), "-m", "mypy", "src"),
+        (
+            str(dev_verify.VENV_PYTHON),
+            "-m",
+            "pytest",
+            "-q",
+            "tests/training/test_wandb.py",
+            "tests/runtime/test_program_contract.py",
+            "-n",
+            "0",
+        ),
+    ]
 
 
 def test_should_live_stream_only_for_pytest_when_requested(

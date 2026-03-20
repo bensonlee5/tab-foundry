@@ -341,10 +341,23 @@ class _DeterministicTraceClassifier(nn.Module):
 
 
 class _FakeWandbRun:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        entity: str = "test-entity",
+        project: str = "test",
+        run_id: str = "wandb-run-123",
+        name: str = "test",
+        mode: str = "online",
+    ) -> None:
         self.logged: list[tuple[dict[str, object], int]] = []
         self.summary: dict[str, object] = {}
         self.finished = False
+        self.entity = entity
+        self.project = project
+        self.id = run_id
+        self.name = name
+        self.mode = mode
 
     def log(self, payload: dict[str, object], *, step: int) -> None:
         self.logged.append((dict(payload), int(step)))
@@ -704,12 +717,24 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
 ) -> None:
     _install_classification_fakes(monkeypatch)
     cfg = _classification_cfg(tmp_path)
+    cfg.model = {
+        "arch": "tabfoundry_staged",
+        "stage": "row_cls_pool",
+        "input_normalization": "train_zscore_clip",
+        "tfrow_n_heads": 2,
+        "tfrow_n_layers": 1,
+        "tfrow_cls_tokens": 3,
+        "tfrow_norm": "layernorm",
+        "feature_group_size": 1,
+        "many_class_base": 2,
+    }
     cfg.logging.use_wandb = True
     cfg.schedule.stages = [{"name": "stage1", "steps": 2, "lr_max": 1.0e-3}]
     fake_run = _FakeWandbRun()
     monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
 
     result = trainer_module.train(cfg)
+    telemetry = json.loads((result.output_dir / "telemetry.json").read_text(encoding="utf-8"))
 
     train_logs = [
         (payload, step)
@@ -748,6 +773,17 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert fake_run.summary["telemetry/success"] is True
     assert fake_run.summary["artifacts/gradient_history_jsonl"].endswith("gradient_history.jsonl")
     assert fake_run.summary["artifacts/telemetry_json"].endswith("telemetry.json")
+    assert fake_run.summary["surface/model/arch"] == "tabfoundry_staged"
+    assert fake_run.summary["surface/model/module_selection/row_pool"] == "row_cls"
+    assert fake_run.summary["surface/model/module_selection/context_encoder"] == "plain"
+    assert fake_run.summary["surface/model/module_hyperparameters/row_pool/cls_tokens"] == 3
+    assert telemetry["wandb"] == {
+        "entity": "test-entity",
+        "project": "test",
+        "run_id": "wandb-run-123",
+        "run_name": "test",
+        "mode": "online",
+    }
 
 
 def test_train_closes_wandb_and_writes_failure_telemetry_for_setup_errors(
