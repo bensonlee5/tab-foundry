@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-import re
 from pathlib import Path
 from typing import Any
 
@@ -11,11 +9,11 @@ from tab_foundry.research.system_delta import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ANCHOR_RUN_ID = "sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1"
+ANCHOR_RUN_ID = "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
 EXPECTED_ROWS = [
-    "delta_qass_no_column_v3",
-    "delta_column_set_no_context_v3",
-    "delta_qass_context_v3",
+    "delta_qass_context_tfcol_inducing64_v1",
+    "delta_qass_context_tfcol_layers1_v1",
+    "delta_qass_context_tfcol_heads4_v1",
 ]
 
 
@@ -29,16 +27,6 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     rows = queue["rows"]
     assert isinstance(rows, list)
     return next(row for row in rows if row["delta_ref"] == delta_ref)
-
-
-def _load_registry() -> dict[str, Any]:
-    payload = json.loads(
-        (REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    assert isinstance(payload, dict)
-    return payload
 
 
 def _assert_full_replay_training_payload(row: dict[str, Any]) -> None:
@@ -75,15 +63,15 @@ def _assert_full_replay_training_payload(row: dict[str, Any]) -> None:
     }
 
 
-def test_row_embedding_attribution_v3_is_registered_but_not_active() -> None:
+def test_qass_tfcol_adequacy_v1_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
     assert index["active_sweep_id"] == "cuda_stack_scale_followup"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
-    assert sweeps["row_embedding_attribution_v3"] == {
-        "parent_sweep_id": "row_embedding_attribution_v2",
+    assert sweeps["qass_tfcol_adequacy_v1"] == {
+        "parent_sweep_id": "row_embedding_attribution_v3",
         "status": "draft",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
@@ -92,114 +80,100 @@ def test_row_embedding_attribution_v3_is_registered_but_not_active() -> None:
     }
 
 
-def test_row_embedding_attribution_v3_metadata_and_rows_match_plan() -> None:
-    sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / "row_embedding_attribution_v3"
+def test_qass_tfcol_adequacy_v1_metadata_and_rows_match_plan() -> None:
+    sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / "qass_tfcol_adequacy_v1"
     sweep = _load_yaml(sweep_root / "sweep.yaml")
     queue = _load_yaml(sweep_root / "queue.yaml")
 
-    assert sweep["sweep_id"] == "row_embedding_attribution_v3"
-    assert sweep["parent_sweep_id"] == "row_embedding_attribution_v2"
+    assert sweep["sweep_id"] == "qass_tfcol_adequacy_v1"
+    assert sweep["parent_sweep_id"] == "row_embedding_attribution_v3"
     assert sweep["status"] == "draft"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
-    assert sweep["anchor_context"]["model"]["stage"] == "row_cls_pool"
+    assert sweep["anchor_context"]["model"]["stage"] == "qass_context"
     assert sweep["anchor_context"]["surface_labels"]["training"] == "prior_linear_warmup_decay"
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
-    assert any("factorization" in note for note in notes)
+    assert any("calibration-first" in note for note in notes)
+    assert any("large_no_missing" in note for note in notes)
     assert any("reuse" in note for note in notes)
-    assert any("row_cls + qass + no tfcol" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["completed", "completed", "completed"]
+    assert [row["status"] for row in rows] == ["ready", "ready", "ready"]
 
-    registry = _load_registry()
-    registry_runs = registry["runs"]
-    assert isinstance(registry_runs, dict)
-    for order, row in enumerate(rows, start=1):
-        assert row["interpretation_status"] == "completed"
-        assert row["decision"] == "defer"
-        run_id = row["run_id"]
-        assert isinstance(run_id, str)
-        assert re.fullmatch(
-            rf"sd_row_embedding_attribution_v3_{order:02d}_{re.escape(str(row['delta_ref']))}_v\d+",
-            run_id,
-        )
-        benchmark_metrics = row["benchmark_metrics"]
-        assert isinstance(benchmark_metrics, dict)
-        registry_run = registry_runs[run_id]
-        assert registry_run["sweep"]["queue_order"] == order
-        assert registry_run["sweep"]["delta_id"] == row["delta_ref"]
-        assert registry_run["sweep"]["run_kind"] == "primary"
-
-    row1 = _row_by_ref(queue, "delta_qass_no_column_v3")
+    row1 = _row_by_ref(queue, "delta_qass_context_tfcol_inducing64_v1")
     assert row1.get("parent_delta_ref") is None
     assert row1["model"] == {
         "stage": "qass_context",
-        "stage_label": "delta_qass_no_column_v3",
-        "module_overrides": {"column_encoder": "none"},
+        "stage_label": "delta_qass_context_tfcol_inducing64_v1",
+        "tfcol_n_inducing": 64,
     }
     _assert_full_replay_training_payload(row1)
 
-    row2 = _row_by_ref(queue, "delta_column_set_no_context_v3")
+    row2 = _row_by_ref(queue, "delta_qass_context_tfcol_layers1_v1")
     assert row2.get("parent_delta_ref") is None
     assert row2["model"] == {
-        "stage": "column_set",
-        "stage_label": "delta_column_set_no_context_v3",
-        "module_overrides": {"context_encoder": "none"},
+        "stage": "qass_context",
+        "stage_label": "delta_qass_context_tfcol_layers1_v1",
+        "tfcol_n_layers": 1,
     }
     _assert_full_replay_training_payload(row2)
 
-    row3 = _row_by_ref(queue, "delta_qass_context_v3")
-    assert row3["parent_delta_ref"] == "delta_qass_no_column_v3"
+    row3 = _row_by_ref(queue, "delta_qass_context_tfcol_heads4_v1")
+    assert row3.get("parent_delta_ref") is None
     assert row3["model"] == {
         "stage": "qass_context",
-        "stage_label": "delta_qass_context_v3",
+        "stage_label": "delta_qass_context_tfcol_heads4_v1",
+        "tfcol_n_heads": 4,
     }
     _assert_full_replay_training_payload(row3)
 
     materialized = load_system_delta_queue(
-        sweep_id="row_embedding_attribution_v3",
+        sweep_id="qass_tfcol_adequacy_v1",
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
     materialized_rows = materialized["rows"]
     assert [row["delta_id"] for row in materialized_rows] == EXPECTED_ROWS
 
-    materialized_row1 = next(row for row in materialized_rows if row["delta_id"] == "delta_qass_no_column_v3")
+    materialized_row1 = next(
+        row for row in materialized_rows if row["delta_id"] == "delta_qass_context_tfcol_inducing64_v1"
+    )
     assert materialized_row1["model"]["stage"] == "qass_context"
-    assert materialized_row1["model"]["module_overrides"] == {"column_encoder": "none"}
+    assert materialized_row1["model"]["tfcol_n_inducing"] == 64
     assert materialized_row1["training"]["overrides"]["runtime"]["max_steps"] == 2500
 
     materialized_row2 = next(
-        row for row in materialized_rows if row["delta_id"] == "delta_column_set_no_context_v3"
+        row for row in materialized_rows if row["delta_id"] == "delta_qass_context_tfcol_layers1_v1"
     )
-    assert materialized_row2["model"]["stage"] == "column_set"
-    assert materialized_row2["model"]["module_overrides"] == {"context_encoder": "none"}
+    assert materialized_row2["model"]["stage"] == "qass_context"
+    assert materialized_row2["model"]["tfcol_n_layers"] == 1
     assert materialized_row2["training"]["overrides"]["runtime"]["max_steps"] == 2500
 
-    materialized_row3 = next(row for row in materialized_rows if row["delta_id"] == "delta_qass_context_v3")
-    assert materialized_row3["parent_delta_ref"] == "delta_qass_no_column_v3"
+    materialized_row3 = next(
+        row for row in materialized_rows if row["delta_id"] == "delta_qass_context_tfcol_heads4_v1"
+    )
     assert materialized_row3["model"]["stage"] == "qass_context"
+    assert materialized_row3["model"]["tfcol_n_heads"] == 4
     assert materialized_row3["training"]["overrides"]["runtime"]["max_steps"] == 2500
 
 
-def test_row_embedding_attribution_v3_matrix_records_the_factorized_followup() -> None:
+def test_qass_tfcol_adequacy_v1_matrix_records_the_tfcol_followup() -> None:
     matrix = (
         REPO_ROOT
         / "reference"
         / "system_delta_sweeps"
-        / "row_embedding_attribution_v3"
+        / "qass_tfcol_adequacy_v1"
         / "matrix.md"
     ).read_text(encoding="utf-8")
 
     assert "# System Delta Matrix" in matrix
-    assert "row_embedding_attribution_v3" in matrix
+    assert "qass_tfcol_adequacy_v1" in matrix
     assert ANCHOR_RUN_ID in matrix
-    assert "delta_qass_no_column_v3" in matrix
-    assert "delta_column_set_no_context_v3" in matrix
-    assert "delta_qass_context_v3" in matrix
+    assert "delta_qass_context_tfcol_inducing64_v1" in matrix
+    assert "delta_qass_context_tfcol_layers1_v1" in matrix
+    assert "delta_qass_context_tfcol_heads4_v1" in matrix
     assert "prior_linear_warmup_decay" in matrix
-    assert "QASS-only corner" in matrix
+    assert "nanotabpfn_openml_binary_large_no_missing_v1.json" in matrix

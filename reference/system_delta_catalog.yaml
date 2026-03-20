@@ -883,6 +883,111 @@ deltas:
     default_next_action: Run last and interpret only against the QASS-only row to decide whether TFCol belongs in the promoted row-first line.
     applicability_guards: []
 
+  delta_qass_context_tfcol_inducing64_v1:
+    dimension_family: model
+    family: column_encoding
+    binary_applicable: true
+    description: Use the public `qass_context` stage, but reduce TFCol inducing points to 64 so the calibration-winning row-first surface tests whether the current set size is overbuilt.
+    upstream_delta: Upstream nanoTabPFN direct binary path has no dedicated column-set encoder and no separate context encoder.
+    expected_effect: Preserve the calibration gain of the QASS+TFCol line while reducing TFCol capacity enough to recover ROC or runtime if the default inducing set is oversized.
+    adequacy_knobs:
+      - tfcol_n_heads
+      - tfcol_n_layers
+      - tfcol_n_inducing
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the completed `delta_qass_context_v3` anchor and keep the calibration-first objective fixed.
+        - Promote only if the row keeps the calibration win over `delta_qass_no_column_v3` and improves either ROC or training time versus the anchor.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: qass_context
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: qass_context
+        stage_label: delta_qass_context_tfcol_inducing64_v1
+        tfcol_n_inducing: 64
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run first and compare directly against the completed `delta_qass_context_v3` anchor to see whether a smaller inducing set preserves calibration while recovering ROC or runtime.
+    applicability_guards: []
+
+  delta_qass_context_tfcol_layers1_v1:
+    dimension_family: model
+    family: column_encoding
+    binary_applicable: true
+    description: Use the public `qass_context` stage, but reduce TFCol depth to one layer so the calibration-winning row-first surface tests whether excess column-encoder depth is driving the ROC penalty.
+    upstream_delta: Upstream nanoTabPFN direct binary path has no dedicated column-set encoder and no separate context encoder.
+    expected_effect: Preserve the calibration gain of the QASS+TFCol line while reducing depth enough to recover ROC or runtime if the default column stack is too deep for this bundle.
+    adequacy_knobs:
+      - tfcol_n_heads
+      - tfcol_n_layers
+      - tfcol_n_inducing
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the completed `delta_qass_context_v3` anchor and keep the calibration-first objective fixed.
+        - Promote only if the row keeps the calibration win over `delta_qass_no_column_v3` and improves either ROC or training time versus the anchor.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: qass_context
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: qass_context
+        stage_label: delta_qass_context_tfcol_layers1_v1
+        tfcol_n_layers: 1
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run second and compare directly against the completed `delta_qass_context_v3` anchor to see whether shallower TFCol depth preserves calibration while improving ROC or runtime.
+    applicability_guards: []
+
+  delta_qass_context_tfcol_heads4_v1:
+    dimension_family: model
+    family: column_encoding
+    binary_applicable: true
+    description: Use the public `qass_context` stage, but reduce TFCol attention heads to four so the calibration-winning row-first surface tests whether a lighter attention budget can keep calibration while softening the ROC penalty.
+    upstream_delta: Upstream nanoTabPFN direct binary path has no dedicated column-set encoder and no separate context encoder.
+    expected_effect: Preserve the calibration gain of the QASS+TFCol line while reducing TFCol attention cost enough to recover ROC or runtime if the default head count is unnecessary.
+    adequacy_knobs:
+      - tfcol_n_heads
+      - tfcol_n_layers
+      - tfcol_n_inducing
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the completed `delta_qass_context_v3` anchor and keep the calibration-first objective fixed.
+        - Promote only if the row keeps the calibration win over `delta_qass_no_column_v3` and improves either ROC or training time versus the anchor.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: qass_context
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: qass_context
+        stage_label: delta_qass_context_tfcol_heads4_v1
+        tfcol_n_heads: 4
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run third and compare directly against the completed `delta_qass_context_v3` anchor to see whether fewer TFCol heads preserve calibration while improving ROC or runtime.
+    applicability_guards: []
+
   delta_column_set_encoder:
     dimension_family: model
     family: column_encoding
