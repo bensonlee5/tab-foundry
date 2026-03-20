@@ -154,7 +154,7 @@ Critical path: **003 → 004 → 005 → 006 → 007 → 008**. 000, 001, 002, 0
 | Objective / Claim | Current State | Evidence In Repo | Current Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, benchmark comparison tooling, and prior-trained PFN-facing lanes already exist | The current large-anchor hybrid line is still easy to confuse with the intended destination | `TF-RD-001` |
-| Coherent row-first migration ladder exists in code | `partial` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`, `shared_surface_bridge_v1` locks `prenorm_block` as the grouped-token handoff, and `grouped_token_stability_probe_v1` now identifies warmup-decay grouped-token training as the preferred adequacy surface | One benchmark-facing grouped-token replay on the winning warmup-decay surface still needs to be registered before later row-first rows should rely on grouped tokens as the working token surface | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
+| Coherent row-first migration ladder exists in code | `partial` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`, `shared_surface_bridge_v1` locks `prenorm_block` as the grouped-token handoff, and `grouped_token_stability_probe_v1` resolves the grouped-token adequacy question in favor of `prior_linear_warmup_decay` | One benchmark-facing grouped-token replay on the winning warmup-decay surface still needs to be registered before later row-first rows should rely on grouped tokens as the working token surface | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
 | Architecture comparisons are attributable | `partial` | Isolated row-CLS, TFCol, and QASS evidence exists on compact surfaces | Negative evidence is easy to overgeneralize because stage-local telemetry and matched controls are still incomplete | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
 | One promoted row-first classification anchor exists | `planned` | The ingredients exist in `tabfoundry_staged`, but no coherent row-first anchor has been promoted | The active architecture target is still split across compact-ladder evidence and the current large hybrid line | `TF-RD-008` |
 | Scaling-law work targets the right architecture | `partial` | Tuning and benchmark-adjacent tooling already exist | There is no canonical scaling artifact path on a promoted row-first anchor yet | `TF-RD-009` |
@@ -301,15 +301,22 @@ This roadmap assumes the following repo truths:
     `sd_grouped_token_stability_probe_v1_02_delta_training_linear_decay_v1`
     improved final ROC AUC to `0.7540`, but it lost on log loss/Brier and pushed
     `max_grad_norm` to `9.99`, so it is not the preferred grouped-token surface
+  - TF-RD-004 now has an explicit keep decision: grouped tokens stay on the
+    migration path, with `prior_linear_warmup_decay` as the preferred adequacy
+    surface for the benchmark-facing replay
 - Required work:
   - register one benchmark-facing grouped-token replay on the winning
-    `prior_linear_warmup_decay` surface without trace-only overhead
+    `prior_linear_warmup_decay` surface without trace-only overhead so the
+    grouped-token handoff is benchmark-facing rather than probe-only
   - keep `prenorm_block` as the canonical architecture-screen handoff until that
-    replay is registered
+    replay is registered, even though the grouped-token keep/defer decision is
+    now resolved
   - use the replayed warmup-decay grouped-token surface, not the old
     scalar-per-feature token path, as the predecessor for TF-RD-005, TF-RD-006,
     and TF-RD-007
 - Exit criteria:
+  - the grouped-token keep decision is recorded from the mixed
+    `tokenization_migration_v1` result plus the warmup-decay stability follow-up
   - the winning grouped-token replay is registered on the benchmark-facing lane
   - later row-first work inherits grouped tokens as the working token surface
     rather than assuming scalar-per-feature PFN tokens
