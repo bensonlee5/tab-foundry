@@ -8607,6 +8607,762 @@
         "wall_elapsed_seconds": 106.01571574999252
       }
     },
+    "sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1/train/checkpoints/step_002425.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.01616054004695655,
+          "best_training_time_delta": -276.77955558584654,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0009013836137274911,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.001033867478186401,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.016718487598276766,
+          "final_training_time_delta": -272.300414838508,
+          "reference_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.01616054004695655,
+          "best_training_time_delta": -276.77955558584654,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0009013836137274911,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.001033867478186401,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.016718487598276766,
+          "final_training_time_delta": -272.300414838508,
+          "reference_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_row_embeddings_no_context_v2",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "row_cls_pool",
+        "stage_label": "delta_row_embeddings_no_context_v2",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 618146,
+        "trainable_params": 618146
+      },
+      "registered_at_utc": "2026-03-20T19:15:30Z",
+      "run_id": "sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_row_embeddings_no_context_v2",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_row_embeddings_no_context_v2",
+        "parent_sweep_id": "tokenization_migration_v1",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "row_embedding_attribution_v2"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.2623214879656428,
+        "best_crps": null,
+        "best_log_loss": 0.39859427583231183,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7574630486801693,
+        "best_step": 2425.0,
+        "best_training_time": 145.16780498996377,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.26271453896588703,
+        "final_crps": null,
+        "final_log_loss": 0.39913554712249255,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7580209962314896,
+        "final_step": 2500.0,
+        "final_training_time": 149.6469457373023
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.19143891334533691,
+        "final_val_loss": null,
+        "max_grad_norm": 2.514436721801758,
+        "mean_grad_norm": 0.19018794441074133,
+        "post_warmup_train_loss_var": 0.0017919946023304417,
+        "train_elapsed_seconds": 149.6469457373023,
+        "wall_elapsed_seconds": 161.75554756075144
+      }
+    },
+    "sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1/train/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.010491493207047897,
+          "best_training_time_delta": -248.2116576625558,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0019579225587432747,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 7.355435779105024e-05,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.010491493207047897,
+          "final_training_time_delta": -248.2116576625558,
+          "reference_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.0056690468399086535,
+          "best_training_time_delta": 28.56789792329073,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0010565389450157836,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.0011074218359774513,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.006226994391228868,
+          "final_training_time_delta": 24.088757175952196,
+          "reference_run_id": "sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_row_embeddings_plain_context_v2",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "plain",
+            "norm_type": "layernorm",
+            "use_qass": false
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "plain",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "row_cls_pool",
+        "stage_label": "delta_row_embeddings_plain_context_v2",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 868706,
+        "trainable_params": 868706
+      },
+      "registered_at_utc": "2026-03-20T19:20:02Z",
+      "run_id": "sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_row_embeddings_plain_context_v2",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_row_embeddings_plain_context_v2",
+        "parent_sweep_id": "tokenization_migration_v1",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "row_embedding_attribution_v2"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.2637710779109028,
+        "best_crps": null,
+        "best_log_loss": 0.40024296895847,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7517940018402607,
+        "best_step": 2500.0,
+        "best_training_time": 173.7357029132545,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.2637710779109028,
+        "final_crps": null,
+        "final_log_loss": 0.40024296895847,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7517940018402607,
+        "final_step": 2500.0,
+        "final_training_time": 173.7357029132545
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.21228216588497162,
+        "final_val_loss": null,
+        "max_grad_norm": 5.370188236236572,
+        "mean_grad_norm": 0.17089917688518763,
+        "post_warmup_train_loss_var": 0.0017737949622685391,
+        "train_elapsed_seconds": 173.7357029132545,
+        "wall_elapsed_seconds": 185.5624180920422
+      }
+    },
+    "sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1/train/checkpoints/step_000525.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.00042420670326714927,
+          "best_training_time_delta": -365.7610182321223,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.01849066451653142,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.026928469016328005,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.0016944519699630956,
+          "final_training_time_delta": -152.7627055241319,
+          "reference_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.010067286503780748,
+          "best_training_time_delta": -117.54936056956649,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.016532741957788144,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.026854914658536955,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.012185945177010993,
+          "final_training_time_delta": 95.44895213842392,
+          "reference_run_id": "sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_column_set_plain_context_v2",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": 8,
+            "n_inducing": 128,
+            "n_layers": 3,
+            "name": "tfcol",
+            "norm_type": "layernorm"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "plain",
+            "norm_type": "layernorm",
+            "use_qass": false
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "tfcol",
+          "context_encoder": "plain",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "column_set",
+        "stage_label": "delta_column_set_plain_context_v2",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 1286402,
+        "trainable_params": 1286402
+      },
+      "registered_at_utc": "2026-03-20T19:25:45Z",
+      "run_id": "sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_column_set_plain_context_v2",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_column_set_plain_context_v2",
+        "parent_sweep_id": "tokenization_migration_v1",
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "row_embedding_attribution_v2"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.2740117347602432,
+        "best_crps": null,
+        "best_log_loss": 0.4169103591280646,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7417267153364799,
+        "best_step": 525.0,
+        "best_training_time": 56.18634234368801,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.28030381986869096,
+        "final_crps": null,
+        "final_log_loss": 0.42709788361700696,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7396080566632497,
+        "final_step": 2500.0,
+        "final_training_time": 269.1846550516784
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.23468133807182312,
+        "final_val_loss": null,
+        "max_grad_norm": 4.453029632568359,
+        "mean_grad_norm": 0.17952617918401956,
+        "post_warmup_train_loss_var": 0.001747132654892227,
+        "train_elapsed_seconds": 269.1846550516784,
+        "wall_elapsed_seconds": 280.51134368032217
+      }
+    },
+    "sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1/train/checkpoints/step_002050.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.01154314531496825,
+          "best_training_time_delta": -193.79781506644213,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.006402063582384654,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.007656210093136051,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.010347152013731264,
+          "final_training_time_delta": -143.8656842155906,
+          "reference_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.011118938611701101,
+          "best_training_time_delta": 171.96320316568017,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.024892728098916073,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.034584679109464056,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.01204160398369436,
+          "final_training_time_delta": 8.897021308541298,
+          "reference_run_id": "sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_context_v2",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": 8,
+            "n_inducing": 128,
+            "n_layers": 3,
+            "name": "tfcol",
+            "norm_type": "layernorm"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "tfcol",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_context_v2",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 1286402,
+        "trainable_params": 1286402
+      },
+      "registered_at_utc": "2026-03-20T19:31:43Z",
+      "run_id": "sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_qass_context_v2",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_qass_context_v2",
+        "parent_sweep_id": "tokenization_migration_v1",
+        "queue_order": 4,
+        "run_kind": "primary",
+        "sweep_id": "row_embedding_attribution_v2"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.25439995477961397,
+        "best_crps": null,
+        "best_log_loss": 0.3904798400351581,
+        "best_picp_90": null,
+        "best_roc_auc": 0.752845653948181,
+        "best_step": 2050.0,
+        "best_training_time": 228.14954550936818,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.2554110917697749,
+        "final_crps": null,
+        "final_log_loss": 0.3925132045075429,
+        "final_picp_90": null,
+        "final_roc_auc": 0.751649660646944,
+        "final_step": 2500.0,
+        "final_training_time": 278.0816763602197
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.19689473509788513,
+        "final_val_loss": null,
+        "max_grad_norm": 4.251012802124023,
+        "mean_grad_norm": 0.17193245148360728,
+        "post_warmup_train_loss_var": 0.001769086673892563,
+        "train_elapsed_seconds": 278.0816763602197,
+        "wall_elapsed_seconds": 289.5045752041042
+      }
+    },
     "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/benchmark",

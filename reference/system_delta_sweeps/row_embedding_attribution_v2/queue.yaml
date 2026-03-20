@@ -3,10 +3,15 @@ sweep_id: row_embedding_attribution_v2
 rows:
 - order: 1
   delta_ref: delta_row_embeddings_no_context_v2
-  status: ready
-  rationale: Establish the stage-native row-embedding control on top of the benchmark-facing grouped-token replay before any plain-context, column-set, or QASS depth is added.
-  hypothesis: If row-level aggregation is already useful on the grouped-token replay surface, the no-context `row_cls_pool` control should outperform the grouped-token anchor strongly enough to keep TF-RD-005 open even before plain context is enabled.
-  anchor_delta: Starting from the grouped-token replay anchor, switch to the public `row_cls_pool` stage but override `context_encoder=none` so row embeddings are measured without added context depth.
+  status: completed
+  rationale: Establish the stage-native row-embedding control on top of the benchmark-facing
+    grouped-token replay before any plain-context, column-set, or QASS depth is added.
+  hypothesis: If row-level aggregation is already useful on the grouped-token replay
+    surface, the no-context `row_cls_pool` control should outperform the grouped-token
+    anchor strongly enough to keep TF-RD-005 open even before plain context is enabled.
+  anchor_delta: Starting from the grouped-token replay anchor, switch to the public
+    `row_cls_pool` stage but override `context_encoder=none` so row embeddings are
+    measured without added context depth.
   model:
     stage: row_cls_pool
     stage_label: delta_row_embeddings_no_context_v2
@@ -43,25 +48,63 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Compare directly against the grouped-token replay anchor before enabling plain row-level context.
-  - If neutral-to-bad, perform a bounded adequacy sweep over tfrow_n_heads, tfrow_n_layers, and tfrow_cls_tokens before any reject decision.
+  - Compare directly against the grouped-token replay anchor before enabling plain
+    row-level context.
+  - If neutral-to-bad, perform a bounded adequacy sweep over tfrow_n_heads, tfrow_n_layers,
+    and tfrow_cls_tokens before any reject decision.
   - Treat this as the no-context control for the paired plain-context row.
-  run_id: null
+  run_id: sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run first as the stage-native row-embedding control, then compare against the paired plain-context row.
+  next_action: Run first as the stage-native row-embedding control, then compare against
+    the paired plain-context row.
   notes:
-  - Execution must use `--device auto`, `--nanotabpfn-root ~/dev/nanoTabPFN`, and `--prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5` so the anchor nanoTabPFN curve is reused instead of refreshed.
-
+  - Execution must use `--device auto`, `--nanotabpfn-root ~/dev/nanoTabPFN`, and
+    `--prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5` so the anchor nanoTabPFN curve
+    is reused instead of refreshed.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2425
+    max_grad_norm: 2.514436721801758
+    clipped_step_fraction: 0.0088
+    best_log_loss: 0.39859427583231183
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.39913554712249255
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.2623214879656428
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.26271453896588703
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.7574630486801693
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.7580209962314896
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0005412712901807226
+    final_minus_best_brier_score: 0.0003930510002442267
+    final_minus_best_roc_auc: 0.0005579475513202148
+    drift: 0.0005579475513202148
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -0.001033867478186401
+    delta_final_brier_score: 0.0009013836137274911
+    delta_final_roc_auc: 0.016718487598276766
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.05026907335897581
 - order: 2
   delta_ref: delta_row_embeddings_plain_context_v2
   parent_delta_ref: delta_row_embeddings_no_context_v2
-  status: ready
-  rationale: Measure the public `row_cls_pool` stage as the matched plain-context companion to the no-context row-embedding control so TF-RD-005 can separate row embeddings from row-level context value.
-  hypothesis: If plain row-level context is useful beyond row embeddings alone, the stage-native `row_cls_pool` row should beat row 1 without needing TFCol or QASS.
-  anchor_delta: Starting from row 1, enable the public plain context path by removing the no-context override while keeping the rest of the `row_cls_pool` stage fixed.
+  status: completed
+  rationale: Measure the public `row_cls_pool` stage as the matched plain-context
+    companion to the no-context row-embedding control so TF-RD-005 can separate row
+    embeddings from row-level context value.
+  hypothesis: If plain row-level context is useful beyond row embeddings alone, the
+    stage-native `row_cls_pool` row should beat row 1 without needing TFCol or QASS.
+  anchor_delta: Starting from row 1, enable the public plain context path by removing
+    the no-context override while keeping the rest of the `row_cls_pool` stage fixed.
   model:
     stage: row_cls_pool
     stage_label: delta_row_embeddings_plain_context_v2
@@ -96,24 +139,63 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Compare directly against both the grouped-token replay anchor and the no-context row-embedding row.
-  - Keep column-set and QASS disabled so plain-context value is separated from later row-first structure.
-  run_id: null
+  - Compare directly against both the grouped-token replay anchor and the no-context
+    row-embedding row.
+  - Keep column-set and QASS disabled so plain-context value is separated from later
+    row-first structure.
+  run_id: sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run second and interpret it directly against the no-context row-embedding control before moving to column-set.
+  next_action: Run second and interpret it directly against the no-context row-embedding
+    control before moving to column-set.
   notes:
-  - Execution must preserve the same full-budget replay payload as row 1 so only plain context changes.
-
+  - Execution must preserve the same full-budget replay payload as row 1 so only plain
+    context changes.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 5.370188236236572
+    clipped_step_fraction: 0.0084
+    best_log_loss: 0.40024296895847
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.40024296895847
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.2637710779109028
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.2637710779109028
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.7517940018402607
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.7517940018402607
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 7.355435779105024e-05
+    delta_final_brier_score: 0.0019579225587432747
+    delta_final_roc_auc: 0.010491493207047897
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.029424297653799798
+    context_encoder_final_window_mean_grad_norm: 0.038465228850893166
 - order: 3
   delta_ref: delta_column_set_plain_context_v2
   parent_delta_ref: delta_row_embeddings_plain_context_v2
-  status: ready
-  rationale: Evaluate TF-RD-006 only after the row-embedding and plain-context surface is established, so column-set evidence is not conflated with earlier row-first transitions.
-  hypothesis: If explicit column-set reasoning belongs in the promoted row-first line, the public `column_set` stage should outperform row 2 on the same 2500-step replay contract.
-  anchor_delta: Starting from row 2, add only the public `column_set` stage so TFCol is measured on the established plain-context row-embedding surface.
+  status: completed
+  rationale: Evaluate TF-RD-006 only after the row-embedding and plain-context surface
+    is established, so column-set evidence is not conflated with earlier row-first
+    transitions.
+  hypothesis: If explicit column-set reasoning belongs in the promoted row-first line,
+    the public `column_set` stage should outperform row 2 on the same 2500-step replay
+    contract.
+  anchor_delta: Starting from row 2, add only the public `column_set` stage so TFCol
+    is measured on the established plain-context row-embedding surface.
   model:
     stage: column_set
     stage_label: delta_column_set_plain_context_v2
@@ -148,24 +230,64 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Compare directly against the plain-context row-embedding row before reading any QASS result.
-  - If neutral-to-bad, interpret whether the issue looks like under-capacity, inducing-point mismatch, or interaction with the unchanged plain context path.
-  run_id: null
+  - Compare directly against the plain-context row-embedding row before reading any
+    QASS result.
+  - If neutral-to-bad, interpret whether the issue looks like under-capacity, inducing-point
+    mismatch, or interaction with the unchanged plain context path.
+  run_id: sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run only after the plain-context row so TF-RD-006 stays attributable before QASS is introduced.
+  next_action: Run only after the plain-context row so TF-RD-006 stays attributable
+    before QASS is introduced.
   notes:
-  - This row is the matched non-QASS, plain-context control that TF-RD-007 should compare against after it completes.
-
+  - This row is the matched non-QASS, plain-context control that TF-RD-007 should
+    compare against after it completes.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 525
+    max_grad_norm: 4.453029632568359
+    clipped_step_fraction: 0.0092
+    best_log_loss: 0.4169103591280646
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.42709788361700696
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.2740117347602432
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.28030381986869096
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.7417267153364799
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.7396080566632497
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.010187524488942334
+    final_minus_best_brier_score: 0.006292085108447754
+    final_minus_best_roc_auc: -0.002118658673230245
+    drift: -0.002118658673230245
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 0.026928469016328005
+    delta_final_brier_score: 0.01849066451653142
+    delta_final_roc_auc: -0.0016944519699630956
+    column_encoder_final_window_mean_grad_norm: 0.012602904189063494
+    row_pool_final_window_mean_grad_norm: 0.027483624784403644
+    context_encoder_final_window_mean_grad_norm: 0.0435356321779833
 - order: 4
   delta_ref: delta_qass_context_v2
   parent_delta_ref: delta_column_set_plain_context_v2
-  status: ready
-  rationale: Evaluate QASS last, and only against the matched plain-context `column_set` row, so TF-RD-007 answers whether QASS earns its added cost beyond the non-QASS row-first baseline.
-  hypothesis: If QASS is genuinely useful on this row-first line, the public `qass_context` stage should beat row 3 on the same 2500-step replay contract rather than just adding depth without value.
-  anchor_delta: Starting from row 3, switch only from plain context to the public `qass_context` stage so QASS is compared against a matched plain-context `column_set` control.
+  status: completed
+  rationale: Evaluate QASS last, and only against the matched plain-context `column_set`
+    row, so TF-RD-007 answers whether QASS earns its added cost beyond the non-QASS
+    row-first baseline.
+  hypothesis: If QASS is genuinely useful on this row-first line, the public `qass_context`
+    stage should beat row 3 on the same 2500-step replay contract rather than just
+    adding depth without value.
+  anchor_delta: Starting from row 3, switch only from plain context to the public
+    `qass_context` stage so QASS is compared against a matched plain-context `column_set`
+    control.
   model:
     stage: qass_context
     stage_label: delta_qass_context_v2
@@ -201,12 +323,46 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Compare directly against the matched plain-context `column_set` row.
-  - Treat the plain-context `column_set` row as the non-QASS added-depth control for TF-RD-007.
-  run_id: null
+  - Treat the plain-context `column_set` row as the non-QASS added-depth control for
+    TF-RD-007.
+  run_id: sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run last and interpret only against the matched plain-context column-set row.
+  next_action: Run last and interpret only against the matched plain-context column-set
+    row.
   notes:
-  - Do not execute this row if the nanoTabPFN reuse preflight fails; fix the signature mismatch first instead of allowing a fresh helper run.
+  - Do not execute this row if the nanoTabPFN reuse preflight fails; fix the signature
+    mismatch first instead of allowing a fresh helper run.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2050
+    max_grad_norm: 4.251012802124023
+    clipped_step_fraction: 0.0088
+    best_log_loss: 0.3904798400351581
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.3925132045075429
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.25439995477961397
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.2554110917697749
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.752845653948181
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.751649660646944
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.00203336447238478
+    final_minus_best_brier_score: 0.0010111369901609213
+    final_minus_best_roc_auc: -0.001195993301236986
+    drift: -0.001195993301236986
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -0.007656210093136051
+    delta_final_brier_score: -0.006402063582384654
+    delta_final_roc_auc: 0.010347152013731264
+    column_encoder_final_window_mean_grad_norm: 0.013494759550651192
+    row_pool_final_window_mean_grad_norm: 0.025703073873586394
+    context_encoder_final_window_mean_grad_norm: 0.0455750189479432

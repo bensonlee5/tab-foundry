@@ -42,17 +42,17 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_row_embeddings_no_context_v2` | row_pool | yes | ready | row_cls_pool | Use the public `row_cls_pool` stage on the grouped-token replay surface, but disable plain context so row embeddings are measured without added context depth. | Run first as the stage-native row-embedding control, then compare against the paired plain-context row. |
-| 2 | `delta_row_embeddings_plain_context_v2` | context_encoder | yes | ready | row_cls_pool | Use the public `row_cls_pool` stage unchanged so plain row-level context is measured against the no-context row-embedding control. | Run second and interpret it directly against the no-context row-embedding control before moving to column-set. |
-| 3 | `delta_column_set_plain_context_v2` | column_encoding | yes | ready | column_set | Use the public `column_set` stage unchanged so TF-RD-006 is measured on top of the established plain-context row-embedding surface. | Run only after the plain-context row so TF-RD-006 stays attributable before QASS is introduced. |
-| 4 | `delta_qass_context_v2` | context_encoder | yes | ready | qass_context | Use the public `qass_context` stage unchanged so QASS is measured against the matched plain-context `column_set` row. | Run last and interpret only against the matched plain-context column-set row. |
+| 1 | `delta_row_embeddings_no_context_v2` | row_pool | yes | completed | row_cls_pool | Use the public `row_cls_pool` stage on the grouped-token replay surface, but disable plain context so row embeddings are measured without added context depth. | Run first as the stage-native row-embedding control, then compare against the paired plain-context row. |
+| 2 | `delta_row_embeddings_plain_context_v2` | context_encoder | yes | completed | row_cls_pool | Use the public `row_cls_pool` stage unchanged so plain row-level context is measured against the no-context row-embedding control. | Run second and interpret it directly against the no-context row-embedding control before moving to column-set. |
+| 3 | `delta_column_set_plain_context_v2` | column_encoding | yes | completed | column_set | Use the public `column_set` stage unchanged so TF-RD-006 is measured on top of the established plain-context row-embedding surface. | Run only after the plain-context row so TF-RD-006 stays attributable before QASS is introduced. |
+| 4 | `delta_qass_context_v2` | context_encoder | yes | completed | qass_context | Use the public `qass_context` stage unchanged so QASS is measured against the matched plain-context `column_set` row. | Run last and interpret only against the matched plain-context column-set row. |
 
 ## Detailed Rows
 
 ### 1. `delta_row_embeddings_no_context_v2`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `row_cls_pool`
 - Description: Use the public `row_cls_pool` stage on the grouped-token replay surface, but disable plain context so row embeddings are measured without added context depth.
@@ -62,6 +62,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from the grouped-token replay anchor, switch to the public `row_cls_pool` stage but override `context_encoder=none` so row embeddings are measured without added context depth.
 - Expected effect: Stage-native row embeddings without plain-context help, isolating whether row-level aggregation alone improves the grouped-token replay surface.
 - Effective labels: model=`delta_row_embeddings_no_context_v2`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0503`)
 - Model overrides: `{'module_overrides': {'context_encoder': 'none'}, 'stage': 'row_cls_pool'}`
 - Parameter adequacy plan:
   - Compare directly against the grouped-token replay anchor before enabling plain row-level context.
@@ -72,18 +73,20 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfrow_n_layers
   - tfrow_cls_tokens
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Execution must use `--device auto`, `--nanotabpfn-root ~/dev/nanoTabPFN`, and `--prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5` so the anchor nanoTabPFN curve is reused instead of refreshed.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_no_context_v2/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` with final log loss `0.3991`, delta final log loss `-0.0010`, final Brier score `0.2627`, delta final Brier score `+0.0009`, best ROC AUC `0.7575`, final ROC AUC `0.7580`, final-minus-best `+0.0006`, delta final ROC AUC `+0.0167`, delta drift `+0.0006`, delta final training time `-272.3s`
 
 ### 2. `delta_row_embeddings_plain_context_v2`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `row_cls_pool`
 - Description: Use the public `row_cls_pool` stage unchanged so plain row-level context is measured against the no-context row-embedding control.
@@ -93,6 +96,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from row 1, enable the public plain context path by removing the no-context override while keeping the rest of the `row_cls_pool` stage fixed.
 - Expected effect: The public row-embedding stage may justify its added plain-context depth if row-level context is genuinely useful on the grouped-token replay surface.
 - Effective labels: model=`delta_row_embeddings_plain_context_v2`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0294`); context (grad `0.0385`)
 - Model overrides: `{'stage': 'row_cls_pool'}`
 - Parameter adequacy plan:
   - Compare directly against both the grouped-token replay anchor and the no-context row-embedding row.
@@ -102,18 +106,20 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tficl_n_layers
   - tficl_ff_expansion
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Execution must preserve the same full-budget replay payload as row 1 so only plain context changes.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_embedding_attribution_v2/delta_row_embeddings_plain_context_v2/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_row_embedding_attribution_v2_02_delta_row_embeddings_plain_context_v2_v1` with final log loss `0.4002`, delta final log loss `+0.0001`, final Brier score `0.2638`, delta final Brier score `+0.0020`, best ROC AUC `0.7518`, final ROC AUC `0.7518`, final-minus-best `+0.0000`, delta final ROC AUC `+0.0105`, delta drift `+0.0000`, delta final training time `-248.2s`
 
 ### 3. `delta_column_set_plain_context_v2`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `column_set`
 - Description: Use the public `column_set` stage unchanged so TF-RD-006 is measured on top of the established plain-context row-embedding surface.
@@ -123,6 +129,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from row 2, add only the public `column_set` stage so TFCol is measured on the established plain-context row-embedding surface.
 - Expected effect: Better feature-set aggregation on the stage-native row-first surface, with inducing-point and capacity risk kept explicit.
 - Effective labels: model=`delta_column_set_plain_context_v2`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0126`); row (grad `0.0275`); context (grad `0.0435`)
 - Model overrides: `{'stage': 'column_set'}`
 - Parameter adequacy plan:
   - Compare directly against the plain-context row-embedding row before reading any QASS result.
@@ -132,18 +139,20 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfcol_n_layers
   - tfcol_n_inducing
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row is the matched non-QASS, plain-context control that TF-RD-007 should compare against after it completes.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_embedding_attribution_v2/delta_column_set_plain_context_v2/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_row_embedding_attribution_v2_03_delta_column_set_plain_context_v2_v1` with final log loss `0.4271`, delta final log loss `+0.0269`, final Brier score `0.2803`, delta final Brier score `+0.0185`, best ROC AUC `0.7417`, final ROC AUC `0.7396`, final-minus-best `-0.0021`, delta final ROC AUC `-0.0017`, delta drift `-0.0021`, delta final training time `-152.8s`
 
 ### 4. `delta_qass_context_v2`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `qass_context`
 - Description: Use the public `qass_context` stage unchanged so QASS is measured against the matched plain-context `column_set` row.
@@ -153,6 +162,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from row 3, switch only from plain context to the public `qass_context` stage so QASS is compared against a matched plain-context `column_set` control.
 - Expected effect: Richer row-sequence conditioning than the matched plain-context column-set row, with any gain or loss attributable to QASS rather than to row embeddings or TFCol.
 - Effective labels: model=`delta_qass_context_v2`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0135`); row (grad `0.0257`); context (grad `0.0456`)
 - Model overrides: `{'stage': 'qass_context'}`
 - Parameter adequacy plan:
   - Compare directly against the matched plain-context `column_set` row.
@@ -162,10 +172,12 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tficl_n_layers
   - tficl_ff_expansion
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Do not execute this row if the nanoTabPFN reuse preflight fails; fix the signature mismatch first instead of allowing a fresh helper run.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_embedding_attribution_v2/delta_qass_context_v2/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_row_embedding_attribution_v2_04_delta_qass_context_v2_v1` with final log loss `0.3925`, delta final log loss `-0.0077`, final Brier score `0.2554`, delta final Brier score `-0.0064`, best ROC AUC `0.7528`, final ROC AUC `0.7516`, final-minus-best `-0.0012`, delta final ROC AUC `+0.0103`, delta drift `-0.0012`, delta final training time `-143.9s`
