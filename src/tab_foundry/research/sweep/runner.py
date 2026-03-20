@@ -36,6 +36,7 @@ from tab_foundry.research.lane_contract import (
 from tab_foundry.research import system_delta
 from tab_foundry.research.system_delta_promote import promote_anchor
 from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
+from tab_foundry.training.wandb import posthoc_update_wandb_summary
 
 from .artifacts import ExecutionPaths, read_yaml, result_card_text, write_research_package, write_yaml
 from .queue_updates import append_note, optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
@@ -73,6 +74,70 @@ class NanoTabPFNCurveReuseSelection:
     source_label: str
     metadata: dict[str, Any]
     signature: dict[str, Any]
+
+
+def _mapping_value(payload: Mapping[str, Any], key: str) -> Mapping[str, Any] | None:
+    raw_value = payload.get(key)
+    if not isinstance(raw_value, Mapping):
+        return None
+    return cast(Mapping[str, Any], raw_value)
+
+
+def _sweep_wandb_summary_payload(
+    *,
+    run_entry: Mapping[str, Any],
+    queue_metrics: Mapping[str, Any],
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    sweep_payload = _mapping_value(run_entry, "sweep")
+    if sweep_payload is not None:
+        payload["sweep"] = dict(sweep_payload)
+
+    comparison_payload: dict[str, Any] = {}
+    comparisons = _mapping_value(run_entry, "comparisons")
+    if comparisons is not None:
+        for comparison_name in ("vs_anchor", "vs_parent"):
+            comparison_values = _mapping_value(comparisons, comparison_name)
+            if comparison_values:
+                comparison_payload[comparison_name] = dict(comparison_values)
+
+    stage_local_payload: dict[str, Any] = {}
+    for stage_label, grad_key, activation_delta_key, activation_mean_key in (
+        (
+            "column",
+            "column_encoder_final_window_mean_grad_norm",
+            "column_activation_early_to_final_mean_delta",
+            "column_activation_final_window_mean",
+        ),
+        (
+            "row",
+            "row_pool_final_window_mean_grad_norm",
+            "row_activation_early_to_final_mean_delta",
+            "row_activation_final_window_mean",
+        ),
+        (
+            "context",
+            "context_encoder_final_window_mean_grad_norm",
+            "context_activation_early_to_final_mean_delta",
+            "context_activation_final_window_mean",
+        ),
+    ):
+        stage_payload: dict[str, Any] = {}
+        for source_key, target_key in (
+            (grad_key, "final_window_mean_grad_norm"),
+            (activation_delta_key, "activation_early_to_final_mean_delta"),
+            (activation_mean_key, "activation_final_window_mean"),
+        ):
+            if source_key in queue_metrics:
+                stage_payload[target_key] = queue_metrics[source_key]
+        if stage_payload:
+            stage_local_payload[stage_label] = stage_payload
+    if stage_local_payload:
+        comparison_payload["stage_local_stability"] = stage_local_payload
+
+    if comparison_payload:
+        payload["comparison"] = comparison_payload
+    return payload
 
 
 def row_id_for_order(sweep_id: str, order: int, delta_ref: str, existing_run_id: str | None) -> str:
@@ -815,6 +880,13 @@ def run_row(
     )
     run_entry = cast(dict[str, Any], registration["run"])
     row_queue_metrics = queue_metrics(summary, run_dir=train_dir, run_entry=run_entry)
+    _ = posthoc_update_wandb_summary(
+        telemetry_path=train_dir / "telemetry.json",
+        payload=_sweep_wandb_summary_payload(
+            run_entry=run_entry,
+            queue_metrics=row_queue_metrics,
+        ),
+    )
     (delta_root / "result_card.md").write_text(
         result_card_text(
             row=materialized_row,

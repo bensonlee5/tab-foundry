@@ -1129,6 +1129,11 @@ def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
         'register_benchmark_run',
         lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('registry should be skipped')),
     )
+    monkeypatch.setattr(
+        runner_module,
+        'posthoc_update_wandb_summary',
+        lambda **_kwargs: (_ for _ in ()).throw(AssertionError('wandb posthoc sync should be skipped')),
+    )
 
     observed_run_id = runner_module.run_row(
         sweep_id=sweep_id,
@@ -1218,6 +1223,7 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     )
 
     captured_registration: dict[str, Any] = {}
+    captured_posthoc: dict[str, Any] = {}
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
     monkeypatch.setattr(runner_module, 'ensure_nanotabpfn_python', lambda **_: tmp_path / 'python')
@@ -1248,16 +1254,54 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
             },
         },
     )
+    monkeypatch.setattr(
+        runner_module,
+        'queue_metrics',
+        lambda *_args, **_kwargs: {
+            'best_step': 100,
+            'final_log_loss': 0.40,
+            'delta_final_log_loss': -0.02,
+            'column_encoder_final_window_mean_grad_norm': 0.42,
+            'row_pool_final_window_mean_grad_norm': 0.55,
+            'context_encoder_final_window_mean_grad_norm': 0.73,
+            'column_activation_early_to_final_mean_delta': 0.12,
+            'row_activation_early_to_final_mean_delta': 0.08,
+            'context_activation_early_to_final_mean_delta': 0.15,
+            'column_activation_final_window_mean': 1.8,
+            'row_activation_final_window_mean': 1.9,
+            'context_activation_final_window_mean': 2.1,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'posthoc_update_wandb_summary',
+        lambda *, telemetry_path, payload: captured_posthoc.update(
+            {'telemetry_path': telemetry_path, 'payload': payload}
+        )
+        or True,
+    )
 
     def fake_register_benchmark_run(**kwargs: Any) -> dict[str, Any]:
         captured_registration.update(kwargs)
         return {
             'run': {
+                'sweep': {
+                    'sweep_id': sweep_id,
+                    'delta_id': delta_ref,
+                    'parent_sweep_id': 'input_norm_followup',
+                    'queue_order': 1,
+                    'run_kind': 'primary',
+                },
                 'comparisons': {
                     'vs_anchor': {
+                        'reference_run_id': 'anchor_v1',
                         'final_log_loss_delta': -0.02,
                         'final_brier_score_delta': -0.01,
                         'final_roc_auc_delta': 0.01,
+                    },
+                    'vs_parent': {
+                        'reference_run_id': 'anchor_v1',
+                        'final_log_loss_delta': -0.02,
                     }
                 }
             }
@@ -1294,6 +1338,22 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     assert captured_registration['config_profile'] == 'cls_benchmark_staged'
     assert captured_registration['sweep_id'] == sweep_id
     assert captured_registration['parent_sweep_id'] == 'input_norm_followup'
+    assert captured_posthoc['telemetry_path'] == train_dir / 'telemetry.json'
+    assert captured_posthoc['payload']['sweep'] == {
+        'sweep_id': sweep_id,
+        'delta_id': delta_ref,
+        'parent_sweep_id': 'input_norm_followup',
+        'queue_order': 1,
+        'run_kind': 'primary',
+    }
+    assert captured_posthoc['payload']['comparison']['vs_anchor']['final_log_loss_delta'] == pytest.approx(-0.02)
+    assert captured_posthoc['payload']['comparison']['vs_parent']['reference_run_id'] == 'anchor_v1'
+    assert captured_posthoc['payload']['comparison']['stage_local_stability']['column'] == {
+        'final_window_mean_grad_norm': 0.42,
+        'activation_early_to_final_mean_delta': 0.12,
+        'activation_final_window_mean': 1.8,
+    }
+    assert captured_posthoc['payload']['comparison']['stage_local_stability']['context']['activation_final_window_mean'] == pytest.approx(2.1)
     assert queue_row['status'] == 'completed'
     assert queue_row['interpretation_status'] == 'completed'
 

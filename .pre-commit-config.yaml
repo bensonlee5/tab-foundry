@@ -24,7 +24,7 @@ repos:
     pass_filenames: false
   - id: verify-paths
     name: verify (paths)
-    entry: env TAB_FOUNDRY_LIVE_PYTEST=1 ./.venv/bin/python scripts/audit/dev_verify.py verify paths
+    entry: env TAB_FOUNDRY_LIVE_PYTEST=1 ./.venv/bin/python scripts/audit/dev_verify.py verify paths --pre-commit
     language: system
     files: ^(AGENTS\.md|README\.md|CHANGELOG\.md|program\.md|src/|tests/|scripts/dev$|scripts/audit/|configs/|reference/|docs/)
     pass_filenames: true

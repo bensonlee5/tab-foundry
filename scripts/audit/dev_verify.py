@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 from collections import defaultdict
 from dataclasses import dataclass
 import fnmatch
@@ -183,6 +184,21 @@ CHECK_SPECS: dict[str, CheckSpec] = {
     ),
 }
 CHECK_ORDER = tuple(CHECK_SPECS)
+_PRECOMMIT_SKIPPED_PYTEST_CHECKS = frozenset({"pytest_runtime", "pytest_smoke", "pytest_property"})
+_PRECOMMIT_TEST_CHECK_BY_PREFIX: tuple[tuple[str, str], ...] = (
+    ("tests/audit/", "pytest_audit"),
+    ("tests/data/", "pytest_data"),
+    ("tests/model/", "pytest_model"),
+    ("tests/training/", "pytest_training"),
+    ("tests/runtime/", "pytest_runtime"),
+    ("tests/smoke/", "pytest_smoke"),
+    ("tests/property/", "pytest_property"),
+    ("tests/export/", "pytest_export"),
+    ("tests/benchmark/", "pytest_benchmark"),
+    ("tests/research/", "pytest_research"),
+    ("tests/cli/", "pytest_cli"),
+    ("tests/config/", "pytest_config"),
+)
 
 
 def _string_list(payload: object, *, field_name: str) -> tuple[str, ...]:
@@ -493,16 +509,93 @@ def run_check_command(argv: Sequence[str]) -> int:
     return int(result.returncode)
 
 
-def execute_check_ids(check_ids: Sequence[str]) -> int:
+def _precommit_pytest_argv(argv: Sequence[str]) -> tuple[str, ...]:
+    normalized = tuple(argv)
+    if not _is_pytest_command(normalized):
+        return normalized
+    for index, value in enumerate(normalized):
+        if value == "-n" and index + 1 < len(normalized):
+            return normalized
+        if value.startswith("-n") and value != "-n":
+            return normalized
+    return (*normalized, "-n", "0")
+
+
+def execute_check_ids(
+    check_ids: Sequence[str],
+    *,
+    argv_normalizer: Callable[[Sequence[str]], Sequence[str]] | None = None,
+) -> int:
     for check_id in check_ids:
         spec = CHECK_SPECS[check_id]
         print(f"[dev] {spec.description}", flush=True)
         for argv in spec.argv_groups:
-            print(f"+ {shlex.join(argv)}", flush=True)
-            result = run_check_command(argv)
+            resolved_argv = tuple(argv if argv_normalizer is None else argv_normalizer(argv))
+            print(f"+ {shlex.join(resolved_argv)}", flush=True)
+            result = run_check_command(resolved_argv)
             if result != 0:
                 return int(result)
     return 0
+
+
+def _explicit_pytest_paths(paths: Sequence[str]) -> tuple[str, ...]:
+    return tuple(
+        path
+        for path in _ordered_unique(paths)
+        if path.startswith("tests/") and path.endswith(".py")
+    )
+
+
+def _explicit_pytest_check_ids(paths: Sequence[str]) -> frozenset[str]:
+    explicit_checks: set[str] = set()
+    for path in _explicit_pytest_paths(paths):
+        for prefix, check_id in _PRECOMMIT_TEST_CHECK_BY_PREFIX:
+            if path.startswith(prefix):
+                explicit_checks.add(check_id)
+                break
+    return frozenset(explicit_checks)
+
+
+def build_precommit_check_ids(
+    changed_paths: Sequence[str],
+    index: DevIndex,
+) -> tuple[VerificationPlan, tuple[str, ...]]:
+    plan = build_verification_plan(changed_paths, index)
+    explicit_paths = _explicit_pytest_paths(changed_paths)
+    explicit_check_ids = _explicit_pytest_check_ids(changed_paths)
+    filtered_check_ids = tuple(
+        check_id
+        for check_id in plan.check_ids
+        if check_id != "pytest_all"
+        and check_id not in _PRECOMMIT_SKIPPED_PYTEST_CHECKS
+        and check_id not in explicit_check_ids
+    )
+    return (
+        VerificationPlan(
+            check_ids=filtered_check_ids,
+            escalated_to_full=plan.escalated_to_full,
+            escalation_reasons=plan.escalation_reasons,
+            scope=plan.scope,
+        ),
+        explicit_paths,
+    )
+
+
+def execute_precommit_paths(paths: Sequence[str], index: DevIndex) -> int:
+    plan, explicit_pytest_paths = build_precommit_check_ids(paths, index)
+    if plan.escalated_to_full:
+        print("Pre-commit verification reduced an otherwise full verification request:", flush=True)
+        for reason in plan.escalation_reasons:
+            print(f"- {reason}", flush=True)
+    result = execute_check_ids(plan.check_ids, argv_normalizer=_precommit_pytest_argv)
+    if result != 0:
+        return int(result)
+    if not explicit_pytest_paths:
+        return 0
+    argv = _precommit_pytest_argv((str(VENV_PYTHON), "-m", "pytest", "-q", *explicit_pytest_paths))
+    print("[dev] Run changed pytest files", flush=True)
+    print(f"+ {shlex.join(argv)}", flush=True)
+    return run_check_command(argv)
 
 
 def parse_args(argv: Iterable[str]) -> argparse.Namespace:
@@ -524,6 +617,11 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
     verify_paths_parser = verify_subparsers.add_parser(
         "paths",
         help="Run the smallest safe verification slice for explicit repo paths",
+    )
+    verify_paths_parser.add_argument(
+        "--pre-commit",
+        action="store_true",
+        help="Use a lighter-weight pre-commit profile for pytest execution",
     )
     verify_paths_parser.add_argument("paths", nargs="+", help="Repo-relative paths to verify")
 
@@ -563,6 +661,8 @@ def main(argv: Iterable[str] | None = None) -> int:
         return execute_check_ids(plan.check_ids)
     if args.verify_command == "paths":
         explicit_paths = [str(path).strip() for path in args.paths if str(path).strip()]
+        if args.pre_commit:
+            return execute_precommit_paths(explicit_paths, index)
         plan = build_verification_plan(explicit_paths, index)
         if plan.escalated_to_full:
             print("Explicit path verification escalated to full verification:")

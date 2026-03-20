@@ -61,7 +61,14 @@ from .trainer_runtime_config import (
     _resolve_target_train_seconds,
 )
 from .trainer_summary import _training_telemetry_summary_payload, _trainer_summary_payload
-from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
+from .wandb import (
+    finish_wandb_run,
+    init_wandb_run,
+    log_wandb_metrics,
+    training_surface_wandb_summary_payload,
+    update_wandb_summary,
+    wandb_identity_payload,
+)
 
 
 def _merge_activation_norms(
@@ -263,6 +270,10 @@ def train(cfg: DictConfig) -> TrainResult:
         run = init_wandb_run(
             cfg,
             enabled=bool(getattr(cfg.logging, "use_wandb", False) and accelerator.is_main_process),
+        )
+        update_wandb_summary(
+            run,
+            training_surface_wandb_summary_payload(training_surface_payload),
         )
 
         raw_stages = cast(list[dict[str, object]], OmegaConf.to_container(cfg.schedule.stages, resolve=True))
@@ -674,6 +685,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 history_records=history_records,
                 gradient_records=gradient_records,
                 training_surface_record=training_surface_payload,
+                wandb=wandb_identity_payload(run, cfg=cfg),
             )
             write_training_telemetry(telemetry_output_path, telemetry_payload)
             update_wandb_summary(
@@ -716,6 +728,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 history_records=history_records,
                 gradient_records=gradient_records,
                 training_surface_record=training_surface_payload,
+                wandb=wandb_identity_payload(run, cfg=cfg),
                 error=exc,
             )
             write_training_telemetry(telemetry_output_path, telemetry_payload)
