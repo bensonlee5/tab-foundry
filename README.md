@@ -35,6 +35,25 @@ surfaces explicitly:
 uv sync --no-dev --extra benchmark --extra muon
 ```
 
+## CLI Navigation
+
+`tab-foundry` is the canonical packaged CLI for data, dev, train, eval,
+export, bench, and research workflows. Treat `./scripts/dev` as a repo-local
+convenience wrapper only for bootstrap, verification, and Iris smoke.
+
+For command discovery and execution, prefer `.venv/bin/tab-foundry ...` or an
+activated `.venv`. Use help in this order:
+
+```bash
+.venv/bin/tab-foundry --help
+.venv/bin/tab-foundry <group> --help
+.venv/bin/tab-foundry <group> <command> --help
+```
+
+Use [codebase navigation](docs/development/codebase-navigation.md) for the full
+namespace inventory and [workflows](docs/workflows.md) for operational
+runbooks.
+
 Summarize the current diff against `origin/main` and run the smallest safe
 verification slice:
 
