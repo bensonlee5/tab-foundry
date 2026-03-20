@@ -368,6 +368,191 @@ def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pyt
     }
 
 
+def test_execute_sweep_uses_completed_parent_delta_ref(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'completed'
+    queue['rows'][0]['run_id'] = 'completed_parent_v1'
+    queue['rows'][1]['status'] = 'ready'
+    queue['rows'][1]['parent_delta_ref'] = 'delta_anchor_activation_trace_baseline'
+    _write_yaml(queue_path, queue)
+
+    calls: list[dict[str, Any]] = []
+
+    def fake_run_row(**kwargs: Any) -> str:
+        calls.append(
+            {
+                'order': int(kwargs['queue_row']['order']),
+                'anchor_run_id': kwargs['anchor_run_id'],
+                'parent_run_id': kwargs['parent_run_id'],
+            }
+        )
+        return 'row_2_v1'
+
+    monkeypatch.setattr(execute_module, '_run_row', fake_run_row)
+    monkeypatch.setattr(execute_module, '_sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        paths=paths,
+    )
+
+    assert executed == ['row_2_v1']
+    assert calls == [
+        {
+            'order': 2,
+            'anchor_run_id': ANCHOR_RUN_ID,
+            'parent_run_id': 'completed_parent_v1',
+        }
+    ]
+
+
+def test_execute_sweep_uses_same_invocation_parent_delta_ref(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'ready'
+    queue['rows'][1]['status'] = 'ready'
+    queue['rows'][1]['parent_delta_ref'] = 'delta_anchor_activation_trace_baseline'
+    _write_yaml(queue_path, queue)
+
+    calls: list[dict[str, Any]] = []
+
+    def fake_run_row(**kwargs: Any) -> str:
+        order = int(kwargs['queue_row']['order'])
+        run_id = f'row_{order}_v1'
+        kwargs['queue_row']['run_id'] = run_id
+        calls.append(
+            {
+                'order': order,
+                'anchor_run_id': kwargs['anchor_run_id'],
+                'parent_run_id': kwargs['parent_run_id'],
+            }
+        )
+        return run_id
+
+    monkeypatch.setattr(execute_module, '_run_row', fake_run_row)
+    monkeypatch.setattr(execute_module, '_sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        paths=paths,
+    )
+
+    assert executed == ['row_1_v1', 'row_2_v1']
+    assert calls == [
+        {
+            'order': 1,
+            'anchor_run_id': ANCHOR_RUN_ID,
+            'parent_run_id': ANCHOR_RUN_ID,
+        },
+        {
+            'order': 2,
+            'anchor_run_id': ANCHOR_RUN_ID,
+            'parent_run_id': 'row_1_v1',
+        },
+    ]
+
+
+def test_resolve_parent_run_id_defaults_to_active_anchor() -> None:
+    queue_rows = [
+        {'order': 1, 'delta_ref': 'delta_anchor_activation_trace_baseline'},
+        {'order': 2, 'delta_ref': 'delta_shared_feature_norm'},
+    ]
+
+    observed = runner_module._resolve_parent_run_id(
+        queue_row=queue_rows[1],
+        queue_rows=queue_rows,
+        active_anchor='anchor_v1',
+    )
+
+    assert observed == 'anchor_v1'
+
+
+def test_resolve_parent_run_id_prefers_latest_earlier_matching_row() -> None:
+    queue_rows = [
+        {'order': 1, 'delta_ref': 'delta_dup', 'run_id': 'dup_v1'},
+        {'order': 2, 'delta_ref': 'delta_mid'},
+        {'order': 3, 'delta_ref': 'delta_dup', 'run_id': 'dup_v3'},
+        {'order': 4, 'delta_ref': 'delta_target', 'parent_delta_ref': 'delta_dup'},
+    ]
+
+    observed = runner_module._resolve_parent_run_id(
+        queue_row=queue_rows[3],
+        queue_rows=queue_rows,
+        active_anchor='anchor_v1',
+    )
+
+    assert observed == 'dup_v3'
+
+
+def test_resolve_parent_run_id_rejects_missing_parent_delta_ref_target() -> None:
+    queue_rows = [
+        {'order': 1, 'delta_ref': 'delta_anchor_activation_trace_baseline'},
+        {'order': 2, 'delta_ref': 'delta_shared_feature_norm', 'parent_delta_ref': 'delta_missing'},
+    ]
+
+    with pytest.raises(RuntimeError, match='parent_delta_ref'):
+        _ = runner_module._resolve_parent_run_id(
+            queue_row=queue_rows[1],
+            queue_rows=queue_rows,
+            active_anchor='anchor_v1',
+        )
+
+
+def test_resolve_parent_run_id_rejects_self_reference() -> None:
+    queue_rows = [
+        {'order': 1, 'delta_ref': 'delta_anchor_activation_trace_baseline', 'parent_delta_ref': 'delta_anchor_activation_trace_baseline'},
+    ]
+
+    with pytest.raises(RuntimeError, match='not itself'):
+        _ = runner_module._resolve_parent_run_id(
+            queue_row=queue_rows[0],
+            queue_rows=queue_rows,
+            active_anchor='anchor_v1',
+        )
+
+
+def test_resolve_parent_run_id_rejects_forward_reference() -> None:
+    queue_rows = [
+        {'order': 1, 'delta_ref': 'delta_target', 'parent_delta_ref': 'delta_later'},
+        {'order': 2, 'delta_ref': 'delta_later', 'run_id': 'later_v1'},
+    ]
+
+    with pytest.raises(RuntimeError, match='must reference an earlier row'):
+        _ = runner_module._resolve_parent_run_id(
+            queue_row=queue_rows[0],
+            queue_rows=queue_rows,
+            active_anchor='anchor_v1',
+        )
+
+
+def test_resolve_parent_run_id_rejects_parent_without_run_id() -> None:
+    queue_rows = [
+        {'order': 1, 'delta_ref': 'delta_anchor_activation_trace_baseline'},
+        {'order': 2, 'delta_ref': 'delta_shared_feature_norm', 'parent_delta_ref': 'delta_anchor_activation_trace_baseline'},
+    ]
+
+    with pytest.raises(RuntimeError, match='does not have a completed run_id'):
+        _ = runner_module._resolve_parent_run_id(
+            queue_row=queue_rows[1],
+            queue_rows=queue_rows,
+            active_anchor='anchor_v1',
+        )
+
+
 def test_compose_cfg_sets_queue_aware_wandb_run_name(tmp_path: Path) -> None:
     run_dir = (
         tmp_path

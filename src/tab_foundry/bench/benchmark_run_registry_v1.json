@@ -8063,16 +8063,16 @@
           "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
         },
         "vs_parent": {
-          "best_roc_auc_delta": 0.11402205107866142,
-          "best_training_time_delta": -8.059707135820645,
-          "final_avg_pinball_loss_delta": null,
-          "final_brier_score_delta": -0.04098237221426976,
+          "reference_run_id": "sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1",
+          "best_roc_auc_delta": 0.05514176041251845,
+          "final_roc_auc_delta": 0.05514176041251845,
+          "final_log_loss_delta": -0.014190357330167491,
+          "final_brier_score_delta": -0.014016148440646414,
           "final_crps_delta": null,
-          "final_log_loss_delta": -0.04131836151475898,
+          "final_avg_pinball_loss_delta": null,
           "final_picp_90_delta": null,
-          "final_roc_auc_delta": 0.11402205107866142,
-          "final_training_time_delta": -8.059707135820645,
-          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+          "best_training_time_delta": -27.534377707037493,
+          "final_training_time_delta": -27.534377707037493
         }
       },
       "conclusion": "Locked as the grouped-token handoff row because it delivered the first material bridge gain while preserving the strongest proper-score result among rows 3-5.",
@@ -8082,7 +8082,7 @@
       "lineage": {
         "anchor_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1",
         "control_baseline_id": "cls_benchmark_linear_v2",
-        "parent_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        "parent_run_id": "sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1"
       },
       "manifest_path": "data/manifests/default.parquet",
       "model": {
@@ -8252,16 +8252,16 @@
           "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
         },
         "vs_parent": {
-          "best_roc_auc_delta": 0.11402205107866142,
-          "best_training_time_delta": -16.33345454695518,
-          "final_avg_pinball_loss_delta": null,
-          "final_brier_score_delta": -0.040982371465478507,
+          "reference_run_id": "sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1",
+          "best_roc_auc_delta": 0.0,
+          "final_roc_auc_delta": 0.0,
+          "final_log_loss_delta": 7.651186351154138e-10,
+          "final_brier_score_delta": 7.487912512260664e-10,
           "final_crps_delta": null,
-          "final_log_loss_delta": -0.04131836074964035,
+          "final_avg_pinball_loss_delta": null,
           "final_picp_90_delta": null,
-          "final_roc_auc_delta": 0.11402205107866142,
-          "final_training_time_delta": -16.33345454695518,
-          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+          "best_training_time_delta": -8.273747411134536,
+          "final_training_time_delta": -8.273747411134536
         }
       },
       "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
@@ -8271,7 +8271,7 @@
       "lineage": {
         "anchor_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1",
         "control_baseline_id": "cls_benchmark_linear_v2",
-        "parent_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        "parent_run_id": "sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1"
       },
       "manifest_path": "data/manifests/default.parquet",
       "model": {
@@ -8441,16 +8441,16 @@
           "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
         },
         "vs_parent": {
-          "best_roc_auc_delta": 0.11544578125704813,
-          "best_training_time_delta": -18.13481637799123,
-          "final_avg_pinball_loss_delta": null,
-          "final_brier_score_delta": -0.040314403793762055,
+          "reference_run_id": "sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1",
+          "best_roc_auc_delta": 0.0014237301783867062,
+          "final_roc_auc_delta": 0.0014237301783867062,
+          "final_log_loss_delta": 0.0006841287228429582,
+          "final_brier_score_delta": 0.0006679676717164518,
           "final_crps_delta": null,
-          "final_log_loss_delta": -0.04063423202679739,
+          "final_avg_pinball_loss_delta": null,
           "final_picp_90_delta": null,
-          "final_roc_auc_delta": 0.11544578125704813,
-          "final_training_time_delta": -18.13481637799123,
-          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+          "best_training_time_delta": -1.801361831036047,
+          "final_training_time_delta": -1.801361831036047
         }
       },
       "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
@@ -8460,7 +8460,7 @@
       "lineage": {
         "anchor_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1",
         "control_baseline_id": "cls_benchmark_linear_v2",
-        "parent_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        "parent_run_id": "sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1"
       },
       "manifest_path": "data/manifests/default.parquet",
       "model": {

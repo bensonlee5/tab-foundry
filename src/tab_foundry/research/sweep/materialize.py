@@ -56,6 +56,16 @@ def _inspection_surface_payload(
     return payload
 
 
+def _optional_parent_delta_ref(queue_row: Mapping[str, Any]) -> str | None:
+    parent_delta_ref = queue_row.get("parent_delta_ref")
+    if parent_delta_ref is None:
+        return None
+    return ensure_non_empty_string(
+        parent_delta_ref,
+        context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}.parent_delta_ref",
+    )
+
+
 def inspection_row(
     *,
     queue_row: Mapping[str, Any],
@@ -79,7 +89,7 @@ def inspection_row(
         if isinstance(raw_model, Mapping)
         else {}
     )
-    return {
+    payload = {
         "order": int(queue_row["order"]),
         "delta_id": ensure_non_empty_string(queue_row.get("delta_ref"), context="queue row delta_ref"),
         "status": str(queue_row.get("status", "ready")),
@@ -122,6 +132,10 @@ def inspection_row(
             _copy_jsonable(queue_row.get("benchmark_metrics")) if queue_row.get("benchmark_metrics") else None,
         ),
     }
+    parent_delta_ref = _optional_parent_delta_ref(queue_row)
+    if parent_delta_ref is not None:
+        payload["parent_delta_ref"] = parent_delta_ref
+    return payload
 
 
 def inspection_system_delta_queue(
@@ -254,7 +268,7 @@ def materialize_row(
         parameter_plan,
         context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}.parameter_adequacy_plan",
     )
-    return {
+    payload = {
         "order": int(queue_row["order"]),
         "delta_id": ensure_non_empty_string(queue_row.get("delta_ref"), context="queue row delta_ref"),
         "status": str(queue_row["status"]),
@@ -327,6 +341,10 @@ def materialize_row(
             _copy_jsonable(queue_row.get("benchmark_metrics")) if queue_row.get("benchmark_metrics") else None,
         ),
     }
+    parent_delta_ref = _optional_parent_delta_ref(queue_row)
+    if parent_delta_ref is not None:
+        payload["parent_delta_ref"] = parent_delta_ref
+    return payload
 
 
 def materialize_system_delta_queue(
