@@ -638,6 +638,145 @@ deltas:
     default_next_action: Run only after the isolated row-pool row so context gains are not conflated with readout changes.
     applicability_guards: []
 
+  delta_row_embeddings_no_context_v2:
+    dimension_family: model
+    family: row_pool
+    binary_applicable: true
+    description: Use the public `row_cls_pool` stage on the grouped-token replay surface, but disable plain context so row embeddings are measured without added context depth.
+    upstream_delta: Upstream nanoTabPFN direct binary path has no row-level CLS pooling or separate context encoder.
+    expected_effect: Stage-native row embeddings without plain-context help, isolating whether row-level aggregation alone improves the grouped-token replay surface.
+    adequacy_knobs:
+      - tfrow_n_heads
+      - tfrow_n_layers
+      - tfrow_cls_tokens
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the grouped-token replay anchor before enabling plain row-level context.
+        - If neutral-to-bad, perform a bounded adequacy sweep over tfrow_n_heads, tfrow_n_layers, and tfrow_cls_tokens before any reject decision.
+        - Treat this as the no-context control for the paired plain-context row.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: row_cls_pool
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: row_cls_pool
+        stage_label: delta_row_embeddings_no_context_v2
+        module_overrides:
+          context_encoder: none
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run first as the stage-native row-embedding control, then compare against the paired plain-context row.
+    applicability_guards: []
+
+  delta_row_embeddings_plain_context_v2:
+    dimension_family: model
+    family: context_encoder
+    binary_applicable: true
+    description: Use the public `row_cls_pool` stage unchanged so plain row-level context is measured against the no-context row-embedding control.
+    upstream_delta: Upstream nanoTabPFN direct binary path has no row-level CLS pooling or separate context encoder.
+    expected_effect: The public row-embedding stage may justify its added plain-context depth if row-level context is genuinely useful on the grouped-token replay surface.
+    adequacy_knobs:
+      - tficl_n_heads
+      - tficl_n_layers
+      - tficl_ff_expansion
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against both the grouped-token replay anchor and the no-context row-embedding row.
+        - Keep column-set and QASS disabled so plain-context value is separated from later row-first structure.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: row_cls_pool
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: row_cls_pool
+        stage_label: delta_row_embeddings_plain_context_v2
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run second and interpret it directly against the no-context row-embedding control before moving to column-set.
+    applicability_guards: []
+
+  delta_column_set_plain_context_v2:
+    dimension_family: model
+    family: column_encoding
+    binary_applicable: true
+    description: Use the public `column_set` stage unchanged so TF-RD-006 is measured on top of the established plain-context row-embedding surface.
+    upstream_delta: Upstream nanoTabPFN direct binary path has no dedicated column-set encoder.
+    expected_effect: Better feature-set aggregation on the stage-native row-first surface, with inducing-point and capacity risk kept explicit.
+    adequacy_knobs:
+      - tfcol_n_heads
+      - tfcol_n_layers
+      - tfcol_n_inducing
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the plain-context row-embedding row before reading any QASS result.
+        - If neutral-to-bad, interpret whether the issue looks like under-capacity, inducing-point mismatch, or interaction with the unchanged plain context path.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: column_set
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: column_set
+        stage_label: delta_column_set_plain_context_v2
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run only after the plain-context row so TF-RD-006 stays attributable before QASS is introduced.
+    applicability_guards: []
+
+  delta_qass_context_v2:
+    dimension_family: model
+    family: context_encoder
+    binary_applicable: true
+    description: Use the public `qass_context` stage unchanged so QASS is measured against the matched plain-context `column_set` row.
+    upstream_delta: Upstream nanoTabPFN direct binary path has no separate context encoder and no QASS stage.
+    expected_effect: Richer row-sequence conditioning than the matched plain-context column-set row, with any gain or loss attributable to QASS rather than to row embeddings or TFCol.
+    adequacy_knobs:
+      - tficl_n_heads
+      - tficl_n_layers
+      - tficl_ff_expansion
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the matched plain-context `column_set` row.
+        - Treat the plain-context `column_set` row as the non-QASS added-depth control for TF-RD-007.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: qass_context
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: qass_context
+        stage_label: delta_qass_context_v2
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run last and interpret only against the matched plain-context column-set row.
+    applicability_guards: []
+
   delta_column_set_encoder:
     dimension_family: model
     family: column_encoding
