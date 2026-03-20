@@ -262,19 +262,19 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
 Paper-faithful tokenization is now the default:
 
 ```bash
-uv run tab-foundry train run experiment=cls_smoke
+tab-foundry train run experiment=cls_smoke
 ```
 
 Grouped-token experiment:
 
 ```bash
-uv run tab-foundry train run experiment=cls_smoke model.feature_group_size=32
+tab-foundry train run experiment=cls_smoke model.feature_group_size=32
 ```
 
 Frozen nanoTabPFN repro benchmark:
 
 ```bash
-uv run tab-foundry train run \
+tab-foundry train run \
   experiment=cls_benchmark_linear_simple \
   data.manifest_path=<binary_manifest.parquet>
 ```
@@ -282,7 +282,7 @@ uv run tab-foundry train run \
 Staged benchmark family from the exact repro starting point:
 
 ```bash
-uv run tab-foundry train run \
+tab-foundry train run \
   experiment=cls_benchmark_staged \
   data.manifest_path=<binary_manifest.parquet>
 ```
@@ -307,7 +307,7 @@ and the active queue row rather than relying on ad hoc CLI mapping syntax.
 Many-class evaluation through full probabilities:
 
 ```bash
-uv run tab-foundry eval checkpoint \
+tab-foundry eval checkpoint \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   experiment=cls_smoke \
   model.many_class_train_mode=full_probs \
@@ -317,7 +317,7 @@ uv run tab-foundry eval checkpoint \
 Wider final ICL encoder:
 
 ```bash
-uv run tab-foundry train run \
+tab-foundry train run \
   experiment=cls_smoke \
   model.d_icl=768 \
   model.tficl_n_layers=16
