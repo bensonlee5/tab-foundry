@@ -584,6 +584,12 @@ checkout, and device class are unchanged, reusing the current
 `nanotabpfn_curve.jsonl` is acceptable for Tier 1 comparisons. Refresh it for
 Tier 2 milestones or whenever any of those inputs changes.
 
+`uv run tab-foundry research sweep execute` now applies that Tier 1 reuse path
+automatically for `benchmark_full` rows when the locked anchor or frozen
+control baseline exposes a compatible `nanotabpfn_curve.jsonl`. If no
+compatible curve is available, the runner falls back to a fresh helper run on
+the same canonical medium-bundle surface.
+
 ### System-Delta Sweep Runbook
 
 Treat `program.md` as the canonical staged-research contract. The live staged

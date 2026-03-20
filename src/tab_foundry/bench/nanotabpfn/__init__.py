@@ -6,6 +6,7 @@ import openml
 from openml.tasks import TaskType
 
 from .artifacts import (
+    benchmark_host_fingerprint,
     collect_checkpoint_snapshots,
     evaluate_tab_foundry_run,
     resolve_device,
@@ -65,6 +66,7 @@ __all__ = [
     "TaskType",
     "aggregate_curve",
     "annotate_curve_records_with_task_statistics",
+    "benchmark_host_fingerprint",
     "benchmark_bundle_allows_missing_values",
     "benchmark_bundle_summary",
     "benchmark_bundle_task_type",

@@ -108,6 +108,67 @@ def _write_python_probe_stub(path: Path, *, torch_import_exit_code: int) -> None
     path.chmod(0o755)
 
 
+def _write_compare_summary(
+    path: Path,
+    *,
+    bundle_path: Path,
+    curve_path: Path | None,
+    nanotab_root: Path,
+    nanotab_python: Path,
+    control_baseline_id: str | None,
+    device: str | None,
+    resolved_device: str | None = None,
+    host_fingerprint: str | None = None,
+    prior_dump_path: Path | None,
+    steps: int | None = None,
+    eval_every: int | None = None,
+    seeds: int | None = None,
+    batch_size: int | None = None,
+    lr: float | None = None,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {
+        'benchmark_bundle': {
+            'name': 'bundle',
+            'source_path': str(bundle_path.resolve()),
+        },
+        'nanotabpfn': {
+            'root': str(nanotab_root.resolve()),
+            'python': str(nanotab_python.resolve()),
+            'num_seeds': 2 if seeds is None else int(seeds),
+        },
+        'artifacts': {},
+    }
+    nanotabpfn = payload['nanotabpfn']
+    if device is not None:
+        nanotabpfn['device'] = str(device)
+    if device is not None and resolved_device is None:
+        nanotabpfn['resolved_device'] = runner_module.resolve_device(str(device))
+    if resolved_device is not None:
+        nanotabpfn['resolved_device'] = str(resolved_device)
+    if device is not None and host_fingerprint is None:
+        nanotabpfn['benchmark_host_fingerprint'] = runner_module.benchmark_host_fingerprint()
+    if host_fingerprint is not None:
+        nanotabpfn['benchmark_host_fingerprint'] = str(host_fingerprint)
+    if prior_dump_path is not None:
+        nanotabpfn['prior_dump_path'] = str(prior_dump_path.resolve())
+    if steps is not None:
+        nanotabpfn['steps'] = int(steps)
+    if eval_every is not None:
+        nanotabpfn['eval_every'] = int(eval_every)
+    if seeds is not None:
+        nanotabpfn['num_seeds'] = int(seeds)
+    if batch_size is not None:
+        nanotabpfn['batch_size'] = int(batch_size)
+    if lr is not None:
+        nanotabpfn['lr'] = float(lr)
+    if curve_path is not None:
+        payload['artifacts']['nanotabpfn_curve_jsonl'] = str(curve_path.resolve())
+    if control_baseline_id is not None:
+        payload['control_baseline'] = {'baseline_id': str(control_baseline_id)}
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+
+
 def test_select_queue_rows_defaults_to_ready_rows() -> None:
     queue = {
         'rows': [
@@ -1295,6 +1356,667 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     assert captured_posthoc['payload']['comparison']['stage_local_stability']['context']['activation_final_window_mean'] == pytest.approx(2.1)
     assert queue_row['status'] == 'completed'
     assert queue_row['interpretation_status'] == 'completed'
+
+
+def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanotabpfn_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'tokenization_migration_v1'
+    delta_ref = 'delta_architecture_screen_grouped_tokens'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    benchmark_dir = train_dir.parent / 'benchmark'
+    (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (train_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
+    (train_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+    benchmark_dir.mkdir(parents=True, exist_ok=True)
+
+    bundle_path = tmp_path / 'bundle.json'
+    bundle_path.write_text('{}\n', encoding='utf-8')
+    nanotab_root = tmp_path / 'nano'
+    nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
+    prior_dump = nanotab_root / '300k_150x5_2.h5'
+    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(
+        runner_module,
+        'benchmark_host_fingerprint',
+        lambda: 'runner-host',
+    )
+
+    anchor_curve_path = tmp_path / 'anchor_curve.jsonl'
+    anchor_curve_path.write_text('{}\n', encoding='utf-8')
+    anchor_summary_path = tmp_path / 'anchor_summary.json'
+    _write_compare_summary(
+        anchor_summary_path,
+        bundle_path=bundle_path,
+        curve_path=anchor_curve_path,
+        nanotab_root=nanotab_root,
+        nanotab_python=nanotab_python,
+        control_baseline_id='cls_benchmark_linear_v2',
+        device='auto',
+        resolved_device='cuda',
+        host_fingerprint='runner-host',
+        prior_dump_path=prior_dump,
+        steps=runner_module.DEFAULT_NANOTABPFN_STEPS,
+        eval_every=runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
+        seeds=runner_module.DEFAULT_NANOTABPFN_SEEDS,
+        batch_size=runner_module.DEFAULT_NANOTABPFN_BATCH_SIZE,
+        lr=runner_module.DEFAULT_NANOTABPFN_LR,
+    )
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    registry_path.write_text(
+        json.dumps(
+            {
+                'runs': {
+                    'anchor_v1': {
+                        'artifacts': {
+                            'comparison_summary_path': str(anchor_summary_path.resolve()),
+                        }
+                    }
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    control_baseline_registry_path.write_text(
+        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'training': {},
+        'execution_policy': 'benchmark_full',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'model',
+        'family': 'tokenization',
+        'description': 'Benchmark the grouped-token row.',
+        'anchor_delta': 'Switch only the tokenizer stage on the shared surface.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    captured_benchmark_config: dict[str, Any] = {}
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'ensure_nanotabpfn_python',
+        lambda **_: (_ for _ in ()).throw(AssertionError('unexpected nanotabpfn bootstrap')),
+    )
+
+    def fake_benchmark(config: Any) -> dict[str, Any]:
+        captured_benchmark_config['reuse_nanotabpfn_curve_path'] = config.reuse_nanotabpfn_curve_path
+        captured_benchmark_config['reuse_nanotabpfn_metadata'] = config.reuse_nanotabpfn_metadata
+        return {
+            'tab_foundry': {
+                'best_step': 100.0,
+                'best_log_loss': 0.41,
+                'final_log_loss': 0.40,
+                'best_to_final_log_loss_delta': -0.01,
+                'best_brier_score': 0.12,
+                'final_brier_score': 0.11,
+                'best_to_final_brier_score_delta': -0.01,
+                'best_roc_auc': 0.80,
+                'final_roc_auc': 0.81,
+                'best_to_final_roc_auc_delta': 0.01,
+                'training_diagnostics': {'max_grad_norm': 7.5},
+            },
+            'nanotabpfn': {
+                'best_log_loss': 0.46,
+                'final_log_loss': 0.45,
+                'best_brier_score': 0.14,
+                'final_brier_score': 0.13,
+                'best_roc_auc': 0.78,
+                'final_roc_auc': 0.77,
+                'curve_source_mode': 'reused',
+                'reused_curve_path': str(anchor_curve_path.resolve()),
+            },
+        }
+
+    monkeypatch.setattr(runner_module, 'run_nanotabpfn_benchmark', fake_benchmark)
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda **_kwargs: {
+            'run': {
+                'comparisons': {
+                    'vs_anchor': {
+                        'final_log_loss_delta': -0.02,
+                        'final_brier_score_delta': -0.01,
+                        'final_roc_auc_delta': 0.01,
+                    }
+                }
+            }
+        },
+    )
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'training_experiment': 'cls_benchmark_staged',
+            'training_config_profile': 'cls_benchmark_staged',
+            'surface_role': 'architecture_screen',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=prior_dump,
+        nanotabpfn_root=nanotab_root,
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Reuse the locked anchor control curve for the Tier-1 check.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert captured_benchmark_config['reuse_nanotabpfn_curve_path'] == anchor_curve_path.resolve()
+    assert captured_benchmark_config['reuse_nanotabpfn_metadata'] == {
+        'root': str(nanotab_root.resolve()),
+        'python': str(nanotab_python.resolve()),
+        'device': 'auto',
+        'resolved_device': 'cuda',
+        'benchmark_host_fingerprint': 'runner-host',
+        'prior_dump_path': str(prior_dump.resolve()),
+        'num_seeds': runner_module.DEFAULT_NANOTABPFN_SEEDS,
+        'steps': runner_module.DEFAULT_NANOTABPFN_STEPS,
+        'eval_every': runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
+        'batch_size': runner_module.DEFAULT_NANOTABPFN_BATCH_SIZE,
+        'lr': runner_module.DEFAULT_NANOTABPFN_LR,
+    }
+    result_card = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / 'result_card.md'
+    ).read_text(encoding='utf-8')
+    assert "nanoTabPFN curve source: `reused`" in result_card
+    assert str(anchor_curve_path.resolve()) in result_card
+
+
+def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_anchor_is_unavailable(
+    tmp_path: Path,
+) -> None:
+    bundle_path = tmp_path / 'bundle.json'
+    bundle_path.write_text('{}\n', encoding='utf-8')
+    nanotab_root = tmp_path / 'nano'
+    nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
+    nanotab_python.parent.mkdir(parents=True, exist_ok=True)
+    nanotab_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    nanotab_python.chmod(0o755)
+    prior_dump = nanotab_root / '300k_150x5_2.h5'
+    prior_dump.write_bytes(b'prior')
+
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    registry_path.write_text(
+        json.dumps(
+            {
+                'runs': {
+                    'anchor_v1': {
+                        'artifacts': {
+                            'comparison_summary_path': str((tmp_path / 'missing_anchor_summary.json').resolve()),
+                        }
+                    }
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+
+    baseline_curve_path = tmp_path / 'baseline_curve.jsonl'
+    baseline_curve_path.write_text('{}\n', encoding='utf-8')
+    baseline_summary_path = tmp_path / 'baseline_summary.json'
+    _write_compare_summary(
+        baseline_summary_path,
+        bundle_path=bundle_path,
+        curve_path=baseline_curve_path,
+        nanotab_root=nanotab_root,
+        nanotab_python=nanotab_python,
+        control_baseline_id=None,
+        device='cuda',
+        resolved_device='cuda',
+        host_fingerprint=runner_module.benchmark_host_fingerprint(),
+        prior_dump_path=prior_dump,
+        steps=runner_module.DEFAULT_NANOTABPFN_STEPS,
+        eval_every=runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
+        seeds=runner_module.DEFAULT_NANOTABPFN_SEEDS,
+        batch_size=runner_module.DEFAULT_NANOTABPFN_BATCH_SIZE,
+        lr=runner_module.DEFAULT_NANOTABPFN_LR,
+    )
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    control_baseline_registry_path.write_text(
+        json.dumps(
+            {
+                'baselines': {
+                    'cls_benchmark_linear_v2': {
+                        'comparison_summary_path': str(baseline_summary_path.resolve()),
+                    }
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': str(bundle_path.resolve()),
+        },
+        anchor_run_id='anchor_v1',
+        nanotabpfn_root=nanotab_root,
+        prior_dump=prior_dump,
+        requested_device='cuda',
+        paths=paths,
+    )
+
+    assert selection is not None
+    assert selection.curve_path == baseline_curve_path.resolve()
+    assert selection.source_label == 'control baseline'
+
+
+def test_resolve_reusable_nanotabpfn_curve_requires_resolved_device_match_even_when_requested_device_matches(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    bundle_path = tmp_path / 'bundle.json'
+    bundle_path.write_text('{}\n', encoding='utf-8')
+    nanotab_root = tmp_path / 'nano'
+    nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
+    nanotab_python.parent.mkdir(parents=True, exist_ok=True)
+    nanotab_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    nanotab_python.chmod(0o755)
+    prior_dump = nanotab_root / '300k_150x5_2.h5'
+    prior_dump.write_bytes(b'prior')
+
+    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(
+        runner_module,
+        'benchmark_host_fingerprint',
+        lambda: 'runner-host',
+    )
+    anchor_curve_path = tmp_path / 'anchor_curve.jsonl'
+    anchor_curve_path.write_text('{}\n', encoding='utf-8')
+    anchor_summary_path = tmp_path / 'anchor_summary.json'
+    _write_compare_summary(
+        anchor_summary_path,
+        bundle_path=bundle_path,
+        curve_path=anchor_curve_path,
+        nanotab_root=nanotab_root,
+        nanotab_python=nanotab_python,
+        control_baseline_id='cls_benchmark_linear_v2',
+        device='auto',
+        resolved_device='cpu',
+        host_fingerprint='runner-host',
+        prior_dump_path=prior_dump,
+        steps=runner_module.DEFAULT_NANOTABPFN_STEPS,
+        eval_every=runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
+        seeds=runner_module.DEFAULT_NANOTABPFN_SEEDS,
+        batch_size=runner_module.DEFAULT_NANOTABPFN_BATCH_SIZE,
+        lr=runner_module.DEFAULT_NANOTABPFN_LR,
+    )
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    registry_path.write_text(
+        json.dumps(
+            {
+                'runs': {
+                    'anchor_v1': {
+                        'artifacts': {
+                            'comparison_summary_path': str(anchor_summary_path.resolve()),
+                        }
+                    }
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    control_baseline_registry_path.write_text(
+        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': str(bundle_path.resolve()),
+        },
+        anchor_run_id='anchor_v1',
+        nanotabpfn_root=nanotab_root,
+        prior_dump=prior_dump,
+        requested_device='auto',
+        paths=paths,
+    )
+
+    assert selection is None
+
+
+def test_resolve_reusable_nanotabpfn_curve_requires_host_fingerprint_match(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    bundle_path = tmp_path / 'bundle.json'
+    bundle_path.write_text('{}\n', encoding='utf-8')
+    nanotab_root = tmp_path / 'nano'
+    nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
+    nanotab_python.parent.mkdir(parents=True, exist_ok=True)
+    nanotab_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    nanotab_python.chmod(0o755)
+    prior_dump = nanotab_root / '300k_150x5_2.h5'
+    prior_dump.write_bytes(b'prior')
+    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(
+        runner_module,
+        'benchmark_host_fingerprint',
+        lambda: 'runner-host',
+    )
+
+    anchor_curve_path = tmp_path / 'anchor_curve.jsonl'
+    anchor_curve_path.write_text('{}\n', encoding='utf-8')
+    anchor_summary_path = tmp_path / 'anchor_summary.json'
+    _write_compare_summary(
+        anchor_summary_path,
+        bundle_path=bundle_path,
+        curve_path=anchor_curve_path,
+        nanotab_root=nanotab_root,
+        nanotab_python=nanotab_python,
+        control_baseline_id='cls_benchmark_linear_v2',
+        device='cuda',
+        resolved_device='cuda',
+        host_fingerprint='other-host',
+        prior_dump_path=prior_dump,
+        steps=runner_module.DEFAULT_NANOTABPFN_STEPS,
+        eval_every=runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
+        seeds=runner_module.DEFAULT_NANOTABPFN_SEEDS,
+        batch_size=runner_module.DEFAULT_NANOTABPFN_BATCH_SIZE,
+        lr=runner_module.DEFAULT_NANOTABPFN_LR,
+    )
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    registry_path.write_text(
+        json.dumps(
+            {
+                'runs': {
+                    'anchor_v1': {
+                        'artifacts': {
+                            'comparison_summary_path': str(anchor_summary_path.resolve()),
+                        }
+                    }
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    control_baseline_registry_path.write_text(
+        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': str(bundle_path.resolve()),
+        },
+        anchor_run_id='anchor_v1',
+        nanotabpfn_root=nanotab_root,
+        prior_dump=prior_dump,
+        requested_device='cuda',
+        paths=paths,
+    )
+
+    assert selection is None
+
+
+def test_resolve_reusable_nanotabpfn_curve_rejects_legacy_summary_without_timing_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    bundle_path = tmp_path / 'bundle.json'
+    bundle_path.write_text('{}\n', encoding='utf-8')
+    nanotab_root = tmp_path / 'nano'
+    nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
+    nanotab_python.parent.mkdir(parents=True, exist_ok=True)
+    nanotab_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    nanotab_python.chmod(0o755)
+    prior_dump = nanotab_root / '300k_150x5_2.h5'
+    prior_dump.write_bytes(b'prior')
+    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(
+        runner_module,
+        'benchmark_host_fingerprint',
+        lambda: 'runner-host',
+    )
+
+    anchor_curve_path = tmp_path / 'anchor_curve.jsonl'
+    anchor_curve_path.write_text('{}\n', encoding='utf-8')
+    anchor_summary_path = tmp_path / 'anchor_summary.json'
+    _write_compare_summary(
+        anchor_summary_path,
+        bundle_path=bundle_path,
+        curve_path=anchor_curve_path,
+        nanotab_root=nanotab_root,
+        nanotab_python=nanotab_python,
+        control_baseline_id='cls_benchmark_linear_v2',
+        device='cuda',
+        prior_dump_path=prior_dump,
+        steps=runner_module.DEFAULT_NANOTABPFN_STEPS,
+        eval_every=runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
+        seeds=runner_module.DEFAULT_NANOTABPFN_SEEDS,
+        batch_size=runner_module.DEFAULT_NANOTABPFN_BATCH_SIZE,
+        lr=runner_module.DEFAULT_NANOTABPFN_LR,
+    )
+    payload = json.loads(anchor_summary_path.read_text(encoding='utf-8'))
+    nanotabpfn = payload['nanotabpfn']
+    nanotabpfn.pop('resolved_device', None)
+    nanotabpfn.pop('benchmark_host_fingerprint', None)
+    anchor_summary_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    registry_path.write_text(
+        json.dumps(
+            {
+                'runs': {
+                    'anchor_v1': {
+                        'artifacts': {
+                            'comparison_summary_path': str(anchor_summary_path.resolve()),
+                        }
+                    }
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    control_baseline_registry_path.write_text(
+        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': str(bundle_path.resolve()),
+        },
+        anchor_run_id='anchor_v1',
+        nanotabpfn_root=nanotab_root,
+        prior_dump=prior_dump,
+        requested_device='cuda',
+        paths=paths,
+    )
+
+    assert selection is None
+
+
+def test_resolve_reusable_nanotabpfn_curve_skips_missing_summary_or_curve(
+    tmp_path: Path,
+) -> None:
+    bundle_path = tmp_path / 'bundle.json'
+    bundle_path.write_text('{}\n', encoding='utf-8')
+    nanotab_root = tmp_path / 'nano'
+    nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
+    nanotab_python.parent.mkdir(parents=True, exist_ok=True)
+    nanotab_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    nanotab_python.chmod(0o755)
+    prior_dump = nanotab_root / '300k_150x5_2.h5'
+    prior_dump.write_bytes(b'prior')
+
+    anchor_summary_path = tmp_path / 'anchor_summary.json'
+    _write_compare_summary(
+        anchor_summary_path,
+        bundle_path=bundle_path,
+        curve_path=None,
+        nanotab_root=nanotab_root,
+        nanotab_python=nanotab_python,
+        control_baseline_id='cls_benchmark_linear_v2',
+        device='cuda',
+        resolved_device='cuda',
+        host_fingerprint=runner_module.benchmark_host_fingerprint(),
+        prior_dump_path=prior_dump,
+        steps=runner_module.DEFAULT_NANOTABPFN_STEPS,
+        eval_every=runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
+        seeds=runner_module.DEFAULT_NANOTABPFN_SEEDS,
+        batch_size=runner_module.DEFAULT_NANOTABPFN_BATCH_SIZE,
+        lr=runner_module.DEFAULT_NANOTABPFN_LR,
+    )
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    registry_path.write_text(
+        json.dumps(
+            {
+                'runs': {
+                    'anchor_v1': {
+                        'artifacts': {
+                            'comparison_summary_path': str(anchor_summary_path.resolve()),
+                        }
+                    }
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    control_baseline_registry_path.write_text(
+        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': str(bundle_path.resolve()),
+        },
+        anchor_run_id='anchor_v1',
+        nanotabpfn_root=nanotab_root,
+        prior_dump=prior_dump,
+        requested_device='cuda',
+        paths=paths,
+    )
+
+    assert selection is None
 
 
 def test_write_research_package_uses_resolved_lane_contract_fields(tmp_path: Path) -> None:

@@ -202,22 +202,43 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     )
 
 
-def test_grouped_tokenizer_guard_is_captured_in_catalog_and_materialized_queue() -> None:
+def test_grouped_tokenizer_guard_is_captured_historically_and_stage_native_grouped_tokens_are_ready() -> None:
     catalog = load_system_delta_catalog(REPO_ROOT / "reference" / "system_delta_catalog.yaml")
-    queue = load_system_delta_queue(
+    legacy_queue = load_system_delta_queue(
         sweep_id="binary_md_v1",
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
+    grouped_queue = load_system_delta_queue(
+        sweep_id="tokenization_migration_v1",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+    )
 
-    grouped_catalog = catalog["deltas"]["delta_shifted_grouped_tokenizer"]
-    grouped_row = next(row for row in queue["rows"] if row["delta_id"] == "delta_shifted_grouped_tokenizer")
+    legacy_grouped_catalog = catalog["deltas"]["delta_shifted_grouped_tokenizer"]
+    legacy_grouped_row = next(
+        row for row in legacy_queue["rows"] if row["delta_id"] == "delta_shifted_grouped_tokenizer"
+    )
+    staged_grouped_catalog = catalog["deltas"]["delta_architecture_screen_grouped_tokens"]
+    staged_grouped_row = next(
+        row for row in grouped_queue["rows"] if row["delta_id"] == "delta_architecture_screen_grouped_tokens"
+    )
 
-    assert grouped_catalog["applicability_guards"][0]["kind"] == "requires_anchor_model_selection"
-    assert grouped_catalog["applicability_guards"][0]["key"] == "feature_encoder"
-    assert grouped_row["status"] == "blocked_on_surface_semantics"
-    assert grouped_row["interpretation_status"] == "blocked"
-    assert "genuinely isolatable tokenization experiment" in grouped_row["next_action"]
+    assert legacy_grouped_catalog["applicability_guards"][0]["kind"] == "requires_anchor_model_selection"
+    assert legacy_grouped_catalog["applicability_guards"][0]["key"] == "feature_encoder"
+    assert legacy_grouped_row["status"] == "blocked_on_surface_semantics"
+    assert legacy_grouped_row["interpretation_status"] == "blocked"
+    assert "genuinely isolatable tokenization experiment" in legacy_grouped_row["next_action"]
+
+    assert staged_grouped_catalog["applicability_guards"] == []
+    assert staged_grouped_row["status"] == "completed"
+    assert staged_grouped_row["interpretation_status"] == "completed"
+    assert staged_grouped_row["model"]["stage"] == "grouped_tokens"
+    assert staged_grouped_row["model"]["stage_label"] == "delta_architecture_screen_grouped_tokens"
+    assert (
+        staged_grouped_row["run_id"]
+        == "sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2"
+    )
 
 
 def test_missingness_rows_are_deferred_from_the_main_campaign() -> None:

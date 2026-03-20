@@ -259,7 +259,7 @@ def result_card_text(
     decision: str,
     conclusion: str,
 ) -> str:
-    _ = summary
+    nanotabpfn_summary = summary.get("nanotabpfn")
     anchor_display = anchor_run_id or "none"
     best_step = queue_metrics.get("best_step")
     lines = [
@@ -330,6 +330,14 @@ def result_card_text(
         append_metric_line(lines, label="Delta final ROC AUC vs anchor", value=queue_metrics.get("delta_final_roc_auc"), signed=True)
         append_metric_line(lines, label="nanoTabPFN best ROC AUC", value=queue_metrics.get("nanotabpfn_best_roc_auc"))
         append_metric_line(lines, label="nanoTabPFN final ROC AUC", value=queue_metrics.get("nanotabpfn_final_roc_auc"))
+
+    if isinstance(nanotabpfn_summary, Mapping):
+        curve_source_mode = nanotabpfn_summary.get("curve_source_mode")
+        if isinstance(curve_source_mode, str) and curve_source_mode.strip():
+            lines.append(f"- nanoTabPFN curve source: `{curve_source_mode}`")
+        reused_curve_path = nanotabpfn_summary.get("reused_curve_path")
+        if isinstance(reused_curve_path, str) and reused_curve_path.strip():
+            lines.append(f"- Reused nanoTabPFN curve path: `{reused_curve_path}`")
 
     append_metric_line(lines, label="max_grad_norm", value=queue_metrics.get("max_grad_norm"))
     append_metric_line(lines, label="clipped_step_fraction", value=queue_metrics.get("clipped_step_fraction"))

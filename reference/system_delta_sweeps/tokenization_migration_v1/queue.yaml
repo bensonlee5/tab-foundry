@@ -1,0 +1,75 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tokenization_migration_v1
+rows:
+- order: 1
+  delta_ref: delta_architecture_screen_grouped_tokens
+  status: completed
+  rationale: Evaluate whether the public `grouped_tokens` stage should become the
+    first tokenization milestone after the locked `prenorm_block` shared-surface handoff.
+  hypothesis: Grouped tokenization may provide the first attributable row-first preparation
+    gain on the shared surface, but a mixed benchmark read still needs bounded stability
+    follow-up before later row-CLS or TFCol interpretation moves.
+  anchor_delta: Starting from the locked `prenorm_block` bridge row, switch only to
+    the public `grouped_tokens` stage.
+  model:
+    stage: grouped_tokens
+    stage_label: delta_architecture_screen_grouped_tokens
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: training_default
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare directly against the locked `prenorm_block` shared-surface handoff on
+    the architecture-screen lane.
+  - Treat the first run as tokenizer evidence, not as row-pool or context evidence.
+  - Require a bounded stability read before treating a weak benchmark result as decisive
+    rejection.
+  run_id: sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Run the first stage-native grouped-token benchmark row on top of the
+    locked `prenorm_block` handoff, then create `grouped_token_stability_probe_v1`
+    only if this row registers successfully.
+  notes:
+  - Canonical rerun registered as `sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Supersedes historical queue run `sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2`.
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 1.5033308267593384
+    clipped_step_fraction: 0.2575
+    best_log_loss: 0.6371770652688913
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.6371770652688913
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.4451047126113917
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.4451047126113917
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.5229446578166533
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.5229446578166533
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: -0.01661547161549992
+    delta_final_brier_score: -0.01589113082370408
+    delta_final_roc_auc: -0.02497923006284064
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    column_activation_early_to_final_mean_delta: -0.00045290625282101704
+    column_activation_final_window_mean: 0.9297528803925204
+    row_activation_early_to_final_mean_delta: -0.044995769230150584
+    row_activation_final_window_mean: 1.0675786989251688

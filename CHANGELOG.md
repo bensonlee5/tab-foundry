@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.13] - 2026-03-19
+
+### Changed
+
+- User-facing note: `research sweep execute` now reuses a compatible existing
+  `nanotabpfn_curve.jsonl` for `benchmark_full` rows before launching a fresh
+  nanoTabPFN helper run.
+
+- User-facing note: `comparison_summary.json` now persists additive nanoTabPFN
+  execution metadata and reuse provenance so later runs can verify
+  compatibility before reusing an existing benchmark curve.
+
 ## [0.8.12] - 2026-03-19
 
 ### Changed

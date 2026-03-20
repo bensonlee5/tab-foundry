@@ -1,0 +1,118 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tokenization_migration_v1
+parent_sweep_id: shared_surface_bridge_v1
+status: draft
+complexity_level: binary_md
+anchor_run_id: sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+training_experiment: cls_benchmark_staged
+training_config_profile: cls_benchmark_staged
+surface_role: architecture_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+  - The locked anchor is benchmark registry run `sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1`
+    on bundle `nanotabpfn_openml_binary_medium` (10 tasks).
+  - The anchor model surface is taken from the registry-resolved staged selection
+    labeled `delta_architecture_screen_prenorm_block`.
+  - Data and preprocessing remain part of the comparison surface and must stay fixed
+    unless the queue row declares that exact dimension.
+  - >-
+    This is the first stage-native TF-RD-004 sweep and it starts from the locked
+    `prenorm_block` grouped-token handoff rather than reopening optional bridge rows.
+  - >-
+    `small_class_head` and `test_self` remain historical bridge context only; they
+    were not selected as the canonical grouped-token predecessor on the shared-surface
+    bridge.
+  - >-
+    If the grouped-token benchmark row registers successfully, follow immediately
+    with the bounded hybrid-diagnostic stability probe `grouped_token_stability_probe_v1`.
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Shared feature encoder path with benchmark-external normalization.
+    interpretation: Feature encoder swaps change both the representation path and
+      where normalization lives.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Label-token target conditioning.
+    interpretation: Target-conditioning swaps change how labels enter the model and
+      need their own attribution.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Pre-norm cell transformer block without test-self attention.
+    interpretation: Block-style changes alter attention flow and should not be conflated
+      with tokenizer or readout deltas.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Same scalar-per-feature tokenizer.
+    interpretation: This sweep isolates the first stage-native tokenizer change on
+      the shared-surface handoff.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: No column-set encoder on the anchor path.
+    interpretation: Column-set modeling remains absent and should not explain anchor
+      behavior.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Same target-column row pool.
+    interpretation: Readout remains on the direct upstream-style path.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: None on the anchor path.
+    interpretation: Context encoding remains absent; later context rows will change
+      both depth and label-flow semantics.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Direct binary logits head.
+    interpretation: The prediction head remains on the narrow upstream-style binary
+      path.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark bundle `nanotabpfn_openml_binary_medium` (10 tasks) with data
+      surface label `anchor_manifest_default`.
+    interpretation: Bundle and training-data changes are first-class sweep rows and
+      should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `training_default`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1
+  experiment: cls_benchmark_staged
+  config_profile: cls_benchmark_staged
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: delta_architecture_screen_prenorm_block
+    stage: prenorm_block
+    stage_label: delta_architecture_screen_prenorm_block
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: shared
+      head: binary_direct
+      post_encoder_norm: none
+      post_stack_norm: none
+      row_pool: target_column
+      table_block_residual_scale: none
+      table_block_style: prenorm
+      target_conditioner: label_token
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: delta_architecture_screen_prenorm_block
+    preprocessing: runtime_default
+    training: training_default

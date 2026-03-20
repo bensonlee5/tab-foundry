@@ -92,3 +92,17 @@ sweeps:
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+  tokenization_migration_v1:
+    parent_sweep_id: shared_surface_bridge_v1
+    status: draft
+    anchor_run_id: sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+  grouped_token_stability_probe_v1:
+    parent_sweep_id: tokenization_migration_v1
+    status: draft
+    anchor_run_id: sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
