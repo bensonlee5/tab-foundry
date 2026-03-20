@@ -49,13 +49,14 @@ class _FakeApi:
         return self._run
 
 
-def _wandb_cfg(tmp_path: Path):
+def _wandb_cfg(tmp_path: Path, *, group: str | None = None):
     return OmegaConf.create(
         {
             "logging": {
                 "use_wandb": True,
                 "project": "test-project",
                 "run_name": f"run-{tmp_path.name}",
+                "group": group,
             }
         }
     )
@@ -107,6 +108,29 @@ def test_init_wandb_run_falls_back_to_offline_without_any_api_key(
 
     assert run is not None
     assert calls[0]["mode"] == "offline"
+
+
+def test_init_wandb_run_forwards_group_when_present(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg = _wandb_cfg(tmp_path, group="row_embedding_attribution_v1")
+
+    calls: list[dict[str, object]] = []
+
+    def _fake_init(**kwargs: object) -> dict[str, object]:
+        calls.append(dict(kwargs))
+        return dict(kwargs)
+
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)
+    monkeypatch.delenv("WANDB_API_KEY_FILE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setitem(sys.modules, "wandb", SimpleNamespace(init=_fake_init))
+
+    run = wandb_module.init_wandb_run(cfg, enabled=True)
+
+    assert run is not None
+    assert calls[0]["group"] == "row_embedding_attribution_v1"
 
 
 def test_wandb_helpers_normalize_metrics_and_summary() -> None:
@@ -205,6 +229,28 @@ def test_wandb_identity_payload_reads_string_public_path(
         "run_id": "run-123",
         "run_name": f"run-{tmp_path.name}",
         "mode": "online",
+    }
+
+
+def test_wandb_identity_payload_includes_group_when_present(
+    tmp_path: Path,
+) -> None:
+    payload = wandb_module.wandb_identity_payload(
+        SimpleNamespace(
+            path="test-entity/test-project/run-123",
+            group="row_embedding_attribution_v1",
+            settings=SimpleNamespace(mode="online"),
+        ),
+        cfg=_wandb_cfg(tmp_path, group="row_embedding_attribution_v1"),
+    )
+
+    assert payload == {
+        "entity": "test-entity",
+        "project": "test-project",
+        "run_id": "run-123",
+        "run_name": f"run-{tmp_path.name}",
+        "mode": "online",
+        "group": "row_embedding_attribution_v1",
     }
 
 

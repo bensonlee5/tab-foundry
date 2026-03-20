@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.bench.registry_common import project_root as _project_root
+
 
 BENCHMARK_BUNDLE_FILENAME = "nanotabpfn_openml_binary_medium_v1.json"
 _CLASSIFICATION_TASK_TYPE = "supervised_classification"
@@ -14,12 +16,63 @@ _ALLOWED_BUNDLE_SELECTION_TASK_TYPES = {
     _CLASSIFICATION_TASK_TYPE,
     _REGRESSION_TASK_TYPE,
 }
+_REPO_TRACKED_BUNDLE_SENTINEL = ("src", "tab_foundry", "bench")
 
 
 def default_benchmark_bundle_path() -> Path:
     """Return the repo-tracked canonical benchmark bundle path."""
 
     return Path(__file__).resolve().parents[1] / BENCHMARK_BUNDLE_FILENAME
+
+
+def _default_repo_root() -> Path:
+    return _project_root().expanduser().resolve()
+
+
+def _portable_repo_relative_bundle_path(
+    path: Path,
+    *,
+    repo_root: Path,
+) -> Path | None:
+    resolved = path.expanduser().resolve()
+    try:
+        return resolved.relative_to(repo_root)
+    except ValueError:
+        pass
+
+    parts = resolved.parts
+    sentinel = _REPO_TRACKED_BUNDLE_SENTINEL
+    sentinel_length = len(sentinel)
+    for index in range(len(parts) - sentinel_length + 1):
+        if parts[index : index + sentinel_length] != sentinel:
+            continue
+        suffix = Path(*parts[index:])
+        if (repo_root / suffix).exists():
+            return suffix
+    return None
+
+
+def canonical_benchmark_bundle_source_path(
+    value: str | Path,
+    *,
+    repo_root: Path | None = None,
+) -> str:
+    """Return one portable bundle-path identity for persistence and reuse matching."""
+
+    resolved_repo_root = (repo_root or _default_repo_root()).expanduser().resolve()
+    path = value if isinstance(value, Path) else Path(str(value).strip()).expanduser()
+    resolved_path = (
+        path.resolve()
+        if path.is_absolute()
+        else (resolved_repo_root / path).resolve()
+    )
+    portable = _portable_repo_relative_bundle_path(
+        resolved_path,
+        repo_root=resolved_repo_root,
+    )
+    if portable is not None:
+        return str(portable)
+    return str(resolved_path)
 
 
 def _normalize_selection(payload: Any) -> dict[str, Any]:
@@ -250,7 +303,7 @@ def benchmark_bundle_summary(
     return {
         "name": str(bundle["name"]),
         "version": int(bundle["version"]),
-        "source_path": str(source_path.expanduser().resolve()),
+        "source_path": canonical_benchmark_bundle_source_path(source_path),
         "task_count": int(len(task_ids)),
         "task_ids": task_ids,
         "selection": selection,

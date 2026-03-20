@@ -26,6 +26,7 @@ from tab_foundry.bench.compare import (
     run_nanotabpfn_benchmark,
 )
 from tab_foundry.bench.nanotabpfn import benchmark_host_fingerprint, resolve_device
+from tab_foundry.bench.nanotabpfn.bundle import canonical_benchmark_bundle_source_path
 from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.config import compose_config
 from tab_foundry.research.lane_contract import (
@@ -235,11 +236,14 @@ def compose_cfg(
     run_dir: Path,
     device: str,
     training_experiment: str = DEFAULT_EXPERIMENT,
+    sweep_id: str | None = None,
 ) -> DictConfig:
     cfg = compose_config([f"experiment={training_experiment}"])
     cfg.runtime.output_dir = str(run_dir.resolve())
     cfg.runtime.device = str(device)
     cfg.logging.run_name = _queue_aware_run_name(run_dir=run_dir)
+    if sweep_id is not None:
+        cfg.logging.group = str(sweep_id)
     apply_mapping(cfg, "model", cast(Mapping[str, Any], row.get("model", {})))
     apply_mapping(cfg, "data", cast(Mapping[str, Any], row.get("data", {})))
     apply_mapping(cfg, "preprocessing", cast(Mapping[str, Any], row.get("preprocessing", {})))
@@ -341,7 +345,7 @@ def _resolved_nanotabpfn_signature(
 ) -> dict[str, Any]:
     normalized_requested_device = str(requested_device).strip()
     return {
-        "benchmark_bundle_path": benchmark_bundle_path.expanduser().resolve(),
+        "benchmark_bundle_path": canonical_benchmark_bundle_source_path(benchmark_bundle_path),
         "control_baseline_id": str(control_baseline_id).strip(),
         "nanotabpfn_root": nanotabpfn_root.expanduser().resolve(),
         "nanotabpfn_python": nanotabpfn_python.expanduser().resolve(),
@@ -422,7 +426,7 @@ def _candidate_signature(
     )
 
     signature = {
-        "benchmark_bundle_path": resolve_registry_path_value(str(bundle_source)),
+        "benchmark_bundle_path": canonical_benchmark_bundle_source_path(str(bundle_source)),
         "control_baseline_id": control_baseline_id,
         "nanotabpfn_root": root,
         "nanotabpfn_python": nanotabpfn_python,
@@ -781,6 +785,7 @@ def run_row(
             run_dir=train_dir,
             device=device,
             training_experiment=training_experiment,
+            sweep_id=sweep_id,
         )
         train_result = train_tabfoundry_simple_prior(cfg, prior_dump_path=prior_dump)
         print(

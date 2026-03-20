@@ -335,14 +335,21 @@ This roadmap assumes the following repo truths:
   - that evidence is entangled with the old PFN-adjacent surface and should not
     be generalized too far
 - Required work:
-  - evaluate `row_cls_pool` starting from grouped-token replay
+  - anchor TF-RD-005 on grouped-token replay
     `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`,
-    not from `prenorm_block` or the older scalar-token path
+    not on `prenorm_block` or the older scalar-token path
+  - isolate row pooling first on that grouped-token replay before adding plain
+    row-level context, rather than jumping straight to the bundled public
+    `row_cls_pool` stage
   - keep adequacy checks bounded to row-encoder capacity knobs after the main
     row-first surface is established
   - interpret old row-CLS negative evidence as compact-surface evidence, not as
     a blanket rejection
 - Exit criteria:
+  - the repo has a direct answer to whether row embeddings help on the intended
+    migration surface
+  - the repo separately has a direct answer to whether plain row-level context
+    helps beyond row embeddings
   - either row embeddings work on the intended migration surface, or they fail
     with enough evidence to redirect the architecture target
 

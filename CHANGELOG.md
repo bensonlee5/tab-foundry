@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.14] - 2026-03-20
+
+### Changed
+
+- User-facing note: `comparison_summary.json` now writes repo-tracked
+  `benchmark_bundle.source_path` values as portable repo-relative paths, and
+  sweep-side nanoTabPFN curve reuse accepts both legacy absolute paths and the
+  new portable form when matching the same checked-in bundle across local
+  checkouts.
+
+- User-facing note: sweep-executed training runs now set `logging.group` and
+  wandb `group` to the sweep id, and the persisted wandb identity payload now
+  carries that group when present so posthoc benchmark and sweep metadata stay
+  attached to the original grouped run.
+
 ## [0.8.13] - 2026-03-19
 
 ### Changed

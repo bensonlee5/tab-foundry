@@ -106,3 +106,10 @@ sweeps:
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+  row_embedding_attribution_v1:
+    parent_sweep_id: tokenization_migration_v1
+    status: draft
+    anchor_run_id: sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2

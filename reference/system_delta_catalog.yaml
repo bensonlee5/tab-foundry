@@ -603,6 +603,41 @@ deltas:
     default_next_action: Run after the row-CLS adequacy sweep to test whether row-encoder normalization changes the stability story.
     applicability_guards: []
 
+  delta_plain_context_encoder:
+    dimension_family: model
+    family: context_encoder
+    binary_applicable: true
+    description: Add the plain sequence context encoder over row embeddings while leaving tokenizer, row pooling, and column encoding otherwise fixed.
+    upstream_delta: Upstream nanoTabPFN direct binary path has no separate context encoder.
+    expected_effect: Better row-sequence conditioning than the row-pool-only surface, with materially less added complexity than QASS.
+    adequacy_knobs:
+      - tficl_n_heads
+      - tficl_n_layers
+      - tficl_ff_expansion
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against both the grouped-token anchor and the isolated row-pool row.
+        - Distinguish plain-context value from row-pool-only effects before introducing column-set or QASS changes.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: row_cls_pool
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: delta_plain_context_encoder
+        module_overrides:
+          context_encoder: plain
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run only after the isolated row-pool row so context gains are not conflated with readout changes.
+    applicability_guards: []
+
   delta_column_set_encoder:
     dimension_family: model
     family: column_encoding

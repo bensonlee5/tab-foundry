@@ -1,0 +1,148 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: row_embedding_attribution_v1
+rows:
+- order: 1
+  delta_ref: delta_row_cls_pool
+  status: completed
+  rationale: Determine whether row embeddings help when introduced on the canonical
+    grouped-token replay selected at the end of TF-RD-004.
+  hypothesis: If row embeddings are viable on the intended migration surface, the
+    isolated row-pool row should outperform the grouped-token control strongly enough
+    to keep the row-first line open.
+  anchor_delta: Keep the benchmark-facing grouped-token replay fixed and replace only
+    target-column pooling with row-CLS pooling while leaving context encoding disabled.
+  model:
+    stage_label: delta_row_cls_pool
+    module_overrides:
+      row_pool: row_cls
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    overrides: {}
+  parameter_adequacy_plan:
+  - Initial run isolates the structural toggle only.
+  - If neutral-to-bad, perform a bounded adequacy sweep over tfrow_n_heads, tfrow_n_layers,
+    and tfrow_cls_tokens before any reject decision.
+  - Document whether the row pool appears under-capacity, over-capacity, or simply
+    incompatible with the anchor tokenizer.
+  run_id: sd_row_embedding_attribution_v1_01_delta_row_cls_pool_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Run the isolated row-pool toggle and require interpretation before
+    any verdict.
+  notes:
+  - The grouped-token replay anchor serves as the control surface for the three-surface
+    TF-RD-005 comparison and should not be duplicated as an executable row.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v1_01_delta_row_cls_pool_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 1.911740779876709
+    clipped_step_fraction: 0.065
+    best_log_loss: 0.6815323111601257
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.6815323111601257
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.48839465879585847
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.48839465879585847
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.5488608241195915
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.5488608241195915
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: 0.28136289655944674
+    delta_final_brier_score: 0.22658150344369893
+    delta_final_roc_auc: -0.19244168451362131
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.5904274989452545
+    column_activation_early_to_final_mean_delta: -1.288400323107286e-05
+    column_activation_final_window_mean: 0.9999811806490693
+    row_activation_early_to_final_mean_delta: -0.010082218297364332
+    row_activation_final_window_mean: 0.54231339127864
+- order: 2
+  delta_ref: delta_plain_context_encoder
+  parent_delta_ref: delta_row_cls_pool
+  status: completed
+  rationale: Add plain row-level context only after row embeddings are established
+    so TF-RD-005 can separate readout value from context value.
+  hypothesis: If plain context earns its added depth, it should improve on the isolated
+    row-pool row without needing QASS or column-set changes.
+  anchor_delta: Starting from the resolved `delta_row_cls_pool` row, add only the
+    plain context encoder so the final surface matches public `row_cls_pool` behavior
+    without hiding the intermediate row-pool comparison.
+  model:
+    stage_label: delta_plain_context_encoder
+    module_overrides:
+      context_encoder: plain
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    overrides: {}
+  parameter_adequacy_plan:
+  - Compare directly against both the grouped-token anchor and the isolated row-pool
+    row.
+  - Distinguish plain-context value from row-pool-only effects before introducing
+    column-set or QASS changes.
+  run_id: sd_row_embedding_attribution_v1_02_delta_plain_context_encoder_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Run only after the isolated row-pool row so context gains are not conflated
+    with readout changes.
+  notes:
+  - This row should be interpreted directly against both the grouped-token anchor
+    and the resolved row-pool-only row.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v1_02_delta_plain_context_encoder_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 2.110093116760254
+    clipped_step_fraction: 0.2525
+    best_log_loss: 0.6440363274592313
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.6440363274592313
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.45167623495321296
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.45167623495321296
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.4937650078792689
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.4937650078792689
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: 0.2438669128585524
+    delta_final_brier_score: 0.18986307960105342
+    delta_final_roc_auc: -0.24753750075394387
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    context_encoder_final_window_mean_grad_norm: 0.3128626972393318
+    column_activation_early_to_final_mean_delta: -2.850009135657583e-05
+    column_activation_final_window_mean: 0.999967713008942
+    row_activation_early_to_final_mean_delta: -0.00010807070404572627
+    row_activation_final_window_mean: 0.9998867317997797
+    context_activation_early_to_final_mean_delta: 0.0001557815012427355
+    context_activation_final_window_mean: 1.0001515971929273

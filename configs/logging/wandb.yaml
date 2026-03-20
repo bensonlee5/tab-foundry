@@ -1,4 +1,5 @@
 use_wandb: true
 project: tab-foundry
 run_name: tab-foundry-run
+group: null
 history_jsonl_path: null
