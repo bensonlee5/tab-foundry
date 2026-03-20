@@ -42,16 +42,16 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_qass_context_tfcol_inducing64_v1` | column_encoding | yes | ready | qass_context | Use the public `qass_context` stage, but reduce TFCol inducing points to 64 so the calibration-winning row-first surface tests whether the current set size is overbuilt. | Run first and compare directly against the completed `delta_qass_context_v3` anchor to see whether a smaller inducing set preserves calibration while recovering ROC or runtime. |
-| 2 | `delta_qass_context_tfcol_layers1_v1` | column_encoding | yes | ready | qass_context | Use the public `qass_context` stage, but reduce TFCol depth to one layer so the calibration-winning row-first surface tests whether excess column-encoder depth is driving the ROC penalty. | Run second and compare directly against the completed `delta_qass_context_v3` anchor to see whether shallower TFCol depth preserves calibration while improving ROC or runtime. |
-| 3 | `delta_qass_context_tfcol_heads4_v1` | column_encoding | yes | ready | qass_context | Use the public `qass_context` stage, but reduce TFCol attention heads to four so the calibration-winning row-first surface tests whether a lighter attention budget can keep calibration while softening the ROC penalty. | Run third and compare directly against the completed `delta_qass_context_v3` anchor to see whether fewer TFCol heads preserve calibration while improving ROC or runtime. |
+| 1 | `delta_qass_context_tfcol_inducing64_v1` | column_encoding | yes | completed | qass_context | Use the public `qass_context` stage, but reduce TFCol inducing points to 64 so the calibration-winning row-first surface tests whether the current set size is overbuilt. | Run first and compare directly against the completed `delta_qass_context_v3` anchor to see whether a smaller inducing set preserves calibration while recovering ROC or runtime. |
+| 2 | `delta_qass_context_tfcol_layers1_v1` | column_encoding | yes | completed | qass_context | Use the public `qass_context` stage, but reduce TFCol depth to one layer so the calibration-winning row-first surface tests whether excess column-encoder depth is driving the ROC penalty. | Run second and compare directly against the completed `delta_qass_context_v3` anchor to see whether shallower TFCol depth preserves calibration while improving ROC or runtime. |
+| 3 | `delta_qass_context_tfcol_heads4_v1` | column_encoding | yes | completed | qass_context | Use the public `qass_context` stage, but reduce TFCol attention heads to four so the calibration-winning row-first surface tests whether a lighter attention budget can keep calibration while softening the ROC penalty. | Run third and compare directly against the completed `delta_qass_context_v3` anchor to see whether fewer TFCol heads preserve calibration while improving ROC or runtime. |
 
 ## Detailed Rows
 
 ### 1. `delta_qass_context_tfcol_inducing64_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `qass_context`
 - Description: Use the public `qass_context` stage, but reduce TFCol inducing points to 64 so the calibration-winning row-first surface tests whether the current set size is overbuilt.
@@ -61,6 +61,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from the completed `delta_qass_context_v3` anchor, reduce only `tfcol_n_inducing` from 128 to 64 and keep the rest of the QASS row-first surface fixed.
 - Expected effect: Preserve the calibration gain of the QASS+TFCol line while reducing TFCol capacity enough to recover ROC or runtime if the default inducing set is oversized.
 - Effective labels: model=`delta_qass_context_tfcol_inducing64_v1`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0132`); row (grad `0.0237`); context (grad `0.0430`)
 - Model overrides: `{'stage': 'qass_context', 'tfcol_n_inducing': 64}`
 - Parameter adequacy plan:
   - Compare directly against the completed `delta_qass_context_v3` anchor and keep the calibration-first objective fixed.
@@ -70,20 +71,22 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfcol_n_layers
   - tfcol_n_inducing
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Treat this as a pure inducing-capacity adequacy row; do not reopen the broader TFCol-versus-no-TFCol attribution question on this bundle.
   - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json`.
   - Execution must use the same benchmark bundle, control baseline, and reuse signature as the v3 anchor so only TFCol inducing capacity changes.
+  - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1` with final log loss `0.4371`, delta final log loss `+0.0446`, final Brier score `0.2858`, delta final Brier score `+0.0304`, best ROC AUC `0.7438`, final ROC AUC `0.7454`, final-minus-best `+0.0017`, delta final ROC AUC `-0.0062`, delta drift `+0.0029`, delta final training time `-18.0s`
 
 ### 2. `delta_qass_context_tfcol_layers1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `qass_context`
 - Description: Use the public `qass_context` stage, but reduce TFCol depth to one layer so the calibration-winning row-first surface tests whether excess column-encoder depth is driving the ROC penalty.
@@ -93,6 +96,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from the completed `delta_qass_context_v3` anchor, reduce only `tfcol_n_layers` from 3 to 1 and keep the rest of the QASS row-first surface fixed.
 - Expected effect: Preserve the calibration gain of the QASS+TFCol line while reducing depth enough to recover ROC or runtime if the default column stack is too deep for this bundle.
 - Effective labels: model=`delta_qass_context_tfcol_layers1_v1`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0120`); row (grad `0.0248`); context (grad `0.0535`)
 - Model overrides: `{'stage': 'qass_context', 'tfcol_n_layers': 1}`
 - Parameter adequacy plan:
   - Compare directly against the completed `delta_qass_context_v3` anchor and keep the calibration-first objective fixed.
@@ -102,20 +106,22 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfcol_n_layers
   - tfcol_n_inducing
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Treat this as a pure depth adequacy row; do not reinterpret plain context or QASS itself from this result.
   - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json`.
   - Execution must use the same benchmark bundle, control baseline, and reuse signature as the v3 anchor so only TFCol depth changes.
+  - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1` with final log loss `0.4024`, delta final log loss `+0.0099`, final Brier score `0.2624`, delta final Brier score `+0.0070`, best ROC AUC `0.7584`, final ROC AUC `0.7463`, final-minus-best `-0.0120`, delta final ROC AUC `-0.0053`, delta drift `-0.0108`, delta final training time `-61.5s`
 
 ### 3. `delta_qass_context_tfcol_heads4_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `qass_context`
 - Description: Use the public `qass_context` stage, but reduce TFCol attention heads to four so the calibration-winning row-first surface tests whether a lighter attention budget can keep calibration while softening the ROC penalty.
@@ -125,6 +131,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from the completed `delta_qass_context_v3` anchor, reduce only `tfcol_n_heads` from 8 to 4 and keep the rest of the QASS row-first surface fixed.
 - Expected effect: Preserve the calibration gain of the QASS+TFCol line while reducing TFCol attention cost enough to recover ROC or runtime if the default head count is unnecessary.
 - Effective labels: model=`delta_qass_context_tfcol_heads4_v1`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0207`); row (grad `0.0244`); context (grad `0.0507`)
 - Model overrides: `{'stage': 'qass_context', 'tfcol_n_heads': 4}`
 - Parameter adequacy plan:
   - Compare directly against the completed `delta_qass_context_v3` anchor and keep the calibration-first objective fixed.
@@ -134,12 +141,14 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfcol_n_layers
   - tfcol_n_inducing
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Treat this as a pure attention-budget adequacy row; do not reopen the TFCol-presence decision on this bundle from this result alone.
   - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json`.
   - Execution must use the same benchmark bundle, control baseline, and reuse signature as the v3 anchor so only TFCol head count changes.
+  - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` with final log loss `0.3963`, delta final log loss `+0.0038`, final Brier score `0.2595`, delta final Brier score `+0.0041`, best ROC AUC `0.7526`, final ROC AUC `0.7538`, final-minus-best `+0.0012`, delta final ROC AUC `+0.0022`, delta drift `+0.0024`, delta final training time `-26.5s`

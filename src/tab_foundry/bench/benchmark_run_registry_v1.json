@@ -8229,6 +8229,573 @@
         "wall_elapsed_seconds": 272.201015740633
       }
     },
+    "sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1/train/checkpoints/step_001975.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_inducing64_v1/sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.009086223522280945,
+          "best_training_time_delta": -22.831703482195735,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.03035862629485958,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.04462227298432775,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.0062082211978231605,
+          "final_training_time_delta": -17.998075855895877,
+          "reference_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.009086223522280945,
+          "best_training_time_delta": -22.831703482195735,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.03035862629485958,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.04462227298432775,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.0062082211978231605,
+          "final_training_time_delta": -17.998075855895877,
+          "reference_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_context_tfcol_inducing64_v1",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": 8,
+            "n_inducing": 64,
+            "n_layers": 3,
+            "name": "tfcol",
+            "norm_type": "layernorm"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "tfcol",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_context_tfcol_inducing64_v1",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 1267970,
+        "trainable_params": 1267970
+      },
+      "registered_at_utc": "2026-03-20T22:50:07Z",
+      "run_id": "sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_qass_context_tfcol_inducing64_v1",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_qass_context_tfcol_inducing64_v1",
+        "parent_sweep_id": "row_embedding_attribution_v3",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "qass_tfcol_adequacy_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.25924074676610126,
+        "best_crps": null,
+        "best_log_loss": 0.39743214151205525,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7437594304259001,
+        "best_step": 1975.0,
+        "best_training_time": 197.53980364464223,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.28576971806463447,
+        "final_crps": null,
+        "final_log_loss": 0.43713547749187065,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7454414394491209,
+        "final_step": 2500.0,
+        "final_training_time": 249.90182873047888
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.174784317612648,
+        "final_val_loss": null,
+        "max_grad_norm": 3.9555604457855225,
+        "mean_grad_norm": 0.1643425861045718,
+        "post_warmup_train_loss_var": 0.00179036833947533,
+        "train_elapsed_seconds": 249.90182873047888,
+        "wall_elapsed_seconds": 261.8622978515923
+      }
+    },
+    "sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1/train/checkpoints/step_001400.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_layers1_v1/sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.005510236516597211,
+          "best_training_time_delta": -104.66988552547991,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.00701973393254135,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.009869953468992887,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.005337263133953218,
+          "final_training_time_delta": -61.543030105531216,
+          "reference_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.005510236516597211,
+          "best_training_time_delta": -104.66988552547991,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.00701973393254135,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.009869953468992887,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.005337263133953218,
+          "final_training_time_delta": -61.543030105531216,
+          "reference_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_context_tfcol_layers1_v1",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": 8,
+            "n_inducing": 128,
+            "n_layers": 1,
+            "name": "tfcol",
+            "norm_type": "layernorm"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "tfcol",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_context_tfcol_layers1_v1",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 1007938,
+        "trainable_params": 1007938
+      },
+      "registered_at_utc": "2026-03-20T22:54:29Z",
+      "run_id": "sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_qass_context_tfcol_layers1_v1",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_qass_context_tfcol_layers1_v1",
+        "parent_sweep_id": "row_embedding_attribution_v3",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "qass_tfcol_adequacy_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.2577061918107693,
+        "best_crps": null,
+        "best_log_loss": 0.3918438245688398,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7583558904647782,
+        "best_step": 1400.0,
+        "best_training_time": 115.70162160135806,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.26243082570231624,
+        "final_crps": null,
+        "final_log_loss": 0.4023831579765358,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7463123975129908,
+        "final_step": 2500.0,
+        "final_training_time": 206.35687448084354
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.20971819758415222,
+        "final_val_loss": null,
+        "max_grad_norm": 4.515257835388184,
+        "mean_grad_norm": 0.17453796951174735,
+        "post_warmup_train_loss_var": 0.0017655809017835798,
+        "train_elapsed_seconds": 206.35687448084354,
+        "wall_elapsed_seconds": 215.95034699328244
+      }
+    },
+    "sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1/train/checkpoints/step_002200.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/qass_tfcol_adequacy_v1/delta_qass_context_tfcol_heads4_v1/sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.0002791769172029168,
+          "best_training_time_delta": -7.852043839171529,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0041072322139518724,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.0037798580580981067,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.002153749110051617,
+          "final_training_time_delta": -26.450029086321592,
+          "reference_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.0002791769172029168,
+          "best_training_time_delta": -7.852043839171529,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0041072322139518724,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.0037798580580981067,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.002153749110051617,
+          "final_training_time_delta": -26.450029086321592,
+          "reference_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_context_tfcol_heads4_v1",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": 4,
+            "n_inducing": 128,
+            "n_layers": 3,
+            "name": "tfcol",
+            "norm_type": "layernorm"
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "tfcol",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_context_tfcol_heads4_v1",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 1295618,
+        "trainable_params": 1295618
+      },
+      "registered_at_utc": "2026-03-20T22:59:44Z",
+      "run_id": "sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_qass_context_tfcol_heads4_v1",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_qass_context_tfcol_heads4_v1",
+        "parent_sweep_id": "row_embedding_attribution_v3",
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "qass_tfcol_adequacy_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.25863097120377654,
+        "best_crps": null,
+        "best_log_loss": 0.39527690818300115,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7525664770309781,
+        "best_step": 2200.0,
+        "best_training_time": 212.51946328766644,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.25951832398372676,
+        "final_crps": null,
+        "final_log_loss": 0.396293062565641,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7538034097569957,
+        "final_step": 2500.0,
+        "final_training_time": 241.44987550005317
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.22137024998664856,
+        "final_val_loss": null,
+        "max_grad_norm": 4.483185291290283,
+        "mean_grad_norm": 0.18380938744992018,
+        "post_warmup_train_loss_var": 0.0017483458353885896,
+        "train_elapsed_seconds": 241.44987550005317,
+        "wall_elapsed_seconds": 255.18543689884245
+      }
+    },
     "sd_row_embedding_attribution_v1_01_delta_row_cls_pool_v1": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/research/row_embedding_attribution_v1/delta_row_cls_pool/sd_row_embedding_attribution_v1_01_delta_row_cls_pool_v1/benchmark",
