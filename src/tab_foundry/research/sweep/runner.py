@@ -26,7 +26,7 @@ from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
 from .artifacts import ExecutionPaths, read_yaml, result_card_text, write_research_package, write_yaml
 from .queue_updates import append_note, optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
 from .screening import pick_screen_winner, screen_metrics
-from .selection import select_queue_rows
+from .selection import select_queue_rows, sorted_rows
 
 
 DEFAULT_PRIOR_DUMP = Path("/workspace/nanoTabPFN/300k_150x5_2.h5")
@@ -199,6 +199,74 @@ def _normalize_execution_policy(queue_row: Mapping[str, Any]) -> str:
     if policy not in {SCREEN_ONLY_POLICY, BENCHMARK_FULL_POLICY}:
         raise RuntimeError(f"unsupported execution_policy {policy!r}")
     return policy
+
+
+def _optional_non_empty_string(value: Any, *, context: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"{context} must be a non-empty string when provided")
+    return str(value.strip())
+
+
+def _resolve_parent_row(
+    *,
+    queue_row: Mapping[str, Any],
+    queue_rows: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    current_order = int(queue_row["order"])
+    current_delta_ref = str(queue_row["delta_ref"])
+    parent_delta_ref = _optional_non_empty_string(
+        queue_row.get("parent_delta_ref"),
+        context=f"queue row {current_order}.parent_delta_ref",
+    )
+    if parent_delta_ref is None:
+        return None
+
+    matching_rows = [
+        row for row in queue_rows if str(row.get("delta_ref", "")).strip() == parent_delta_ref
+    ]
+    if not matching_rows:
+        raise RuntimeError(
+            f"queue row {current_order} ({current_delta_ref}) parent_delta_ref "
+            f"{parent_delta_ref!r} is missing from sweep {queue_row.get('sweep_id', '<unknown>')!r}"
+        )
+
+    earlier_rows = [row for row in matching_rows if int(row["order"]) < current_order]
+    if earlier_rows:
+        return max(earlier_rows, key=lambda row: int(row["order"]))
+
+    matching_orders = [int(row["order"]) for row in matching_rows]
+    if any(order == current_order for order in matching_orders):
+        raise RuntimeError(
+            f"queue row {current_order} ({current_delta_ref}) parent_delta_ref "
+            f"{parent_delta_ref!r} must reference an earlier row, not itself; "
+            f"matching orders={matching_orders}"
+        )
+    raise RuntimeError(
+        f"queue row {current_order} ({current_delta_ref}) parent_delta_ref "
+        f"{parent_delta_ref!r} must reference an earlier row; matching orders={matching_orders}"
+    )
+
+
+def _resolve_parent_run_id(
+    *,
+    queue_row: Mapping[str, Any],
+    queue_rows: list[dict[str, Any]],
+    active_anchor: str | None,
+) -> str | None:
+    parent_row = _resolve_parent_row(queue_row=queue_row, queue_rows=queue_rows)
+    if parent_row is None:
+        return active_anchor
+
+    parent_run_id = parent_row.get("run_id")
+    if not isinstance(parent_run_id, str) or not parent_run_id.strip():
+        raise RuntimeError(
+            f"queue row {int(queue_row['order'])} ({queue_row['delta_ref']}) parent_delta_ref "
+            f"{parent_row['delta_ref']!r} resolved to row {int(parent_row['order'])}, "
+            "but that row does not have a completed run_id"
+        )
+    return str(parent_run_id)
 
 
 def _resolve_dynamic_model_overrides(
@@ -489,6 +557,7 @@ def execute_sweep(
     resolved_sweep_id = str(sweep_meta["sweep_id"])
     queue_path = system_delta.sweep_queue_path(resolved_sweep_id, sweeps_root=resolved_paths.sweeps_root)
     queue = read_yaml(queue_path)
+    queue_rows = sorted_rows(queue)
     materialized_rows = materialized_row_map(sweep_id=resolved_sweep_id, paths=resolved_paths)
     selected_rows = select_queue_rows(
         queue,
@@ -524,7 +593,15 @@ def execute_sweep(
             queue_row=queue_row,
             materialized_row=materialized_row,
             anchor_run_id=None if promote_now else active_anchor,
-            parent_run_id=None if promote_now else active_anchor,
+            parent_run_id=(
+                None
+                if promote_now
+                else _resolve_parent_run_id(
+                    queue_row=queue_row,
+                    queue_rows=queue_rows,
+                    active_anchor=active_anchor,
+                )
+            ),
             queue=queue,
             prior_dump=prior_dump,
             nanotabpfn_root=nanotabpfn_root,

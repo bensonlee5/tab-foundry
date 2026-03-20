@@ -24,6 +24,33 @@ EXPECTED_STAGE_BY_DELTA = {
     "delta_architecture_screen_small_class_head": "small_class_head",
     "delta_architecture_screen_test_self": "test_self",
 }
+EXPECTED_PARENT_BY_DELTA = {
+    "delta_architecture_screen_shared_norm": "delta_architecture_screen_nano_exact_replay",
+    "delta_architecture_screen_prenorm_block": "delta_architecture_screen_shared_norm",
+    "delta_architecture_screen_small_class_head": "delta_architecture_screen_prenorm_block",
+    "delta_architecture_screen_test_self": "delta_architecture_screen_small_class_head",
+}
+EXPECTED_RUN_ID_BY_DELTA = {
+    "delta_architecture_screen_nano_exact_replay": (
+        "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+    ),
+    "delta_architecture_screen_shared_norm": (
+        "sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1"
+    ),
+    "delta_architecture_screen_prenorm_block": (
+        "sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1"
+    ),
+    "delta_architecture_screen_small_class_head": (
+        "sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1"
+    ),
+    "delta_architecture_screen_test_self": (
+        "sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1"
+    ),
+}
+EXPECTED_PARENT_RUN_ID_BY_DELTA = {
+    delta_id: EXPECTED_RUN_ID_BY_DELTA[parent_delta_id]
+    for delta_id, parent_delta_id in EXPECTED_PARENT_BY_DELTA.items()
+}
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -83,11 +110,15 @@ def test_shared_surface_bridge_v1_uses_architecture_screen_lane_and_stage_native
     assert materialized["training_config_profile"] == "cls_benchmark_staged"
     assert materialized["surface_role"] == "architecture_screen"
 
+    for row in queue_instance["rows"]:
+        assert row.get("parent_delta_ref") == EXPECTED_PARENT_BY_DELTA.get(row["delta_ref"])
+
     for row in materialized["rows"]:
         expected_stage = EXPECTED_STAGE_BY_DELTA[row["delta_id"]]
         assert row["model"]["stage"] == expected_stage
         assert row["model"]["stage_label"] == row["delta_id"]
         assert "module_overrides" not in row["model"]
+        assert row.get("parent_delta_ref") == EXPECTED_PARENT_BY_DELTA.get(row["delta_id"])
 
 
 def test_shared_surface_bridge_v1_matrix_records_the_stage_native_bridge_rows() -> None:
@@ -131,3 +162,17 @@ def test_shared_surface_bridge_v1_registry_records_prenorm_block_as_locked_hando
         run["conclusion"]
         == "Locked as the grouped-token handoff row because it delivered the first material bridge gain while preserving the strongest proper-score result among rows 3-5."
     )
+
+
+def test_shared_surface_bridge_v1_registry_records_sequential_parent_lineage() -> None:
+    registry = json.loads(
+        (REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    for delta_id, parent_run_id in EXPECTED_PARENT_RUN_ID_BY_DELTA.items():
+        run = registry["runs"][EXPECTED_RUN_ID_BY_DELTA[delta_id]]
+
+        assert run["lineage"]["parent_run_id"] == parent_run_id
+        assert run["comparisons"]["vs_parent"]["reference_run_id"] == parent_run_id

@@ -70,6 +70,7 @@ rows:
     row_activation_final_window_mean: 0.9999601237432885
 - order: 2
   delta_ref: delta_architecture_screen_shared_norm
+  parent_delta_ref: delta_architecture_screen_nano_exact_replay
   status: completed
   rationale: Make `shared_norm` the first explicit step off the PFN-only encoder path
     on the benchmark-facing architecture-screen surface.
@@ -138,6 +139,7 @@ rows:
     row_activation_final_window_mean: 1.0001063022905283
 - order: 3
   delta_ref: delta_architecture_screen_prenorm_block
+  parent_delta_ref: delta_architecture_screen_shared_norm
   status: completed
   rationale: Test whether the public `prenorm_block` stage is the first viable shared-surface
     backbone change once the bridge is already off the PFN-only encoder.
@@ -208,6 +210,7 @@ rows:
     row_activation_final_window_mean: 1.0767038653624084
 - order: 4
   delta_ref: delta_architecture_screen_small_class_head
+  parent_delta_ref: delta_architecture_screen_prenorm_block
   status: completed
   rationale: Evaluate whether `small_class_head` should become the first explicit
     grouped-token predecessor row on the public shared-surface bridge.
@@ -277,6 +280,7 @@ rows:
     row_activation_final_window_mean: 1.0767038653624084
 - order: 5
   delta_ref: delta_architecture_screen_test_self
+  parent_delta_ref: delta_architecture_screen_small_class_head
   status: completed
   rationale: Evaluate whether `test_self` should displace `small_class_head` as the
     single grouped-token predecessor on the public shared-surface bridge.

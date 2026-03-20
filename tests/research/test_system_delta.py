@@ -705,6 +705,7 @@ def test_checked_in_completed_system_delta_queues_validate_against_registry(
         "cuda_stability_followup",
         "input_norm_followup",
         "input_norm_none_followup",
+        "shared_surface_bridge_v1",
     ):
         queue = load_system_delta_queue(
             sweep_id=sweep_id,

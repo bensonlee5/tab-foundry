@@ -632,6 +632,7 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
         f"status={row['status']}",
         f"decision={row.get('decision') or 'n/a'}",
         f"run_id={row.get('run_id') or 'n/a'}",
+        f"parent_delta_ref={row.get('parent_delta_ref') or 'n/a'}",
         f"training_experiment={queue['training_experiment']}",
         f"training_config_profile={queue['training_config_profile']}",
         f"surface_role={queue['surface_role']}",

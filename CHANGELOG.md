@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.11] - 2026-03-19
+
+### Changed
+
+- User-facing note: system-delta queue rows may now declare optional
+  `parent_delta_ref` lineage, and benchmark registry `parent_run_id` /
+  `vs_parent` comparisons now follow the declared predecessor row for
+  sequential sweeps instead of always reusing the locked anchor.
+
 ## [0.8.10] - 2026-03-19
 
 ### Changed
