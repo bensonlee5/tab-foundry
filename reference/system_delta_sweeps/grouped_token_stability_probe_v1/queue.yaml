@@ -1,0 +1,275 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: grouped_token_stability_probe_v1
+rows:
+- order: 1
+  delta_ref: delta_anchor_activation_trace_baseline
+  status: completed
+  rationale: Establish a traced grouped-token baseline before trying schedule changes
+    so activation windows and benchmark retention can be interpreted against the unchanged
+    grouped-token surface.
+  hypothesis: Activation tracing should be additive only; if the mixed grouped-token
+    benchmark read was mainly a training-adequacy issue, this traced rerun should
+    stay close to the architecture-screen result while exposing whether the longer
+    grouped-token lane keeps stage-local norms bounded.
+  anchor_delta: Keep the grouped-token model, data, and preprocessing surfaces fixed
+    and change only the training recipe by enabling activation tracing on the grouped-token
+    anchor surface.
+  model:
+    stage: grouped_tokens
+    stage_label: delta_architecture_screen_grouped_tokens
+    module_overrides:
+      allow_test_self_attention: true
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: shared
+      head: small_class
+      post_encoder_norm: none
+      post_stack_norm: none
+      row_pool: target_column
+      table_block_residual_scale: none
+      table_block_style: prenorm
+      target_conditioner: label_token
+      tokenizer: shifted_grouped
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_constant_lr_trace_activations
+    overrides:
+      runtime:
+        trace_activations: true
+  parameter_adequacy_plan:
+  - Confirm the traced run preserves the anchor model, data, and preprocessing surfaces.
+  - Use the emitted activation norms as the baseline comparator for all later stabilization
+    rows.
+  run_id: sd_grouped_token_stability_probe_v1_01_delta_anchor_activation_trace_baseline_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Use this traced row as the telemetry anchor only; the benchmark-facing
+    grouped-token replay should follow the row-3 no-trace warmup-decay surface rather
+    than this traced run.
+  notes:
+  - Canonical rerun registered as `sd_grouped_token_stability_probe_v1_01_delta_anchor_activation_trace_baseline_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - "The traced grouped-token anchor recovered the mixed architecture-screen result: final log loss `0.4002`, final Brier `0.2618`, final ROC AUC `0.7411`, clipped-step fraction `0.0012`, and zero drift."
+  - "Treat this row as the activation/telemetry reference, not as the preferred default execution surface, because row 3 reproduces the same quality without trace overhead."
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 1.2678043842315674
+    clipped_step_fraction: 0.0012
+    best_log_loss: 0.4001699075933982
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.4001699075933982
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.2618116611252504
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.2618116611252504
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.7410915546625931
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.7410915546625931
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: -0.23700715767549307
+    delta_final_brier_score: -0.18329305148614128
+    delta_final_roc_auc: 0.2181468968459398
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    column_activation_early_to_final_mean_delta: 1.1362035033662239
+    column_activation_final_window_mean: 2.0923280319896223
+    row_activation_early_to_final_mean_delta: 1.2562796117120365
+    row_activation_final_window_mean: 2.435520800261673
+- order: 2
+  delta_ref: delta_training_linear_decay
+  status: completed
+  rationale: Test whether grouped tokens mainly need a longer decayed prior-training
+    schedule rather than a different structure.
+  hypothesis: Plain linear decay may recover some late ROC retention on the grouped-token
+    surface, but it may still underperform if the early schedule is too abrupt for
+    the fixed grouped-token trunk.
+  anchor_delta: Keep the grouped-token model, data, and preprocessing surfaces fixed
+    and replace the `training_default` anchor recipe with single-stage linear decay.
+  model:
+    stage: grouped_tokens
+    stage_label: delta_architecture_screen_grouped_tokens
+    module_overrides:
+      allow_test_self_attention: true
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: shared
+      head: small_class
+      post_encoder_norm: none
+      post_stack_norm: none
+      row_pool: target_column
+      table_block_residual_scale: none
+      table_block_style: prenorm
+      target_conditioner: label_token
+      tokenizer: shifted_grouped
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_decay
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.0
+  parameter_adequacy_plan:
+  - Interpret against the constant-LR anchor on both ROC and post-warmup stability
+    diagnostics.
+  - Keep optimizer, model, data, and preprocessing fixed for the first pass.
+  run_id: sd_grouped_token_stability_probe_v1_02_delta_training_linear_decay_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Keep this row as a ROC-oriented tradeoff reference only; prefer the
+    warmup-decay grouped-token surface before any benchmark-facing replay or later
+    row-first architecture work.
+  notes:
+  - Canonical rerun registered as `sd_grouped_token_stability_probe_v1_02_delta_training_linear_decay_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - "No-warmup linear decay improved final ROC AUC to `0.7540`, but it lost to row 1 on final log loss (`0.4055` vs `0.4002`) and final Brier (`0.2664` vs `0.2618`)."
+  - "Stability also regressed: `max_grad_norm` rose to `9.9875` and clipped-step fraction rose to `0.0040`, so this is not the preferred grouped-token training surface."
+  benchmark_metrics:
+    best_step: 2425
+    max_grad_norm: 9.98746395111084
+    clipped_step_fraction: 0.004
+    best_log_loss: 0.4050707168872685
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.40553646512998665
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.2657899751923645
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.26643751402585825
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.7541891591888772
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.7539741415594802
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.00046574824271816695
+    final_minus_best_brier_score: 0.0006475388334937215
+    final_minus_best_roc_auc: -0.00021501762939701852
+    drift: -0.00021501762939701852
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: -0.23164060013890464
+    delta_final_brier_score: -0.17866719858553343
+    delta_final_roc_auc: 0.23102948374282684
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    column_activation_early_to_final_mean_delta: 1.9171946096385954
+    column_activation_final_window_mean: 3.1886334691143228
+    row_activation_early_to_final_mean_delta: 1.9916881830235271
+    row_activation_final_window_mean: 3.5121981041309263
+- order: 3
+  delta_ref: delta_training_linear_warmup_decay
+  status: completed
+  rationale: Separate warmup from decay itself on the grouped-token surface before
+    deciding whether TF-RD-004 stays open.
+  hypothesis: A short warmup may preserve the grouped-token log-loss and Brier gains
+    while recovering some ROC and reducing clipped-step fraction relative to no-warmup
+    decay.
+  anchor_delta: Keep the grouped-token model, data, and preprocessing surfaces fixed
+    and replace the `training_default` anchor recipe with linear decay plus short
+    warmup.
+  model:
+    stage: grouped_tokens
+    stage_label: delta_architecture_screen_grouped_tokens
+    module_overrides:
+      allow_test_self_attention: true
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: shared
+      head: small_class
+      post_encoder_norm: none
+      post_stack_norm: none
+      row_pool: target_column
+      table_block_residual_scale: none
+      table_block_style: prenorm
+      target_conditioner: label_token
+      tokenizer: shifted_grouped
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    overrides:
+      apply_schedule: true
+      optimizer:
+        min_lr: 0.0004
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare against both the constant-LR anchor and the no-warmup linear-decay row.
+  - Treat best/final ROC, post-warmup train-loss variance, and gradient norms as the
+    primary interpretation surface.
+  run_id: sd_grouped_token_stability_probe_v1_03_delta_training_linear_warmup_decay_v1
+  followup_run_ids: []
+  decision: keep
+  interpretation_status: completed
+  confounders: []
+  next_action: Run one benchmark-facing grouped-token replay on this no-trace warmup-decay
+    surface, then let TF-RD-005, TF-RD-006, and TF-RD-007 inherit grouped tokens
+    from that replay rather than from `prenorm_block`.
+  notes:
+  - Canonical rerun registered as `sd_grouped_token_stability_probe_v1_03_delta_training_linear_warmup_decay_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - "Warmup+decay without tracing reproduced row 1 almost exactly: final log loss `0.4002`, final Brier `0.2618`, final ROC AUC `0.7414`, clipped-step fraction `0.0012`, and zero drift."
+  - "Treat this as the preferred grouped-token adequacy surface: it preserves the strong row-1 quality/stability read without the trace-only overhead and clearly dominates the no-warmup decay tradeoff on loss, Brier, and gradient stability."
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 1.2678043842315674
+    clipped_step_fraction: 0.0012
+    best_log_loss: 0.4001785254165025
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.4001785254165025
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.2618201942140757
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.2618201942140757
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.7413601279796167
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.7413601279796167
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: -0.23699853985238878
+    delta_final_brier_score: -0.18328451839731597
+    delta_final_roc_auc: 0.21841547016296337
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    column_activation_early_to_final_mean_delta: 1.1364004873956945
+    column_activation_final_window_mean: 2.092525025544548
+    row_activation_early_to_final_mean_delta: 1.2561832645918454
+    row_activation_final_window_mean: 2.4354244552082447
