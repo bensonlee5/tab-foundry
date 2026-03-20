@@ -54,7 +54,7 @@ def test_grouped_token_stability_probe_v1_is_registered_but_not_active() -> None
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tokenization_migration_v1",
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -69,7 +69,7 @@ def test_grouped_token_stability_probe_v1_metadata_and_rows_match_the_grouped_to
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] == "tokenization_migration_v1"
-    assert sweep["status"] == "draft"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["training_experiment"] == "cls_benchmark_staged_prior"
     assert sweep["training_config_profile"] == "cls_benchmark_staged_prior"
@@ -86,7 +86,11 @@ def test_grouped_token_stability_probe_v1_metadata_and_rows_match_the_grouped_to
         "training": "training_default",
     }
     assert any("bounded hybrid-diagnostic probe" in note for note in sweep["anchor_surface"]["notes"])
-    assert any("TF-RD-005, TF-RD-006, and TF-RD-007 remain blocked" in note for note in sweep["anchor_surface"]["notes"])
+    assert any(
+        "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1"
+        in note
+        for note in sweep["anchor_surface"]["notes"]
+    )
 
     rows = queue["rows"]
     assert isinstance(rows, list)
@@ -151,9 +155,14 @@ def test_grouped_token_stability_probe_v1_metadata_and_rows_match_the_grouped_to
         }
     ]
     assert "grouped-token model" in warmup_row["anchor_delta"]
-    assert "benchmark-facing grouped-token replay" in warmup_row["next_action"]
+    assert "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1" in warmup_row["next_action"]
     assert warmup_row["decision"] == "keep"
     assert any("preferred grouped-token adequacy surface" in note for note in warmup_row["notes"])
+    assert any(
+        "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1"
+        in note
+        for note in warmup_row["notes"]
+    )
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
@@ -204,3 +213,4 @@ def test_grouped_token_stability_probe_v1_matrix_records_the_grouped_token_probe
     assert "Shifted grouped tokenizer" in matrix
     assert "warmup-decay grouped-token surface" in matrix
     assert "preferred grouped-token adequacy surface" in matrix
+    assert "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1" in matrix

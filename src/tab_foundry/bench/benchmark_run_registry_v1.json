@@ -9529,6 +9529,195 @@
         "train_elapsed_seconds": 81.62507329627988,
         "wall_elapsed_seconds": 85.26196875001187
       }
+    },
+    "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1/train/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.1933786207537188,
+          "best_training_time_delta": 342.69477453868603,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.1991826880829362,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.25362312228371225,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.1933786207537188,
+          "final_training_time_delta": 342.69477453868603,
+          "reference_run_id": "sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.21835785081655945,
+          "best_training_time_delta": 340.3222872795304,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.18329155725923213,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.23700765066821233,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.21835785081655945,
+          "final_training_time_delta": 340.3222872795304,
+          "reference_run_id": "sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2"
+        }
+      },
+      "conclusion": "Registered the benchmark-facing grouped-token warmup-decay replay; TF-RD-005, TF-RD-006, and TF-RD-007 should anchor on this run.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_architecture_screen_grouped_tokens",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "target_column",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "grouped_tokens",
+        "stage_label": "delta_architecture_screen_grouped_tokens",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356258,
+        "trainable_params": 356258
+      },
+      "registered_at_utc": "2026-03-20T06:38:23Z",
+      "run_id": "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_architecture_screen_grouped_tokens",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_training_linear_warmup_decay",
+        "parent_sweep_id": "shared_surface_bridge_v1",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "tokenization_migration_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.26181315535215954,
+        "best_crps": null,
+        "best_log_loss": 0.40016941460067895,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7413025086332128,
+        "best_step": 2500.0,
+        "best_training_time": 421.9473605758103,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.26181315535215954,
+        "final_crps": null,
+        "final_log_loss": 0.40016941460067895,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7413025086332128,
+        "final_step": 2500.0,
+        "final_training_time": 421.9473605758103
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.2333899289369583,
+        "final_val_loss": null,
+        "max_grad_norm": 1.2678042650222778,
+        "mean_grad_norm": 0.1965236706867814,
+        "post_warmup_train_loss_var": 0.0017719368785092202,
+        "train_elapsed_seconds": 421.9473605758103,
+        "wall_elapsed_seconds": 431.8746543750167
+      }
     }
   },
   "schema": "tab-foundry-benchmark-runs-v1",
