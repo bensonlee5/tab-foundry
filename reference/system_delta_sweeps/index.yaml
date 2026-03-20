@@ -120,3 +120,10 @@ sweeps:
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+  row_embedding_attribution_v3:
+    parent_sweep_id: row_embedding_attribution_v2
+    status: draft
+    anchor_run_id: sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2

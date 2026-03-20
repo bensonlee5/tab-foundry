@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +30,16 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     rows = queue["rows"]
     assert isinstance(rows, list)
     return next(row for row in rows if row["delta_ref"] == delta_ref)
+
+
+def _load_registry() -> dict[str, Any]:
+    payload = json.loads(
+        (REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert isinstance(payload, dict)
+    return payload
 
 
 def _assert_full_replay_training_payload(row: dict[str, Any]) -> None:
@@ -101,7 +113,26 @@ def test_row_embedding_attribution_v2_metadata_and_rows_match_plan() -> None:
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready", "ready", "ready"]
+    assert [row["status"] for row in rows] == ["completed", "completed", "completed", "completed"]
+
+    registry = _load_registry()
+    registry_runs = registry["runs"]
+    assert isinstance(registry_runs, dict)
+    for order, row in enumerate(rows, start=1):
+        assert row["interpretation_status"] == "completed"
+        assert row["decision"] == "defer"
+        run_id = row["run_id"]
+        assert isinstance(run_id, str)
+        assert re.fullmatch(
+            rf"sd_row_embedding_attribution_v2_{order:02d}_{re.escape(str(row['delta_ref']))}_v\d+",
+            run_id,
+        )
+        benchmark_metrics = row["benchmark_metrics"]
+        assert isinstance(benchmark_metrics, dict)
+        registry_run = registry_runs[run_id]
+        assert registry_run["sweep"]["queue_order"] == order
+        assert registry_run["sweep"]["delta_id"] == row["delta_ref"]
+        assert registry_run["sweep"]["run_kind"] == "primary"
 
     row1 = _row_by_ref(queue, "delta_row_embeddings_no_context_v2")
     assert row1["model"] == {
