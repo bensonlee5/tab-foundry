@@ -14,7 +14,7 @@ from tab_foundry.timestamps import utc_now as _shared_utc_now
 
 
 LOSS_EMA_ALPHA = 0.1
-TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v2"
+TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v3"
 _WINDOW_EARLY = "early_1_25"
 _WINDOW_POST_WARMUP = "post_warmup_100"
 _WINDOW_FINAL = "final_10pct"
@@ -641,6 +641,7 @@ def build_training_telemetry(
     gradient_records: Sequence[Mapping[str, Any]],
     missingness: Mapping[str, Any] | None = None,
     training_surface_record: Mapping[str, Any] | None = None,
+    wandb: Mapping[str, Any] | None = None,
     error: BaseException | None = None,
 ) -> dict[str, Any]:
     """Build the canonical training telemetry payload for one run."""
@@ -684,6 +685,7 @@ def build_training_telemetry(
         ),
         "missingness": None if missingness is None else _normalize_payload_values(missingness),
         "training_surface_context": training_surface_context,
+        "wandb": None if wandb is None else _normalize_payload_values(wandb),
     }
     if error is not None:
         payload["error"] = {"type": type(error).__name__, "message": str(error)}

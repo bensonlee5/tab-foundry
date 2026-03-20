@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.12] - 2026-03-19
+
+### Changed
+
+- User-facing note: training runs now persist resolved `surface/*` identity
+  into wandb summary, including staged `module_selection` and resolved
+  `module_hyperparameters`, so architecture surfaces are queryable directly in
+  wandb instead of only through `training_surface_record.json`.
+
+- User-facing note: `telemetry.json` now persists a top-level `wandb` identity
+  block and advances the training telemetry schema to
+  `tab-foundry-training-telemetry-v3` so post-benchmark and post-sweep stages
+  can update the original wandb run without a parallel tracking path.
+
+- User-facing note: `tab-foundry bench compare` and system-delta sweep
+  registration now mirror compact `benchmark/*`, `comparison/*`, and `sweep/*`
+  fields into the original wandb run, including tab-foundry decision metrics,
+  nanoTabPFN reference values, model size, anchor or parent deltas, and sweep
+  lineage metadata; per-task benchmark breakdowns remain artifact-only in
+  `comparison_summary.json` and `benchmark_run_record.json`.
+
 ## [0.8.11] - 2026-03-19
 
 ### Changed

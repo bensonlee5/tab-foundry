@@ -406,10 +406,23 @@ class _LrTrackingOptimizer(_CountingOptimizer):
 
 
 class _FakeWandbRun:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        entity: str = "test-entity",
+        project: str = "test-project",
+        run_id: str = "prior-run-123",
+        name: str = "prior-wandb",
+        mode: str = "online",
+    ) -> None:
         self.logged: list[tuple[dict[str, object], int]] = []
         self.summary: dict[str, object] = {}
         self.finished = False
+        self.entity = entity
+        self.project = project
+        self.id = run_id
+        self.name = name
+        self.mode = mode
 
     def log(self, payload: dict[str, object], *, step: int) -> None:
         self.logged.append((dict(payload), int(step)))
@@ -1904,12 +1917,15 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
     cfg.logging.project = "test-project"
     cfg.logging.run_name = "prior-wandb"
     cfg.runtime.trace_activations = True
+    cfg.model.arch = "tabfoundry_staged"
+    cfg.model.stage = "row_cls_pool"
 
-    _ = prior_train_module.train_tabfoundry_simple_prior(
+    result = prior_train_module.train_tabfoundry_simple_prior(
         cfg,
         prior_dump_path=path,
         batch_size=2,
     )
+    telemetry = json.loads((result.output_dir / "telemetry.json").read_text(encoding="utf-8"))
 
     train_logs = [
         (payload, step)
@@ -1949,6 +1965,17 @@ def test_train_tabfoundry_simple_prior_logs_wandb_metrics_and_summary(
         "diagnostics/activation_windows/tracked_activations/post_feature_encoder/early_to_final_mean_delta"
     ] > 0.0
     assert fake_run.summary["missingness/prior_dump/non_finite_feature_count"] == 0
+    assert fake_run.summary["surface/model/arch"] == "tabfoundry_staged"
+    assert fake_run.summary["surface/model/module_selection/row_pool"] == "row_cls"
+    assert fake_run.summary["surface/model/module_selection/context_encoder"] == "plain"
+    assert fake_run.summary["surface/model/module_hyperparameters/row_pool/cls_tokens"] == 4
+    assert telemetry["wandb"] == {
+        "entity": "test-entity",
+        "project": "test-project",
+        "run_id": "prior-run-123",
+        "run_name": "prior-wandb",
+        "mode": "online",
+    }
 
 
 def test_train_tabfoundry_simple_prior_logs_wandb_failure_summary(
