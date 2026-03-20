@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -68,7 +69,11 @@ def test_shared_surface_bridge_v1_uses_architecture_screen_lane_and_stage_native
         "stage-native shared-surface bridge" in note for note in sweep["anchor_surface"]["notes"]
     )
     assert any(
-        "row 1 replays `nano_exact` on the architecture-screen lane" in note
+        "same-lane replay anchor" in note
+        for note in sweep["anchor_surface"]["notes"]
+    )
+    assert any(
+        "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1" in note
         for note in sweep["anchor_surface"]["notes"]
     )
 
@@ -103,3 +108,26 @@ def test_shared_surface_bridge_v1_matrix_records_the_stage_native_bridge_rows() 
     assert "delta_architecture_screen_small_class_head" in matrix
     assert "delta_architecture_screen_test_self" in matrix
     assert "Treat the older `01_nano_exact_md_prior_parity_fix_binary_medium_v1` registry run as historical anchor evidence only" in matrix
+    assert "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1" in matrix
+    assert "data surface label `anchor_manifest_default`" in matrix
+    assert "Benchmark preprocessing surface label `runtime_default`" in matrix
+    assert "Training surface label `training_default`" in matrix
+    assert "prior_constant_lr" not in matrix
+    assert "registry surface label unavailable" not in matrix
+    assert "Lock as the grouped-token handoff row and treat later bridge rows as optional follow-ons" in matrix
+
+
+def test_shared_surface_bridge_v1_registry_records_prenorm_block_as_locked_handoff() -> None:
+    registry = json.loads(
+        (REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    run = registry["runs"]["sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1"]
+
+    assert run["decision"] == "keep"
+    assert (
+        run["conclusion"]
+        == "Locked as the grouped-token handoff row because it delivered the first material bridge gain while preserving the strongest proper-score result among rows 3-5."
+    )

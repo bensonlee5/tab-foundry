@@ -7661,6 +7661,929 @@
         "train_elapsed_seconds": 258.1572148539126,
         "wall_elapsed_seconds": 272.201015740633
       }
+    },
+    "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/train/checkpoints/step_000400.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_nano_exact_replay/sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "Established the architecture-screen nano_exact replay anchor for TF-RD-003 shared-surface bridge comparisons.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_architecture_screen_nano_exact_replay",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "nano",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "target_column",
+          "table_block_residual_scale": "none",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "mean_padded_linear",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "nano_exact",
+        "stage_label": "delta_architecture_screen_nano_exact_replay",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-19T23:36:35Z",
+      "run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_architecture_screen_nano_exact_replay",
+        "preprocessing": "runtime_default",
+        "training": "training_default"
+      },
+      "sweep": {
+        "delta_id": "delta_architecture_screen_nano_exact_replay",
+        "parent_sweep_id": "binary_md_v1",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "shared_surface_bridge_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.5019782156493655,
+        "best_crps": null,
+        "best_log_loss": 0.6951108983991502,
+        "best_picp_90": null,
+        "best_roc_auc": 0.43390183680083255,
+        "best_step": 400.0,
+        "best_training_time": 87.31229317294492,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.5019782156493655,
+        "final_crps": null,
+        "final_log_loss": 0.6951108983991502,
+        "final_picp_90": null,
+        "final_roc_auc": 0.43390183680083255,
+        "final_step": 400.0,
+        "final_training_time": 87.31229317294492
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 1.067495346069336,
+        "final_val_loss": null,
+        "max_grad_norm": 2.7170772552490234,
+        "mean_grad_norm": 1.1755298732221127,
+        "post_warmup_train_loss_var": 0.0008439976894508583,
+        "train_elapsed_seconds": 87.31229317294492,
+        "wall_elapsed_seconds": 88.95210891599709
+      }
+    },
+    "sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_shared_norm/sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_shared_norm/sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_shared_norm/sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1/train/checkpoints/step_000400.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_shared_norm/sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_shared_norm/sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_shared_norm/sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_shared_norm/sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_shared_norm/sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.058880290666142976,
+          "best_training_time_delta": 19.474670571216848,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.026966223773623343,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.027128004184591492,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.058880290666142976,
+          "final_training_time_delta": 19.474670571216848,
+          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.058880290666142976,
+          "best_training_time_delta": 19.474670571216848,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.026966223773623343,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.027128004184591492,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.058880290666142976,
+          "final_training_time_delta": 19.474670571216848,
+          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        }
+      },
+      "conclusion": "Recorded the first stage-native shared-surface bridge read against the architecture-screen nano_exact replay anchor.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_architecture_screen_shared_norm",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "nano_postnorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "shared",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "target_column",
+          "table_block_residual_scale": "none",
+          "table_block_style": "nano_postnorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "shared_norm",
+        "stage_label": "delta_architecture_screen_shared_norm",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-19T23:51:20Z",
+      "run_id": "sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_architecture_screen_shared_norm",
+        "preprocessing": "runtime_default",
+        "training": "training_default"
+      },
+      "sweep": {
+        "delta_id": "delta_architecture_screen_shared_norm",
+        "parent_sweep_id": "binary_md_v1",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "shared_surface_bridge_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.47501199187574217,
+        "best_crps": null,
+        "best_log_loss": 0.6679828942145587,
+        "best_picp_90": null,
+        "best_roc_auc": 0.49278212746697553,
+        "best_step": 400.0,
+        "best_training_time": 106.78696374416177,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.47501199187574217,
+        "final_crps": null,
+        "final_log_loss": 0.6679828942145587,
+        "final_picp_90": null,
+        "final_roc_auc": 0.49278212746697553,
+        "final_step": 400.0,
+        "final_training_time": 106.78696374416177
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.84682697057724,
+        "final_val_loss": null,
+        "max_grad_norm": 1.5973516702651978,
+        "mean_grad_norm": 0.8779342906177043,
+        "post_warmup_train_loss_var": 0.0003077550160368561,
+        "train_elapsed_seconds": 106.78696374416177,
+        "wall_elapsed_seconds": 111.54881300000125
+      }
+    },
+    "sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_prenorm_block/sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_prenorm_block/sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_prenorm_block/sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1/train/checkpoints/step_000400.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_prenorm_block/sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_prenorm_block/sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_prenorm_block/sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_prenorm_block/sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_prenorm_block/sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.11402205107866142,
+          "best_training_time_delta": -8.059707135820645,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.04098237221426976,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.04131836151475898,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.11402205107866142,
+          "final_training_time_delta": -8.059707135820645,
+          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.11402205107866142,
+          "best_training_time_delta": -8.059707135820645,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.04098237221426976,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.04131836151475898,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.11402205107866142,
+          "final_training_time_delta": -8.059707135820645,
+          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        }
+      },
+      "conclusion": "Locked as the grouped-token handoff row because it delivered the first material bridge gain while preserving the strongest proper-score result among rows 3-5.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "keep",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_architecture_screen_prenorm_block",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "shared",
+          "head": "binary_direct",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "target_column",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "prenorm_block",
+        "stage_label": "delta_architecture_screen_prenorm_block",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-20T00:17:09Z",
+      "run_id": "sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_architecture_screen_prenorm_block",
+        "preprocessing": "runtime_default",
+        "training": "training_default"
+      },
+      "sweep": {
+        "delta_id": "delta_architecture_screen_prenorm_block",
+        "parent_sweep_id": "binary_md_v1",
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "shared_surface_bridge_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.46099584343509575,
+        "best_crps": null,
+        "best_log_loss": 0.6537925368843912,
+        "best_picp_90": null,
+        "best_roc_auc": 0.547923887879494,
+        "best_step": 400.0,
+        "best_training_time": 79.25258603712427,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.46099584343509575,
+        "final_crps": null,
+        "final_log_loss": 0.6537925368843912,
+        "final_picp_90": null,
+        "final_roc_auc": 0.547923887879494,
+        "final_step": 400.0,
+        "final_training_time": 79.25258603712427
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.9135237336158752,
+        "final_val_loss": null,
+        "max_grad_norm": 1.6202101707458496,
+        "mean_grad_norm": 0.9687842106819153,
+        "post_warmup_train_loss_var": 0.0006517943747977265,
+        "train_elapsed_seconds": 79.25258603712427,
+        "wall_elapsed_seconds": 83.94683670900122
+      }
+    },
+    "sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_small_class_head/sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_small_class_head/sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_small_class_head/sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1/train/checkpoints/step_000400.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_small_class_head/sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_small_class_head/sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_small_class_head/sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_small_class_head/sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_small_class_head/sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.11402205107866142,
+          "best_training_time_delta": -16.33345454695518,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.040982371465478507,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.04131836074964035,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.11402205107866142,
+          "final_training_time_delta": -16.33345454695518,
+          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.11402205107866142,
+          "best_training_time_delta": -16.33345454695518,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.040982371465478507,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.04131836074964035,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.11402205107866142,
+          "final_training_time_delta": -16.33345454695518,
+          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_architecture_screen_small_class_head",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": false,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": false,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "target_column",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "small_class_head",
+        "stage_label": "delta_architecture_screen_small_class_head",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-20T00:29:50Z",
+      "run_id": "sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_architecture_screen_small_class_head",
+        "preprocessing": "runtime_default",
+        "training": "training_default"
+      },
+      "sweep": {
+        "delta_id": "delta_architecture_screen_small_class_head",
+        "parent_sweep_id": "binary_md_v1",
+        "queue_order": 4,
+        "run_kind": "primary",
+        "sweep_id": "shared_surface_bridge_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.460995844183887,
+        "best_crps": null,
+        "best_log_loss": 0.6537925376495098,
+        "best_picp_90": null,
+        "best_roc_auc": 0.547923887879494,
+        "best_step": 400.0,
+        "best_training_time": 70.97883862598974,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.460995844183887,
+        "final_crps": null,
+        "final_log_loss": 0.6537925376495098,
+        "final_picp_90": null,
+        "final_roc_auc": 0.547923887879494,
+        "final_step": 400.0,
+        "final_training_time": 70.97883862598974
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.9135237336158752,
+        "final_val_loss": null,
+        "max_grad_norm": 1.6202101707458496,
+        "mean_grad_norm": 0.9687842105329036,
+        "post_warmup_train_loss_var": 0.0006517943876760072,
+        "train_elapsed_seconds": 70.97883862598974,
+        "wall_elapsed_seconds": 73.52852741599781
+      }
+    },
+    "sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_test_self/sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_test_self/sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_test_self/sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1/train/checkpoints/step_000400.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_test_self/sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_test_self/sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_test_self/sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_test_self/sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/shared_surface_bridge_v1/delta_architecture_screen_test_self/sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.11544578125704813,
+          "best_training_time_delta": -18.13481637799123,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.040314403793762055,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.04063423202679739,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.11544578125704813,
+          "final_training_time_delta": -18.13481637799123,
+          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.11544578125704813,
+          "best_training_time_delta": -18.13481637799123,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.040314403793762055,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -0.04063423202679739,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.11544578125704813,
+          "final_training_time_delta": -18.13481637799123,
+          "reference_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged",
+      "lineage": {
+        "anchor_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1"
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_architecture_screen_test_self",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": null,
+            "ff_expansion": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null,
+            "use_qass": null
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": null,
+            "n_heads": null,
+            "n_layers": null,
+            "name": "target_column",
+            "norm_type": null
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "none",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "target_column",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "scalar_per_feature"
+        },
+        "stage": "test_self",
+        "stage_label": "delta_architecture_screen_test_self",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 356066,
+        "trainable_params": 356066
+      },
+      "registered_at_utc": "2026-03-20T00:42:09Z",
+      "run_id": "sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "anchor_manifest_default",
+        "model": "delta_architecture_screen_test_self",
+        "preprocessing": "runtime_default",
+        "training": "training_default"
+      },
+      "sweep": {
+        "delta_id": "delta_architecture_screen_test_self",
+        "parent_sweep_id": "binary_md_v1",
+        "queue_order": 5,
+        "run_kind": "primary",
+        "sweep_id": "shared_surface_bridge_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.46166381185560346,
+        "best_crps": null,
+        "best_log_loss": 0.6544766663723528,
+        "best_picp_90": null,
+        "best_roc_auc": 0.5493476180578807,
+        "best_step": 400.0,
+        "best_training_time": 69.17747679495369,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.46166381185560346,
+        "final_crps": null,
+        "final_log_loss": 0.6544766663723528,
+        "final_picp_90": null,
+        "final_roc_auc": 0.5493476180578807,
+        "final_step": 400.0,
+        "final_training_time": 69.17747679495369
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.9085001945495605,
+        "final_val_loss": null,
+        "max_grad_norm": 1.604324460029602,
+        "mean_grad_norm": 0.9515412475168705,
+        "post_warmup_train_loss_var": 0.000621943721489645,
+        "train_elapsed_seconds": 69.17747679495369,
+        "wall_elapsed_seconds": 72.07819995799218
+      }
     }
   },
   "schema": "tab-foundry-benchmark-runs-v1",

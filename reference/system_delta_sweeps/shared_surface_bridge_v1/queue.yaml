@@ -3,16 +3,15 @@ sweep_id: shared_surface_bridge_v1
 rows:
 - order: 1
   delta_ref: delta_architecture_screen_nano_exact_replay
-  status: ready
-  rationale: >-
-    Replay the public `nano_exact` stage on `cls_benchmark_staged` so the bridge sweep
-    has a same-lane local comparator before any shared-surface row is judged.
-  hypothesis: >-
-    The replay should recover the expected benchmark range while emitting the architecture-screen
-    telemetry artifacts missing from the older prior-lane anchor run.
-  anchor_delta: >-
-    Keep the public `nano_exact` stage fixed and only move execution onto the
-    benchmark-facing architecture-screen lane.
+  status: completed
+  rationale: Replay the public `nano_exact` stage on `cls_benchmark_staged` so the
+    bridge sweep has a same-lane local comparator before any shared-surface row is
+    judged.
+  hypothesis: The replay should recover the expected benchmark range while emitting
+    the architecture-screen telemetry artifacts missing from the older prior-lane
+    anchor run.
+  anchor_delta: Keep the public `nano_exact` stage fixed and only move execution onto
+    the benchmark-facing architecture-screen lane.
   model:
     stage: nano_exact
     stage_label: delta_architecture_screen_nano_exact_replay
@@ -28,27 +27,56 @@ rows:
     with `gradient_history.jsonl` and `telemetry.json`.
   - Compare later bridge rows against this replay rather than treating the older prior-lane
     anchor as artifact-complete.
-  run_id: null
+  run_id: sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
   next_action: Run first to establish the architecture-screen replay baseline for
     the shared-surface bridge.
   notes:
-  - Treat the older `01_nano_exact_md_prior_parity_fix_binary_medium_v1` registry run as historical anchor evidence only until this replay lands locally.
+  - Treat the older `01_nano_exact_md_prior_parity_fix_binary_medium_v1` registry
+    run as historical anchor evidence only until this replay lands locally.
+  - Canonical rerun registered as `sd_shared_surface_bridge_v1_01_delta_architecture_screen_nano_exact_replay_v1`.
+  - Established the architecture-screen nano_exact replay anchor for TF-RD-003 shared-surface
+    bridge comparisons.
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 2.7170772552490234
+    clipped_step_fraction: 0.625
+    best_log_loss: 0.6951108983991502
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.6951108983991502
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.5019782156493655
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.5019782156493655
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.43390183680083255
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.43390183680083255
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    column_activation_early_to_final_mean_delta: -3.979976891976822e-05
+    column_activation_final_window_mean: 0.9999491270292318
+    row_activation_early_to_final_mean_delta: -2.8078761150851506e-05
+    row_activation_final_window_mean: 0.9999601237432885
 - order: 2
   delta_ref: delta_architecture_screen_shared_norm
-  status: ready
-  rationale: >-
-    Make `shared_norm` the first explicit step off the PFN-only encoder path on the
-    benchmark-facing architecture-screen surface.
-  hypothesis: >-
-    The public shared encoder should keep the bridge finite and interpretable enough to
-    serve as the first mandatory shared-surface comparator.
-  anchor_delta: >-
-    Starting from the architecture-screen `nano_exact` replay, switch only to the public
-    `shared_norm` stage.
+  status: completed
+  rationale: Make `shared_norm` the first explicit step off the PFN-only encoder path
+    on the benchmark-facing architecture-screen surface.
+  hypothesis: The public shared encoder should keep the bridge finite and interpretable
+    enough to serve as the first mandatory shared-surface comparator.
+  anchor_delta: Starting from the architecture-screen `nano_exact` replay, switch
+    only to the public `shared_norm` stage.
   model:
     stage: shared_norm
     stage_label: delta_architecture_screen_shared_norm
@@ -64,28 +92,60 @@ rows:
     or row-pool experiment.
   - If weak, keep the result as bridge evidence and do not skip straight to later
     shared-surface rows without recording the regression.
-  run_id: null
+  run_id: sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Compare directly against the architecture-screen `nano_exact` replay
     before moving deeper into the bridge.
   notes:
-  - Historical hybrid-diagnostic `delta_shared_feature_norm` evidence remains context only; this row is the stage-native benchmark-facing shared-surface read.
+  - Historical hybrid-diagnostic `delta_shared_feature_norm` evidence remains context
+    only; this row is the stage-native benchmark-facing shared-surface read.
+  - Canonical rerun registered as `sd_shared_surface_bridge_v1_02_delta_architecture_screen_shared_norm_v1`.
+  - Recorded the first stage-native shared-surface bridge read against the architecture-screen
+    nano_exact replay anchor.
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 1.5973516702651978
+    clipped_step_fraction: 0.2225
+    best_log_loss: 0.6679828942145587
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.6679828942145587
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.47501199187574217
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.47501199187574217
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.49278212746697553
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.49278212746697553
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: -0.027128004184591492
+    delta_final_brier_score: -0.026966223773623343
+    delta_final_roc_auc: 0.058880290666142976
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    column_activation_early_to_final_mean_delta: 6.0411556449202486e-05
+    column_activation_final_window_mean: 1.0000547312016599
+    row_activation_early_to_final_mean_delta: 0.00011093961685415543
+    row_activation_final_window_mean: 1.0001063022905283
 - order: 3
   delta_ref: delta_architecture_screen_prenorm_block
-  status: ready
-  rationale: >-
-    Test whether the public `prenorm_block` stage is the first viable shared-surface backbone
-    change once the bridge is already off the PFN-only encoder.
-  hypothesis: >-
-    The stage-native pre-norm block should be more informative than the earlier hybrid-diagnostic
-    prenorm evidence because it runs on the public shared surface rather than on `nano_exact`
-    with bounded overrides.
-  anchor_delta: >-
-    Starting from the stage-native `shared_norm` bridge row, switch only to the public
-    `prenorm_block` stage.
+  status: completed
+  rationale: Test whether the public `prenorm_block` stage is the first viable shared-surface
+    backbone change once the bridge is already off the PFN-only encoder.
+  hypothesis: The stage-native pre-norm block should be more informative than the
+    earlier hybrid-diagnostic prenorm evidence because it runs on the public shared
+    surface rather than on `nano_exact` with bounded overrides.
+  anchor_delta: Starting from the stage-native `shared_norm` bridge row, switch only
+    to the public `prenorm_block` stage.
   model:
     stage: prenorm_block
     stage_label: delta_architecture_screen_prenorm_block
@@ -100,27 +160,61 @@ rows:
   - Treat this row as the first backbone change after the shared encoder is active.
   - If mixed, preserve it as explicit bridge evidence rather than collapsing the result
     into the older hybrid-diagnostic prenorm evidence.
-  run_id: null
+  run_id: sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
-  next_action: Compare against the shared-norm row before deciding whether the bridge
-    should advance through the pre-norm block.
+  next_action: Lock as the grouped-token handoff row and treat later bridge rows as
+    optional follow-ons, not new default predecessors.
   notes:
-  - Do not collapse this row back into the older `delta_prenorm_block` conclusion; this is the first benchmark-facing stage-native prenorm read.
+  - Do not collapse this row back into the older `delta_prenorm_block` conclusion;
+    this is the first benchmark-facing stage-native prenorm read.
+  - Canonical rerun registered as `sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Locked as the grouped-token handoff row because it delivered the first material
+    bridge gain while preserving the strongest proper-score result among rows 3-5.
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 1.6202101707458496
+    clipped_step_fraction: 0.4075
+    best_log_loss: 0.6537925368843912
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.6537925368843912
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.46099584343509575
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.46099584343509575
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.547923887879494
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.547923887879494
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: -0.04131836151475898
+    delta_final_brier_score: -0.04098237221426976
+    delta_final_roc_auc: 0.11402205107866142
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    column_activation_early_to_final_mean_delta: -0.006562832898615145
+    column_activation_final_window_mean: 0.9034304734859377
+    row_activation_early_to_final_mean_delta: -0.043416923657441986
+    row_activation_final_window_mean: 1.0767038653624084
 - order: 4
   delta_ref: delta_architecture_screen_small_class_head
-  status: ready
-  rationale: >-
-    Evaluate whether `small_class_head` should become the first explicit grouped-token
-    predecessor row on the public shared-surface bridge.
-  hypothesis: >-
-    The small-class head may improve bridge coherence enough that later grouped-token work
-    should inherit it instead of stopping at the pre-norm block.
-  anchor_delta: >-
-    Starting from the public `prenorm_block` bridge row, switch only to the public
-    `small_class_head` stage.
+  status: completed
+  rationale: Evaluate whether `small_class_head` should become the first explicit
+    grouped-token predecessor row on the public shared-surface bridge.
+  hypothesis: The small-class head may improve bridge coherence enough that later
+    grouped-token work should inherit it instead of stopping at the pre-norm block.
+  anchor_delta: Starting from the public `prenorm_block` bridge row, switch only to
+    the public `small_class_head` stage.
   model:
     stage: small_class_head
     stage_label: delta_architecture_screen_small_class_head
@@ -135,27 +229,62 @@ rows:
   - Treat this as a bridge row, not as a many-class promotion or tokenization change.
   - Use it to decide whether later grouped-token work should inherit the small-class
     head rather than stopping at the pre-norm block.
-  run_id: null
+  run_id: sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Compare directly against `prenorm_block` to decide whether the bridge
-    should carry the small-class head forward.
+  next_action: Treat as a binary-lane no-op and keep `prenorm_block` as the grouped-token
+    predecessor.
   notes:
-  - This row exists to make the grouped-token handoff explicit; do not interpret it as many-class promotion work.
+  - This row exists to make the grouped-token handoff explicit; do not interpret it
+    as many-class promotion work.
+  - Canonical rerun registered as `sd_shared_surface_bridge_v1_04_delta_architecture_screen_small_class_head_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Numerically matched `prenorm_block` on this binary architecture-screen lane and
+    did not justify a distinct predecessor row.
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 1.6202101707458496
+    clipped_step_fraction: 0.4075
+    best_log_loss: 0.6537925376495098
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.6537925376495098
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.460995844183887
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.460995844183887
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.547923887879494
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.547923887879494
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: -0.04131836074964035
+    delta_final_brier_score: -0.040982371465478507
+    delta_final_roc_auc: 0.11402205107866142
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    column_activation_early_to_final_mean_delta: -0.006562832898615145
+    column_activation_final_window_mean: 0.9034304734859377
+    row_activation_early_to_final_mean_delta: -0.043416923657441986
+    row_activation_final_window_mean: 1.0767038653624084
 - order: 5
   delta_ref: delta_architecture_screen_test_self
-  status: ready
-  rationale: >-
-    Evaluate whether `test_self` should displace `small_class_head` as the single grouped-token
-    predecessor on the public shared-surface bridge.
-  hypothesis: >-
-    Test-self attention may repair the late bridge rows enough to justify locking `test_self`
-    as the grouped-token handoff row, but the effect may remain only locally beneficial.
-  anchor_delta: >-
-    Starting from the public `small_class_head` bridge row, switch only to the public
-    `test_self` stage.
+  status: completed
+  rationale: Evaluate whether `test_self` should displace `small_class_head` as the
+    single grouped-token predecessor on the public shared-surface bridge.
+  hypothesis: Test-self attention may repair the late bridge rows enough to justify
+    locking `test_self` as the grouped-token handoff row, but the effect may remain
+    only locally beneficial.
+  anchor_delta: Starting from the public `small_class_head` bridge row, switch only
+    to the public `test_self` stage.
   model:
     stage: test_self
     stage_label: delta_architecture_screen_test_self
@@ -171,12 +300,49 @@ rows:
     not as tokenizer work.
   - Pick between `small_class_head` and `test_self` only after the full five-row bridge
     sweep is visible together.
-  run_id: null
+  run_id: sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Compare directly against `small_class_head` and lock only one grouped-token
-    predecessor after the full bridge sweep.
+  next_action: Do not carry forward by default; only revalidate if grouped-token work
+    makes test-self attention explicitly valuable.
   notes:
-  - Earlier hybrid-diagnostic `delta_test_self_attention` evidence is historical context only; the keep/defer decision here must come from the stage-native bridge.
+  - Earlier hybrid-diagnostic `delta_test_self_attention` evidence is historical context
+    only; the keep/defer decision here must come from the stage-native bridge.
+  - Canonical rerun registered as `sd_shared_surface_bridge_v1_05_delta_architecture_screen_test_self_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Improved ROC AUC only marginally over `prenorm_block` while slightly worsening
+    log loss and Brier score, so it was not selected as the default handoff row.
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 1.604324460029602
+    clipped_step_fraction: 0.3825
+    best_log_loss: 0.6544766663723528
+    nanotabpfn_best_log_loss: 0.44081483626958085
+    final_log_loss: 0.6544766663723528
+    nanotabpfn_final_log_loss: 0.44079963988830684
+    best_brier_score: 0.46166381185560346
+    nanotabpfn_best_brier_score: 0.2858710473067903
+    final_brier_score: 0.46166381185560346
+    nanotabpfn_final_brier_score: 0.28493892770426144
+    best_roc_auc: 0.5493476180578807
+    nanotabpfn_best_roc_auc: 0.7579204425720094
+    final_roc_auc: 0.5493476180578807
+    nanotabpfn_final_roc_auc: 0.7613018118078175
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    nanotabpfn_best: 0.7579204425720094
+    nanotabpfn_final: 0.7613018118078175
+    delta_final_log_loss: -0.04063423202679739
+    delta_final_brier_score: -0.040314403793762055
+    delta_final_roc_auc: 0.11544578125704813
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.0
+    column_activation_early_to_final_mean_delta: -0.007459636209227294
+    column_activation_final_window_mean: 0.901507613493251
+    row_activation_early_to_final_mean_delta: -0.046072893887601385
+    row_activation_final_window_mean: 1.0698463719490163
