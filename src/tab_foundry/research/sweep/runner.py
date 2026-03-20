@@ -25,6 +25,7 @@ from tab_foundry.bench.compare import (
     NanoTabPFNBenchmarkConfig,
     run_nanotabpfn_benchmark,
 )
+from tab_foundry.bench.nanotabpfn import benchmark_host_fingerprint, resolve_device
 from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.config import compose_config
 from tab_foundry.research.lane_contract import (
@@ -64,7 +65,14 @@ class NanoTabPFNCurveCandidate:
     source_label: str
     comparison_summary_path: Path
     declared_control_baseline_id: str | None = None
-    campaign_path: Path | None = None
+
+
+@dataclass(frozen=True)
+class NanoTabPFNCurveReuseSelection:
+    curve_path: Path
+    source_label: str
+    metadata: dict[str, Any]
+    signature: dict[str, Any]
 
 
 def row_id_for_order(sweep_id: str, order: int, delta_ref: str, existing_run_id: str | None) -> str:
@@ -249,21 +257,8 @@ def _candidate_curve_path(summary: Mapping[str, Any], *, summary_path: Path) -> 
     return fallback if fallback.exists() else None
 
 
-def _legacy_candidate_device(candidate: NanoTabPFNCurveCandidate) -> str | None:
-    campaign_path = candidate.campaign_path
-    if campaign_path is None or not campaign_path.exists():
-        return None
-    try:
-        campaign = read_yaml(campaign_path)
-    except Exception:
-        return None
-    preserved_settings = campaign.get("preserved_settings")
-    if not isinstance(preserved_settings, Mapping):
-        return None
-    raw_device = preserved_settings.get("runtime.device")
-    if not isinstance(raw_device, str) or not raw_device.strip():
-        return None
-    return str(raw_device).strip().lower()
+def _planned_nanotabpfn_python_path(nanotabpfn_root: Path) -> Path:
+    return nanotabpfn_root.expanduser().resolve() / ".venv" / "bin" / "python"
 
 
 def _float_matches(left: float, right: float) -> bool:
@@ -277,15 +272,18 @@ def _resolved_nanotabpfn_signature(
     nanotabpfn_root: Path,
     nanotabpfn_python: Path,
     prior_dump: Path,
-    device: str,
+    requested_device: str,
 ) -> dict[str, Any]:
+    normalized_requested_device = str(requested_device).strip()
     return {
         "benchmark_bundle_path": benchmark_bundle_path.expanduser().resolve(),
         "control_baseline_id": str(control_baseline_id).strip(),
         "nanotabpfn_root": nanotabpfn_root.expanduser().resolve(),
         "nanotabpfn_python": nanotabpfn_python.expanduser().resolve(),
         "prior_dump_path": prior_dump.expanduser().resolve(),
-        "device": str(device).strip().lower(),
+        "device": normalized_requested_device,
+        "resolved_device": resolve_device(normalized_requested_device),
+        "benchmark_host_fingerprint": benchmark_host_fingerprint(),
         "steps": int(DEFAULT_NANOTABPFN_STEPS),
         "eval_every": int(DEFAULT_NANOTABPFN_EVAL_EVERY),
         "seeds": int(DEFAULT_NANOTABPFN_SEEDS),
@@ -297,7 +295,7 @@ def _resolved_nanotabpfn_signature(
 def _candidate_signature(
     *,
     candidate: NanoTabPFNCurveCandidate,
-) -> tuple[dict[str, Any], Path] | None:
+) -> tuple[dict[str, Any], dict[str, Any], Path] | None:
     if not candidate.comparison_summary_path.exists():
         return None
     try:
@@ -315,13 +313,7 @@ def _candidate_signature(
         return None
 
     bundle_source = bundle.get("source_path")
-    root_value = nanotabpfn.get("root")
-    python_value = nanotabpfn.get("python")
     if not isinstance(bundle_source, str) or not bundle_source.strip():
-        return None
-    if not isinstance(root_value, str) or not root_value.strip():
-        return None
-    if not isinstance(python_value, str) or not python_value.strip():
         return None
 
     control_baseline_id = candidate.declared_control_baseline_id
@@ -334,55 +326,81 @@ def _candidate_signature(
             return None
         control_baseline_id = str(baseline_id).strip()
 
-    raw_device = nanotabpfn.get("device")
-    device: str | None
-    if isinstance(raw_device, str) and raw_device.strip():
-        device = str(raw_device).strip().lower()
-    else:
-        device = _legacy_candidate_device(candidate)
-    if device is None:
+    requested_device = nanotabpfn.get("device")
+    if not isinstance(requested_device, str) or not requested_device.strip():
+        return None
+    resolved_device = nanotabpfn.get("resolved_device")
+    if not isinstance(resolved_device, str) or not resolved_device.strip():
+        return None
+    host_fingerprint = nanotabpfn.get("benchmark_host_fingerprint")
+    if not isinstance(host_fingerprint, str) or not host_fingerprint.strip():
         return None
 
-    root = Path(str(root_value)).expanduser().resolve()
+    root_value = nanotabpfn.get("root")
+    root = (
+        Path(str(root_value)).expanduser().resolve()
+        if isinstance(root_value, str) and root_value.strip()
+        else None
+    )
+    python_value = nanotabpfn.get("python")
+    nanotabpfn_python = (
+        Path(str(python_value)).expanduser().resolve()
+        if isinstance(python_value, str) and python_value.strip()
+        else None
+    )
+
     raw_prior_dump_path = nanotabpfn.get("prior_dump_path")
     prior_dump_path = (
         Path(str(raw_prior_dump_path)).expanduser().resolve()
         if isinstance(raw_prior_dump_path, str) and raw_prior_dump_path.strip()
-        else (root / "300k_150x5_2.h5").expanduser().resolve()
+        else None
     )
 
     signature = {
         "benchmark_bundle_path": resolve_registry_path_value(str(bundle_source)),
         "control_baseline_id": control_baseline_id,
         "nanotabpfn_root": root,
-        "nanotabpfn_python": Path(str(python_value)).expanduser().resolve(),
+        "nanotabpfn_python": nanotabpfn_python,
         "prior_dump_path": prior_dump_path,
-        "device": device,
+        "device": str(requested_device).strip(),
+        "resolved_device": str(resolved_device).strip().lower(),
+        "benchmark_host_fingerprint": str(host_fingerprint).strip(),
         "steps": int(nanotabpfn.get("steps", DEFAULT_NANOTABPFN_STEPS)),
         "eval_every": int(nanotabpfn.get("eval_every", DEFAULT_NANOTABPFN_EVAL_EVERY)),
         "seeds": int(nanotabpfn.get("num_seeds", nanotabpfn.get("seeds", DEFAULT_NANOTABPFN_SEEDS))),
         "batch_size": int(nanotabpfn.get("batch_size", DEFAULT_NANOTABPFN_BATCH_SIZE)),
         "lr": float(nanotabpfn.get("lr", DEFAULT_NANOTABPFN_LR)),
     }
-    return signature, curve_path
+    metadata = {
+        "root": None if root is None else str(root),
+        "python": None if nanotabpfn_python is None else str(nanotabpfn_python),
+        "device": signature["device"],
+        "resolved_device": signature["resolved_device"],
+        "benchmark_host_fingerprint": signature["benchmark_host_fingerprint"],
+        "prior_dump_path": None if prior_dump_path is None else str(prior_dump_path),
+        "num_seeds": signature["seeds"],
+        "steps": signature["steps"],
+        "eval_every": signature["eval_every"],
+        "batch_size": signature["batch_size"],
+        "lr": signature["lr"],
+    }
+    return signature, metadata, curve_path
 
 
 def _matching_nanotabpfn_curve(
     *,
     current_signature: Mapping[str, Any],
     candidate: NanoTabPFNCurveCandidate,
-) -> Path | None:
+) -> NanoTabPFNCurveReuseSelection | None:
     candidate_payload = _candidate_signature(candidate=candidate)
     if candidate_payload is None:
         return None
-    candidate_signature, curve_path = candidate_payload
+    candidate_signature, metadata, curve_path = candidate_payload
     comparable_keys = (
         "benchmark_bundle_path",
         "control_baseline_id",
-        "nanotabpfn_root",
-        "nanotabpfn_python",
-        "prior_dump_path",
-        "device",
+        "resolved_device",
+        "benchmark_host_fingerprint",
         "steps",
         "eval_every",
         "seeds",
@@ -391,9 +409,19 @@ def _matching_nanotabpfn_curve(
     for key in comparable_keys:
         if candidate_signature[key] != current_signature[key]:
             return None
+    for key in ("nanotabpfn_root", "nanotabpfn_python", "prior_dump_path"):
+        candidate_value = candidate_signature[key]
+        current_value = current_signature[key]
+        if candidate_value is not None and candidate_value != current_value:
+            return None
     if not _float_matches(float(candidate_signature["lr"]), float(current_signature["lr"])):
         return None
-    return curve_path
+    return NanoTabPFNCurveReuseSelection(
+        curve_path=curve_path,
+        source_label=candidate.source_label,
+        metadata=metadata,
+        signature=candidate_signature,
+    )
 
 
 def _anchor_curve_candidate(
@@ -420,17 +448,9 @@ def _anchor_curve_candidate(
     if not isinstance(summary_value, str) or not summary_value.strip():
         return None
 
-    campaign_path: Path | None = None
-    run_dir_value = artifacts.get("run_dir")
-    if isinstance(run_dir_value, str) and run_dir_value.strip():
-        run_dir = resolve_registry_path_value(run_dir_value)
-        if len(run_dir.parents) >= 2:
-            campaign_path = run_dir.parents[1] / "campaign.yaml"
-
     return NanoTabPFNCurveCandidate(
         source_label="anchor",
         comparison_summary_path=resolve_registry_path_value(summary_value),
-        campaign_path=campaign_path,
     )
 
 
@@ -464,19 +484,18 @@ def resolve_reusable_nanotabpfn_curve(
     sweep_meta: Mapping[str, Any],
     anchor_run_id: str | None,
     nanotabpfn_root: Path,
-    nanotabpfn_python: Path,
     prior_dump: Path,
-    device: str,
+    requested_device: str,
     paths: ExecutionPaths,
-) -> tuple[Path | None, str | None]:
+) -> NanoTabPFNCurveReuseSelection | None:
     control_baseline_id = str(sweep_meta["control_baseline_id"]).strip()
     current_signature = _resolved_nanotabpfn_signature(
         benchmark_bundle_path=resolve_registry_path_value(str(sweep_meta["benchmark_bundle_path"])),
         control_baseline_id=control_baseline_id,
         nanotabpfn_root=nanotabpfn_root,
-        nanotabpfn_python=nanotabpfn_python,
+        nanotabpfn_python=_planned_nanotabpfn_python_path(nanotabpfn_root),
         prior_dump=prior_dump,
-        device=device,
+        requested_device=requested_device,
     )
     candidates = [
         _anchor_curve_candidate(anchor_run_id=anchor_run_id, registry_path=paths.registry_path),
@@ -488,13 +507,13 @@ def resolve_reusable_nanotabpfn_curve(
     for candidate in candidates:
         if candidate is None:
             continue
-        curve_path = _matching_nanotabpfn_curve(
+        selection = _matching_nanotabpfn_curve(
             current_signature=current_signature,
             candidate=candidate,
         )
-        if curve_path is not None:
-            return curve_path, candidate.source_label
-    return None, None
+        if selection is not None:
+            return selection
+    return None
 
 
 def _resolve_parent_row(
@@ -728,27 +747,27 @@ def run_row(
         )
         return run_id
 
-    nanotabpfn_python = ensure_nanotabpfn_python(
-        nanotabpfn_root=nanotabpfn_root,
-        fallback_python=fallback_python,
-    )
-    reuse_curve_path, reuse_source_label = resolve_reusable_nanotabpfn_curve(
+    reuse_selection = resolve_reusable_nanotabpfn_curve(
         sweep_meta=sweep_meta,
         anchor_run_id=anchor_run_id,
         nanotabpfn_root=nanotabpfn_root,
-        nanotabpfn_python=nanotabpfn_python,
         prior_dump=prior_dump,
-        device=device,
+        requested_device=device,
         paths=paths,
     )
-    if reuse_curve_path is not None:
+    reuse_curve_path = None if reuse_selection is None else reuse_selection.curve_path
+    if reuse_selection is not None:
         print(
             f"[row {int(queue_row['order']):02d}] reusing nanoTabPFN curve",
-            f"source={reuse_source_label or 'unknown'}",
+            f"source={reuse_selection.source_label}",
             f"path={reuse_curve_path}",
             flush=True,
         )
     else:
+        _ = ensure_nanotabpfn_python(
+            nanotabpfn_root=nanotabpfn_root,
+            fallback_python=fallback_python,
+        )
         print(
             f"[row {int(queue_row['order']):02d}] running fresh nanoTabPFN helper",
             f"device={device}",
@@ -765,6 +784,9 @@ def run_row(
             control_baseline_registry=paths.control_baseline_registry_path,
             benchmark_bundle_path=resolve_registry_path_value(str(sweep_meta["benchmark_bundle_path"])),
             reuse_nanotabpfn_curve_path=reuse_curve_path,
+            reuse_nanotabpfn_metadata=(
+                None if reuse_selection is None else reuse_selection.metadata
+            ),
         )
     )
     parent_sweep_id = sweep_meta.get("parent_sweep_id")

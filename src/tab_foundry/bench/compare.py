@@ -17,6 +17,7 @@ from tab_foundry.bench.control_baseline import (
     load_control_baseline_entry,
 )
 from tab_foundry.bench.nanotabpfn import (
+    benchmark_host_fingerprint,
     benchmark_bundle_task_type,
     default_benchmark_bundle_path,
     build_comparison_summary,
@@ -27,6 +28,7 @@ from tab_foundry.bench.nanotabpfn import (
     load_benchmark_bundle_for_execution,
     load_openml_benchmark_datasets,
     plot_comparison_curve,
+    resolve_device,
     save_dataset_cache,
     summarize_checkpoint_curve,
 )
@@ -58,6 +60,7 @@ class NanoTabPFNBenchmarkConfig:
     control_baseline_registry: Path | None = None
     benchmark_bundle_path: Path | None = None
     reuse_nanotabpfn_curve_path: Path | None = None
+    reuse_nanotabpfn_metadata: Mapping[str, Any] | None = None
 
 
 def _default_out_root() -> Path:
@@ -119,21 +122,20 @@ def _nanotabpfn_helper_command(
     ]
 
 
-def _validate_config(
-    config: NanoTabPFNBenchmarkConfig,
-    *,
-    require_external_control: bool,
-) -> tuple[Path, Path | None, Path | None]:
-    tab_foundry_run_dir = config.tab_foundry_run_dir.expanduser().resolve()
-
+def _validate_tab_foundry_run_dir(path: Path) -> Path:
+    tab_foundry_run_dir = path.expanduser().resolve()
     if not tab_foundry_run_dir.exists():
         raise RuntimeError(f"tab-foundry run dir does not exist: {tab_foundry_run_dir}")
-    if not require_external_control:
-        return tab_foundry_run_dir, None, None
+    return tab_foundry_run_dir
 
+
+def _validate_nanotabpfn_environment(
+    config: NanoTabPFNBenchmarkConfig,
+) -> tuple[Path, Path]:
     nanotabpfn_root = config.nanotabpfn_root.expanduser().resolve()
     nanotabpfn_python = _nanotabpfn_python(nanotabpfn_root)
     prior_dump = _nanotabpfn_prior_dump(nanotabpfn_root, config.nanotab_prior_dump)
+
     if not nanotabpfn_root.exists():
         raise RuntimeError(f"nanoTabPFN root does not exist: {nanotabpfn_root}")
     if not nanotabpfn_python.exists():
@@ -143,15 +145,28 @@ def _validate_config(
         )
     if not prior_dump.exists():
         raise RuntimeError(f"nanoTabPFN prior dump does not exist: {prior_dump}")
-    return tab_foundry_run_dir, nanotabpfn_root, prior_dump
+    return nanotabpfn_root, prior_dump
+
+
+def _resolve_reuse_curve_path(config: NanoTabPFNBenchmarkConfig) -> Path | None:
+    if config.reuse_nanotabpfn_curve_path is None:
+        return None
+    return config.reuse_nanotabpfn_curve_path.expanduser().resolve()
 
 
 def _nanotabpfn_execution_metadata(
     *,
-    config: NanoTabPFNBenchmarkConfig,
+    requested_device: str,
+    resolved_device: str,
+    host_fingerprint: str,
     nanotabpfn_root: Path | None,
     nanotabpfn_python: Path | None,
     prior_dump: Path | None,
+    steps: int,
+    eval_every: int,
+    seeds: int,
+    batch_size: int,
+    lr: float,
     reuse_curve_path: Path | None,
 ) -> dict[str, Any]:
     return {
@@ -159,13 +174,15 @@ def _nanotabpfn_execution_metadata(
         "python": None
         if nanotabpfn_python is None
         else str(nanotabpfn_python.expanduser().resolve()),
-        "num_seeds": int(config.nanotabpfn_seeds),
-        "device": str(config.device),
+        "num_seeds": int(seeds),
+        "device": str(requested_device),
+        "resolved_device": str(resolved_device),
+        "benchmark_host_fingerprint": str(host_fingerprint),
         "prior_dump_path": None if prior_dump is None else str(prior_dump.expanduser().resolve()),
-        "steps": int(config.nanotabpfn_steps),
-        "eval_every": int(config.nanotabpfn_eval_every),
-        "batch_size": int(config.nanotabpfn_batch_size),
-        "lr": float(config.nanotabpfn_lr),
+        "steps": int(steps),
+        "eval_every": int(eval_every),
+        "batch_size": int(batch_size),
+        "lr": float(lr),
         "curve_source_mode": "reused" if reuse_curve_path is not None else "fresh",
         "reused_curve_path": (
             None
@@ -173,6 +190,92 @@ def _nanotabpfn_execution_metadata(
             else str(reuse_curve_path.expanduser().resolve())
         ),
     }
+
+
+def _fresh_nanotabpfn_execution_metadata(
+    *,
+    config: NanoTabPFNBenchmarkConfig,
+    nanotabpfn_root: Path,
+    nanotabpfn_python: Path,
+    prior_dump: Path,
+    reuse_curve_path: Path | None,
+) -> dict[str, Any]:
+    requested_device = str(config.device).strip()
+    return _nanotabpfn_execution_metadata(
+        requested_device=requested_device,
+        resolved_device=resolve_device(requested_device),
+        host_fingerprint=benchmark_host_fingerprint(),
+        nanotabpfn_root=nanotabpfn_root,
+        nanotabpfn_python=nanotabpfn_python,
+        prior_dump=prior_dump,
+        steps=int(config.nanotabpfn_steps),
+        eval_every=int(config.nanotabpfn_eval_every),
+        seeds=int(config.nanotabpfn_seeds),
+        batch_size=int(config.nanotabpfn_batch_size),
+        lr=float(config.nanotabpfn_lr),
+        reuse_curve_path=reuse_curve_path,
+    )
+
+
+def _required_reuse_metadata_string(
+    metadata: Mapping[str, Any],
+    key: str,
+) -> str:
+    value = metadata.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"reuse_nanotabpfn_metadata.{key} must be a non-empty string")
+    return str(value).strip()
+
+
+def _optional_reuse_metadata_path(
+    metadata: Mapping[str, Any],
+    key: str,
+) -> Path | None:
+    value = metadata.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"reuse_nanotabpfn_metadata.{key} must be a non-empty string when provided")
+    return Path(str(value)).expanduser().resolve()
+
+
+def _reused_nanotabpfn_execution_metadata(
+    *,
+    metadata: Mapping[str, Any],
+    reuse_curve_path: Path,
+) -> dict[str, Any]:
+    nanotabpfn_root = _optional_reuse_metadata_path(metadata, "root")
+    nanotabpfn_python = _optional_reuse_metadata_path(metadata, "python")
+    prior_dump = _optional_reuse_metadata_path(metadata, "prior_dump_path")
+    seeds = metadata.get("num_seeds", metadata.get("seeds"))
+    if not isinstance(seeds, int) or isinstance(seeds, bool):
+        raise RuntimeError("reuse_nanotabpfn_metadata.num_seeds must be an integer")
+    steps = metadata.get("steps")
+    if not isinstance(steps, int) or isinstance(steps, bool):
+        raise RuntimeError("reuse_nanotabpfn_metadata.steps must be an integer")
+    eval_every = metadata.get("eval_every")
+    if not isinstance(eval_every, int) or isinstance(eval_every, bool):
+        raise RuntimeError("reuse_nanotabpfn_metadata.eval_every must be an integer")
+    batch_size = metadata.get("batch_size")
+    if not isinstance(batch_size, int) or isinstance(batch_size, bool):
+        raise RuntimeError("reuse_nanotabpfn_metadata.batch_size must be an integer")
+    lr = metadata.get("lr")
+    if not isinstance(lr, (int, float)) or isinstance(lr, bool):
+        raise RuntimeError("reuse_nanotabpfn_metadata.lr must be numeric")
+    return _nanotabpfn_execution_metadata(
+        requested_device=_required_reuse_metadata_string(metadata, "device"),
+        resolved_device=_required_reuse_metadata_string(metadata, "resolved_device"),
+        host_fingerprint=_required_reuse_metadata_string(metadata, "benchmark_host_fingerprint"),
+        nanotabpfn_root=nanotabpfn_root,
+        nanotabpfn_python=nanotabpfn_python,
+        prior_dump=prior_dump,
+        steps=int(steps),
+        eval_every=int(eval_every),
+        seeds=int(seeds),
+        batch_size=int(batch_size),
+        lr=float(lr),
+        reuse_curve_path=reuse_curve_path,
+    )
 
 
 def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any]:
@@ -188,13 +291,17 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     )
     task_type = benchmark_bundle_task_type(benchmark_bundle)
     require_external_control = task_type != "supervised_regression"
-    tab_foundry_run_dir, nanotabpfn_root, prior_dump = _validate_config(
-        config,
-        require_external_control=require_external_control,
+    reuse_curve_path = _resolve_reuse_curve_path(config)
+    tab_foundry_run_dir = _validate_tab_foundry_run_dir(config.tab_foundry_run_dir)
+    require_nanotabpfn_environment = require_external_control and (
+        reuse_curve_path is None or config.reuse_nanotabpfn_metadata is None
     )
-    nanotabpfn_python = (
-        None if nanotabpfn_root is None else _nanotabpfn_python(nanotabpfn_root)
-    )
+    nanotabpfn_root: Path | None = None
+    nanotabpfn_python: Path | None = None
+    prior_dump: Path | None = None
+    if require_nanotabpfn_environment:
+        nanotabpfn_root, prior_dump = _validate_nanotabpfn_environment(config)
+        nanotabpfn_python = _nanotabpfn_python(nanotabpfn_root)
     out_root = config.out_root.expanduser().resolve()
     out_root.mkdir(parents=True, exist_ok=True)
 
@@ -243,11 +350,6 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     write_jsonl(tab_foundry_curve_path, tab_foundry_records)
 
     nanotabpfn_records: list[dict[str, Any]] = []
-    reuse_curve_path = (
-        None
-        if config.reuse_nanotabpfn_curve_path is None
-        else config.reuse_nanotabpfn_curve_path.expanduser().resolve()
-    )
     if require_external_control:
         if reuse_curve_path is not None:
             nanotabpfn_records = load_jsonl(reuse_curve_path)
@@ -289,14 +391,26 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     )
     nanotabpfn_summary = summary.get("nanotabpfn")
     if require_external_control and isinstance(nanotabpfn_summary, Mapping):
-        cast(dict[str, Any], nanotabpfn_summary).update(
-            _nanotabpfn_execution_metadata(
+        if reuse_curve_path is not None and config.reuse_nanotabpfn_metadata is not None:
+            execution_metadata = _reused_nanotabpfn_execution_metadata(
+                metadata=config.reuse_nanotabpfn_metadata,
+                reuse_curve_path=reuse_curve_path,
+            )
+        else:
+            if nanotabpfn_root is None or nanotabpfn_python is None or prior_dump is None:
+                raise RuntimeError(
+                    "reuse_nanotabpfn_metadata is required to reuse a cached nanoTabPFN "
+                    "curve without a local nanoTabPFN environment"
+                )
+            execution_metadata = _fresh_nanotabpfn_execution_metadata(
                 config=config,
                 nanotabpfn_root=nanotabpfn_root,
                 nanotabpfn_python=nanotabpfn_python,
                 prior_dump=prior_dump,
                 reuse_curve_path=reuse_curve_path,
             )
+        cast(dict[str, Any], nanotabpfn_summary).update(
+            execution_metadata
         )
     gradient_history_jsonl = gradient_history_path(tab_foundry_run_dir)
     telemetry_json = telemetry_path(tab_foundry_run_dir)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import platform
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -38,6 +39,18 @@ def resolve_device(device: str) -> str:
     if torch.backends.mps.is_available():
         return "mps"
     return "cpu"
+
+
+def benchmark_host_fingerprint() -> str:
+    """Return a stable same-machine fingerprint for benchmark timing reuse."""
+
+    parts = [
+        platform.node().strip().lower(),
+        platform.system().strip().lower(),
+        platform.machine().strip().lower(),
+    ]
+    normalized = [part if part else "unknown" for part in parts]
+    return "|".join(normalized)
 
 
 def resolve_tab_foundry_run_artifact_paths(run_dir: Path) -> tuple[Path, Path]:
