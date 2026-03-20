@@ -42,16 +42,16 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_qass_no_column_v3` | context_encoder | yes | ready | qass_context | Use the public `qass_context` stage, but disable the column-set encoder so QASS is measured directly on top of the winning no-context row-embedding surface. | Run first and compare directly against the v2 no-context row-embedding anchor before attributing any TFCol effect. |
-| 2 | `delta_column_set_no_context_v3` | column_encoding | yes | ready | column_set | Use the public `column_set` stage, but disable plain context so TFCol is measured directly on top of the winning no-context row-embedding surface. | Run second and read it as TFCol-only evidence on the no-context row-embedding base. |
-| 3 | `delta_qass_context_v3` | column_encoding | yes | ready | qass_context | Use the public `qass_context` stage unchanged so TFCol is measured as the incremental addition to the QASS-only row-first surface. | Run last and interpret only against the QASS-only row to decide whether TFCol belongs in the promoted row-first line. |
+| 1 | `delta_qass_no_column_v3` | context_encoder | yes | completed | qass_context | Use the public `qass_context` stage, but disable the column-set encoder so QASS is measured directly on top of the winning no-context row-embedding surface. | Run first and compare directly against the v2 no-context row-embedding anchor before attributing any TFCol effect. |
+| 2 | `delta_column_set_no_context_v3` | column_encoding | yes | completed | column_set | Use the public `column_set` stage, but disable plain context so TFCol is measured directly on top of the winning no-context row-embedding surface. | Run second and read it as TFCol-only evidence on the no-context row-embedding base. |
+| 3 | `delta_qass_context_v3` | column_encoding | yes | completed | qass_context | Use the public `qass_context` stage unchanged so TFCol is measured as the incremental addition to the QASS-only row-first surface. | Run last and interpret only against the QASS-only row to decide whether TFCol belongs in the promoted row-first line. |
 
 ## Detailed Rows
 
 ### 1. `delta_qass_no_column_v3`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `qass_context`
 - Description: Use the public `qass_context` stage, but disable the column-set encoder so QASS is measured directly on top of the winning no-context row-embedding surface.
@@ -61,6 +61,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from the v2 no-context row-embedding anchor, enable only the QASS context path while keeping the column encoder off so QASS is isolated from TFCol.
 - Expected effect: Isolate whether QASS itself helps on the row-embedding surface without TFCol confounding the result.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0261`); context (grad `0.0478`)
 - Model overrides: `{'module_overrides': {'column_encoder': 'none'}, 'stage': 'qass_context'}`
 - Parameter adequacy plan:
   - Compare directly against the v2 no-context row-embedding anchor before reading any TFCol result.
@@ -70,18 +71,20 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tficl_n_layers
   - tficl_ff_expansion
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Execution must use the same benchmark bundle, control baseline, and reuse signature as v2 so QASS is the only modeled change.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v3_01_delta_qass_no_column_v3_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_embedding_attribution_v3/delta_qass_no_column_v3/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_row_embedding_attribution_v3_01_delta_qass_no_column_v3_v1` with final log loss `0.4011`, delta final log loss `+0.0019`, final Brier score `0.2625`, delta final Brier score `-0.0002`, best ROC AUC `0.7588`, final ROC AUC `0.7588`, final-minus-best `+0.0000`, delta final ROC AUC `+0.0008`, delta drift `-0.0006`, delta final training time `+25.4s`
 
 ### 2. `delta_column_set_no_context_v3`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `column_set`
 - Description: Use the public `column_set` stage, but disable plain context so TFCol is measured directly on top of the winning no-context row-embedding surface.
@@ -91,6 +94,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from the v2 no-context row-embedding anchor, enable only the column-set encoder while keeping context disabled so TFCol is isolated from both plain context and QASS.
 - Expected effect: Isolate whether TFCol itself helps on the row-embedding surface without plain or QASS context confounding the result.
 - Effective labels: model=`delta_column_set_no_context_v3`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0309`); row (grad `0.0498`)
 - Model overrides: `{'module_overrides': {'context_encoder': 'none'}, 'stage': 'column_set'}`
 - Parameter adequacy plan:
   - Compare directly against the v2 no-context row-embedding anchor before reading any QASS-plus-TFCol result.
@@ -100,18 +104,20 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfcol_n_layers
   - tfcol_n_inducing
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - Do not interpret this row as plain-context evidence; the context path stays disabled so only TFCol changes.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v3_02_delta_column_set_no_context_v3_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_embedding_attribution_v3/delta_column_set_no_context_v3/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_row_embedding_attribution_v3_02_delta_column_set_no_context_v3_v1` with final log loss `0.4208`, delta final log loss `+0.0216`, final Brier score `0.2707`, delta final Brier score `+0.0080`, best ROC AUC `0.7467`, final ROC AUC `0.7414`, final-minus-best `-0.0053`, delta final ROC AUC `-0.0166`, delta drift `-0.0058`, delta final training time `+90.1s`
 
 ### 3. `delta_qass_context_v3`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `qass_context`
 - Description: Use the public `qass_context` stage unchanged so TFCol is measured as the incremental addition to the QASS-only row-first surface.
@@ -121,6 +127,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Starting from row 1, remove the `column_encoder=none` override while keeping QASS fixed so TFCol is the only incremental change.
 - Expected effect: Determine whether TFCol adds value once QASS is already present on top of the row-embedding base.
 - Effective labels: model=`delta_qass_context_v3`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0135`); row (grad `0.0257`); context (grad `0.0456`)
 - Model overrides: `{'stage': 'qass_context'}`
 - Parameter adequacy plan:
   - Compare directly against the matched QASS-only row so the incremental TFCol effect stays isolated.
@@ -130,10 +137,12 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfcol_n_layers
   - tfcol_n_inducing
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - If this row is flat or worse than row 1, promote `row_cls + qass + no tfcol` and demote default TFCol from the row-first path.
+  - Canonical rerun registered as `sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_embedding_attribution_v3/delta_qass_context_v3/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1` with final log loss `0.3925`, delta final log loss `-0.0066`, final Brier score `0.2554`, delta final Brier score `-0.0073`, best ROC AUC `0.7528`, final ROC AUC `0.7516`, final-minus-best `-0.0012`, delta final ROC AUC `-0.0064`, delta drift `-0.0018`, delta final training time `+118.3s`
