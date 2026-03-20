@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: grouped_token_stability_probe_v1
 parent_sweep_id: tokenization_migration_v1
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -22,9 +22,12 @@ anchor_surface:
   - Data and preprocessing remain part of the comparison surface and must stay fixed
     unless the queue row declares that exact dimension.
   - >-
-    `prenorm_block` remains the current canonical architecture-screen handoff;
-    `grouped_tokens` stays mixed benchmark evidence until this bounded
-    hybrid-diagnostic probe resolves.
+    This bounded hybrid-diagnostic probe resolved the grouped-token adequacy
+    question, and benchmark-facing replay
+    `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`
+    now carries grouped tokens on the architecture-screen lane while
+    `prenorm_block` remains the locked TF-RD-004 anchor for attributable
+    comparisons.
   - >-
     This sweep keeps the grouped-token model, data, and preprocessing surfaces
     fixed and asks only whether training adequacy explains the weaker ROC read.
@@ -32,8 +35,9 @@ anchor_surface:
     Do not interpret this sweep as evidence about row-CLS, TFCol, QASS, or
     later tokenizer-dependent architecture work.
   - >-
-    TF-RD-005, TF-RD-006, and TF-RD-007 remain blocked on the outcome of this
-    grouped-token adequacy probe.
+    TF-RD-005, TF-RD-006, and TF-RD-007 should inherit grouped tokens from
+    `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`,
+    not from `prenorm_block` or the older scalar-token path.
   dimension_table:
   - dimension: feature encoder
     upstream: Scalar feature linear encoder with internal train/test z-score+clip

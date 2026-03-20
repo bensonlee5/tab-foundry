@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tokenization_migration_v1
 parent_sweep_id: shared_surface_bridge_v1
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -29,8 +29,11 @@ anchor_surface:
     were not selected as the canonical grouped-token predecessor on the shared-surface
     bridge.
   - >-
-    If the grouped-token benchmark row registers successfully, follow immediately
-    with the bounded hybrid-diagnostic stability probe `grouped_token_stability_probe_v1`.
+    `grouped_token_stability_probe_v1` resolved the grouped-token adequacy question
+    in favor of the no-trace `prior_linear_warmup_decay` contract, and benchmark-facing
+    replay `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`
+    is now the canonical grouped-token predecessor for TF-RD-005, TF-RD-006, and
+    TF-RD-007.
   dimension_table:
   - dimension: feature encoder
     upstream: Scalar feature linear encoder with internal train/test z-score+clip

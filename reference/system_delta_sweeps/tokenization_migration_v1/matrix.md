@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/tokenization_migration
 ## Sweep
 
 - Sweep id: `tokenization_migration_v1`
-- Sweep status: `draft`
+- Sweep status: `completed`
 - Parent sweep id: `shared_surface_bridge_v1`
 - Complexity level: `binary_md`
 
@@ -43,6 +43,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `delta_architecture_screen_grouped_tokens` | tokenization | yes | completed | grouped_tokens | Replace scalar-per-feature tokenization with the public grouped-token staged recipe on the locked shared-surface handoff. | Run the first stage-native grouped-token benchmark row on top of the locked `prenorm_block` handoff, then create `grouped_token_stability_probe_v1` only if this row registers successfully. |
+| 2 | `delta_training_linear_warmup_decay` | schedule | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup. | Use `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` as the canonical grouped-token predecessor for TF-RD-005, TF-RD-006, and TF-RD-007; do not reopen the tokenization handoff unless a later benchmark-facing replay supersedes it. |
 
 ## Detailed Rows
 
@@ -79,3 +80,35 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tokenization_migration_v1/delta_architecture_screen_grouped_tokens/result_card.md`
 - Registered run: `sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v2` with final log loss `0.6372`, delta final log loss `-0.0166`, final Brier score `0.4451`, delta final Brier score `-0.0159`, best ROC AUC `0.5229`, final ROC AUC `0.5229`, final-minus-best `+0.0000`, delta final ROC AUC `-0.0250`, delta drift `+0.0000`, delta final training time `+2.4s`
+
+### 2. `delta_training_linear_warmup_decay`
+
+- Dimension family: `training`
+- Status: `completed`
+- Binary applicable: `True`
+- Recipe alias: `none`
+- Description: Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup.
+- Rationale: Replay the grouped-token row on the benchmark-facing architecture-screen lane with the no-trace warmup-decay training contract selected by the grouped-token adequacy probe.
+- Hypothesis: The benchmark-facing grouped-token replay should recover the probe's stable warmup-decay quality while keeping the architecture-screen lane, making the grouped-token handoff canonical for TF-RD-005, TF-RD-006, and TF-RD-007.
+- Upstream delta: Not applicable; this is a repo-local exact-prior training recipe change.
+- Anchor delta: Keep the stage-native grouped-token model, data, and preprocessing surfaces fixed on `cls_benchmark_staged`, then replace `training_default` with the preferred no-trace `prior_linear_warmup_decay` contract selected by `grouped_token_stability_probe_v1`.
+- Expected effect: Reduced early instability versus constant LR or plain linear decay, with uncertain final quality impact.
+- Effective labels: model=`delta_architecture_screen_grouped_tokens`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0000`)
+- Training overrides: `{'apply_schedule': True, 'optimizer': {'name': 'schedulefree_adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'runtime': {'max_steps': 2500, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
+- Parameter adequacy plan:
+  - Compare directly against both the mixed architecture-screen grouped-token row and the warmup-decay probe result.
+  - Treat this as the benchmark-facing canonical replay for later row-first rows, not as a reopened tokenizer adequacy screen.
+- Adequacy knobs to dimension explicitly:
+  - schedule.stages[0].lr_max
+  - optimizer.min_lr
+  - schedule.stages[0].warmup_ratio
+- Execution policy: `benchmark_full`
+- Interpretation status: `completed`
+- Decision: `keep`
+- Notes:
+  - Canonical rerun registered as `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`.
+  - Registered the benchmark-facing grouped-token warmup-decay replay; TF-RD-005, TF-RD-006, and TF-RD-007 should anchor on this run.
+- Follow-up run ids: `[]`
+- Result card path: `outputs/staged_ladder/research/tokenization_migration_v1/delta_training_linear_warmup_decay/result_card.md`
+- Registered run: `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` with final log loss `0.4002`, delta final log loss `-0.2536`, final Brier score `0.2618`, delta final Brier score `-0.1992`, best ROC AUC `0.7413`, final ROC AUC `0.7413`, final-minus-best `+0.0000`, delta final ROC AUC `+0.1934`, delta drift `+0.0000`, delta final training time `+342.7s`

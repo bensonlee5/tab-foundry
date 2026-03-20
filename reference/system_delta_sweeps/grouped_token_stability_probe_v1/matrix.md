@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/grouped_token_stabilit
 ## Sweep
 
 - Sweep id: `grouped_token_stability_probe_v1`
-- Sweep status: `draft`
+- Sweep status: `completed`
 - Parent sweep id: `tokenization_migration_v1`
 - Complexity level: `binary_md`
 
@@ -44,7 +44,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `delta_anchor_activation_trace_baseline` | diagnostics | yes | completed | none | Keep the locked anchor model surface fixed but rerun prior training with activation tracing enabled so forward-pass norm dynamics are captured in `gradient_history.jsonl` and `telemetry.json`. | Use this traced row as the telemetry anchor only; the benchmark-facing grouped-token replay should follow the row-3 no-trace warmup-decay surface rather than this traced run. |
 | 2 | `delta_training_linear_decay` | schedule | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces but replace the exact-prior constant LR with single-stage linear decay. | Keep this row as a ROC-oriented tradeoff reference only; prefer the warmup-decay grouped-token surface before any benchmark-facing replay or later row-first architecture work. |
-| 3 | `delta_training_linear_warmup_decay` | schedule | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup. | Run one benchmark-facing grouped-token replay on this no-trace warmup-decay surface, then let TF-RD-005, TF-RD-006, and TF-RD-007 inherit grouped tokens from that replay rather than from `prenorm_block`. |
+| 3 | `delta_training_linear_warmup_decay` | schedule | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup. | Use `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` as the canonical grouped-token predecessor for TF-RD-005, TF-RD-006, and TF-RD-007; keep this row as the adequacy probe that selected the replay surface rather than as the benchmark-facing handoff itself. |
 
 ## Detailed Rows
 
@@ -145,6 +145,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   - Warmup+decay without tracing reproduced row 1 almost exactly: final log loss `0.4002`, final Brier `0.2618`, final ROC AUC `0.7414`, clipped-step fraction `0.0012`, and zero drift.
   - Treat this as the preferred grouped-token adequacy surface: it preserves the strong row-1 quality/stability read without the trace-only overhead and clearly dominates the no-warmup decay tradeoff on loss, Brier, and gradient stability.
+  - Benchmark-facing replay `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` landed on the architecture-screen lane, so TF-RD-005, TF-RD-006, and TF-RD-007 should inherit grouped tokens from that run rather than from `prenorm_block`.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/grouped_token_stability_probe_v1/delta_training_linear_warmup_decay/result_card.md`
 - Registered run: `sd_grouped_token_stability_probe_v1_03_delta_training_linear_warmup_decay_v1` with final log loss `0.4002`, delta final log loss `-0.2370`, final Brier score `0.2618`, delta final Brier score `-0.1833`, best ROC AUC `0.7414`, final ROC AUC `0.7414`, final-minus-best `+0.0000`, delta final ROC AUC `+0.2184`, delta drift `+0.0000`, delta final training time `+382.1s`

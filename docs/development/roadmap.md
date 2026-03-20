@@ -91,7 +91,7 @@ retained for traceability.
 | 1 | TF-RD-001 | Control freeze and experiment trust | implemented | Implemented |
 | 2 | TF-RD-002 | Measurement surfaces for architecture migration | implemented | Implemented |
 | 3 | TF-RD-003 | Shared-surface unlock | implemented | Implemented |
-| 4 | TF-RD-004 | Tokenization migration | partial | Now |
+| 4 | TF-RD-004 | Tokenization migration | completed | Now |
 | 5 | TF-RD-005 | Row-embedding unlock | planned | Now |
 | 6 | TF-RD-006 | Column-set integration | planned | Now |
 | 7 | TF-RD-007 | Row-level context and QASS attribution | planned | Now |
@@ -154,7 +154,7 @@ Critical path: **003 → 004 → 005 → 006 → 007 → 008**. 000, 001, 002, 0
 | Objective / Claim | Current State | Evidence In Repo | Current Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, benchmark comparison tooling, and prior-trained PFN-facing lanes already exist | The current large-anchor hybrid line is still easy to confuse with the intended destination | `TF-RD-001` |
-| Coherent row-first migration ladder exists in code | `partial` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`, `shared_surface_bridge_v1` locks `prenorm_block` as the grouped-token handoff, and `grouped_token_stability_probe_v1` resolves the grouped-token adequacy question in favor of `prior_linear_warmup_decay` | One benchmark-facing grouped-token replay on the winning warmup-decay surface still needs to be registered before later row-first rows should rely on grouped tokens as the working token surface | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
+| Coherent row-first migration ladder exists in code | `partial` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`, `shared_surface_bridge_v1` locks `prenorm_block` as the grouped-token handoff, `grouped_token_stability_probe_v1` resolves the adequacy question in favor of `prior_linear_warmup_decay`, and benchmark-facing replay `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` now carries grouped tokens on the architecture-screen lane | Later row-first rows still need their own attributable evaluations, but TF-RD-005, TF-RD-006, and TF-RD-007 should inherit grouped tokens from `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` rather than from `prenorm_block` or the older scalar-token path | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
 | Architecture comparisons are attributable | `partial` | Isolated row-CLS, TFCol, and QASS evidence exists on compact surfaces | Negative evidence is easy to overgeneralize because stage-local telemetry and matched controls are still incomplete | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
 | One promoted row-first classification anchor exists | `planned` | The ingredients exist in `tabfoundry_staged`, but no coherent row-first anchor has been promoted | The active architecture target is still split across compact-ladder evidence and the current large hybrid line | `TF-RD-008` |
 | Scaling-law work targets the right architecture | `partial` | Tuning and benchmark-adjacent tooling already exist | There is no canonical scaling artifact path on a promoted row-first anchor yet | `TF-RD-009` |
@@ -276,8 +276,8 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-004: Tokenization Migration
 
-- Status: `partial`
-- Milestone: `Now`
+- Status: `completed`
+- Milestone: `Implemented`
 - Goal: evaluate grouped tokenization as the first true row-first preparation
   step on the shared surface
 - Current state:
@@ -304,16 +304,18 @@ This roadmap assumes the following repo truths:
   - TF-RD-004 now has an explicit keep decision: grouped tokens stay on the
     migration path, with `prior_linear_warmup_decay` as the preferred adequacy
     surface for the benchmark-facing replay
-- Required work:
-  - register one benchmark-facing grouped-token replay on the winning
-    `prior_linear_warmup_decay` surface without trace-only overhead so the
-    grouped-token handoff is benchmark-facing rather than probe-only
-  - keep `prenorm_block` as the canonical architecture-screen handoff until that
-    replay is registered, even though the grouped-token keep/defer decision is
-    now resolved
-  - use the replayed warmup-decay grouped-token surface, not the old
-    scalar-per-feature token path, as the predecessor for TF-RD-005, TF-RD-006,
-    and TF-RD-007
+  - the benchmark-facing grouped-token replay
+    `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`
+    is now registered on the architecture-screen lane and lands the probe's
+    no-trace warmup-decay surface as the canonical grouped-token predecessor
+- Implemented contract:
+  - keep `prenorm_block` as the locked TF-RD-004 anchor for attributable
+    comparisons, but carry later row-first work forward from
+    `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`
+  - treat the warmup-decay grouped-token replay, not the old scalar-per-feature
+    token path, as the predecessor for TF-RD-005, TF-RD-006, and TF-RD-007
+  - preserve the adequacy probe as supporting evidence rather than the
+    benchmark-facing handoff itself
 - Exit criteria:
   - the grouped-token keep decision is recorded from the mixed
     `tokenization_migration_v1` result plus the warmup-decay stability follow-up
@@ -333,8 +335,9 @@ This roadmap assumes the following repo truths:
   - that evidence is entangled with the old PFN-adjacent surface and should not
     be generalized too far
 - Required work:
-  - evaluate `row_cls_pool` only after the grouped-token warmup-decay replay
-    from TF-RD-004 is registered
+  - evaluate `row_cls_pool` starting from grouped-token replay
+    `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`,
+    not from `prenorm_block` or the older scalar-token path
   - keep adequacy checks bounded to row-encoder capacity knobs after the main
     row-first surface is established
   - interpret old row-CLS negative evidence as compact-surface evidence, not as
@@ -354,8 +357,8 @@ This roadmap assumes the following repo truths:
   - old compact-surface TFCol evidence was near-neutral, stable, and expensive
   - the old row pool and compact surface limited how much that result could say
 - Required work:
-  - evaluate `column_set` only after the grouped-token warmup-decay replay is
-    registered and row embeddings are viable
+  - evaluate `column_set` only after row embeddings are viable on grouped-token
+    replay `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`
   - keep inducing-count and depth adequacy follow-ups bounded and explicit
   - interpret TFCol as part of the row-first bundle, not as a bolt-on to the PFN
     anchor
@@ -376,8 +379,9 @@ This roadmap assumes the following repo truths:
     not cleanly separate context value from added depth
 - Required work:
   - compare row-level `plain` context against row-level `qass` context only
-    after the grouped-token warmup-decay replay and the row-embedding /
-    column-set predecessors are registered
+    after grouped-token replay
+    `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`
+    and the row-embedding / column-set predecessors are registered
   - pair each QASS row with a matched non-QASS added-depth control
   - keep QASS optional by construction
 - Exit criteria:
