@@ -596,7 +596,11 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
         )
         return subprocess.CompletedProcess(cmd, 0)
 
-    monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
+    monkeypatch.setattr(
+        compare_module,
+        "subprocess",
+        SimpleNamespace(run=_fake_run, CalledProcessError=subprocess.CalledProcessError),
+    )
     monkeypatch.setattr(
         compare_module,
         "posthoc_update_wandb_summary",
@@ -842,6 +846,261 @@ def test_run_nanotabpfn_benchmark_explicit_large_bundle_allows_missing_inputs(
     assert summary["nanotabpfn"]["resolved_device"] == "cuda"
     assert summary["nanotabpfn"]["benchmark_host_fingerprint"] == "host-a"
     assert summary["nanotabpfn"]["prior_dump_path"] == str(prior_dump.resolve())
+
+
+def test_run_nanotabpfn_benchmark_forwards_missing_bundle_policy_to_helper(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    nanotab_root = tmp_path / "nano"
+    (nanotab_root / ".venv" / "bin").mkdir(parents=True)
+    nanotab_python = nanotab_root / ".venv" / "bin" / "python"
+    nanotab_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    prior_dump = nanotab_root / "300k_150x5_2.h5"
+    prior_dump.write_bytes(b"prior")
+    out_root = tmp_path / "benchmark_out"
+    bundle_path = tmp_path / "large_bundle.json"
+    bundle_path.write_text("{}", encoding="utf-8")
+
+    benchmark_bundle = {
+        "name": "large_bundle",
+        "version": 1,
+        "selection": {
+            "new_instances": 6,
+            "task_type": "supervised_classification",
+            "max_features": 10,
+            "max_classes": 2,
+            "max_missing_pct": 5.0,
+            "min_minority_class_pct": 2.5,
+        },
+        "task_ids": [1],
+        "tasks": [
+            {
+                "task_id": 1,
+                "dataset_name": "toy",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(
+        compare_module,
+        "load_benchmark_bundle_for_execution",
+        lambda path=None: (benchmark_bundle, True),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "load_openml_benchmark_datasets",
+        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+            {
+                "toy": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64),
+                )
+            },
+            [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
+        ),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "evaluate_tab_foundry_run",
+        lambda *_args, **_kwargs: [
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "dataset_roc_auc": {"toy": 0.81},
+            }
+        ],
+    )
+    monkeypatch.setattr(compare_module, "summarize_checkpoint_curve", lambda records, **_kwargs: {"records": records})
+    monkeypatch.setattr(compare_module, "plot_comparison_curve", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        compare_module,
+        "build_comparison_summary",
+        lambda **_kwargs: {
+            "dataset_count": 1,
+            "benchmark_bundle": {"name": "large_bundle", "allow_missing_values": True},
+            "tab_foundry": {},
+            "nanotabpfn": {},
+        },
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "derive_benchmark_run_record",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError(
+                "checkpoint config must include explicit model.arch metadata for benchmark "
+                "registration; legacy checkpoints without persisted model.arch cannot be "
+                "registered"
+            )
+        ),
+    )
+    monkeypatch.setattr(compare_module, "resolve_device", lambda device: "cuda")
+    monkeypatch.setattr(compare_module, "benchmark_host_fingerprint", lambda: "host-a")
+
+    captured: dict[str, Any] = {}
+
+    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+        captured["cmd"] = cmd
+        captured["cwd"] = cwd
+        captured["check"] = check
+        out_index = cmd.index("--out-path") + 1
+        Path(cmd[out_index]).write_text(
+            json.dumps(
+                {
+                    "seed": 0,
+                    "step": 25,
+                    "training_time": 2.0,
+                    "roc_auc": 0.78,
+                    "dataset_roc_auc": {"toy": 0.78},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(
+        compare_module,
+        "subprocess",
+        SimpleNamespace(run=_fake_run, CalledProcessError=subprocess.CalledProcessError),
+    )
+
+    _ = compare_module.run_nanotabpfn_benchmark(
+        compare_module.NanoTabPFNBenchmarkConfig(
+            tab_foundry_run_dir=smoke_run_dir,
+            out_root=out_root,
+            nanotabpfn_root=nanotab_root,
+            nanotab_prior_dump=prior_dump,
+            benchmark_bundle_path=bundle_path,
+        )
+    )
+
+    assert captured["cwd"] == nanotab_root.resolve()
+    assert captured["check"] is True
+    assert "--allow-missing-values" in captured["cmd"]
+
+
+def test_run_nanotabpfn_benchmark_tolerates_missing_bundle_helper_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    (smoke_run_dir / "gradient_history.jsonl").write_text("{}\n", encoding="utf-8")
+    (smoke_run_dir / "telemetry.json").write_text("{}\n", encoding="utf-8")
+    nanotab_root = tmp_path / "nano"
+    (nanotab_root / ".venv" / "bin").mkdir(parents=True)
+    nanotab_python = nanotab_root / ".venv" / "bin" / "python"
+    nanotab_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    prior_dump = nanotab_root / "300k_150x5_2.h5"
+    prior_dump.write_bytes(b"prior")
+    out_root = tmp_path / "benchmark_out"
+    bundle_path = tmp_path / "large_bundle.json"
+    bundle_path.write_text("{}", encoding="utf-8")
+
+    benchmark_bundle = {
+        "name": "large_bundle",
+        "version": 1,
+        "selection": {
+            "new_instances": 6,
+            "task_type": "supervised_classification",
+            "max_features": 10,
+            "max_classes": 2,
+            "max_missing_pct": 5.0,
+            "min_minority_class_pct": 2.5,
+        },
+        "task_ids": [1],
+        "tasks": [
+            {
+                "task_id": 1,
+                "dataset_name": "toy",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(
+        compare_module,
+        "load_benchmark_bundle_for_execution",
+        lambda path=None: (benchmark_bundle, True),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "load_openml_benchmark_datasets",
+        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+            {
+                "toy": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64),
+                )
+            },
+            [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
+        ),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "evaluate_tab_foundry_run",
+        lambda *_args, **_kwargs: [
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "log_loss": 0.42,
+                "brier_score": 0.12,
+                "dataset_roc_auc": {"toy": 0.81},
+                "dataset_log_loss": {"toy": 0.42},
+                "dataset_brier_score": {"toy": 0.12},
+            }
+        ],
+    )
+    monkeypatch.setattr(compare_module, "summarize_checkpoint_curve", lambda records, **_kwargs: {"records": records})
+    monkeypatch.setattr(compare_module, "plot_comparison_curve", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        compare_module,
+        "derive_benchmark_run_record",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError(
+                "checkpoint config must include explicit model.arch metadata for benchmark "
+                "registration; legacy checkpoints without persisted model.arch cannot be "
+                "registered"
+            )
+        ),
+    )
+    monkeypatch.setattr(compare_module, "resolve_device", lambda device: "cuda")
+    monkeypatch.setattr(compare_module, "benchmark_host_fingerprint", lambda: "host-a")
+
+    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+        raise subprocess.CalledProcessError(1, cmd)
+
+    monkeypatch.setattr(
+        compare_module,
+        "subprocess",
+        SimpleNamespace(run=_fake_run, CalledProcessError=subprocess.CalledProcessError),
+    )
+
+    summary = compare_module.run_nanotabpfn_benchmark(
+        compare_module.NanoTabPFNBenchmarkConfig(
+            tab_foundry_run_dir=smoke_run_dir,
+            out_root=out_root,
+            nanotabpfn_root=nanotab_root,
+            nanotab_prior_dump=prior_dump,
+            benchmark_bundle_path=bundle_path,
+        )
+    )
+
+    assert "nanotabpfn" not in summary
+    assert summary["nanotabpfn_error"]["kind"] == "helper_failed_on_missing_bundle"
+    assert summary["artifacts"]["nanotabpfn_curve_jsonl"] is None
 
 
 def test_run_nanotabpfn_benchmark_reuses_curve_without_local_nanotabpfn_env(

@@ -1,87 +1,104 @@
 # Architecture Deltas
 
-This document compares the current benchmark-facing `tab-foundry` anchor to two
-external reference points:
+This document compares the settled row-first architecture target in `tab-foundry`
+to two external reference points:
 
-- `nanoTabPFN` / TabPFN-style cell-table encoder
-- TabICLv2's row-first architecture
+- `nanoTabPFN` / TabPFN-style cell-table encoder as the frozen PFN control
+  lineage
+- TabICLv2's row-first architecture as the main external directional reference
 
 The goal is not to restate every implementation detail. It is to make the
-structural deltas visible enough that future anchor work can choose a direction
-deliberately instead of living in a hybrid middle state.
+decision-relevant structural deltas visible enough that the repo can explain
+the TF-RD-008 settlement without confusing historical diagnostic sweeps for the
+current normative direction.
 
 ## Scope
 
-The "current anchor" here means the active large-CUDA benchmark-facing surface
-under investigation in
-`reference/system_delta_sweeps/cuda_stability_followup/queue.yaml` row `1`:
+Roadmap-first framing:
 
-- `stage=nano_exact`
-- `module_overrides.table_block_style=prenorm`
-- `module_overrides.row_pool=row_cls`
-- `d_icl=512`
-- `tficl_n_layers=12`
-- `head_hidden_dim=1024`
+- `docs/development/roadmap.md` is the canonical planning source of truth.
+- The normative architecture target is now the staged row-first line reached
+  through `grouped_tokens -> row_cls_pool -> column_set -> qass_context`.
+- TF-RD-008 is now closed with an explicit split:
+  `row_cls + qass + no tfcol` is the default row-first anchor, while
+  `row_cls + qass + tfcol_heads4` remains the retained calibration-oriented
+  alternative.
+- The decisive missing-permitting benchmark surface was
+  `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`, where the
+  TFCol row improved final Brier and ROC AUC but missed the final log-loss
+  promotion rule by a very small margin.
+- Older sweep matrices, including the large-CUDA diagnostic surfaces, remain
+  valid research evidence, but they are historical or diagnostic surfaces, not
+  the architecture target described here.
 
 Code landing zones:
 
-- frozen TabPFN-like anchor:
+- frozen PFN-style control:
   `src/tab_foundry/model/architectures/tabfoundry_simple.py`
-- current staged anchor wiring:
+- staged target wiring:
   `src/tab_foundry/model/architectures/tabfoundry_staged/forward_common.py`
-- current staged block and pooling implementations:
+- staged block, pooling, column, and context implementations:
   `src/tab_foundry/model/architectures/tabfoundry_staged/subsystems.py`
 - staged recipe and override surface:
   `src/tab_foundry/model/architectures/tabfoundry_staged/recipes.py`
   and `src/tab_foundry/model/architectures/tabfoundry_staged/resolved.py`
-- parked TabICL-flavored reusable components:
+- reusable TFCol and QASS components:
   `src/tab_foundry/model/components/blocks.py` and
   `src/tab_foundry/model/components/qass.py`
 
-## Current Anchor At A Glance
+## Settled Row-First Target At A Glance
 
 ```mermaid
 flowchart LR
-    x[train/test table] --> fe[nano feature encoder]
-    y[y_train] --> tc[mean-padded target conditioner]
-    fe --> cat[concat into full cell table]
-    tc --> cat
-    cat --> blk[12 x prenorm cell blocks]
-    blk --> pool[row CLS pool]
-    pool --> head[binary direct head]
+    x[train/test table] --> tok[shared encoder plus shifted-grouped tokenizer]
+    y[y_train] --> tc[label-token target conditioning]
+    tok --> blk[prenorm test-self cell blocks]
+    tc --> blk
+    blk --> col[optional TFCol column encoder<br/>none or heads4]
+    col --> pool[row CLS pooling]
+    pool --> ctx[QASS context encoder]
+    ctx --> head[small-class head]
 
     classDef base fill:#eef5ff,stroke:#3b6ea8,color:#0f1f33;
     classDef delta fill:#fff1d6,stroke:#c67a00,color:#3d2a00;
-    class blk,pool,head delta;
-    class x,fe,y,tc,cat base;
+    class blk,col,pool,ctx,head delta;
+    class x,tok,y,tc base;
 ```
 
-The important point is that the current anchor still keeps the full cell table
-alive through the main stack. It has changed the block math and the readout, but
-it has not yet switched to a row-embedding-then-ICL architecture.
+This target is already beyond the old readout-only hybrid. The staged ladder has
+accepted grouped tokens, row-CLS pooling, and QASS-backed row-level context as
+the live architecture surface. The settled default keeps the column-set encoder
+off by default and treats the validated `tfcol_heads4` line as a retained
+alternative rather than the canonical parent.
 
 ## Delta Vs TabPFN
 
 Shared backbone traits:
 
-- one feature value maps to one cell embedding on the exact path
-- target values are conditioned into a target column before the main stack
-- the main stack alternates feature-wise and row-wise interaction over the full
-  cell table
 - prediction still happens in one forward pass over train and test rows
+- labels enter the model before the final prediction head
+- table blocks still matter before the model collapses to a row-level summary
+- the frozen PFN control lane remains available through `tabfoundry_simple` and
+  `stage=nano_exact`
 
 Key structural deltas:
 
-- TabPFN uses a post-norm cell block; the current anchor uses a prenorm cell
-  block
-- TabPFN reads predictions from the target column; the current anchor first
-  collapses each row with `row_cls`
-- TabPFN is architecturally monolithic; the current anchor lives inside a staged
-  resolved surface with overrideable subsystems
+- the active target uses the shared feature-encoding and normalization surface,
+  not the exact nano-internal normalization path
+- label-token target conditioning replaces the direct mean-padded target-column
+  contract
+- shifted grouped tokens replace scalar-per-feature tokenization
+- row-CLS pooling replaces target-column readout
+- QASS is active after row pooling
+- column-set reasoning is modular and no longer the default:
+  `none` is the settled default, while `tfcol_heads4` is retained as the
+  calibration-oriented alternative
+- the staged target uses the small-class head rather than the frozen
+  binary-only direct head
 
 ```mermaid
 flowchart LR
-    subgraph TP[TabPFN / nanoTabPFN]
+    subgraph TP[TabPFN / nanoTabPFN control]
         tp_x[train/test table] --> tp_fe[feature encoder]
         tp_y[y_train] --> tp_tc[mean-padded target column]
         tp_fe --> tp_cat[full cell table]
@@ -91,61 +108,65 @@ flowchart LR
         tp_read --> tp_head[binary decoder]
     end
 
-    subgraph TA[Current tabfoundry anchor]
-        ta_x[train/test table] --> ta_fe[nano feature encoder]
-        ta_y[y_train] --> ta_tc[mean-padded target conditioner]
-        ta_fe --> ta_cat[full cell table]
-        ta_tc --> ta_cat
-        ta_cat --> ta_blk[prenorm cell blocks]
-        ta_blk --> ta_pool[row CLS pool]
-        ta_pool --> ta_head[binary direct head]
+    subgraph TA[Active row-first target]
+        ta_x[train/test table] --> ta_tok[shared plus grouped tokens]
+        ta_y[y_train] --> ta_tc[label-token conditioning]
+        ta_tok --> ta_blk[prenorm test-self cell blocks]
+        ta_tc --> ta_blk
+        ta_blk --> ta_col[optional TFCol]
+        ta_col --> ta_pool[row CLS pool]
+        ta_pool --> ta_ctx[QASS context]
+        ta_ctx --> ta_head[small-class head]
     end
 
-    tp_cat -. same cell-table lineage .- ta_cat
-    tp_blk -. block style changed .- ta_blk
-    tp_read -. readout replaced .- ta_pool
+    tp_cat -. same table-compute lineage .- ta_blk
+    tp_read -. row summary replaces target-column readout .- ta_pool
+    tp_head -. class contract broadens .- ta_head
 
     classDef shared fill:#eef5ff,stroke:#3b6ea8,color:#0f1f33;
     classDef delta fill:#fff1d6,stroke:#c67a00,color:#3d2a00;
-    class tp_x,tp_fe,tp_y,tp_tc,tp_cat,ta_x,ta_fe,ta_y,ta_tc,ta_cat shared;
-    class tp_blk,tp_read,tp_head,ta_blk,ta_pool,ta_head delta;
+    class tp_x,tp_fe,tp_y,tp_tc,tp_cat,ta_x,ta_tok,ta_y,ta_tc shared;
+    class tp_blk,tp_read,tp_head,ta_blk,ta_col,ta_pool,ta_ctx,ta_head delta;
 ```
 
 ### What This Means
 
-Relative to TabPFN, the current anchor is still in the same architectural
-family. The main design question is therefore not "should it become more like a
-transformer for tables?" It already is. The real question is whether the anchor
-should stay on the cell-table path and become a cleaner TabPFN-derived model, or
-stop paying cell-table costs and move to a row-first design.
+Relative to TabPFN, the repo is no longer deciding whether row-level reasoning
+should enter the target line at all. That ladder step is already accepted. The
+TF-RD-008 settlement now says the promoted default keeps no TFCol as the
+canonical parent, while `tfcol_heads4` survives only as an explicit
+calibration-oriented alternative.
 
 ## Delta Vs TabICLv2
 
-TabICLv2's defining move is to compress the table into row embeddings before the
-final ICL stage. The current anchor does not do that.
+TabICLv2 remains the main external reference for the row-first direction. The
+active staged target is much closer to that direction than the older
+large-CUDA diagnostic surfaces were, but it is still not a literal TabICLv2
+copy.
 
 Key structural deltas:
 
-- TabICLv2 has an explicit column-wise embedding stage based on set-style /
-  induced attention; the current anchor does not use that on the live path
-- TabICLv2 has a distinct row-interaction stage before final ICL; the current
-  anchor keeps one main cell-table stack instead
-- TabICLv2 performs the last stage of in-context learning on row embeddings and
-  uses QASS-family attention there; the current anchor's live path has no active
-  context encoder
-- TabICLv2 is designed for classification and regression; the current anchor is
-  still a binary direct benchmark surface
+- the staged target still reaches row-level reasoning through a staged
+  cell-table trunk instead of presenting one monolithic row-first stack from
+  the start
+- TFCol and QASS remain modular staged choices rather than mandatory features
+  of every model family surface
+- column-set modeling is retained as an optional branch, not the default
+  row-first path
+- the repo remains classification-first; many-class extends the same ladder and
+  regression is still deferred
 
 ```mermaid
 flowchart LR
-    subgraph TA[Current tabfoundry anchor]
-        ta_x[train/test table] --> ta_fe[nano feature encoder]
-        ta_y[y_train] --> ta_tc[target conditioner]
-        ta_fe --> ta_cat[full cell table]
-        ta_tc --> ta_cat
-        ta_cat --> ta_blk[prenorm cell stack]
-        ta_blk --> ta_pool[row CLS pool]
-        ta_pool --> ta_head[direct head]
+    subgraph TA[Active row-first target]
+        ta_x[train/test table] --> ta_tok[shared plus grouped tokens]
+        ta_y[y_train] --> ta_tc[label-token conditioning]
+        ta_tok --> ta_blk[prenorm test-self cell blocks]
+        ta_tc --> ta_blk
+        ta_blk --> ta_col[optional TFCol]
+        ta_col --> ta_pool[row CLS pool]
+        ta_pool --> ta_ctx[QASS context]
+        ta_ctx --> ta_head[small-class head]
     end
 
     subgraph TI[TabICLv2]
@@ -158,45 +179,41 @@ flowchart LR
         ti_icl --> ti_head[classification or regression head]
     end
 
-    ta_cat -. no early row collapse .- ti_rows
-    ta_pool -. current path ends here .- ti_icl
+    ta_pool -. row summary becomes explicit earlier than PFN control .- ti_rows
+    ta_ctx -. late modular context stage .- ti_icl
 
     classDef anchor fill:#fff1d6,stroke:#c67a00,color:#3d2a00;
     classDef tabicl fill:#e9f8ef,stroke:#2d8a57,color:#123322;
-    class ta_x,ta_fe,ta_y,ta_tc,ta_cat,ta_blk,ta_pool,ta_head anchor;
+    class ta_x,ta_tok,ta_y,ta_tc,ta_blk,ta_col,ta_pool,ta_ctx,ta_head anchor;
     class ti_x,ti_col,ti_row,ti_rows,ti_y,ti_ctx,ti_icl,ti_head tabicl;
 ```
 
 ### What This Means
 
-Relative to TabICLv2, the current anchor is still missing the architectural move
-that makes TabICLv2 scalable: "embed rows first, then do ICL on rows." The repo
-does contain some ingredients for that direction in reusable components:
-
-- `TFColEncoder` in `src/tab_foundry/model/components/blocks.py`
-- `TFRowEncoder` in `src/tab_foundry/model/components/blocks.py`
-- `QASSTransformerEncoder` in `src/tab_foundry/model/components/qass.py`
-
-But those pieces are not yet the default live anchor path.
+Relative to TabICLv2, the repo no longer needs to ask whether it should pursue a
+row-first target in principle. It already has one. The relevant read now is
+that the repo kept the simpler no-TFCol default after the missing-permitting
+bundle produced a mixed result, instead of forcing the heavier TFCol branch into
+the default path.
 
 ## Directional Read
 
 ```mermaid
 flowchart TD
-    cur[current anchor<br/>cell-table stack + prenorm + row CLS] --> pfn[PFN-cleanup path]
-    cur --> hybrid[explicit post-pool ICL path]
-    cur --> ticl[TabICLv2-style row-first path]
-
-    pfn --> pfn1[keep cell-table core<br/>stabilize block math and readout]
-    hybrid --> hy1[retain current table stack<br/>add a real row-level context stage]
-    ticl --> ti1[promote column encoder plus row encoder<br/>make final ICL operate on rows]
+    ctrl[frozen PFN control<br/>tabfoundry_simple or nano_exact] --> ladder[row-first staged ladder<br/>grouped tokens -> row CLS -> qass_context]
+    ladder --> def[default row-first anchor<br/>row_cls + qass + no tfcol]
+    ladder --> cal[retained calibration variant<br/>row_cls + qass + tfcol_heads4]
+    def --> settle[TF-RD-008 settled<br/>simple default]
+    cal --> settle
 
     classDef neutral fill:#eef5ff,stroke:#3b6ea8,color:#0f1f33;
     classDef branch fill:#f7f7f7,stroke:#777,color:#222;
-    class cur neutral;
-    class pfn,pfn1,hybrid,hy1,ticl,ti1 branch;
+    class ctrl,ladder,settle neutral;
+    class def,cal branch;
 ```
 
-The least coherent long-term state is to keep `row_cls` as a readout tweak while
-still treating the full cell-table stack as the main architecture. That is a
-hybrid worth benchmarking, but probably not a strong destination.
+The least coherent state now is not "keep benchmarking row-first ideas." That
+work already happened. The least coherent state would be to keep describing the
+older large-CUDA diagnostic surface as the current anchor, or to keep treating
+the TFCol branch as the implicit default after the roadmap already settled on
+the simpler no-TFCol row-first line.

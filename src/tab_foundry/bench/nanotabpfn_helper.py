@@ -23,6 +23,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seeds", type=int, default=2, help="Number of random seeds")
     parser.add_argument("--batch-size", type=int, default=32, help="Prior batch size")
     parser.add_argument("--lr", type=float, default=4.0e-3, help="Learning rate")
+    parser.add_argument(
+        "--allow-missing-values",
+        action="store_true",
+        help="Permit missing-valued benchmark inputs when the bundle explicitly allows them",
+    )
     return parser
 
 
@@ -76,7 +81,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             lr=float(args.lr),
             device=device,
             steps_per_eval=int(args.eval_every),
-            eval_func=lambda classifier: evaluate_classifier(classifier, datasets),
+            eval_func=lambda classifier: evaluate_classifier(
+                classifier,
+                datasets,
+                allow_missing_values=bool(args.allow_missing_values),
+            ),
         )
         _ = model_instance
         for index, (training_time, metrics) in enumerate(history, start=1):

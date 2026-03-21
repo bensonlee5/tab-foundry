@@ -45,6 +45,9 @@ intentionally deferred further still.
 - Scaling predictability comes first.
 - Classification remains the anchor workload until the scaling-oriented control
   family and the row-first classification target are stable.
+- Training-surface adequacy and at least one harder post-008 ladder should be
+  settled before selective low-level architecture expansion or scaling-law work
+  becomes the main next source of evidence.
 - Regression is intentionally deferred until it can be rebuilt on top of
   `tabfoundry_staged`.
 - Many-class expansion beyond maintenance, time series, text-conditioned inputs,
@@ -82,6 +85,9 @@ forking the repo. Core swap points include:
 - QASS versus non-QASS attention
 - backbone depth and width schedules
 - readout and head choices
+- bounded low-level follow-up such as norm placement or family, initialization
+  choices, and scaler capacity only after harder-surface evidence shows they
+  are decision-relevant
 - coherent staged-surface promotion rather than override accumulation
 
 ### QASS Remains Optional

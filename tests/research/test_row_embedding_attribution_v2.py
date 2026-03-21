@@ -85,7 +85,7 @@ def test_row_embedding_attribution_v2_is_registered_but_not_active() -> None:
     assert isinstance(sweeps, dict)
     assert sweeps["row_embedding_attribution_v2"] == {
         "parent_sweep_id": "tokenization_migration_v1",
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",

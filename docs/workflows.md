@@ -359,12 +359,20 @@ preserving the same row-count, feature-count, missingness, and minority-class
 filters.
 
 The missing-permitting large binary bundle at
-`src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json` remains reserved
-for missingness-oriented work such as `missingness_followup`. The opt-in
-no-missing larger binary surface lives separately at
-`src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json` so
-current medium-bundle comparisons and missingness sweeps keep their existing
-contracts.
+`src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json` is the closed
+missing-data settlement surface for `TF-RD-008`. It is not reserved exclusively
+for `missingness_followup`; that older sweep remains useful hybrid-diagnostic
+evidence on the prenorm foundation, but it is not the closure path for the
+row-first anchor decision. The opt-in no-missing larger
+binary surface at
+`src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json` is the
+completed validator that narrowed the row-first choice to `row_cls + qass + no tfcol`
+versus `row_cls + qass + tfcol_heads4`, while
+`nanotabpfn_openml_binary_large_v1.json` closed that decision with an explicit
+split: `row_cls + qass + no tfcol` is now the default row-first anchor because
+the TFCol row missed the final log-loss promotion rule and the repo prefers the
+simpler lower-runtime line when the missing-bundle result is mixed. `row_cls + qass + tfcol_heads4`
+remains the retained calibration-oriented variant.
 
 Regenerate the canonical medium binary bundle with:
 

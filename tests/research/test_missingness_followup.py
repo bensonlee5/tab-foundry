@@ -30,7 +30,7 @@ def test_missingness_followup_is_registered_but_not_active() -> None:
     assert isinstance(sweeps, dict)
     assert sweeps["missingness_followup"] == {
         "parent_sweep_id": "stability_ladder",
-        "status": "draft",
+        "status": "superseded",
         "anchor_run_id": None,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
@@ -45,9 +45,13 @@ def test_missingness_followup_metadata_and_rows_match_the_plan() -> None:
 
     assert sweep["sweep_id"] == "missingness_followup"
     assert sweep["parent_sweep_id"] == "stability_ladder"
+    assert sweep["status"] == "superseded"
     assert sweep["benchmark_bundle_path"] == "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
     assert sweep["anchor_context"]["model"]["stage"] == "prenorm_block"
     assert sweep["anchor_context"]["surface_labels"]["data"] == "benchmark_large_allow_missing"
+    notes = sweep["anchor_surface"]["notes"]
+    assert isinstance(notes, list)
+    assert any("historical hybrid-diagnostic evidence" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
