@@ -1,0 +1,289 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: qass_tfcol_adequacy_v1
+rows:
+- order: 1
+  delta_ref: delta_qass_context_tfcol_inducing64_v1
+  status: completed
+  rationale: Evaluate whether the calibration-winning `qass_context` line is carrying
+    more TFCol inducing capacity than this no-missing medium bundle actually needs.
+  hypothesis: If the default TFCol inducing set is overbuilt, halving it to 64 should
+    preserve the log-loss/Brier gain of `delta_qass_context_v3` while recovering ROC
+    or training time.
+  anchor_delta: Starting from the completed `delta_qass_context_v3` anchor, reduce
+    only `tfcol_n_inducing` from 128 to 64 and keep the rest of the QASS row-first
+    surface fixed.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_context_tfcol_inducing64_v1
+    tfcol_n_inducing: 64
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against the completed `delta_qass_context_v3` anchor and keep
+    the calibration-first objective fixed.
+  - Promote only if the row keeps the calibration win over `delta_qass_no_column_v3`
+    and improves either ROC or training time versus the anchor.
+  run_id: sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Run first and compare directly against the completed `delta_qass_context_v3`
+    anchor to see whether a smaller inducing set preserves calibration while recovering
+    ROC or runtime.
+  notes:
+  - Treat this as a pure inducing-capacity adequacy row; do not reopen the broader
+    TFCol-versus-no-TFCol attribution question on this bundle.
+  - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json`.
+  - Execution must use the same benchmark bundle, control baseline, and reuse signature
+    as the v3 anchor so only TFCol inducing capacity changes.
+  - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_01_delta_qass_context_tfcol_inducing64_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 1975
+    max_grad_norm: 3.9555604457855225
+    clipped_step_fraction: 0.0092
+    best_log_loss: 0.39743214151205525
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.43713547749187065
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.25924074676610126
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.28576971806463447
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.7437594304259001
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.7454414394491209
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0397033359798154
+    final_minus_best_brier_score: 0.02652897129853321
+    final_minus_best_roc_auc: 0.0016820090232207985
+    drift: 0.0016820090232207985
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 0.04462227298432775
+    delta_final_brier_score: 0.03035862629485958
+    delta_final_roc_auc: -0.0062082211978231605
+    column_encoder_final_window_mean_grad_norm: 0.013211862969295355
+    row_pool_final_window_mean_grad_norm: 0.023722152374382535
+    context_encoder_final_window_mean_grad_norm: 0.04297887480104395
+- order: 2
+  delta_ref: delta_qass_context_tfcol_layers1_v1
+  status: completed
+  rationale: Evaluate whether the calibration-winning `qass_context` line is paying
+    unnecessary ROC or runtime cost for a TFCol stack that is too deep for this medium
+    no-missing bundle.
+  hypothesis: If the default TFCol depth is the source of the ROC penalty, reducing
+    the column encoder to one layer should preserve most of the calibration gain while
+    improving ROC or training time.
+  anchor_delta: Starting from the completed `delta_qass_context_v3` anchor, reduce
+    only `tfcol_n_layers` from 3 to 1 and keep the rest of the QASS row-first surface
+    fixed.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_context_tfcol_layers1_v1
+    tfcol_n_layers: 1
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against the completed `delta_qass_context_v3` anchor and keep
+    the calibration-first objective fixed.
+  - Promote only if the row keeps the calibration win over `delta_qass_no_column_v3`
+    and improves either ROC or training time versus the anchor.
+  run_id: sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Run second and compare directly against the completed `delta_qass_context_v3`
+    anchor to see whether shallower TFCol depth preserves calibration while improving
+    ROC or runtime.
+  notes:
+  - Treat this as a pure depth adequacy row; do not reinterpret plain context or QASS
+    itself from this result.
+  - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json`.
+  - Execution must use the same benchmark bundle, control baseline, and reuse signature
+    as the v3 anchor so only TFCol depth changes.
+  - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_02_delta_qass_context_tfcol_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 1400
+    max_grad_norm: 4.515257835388184
+    clipped_step_fraction: 0.0092
+    best_log_loss: 0.3918438245688398
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.4023831579765358
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.2577061918107693
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.26243082570231624
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.7583558904647782
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.7463123975129908
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.010539333407695972
+    final_minus_best_brier_score: 0.0047246338915469255
+    final_minus_best_roc_auc: -0.012043492951787416
+    drift: -0.012043492951787416
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 0.009869953468992887
+    delta_final_brier_score: 0.00701973393254135
+    delta_final_roc_auc: -0.005337263133953218
+    column_encoder_final_window_mean_grad_norm: 0.012000294947768891
+    row_pool_final_window_mean_grad_norm: 0.024837037724353857
+    context_encoder_final_window_mean_grad_norm: 0.053475608513085235
+- order: 3
+  delta_ref: delta_qass_context_tfcol_heads4_v1
+  status: completed
+  rationale: Evaluate whether the calibration-winning `qass_context` line can keep
+    its log-loss/Brier gain with a lighter TFCol attention budget on the medium no-missing
+    bundle.
+  hypothesis: If the default TFCol head count is unnecessary, reducing it to four
+    heads should preserve the calibration gain while improving ROC or training time.
+  anchor_delta: Starting from the completed `delta_qass_context_v3` anchor, reduce
+    only `tfcol_n_heads` from 8 to 4 and keep the rest of the QASS row-first surface
+    fixed.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_context_tfcol_heads4_v1
+    tfcol_n_heads: 4
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against the completed `delta_qass_context_v3` anchor and keep
+    the calibration-first objective fixed.
+  - Promote only if the row keeps the calibration win over `delta_qass_no_column_v3`
+    and improves either ROC or training time versus the anchor.
+  run_id: sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  confounders: []
+  next_action: Run third and compare directly against the completed `delta_qass_context_v3`
+    anchor to see whether fewer TFCol heads preserve calibration while improving ROC
+    or runtime.
+  notes:
+  - Treat this as a pure attention-budget adequacy row; do not reopen the TFCol-presence
+    decision on this bundle from this result alone.
+  - If this row wins, validate it next against `delta_qass_no_column_v3` on `src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json`.
+  - Execution must use the same benchmark bundle, control baseline, and reuse signature
+    as the v3 anchor so only TFCol head count changes.
+  - Canonical rerun registered as `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2200
+    max_grad_norm: 4.483185291290283
+    clipped_step_fraction: 0.0084
+    best_log_loss: 0.39527690818300115
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.396293062565641
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.25863097120377654
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.25951832398372676
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.7525664770309781
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.7538034097569957
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0010161543826398556
+    final_minus_best_brier_score: 0.0008873527799502234
+    final_minus_best_roc_auc: 0.0012369327260175478
+    drift: 0.0012369327260175478
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 0.0037798580580981067
+    delta_final_brier_score: 0.0041072322139518724
+    delta_final_roc_auc: 0.002153749110051617
+    column_encoder_final_window_mean_grad_norm: 0.020672283352202978
+    row_pool_final_window_mean_grad_norm: 0.024387709299888337
+    context_encoder_final_window_mean_grad_norm: 0.05066479234173753

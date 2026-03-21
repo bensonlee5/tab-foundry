@@ -8,12 +8,12 @@ not from this dated snapshot.
 Audit method:
 
 - `./.venv/bin/python -m pytest -q`
-- `uv run pre-commit run --all-files`
+- `pre-commit run --all-files`
 - `./.venv/bin/python scripts/audit/check_repo_paths.py`
 - `./.venv/bin/python scripts/audit/check_markdown_links.py`
 - `./.venv/bin/python scripts/audit/module_graph.py --fail-on-doc-drift`
-- `uv run deptry .`
-- `uv run vulture src scripts tests --min-confidence 80`
+- `deptry .`
+- `vulture src scripts tests --min-confidence 80`
 - targeted `rg`/`sed` inspection for CLI/doc references and
   orphan-surface candidates
 

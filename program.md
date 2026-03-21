@@ -210,7 +210,7 @@ generate the scalar instability audit report under
 `outputs/staged_ladder/reports/` with:
 
 ```bash
-uv run python -m tab_foundry.bench.instability_audit \
+python -m tab_foundry.bench.instability_audit \
   --staged-ladder-root outputs/staged_ladder \
   --sweep-id binary_md_v1
 ```

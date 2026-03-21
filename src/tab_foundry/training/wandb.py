@@ -126,11 +126,19 @@ def init_wandb_run(cfg: DictConfig, *, enabled: bool) -> Any | None:
     api_key = resolve_wandb_api_key()
     mode: Literal["online", "offline"] = "online" if api_key else "offline"
     cfg_payload = cast(dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
+    init_kwargs: dict[str, Any] = {
+        "project": str(cfg.logging.project),
+        "name": str(cfg.logging.run_name),
+        "mode": mode,
+        "config": cfg_payload,
+    }
+    group_raw = getattr(cfg.logging, "group", None)
+    if group_raw is not None:
+        group = str(group_raw).strip()
+        if group:
+            init_kwargs["group"] = group
     return wandb.init(
-        project=str(cfg.logging.project),
-        name=str(cfg.logging.run_name),
-        mode=mode,
-        config=cfg_payload,
+        **init_kwargs,
     )
 
 
@@ -142,6 +150,7 @@ def wandb_identity_payload(
     path_entity, path_project, path_run_id = _wandb_public_path_parts(run)
     project_fallback = None
     run_name_fallback = None
+    group_fallback = None
     if cfg is not None:
         logging_cfg = cfg.get("logging")
         if logging_cfg is not None:
@@ -151,12 +160,16 @@ def wandb_identity_payload(
             run_name_raw = getattr(logging_cfg, "run_name", None)
             if run_name_raw is not None:
                 run_name_fallback = str(run_name_raw).strip() or None
+            group_raw = getattr(logging_cfg, "group", None)
+            if group_raw is not None:
+                group_fallback = str(group_raw).strip() or None
 
     entity_raw = _wandb_run_value(run, "entity")
     project_raw = _wandb_run_value(run, "project")
     run_id_raw = _wandb_run_value(run, "id")
     run_name_raw = _wandb_run_value(run, "name")
     mode_raw = _wandb_run_value(run, "mode")
+    group_raw = _wandb_run_value(run, "group")
 
     metadata = {
         "entity": path_entity if entity_raw is None else str(entity_raw).strip() or None,
@@ -169,6 +182,9 @@ def wandb_identity_payload(
         metadata["project"] = project_fallback
     if metadata["run_name"] is None:
         metadata["run_name"] = run_name_fallback
+    group = group_fallback if group_raw is None else str(group_raw).strip() or None
+    if group is not None:
+        metadata["group"] = group
     if not any(value is not None for value in metadata.values()):
         return None
     return metadata

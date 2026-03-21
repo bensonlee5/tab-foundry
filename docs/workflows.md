@@ -31,7 +31,14 @@ Setup:
 
 ```bash
 uv sync
-uv run pre-commit install
+pre-commit install
+```
+
+After setup, activate the virtual environment so all commands below can be run
+directly:
+
+```bash
+source .venv/bin/activate
 ```
 
 Repo-local `uv sync` includes the benchmark helper dependencies plus Muon
@@ -60,15 +67,15 @@ Run the full local quality gate:
 Fast developer-facing inspection commands:
 
 ```bash
-uv run tab-foundry dev resolve-config experiment=cls_smoke
-uv run tab-foundry dev forward-check experiment=cls_smoke
-uv run tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
-uv run tab-foundry dev health-check --run-dir outputs/cls_smoke
-uv run tab-foundry dev run-inspect --run-dir outputs/cls_smoke
-uv run tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
-uv run tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
-uv run tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
-uv run tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1
+tab-foundry dev resolve-config experiment=cls_smoke
+tab-foundry dev forward-check experiment=cls_smoke
+tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
+tab-foundry dev health-check --run-dir outputs/cls_smoke
+tab-foundry dev run-inspect --run-dir outputs/cls_smoke
+tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
+tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
+tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
+tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1
 ```
 
 Format markdown directly:
@@ -111,7 +118,7 @@ export DAGZOO_DATA_ROOT="$HOME/dev/dagzoo/data"
 Build the default manifest:
 
 ```bash
-uv run tab-foundry data build-manifest \
+tab-foundry data build-manifest \
   --data-root "${DAGZOO_DATA_ROOT:-$HOME/dev/dagzoo/data}" \
   --out-manifest data/manifests/default.parquet
 ```
@@ -122,7 +129,7 @@ Accepted-only flow:
 
 ```bash
 dagzoo filter --in data/run1 --out data/run1_filter --curated-out data/run1_curated
-uv run tab-foundry data build-manifest \
+tab-foundry data build-manifest \
   --data-root data/run1_curated \
   --filter-policy accepted_only \
   --out-manifest data/manifests/accepted_only.parquet
@@ -139,15 +146,15 @@ Helper script:
 Common training profiles:
 
 ```bash
-uv run tab-foundry train run experiment=cls_smoke
-uv run tab-foundry train run experiment=cls_workstation
-uv run tab-foundry train run \
+tab-foundry train run experiment=cls_smoke
+tab-foundry train run experiment=cls_workstation
+tab-foundry train run \
   experiment=cls_benchmark_linear \
   data.manifest_path=data/manifests/default.parquet
-uv run tab-foundry train run \
+tab-foundry train run \
   experiment=cls_benchmark_linear_simple \
   data.manifest_path=<binary_manifest.parquet>
-uv run tab-foundry train run \
+tab-foundry train run \
   experiment=cls_benchmark_staged \
   data.manifest_path=<binary_manifest.parquet>
 ```
@@ -176,7 +183,7 @@ Prior-dump training for the staged family uses the same harness with the staged
 experiment default:
 
 ```bash
-uv run tab-foundry train prior staged
+tab-foundry train prior staged
 ```
 
 `~/dev/nanoTabPFN/300k_150x5_2.h5` is an input to `tab-foundry train prior ...`
@@ -191,13 +198,13 @@ Repo-local `uv sync` includes Muon. If you are using a minimal install without
 the `muon` extra, run without Muon explicitly:
 
 ```bash
-uv run tab-foundry train run experiment=cls_smoke optimizer=adamw
+tab-foundry train run experiment=cls_smoke optimizer=adamw
 ```
 
 Evaluate a checkpoint:
 
 ```bash
-uv run tab-foundry eval checkpoint \
+tab-foundry eval checkpoint \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   experiment=cls_smoke
 ```
@@ -205,11 +212,11 @@ uv run tab-foundry eval checkpoint \
 Export and validate an inference bundle:
 
 ```bash
-uv run tab-foundry export bundle \
+tab-foundry export bundle \
   --checkpoint outputs/cls_smoke/checkpoints/best.pt \
   --out-dir outputs/exports/cls_smoke_v3
 
-uv run tab-foundry export validate \
+tab-foundry export validate \
   --bundle-dir outputs/exports/cls_smoke_v3
 ```
 
@@ -217,11 +224,11 @@ For model-surface work, prefer the fast dev commands before launching a full
 smoke or training loop:
 
 ```bash
-uv run tab-foundry dev resolve-config experiment=cls_smoke
-uv run tab-foundry dev forward-check experiment=cls_smoke
-uv run tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
-uv run tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
-uv run tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
+tab-foundry dev resolve-config experiment=cls_smoke
+tab-foundry dev forward-check experiment=cls_smoke
+tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
+tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
+tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
 ```
 
 `resolve-config` prints the resolved model/data/preprocessing/training surface,
@@ -269,7 +276,7 @@ Artifacts are written under a timestamped `/tmp/tab_foundry_iris_smoke_*` direct
 Run a repo-local end-to-end smoke harness against a sibling `dagzoo` checkout:
 
 ```bash
-uv run tab-foundry bench smoke dagzoo
+tab-foundry bench smoke dagzoo
 ```
 
 Default profile:
@@ -289,7 +296,7 @@ Smoke exists to validate the end-to-end path. Do not treat smoke-run metrics as 
 Run an internal-only sweep on a fixed manifest:
 
 ```bash
-uv run tab-foundry bench tune \
+tab-foundry bench tune \
   --manifest-path data/manifests/default.parquet
 ```
 
@@ -312,7 +319,7 @@ Gradient norm is logged as a stability diagnostic, not as the primary ranking ta
 Bootstrap sibling benchmark envs:
 
 ```bash
-uv run tab-foundry bench env bootstrap
+tab-foundry bench env bootstrap
 ```
 
 This bootstraps sibling envs for:
@@ -328,7 +335,7 @@ for non-dev installs. Repo-local `uv sync` already includes them.
 Run benchmark comparison only after a run has already been selected internally:
 
 ```bash
-uv run tab-foundry bench compare \
+tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
@@ -362,7 +369,7 @@ contracts.
 Regenerate the canonical medium binary bundle with:
 
 ```bash
-uv run tab-foundry bench bundle build-openml \
+tab-foundry bench bundle build-openml \
   --out-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json \
   --bundle-name nanotabpfn_openml_binary_medium \
   --version 1 \
@@ -377,7 +384,7 @@ uv run tab-foundry bench bundle build-openml \
 Regenerate the multiclass companion bundle with:
 
 ```bash
-uv run tab-foundry bench bundle build-openml \
+tab-foundry bench bundle build-openml \
   --out-path src/tab_foundry/bench/nanotabpfn_openml_classification_small_v1.json \
   --bundle-name nanotabpfn_openml_classification_small \
   --version 1 \
@@ -392,7 +399,7 @@ uv run tab-foundry bench bundle build-openml \
 Discover a fresh no-missing large binary candidate surface with:
 
 ```bash
-uv run tab-foundry bench bundle build-openml \
+tab-foundry bench bundle build-openml \
   --out-path /tmp/nanotabpfn_openml_binary_large_no_missing_candidate.json \
   --bundle-name nanotabpfn_openml_binary_large_no_missing_candidate \
   --version 1 \
@@ -410,7 +417,7 @@ uv run tab-foundry bench bundle build-openml \
 Rebuild the checked-in reviewed no-missing large bundle exactly with:
 
 ```bash
-uv run tab-foundry bench bundle build-openml \
+tab-foundry bench bundle build-openml \
   --out-path src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json \
   --bundle-name nanotabpfn_openml_binary_large_no_missing \
   --version 1 \
@@ -426,7 +433,7 @@ uv run tab-foundry bench bundle build-openml \
 Benchmark against a non-default repo-tracked bundle with:
 
 ```bash
-uv run tab-foundry bench compare \
+tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
   --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
@@ -440,8 +447,8 @@ smoke harness.
 One simple preparation path is:
 
 ```bash
-uv run tab-foundry bench smoke dagzoo --out-root /tmp/tab_foundry_dagzoo_smoke_bench
-uv run tab-foundry bench compare \
+tab-foundry bench smoke dagzoo --out-root /tmp/tab_foundry_dagzoo_smoke_bench
+tab-foundry bench compare \
   --tab-foundry-run-dir /tmp/tab_foundry_dagzoo_smoke_bench \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
@@ -462,7 +469,7 @@ do not hand-edit the registry entry.
 To re-freeze the checked-in entry from the current frozen anchor:
 
 ```bash
-uv run tab-foundry bench registry freeze-baseline \
+tab-foundry bench registry freeze-baseline \
   --baseline-id cls_benchmark_linear_v2 \
   --experiment cls_benchmark_staged_prior \
   --config-profile cls_benchmark_staged_prior \
@@ -474,17 +481,17 @@ If you intentionally refresh the underlying control run, keep the new artifacts
 inside the repo and use the prior-trained staged path:
 
 ```bash
-uv run tab-foundry train prior staged \
+tab-foundry train prior staged \
   --prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5 \
   runtime.output_dir=outputs/control_baselines/cls_benchmark_linear_v2/train
 
-uv run tab-foundry bench compare \
+tab-foundry bench compare \
   --tab-foundry-run-dir outputs/control_baselines/cls_benchmark_linear_v2/train \
   --out-root outputs/control_baselines/cls_benchmark_linear_v2/benchmark \
   --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 
-uv run tab-foundry bench registry freeze-baseline \
+tab-foundry bench registry freeze-baseline \
   --baseline-id cls_benchmark_linear_v2 \
   --experiment cls_benchmark_staged_prior \
   --config-profile cls_benchmark_staged_prior \
@@ -512,7 +519,7 @@ Later comparison runs can copy one of those registry entries into
 `comparison_summary.json` via:
 
 ```bash
-uv run tab-foundry bench compare \
+tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
   --out-root <benchmark_out_root> \
   --control-baseline-id cls_benchmark_linear_v2 \
@@ -542,7 +549,7 @@ benchmark-run ledger at
 `src/tab_foundry/bench/benchmark_run_registry_v1.json`:
 
 ```bash
-uv run tab-foundry bench registry register-run \
+tab-foundry bench registry register-run \
   --run-id 01_nano_exact \
   --track binary_ladder \
   --run-dir outputs/staged_ladder/01_nano_exact/train \
@@ -584,7 +591,7 @@ checkout, and device class are unchanged, reusing the current
 `nanotabpfn_curve.jsonl` is acceptable for Tier 1 comparisons. Refresh it for
 Tier 2 milestones or whenever any of those inputs changes.
 
-`uv run tab-foundry research sweep execute` now applies that Tier 1 reuse path
+`tab-foundry research sweep execute` now applies that Tier 1 reuse path
 automatically for `benchmark_full` rows when the locked anchor or frozen
 control baseline exposes a compatible `nanotabpfn_curve.jsonl`. If no
 compatible curve is available, the runner falls back to a fresh helper run on
@@ -611,9 +618,9 @@ Recommended loop:
 1. Inspect the active sweep and the next runnable row:
 
    ```bash
-   uv run tab-foundry research sweep list
-   uv run tab-foundry research sweep next
-   uv run tab-foundry research sweep summarize --include-screened
+   tab-foundry research sweep list
+   tab-foundry research sweep next
+   tab-foundry research sweep summarize --include-screened
    ```
 
 1. Render architecture graphs for the anchor or selected rows when you need a
@@ -622,8 +629,8 @@ Recommended loop:
    ```bash
    uv sync
    brew install graphviz
-   uv run tab-foundry research sweep graph --anchor
-   uv run tab-foundry research sweep graph --sweep-id <sweep_id> --order <order>
+   tab-foundry research sweep graph --anchor
+   tab-foundry research sweep graph --sweep-id <sweep_id> --order <order>
    ```
 
    The graph command writes SVGs and an `index.md` summary under
@@ -636,20 +643,20 @@ Recommended loop:
    hand:
 
    ```bash
-   uv run tab-foundry research sweep summarize --sweep-id <sweep_id> --include-screened
+   tab-foundry research sweep summarize --sweep-id <sweep_id> --include-screened
    ```
 
 1. Execute the active sweep's `ready` rows with the generic executor:
 
    ```bash
-   uv run tab-foundry research sweep execute
+   tab-foundry research sweep execute
    ```
 
 1. Re-run explicit rows, including already completed rows, when you need a fresh
    canonical CUDA pass:
 
    ```bash
-   uv run tab-foundry research sweep execute \
+   tab-foundry research sweep execute \
      --sweep-id <sweep_id> \
      --order <order> \
      --include-completed
@@ -661,7 +668,7 @@ Recommended loop:
    when you are intentionally re-baselining the sweep:
 
    ```bash
-   uv run tab-foundry research sweep execute \
+   tab-foundry research sweep execute \
      --sweep-id <sweep_id> \
      --order <order> \
      --include-completed \
@@ -672,7 +679,7 @@ Recommended loop:
    canonical anchor without rerunning the queue:
 
    ```bash
-   uv run tab-foundry research sweep promote \
+   tab-foundry research sweep promote \
      --sweep-id <sweep_id> \
      --order <order>
    ```
@@ -680,8 +687,8 @@ Recommended loop:
 1. Validate the rendered sweep metadata after execution or promotion:
 
    ```bash
-   uv run tab-foundry research sweep render --sweep-id <sweep_id>
-   uv run tab-foundry research sweep validate --sweep-id <sweep_id>
+   tab-foundry research sweep render --sweep-id <sweep_id>
+   tab-foundry research sweep validate --sweep-id <sweep_id>
    ```
 
 Manual train, benchmark, and registry commands remain the advanced fallback when

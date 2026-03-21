@@ -8,7 +8,7 @@ import shlex
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, cast
+from typing import Any, Mapping, Sequence, cast
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -26,6 +26,7 @@ from tab_foundry.bench.compare import (
     run_nanotabpfn_benchmark,
 )
 from tab_foundry.bench.nanotabpfn import benchmark_host_fingerprint, resolve_device
+from tab_foundry.bench.nanotabpfn.bundle import canonical_benchmark_bundle_source_path
 from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.config import compose_config
 from tab_foundry.research.lane_contract import (
@@ -235,11 +236,14 @@ def compose_cfg(
     run_dir: Path,
     device: str,
     training_experiment: str = DEFAULT_EXPERIMENT,
+    sweep_id: str | None = None,
 ) -> DictConfig:
     cfg = compose_config([f"experiment={training_experiment}"])
     cfg.runtime.output_dir = str(run_dir.resolve())
     cfg.runtime.device = str(device)
     cfg.logging.run_name = _queue_aware_run_name(run_dir=run_dir)
+    if sweep_id is not None:
+        cfg.logging.group = str(sweep_id)
     apply_mapping(cfg, "model", cast(Mapping[str, Any], row.get("model", {})))
     apply_mapping(cfg, "data", cast(Mapping[str, Any], row.get("data", {})))
     apply_mapping(cfg, "preprocessing", cast(Mapping[str, Any], row.get("preprocessing", {})))
@@ -341,7 +345,7 @@ def _resolved_nanotabpfn_signature(
 ) -> dict[str, Any]:
     normalized_requested_device = str(requested_device).strip()
     return {
-        "benchmark_bundle_path": benchmark_bundle_path.expanduser().resolve(),
+        "benchmark_bundle_path": canonical_benchmark_bundle_source_path(benchmark_bundle_path),
         "control_baseline_id": str(control_baseline_id).strip(),
         "nanotabpfn_root": nanotabpfn_root.expanduser().resolve(),
         "nanotabpfn_python": nanotabpfn_python.expanduser().resolve(),
@@ -422,7 +426,7 @@ def _candidate_signature(
     )
 
     signature = {
-        "benchmark_bundle_path": resolve_registry_path_value(str(bundle_source)),
+        "benchmark_bundle_path": canonical_benchmark_bundle_source_path(str(bundle_source)),
         "control_baseline_id": control_baseline_id,
         "nanotabpfn_root": root,
         "nanotabpfn_python": nanotabpfn_python,
@@ -464,7 +468,6 @@ def _matching_nanotabpfn_curve(
     comparable_keys = (
         "benchmark_bundle_path",
         "control_baseline_id",
-        "resolved_device",
         "benchmark_host_fingerprint",
         "steps",
         "eval_every",
@@ -474,6 +477,9 @@ def _matching_nanotabpfn_curve(
     for key in comparable_keys:
         if candidate_signature[key] != current_signature[key]:
             return None
+    # The cached nanoTabPFN curve is a benchmark artifact, not a training artifact.
+    # Reuse should therefore survive a device change on the same host when the
+    # rest of the benchmark contract is identical.
     for key in ("nanotabpfn_root", "nanotabpfn_python", "prior_dump_path"):
         candidate_value = candidate_signature[key]
         current_value = current_signature[key]
@@ -489,12 +495,16 @@ def _matching_nanotabpfn_curve(
     )
 
 
-def _anchor_curve_candidate(
+def _registry_curve_candidate(
     *,
-    anchor_run_id: str | None,
+    run_id: str | None,
+    source_label: str,
     registry_path: Path,
 ) -> NanoTabPFNCurveCandidate | None:
-    if anchor_run_id is None:
+    if run_id is None:
+        return None
+    normalized_run_id = str(run_id).strip()
+    if not normalized_run_id:
         return None
     try:
         payload = _read_json_mapping(registry_path)
@@ -503,7 +513,7 @@ def _anchor_curve_candidate(
     runs = payload.get("runs")
     if not isinstance(runs, Mapping):
         return None
-    run = runs.get(anchor_run_id)
+    run = runs.get(normalized_run_id)
     if not isinstance(run, Mapping):
         return None
     artifacts = run.get("artifacts")
@@ -514,8 +524,20 @@ def _anchor_curve_candidate(
         return None
 
     return NanoTabPFNCurveCandidate(
-        source_label="anchor",
+        source_label=source_label,
         comparison_summary_path=resolve_registry_path_value(summary_value),
+    )
+
+
+def _anchor_curve_candidate(
+    *,
+    anchor_run_id: str | None,
+    registry_path: Path,
+) -> NanoTabPFNCurveCandidate | None:
+    return _registry_curve_candidate(
+        run_id=anchor_run_id,
+        source_label="anchor",
+        registry_path=registry_path,
     )
 
 
@@ -552,6 +574,7 @@ def resolve_reusable_nanotabpfn_curve(
     prior_dump: Path,
     requested_device: str,
     paths: ExecutionPaths,
+    extra_candidates: Sequence[NanoTabPFNCurveCandidate] | None = None,
 ) -> NanoTabPFNCurveReuseSelection | None:
     control_baseline_id = str(sweep_meta["control_baseline_id"]).strip()
     current_signature = _resolved_nanotabpfn_signature(
@@ -563,6 +586,7 @@ def resolve_reusable_nanotabpfn_curve(
         requested_device=requested_device,
     )
     candidates = [
+        *(list(extra_candidates) if extra_candidates is not None else []),
         _anchor_curve_candidate(anchor_run_id=anchor_run_id, registry_path=paths.registry_path),
         _control_baseline_curve_candidate(
             control_baseline_id=control_baseline_id,
@@ -579,6 +603,64 @@ def resolve_reusable_nanotabpfn_curve(
         if selection is not None:
             return selection
     return None
+
+
+def _prior_completed_row_curve_candidates(
+    *,
+    queue: Mapping[str, Any],
+    current_order: int,
+    anchor_run_id: str | None,
+    parent_run_id: str | None,
+    registry_path: Path,
+) -> list[NanoTabPFNCurveCandidate]:
+    queue_rows_raw = queue.get("rows")
+    if not isinstance(queue_rows_raw, list):
+        return []
+
+    normalized_anchor_run_id = None if anchor_run_id is None else str(anchor_run_id).strip()
+    candidates: list[NanoTabPFNCurveCandidate] = []
+    seen_run_ids: set[str] = set()
+
+    def _append_candidate(run_id: str | None, source_label: str) -> None:
+        if run_id is None:
+            return
+        normalized_run_id = str(run_id).strip()
+        if (
+            not normalized_run_id
+            or normalized_run_id in seen_run_ids
+            or normalized_run_id == normalized_anchor_run_id
+        ):
+            return
+        candidate = _registry_curve_candidate(
+            run_id=normalized_run_id,
+            source_label=source_label,
+            registry_path=registry_path,
+        )
+        if candidate is None:
+            return
+        candidates.append(candidate)
+        seen_run_ids.add(normalized_run_id)
+
+    _append_candidate(parent_run_id, "parent row")
+
+    earlier_rows = sorted(
+        (
+            row
+            for row in queue_rows_raw
+            if isinstance(row, Mapping) and int(row.get("order", 0)) < int(current_order)
+        ),
+        key=lambda row: int(row["order"]),
+        reverse=True,
+    )
+    for row in earlier_rows:
+        row_run_id = row.get("run_id")
+        if not isinstance(row_run_id, str) or not row_run_id.strip():
+            continue
+        row_order = int(row["order"])
+        row_delta_ref = str(row.get("delta_ref", "")).strip() or f"order {row_order:02d}"
+        _append_candidate(str(row_run_id), f"sweep row {row_order:02d} ({row_delta_ref})")
+
+    return candidates
 
 
 def _resolve_parent_row(
@@ -781,6 +863,7 @@ def run_row(
             run_dir=train_dir,
             device=device,
             training_experiment=training_experiment,
+            sweep_id=sweep_id,
         )
         train_result = train_tabfoundry_simple_prior(cfg, prior_dump_path=prior_dump)
         print(
@@ -819,6 +902,13 @@ def run_row(
         prior_dump=prior_dump,
         requested_device=device,
         paths=paths,
+        extra_candidates=_prior_completed_row_curve_candidates(
+            queue=queue,
+            current_order=int(queue_row["order"]),
+            anchor_run_id=anchor_run_id,
+            parent_run_id=parent_run_id,
+            registry_path=paths.registry_path,
+        ),
     )
     reuse_curve_path = None if reuse_selection is None else reuse_selection.curve_path
     if reuse_selection is not None:

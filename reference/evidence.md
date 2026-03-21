@@ -118,8 +118,8 @@ Conventions:
   - compact-surface row-CLS evidence was strongly negative, but it was gathered
     on PFN-adjacent surfaces and should be scoped that way
 - Success signal:
-  - the repo reaches a clear yes/no answer on useful row embeddings in the
-    intended migration line
+  - the repo reaches clear separate yes/no answers on useful row embeddings and
+    plain row-level context in the intended migration line
 
 ### TF-RD-006: Column-Set Integration
 
