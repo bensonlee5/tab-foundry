@@ -27,6 +27,8 @@ Related docs:
 
 - `implemented`: available in current code and wired into the canonical
   workflow surface
+- `completed`: scoped work finished with a recorded decision or evidence
+  package, even if it does not imply a promoted default
 - `partial`: meaningful building blocks or evidence exist, but the roadmap
   claim is not yet satisfied end to end
 - `planned`: clearly scoped and prioritized, but not yet implemented
@@ -92,10 +94,10 @@ retained for traceability.
 | 2 | TF-RD-002 | Measurement surfaces for architecture migration | implemented | Implemented |
 | 3 | TF-RD-003 | Shared-surface unlock | implemented | Implemented |
 | 4 | TF-RD-004 | Tokenization migration | completed | Now |
-| 5 | TF-RD-005 | Row-embedding unlock | planned | Now |
-| 6 | TF-RD-006 | Column-set integration | planned | Now |
-| 7 | TF-RD-007 | Row-level context and QASS attribution | planned | Now |
-| 8 | TF-RD-008 | Coherent classification anchor promotion | planned | Next |
+| 5 | TF-RD-005 | Row-embedding unlock | completed | Now |
+| 6 | TF-RD-006 | Column-set integration | completed | Now |
+| 7 | TF-RD-007 | Row-level context and QASS attribution | completed | Now |
+| 8 | TF-RD-008 | Coherent classification anchor promotion | partial | Next |
 | 9 | TF-RD-009 | Scaling-law measurement on the promoted anchor | planned | Next |
 | 10 | TF-RD-010 | Many-class promotion on the row-first base | research | Next |
 | 11 | TF-RD-011 | Repo-wide enablers and contract fidelity | implemented | Implemented |
@@ -147,16 +149,18 @@ flowchart TD
 ```
 
 Critical path: **003 → 004 → 005 → 006 → 007 → 008**. 000, 001, 002, 003, and
-011 are implemented. Everything after 008 is post-promotion work.
+011 are implemented; 004, 005, 006, and 007 are completed evidence steps. 008
+remains the active promotion gate, and everything after 008 is post-promotion
+work.
 
 ## Current Capability Matrix
 
 | Objective / Claim | Current State | Evidence In Repo | Current Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, benchmark comparison tooling, and prior-trained PFN-facing lanes already exist | The current large-anchor hybrid line is still easy to confuse with the intended destination | `TF-RD-001` |
-| Coherent row-first migration ladder exists in code | `partial` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`, `shared_surface_bridge_v1` locks `prenorm_block` as the grouped-token handoff, `grouped_token_stability_probe_v1` resolves the adequacy question in favor of `prior_linear_warmup_decay`, and benchmark-facing replay `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` now carries grouped tokens on the architecture-screen lane | Later row-first rows still need their own attributable evaluations, but TF-RD-005, TF-RD-006, and TF-RD-007 should inherit grouped tokens from `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` rather than from `prenorm_block` or the older scalar-token path | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
-| Architecture comparisons are attributable | `partial` | Isolated row-CLS, TFCol, and QASS evidence exists on compact surfaces | Negative evidence is easy to overgeneralize because stage-local telemetry and matched controls are still incomplete | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
-| One promoted row-first classification anchor exists | `planned` | The ingredients exist in `tabfoundry_staged`, but no coherent row-first anchor has been promoted | The active architecture target is still split across compact-ladder evidence and the current large hybrid line | `TF-RD-008` |
+| Coherent row-first migration ladder exists in code | `partial` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, and `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly | The remaining gap is no longer row-first ladder shape but final regime coverage: the missing-data generalization check on `nanotabpfn_openml_binary_large_v1.json` still needs to land before promotion language can fully close | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
+| Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and the large no-missing validation now separate row embeddings, plain context, TFCol-only, QASS-only, and the selected `qass + tfcol_heads4` calibration line | The remaining open comparison is missing-data generalization, not medium-bundle matched-control attribution | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
+| One promoted row-first classification anchor exists | `partial` | The calibration-first candidate `row_cls + qass + tfcol_heads4` now passed the large no-missing validator narrowly, while `row_cls + qass + no tfcol` remains the ROC-oriented fallback | The repo still needs the missing-data generalization check on `nanotabpfn_openml_binary_large_v1.json` before it can claim a single promoted default anchor across regimes | `TF-RD-008` |
 | Scaling-law work targets the right architecture | `partial` | Tuning and benchmark-adjacent tooling already exist | There is no canonical scaling artifact path on a promoted row-first anchor yet | `TF-RD-009` |
 | Many-class extends the active backbone cleanly | `partial` | The staged family already includes `many_class` and the reusable machinery exists | Many-class is not yet tied to a promoted row-first classification base | `TF-RD-010` |
 | Repo-wide data, preprocessing, and export surfaces can support the migration | `partial` | Manifest-backed training, shared preprocessing work, and v3 export scaffolding already exist | Corpus provenance, producer-fidelity cleanup, and downstream contract hardening are still unfinished | `TF-RD-011` |
@@ -172,9 +176,22 @@ This roadmap assumes the following repo truths:
   `shared_norm`, `prenorm_block`, `small_class_head`, `test_self`,
   `grouped_tokens`, `row_cls_pool`, `column_set`, `qass_context`, and
   `many_class`
-- current negative row-CLS, TFCol, and QASS evidence was gathered mostly on
-  compact or PFN-adjacent anchor surfaces and should not be treated as a final
-  rejection of the row-first direction
+- grouped-token replay
+  `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`
+  is the canonical predecessor for the current row-first line
+- `row_embedding_attribution_v2` established that row embeddings help on the
+  grouped-token replay surface, while plain row-level context does not justify
+  promotion on that same base
+- `row_embedding_attribution_v3` established that TFCol alone is negative on the
+  row-first base, `qass + no tfcol` is near-tied with the row-embedding base,
+  and `qass + tfcol` wins on calibration while losing ROC
+- `qass_tfcol_adequacy_v1` established that `tfcol_heads4` is the only TFCol
+  adequacy winner worth carrying forward, while `inducing64` and `layers1`
+  remain negative evidence
+- `qass_tfcol_large_no_missing_validation_v1` established a narrow large
+  no-missing validation pass for `row_cls + qass + tfcol_heads4`; the
+  remaining gate is missing-data generalization on
+  `nanotabpfn_openml_binary_large_v1.json`
 - the current large-anchor `nano_exact + prenorm + row_cls` line is useful as a
   diagnostic bridge, but not yet a promoted architecture target
 
@@ -325,92 +342,119 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-005: Row-Embedding Unlock
 
-- Status: `planned`
+- Status: `completed`
 - Milestone: `Now`
 - Goal: determine whether the staged family can form useful row embeddings on
   the intended shared/grouped surface
 - Current state:
-  - `row_cls_pool` exists as a coherent staged recipe
-  - old compact-surface row-CLS evidence was strongly negative
-  - that evidence is entangled with the old PFN-adjacent surface and should not
-    be generalized too far
-- Required work:
-  - anchor TF-RD-005 on grouped-token replay
+  - `row_cls_pool` exists as a coherent staged recipe on the grouped-token
+    replay surface
+  - `row_embedding_attribution_v2` closed the grouped-token row-embedding
+    question with the no-context row
+    `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1`
+  - the paired plain-context row did not improve that row-embedding base, so
+    old compact-surface row-CLS evidence is no longer the main blocker
+- Completed evidence:
+  - TF-RD-005 was anchored on grouped-token replay
     `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`,
     not on `prenorm_block` or the older scalar-token path
-  - isolate row pooling first on that grouped-token replay before adding plain
-    row-level context, rather than jumping straight to the bundled public
-    `row_cls_pool` stage
-  - keep adequacy checks bounded to row-encoder capacity knobs after the main
-    row-first surface is established
-  - interpret old row-CLS negative evidence as compact-surface evidence, not as
-    a blanket rejection
+  - row pooling was isolated first on that grouped-token replay before the
+    bundled public `row_cls_pool` stage was interpreted
+  - the result package now separates row embeddings from plain row-level
+    context on the intended migration surface
 - Exit criteria:
   - the repo has a direct answer to whether row embeddings help on the intended
     migration surface
-  - the repo separately has a direct answer to whether plain row-level context
-    helps beyond row embeddings
-  - either row embeddings work on the intended migration surface, or they fail
-    with enough evidence to redirect the architecture target
+  - satisfied: row embeddings help on the grouped-token replay surface
+  - satisfied: plain row-level context does not improve that row-embedding base
 
 ### TF-RD-006: Column-Set Integration
 
-- Status: `planned`
+- Status: `completed`
 - Milestone: `Now`
 - Goal: decide whether explicit column-set reasoning belongs in the promoted
   row-first line
 - Current state:
   - `column_set` already exists as a staged recipe
-  - old compact-surface TFCol evidence was near-neutral, stable, and expensive
-  - the old row pool and compact surface limited how much that result could say
-- Required work:
-  - evaluate `column_set` only after row embeddings are viable on grouped-token
-    replay `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`
-  - keep inducing-count and depth adequacy follow-ups bounded and explicit
-  - interpret TFCol as part of the row-first bundle, not as a bolt-on to the PFN
-    anchor
+  - `delta_column_set_no_context_v3` is negative evidence for default TFCol
+    alone on the grouped-token row-first base
+  - `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` was
+    the medium-bundle adequacy winner and the only TFCol row worth carrying
+    forward
+  - `qass_tfcol_large_no_missing_validation_v1` then validated
+    `delta_qass_context_tfcol_heads4_v1` against `delta_qass_no_column_v3` on
+    `nanotabpfn_openml_binary_large_no_missing_v1.json` with a narrow pass:
+    final log loss `-0.0013818`, final Brier `-0.0004977`, and final ROC AUC
+    `-0.0047989` versus the no-TFCol control
+- Completed evidence:
+  - default TFCol alone is resolved negative evidence on the row-first base and
+    should not be reopened as a standalone promotion candidate
+  - TFCol is justified only under the validated
+    `row_cls + qass + tfcol_heads4` calibration-first line
+  - the remaining follow-up is missing-data generalization, not another TFCol
+    adequacy or TFCol-alone screen
 - Exit criteria:
-  - TFCol is either promoted into the active row-first line or deferred with
-    clear cost-versus-value evidence
+  - satisfied: TFCol is promoted only under the validated
+    `qass + tfcol_heads4` line, not as a standalone default row-first module
+  - satisfied: the repo now has an explicit ROC-oriented fallback against
+    `qass + no tfcol`
 
 ### TF-RD-007: Row-Level Context And QASS Attribution
 
-- Status: `planned`
+- Status: `completed`
 - Milestone: `Now`
 - Goal: determine whether row-level context helps, and whether QASS helps beyond
   plain row-level context
 - Current state:
   - `qass_context` already exists as a staged recipe
   - QASS components already exist as reusable modules
-  - old compact-surface QASS evidence was stable but slightly negative and did
-    not cleanly separate context value from added depth
-- Required work:
-  - compare row-level `plain` context against row-level `qass` context only
-    after grouped-token replay
-    `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1`
-    and the row-embedding / column-set predecessors are registered
-  - pair each QASS row with a matched non-QASS added-depth control
-  - keep QASS optional by construction
+  - `row_embedding_attribution_v2` showed that plain row-level context does not
+    justify promotion over the no-context row-embedding base
+  - `row_embedding_attribution_v3` showed that `qass + no tfcol` is near-tied
+    with the row-embedding base, TFCol alone is bad, and `qass + tfcol` wins on
+    calibration while losing ROC
+  - `qass_tfcol_large_no_missing_validation_v1` then showed that
+    `row_cls + qass + tfcol_heads4` keeps the calibration win over
+    `row_cls + qass + no tfcol` on the larger no-missing bundle while staying
+    inside the `-0.005` ROC guardrail
+- Completed evidence:
+  - plain row-level context is resolved negative evidence on the row-first path
+  - QASS remains optional by construction, but the calibration-first line is
+    now `row_cls + qass + tfcol_heads4`
+  - `row_cls + qass + no tfcol` remains the explicit ROC-oriented fallback
+  - the remaining follow-up is missing-data generalization, not reopening
+    medium-bundle attribution
 - Exit criteria:
-  - the repo has a direct answer to whether row-level context is useful
-  - the repo separately has a direct answer to whether QASS earns its added cost
+  - satisfied: the repo has an explicit calibration-first recommendation and an
+    explicit ROC-oriented fallback for `qass + no tfcol` versus
+    `qass + tfcol_heads4`
 
 ### TF-RD-008: Coherent Classification Anchor Promotion
 
-- Status: `planned`
+- Status: `partial`
 - Milestone: `Next`
 - Goal: promote one coherent row-first classification anchor and stop treating
   the architecture target as an open set of hybrid lines
 - Current state:
   - the staged ladder exists
   - no row-first classification anchor has been promoted
-  - the active architecture story is still split across multiple partial lines
+  - the calibration-first candidate is
+    `row_cls + qass + tfcol_heads4`
+  - `row_cls + qass + no tfcol` remains the ROC-oriented fallback
+  - `qass_tfcol_large_no_missing_validation_v1` passed narrowly, so the
+    remaining blocker is missing-data generalization rather than large
+    no-missing validation
 - Required work:
-  - choose the first promotable row-first surface from the migration ladder
-  - likely candidates are a `column_set`-based line or a `qass_context`-based
-    line, not the current hybrid PFN row-CLS line
-  - update research defaults and promotion language to point at the selected
-    anchor
+  - run the missing-data generalization check on
+    `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json` using
+    `row_cls + qass + no tfcol` as the ROC-oriented control and
+    `row_cls + qass + tfcol_heads4` as the calibration-first candidate
+  - if the missing-data check keeps the calibration win while the ROC gap stays
+    small, promote `row_cls + qass + tfcol_heads4` as the default row-first
+    classification anchor
+  - if the missing-data check fails or the ROC penalty widens materially, keep
+    a split recommendation rather than forcing a single promoted anchor
+  - update research defaults and promotion language only after that gate closes
 - Exit criteria:
   - one row-first classification anchor is named, benchmarked, and treated as
     the active architecture target

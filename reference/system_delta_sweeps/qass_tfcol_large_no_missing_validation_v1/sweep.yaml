@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: qass_tfcol_large_no_missing_validation_v1
 parent_sweep_id: qass_tfcol_adequacy_v1
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: sd_row_embedding_attribution_v3_01_delta_qass_no_column_v3_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json
@@ -42,6 +42,10 @@ anchor_surface:
   - >-
     If and only if row 2 passes this validation, the next follow-up should be a single
     missing-data generalization check on `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.
+  - >-
+    This validation passed narrowly: row 2 improved final log loss by `-0.0013818`
+    and final Brier by `-0.0004977` versus row 1, while the final ROC AUC delta
+    was `-0.0047989`, inside the `-0.005` guardrail.
   - >-
     Execution must reuse the anchor's compatible `nanoTabPFN` curve. If the reuse
     signature does not match, stop and fix the mismatch instead of letting the

@@ -71,7 +71,7 @@ def test_qass_tfcol_large_no_missing_validation_v1_is_registered_but_not_active(
     assert isinstance(sweeps, dict)
     assert sweeps["qass_tfcol_large_no_missing_validation_v1"] == {
         "parent_sweep_id": "qass_tfcol_adequacy_v1",
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json",
@@ -86,7 +86,7 @@ def test_qass_tfcol_large_no_missing_validation_v1_metadata_and_rows_match_plan(
 
     assert sweep["sweep_id"] == "qass_tfcol_large_no_missing_validation_v1"
     assert sweep["parent_sweep_id"] == "qass_tfcol_adequacy_v1"
-    assert sweep["status"] == "draft"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["model"]["stage"] == "qass_context"
@@ -97,14 +97,19 @@ def test_qass_tfcol_large_no_missing_validation_v1_metadata_and_rows_match_plan(
     assert any("vs_parent" in note for note in notes)
     assert any("large_v1.json" in note for note in notes)
     assert any("reuse" in note for note in notes)
+    assert any("passed narrowly" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready"]
+    assert [row["status"] for row in rows] == ["completed", "completed"]
 
     row1 = _row_by_ref(queue, "delta_qass_no_column_v3")
     assert row1.get("parent_delta_ref") is None
+    assert row1["decision"] == "accept_as_evidence"
+    assert row1["interpretation_status"] == "completed"
+    assert row1["run_id"] == "sd_qass_tfcol_large_no_missing_validation_v1_01_delta_qass_no_column_v3_v1"
+    assert "benchmark_metrics" in row1
     assert row1["model"] == {
         "stage": "qass_context",
         "stage_label": "delta_qass_no_column_v3",
@@ -114,6 +119,10 @@ def test_qass_tfcol_large_no_missing_validation_v1_metadata_and_rows_match_plan(
 
     row2 = _row_by_ref(queue, "delta_qass_context_tfcol_heads4_v1")
     assert row2["parent_delta_ref"] == "delta_qass_no_column_v3"
+    assert row2["decision"] == "keep"
+    assert row2["interpretation_status"] == "completed"
+    assert row2["run_id"] == "sd_qass_tfcol_large_no_missing_validation_v1_02_delta_qass_context_tfcol_heads4_v1_v1"
+    assert "benchmark_metrics" in row2
     assert row2["model"] == {
         "stage": "qass_context",
         "stage_label": "delta_qass_context_tfcol_heads4_v1",
@@ -160,3 +169,4 @@ def test_qass_tfcol_large_no_missing_validation_v1_matrix_records_the_bundle_shi
     assert "prior_linear_warmup_decay" in matrix
     assert "nanotabpfn_openml_binary_large_no_missing_v1.json" in matrix
     assert "vs_parent" in matrix
+    assert "narrow validation pass" in matrix

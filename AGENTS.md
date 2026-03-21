@@ -15,3 +15,4 @@
 - We don’t probe data “YOLO-style”—we validate boundaries or rely on typed SDKs
 - Prior to declaring a branch ready for review, compare branch to main and verify that all intended changes are included and no unintended changes are included
 - Always log results to wandb when executing sweeps
+- Update roadmap.md for sweeps when a sweep is complete, and also update associated GitHub issues

@@ -136,7 +136,7 @@ sweeps:
     control_baseline_id: cls_benchmark_linear_v2
   qass_tfcol_large_no_missing_validation_v1:
     parent_sweep_id: qass_tfcol_adequacy_v1
-    status: draft
+    status: completed
     anchor_run_id: sd_row_embedding_attribution_v3_01_delta_qass_no_column_v3_v1
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_no_missing_v1.json
