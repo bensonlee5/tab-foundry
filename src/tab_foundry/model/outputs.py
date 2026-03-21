@@ -111,3 +111,60 @@ def validate_classification_output_contract(
             context=context,
         )
     return resolved_num_classes
+
+
+def validate_classification_path_terms_contract(
+    output: ClassificationOutput,
+    *,
+    expected_rows: int | None = None,
+    context: str,
+) -> list[int]:
+    """Validate many-class path-term payloads against one consumer contract."""
+
+    if output.path_logits is None or output.path_targets is None:
+        raise RuntimeError(f"{context} missing path_logits or path_targets")
+    if len(output.path_logits) != len(output.path_targets):
+        raise RuntimeError(f"{context} produced path_logits and path_targets length mismatch")
+
+    counts = output.path_sample_counts
+    if counts is not None and len(counts) != len(output.path_logits):
+        raise RuntimeError(f"{context} produced path_sample_counts length mismatch")
+
+    total_count = 0
+    resolved_counts: list[int] = []
+    for index, (logits, targets) in enumerate(zip(output.path_logits, output.path_targets, strict=True)):
+        if logits.ndim != _CLASSIFICATION_TENSOR_DIMENSIONS:
+            raise RuntimeError(
+                f"{context} requires path_logits[{index}] to be 2D, "
+                f"got shape={tuple(int(dim) for dim in logits.shape)}"
+            )
+        if targets.ndim != 1:
+            raise RuntimeError(
+                f"{context} requires path_targets[{index}] to be 1D, "
+                f"got shape={tuple(int(dim) for dim in targets.shape)}"
+            )
+
+        logits_rows = int(logits.shape[0])
+        targets_rows = int(targets.shape[0])
+        count_i = logits_rows if counts is None else int(counts[index])
+        if count_i < 0:
+            raise RuntimeError(f"{context} produced path_sample_counts[{index}]={count_i}, expected >= 0")
+        if count_i != logits_rows:
+            raise RuntimeError(
+                f"{context} produced path_sample_counts[{index}]={count_i}, "
+                f"but path_logits[{index}] rows={logits_rows}"
+            )
+        if count_i != targets_rows:
+            raise RuntimeError(
+                f"{context} produced path_sample_counts[{index}]={count_i}, "
+                f"but path_targets[{index}] rows={targets_rows}"
+            )
+
+        resolved_counts.append(count_i)
+        total_count += count_i
+
+    if expected_rows is not None and total_count < int(expected_rows):
+        raise RuntimeError(
+            f"{context} produced path_sample_counts total={total_count}, expected at least {int(expected_rows)}"
+        )
+    return resolved_counts

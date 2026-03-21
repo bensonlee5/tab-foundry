@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.16] - 2026-03-21
+
+### Changed
+
+- User-facing note: `optimizer.name=muon` now hard fails when Muon
+  initialization raises, instead of silently falling back to AdamW with
+  `fallback_reason="muon_unavailable"`.
+
+- User-facing note: many-class classification training now rejects malformed
+  `path_sample_counts` payloads when per-path rows disagree with their tensors
+  or aggregate totals undercount the batch test rows, instead of computing a
+  finite but mis-scaled loss.
+
 ## [0.8.15] - 2026-03-21
 
 ### Changed

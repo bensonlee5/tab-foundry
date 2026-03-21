@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tab-foundry"
-version = "0.8.15"
+version = "0.8.16"
 description = "Tabfoundry tabular foundation model training on dagzoo packed shard outputs"
 readme = "README.md"
 license = "MIT"

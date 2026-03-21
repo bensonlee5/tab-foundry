@@ -1320,7 +1320,7 @@ def test_package_version_falls_back_to_pyproject_when_metadata_missing(
         lambda _name: (_ for _ in ()).throw(exporter_module.importlib.metadata.PackageNotFoundError()),
     )
 
-    assert exporter_module._package_version() == "0.8.15"
+    assert exporter_module._package_version() == "0.8.16"
 
 
 def test_package_version_raises_when_resolution_fails(

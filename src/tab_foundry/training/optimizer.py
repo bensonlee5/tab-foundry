@@ -167,18 +167,7 @@ def build_optimizer(
         try:
             muon_opt = Muon(muon_params, lr=lr, weight_decay=weight_decay, **muon_kwargs)
         except Exception as exc:
-            if require_requested:
-                raise RuntimeError(
-                    "Requested optimizer 'muon' is unavailable and optimizer.require_requested=true."
-                ) from exc
-            fallback_reason = "muon_unavailable"
-            opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
-            return OptimizerSelection(
-                optimizers=[("adamw", opt)],
-                requested_name=requested,
-                resolved_name="adamw",
-                fallback_reason=fallback_reason,
-            )
+            raise RuntimeError("Muon initialization failed for requested optimizer 'muon'.") from exc
         optimizers.append(("muon", muon_opt))
         if adamw_tail_params:
             adamw_tail = torch.optim.AdamW(
