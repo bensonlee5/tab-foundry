@@ -1,11 +1,19 @@
 from __future__ import annotations
 
+import builtins
+from pathlib import Path
+import sys
+from types import ModuleType
+
 import numpy as np
 import pytest
 
+from tab_foundry.bench.artifacts import load_jsonl
 import tab_foundry.bench.nanotabpfn as benchmark_module
 import tab_foundry.bench.nanotabpfn.metrics as benchmark_metrics_module
 import tab_foundry.bench.tabiclv2_helper as tabiclv2_helper_module
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 class _PerfectClassifier:
@@ -169,8 +177,93 @@ def test_tabiclv2_quantile_regressor_adapter_returns_quantiles_and_levels() -> N
         tabiclv2_helper_module.DEFAULT_TABICLV2_QUANTILE_LEVELS.tolist()
     )
     assert quantiles.shape == (2, levels.shape[0])
-    assert quantiles[0, 0] == pytest.approx(2.1)
-    assert quantiles[1, -1] == pytest.approx(3.9)
+    assert quantiles[0, 0] == pytest.approx(2.05)
+    assert quantiles[1, -1] == pytest.approx(3.95)
+
+
+def test_tabiclv2_helper_main_runs_without_openml_or_pandas_imports(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class _HelperClassifier:
+        def __init__(self, **_kwargs: object) -> None:
+            self.classes_ = np.asarray([0, 1], dtype=np.int64)
+
+        def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_HelperClassifier":
+            _ = x_train
+            self.classes_ = np.unique(np.asarray(y_train, dtype=np.int64))
+            return self
+
+        def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+            labels = np.asarray(x_test[:, 0], dtype=np.int64)
+            probabilities = np.zeros((labels.shape[0], int(self.classes_.size)), dtype=np.float64)
+            class_to_index = {int(label): index for index, label in enumerate(self.classes_.tolist())}
+            for row_index, label in enumerate(labels.tolist()):
+                probabilities[row_index, class_to_index[int(label)]] = 1.0
+            return probabilities
+
+    class _HelperRegressor:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+    fake_tabicl = ModuleType("tabicl")
+    fake_tabicl.TabICLClassifier = _HelperClassifier
+    fake_tabicl.TabICLRegressor = _HelperRegressor
+    monkeypatch.setitem(sys.modules, "tabicl", fake_tabicl)
+    monkeypatch.chdir(tmp_path)
+
+    dataset_cache_path = tmp_path / "benchmark_dataset_cache.npz"
+    benchmark_module.save_dataset_cache(
+        dataset_cache_path,
+        {
+            "toy": (
+                np.asarray([[0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0]], dtype=np.float32),
+                np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
+            )
+        },
+    )
+    for module_name in list(sys.modules):
+        if module_name == "tab_foundry.bench.nanotabpfn" or module_name.startswith(
+            "tab_foundry.bench.nanotabpfn."
+        ):
+            monkeypatch.delitem(sys.modules, module_name, raising=False)
+
+    real_import = builtins.__import__
+
+    def _guarded_import(
+        name: str,
+        globals: dict[str, object] | None = None,
+        locals: dict[str, object] | None = None,
+        fromlist: tuple[object, ...] = (),
+        level: int = 0,
+    ) -> object:
+        if name.split(".", 1)[0] in {"openml", "pandas"}:
+            raise ModuleNotFoundError(f"No module named {name!r}")
+        return real_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", _guarded_import)
+
+    out_path = tmp_path / "tabiclv2_curve.jsonl"
+    exit_code = tabiclv2_helper_module.main(
+        [
+            "--tab-foundry-src",
+            str((REPO_ROOT / "src").resolve()),
+            "--dataset-cache",
+            str(dataset_cache_path),
+            "--out-path",
+            str(out_path),
+            "--task-type",
+            "supervised_classification",
+            "--checkpoint-version",
+            "classifier.ckpt",
+        ]
+    )
+
+    assert exit_code == 0
+    records = load_jsonl(out_path)
+    assert len(records) == 1
+    assert records[0]["roc_auc"] == pytest.approx(1.0)
+    assert records[0]["log_loss"] < 1.0e-10
 
 
 def test_normalize_benchmark_bundle_accepts_regression_tasks() -> None:

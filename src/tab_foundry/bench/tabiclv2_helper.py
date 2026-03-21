@@ -12,7 +12,7 @@ import numpy as np
 
 
 DEFAULT_TABICLV2_QUANTILE_LEVELS = np.asarray(
-    [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+    [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95],
     dtype=np.float64,
 )
 
@@ -82,7 +82,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         ) from exc
 
     from tab_foundry.bench.artifacts import write_jsonl
-    from tab_foundry.bench.nanotabpfn import (
+    from tab_foundry.bench.nanotabpfn.dataset_common import load_dataset_cache
+    from tab_foundry.bench.nanotabpfn.metrics import (
         dataset_avg_pinball_loss_metrics,
         dataset_brier_score_metrics,
         dataset_crps_metrics,
@@ -91,7 +92,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         dataset_roc_auc_metrics,
         evaluate_classifier,
         evaluate_regressor,
-        load_dataset_cache,
     )
 
     device = None if str(args.device).strip().lower() == "auto" else str(args.device).strip()

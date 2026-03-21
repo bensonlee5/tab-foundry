@@ -15,7 +15,7 @@ from tab_foundry.bench.artifacts import (
 )
 
 from .bundle import _CLASSIFICATION_TASK_TYPE
-from .datasets import BenchmarkDatasetEvaluationError
+from .dataset_common import BenchmarkDatasetEvaluationError
 from .metrics import (
     dataset_brier_score_metrics,
     dataset_log_loss_metrics,
