@@ -362,6 +362,24 @@ tab-foundry bench compare \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
 ```
 
+Add TabICLv2 as an explicit frontier comparator when you want a broader
+reference without changing the current nano-pinned default behavior:
+
+```bash
+tab-foundry bench compare \
+  --tab-foundry-run-dir <run_dir> \
+  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5 \
+  --with-tabiclv2 \
+  --tabicl-root ~/dev/tabicl
+```
+
+`comparison_summary.json` now includes an optional top-level `tabiclv2` section
+and additive `artifacts.tabiclv2_curve_jsonl` when that extra comparator is
+requested. The default compare flow remains nano-pinned on the current
+canonical binary benchmark surface; TabICLv2 is currently opt-in here so the
+repo can broaden exploration without changing sweep-side promotion policy in
+the same step.
+
 The comparison flow is pinned to the repo-tracked benchmark bundle at
 `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`. Runs fail fast
 if the live OpenML-resolved selection thresholds or task metadata drift from

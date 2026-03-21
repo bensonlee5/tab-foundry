@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import openml
-from openml.tasks import TaskType
+from importlib import import_module
+from typing import Any
 
 from .artifacts import (
     benchmark_host_fingerprint,
@@ -33,14 +33,9 @@ from .curves import (
     summarize_checkpoint_curve,
     task_bootstrap_roc_auc_interval,
 )
-from .datasets import (
+from .dataset_common import (
     BenchmarkDatasetEvaluationError,
-    PreparedOpenMLBenchmarkTask,
-    get_feature_preprocessor,
     load_dataset_cache,
-    load_openml_benchmark_datasets,
-    prepare_openml_benchmark_task,
-    read_required_openml_quality,
     save_dataset_cache,
 )
 from .metrics import (
@@ -53,7 +48,20 @@ from .metrics import (
     evaluate_classifier,
     evaluate_regressor,
 )
-from .summary import aggregate_curve, build_comparison_summary, plot_comparison_curve
+
+_LAZY_EXPORTS = {
+    "TaskType": ("openml.tasks", "TaskType"),
+    "aggregate_curve": (".summary", "aggregate_curve"),
+    "build_comparison_summary": (".summary", "build_comparison_summary"),
+    "plot_comparison_curve": (".summary", "plot_comparison_curve"),
+}
+_DATASET_EXPORTS = {
+    "PreparedOpenMLBenchmarkTask",
+    "get_feature_preprocessor",
+    "load_openml_benchmark_datasets",
+    "prepare_openml_benchmark_task",
+    "read_required_openml_quality",
+}
 
 
 __all__ = [
@@ -101,3 +109,21 @@ __all__ = [
     "summarize_checkpoint_curve",
     "task_bootstrap_roc_auc_interval",
 ]
+
+
+def __getattr__(name: str) -> Any:
+    if name == "openml":
+        return import_module("openml")
+    export = _LAZY_EXPORTS.get(name)
+    if export is not None:
+        module_name, attribute_name = export
+        module = (
+            import_module(module_name, __name__)
+            if module_name.startswith(".")
+            else import_module(module_name)
+        )
+        return getattr(module, attribute_name)
+    if name in _DATASET_EXPORTS:
+        module = import_module(".datasets", __name__)
+        return getattr(module, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

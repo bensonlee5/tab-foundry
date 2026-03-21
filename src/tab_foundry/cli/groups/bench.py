@@ -90,7 +90,7 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     register_delegate_leaf(
         nested,
         "compare",
-        help="Run the nanoTabPFN benchmark comparison",
+        help="Run the benchmark comparison against external baselines",
         delegate=_run_compare,
     )
 

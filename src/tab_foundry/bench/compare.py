@@ -1,4 +1,4 @@
-"""Manual nanoTabPFN comparison runner."""
+"""Manual benchmark comparison runner against external baselines."""
 
 from __future__ import annotations
 
@@ -41,6 +41,8 @@ DEFAULT_NANOTABPFN_SEEDS = 2
 DEFAULT_NANOTABPFN_EVAL_EVERY = 25
 DEFAULT_NANOTABPFN_BATCH_SIZE = 32
 DEFAULT_NANOTABPFN_LR = 4.0e-3
+DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION = "tabicl-classifier-v2-20260212.ckpt"
+DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION = "tabicl-regressor-v2-20260212.ckpt"
 _BENCHMARK_METRIC_KEYS = (
     "best_step",
     "best_training_time",
@@ -86,11 +88,15 @@ class NanoTabPFNBenchmarkConfig:
     benchmark_bundle_path: Path | None = None
     reuse_nanotabpfn_curve_path: Path | None = None
     reuse_nanotabpfn_metadata: Mapping[str, Any] | None = None
+    with_tabiclv2: bool = False
+    tabicl_root: Path = Path("~/dev/tabicl")
+    tabicl_classifier_checkpoint_version: str = DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION
+    tabicl_regressor_checkpoint_version: str = DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION
 
 
 def _default_out_root() -> Path:
     stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-    return Path("/tmp") / f"tab_foundry_nanotabpfn_benchmark_{stamp}"
+    return Path("/tmp") / f"tab_foundry_benchmark_{stamp}"
 
 
 def _nanotabpfn_python(root: Path) -> Path:
@@ -105,8 +111,16 @@ def _helper_script_path() -> Path:
     return Path(__file__).resolve().with_name("nanotabpfn_helper.py")
 
 
+def _tabiclv2_helper_script_path() -> Path:
+    return Path(__file__).resolve().with_name("tabiclv2_helper.py")
+
+
 def _src_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def _tabiclv2_python(root: Path) -> Path:
+    return root.expanduser().resolve() / ".venv" / "bin" / "python"
 
 
 def _is_legacy_benchmark_record_compat_error(exc: Exception) -> bool:
@@ -183,6 +197,35 @@ def _resolve_reuse_curve_path(config: NanoTabPFNBenchmarkConfig) -> Path | None:
     return config.reuse_nanotabpfn_curve_path.expanduser().resolve()
 
 
+def _validate_tabiclv2_environment(config: NanoTabPFNBenchmarkConfig) -> tuple[Path, Path]:
+    tabicl_root = config.tabicl_root.expanduser().resolve()
+    tabicl_python = _tabiclv2_python(tabicl_root)
+    if not tabicl_root.exists():
+        raise RuntimeError(f"TabICLv2 root does not exist: {tabicl_root}")
+    if not tabicl_python.exists():
+        raise RuntimeError(
+            "missing TabICLv2 interpreter at "
+            f"{tabicl_python}; run `tab-foundry bench env bootstrap` first"
+        )
+    return tabicl_root, tabicl_python
+
+
+def _tabiclv2_checkpoint_version(
+    *,
+    task_type: str,
+    config: NanoTabPFNBenchmarkConfig,
+) -> str:
+    checkpoint_version = (
+        config.tabicl_classifier_checkpoint_version
+        if task_type == "supervised_classification"
+        else config.tabicl_regressor_checkpoint_version
+    )
+    resolved = str(checkpoint_version).strip()
+    if not resolved:
+        raise RuntimeError(f"missing TabICLv2 checkpoint version for task_type={task_type!r}")
+    return resolved
+
+
 def _nanotabpfn_execution_metadata(
     *,
     requested_device: str,
@@ -244,6 +287,55 @@ def _fresh_nanotabpfn_execution_metadata(
         lr=float(config.nanotabpfn_lr),
         reuse_curve_path=reuse_curve_path,
     )
+
+
+def _tabiclv2_helper_command(
+    *,
+    config: NanoTabPFNBenchmarkConfig,
+    dataset_cache: Path,
+    out_path: Path,
+    task_type: str,
+    allow_missing_values: bool,
+) -> list[str]:
+    tabicl_root = config.tabicl_root.expanduser().resolve()
+    command = [
+        str(_tabiclv2_python(tabicl_root)),
+        str(_tabiclv2_helper_script_path()),
+        "--tab-foundry-src",
+        str(_src_root()),
+        "--dataset-cache",
+        str(dataset_cache),
+        "--out-path",
+        str(out_path),
+        "--task-type",
+        str(task_type),
+        "--checkpoint-version",
+        _tabiclv2_checkpoint_version(task_type=task_type, config=config),
+        "--device",
+        str(config.device),
+    ]
+    if allow_missing_values:
+        command.append("--allow-missing-values")
+    return command
+
+
+def _tabiclv2_execution_metadata(
+    *,
+    requested_device: str,
+    resolved_device: str,
+    host_fingerprint: str,
+    tabicl_root: Path,
+    tabicl_python: Path,
+    checkpoint_version: str,
+) -> dict[str, Any]:
+    return {
+        "root": str(tabicl_root.expanduser().resolve()),
+        "python": str(tabicl_python.expanduser().resolve()),
+        "checkpoint_version": str(checkpoint_version),
+        "device": str(requested_device),
+        "resolved_device": str(resolved_device),
+        "benchmark_host_fingerprint": str(host_fingerprint),
+    }
 
 
 def _required_reuse_metadata_string(
@@ -344,11 +436,19 @@ def _benchmark_wandb_summary_payload(summary: Mapping[str, Any]) -> dict[str, An
                 nanotabpfn_payload[key] = nanotabpfn[key]
         if nanotabpfn_payload:
             benchmark_payload["benchmark"]["nanotabpfn"] = nanotabpfn_payload
+    tabiclv2 = _mapping_value(summary, "tabiclv2")
+    if tabiclv2 is not None:
+        tabiclv2_payload = _compact_metric_payload(tabiclv2)
+        for key in ("checkpoint_version",):
+            if key in tabiclv2:
+                tabiclv2_payload[key] = tabiclv2[key]
+        if tabiclv2_payload:
+            benchmark_payload["benchmark"]["tabiclv2"] = tabiclv2_payload
     return benchmark_payload if benchmark_payload["benchmark"] else {}
 
 
 def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any]:
-    """Run the notebook-style tab-foundry vs nanoTabPFN comparison."""
+    """Run the manual tab-foundry benchmark comparison against external baselines."""
 
     benchmark_bundle_path = (
         default_benchmark_bundle_path()
@@ -368,9 +468,13 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     nanotabpfn_root: Path | None = None
     nanotabpfn_python: Path | None = None
     prior_dump: Path | None = None
+    tabiclv2_root: Path | None = None
+    tabiclv2_python: Path | None = None
     if require_nanotabpfn_environment:
         nanotabpfn_root, prior_dump = _validate_nanotabpfn_environment(config)
         nanotabpfn_python = _nanotabpfn_python(nanotabpfn_root)
+    if config.with_tabiclv2:
+        tabiclv2_root, tabiclv2_python = _validate_tabiclv2_environment(config)
     out_root = config.out_root.expanduser().resolve()
     out_root.mkdir(parents=True, exist_ok=True)
 
@@ -378,6 +482,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     dataset_cache_path = out_root / "benchmark_dataset_cache.npz"
     tab_foundry_curve_path = out_root / "tab_foundry_curve.jsonl"
     nanotabpfn_curve_path = out_root / "nanotabpfn_curve.jsonl"
+    tabiclv2_curve_path = out_root / "tabiclv2_curve.jsonl"
     comparison_curve_path = out_root / "comparison_curve.png"
     comparison_summary_path = out_root / "comparison_summary.json"
     benchmark_run_record_path = out_root / "benchmark_run_record.json"
@@ -453,15 +558,43 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
                 if not nanotabpfn_records:
                     raise RuntimeError("nanoTabPFN benchmark produced no curve records")
 
+    tabiclv2_records: list[dict[str, Any]] = []
+    if config.with_tabiclv2:
+        if tabiclv2_root is None or tabiclv2_python is None:
+            raise RuntimeError("TabICLv2 environment validation did not resolve an interpreter")
+        helper_command = _tabiclv2_helper_command(
+            config=config,
+            dataset_cache=dataset_cache_path,
+            out_path=tabiclv2_curve_path,
+            task_type=task_type,
+            allow_missing_values=allow_missing_values,
+        )
+        try:
+            subprocess.run(
+                helper_command,
+                cwd=tabiclv2_root,
+                check=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError(
+                "TabICLv2 benchmark failed; ensure the sibling TabICLv2 environment exists and "
+                f"imports `tabicl`: {_tabiclv2_python(tabiclv2_root)}"
+            ) from exc
+        tabiclv2_records = load_jsonl(tabiclv2_curve_path)
+        if not tabiclv2_records:
+            raise RuntimeError("TabICLv2 benchmark produced no curve records")
+
     plot_comparison_curve(
         tab_foundry_records=tab_foundry_records,
         nanotabpfn_records=nanotabpfn_records,
+        tabiclv2_records=tabiclv2_records,
         task_type=task_type,
         out_path=comparison_curve_path,
     )
     summary = build_comparison_summary(
         tab_foundry_records=tab_foundry_records,
         nanotabpfn_records=nanotabpfn_records,
+        tabiclv2_records=tabiclv2_records,
         benchmark_tasks=benchmark_tasks,
         benchmark_bundle=benchmark_bundle,
         benchmark_bundle_path=benchmark_bundle_path,
@@ -469,6 +602,8 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         task_type=task_type,
         nanotabpfn_root=nanotabpfn_root,
         nanotabpfn_python=nanotabpfn_python,
+        tabiclv2_root=tabiclv2_root,
+        tabiclv2_python=tabiclv2_python,
         control_baseline=control_baseline,
     )
     nanotabpfn_summary = summary.get("nanotabpfn")
@@ -494,6 +629,24 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         cast(dict[str, Any], nanotabpfn_summary).update(
             execution_metadata
         )
+    if config.with_tabiclv2:
+        tabiclv2_summary = summary.get("tabiclv2")
+        if isinstance(tabiclv2_summary, Mapping):
+            if tabiclv2_root is None or tabiclv2_python is None:
+                raise RuntimeError("TabICLv2 environment validation did not resolve metadata paths")
+            cast(dict[str, Any], tabiclv2_summary).update(
+                _tabiclv2_execution_metadata(
+                    requested_device=str(config.device).strip(),
+                    resolved_device=resolve_device(str(config.device).strip()),
+                    host_fingerprint=benchmark_host_fingerprint(),
+                    tabicl_root=tabiclv2_root,
+                    tabicl_python=tabiclv2_python,
+                    checkpoint_version=_tabiclv2_checkpoint_version(
+                        task_type=task_type,
+                        config=config,
+                    ),
+                )
+            )
     if nanotabpfn_error is not None:
         summary["nanotabpfn_error"] = nanotabpfn_error
     gradient_history_jsonl = gradient_history_path(tab_foundry_run_dir)
@@ -503,6 +656,9 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         "tab_foundry_curve_jsonl": str(tab_foundry_curve_path),
         "nanotabpfn_curve_jsonl": (
             str(nanotabpfn_curve_path) if require_external_control and nanotabpfn_records else None
+        ),
+        "tabiclv2_curve_jsonl": (
+            str(tabiclv2_curve_path) if config.with_tabiclv2 and tabiclv2_records else None
         ),
         "comparison_curve_png": str(comparison_curve_path),
         "benchmark_dataset_cache": str(dataset_cache_path),
@@ -556,7 +712,9 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Compare a completed tab-foundry run against nanoTabPFN")
+    parser = argparse.ArgumentParser(
+        description="Compare a completed tab-foundry run against external baselines"
+    )
     parser.add_argument(
         "--tab-foundry-run-dir",
         required=True,
@@ -564,6 +722,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--nanotabpfn-root", default="~/dev/nanoTabPFN", help="Local nanoTabPFN checkout")
     parser.add_argument("--nanotab-prior-dump", default=None, help="Path to nanoTabPFN prior dump (.h5)")
+    parser.add_argument(
+        "--with-tabiclv2",
+        action="store_true",
+        help="Also run TabICLv2 as an explicit frontier comparator",
+    )
+    parser.add_argument(
+        "--tabicl-root",
+        default="~/dev/tabicl",
+        help="Local TabICLv2 checkout used with --with-tabiclv2",
+    )
+    parser.add_argument(
+        "--tabicl-classifier-checkpoint-version",
+        default=DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION,
+        help="TabICLv2 classifier checkpoint version used with --with-tabiclv2",
+    )
+    parser.add_argument(
+        "--tabicl-regressor-checkpoint-version",
+        default=DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION,
+        help="TabICLv2 regressor checkpoint version used with --with-tabiclv2",
+    )
     parser.add_argument("--out-root", default=None, help="Output directory root")
     parser.add_argument(
         "--device",
@@ -626,13 +804,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.benchmark_bundle_path
                 else None
             ),
+            with_tabiclv2=bool(args.with_tabiclv2),
+            tabicl_root=Path(str(args.tabicl_root)),
+            tabicl_classifier_checkpoint_version=str(args.tabicl_classifier_checkpoint_version),
+            tabicl_regressor_checkpoint_version=str(args.tabicl_regressor_checkpoint_version),
         )
     )
-    print("nanoTabPFN comparison complete:")
+    print("benchmark comparison complete:")
     print(f"  dataset_count={summary['dataset_count']}")
     print(f"  tab_foundry={summary['tab_foundry']}")
     if "nanotabpfn" in summary:
         print(f"  nanotabpfn={summary['nanotabpfn']}")
+    if "tabiclv2" in summary:
+        print(f"  tabiclv2={summary['tabiclv2']}")
     print(f"  artifacts={summary['artifacts']}")
     return 0
 
