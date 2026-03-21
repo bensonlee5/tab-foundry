@@ -87,6 +87,44 @@ At a high level, the staged family evolves along these axes:
 - context encoder: none vs plain vs QASS
 - head: binary direct, small-class, or many-class
 
+## Default Row-First Anchor
+
+TF-RD-008 is now closed. The normative row-first classification default is the
+`qass_context` staged surface with `module_overrides.column_encoder=none`, which
+corresponds to `row_cls + qass + no tfcol`.
+
+The settled default stack is:
+
+- shared feature encoder on the shared normalization surface
+- shifted-grouped tokenizer
+- label-token target conditioning
+- prenorm cell-table blocks with test-self attention enabled
+- no column encoder by default
+- row-CLS pooling
+- QASS context encoder
+- small-class direct classification head
+
+This is the default because the final missing-permitting validator
+`qass_tfcol_large_missing_validation_v1` produced a mixed result: the retained
+TFCol variant improved final Brier and ROC AUC, but it did not beat the no-TFCol
+line on final log loss. In that tie state, the repo now prefers the simpler and
+lower-runtime line as the default row-first anchor.
+
+## Retained Alternative
+
+The main retained alternative is `row_cls + qass + tfcol_heads4`, which is the
+same `qass_context` staged surface with TFCol enabled at `tfcol_n_heads=4`.
+
+That variant remains valid because it still improves calibration-oriented
+metrics on the missing-permitting large bundle and was the only TFCol adequacy
+winner worth carrying forward. It is not the default because:
+
+- it missed the final log-loss promotion rule on the missing-permitting bundle
+- it adds extra column-set machinery and runtime cost
+- TF-RD-008 now treats the simpler no-TFCol line as the canonical parent for
+  later post-008 work unless a calibration-oriented question explicitly calls
+  for the TFCol branch
+
 ## Normalization And Tokenization
 
 The staged family has two normalization regimes:

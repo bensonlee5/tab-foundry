@@ -13,6 +13,7 @@ import tab_foundry.bench.checkpoint as checkpoint_classifier
 from tab_foundry.bench.nanotabpfn import evaluate_classifier, load_dataset_cache
 from tab_foundry.input_normalization import normalize_train_test_arrays
 from tab_foundry.model.outputs import ClassificationOutput
+from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
 
@@ -227,6 +228,119 @@ def test_tab_foundry_classifier_uses_external_normalization_for_staged_shared_no
     assert model.last_batch is not None
     assert np.allclose(model.last_batch.x_train.cpu().numpy(), expected_train, atol=1.0e-6)
     assert np.allclose(model.last_batch.x_test.cpu().numpy(), expected_test, atol=1.0e-6)
+
+
+def test_tab_foundry_classifier_applies_runtime_preprocessing_before_normalization(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _CapturingClassifier()
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_staged",
+        stage="shared_norm",
+        input_normalization="train_zscore_clip",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    checkpoint = tmp_path / "train" / "checkpoints" / "step_000100.pt"
+    checkpoint.parent.mkdir(parents=True)
+    torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
+
+    x_train = np.asarray(
+        [
+            [np.nan, 10.0],
+            [2.0, 12.0],
+            [4.0, 14.0],
+        ],
+        dtype=np.float32,
+    )
+    x_test = np.asarray(
+        [
+            [3.0, np.nan],
+            [5.0, 8.0],
+        ],
+        dtype=np.float32,
+    )
+    y_train = np.asarray([0, 1, 0], dtype=np.int64)
+
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    classifier.fit(x_train, y_train)
+    _ = classifier.predict_proba(x_test)
+
+    assert model.last_batch is not None
+    expected = preprocess_runtime_task_arrays(
+        task="classification",
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        y_test=None,
+    )
+    expected_train, expected_test = normalize_train_test_arrays(
+        expected.x_train,
+        expected.x_test,
+        mode="train_zscore_clip",
+    )
+    observed_train = model.last_batch.x_train.cpu().numpy()
+    observed_test = model.last_batch.x_test.cpu().numpy()
+    assert np.all(np.isfinite(observed_train))
+    assert np.all(np.isfinite(observed_test))
+    assert np.allclose(observed_train, expected_train, atol=1.0e-6)
+    assert np.allclose(observed_test, expected_test, atol=1.0e-6)
+
+
+def test_tab_foundry_classifier_respects_training_surface_preprocessing_overrides(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    model = _CapturingClassifier()
+    fake_spec = SimpleNamespace(
+        task="classification",
+        arch="tabfoundry_staged",
+        stage="shared_norm",
+        input_normalization="none",
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(checkpoint_classifier, "build_model_from_spec", lambda _spec: model)
+
+    train_dir = tmp_path / "train"
+    checkpoint = train_dir / "checkpoints" / "step_000100.pt"
+    checkpoint.parent.mkdir(parents=True)
+    torch.save({"model": model.state_dict(), "config": {"task": "classification", "model": {}}}, checkpoint)
+    (train_dir / "training_surface_record.json").write_text(
+        json.dumps(
+            {
+                "preprocessing": {
+                    "surface_label": "test_override",
+                    "impute_missing": False,
+                    "all_nan_fill": 7.0,
+                    "label_mapping": "train_only_remap",
+                    "unseen_test_label_policy": "filter",
+                    "overrides": {},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    x_train = np.asarray([[np.nan, 1.0], [2.0, 3.0], [4.0, 5.0]], dtype=np.float32)
+    x_test = np.asarray([[6.0, np.nan], [7.0, 8.0]], dtype=np.float32)
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    classifier.fit(x_train, np.asarray([0, 1, 0], dtype=np.int64))
+    _ = classifier.predict_proba(x_test)
+
+    assert model.last_batch is not None
+    assert np.isnan(model.last_batch.x_train.cpu().numpy()).any()
+    assert np.isnan(model.last_batch.x_test.cpu().numpy()).any()
 
 
 def test_load_checkpoint_classifier_model_rejects_legacy_grouped_weights_without_override(

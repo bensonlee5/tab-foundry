@@ -315,6 +315,40 @@ def test_create_sweep_supports_explicit_delta_ref_order(tmp_path: Path) -> None:
     }
 
 
+def test_create_sweep_supports_missing_permitting_bundle_anchor_surface(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="binary_md_missing_bundle_followup",
+        anchor_run_id="sd_qass_tfcol_large_no_missing_validation_v1_01_delta_qass_no_column_v3_v1",
+        parent_sweep_id="qass_tfcol_large_no_missing_validation_v1",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=[
+            "delta_qass_no_column_v3",
+            "delta_qass_context_tfcol_heads4_v1",
+        ],
+        training_experiment="cls_benchmark_staged",
+        training_config_profile="cls_benchmark_staged",
+        surface_role="architecture_screen",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        sweeps_root=sweeps_root,
+    )
+
+    created_sweep = load_system_delta_sweep(
+        "binary_md_missing_bundle_followup",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert created_sweep["benchmark_bundle_path"] == "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
+    training_data_anchor = _anchor_dimension_anchor_text(created_sweep, dimension="training data surface")
+    assert "missing values permitted" in training_data_anchor
+
+
 def test_create_sweep_rejects_unknown_explicit_delta_ref(tmp_path: Path) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
 

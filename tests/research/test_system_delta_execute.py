@@ -801,6 +801,33 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
     assert queue_metrics['context_activation_final_window_mean'] == pytest.approx(2.1)
 
 
+def test_queue_metrics_tolerate_missing_nanotabpfn_summary(tmp_path: Path) -> None:
+    (tmp_path / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (tmp_path / 'telemetry.json').write_text('{}\n', encoding='utf-8')
+
+    summary = {
+        'tab_foundry': {
+            'best_step': 25.0,
+            'best_log_loss': 0.41,
+            'final_log_loss': 0.43,
+            'best_to_final_log_loss_delta': 0.02,
+            'best_brier_score': 0.11,
+            'final_brier_score': 0.13,
+            'best_to_final_brier_score_delta': 0.02,
+            'best_roc_auc': 0.82,
+            'final_roc_auc': 0.80,
+            'best_to_final_roc_auc_delta': -0.02,
+            'training_diagnostics': {'max_grad_norm': 7.5},
+        }
+    }
+
+    queue_metrics = _queue_metrics(summary, run_dir=tmp_path, run_entry=None)
+
+    assert queue_metrics['best_step'] == 25
+    assert queue_metrics['final_log_loss'] == pytest.approx(0.43)
+    assert 'nanotabpfn_final_log_loss' not in queue_metrics
+
+
 def test_result_card_text_reports_log_loss_before_roc() -> None:
     text = _result_card_text(
         row={

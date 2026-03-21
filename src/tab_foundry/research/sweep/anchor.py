@@ -304,10 +304,20 @@ def build_anchor_surface(
     anchor_context: Mapping[str, Any],
 ) -> dict[str, Any]:
     bundle_path = resolve_registry_path_value(benchmark_bundle_path)
-    bundle = load_benchmark_bundle(bundle_path)
+    # Sweep metadata should be able to describe bundles that intentionally
+    # permit missing-valued inputs, even when the sweep is not itself deciding
+    # the missingness mechanism.
+    bundle = load_benchmark_bundle(bundle_path, allow_missing_values=True)
     bundle_name = ensure_non_empty_string(bundle.get("name"), context="benchmark bundle name")
     task_ids = cast(list[Any], bundle.get("task_ids", []))
     task_count = int(len(task_ids))
+    selection = bundle.get("selection")
+    max_missing_pct = 0.0
+    if isinstance(selection, Mapping):
+        max_missing_raw = selection.get("max_missing_pct")
+        if isinstance(max_missing_raw, int | float):
+            max_missing_pct = float(max_missing_raw)
+    bundle_surface_suffix = " (missing values permitted)" if max_missing_pct > 0.0 else ""
     module_selection = anchor_module_selection(anchor_context)
     model_label = surface_label_from_anchor_context(
         anchor_context,
@@ -393,7 +403,7 @@ def build_anchor_surface(
             {
                 "dimension": "training data surface",
                 "upstream": "OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract.",
-                "anchor": f"Benchmark bundle `{bundle_name}` ({task_count} tasks) with data surface label `{data_label}`.",
+                "anchor": f"Benchmark bundle `{bundle_name}` ({task_count} tasks{bundle_surface_suffix}) with data surface label `{data_label}`.",
                 "interpretation": "Bundle and training-data changes are first-class sweep rows and should not be inherited from parent sweep prose.",
             },
             {

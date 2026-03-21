@@ -14,8 +14,9 @@ section factual and keep design intent in the policy section below it.
 - `tab_foundry.__main__` depends on `tab_foundry.cli`.
 - `tab_foundry.bench` depends on `tab_foundry.config`,
   `tab_foundry.data`, `tab_foundry.input_normalization`,
-  `tab_foundry.model`, `tab_foundry.timestamps`, `tab_foundry.training`,
-  and `tab_foundry.types`.
+  `tab_foundry.model`, `tab_foundry.preprocessing`,
+  `tab_foundry.timestamps`, `tab_foundry.training`, and
+  `tab_foundry.types`.
 - `tab_foundry.cli` depends on `tab_foundry.bench`,
   `tab_foundry.config`, `tab_foundry.data`, `tab_foundry.export`,
   `tab_foundry.model`, `tab_foundry.preprocessing`,
@@ -55,8 +56,8 @@ Observed cycle status:
 - `tab_foundry.export` may depend on `model`, `preprocessing`, and shared
   helpers, but it should not depend on `bench`, `research`, or `training`.
 - `tab_foundry.bench` is the benchmark and harness layer. It may depend on
-  `config`, `data`, `model`, `training`, and shared helpers, but lower layers
-  should not depend on it.
+  `config`, `data`, `model`, `preprocessing`, `training`, and shared helpers,
+  but lower layers should not depend on it.
 - `tab_foundry.research` is the sweep-management layer. It may depend on
   `bench`, `config`, `model`, and read-only `training` inspection helpers,
   but lower layers should not depend on it.

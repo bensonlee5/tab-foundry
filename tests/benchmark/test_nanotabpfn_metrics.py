@@ -21,6 +21,19 @@ class _PerfectClassifier:
         return probabilities
 
 
+class _NaNIgnoringClassifier:
+    def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_NaNIgnoringClassifier":
+        _ = x_train
+        self.classes_ = np.unique(np.asarray(y_train, dtype=np.int64))
+        return self
+
+    def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+        _ = x_test
+        if int(self.classes_.size) != 2:
+            raise RuntimeError("test helper expects a binary dataset")
+        return np.repeat(np.asarray([[0.5, 0.5]], dtype=np.float64), repeats=x_test.shape[0], axis=0)
+
+
 class _PerfectRegressor:
     def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_PerfectRegressor":
         _ = (x_train, y_train)
@@ -57,6 +70,31 @@ def test_evaluate_classifier_reports_brier_for_binary_and_multiclass() -> None:
     assert multiclass_metrics["ROC AUC"] == pytest.approx(1.0)
     assert multiclass_metrics["Log Loss"] < 1.0e-10
     assert multiclass_metrics["Brier Score"] < 1.0e-10
+
+
+def test_evaluate_classifier_allows_missing_inputs_when_enabled() -> None:
+    datasets = {
+        "binary": (
+            np.asarray(
+                [[0.0], [np.nan], [0.0], [1.0], [0.0], [1.0], [np.nan], [1.0], [0.0], [1.0]],
+                dtype=np.float32,
+            ),
+            np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
+        )
+    }
+
+    with pytest.raises(RuntimeError, match="allow_missing_values=False"):
+        _ = benchmark_module.evaluate_classifier(_NaNIgnoringClassifier(), datasets)
+
+    metrics = benchmark_module.evaluate_classifier(
+        _NaNIgnoringClassifier(),
+        datasets,
+        allow_missing_values=True,
+    )
+
+    assert metrics["ROC AUC"] == pytest.approx(0.5)
+    assert metrics["Log Loss"] == pytest.approx(np.log(2.0))
+    assert metrics["Brier Score"] == pytest.approx(0.5)
 
 
 def test_classification_brier_score_matches_expected_binary_value() -> None:

@@ -1,6 +1,6 @@
 # Architecture Deltas
 
-This document compares the active row-first promotion target in `tab-foundry`
+This document compares the settled row-first architecture target in `tab-foundry`
 to two external reference points:
 
 - `nanoTabPFN` / TabPFN-style cell-table encoder as the frozen PFN control
@@ -8,9 +8,9 @@ to two external reference points:
 - TabICLv2's row-first architecture as the main external directional reference
 
 The goal is not to restate every implementation detail. It is to make the
-decision-relevant structural deltas visible enough that `TF-RD-008` can settle
-one coherent row-first classification target without confusing historical
-diagnostic sweeps for the current normative direction.
+decision-relevant structural deltas visible enough that the repo can explain
+the TF-RD-008 settlement without confusing historical diagnostic sweeps for the
+current normative direction.
 
 ## Scope
 
@@ -19,11 +19,14 @@ Roadmap-first framing:
 - `docs/development/roadmap.md` is the canonical planning source of truth.
 - The normative architecture target is now the staged row-first line reached
   through `grouped_tokens -> row_cls_pool -> column_set -> qass_context`.
-- The open `TF-RD-008` choice is not whether the repo should stay on the old
-  large-CUDA diagnostic surface. It is whether the promoted default should be
-  `row_cls + qass + no tfcol` or `row_cls + qass + tfcol_heads4`.
-- The default remains unsettled until the missing-data generalization check on
-  `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json` lands.
+- TF-RD-008 is now closed with an explicit split:
+  `row_cls + qass + no tfcol` is the default row-first anchor, while
+  `row_cls + qass + tfcol_heads4` remains the retained calibration-oriented
+  alternative.
+- The decisive missing-permitting benchmark surface was
+  `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`, where the
+  TFCol row improved final Brier and ROC AUC but missed the final log-loss
+  promotion rule by a very small margin.
 - Older sweep matrices, including the large-CUDA diagnostic surfaces, remain
   valid research evidence, but they are historical or diagnostic surfaces, not
   the architecture target described here.
@@ -43,7 +46,7 @@ Code landing zones:
   `src/tab_foundry/model/components/blocks.py` and
   `src/tab_foundry/model/components/qass.py`
 
-## Active Row-First Target At A Glance
+## Settled Row-First Target At A Glance
 
 ```mermaid
 flowchart LR
@@ -64,9 +67,9 @@ flowchart LR
 
 This target is already beyond the old readout-only hybrid. The staged ladder has
 accepted grouped tokens, row-CLS pooling, and QASS-backed row-level context as
-the live promotion surface. The remaining default-choice question is whether the
-column-set encoder stays off by default for ROC-oriented work or stays on in the
-validated `tfcol_heads4` calibration-first line.
+the live architecture surface. The settled default keeps the column-set encoder
+off by default and treats the validated `tfcol_heads4` line as a retained
+alternative rather than the canonical parent.
 
 ## Delta Vs TabPFN
 
@@ -87,9 +90,9 @@ Key structural deltas:
 - shifted grouped tokens replace scalar-per-feature tokenization
 - row-CLS pooling replaces target-column readout
 - QASS is active after row pooling
-- column-set reasoning is modular and still the open default choice:
-  `none` for the ROC-oriented fallback versus `tfcol_heads4` for the
-  calibration-first candidate
+- column-set reasoning is modular and no longer the default:
+  `none` is the settled default, while `tfcol_heads4` is retained as the
+  calibration-oriented alternative
 - the staged target uses the small-class head rather than the frozen
   binary-only direct head
 
@@ -130,9 +133,9 @@ flowchart LR
 
 Relative to TabPFN, the repo is no longer deciding whether row-level reasoning
 should enter the target line at all. That ladder step is already accepted. The
-remaining `TF-RD-008` question is whether the promoted default keeps no TFCol as
-the safer ROC-oriented path or keeps `tfcol_heads4` because its calibration win
-survives the missing-data bundle.
+TF-RD-008 settlement now says the promoted default keeps no TFCol as the
+canonical parent, while `tfcol_heads4` survives only as an explicit
+calibration-oriented alternative.
 
 ## Delta Vs TabICLv2
 
@@ -148,8 +151,8 @@ Key structural deltas:
   the start
 - TFCol and QASS remain modular staged choices rather than mandatory features
   of every model family surface
-- the open promotion question is specifically whether column-set modeling stays
-  on the default row-first path
+- column-set modeling is retained as an optional branch, not the default
+  row-first path
 - the repo remains classification-first; many-class extends the same ladder and
   regression is still deferred
 
@@ -188,28 +191,29 @@ flowchart LR
 ### What This Means
 
 Relative to TabICLv2, the repo no longer needs to ask whether it should pursue a
-row-first target in principle. It already has one. The real open question is
-how much column-set machinery belongs on the promoted default line once
-missing-data robustness is measured on the final pending bundle.
+row-first target in principle. It already has one. The relevant read now is
+that the repo kept the simpler no-TFCol default after the missing-permitting
+bundle produced a mixed result, instead of forcing the heavier TFCol branch into
+the default path.
 
 ## Directional Read
 
 ```mermaid
 flowchart TD
     ctrl[frozen PFN control<br/>tabfoundry_simple or nano_exact] --> ladder[row-first staged ladder<br/>grouped tokens -> row CLS -> qass_context]
-    ladder --> roc[ROC-oriented fallback<br/>row_cls + qass + no tfcol]
-    ladder --> cal[calibration-first candidate<br/>row_cls + qass + tfcol_heads4]
-    roc --> gate[missing-data generalization<br/>nanotabpfn_openml_binary_large_v1]
-    cal --> gate
-    gate --> settle[promote one default or keep explicit split]
+    ladder --> def[default row-first anchor<br/>row_cls + qass + no tfcol]
+    ladder --> cal[retained calibration variant<br/>row_cls + qass + tfcol_heads4]
+    def --> settle[TF-RD-008 settled<br/>simple default]
+    cal --> settle
 
     classDef neutral fill:#eef5ff,stroke:#3b6ea8,color:#0f1f33;
     classDef branch fill:#f7f7f7,stroke:#777,color:#222;
-    class ctrl,ladder,gate neutral;
-    class roc,cal,settle branch;
+    class ctrl,ladder,settle neutral;
+    class def,cal branch;
 ```
 
 The least coherent state now is not "keep benchmarking row-first ideas." That
-work already happened. The least coherent state is to keep describing the older
-large-CUDA diagnostic surface as the current anchor after the roadmap has
-already moved the decision to the row-first `TF-RD-008` settlement.
+work already happened. The least coherent state would be to keep describing the
+older large-CUDA diagnostic surface as the current anchor, or to keep treating
+the TFCol branch as the implicit default after the roadmap already settled on
+the simpler no-TFCol row-first line.

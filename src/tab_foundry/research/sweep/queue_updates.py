@@ -142,7 +142,12 @@ def queue_metrics(
     run_entry: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     tab_foundry = cast(dict[str, Any], summary["tab_foundry"])
-    nanotabpfn = cast(dict[str, Any], summary["nanotabpfn"])
+    raw_nanotabpfn = summary.get("nanotabpfn")
+    nanotabpfn = (
+        cast(dict[str, Any], raw_nanotabpfn)
+        if isinstance(raw_nanotabpfn, Mapping)
+        else {}
+    )
     gradient_records = read_jsonl(run_dir / "gradient_history.jsonl")
     max_grad_norm = optional_metric(
         cast(dict[str, Any], tab_foundry["training_diagnostics"]),

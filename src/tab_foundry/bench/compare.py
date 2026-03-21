@@ -119,9 +119,10 @@ def _nanotabpfn_helper_command(
     config: NanoTabPFNBenchmarkConfig,
     dataset_cache: Path,
     out_path: Path,
+    allow_missing_values: bool,
 ) -> list[str]:
     nanotab_root = config.nanotabpfn_root.expanduser().resolve()
-    return [
+    command = [
         str(_nanotabpfn_python(nanotab_root)),
         str(_helper_script_path()),
         "--tab-foundry-src",
@@ -145,6 +146,9 @@ def _nanotabpfn_helper_command(
         "--lr",
         str(float(config.nanotabpfn_lr)),
     ]
+    if allow_missing_values:
+        command.append("--allow-missing-values")
+    return command
 
 
 def _validate_tab_foundry_run_dir(path: Path) -> Path:
@@ -415,6 +419,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     write_jsonl(tab_foundry_curve_path, tab_foundry_records)
 
     nanotabpfn_records: list[dict[str, Any]] = []
+    nanotabpfn_error: dict[str, Any] | None = None
     if require_external_control:
         if reuse_curve_path is not None:
             nanotabpfn_records = load_jsonl(reuse_curve_path)
@@ -423,18 +428,30 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
             write_jsonl(nanotabpfn_curve_path, nanotabpfn_records)
         else:
             assert nanotabpfn_root is not None
-            subprocess.run(
-                _nanotabpfn_helper_command(
-                    config=config,
-                    dataset_cache=dataset_cache_path,
-                    out_path=nanotabpfn_curve_path,
-                ),
-                cwd=nanotabpfn_root,
-                check=True,
+            helper_command = _nanotabpfn_helper_command(
+                config=config,
+                dataset_cache=dataset_cache_path,
+                out_path=nanotabpfn_curve_path,
+                allow_missing_values=allow_missing_values,
             )
-            nanotabpfn_records = load_jsonl(nanotabpfn_curve_path)
-            if not nanotabpfn_records:
-                raise RuntimeError("nanoTabPFN benchmark produced no curve records")
+            try:
+                subprocess.run(
+                    helper_command,
+                    cwd=nanotabpfn_root,
+                    check=True,
+                )
+            except subprocess.CalledProcessError as exc:
+                if not allow_missing_values:
+                    raise
+                nanotabpfn_error = {
+                    "kind": "helper_failed_on_missing_bundle",
+                    "message": str(exc),
+                    "returncode": int(exc.returncode),
+                }
+            else:
+                nanotabpfn_records = load_jsonl(nanotabpfn_curve_path)
+                if not nanotabpfn_records:
+                    raise RuntimeError("nanoTabPFN benchmark produced no curve records")
 
     plot_comparison_curve(
         tab_foundry_records=tab_foundry_records,
@@ -477,13 +494,15 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         cast(dict[str, Any], nanotabpfn_summary).update(
             execution_metadata
         )
+    if nanotabpfn_error is not None:
+        summary["nanotabpfn_error"] = nanotabpfn_error
     gradient_history_jsonl = gradient_history_path(tab_foundry_run_dir)
     telemetry_json = telemetry_path(tab_foundry_run_dir)
     summary["artifacts"] = {
         "benchmark_tasks_json": str(benchmark_tasks_path),
         "tab_foundry_curve_jsonl": str(tab_foundry_curve_path),
         "nanotabpfn_curve_jsonl": (
-            str(nanotabpfn_curve_path) if require_external_control else None
+            str(nanotabpfn_curve_path) if require_external_control and nanotabpfn_records else None
         ),
         "comparison_curve_png": str(comparison_curve_path),
         "benchmark_dataset_cache": str(dataset_cache_path),

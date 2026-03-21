@@ -10,7 +10,7 @@ The repo-wide plan is now architecture-first:
 - stay free to borrow the best components from TabPFN and other tabular models
   rather than aiming for literal TabICLv2 parity
 - defer regression, extended modalities, and broader runtime handoff until the
-  row-first classification anchor is coherent
+  row-first classification anchor is coherent and documented
 
 Related docs:
 
@@ -70,10 +70,11 @@ Important non-goals for this roadmap:
 
 ## Prioritization Lens
 
-- Close TF-RD-008 first, then move quickly onto harder or broader post-008
-  surfaces before committing to a heavy scaling pass.
-- Classification remains the anchor workload until the row-first control family
-  is stable.
+- TF-RD-008 is now closed on an explicit split with a simple default, so the
+  next deliberate move is onto harder or broader post-008 surfaces before a
+  heavy scaling pass.
+- Classification remains the anchor workload while the settled row-first family
+  is tested on harder post-008 regimes.
 - Architecture conclusions should come from coherent staged surfaces, not from
   piling more overrides onto `nano_exact`.
 - Row-first migration work should move one architectural boundary at a time:
@@ -112,7 +113,7 @@ retained for traceability.
 | 6 | TF-RD-005 | Row-embedding unlock | completed | Now |
 | 7 | TF-RD-006 | Column-set integration | completed | Now |
 | 8 | TF-RD-007 | Row-level context and QASS attribution | completed | Now |
-| 9 | TF-RD-008 | Coherent classification anchor promotion | partial | Next |
+| 9 | TF-RD-008 | Coherent classification anchor promotion | implemented | Implemented |
 | 10 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | planned | Next |
 | 11 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
 | 12 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
@@ -138,7 +139,7 @@ flowchart TD
     RD005["TF-RD-005<br/>Row-embedding unlock"]
     RD006["TF-RD-006<br/>Column-set integration"]
     RD007["TF-RD-007<br/>Row-level context & QASS"]
-    RD008{{"TF-RD-008<br/>PROMOTION GATE<br/>Coherent anchor"}}
+    RD008["TF-RD-008 ✅<br/>DEFAULT SETTLED<br/>Coherent anchor"]
     RD013["TF-RD-013<br/>Dagzoo synthetic<br/>data efficacy"]
     RD014["TF-RD-014<br/>Missingness<br/>robustness"]
     RD017["TF-RD-017<br/>Class-imbalance<br/>robustness"]
@@ -175,29 +176,29 @@ flowchart TD
     classDef gate fill:#fff1d6,stroke:#c67a00,color:#3d2a00;
     classDef later fill:#f3e8ff,stroke:#7c3aed,color:#3b1f6e;
 
-    class RD000,RD001,RD002,RD003,RD011 done;
+    class RD000,RD001,RD002,RD003,RD008,RD011 done;
     class RD004,RD005,RD006,RD007 chain;
-    class RD008 gate;
     class RD013,RD014,RD017,RD018,RD010,RD015 readyNow;
     class RD016,RD009,RD012 later;
 ```
 
 Critical path: **003 → 004 → 005 → 006 → 007 → 008**. 000, 001, 002, 003, and
-011 are implemented; 004, 005, 006, and 007 are completed evidence steps. 008
-remains the active promotion gate. The deliberate post-008 fronts are
-TF-RD-013, TF-RD-014, TF-RD-017, TF-RD-018, TF-RD-010, and TF-RD-015. If those
-harder or broader surfaces still leave the staged family low-signal, TF-RD-016
-is the deliberate follow-on architecture-depth track before the repo treats
-TF-RD-009 scaling work as the main next source of architecture evidence.
+011 are implemented; 004, 005, 006, and 007 are completed evidence steps; and
+008 is now implemented as an explicit split with `row_cls + qass + no tfcol`
+as the default row-first anchor. The deliberate post-008 fronts are TF-RD-013,
+TF-RD-014, TF-RD-017, TF-RD-018, TF-RD-010, and TF-RD-015. If those harder or
+broader surfaces still leave the staged family low-signal, TF-RD-016 is the
+deliberate follow-on architecture-depth track before the repo treats TF-RD-009
+scaling work as the main next source of architecture evidence.
 
 ## Current Capability Matrix
 
 | Objective / Claim | Current State | Evidence In Repo | Current Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, benchmark comparison tooling, and prior-trained PFN-facing lanes already exist | The current large-anchor hybrid line is still easy to confuse with the intended destination | `TF-RD-001` |
-| Coherent row-first migration ladder exists in code | `partial` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, and `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly | The remaining gap is no longer row-first ladder shape but final regime coverage: the missing-data generalization check on `nanotabpfn_openml_binary_large_v1.json` still needs to land before promotion language can fully close | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007` |
-| Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and the large no-missing validation now separate row embeddings, plain context, TFCol-only, QASS-only, and the selected `qass + tfcol_heads4` calibration line | The remaining open comparison is no longer medium-bundle attribution, but whether the post-008 fronts use harder and broader surfaces that reduce saturation risk | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
-| One promoted row-first classification anchor exists | `partial` | The calibration-first candidate `row_cls + qass + tfcol_heads4` now passed the large no-missing validator narrowly, while `row_cls + qass + no tfcol` remains the ROC-oriented fallback | The repo still needs the missing-data generalization check on `nanotabpfn_openml_binary_large_v1.json` before it can claim a single promoted default anchor across regimes | `TF-RD-008` |
+| Coherent row-first migration ladder exists in code | `implemented` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly, and `qass_tfcol_large_missing_validation_v1` closed the missing-permitting settlement sweep | The remaining work is no longer anchor coherence; it is harder and broader post-008 regime coverage on the settled row-first base | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
+| Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and both large-bundle validators now separate row embeddings, plain context, TFCol-only, QASS-only, the no-TFCol default line, and the retained `qass + tfcol_heads4` calibration variant | The next comparison gap is no longer anchor settlement; it is whether harder post-008 fronts provide more decisive regime separation before scaling work | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
+| One promoted row-first classification anchor exists | `implemented` | `qass_tfcol_large_missing_validation_v1` closed on an explicit split: `row_cls + qass + no tfcol` is now the default row-first anchor, while `row_cls + qass + tfcol_heads4` is retained as a calibration-oriented alternative | Future work should treat the no-TFCol line as the default and reserve TFCol for explicit calibration-oriented follow-up rather than reopening anchor settlement | `TF-RD-008` |
 | Harder post-008 data surfaces can be exercised | `partial` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, and canonical no-missing versus allow-missing binary bundles already exist | There is no post-008 program yet that decides whether dagzoo or explicit missingness should become a canonical harder research surface on the promoted anchor | `TF-RD-011`, `TF-RD-013`, `TF-RD-014` |
 | Class-imbalance robustness is meaningfully exercised | `partial` | Current benchmark bundles enforce `min_minority_class_pct = 2.5`, so the repo already excludes degenerate class-balance cases | There is no dedicated imbalance-focused bundle ladder, imbalance-oriented reporting contract, or explicit decision on the promoted anchor under materially skewed priors | `TF-RD-017` |
 | Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, and bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist | Optimizer, schedule, step-budget, batch, and clipping adequacy are not yet tracked as one roadmap workstream with a canonical decision surface | `TF-RD-018` |
@@ -231,9 +232,13 @@ This roadmap assumes the following repo truths:
   adequacy winner worth carrying forward, while `inducing64` and `layers1`
   remain negative evidence
 - `qass_tfcol_large_no_missing_validation_v1` established a narrow large
-  no-missing validation pass for `row_cls + qass + tfcol_heads4`; the
-  remaining gate is missing-data generalization on
-  `nanotabpfn_openml_binary_large_v1.json`
+  no-missing validation pass for `row_cls + qass + tfcol_heads4`
+- `qass_tfcol_large_missing_validation_v1` then closed the missing-permitting
+  bundle decision with a mixed result: `row_cls + qass + tfcol_heads4`
+  improved final Brier and ROC AUC, but its final log loss was slightly worse
+  than `row_cls + qass + no tfcol`, so the simpler no-TFCol line is now the
+  default row-first anchor and the TFCol line is retained as a
+  calibration-oriented variant
 - closed `TF-RD-011` work already completed the dagzoo CLI-to-manifest
   boundary, path-independent canonical dagzoo identity, and export/reference
   preprocessing fidelity
@@ -263,7 +268,7 @@ This roadmap assumes the following repo truths:
 - `Muon` is already supported in the optimizer surface and belongs in training
   adequacy work rather than architecture-surface expansion
 - the current large-anchor `nano_exact + prenorm + row_cls` line is useful as a
-  diagnostic bridge, but not yet a promoted architecture target
+  diagnostic bridge, but not the promoted architecture target
 
 ## Roadmap Items
 
@@ -456,18 +461,23 @@ This roadmap assumes the following repo truths:
     `nanotabpfn_openml_binary_large_no_missing_v1.json` with a narrow pass:
     final log loss `-0.0013818`, final Brier `-0.0004977`, and final ROC AUC
     `-0.0047989` versus the no-TFCol control
+  - `qass_tfcol_large_missing_validation_v1` then showed that
+    `delta_qass_context_tfcol_heads4_v1` improved final Brier and ROC AUC on
+    `nanotabpfn_openml_binary_large_v1.json`, but missed the final log-loss
+    promotion rule by about `+0.0000045`, so TF-RD-008 closed on the simpler
+    no-TFCol default
 - Completed evidence:
   - default TFCol alone is resolved negative evidence on the row-first base and
     should not be reopened as a standalone promotion candidate
-  - TFCol is justified only under the validated
-    `row_cls + qass + tfcol_heads4` calibration-first line
-  - the remaining follow-up is missing-data generalization, not another TFCol
-    adequacy or TFCol-alone screen
+  - TFCol is retained only under the documented
+    `row_cls + qass + tfcol_heads4` calibration-oriented variant, not as the
+    default row-first line
+  - missing-data settlement is closed; further TFCol work belongs to explicit
+    calibration-oriented follow-up rather than anchor promotion
 - Exit criteria:
-  - satisfied: TFCol is promoted only under the validated
-    `qass + tfcol_heads4` line, not as a standalone default row-first module
-  - satisfied: the repo now has an explicit ROC-oriented fallback against
-    `qass + no tfcol`
+  - satisfied: TFCol is not promoted as a standalone default row-first module
+  - satisfied: the repo now has a default no-TFCol line and a retained
+    calibration-oriented TFCol alternative
 
 ### TF-RD-007: Row-Level Context And QASS Attribution
 
@@ -487,58 +497,59 @@ This roadmap assumes the following repo truths:
     `row_cls + qass + tfcol_heads4` keeps the calibration win over
     `row_cls + qass + no tfcol` on the larger no-missing bundle while staying
     inside the `-0.005` ROC guardrail
+  - `qass_tfcol_large_missing_validation_v1` then closed the final bundle with
+    a mixed result: `tfcol_heads4` improved final Brier and ROC AUC, but lost
+    very slightly on final log loss, so the repo settled on the simpler
+    no-TFCol default
 - Completed evidence:
   - plain row-level context is resolved negative evidence on the row-first path
-  - QASS remains optional by construction, but the calibration-first line is
-    now `row_cls + qass + tfcol_heads4`
-  - `row_cls + qass + no tfcol` remains the explicit ROC-oriented fallback
-  - the remaining follow-up is missing-data generalization, not reopening
-    medium-bundle attribution
+  - QASS remains optional by construction, but the settled default line is now
+    `row_cls + qass + no tfcol`
+  - `row_cls + qass + tfcol_heads4` remains the retained calibration-oriented
+    alternative rather than the default
+  - missing-data settlement is closed, so medium-bundle attribution and bundle
+    closure no longer remain open
 - Exit criteria:
-  - satisfied: the repo has an explicit calibration-first recommendation and an
-    explicit ROC-oriented fallback for `qass + no tfcol` versus
+  - satisfied: the repo has an explicit default and an explicit retained
+    calibration-oriented alternative for `qass + no tfcol` versus
     `qass + tfcol_heads4`
 
 ### TF-RD-008: Coherent Classification Anchor Promotion
 
-- Status: `partial`
-- Milestone: `Next`
+- Status: `implemented`
+- Milestone: `Implemented`
 - Goal: promote one coherent row-first classification anchor and stop treating
   the architecture target as an open set of hybrid lines
 - Current state:
   - the staged ladder exists
-  - no row-first classification anchor has been promoted
-  - the calibration-first candidate is
-    `row_cls + qass + tfcol_heads4`
-  - `row_cls + qass + no tfcol` remains the ROC-oriented fallback
-  - `qass_tfcol_large_no_missing_validation_v1` passed narrowly, so the
-    remaining blocker is missing-data generalization rather than large
-    no-missing validation
-  - the architecture docs still describe the pre-settlement surface and must be
-    refreshed once the anchor decision is locked
-- Required work:
-  - run the missing-data generalization check on
-    `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json` using
-    `row_cls + qass + no tfcol` as the ROC-oriented control and
-    `row_cls + qass + tfcol_heads4` as the calibration-first candidate
-  - if the missing-data check keeps the calibration win while the ROC gap stays
-    small, promote `row_cls + qass + tfcol_heads4` as the default row-first
-    classification anchor
-  - if the missing-data check fails or the ROC penalty widens materially, keep
-    a split recommendation rather than forcing a single promoted anchor
-  - publish the settled architecture reference in
-    `docs/development/model-architecture.md`, including the selected blocks,
-    their exact inputs and outputs, their purpose, the decision-relevant
-    discarded alternatives, and the tradeoffs of the selected design
-  - refresh `docs/development/architecture-deltas.md` so it documents the
-    settled promoted anchor or explicit split outcome rather than the old
-    anchor-under-investigation framing
-  - update research defaults and promotion language only after the benchmark
-    and documentation gates close
+  - `qass_tfcol_large_no_missing_validation_v1` narrowed the final choice to
+    `row_cls + qass + no tfcol` versus `row_cls + qass + tfcol_heads4`
+  - `qass_tfcol_large_missing_validation_v1` closed the missing-permitting
+    bundle decision with a mixed result:
+    - `row_cls + qass + no tfcol`: final log loss `0.42151056`, Brier
+      `0.26437641`, ROC AUC `0.67022423`
+    - `row_cls + qass + tfcol_heads4`: final log loss `0.42151508`, Brier
+      `0.26432957`, ROC AUC `0.67529660`
+  - `tfcol_heads4` therefore improved final Brier and ROC AUC, but failed the
+    planned promotion rule because final log loss was slightly worse than the
+    no-TFCol control
+  - TF-RD-008 settles on an explicit split with
+    `row_cls + qass + no tfcol` as the default row-first anchor because the
+    result was mixed and the repo prefers the simpler lower-runtime line when
+    there is no clear winner
+- Implemented contract:
+  - the default row-first classification anchor is
+    `row_cls + qass + no tfcol`
+  - `row_cls + qass + tfcol_heads4` remains a retained calibration-oriented
+    alternative rather than the default
+  - research and documentation surfaces should treat the no-TFCol line as the
+    default post-008 parent unless a calibration-oriented question explicitly
+    asks for the TFCol variant
+  - architecture references document both the default and the retained
+    alternative without reopening the older hybrid diagnostic surfaces
 - Exit criteria:
-  - one row-first classification anchor, or an explicit split recommendation,
-    is named, benchmarked, documented, and treated as the active architecture
-    target
+  - satisfied: an explicit split recommendation is named, benchmarked,
+    documented, and treated as the active architecture target
 
 ### TF-RD-010: Many-Class Promotion On The Row-First Base
 
@@ -638,7 +649,9 @@ This roadmap assumes the following repo truths:
     prenorm hybrid surface rather than the row-first line
   - the repo already has separate no-missing and allow-missing benchmark bundle
     contracts
-  - there is no row-first missingness recommendation yet
+  - there is no explicit row-first missingness-mechanism recommendation yet;
+    TF-RD-008 only settled the default row-first anchor on the allow-missing
+    benchmark surface
 - Required work:
   - re-anchor missingness work on the promoted row-first base
   - separate missing-token or missingness-mechanism adequacy from synthetic
@@ -789,8 +802,9 @@ This roadmap assumes the following repo truths:
   - there is no canonical scaling artifact path yet on a promoted row-first
     anchor paired with a harder post-008 surface
 - Required work:
-  - close TF-RD-008 and lock the promoted row-first anchor or the explicit
-    split recommendation
+  - use the settled TF-RD-008 default
+    `row_cls + qass + no tfcol` as the primary scaling parent, while keeping
+    any TFCol scaling work explicitly opt-in
   - finish at least one harder post-008 front, starting with TF-RD-013 or
     TF-RD-014, before using scaling results as architecture evidence
   - if those harder surfaces still leave architecture separation low-signal,
@@ -824,8 +838,8 @@ hold:
 - TabPFN remains the control lineage and a legitimate donor for specific
   components.
 - QASS remains optional.
-- Classification remains the anchor workload until the row-first classification
-  base is promoted.
+- Classification remains the anchor workload while the settled row-first
+  default is tested on harder post-008 surfaces.
 - After TF-RD-008, harder or broader surfaces should come before large scaling
   passes whenever the current binary regime risks saturation.
 - The current large-anchor hybrid line is diagnostic evidence, not the intended

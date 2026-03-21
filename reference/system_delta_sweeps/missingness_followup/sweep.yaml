@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: missingness_followup
 parent_sweep_id: stability_ladder
-status: draft
+status: superseded
 complexity_level: binary_md
 anchor_run_id: null
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
@@ -15,6 +15,7 @@ anchor_surface:
   - This follow-up isolates explicit missingness handling on the stabilized prenorm foundation.
   - Input normalization remains fixed at the promoted default; this is not an input-normalization sweep.
   - The large binary bundle is used because it already permits up to 5 percent missingness.
+  - This remains historical hybrid-diagnostic evidence only; TF-RD-008 closes on `qass_tfcol_large_missing_validation_v1` instead.
   dimension_table:
   - dimension: feature encoder
     upstream: Scalar feature linear encoder with internal train/test z-score+clip handling.

@@ -159,11 +159,19 @@ Conventions:
   - TabPFN analysis work reinforces that robustness claims should be grounded in
     coherent model surfaces
 - Repo-local evidence:
-  - the staged family already contains the likely promotion candidates
-  - no row-first classification anchor has yet been promoted
+  - the staged family contained two final row-first promotion candidates on the
+    missing-permitting large bundle: `row_cls + qass + no tfcol` and
+    `row_cls + qass + tfcol_heads4`
+  - `qass_tfcol_large_missing_validation_v1` closed on a mixed result: the TFCol
+    row improved final Brier and ROC AUC, but its final log loss was slightly
+    worse than the simpler no-TFCol control
+  - TF-RD-008 therefore settled on `row_cls + qass + no tfcol` as the default
+    row-first anchor, with `row_cls + qass + tfcol_heads4` retained as a
+    calibration-oriented alternative
 - Success signal:
-  - one named row-first classification anchor becomes the target for future
-    architecture and scaling work
+  - one named default row-first classification anchor now exists and can serve
+    as the target for future architecture and scaling work without erasing the
+    retained calibration-oriented alternative
 
 ### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
 
