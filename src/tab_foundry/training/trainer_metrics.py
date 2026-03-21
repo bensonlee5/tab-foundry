@@ -8,7 +8,11 @@ from accelerate import Accelerator
 import torch
 from torch.utils.data import DataLoader
 
-from tab_foundry.model.outputs import ClassificationOutput
+from tab_foundry.model.outputs import (
+    ClassificationOutput,
+    validate_classification_output_contract,
+    validate_classification_path_terms_contract,
+)
 from tab_foundry.types import TaskBatch
 
 from .batching import move_batch
@@ -37,9 +41,16 @@ def _compute_loss_and_metrics(
     n_test = int(batch.y_test.shape[0])
     if n_test <= 0:
         raise RuntimeError("classification batch has zero test labels")
+    expected_num_classes = None if batch.num_classes is None else int(batch.num_classes)
+    resolved_num_classes = validate_classification_output_contract(
+        output,
+        expected_rows=n_test,
+        expected_num_classes=expected_num_classes,
+        context="classification training/evaluation",
+    )
 
     if output.logits is not None:
-        logits = output.logits[:, : output.num_classes]
+        logits = output.logits[:, :resolved_num_classes]
         target = batch.y_test.to(torch.int64)
         loss = classification_loss(logits, target)
         acc = (logits.argmax(dim=-1) == target).float().mean().item()
@@ -58,23 +69,18 @@ def _compute_loss_and_metrics(
             cls_metrics.update(output.aux_metrics)
         return loss, cls_metrics
 
-    if output.path_logits is None or output.path_targets is None:
-        raise RuntimeError("many-class output missing class_probs and path terms")
-    if len(output.path_logits) != len(output.path_targets):
-        raise RuntimeError("path_logits and path_targets length mismatch")
-
-    counts = (
-        output.path_sample_counts
-        if output.path_sample_counts is not None
-        else [int(logits.shape[0]) for logits in output.path_logits]
+    counts = validate_classification_path_terms_contract(
+        output,
+        expected_rows=n_test,
+        context="classification training/evaluation",
     )
-    if len(counts) != len(output.path_logits):
-        raise RuntimeError("path_sample_counts length mismatch")
+    path_logits = output.path_logits
+    path_targets = output.path_targets
+    if path_logits is None or path_targets is None:
+        raise RuntimeError("classification training/evaluation missing path logits or targets")
     weighted_total: torch.Tensor | None = None
     total_edges = 0
-    for logits, targets, sample_count in zip(
-        output.path_logits, output.path_targets, counts, strict=True
-    ):
+    for logits, targets, sample_count in zip(path_logits, path_targets, counts, strict=True):
         count_i = int(sample_count)
         if count_i <= 0:
             continue

@@ -29,7 +29,7 @@ class TrainResult:
     best_checkpoint: Path | None
     latest_checkpoint: Path | None
     global_step: int
-    metrics: dict[str, float]
+    metrics: dict[str, float | None]
 
 
 @dataclass(slots=True)

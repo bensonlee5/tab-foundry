@@ -110,6 +110,37 @@ class TestNanGuardMetrics:
         )
         assert payload["metrics"]["nan_skip_count"] == 3.0
 
+    def test_trainer_summary_payload_preserves_missing_grad_norm_state(self) -> None:
+        from pathlib import Path
+        from tab_foundry.training.trainer import _trainer_summary_payload
+
+        payload = _trainer_summary_payload(
+            output_dir=Path("/tmp/test"),
+            optimizer_requested_name="adamw",
+            optimizer_resolved_name="adamw",
+            optimizer_fallback_reason=None,
+            global_step=10,
+            best_checkpoint=None,
+            latest_checkpoint=None,
+            best_val=0.5,
+            best_val_step=5.0,
+            final_train_loss=0.3,
+            final_train_loss_ema=0.3,
+            last_train_metrics=None,
+            last_val_metrics=None,
+            final_grad_norm=0.0,
+            grad_norm_sum=0.0,
+            grad_norm_count=0,
+            max_grad_norm=0.0,
+            train_elapsed_seconds=10.0,
+            wall_elapsed_seconds=12.0,
+            nan_skip_count=0,
+        )
+
+        assert payload["metrics"]["mean_grad_norm"] is None
+        assert payload["metrics"]["max_grad_norm"] is None
+        assert payload["metrics"]["final_grad_norm"] is None
+
     def test_isfinite_detects_nan(self) -> None:
         """Verify the guard condition correctly identifies NaN."""
         assert not math.isfinite(float("nan"))

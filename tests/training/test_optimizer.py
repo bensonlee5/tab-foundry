@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import math
 import sys
 from types import SimpleNamespace
@@ -28,8 +29,18 @@ def test_optimizer_unknown_name_raises() -> None:
         )
 
 
-def test_muon_selection_or_fallback() -> None:
+def test_muon_missing_dependency_falls_back_when_not_required(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     model = nn.Linear(4, 2)
+    original_import = builtins.__import__
+
+    def _missing_import(name: str, globals=None, locals=None, fromlist=(), level=0):  # type: ignore[no-untyped-def]
+        if name == "muon":
+            raise ModuleNotFoundError(name)
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", _missing_import)
 
     sel = build_optimizer(
         model,
@@ -40,19 +51,22 @@ def test_muon_selection_or_fallback() -> None:
         require_requested=False,
     )
 
-    if sel.resolved_name.startswith("muon"):
-        assert sel.resolved_name.startswith("muon")
-        assert sel.fallback_reason is None
-        assert len(sel.optimizers) >= 1
-    else:
-        assert len(sel.optimizers) == 1
-        assert isinstance(sel.optimizers[0][1], torch.optim.AdamW)
-        assert sel.resolved_name == "adamw"
-        assert sel.fallback_reason == "muon_unavailable"
+    assert len(sel.optimizers) == 1
+    assert isinstance(sel.optimizers[0][1], torch.optim.AdamW)
+    assert sel.resolved_name == "adamw"
+    assert sel.fallback_reason == "muon_unavailable"
 
 
-def test_muon_required_behavior() -> None:
+def test_muon_required_behavior(monkeypatch: pytest.MonkeyPatch) -> None:
     model = nn.Linear(4, 2)
+    original_import = builtins.__import__
+
+    def _missing_import(name: str, globals=None, locals=None, fromlist=(), level=0):  # type: ignore[no-untyped-def]
+        if name == "muon":
+            raise ModuleNotFoundError(name)
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", _missing_import)
 
     try:
         sel = build_optimizer(
@@ -66,6 +80,56 @@ def test_muon_required_behavior() -> None:
         assert sel.resolved_name.startswith("muon")
     except RuntimeError as exc:
         assert "Requested optimizer 'muon' is unavailable" in str(exc)
+
+
+@pytest.mark.parametrize("require_requested", [False, True])
+def test_muon_init_failures_raise(
+    monkeypatch: pytest.MonkeyPatch,
+    require_requested: bool,
+) -> None:
+    class _RaisingMuon:
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            raise RuntimeError("simulated muon init bug")
+
+    monkeypatch.setitem(sys.modules, "muon", SimpleNamespace(Muon=_RaisingMuon))
+
+    model = nn.Linear(4, 2)
+    with pytest.raises(RuntimeError, match="Muon initialization failed"):
+        _ = build_optimizer(
+            model,
+            name="muon",
+            lr=1e-3,
+            weight_decay=0.0,
+            extra_kwargs={},
+            require_requested=require_requested,
+        )
+
+
+def test_muon_no_eligible_params_falls_back_without_init(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _EmbeddingOnly(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.embed = nn.Embedding(16, 8)
+            self.bias = nn.Parameter(torch.zeros(8))
+
+    monkeypatch.setitem(sys.modules, "muon", SimpleNamespace(Muon=object))
+
+    model = _EmbeddingOnly()
+    sel = build_optimizer(
+        model,
+        name="muon",
+        lr=1e-3,
+        weight_decay=0.0,
+        extra_kwargs={},
+        require_requested=False,
+    )
+
+    assert len(sel.optimizers) == 1
+    assert isinstance(sel.optimizers[0][1], torch.optim.AdamW)
+    assert sel.resolved_name == "adamw"
+    assert sel.fallback_reason == "muon_no_eligible_params"
 
 
 def test_muon_lr_scale_for_matrix_and_vector_params() -> None:

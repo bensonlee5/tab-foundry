@@ -166,8 +166,8 @@ def run_iris_smoke(
         )
         timings_seconds["iris_benchmark"] = time.perf_counter() - stage_start
 
-        ensure_finite_metrics_fn(train_result.metrics, context="train")
-        ensure_finite_metrics_fn(eval_result.metrics, context="eval")
+        normalized_train_metrics = ensure_finite_metrics_fn(train_result.metrics, context="train")
+        normalized_eval_metrics = ensure_finite_metrics_fn(eval_result.metrics, context="eval")
 
         plot_loss_curve_fn(history_path, loss_curve_path, title="tab-foundry iris smoke loss curve")
         checkpoint_snapshots = checkpoint_snapshots_from_history_fn(
@@ -180,11 +180,9 @@ def run_iris_smoke(
         telemetry["checkpoint_snapshots"] = checkpoint_snapshots
         telemetry["train_metrics"] = {
             "global_step": int(train_result.global_step),
-            **{key: float(value) for key, value in train_result.metrics.items()},
+            **normalized_train_metrics,
         }
-        telemetry["eval_metrics"] = {
-            key: float(value) for key, value in eval_result.metrics.items()
-        }
+        telemetry["eval_metrics"] = normalized_eval_metrics
         telemetry["iris_benchmark"] = iris_benchmark_payload_fn(iris_summary)
         telemetry["artifacts"].update(
             {

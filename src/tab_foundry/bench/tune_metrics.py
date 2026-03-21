@@ -8,6 +8,7 @@ from typing import Any, Sequence, cast
 from omegaconf import OmegaConf
 
 from tab_foundry.bench.artifacts import load_history
+from tab_foundry.training.instability import grad_norm_summary_from_values
 from tab_foundry.training.schedule import build_stage_configs, warmup_steps_for_stage
 
 
@@ -68,11 +69,7 @@ def history_summary(history: Sequence[dict[str, Any]], *, raw_cfg: Any) -> dict[
     wall_elapsed = float(last_record.get("elapsed_seconds", train_elapsed))
     return {
         "post_warmup_train_loss_var": post_warmup_variance(history, raw_cfg=raw_cfg),
-        "mean_grad_norm": None
-        if not grad_norms
-        else float(sum(grad_norms) / float(len(grad_norms))),
-        "max_grad_norm": None if not grad_norms else float(max(grad_norms)),
-        "final_grad_norm": None if not grad_norms else float(grad_norms[-1]),
+        **grad_norm_summary_from_values(grad_norms),
         "train_elapsed_seconds": train_elapsed if math.isfinite(train_elapsed) else None,
         "wall_elapsed_seconds": wall_elapsed if math.isfinite(wall_elapsed) else None,
     }

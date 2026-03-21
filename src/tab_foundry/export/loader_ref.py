@@ -12,6 +12,7 @@ import torch
 from torch import nn
 
 from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.outputs import ClassificationOutput, validate_classification_output_contract
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
@@ -99,6 +100,11 @@ def _reference_batch(
     x_test: Any,
 ) -> TaskBatch:
     manifest = bundle.validated.manifest
+    if manifest.task != "classification":
+        raise RuntimeError(
+            "Reference consumer only supports classification bundles in this branch; "
+            f"got task={manifest.task!r}."
+        )
     policy = _require_preprocessor_policy(bundle)
     classification_policy = policy.classification_label_policy
     if classification_policy is None:
@@ -126,11 +132,6 @@ def _reference_batch(
                 "embedded preprocessing policy sets impute_missing=false; "
                 f"non-finite values remain in {joined}"
             )
-    if manifest.task != "classification":
-        raise RuntimeError(
-            "Reference consumer only supports classification bundles in this branch; "
-            f"got task={manifest.task!r}."
-        )
     y_train_tensor = torch.from_numpy(np.asarray(processed.y_train, dtype=np.int64))
     y_test_tensor = torch.from_numpy(
         _dummy_y_test("classification", row_count=int(processed.x_test.shape[0]))
@@ -164,11 +165,19 @@ def run_reference_consumer(
     )
     with torch.no_grad():
         output = bundle.model(batch)
+    if not isinstance(output, ClassificationOutput):
+        raise RuntimeError("classification reference consumer requires ClassificationOutput")
+    resolved_num_classes = validate_classification_output_contract(
+        output,
+        expected_rows=int(batch.x_test.shape[0]),
+        expected_num_classes=None if batch.num_classes is None else int(batch.num_classes),
+        context="classification reference consumer",
+    )
 
     if output.class_probs is not None:
         probs = output.class_probs
     elif output.logits is not None:
-        probs = torch.softmax(output.logits[:, : output.num_classes], dim=-1)
+        probs = torch.softmax(output.logits[:, :resolved_num_classes], dim=-1)
     else:
         raise RuntimeError("classification reference consumer did not produce probabilities")
     if not bool(torch.all(torch.isfinite(probs)).item()):

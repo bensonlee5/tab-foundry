@@ -7,9 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.16] - 2026-03-21
+
+### Changed
+
+- User-facing note: `optimizer.name=muon` now hard fails when Muon
+  initialization raises, instead of silently falling back to AdamW with
+  `fallback_reason="muon_unavailable"`.
+
+- User-facing note: many-class classification training now rejects malformed
+  `path_sample_counts` payloads when per-path rows disagree with their tensors
+  or aggregate totals undercount the batch test rows, instead of computing a
+  finite but mis-scaled loss.
+
 ## [0.8.15] - 2026-03-21
 
 ### Changed
+
+- User-facing note: training and prior-dump `TrainResult.metrics` plus wandb
+  summary payloads now preserve missing grad-norm diagnostics as `null`
+  instead of collapsing empty or all-non-finite samples to `0.0`.
+
+- User-facing note: classification training, checkpoint inference, and the
+  export reference consumer now raise on mismatched class-count metadata and
+  under-width logits or probabilities instead of silently slicing invalid
+  outputs.
+
+- User-facing note: the reference consumer now rejects unsupported non-
+  classification bundles before runtime preprocessing or label-policy work
+  begins.
+
+- User-facing note: export bundle producer metadata now raises when neither
+  installed package metadata nor `pyproject.toml` can provide a valid version,
+  instead of silently emitting producer version `0.0.0`.
 
 - User-facing note: `tab-foundry bench compare` now accepts optional
   TabICLv2 frontier comparison flags alongside the existing nanoTabPFN flow,

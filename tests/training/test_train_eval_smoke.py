@@ -1141,6 +1141,9 @@ def test_train_records_non_finite_global_grad_norm_kinds(
 
     assert gradient_history[0]["global_grad_norm"] is None
     assert gradient_history[0]["global_grad_norm_kind"] == expected_kind
+    assert result.metrics["mean_grad_norm"] is None
+    assert result.metrics["max_grad_norm"] is None
+    assert result.metrics["final_grad_norm"] is None
     assert telemetry["gradient_summary"]["global"]["mean_grad_norm"] is None
     assert telemetry["gradient_summary"]["global"]["max_grad_norm"] is None
     assert telemetry["gradient_summary"]["global"]["final_grad_norm"] is None
