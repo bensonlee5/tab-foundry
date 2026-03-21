@@ -92,6 +92,18 @@ Important non-goals for this roadmap:
 - Training adequacy should become explicit before the repo keeps treating
   optimizer and schedule choices as sweep-local notes instead of a cross-cutting
   decision surface.
+- The deliberate post-008 execution order is now:
+  TF-RD-018 training adequacy first; TF-RD-014 missingness and TF-RD-017
+  class-imbalance as the preferred first harder-surface ladders; TF-RD-013
+  dagzoo only if it proves more decision-relevant than those ladders; then
+  TF-RD-016 architecture-surface adequacy and bounded low-level
+  micro-decisions.
+- Low-level questions such as norm family or placement, learned special-token
+  initialization scale, QASS scaler capacity, and activation family belong
+  under TF-RD-016 after the earlier adequacy and harder-surface gates are in
+  place, not as free-floating anchor-settlement work.
+- Many-class, regression, and runtime handoff should build on that
+  deconfounded post-008 base rather than competing with the earlier gates.
 - Scaling-law work should follow once the promoted anchor has at least one
   harder post-008 surface fixed well enough to make scaling conclusions
   decision-relevant and any needed selective architecture-surface expansion is
@@ -109,20 +121,20 @@ retained for traceability.
 | 2 | TF-RD-002 | Measurement surfaces for architecture migration | implemented | Implemented |
 | 3 | TF-RD-003 | Shared-surface unlock | implemented | Implemented |
 | 4 | TF-RD-011 | Repo-wide enablers and contract fidelity | implemented | Implemented |
-| 5 | TF-RD-004 | Tokenization migration | completed | Now |
-| 6 | TF-RD-005 | Row-embedding unlock | completed | Now |
-| 7 | TF-RD-006 | Column-set integration | completed | Now |
-| 8 | TF-RD-007 | Row-level context and QASS attribution | completed | Now |
+| 5 | TF-RD-004 | Tokenization migration | completed | Implemented |
+| 6 | TF-RD-005 | Row-embedding unlock | completed | Implemented |
+| 7 | TF-RD-006 | Column-set integration | completed | Implemented |
+| 8 | TF-RD-007 | Row-level context and QASS attribution | completed | Implemented |
 | 9 | TF-RD-008 | Coherent classification anchor promotion | implemented | Implemented |
-| 10 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | planned | Next |
+| 10 | TF-RD-018 | Training-surface adequacy on the promoted anchor | planned | Next |
 | 11 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
 | 12 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
-| 13 | TF-RD-018 | Training-surface adequacy on the promoted anchor | planned | Next |
-| 14 | TF-RD-010 | Many-class promotion on the row-first base | planned | Next |
-| 15 | TF-RD-015 | Regression rebuild on the promoted row-first base | planned | Next |
-| 16 | TF-RD-016 | Architecture surface adequacy and selective expansion | research | Later |
-| 17 | TF-RD-009 | Scaling-law measurement on the promoted anchor | planned | Next |
-| 18 | TF-RD-012 | Inference handoff and later modalities | research | Later |
+| 13 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | planned | Next |
+| 14 | TF-RD-016 | Architecture surface adequacy and selective expansion | planned | Next |
+| 15 | TF-RD-010 | Many-class promotion on the row-first base | planned | Next |
+| 16 | TF-RD-015 | Regression rebuild on the promoted row-first base | planned | Next |
+| 17 | TF-RD-012 | Inference handoff and later modalities | research | Later |
+| 18 | TF-RD-009 | Scaling-law measurement on the promoted anchor | planned | Next |
 
 ## Dependency Graph
 
@@ -140,15 +152,15 @@ flowchart TD
     RD006["TF-RD-006<br/>Column-set integration"]
     RD007["TF-RD-007<br/>Row-level context & QASS"]
     RD008["TF-RD-008 ✅<br/>DEFAULT SETTLED<br/>Coherent anchor"]
-    RD013["TF-RD-013<br/>Dagzoo synthetic<br/>data efficacy"]
+    RD018["TF-RD-018<br/>Training-surface<br/>adequacy"]
     RD014["TF-RD-014<br/>Missingness<br/>robustness"]
     RD017["TF-RD-017<br/>Class-imbalance<br/>robustness"]
-    RD018["TF-RD-018<br/>Training-surface<br/>adequacy"]
+    RD013["TF-RD-013<br/>Dagzoo synthetic<br/>data efficacy"]
+    RD016["TF-RD-016<br/>Architecture surface<br/>adequacy"]
     RD010["TF-RD-010<br/>Many-class promotion"]
     RD015["TF-RD-015<br/>Regression rebuild"]
-    RD016["TF-RD-016<br/>Architecture surface<br/>adequacy"]
-    RD009["TF-RD-009<br/>Scaling-law measurement"]
     RD012["TF-RD-012<br/>Inference handoff &<br/>later modalities"]
+    RD009["TF-RD-009<br/>Scaling-law measurement"]
 
     RD001 --> RD002
     RD001 --> RD003
@@ -158,17 +170,17 @@ flowchart TD
     RD005 --> RD006
     RD006 --> RD007
     RD007 --> RD008
-    RD008 --> RD013
-    RD008 --> RD014
-    RD008 --> RD017
-    RD013 --> RD018
-    RD014 --> RD018
-    RD017 --> RD018
-    RD008 --> RD010
-    RD008 --> RD015
-    RD018 --> RD016
+    RD008 --> RD018
+    RD018 --> RD014
+    RD018 --> RD017
+    RD018 --> RD013
+    RD014 --> RD016
+    RD017 --> RD016
+    RD013 --> RD016
+    RD016 --> RD010
+    RD016 --> RD015
+    RD016 --> RD012
     RD016 --> RD009
-    RD008 --> RD012
 
     classDef done fill:#d4edda,stroke:#28a745,color:#155724;
     classDef readyNow fill:#fff3cd,stroke:#ffc107,color:#856404;
@@ -179,17 +191,20 @@ flowchart TD
     class RD000,RD001,RD002,RD003,RD008,RD011 done;
     class RD004,RD005,RD006,RD007 chain;
     class RD013,RD014,RD017,RD018,RD010,RD015 readyNow;
-    class RD016,RD009,RD012 later;
+    class RD016 gate;
+    class RD009,RD012 later;
 ```
 
 Critical path: **003 → 004 → 005 → 006 → 007 → 008**. 000, 001, 002, 003, and
 011 are implemented; 004, 005, 006, and 007 are completed evidence steps; and
 008 is now implemented as an explicit split with `row_cls + qass + no tfcol`
-as the default row-first anchor. The deliberate post-008 fronts are TF-RD-013,
-TF-RD-014, TF-RD-017, TF-RD-018, TF-RD-010, and TF-RD-015. If those harder or
-broader surfaces still leave the staged family low-signal, TF-RD-016 is the
-deliberate follow-on architecture-depth track before the repo treats TF-RD-009
-scaling work as the main next source of architecture evidence.
+as the default row-first anchor. The deliberate post-008 execution order is now
+TF-RD-018 first, then TF-RD-014 and TF-RD-017 as the preferred harder-surface
+ladders, with TF-RD-013 advancing only if dagzoo proves more
+architecture-discriminative than those benchmark-backed regimes. TF-RD-016 now
+follows as the bounded architecture-surface and low-level micro-decision track
+before TF-RD-010, TF-RD-015, TF-RD-012, or TF-RD-009 absorb the main roadmap
+attention.
 
 ## Current Capability Matrix
 
@@ -199,12 +214,12 @@ scaling work as the main next source of architecture evidence.
 | Coherent row-first migration ladder exists in code | `implemented` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly, and `qass_tfcol_large_missing_validation_v1` closed the missing-permitting settlement sweep | The remaining work is no longer anchor coherence; it is harder and broader post-008 regime coverage on the settled row-first base | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and both large-bundle validators now separate row embeddings, plain context, TFCol-only, QASS-only, the no-TFCol default line, and the retained `qass + tfcol_heads4` calibration variant | The next comparison gap is no longer anchor settlement; it is whether harder post-008 fronts provide more decisive regime separation before scaling work | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | One promoted row-first classification anchor exists | `implemented` | `qass_tfcol_large_missing_validation_v1` closed on an explicit split: `row_cls + qass + no tfcol` is now the default row-first anchor, while `row_cls + qass + tfcol_heads4` is retained as a calibration-oriented alternative | Future work should treat the no-TFCol line as the default and reserve TFCol for explicit calibration-oriented follow-up rather than reopening anchor settlement | `TF-RD-008` |
-| Harder post-008 data surfaces can be exercised | `partial` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, and canonical no-missing versus allow-missing binary bundles already exist | There is no post-008 program yet that decides whether dagzoo or explicit missingness should become a canonical harder research surface on the promoted anchor | `TF-RD-011`, `TF-RD-013`, `TF-RD-014` |
+| Harder post-008 data surfaces can be exercised | `partial` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, and canonical no-missing versus allow-missing binary bundles already exist | There is no post-008 program yet that first settles benchmark-backed missingness or class-imbalance ladders on the promoted anchor and then decides whether dagzoo should become the canonical harder research surface | `TF-RD-011`, `TF-RD-013`, `TF-RD-014`, `TF-RD-017` |
 | Class-imbalance robustness is meaningfully exercised | `partial` | Current benchmark bundles enforce `min_minority_class_pct = 2.5`, so the repo already excludes degenerate class-balance cases | There is no dedicated imbalance-focused bundle ladder, imbalance-oriented reporting contract, or explicit decision on the promoted anchor under materially skewed priors | `TF-RD-017` |
 | Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, and bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist | Optimizer, schedule, step-budget, batch, and clipping adequacy are not yet tracked as one roadmap workstream with a canonical decision surface | `TF-RD-018` |
 | Many-class evaluation can start on the row-first base | `partial` | The staged family already includes `many_class`, reusable machinery exists, and `nanotabpfn_openml_classification_small_v1.json` provides a benchmark-facing multiclass bundle | Many-class still lacks a promoted row-first benchmark ladder, adequacy sweeps, and a keep/defer decision | `TF-RD-010` |
 | Regression rebuild can start on the staged base | `research` | Regression metrics and benchmark-bundle normalization support already exist in the repo | There is no active staged regression program, canonical regression bundle, or staged regression head/loss contract | `TF-RD-015` |
-| The staged surface is broad enough for future adequacy work before adding new knobs | `partial` | Tokenization already includes `scalar_per_feature`, `scalar_per_feature_nan_mask`, and `shifted_grouped`; token count is already adjustable through `feature_group_size`; norms, widths, depths, row CLS count, TFCol inducing count, context FF expansion, dropout, and clipping are already exposed | The repo still needs a deliberate future decision on whether harder-surface adequacy can be done on the existing surface alone or whether selective exposure of hardcoded choices such as activation family, row or column FF expansion, QASS scaler capacity, grouped shift recipe, or many-class threshold is warranted | `TF-RD-016` |
+| The staged surface is broad enough for future adequacy work before adding new knobs | `partial` | Tokenization already includes `scalar_per_feature`, `scalar_per_feature_nan_mask`, and `shifted_grouped`; token count is already adjustable through `feature_group_size`; norms, widths, depths, row CLS count, TFCol inducing count, context FF expansion, dropout, and clipping are already exposed | The repo still needs a deliberate decision on whether the existing surface is sufficient on harder regimes and, only if not, whether low-level or hardcoded choices such as special-token init scale, activation family, row or column FF expansion, QASS scaler capacity, grouped shift recipe, or many-class threshold should be surfaced selectively | `TF-RD-016` |
 | Scaling-law work targets the right architecture and surface | `planned` | Tuning and benchmark-adjacent tooling already exist | Scaling on the current simple binary regime risks low-signal conclusions until the promoted anchor is paired with at least one harder post-008 surface | `TF-RD-009` |
 | Repo-wide data, preprocessing, and export surfaces can support the migration | `implemented` | The dagzoo CLI-to-manifest boundary, canonical dagzoo dataset identity, and export/reference preprocessing fidelity were completed under TF-RD-011 | New dagzoo work is now about efficacy on the promoted anchor, not about reopening the boundary layer | `TF-RD-011` |
 | Inference handoff and later modalities are ready | `research` | The repo has clear placeholders and partial bundle/runtime infrastructure | Inference handoff and later modalities should follow the promoted classification base and not absorb regression ownership again | `TF-RD-012` |
@@ -261,10 +276,14 @@ This roadmap assumes the following repo truths:
   `shifted_grouped`; token count is adjustable through `feature_group_size`;
   and norms, widths, depths, row CLS count, TFCol inducing count, context FF
   expansion, dropout, and clipping are already exposed
-- several architecture choices remain deliberately hardcoded, including feed
-  forward activation family, row or column FF expansion, QASS scaler capacity,
-  grouped-token shift recipe, and the many-class routing threshold; these
-  should only be exposed selectively if harder surfaces still remain low-signal
+- norm family and post-encoder or post-stack norm placement are already exposed
+  enough for a first micro-architecture read, but learned special-token and
+  inducing-token initialization scale remains hardcoded
+- several architecture choices remain deliberately hardcoded, including special
+  token initialization family, feed forward activation family, row or column FF
+  expansion, QASS scaler capacity, grouped-token shift recipe, and the
+  many-class routing threshold; these should only be exposed selectively if
+  harder surfaces still remain low-signal
 - `Muon` is already supported in the optimizer surface and belongs in training
   adequacy work rather than architecture-surface expansion
 - the current large-anchor `nano_exact + prenorm + row_cls` line is useful as a
@@ -418,7 +437,7 @@ This roadmap assumes the following repo truths:
 ### TF-RD-005: Row-Embedding Unlock
 
 - Status: `completed`
-- Milestone: `Now`
+- Milestone: `Implemented`
 - Goal: determine whether the staged family can form useful row embeddings on
   the intended shared/grouped surface
 - Current state:
@@ -446,7 +465,7 @@ This roadmap assumes the following repo truths:
 ### TF-RD-006: Column-Set Integration
 
 - Status: `completed`
-- Milestone: `Now`
+- Milestone: `Implemented`
 - Goal: decide whether explicit column-set reasoning belongs in the promoted
   row-first line
 - Current state:
@@ -482,7 +501,7 @@ This roadmap assumes the following repo truths:
 ### TF-RD-007: Row-Level Context And QASS Attribution
 
 - Status: `completed`
-- Milestone: `Now`
+- Milestone: `Implemented`
 - Goal: determine whether row-level context helps, and whether QASS helps beyond
   plain row-level context
 - Current state:
@@ -610,6 +629,9 @@ This roadmap assumes the following repo truths:
 - Required work:
   - advance separate-runtime handoff only after classification/export contracts
     settle
+  - use runtime feedback as a later architecture constraint only after
+    TF-RD-018, at least one harder post-008 ladder, and TF-RD-016 have made the
+    classification base stable enough to interpret cost tradeoffs cleanly
   - keep time series, text-conditioned inputs, and other later modalities out of
     the critical path
 - Exit criteria:
@@ -622,18 +644,23 @@ This roadmap assumes the following repo truths:
 - Milestone: `Next`
 - Goal: decide whether dagzoo-generated corpora materially improve training
   difficulty, architecture discrimination, or final quality on the promoted
-  row-first anchor
+  row-first anchor enough to outrank the benchmark-backed missingness and
+  class-imbalance ladders as the canonical harder post-008 surface
 - Current state:
   - the dagzoo handoff boundary is complete through closed TF-RD-011 work
   - dagzoo smoke and manifest identity are no longer the main blocker
   - there is no benchmark-facing post-008 data-source comparison program yet
+  - the roadmap now prefers TF-RD-014 and TF-RD-017 as the first harder-surface
+    reads unless dagzoo clearly provides stronger architecture discrimination
 - Required work:
+  - keep dagzoo behind the first missingness and class-imbalance reads unless it
+    proves more decision-relevant than those ladders
   - define the canonical dagzoo corpus variants, provenance rules, and first
     post-008 data-source sweep ladder
   - compare the current corpus against dagzoo-generated corpora on the promoted
     row-first anchor rather than on older hybrid surfaces
-  - record whether dagzoo becomes a canonical harder research surface or stays
-    auxiliary
+  - record whether dagzoo becomes the canonical harder research surface,
+    complements the benchmark ladders, or stays auxiliary
 - Exit criteria:
   - the repo has an explicit keep/defer decision on dagzoo as a post-008
     training-data source
@@ -649,6 +676,9 @@ This roadmap assumes the following repo truths:
     prenorm hybrid surface rather than the row-first line
   - the repo already has separate no-missing and allow-missing benchmark bundle
     contracts
+  - this is now one of the preferred first harder-surface ladders because it
+    pressures the tokenizer, normalization, and support-set policy on the
+    settled row-first stack directly
   - there is no explicit row-first missingness-mechanism recommendation yet;
     TF-RD-008 only settled the default row-first anchor on the allow-missing
     benchmark surface
@@ -671,6 +701,9 @@ This roadmap assumes the following repo truths:
 - Current state:
   - current benchmark bundles only enforce `min_minority_class_pct = 2.5`
   - there is no dedicated imbalance-focused bundle ladder yet
+  - this is now one of the preferred first harder-surface ladders because it
+    pressures the row-first classification stack without introducing a second
+    data-source boundary first
   - benchmark-facing reporting is still centered on ROC AUC, log loss, and
     Brier score
 - Required work:
@@ -692,17 +725,19 @@ This roadmap assumes the following repo truths:
 
 - Status: `planned`
 - Milestone: `Next`
-- Goal: turn optimizer, schedule, budget, and runtime adequacy from sweep-local
-  notes into a deliberate cross-cutting workstream
+- Goal: make optimizer, schedule, budget, and runtime adequacy the first
+  deliberate post-008 gate instead of leaving it as sweep-local interpretation
 - Current state:
   - adequacy work already exists in `parameter_adequacy_plan` notes and
     isolated sweeps, but there is no canonical training-surface epic
   - `Muon` is already supported in the optimizer surface but has no clean
     roadmap home
   - current adequacy reads are still scattered across frontier-specific sweeps
+  - later architecture reads remain confounded until the repo has one explicit
+    adequacy decision surface on the settled row-first base
 - Required work:
-  - define the canonical adequacy ladder on the promoted anchor and the first
-    harder post-008 fronts
+  - define the canonical adequacy ladder on the promoted anchor first and then
+    carry it onto the first harder post-008 ladders
   - start with optimizer family, LR/schedule/warmup shape, step budget, batch
     size or accumulation, and clipping policy
   - include `schedulefree_adamw`, `adamw`, and `muon` in the bounded optimizer
@@ -711,7 +746,8 @@ This roadmap assumes the following repo truths:
     constraints only insofar as they change interpretation of optimizer or
     schedule adequacy
 - Exit criteria:
-  - the repo has an explicit default training surface for next-tier fronts
+  - the repo has an explicit default training surface for next-tier fronts on
+    the settled row-first anchor and at least one harder post-008 ladder
   - the repo has a clear rule for when optimizer or schedule adequacy must be
     resolved before interpreting architecture outcomes
 
@@ -741,11 +777,11 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-016: Architecture Surface Adequacy And Selective Expansion
 
-- Status: `research`
-- Milestone: `Later`
-- Goal: revisit architecture depth only if the promoted row-first family still
-  proves hard to separate or obviously underpowered on harder post-008
-  surfaces, using the existing config surface first and exposing new knobs only
+- Status: `planned`
+- Milestone: `Next`
+- Goal: once training adequacy and at least one harder post-008 ladder are in
+  place, decide whether the promoted row-first family still proves hard to
+  separate or obviously underpowered and only then expose new knobs
   selectively
 - Current state:
   - the staged surface is already broad enough to support meaningful future
@@ -756,6 +792,10 @@ This roadmap assumes the following repo truths:
     `feature_group_size`
   - norms, widths, depths, row CLS count, TFCol inducing count, context FF
     expansion, dropout, and clipping are already exposed
+  - norm family and post-encoder or post-stack norm placement are already
+    partially exposed and should be read before new model fields are added
+  - learned special-token and inducing-token initialization scale remains
+    hardcoded today
   - several architecture choices remain hardcoded and should be revisited only
     if harder surfaces remain low-signal
   - optimizer adequacy work, including `Muon`, stays out of this epic because
@@ -763,6 +803,9 @@ This roadmap assumes the following repo truths:
     surface
 - Required work:
   - Phase 1: existing-surface adequacy on harder post-008 surfaces
+    - start the micro-architecture read with already-exposed norm family and
+      norm placement choices such as `norm_type`, `tfrow_norm`,
+      `post_encoder_norm`, and `post_stack_norm`
     - make tokenization the first explicit subtrack, covering
       `feature_group_size`, tokenizer choice, and grouped-token usage on
       coherent shared-surface rows
@@ -773,10 +816,13 @@ This roadmap assumes the following repo truths:
     - record an explicit decision on whether the current staged surface is
       sufficient for future architecture-depth work
   - Phase 2: selective surface expansion only if Phase 1 remains low-signal
-    - consider bounded additions such as `activation_family`,
+    - consider bounded additions such as `special_token_init_scale`,
+      `special_token_init_family`, `activation_family`,
       `tfcol_ff_expansion`, `tfrow_ff_expansion`,
       `qass_scaler_hidden_dim`, `group_shift_recipe`, and
       `many_class_threshold`
+    - read initialization-scale or QASS-scaler changes only on the settled
+      harder-surface ladder rather than on the saturating simple binary screen
     - expose a hardcoded architecture choice only when it is likely to matter
       across multiple future regimes, can be compared on one coherent staged
       surface, and can be represented with a small bounded option set
@@ -805,8 +851,10 @@ This roadmap assumes the following repo truths:
   - use the settled TF-RD-008 default
     `row_cls + qass + no tfcol` as the primary scaling parent, while keeping
     any TFCol scaling work explicitly opt-in
-  - finish at least one harder post-008 front, starting with TF-RD-013 or
-    TF-RD-014, before using scaling results as architecture evidence
+  - finish TF-RD-018 and at least one harder post-008 front, starting with
+    TF-RD-014 or TF-RD-017 unless TF-RD-013 clearly becomes the more
+    architecture-discriminative ladder, before using scaling results as
+    architecture evidence
   - if those harder surfaces still leave architecture separation low-signal,
     finish TF-RD-016 before treating scaling as the main next architecture
     program
@@ -842,5 +890,8 @@ hold:
   default is tested on harder post-008 surfaces.
 - After TF-RD-008, harder or broader surfaces should come before large scaling
   passes whenever the current binary regime risks saturation.
+- Training adequacy is the first post-008 gate, and bounded low-level
+  micro-architecture work belongs after that gate and at least one harder
+  post-008 ladder.
 - The current large-anchor hybrid line is diagnostic evidence, not the intended
   architecture destination.

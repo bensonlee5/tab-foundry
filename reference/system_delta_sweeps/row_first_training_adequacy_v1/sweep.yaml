@@ -1,0 +1,126 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: row_first_training_adequacy_v1
+parent_sweep_id: qass_tfcol_large_missing_validation_v1
+status: draft
+complexity_level: binary_md
+anchor_run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+training_experiment: cls_benchmark_staged
+training_config_profile: cls_benchmark_staged
+surface_role: architecture_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+  - The locked anchor is benchmark registry run `sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1`
+    on bundle `nanotabpfn_openml_binary_large` (12 tasks).
+  - The anchor model surface is taken from the registry-resolved staged selection
+    labeled `delta_qass_no_column_v3`.
+  - Data and preprocessing remain part of the comparison surface and must stay fixed
+    unless the queue row declares that exact dimension.
+  - >-
+    This draft sweep is the TF-RD-018 training-surface adequacy workstream for
+    the settled `row_cls + qass + no tfcol` anchor, not another architecture,
+    preprocessing, or data-source attribution pass.
+  - >-
+    Use this sweep to establish one canonical row-first training ladder before
+    TF-RD-014, TF-RD-017, TF-RD-013, or TF-RD-016 become the main next
+    architecture evidence surfaces.
+  - >-
+    The intended first ladder is: schedule and warmup shape, optimizer family,
+    batch-size or accumulation policy, clip or weight-decay probes, and then
+    bounded step-budget follow-up if the settled anchor still looks
+    compute-limited.
+  - >-
+    The queue is intentionally draft and should only contain training-dimension
+    rows. Do not backfill model, preprocessing, or data-source deltas into
+    TF-RD-018.
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Shared feature encoder path with benchmark-external normalization.
+    interpretation: Feature encoder swaps change both the representation path and
+      where normalization lives.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Label-token target conditioning.
+    interpretation: Target-conditioning swaps change how labels enter the model and
+      need their own attribution.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Pre-norm cell transformer block with test-self attention enabled.
+    interpretation: Block-style changes alter attention flow and should not be conflated
+      with tokenizer or readout deltas.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Shifted grouped tokenizer.
+    interpretation: Tokenizer changes reshape the effective table sequence and need
+      their own adequacy commentary.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: No column-set encoder on the anchor path.
+    interpretation: Column-set modeling remains absent and should not explain anchor
+      behavior.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row-CLS pooling path.
+    interpretation: Row-pool changes alter how the table summary is extracted and
+      should be isolated from context changes.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: QASS context encoder.
+    interpretation: QASS changes both compute graph depth and label-context semantics
+      and needs explicit adequacy notes.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Small-class direct head.
+    interpretation: Head changes alter the task contract and should be interpreted
+      separately from shared trunk changes.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark bundle `nanotabpfn_openml_binary_large` (12 tasks (missing values
+      permitted)) with data surface label `anchor_manifest_default`.
+    interpretation: Bundle and training-data changes are first-class sweep rows and
+      should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_linear_warmup_decay`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
+  experiment: cls_benchmark_staged
+  config_profile: cls_benchmark_staged
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: delta_qass_no_column_v3
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_selection:
+      allow_test_self_attention: true
+      column_encoder: none
+      context_encoder: qass
+      feature_encoder: shared
+      head: small_class
+      post_encoder_norm: none
+      post_stack_norm: none
+      row_pool: row_cls
+      table_block_residual_scale: none
+      table_block_style: prenorm
+      target_conditioner: label_token
+      tokenizer: shifted_grouped
+  surface_labels:
+    data: anchor_manifest_default
+    model: delta_qass_no_column_v3
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay
