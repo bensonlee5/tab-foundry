@@ -66,10 +66,11 @@ def plot_comparison_curve(
     *,
     tab_foundry_records: list[dict[str, Any]],
     nanotabpfn_records: list[dict[str, Any]],
+    tabiclv2_records: list[dict[str, Any]] | None = None,
     task_type: str,
     out_path: Path,
 ) -> Path:
-    """Render the tab-foundry vs nanoTabPFN time-vs-quality curve."""
+    """Render the tab-foundry time-vs-quality curve with optional external baselines."""
 
     import matplotlib
 
@@ -78,13 +79,18 @@ def plot_comparison_curve(
 
     metric_key = "log_loss" if task_type == _CLASSIFICATION_TASK_TYPE else "crps"
     ylabel = "mean log loss" if task_type == _CLASSIFICATION_TASK_TYPE else "mean CRPS"
-    title = (
-        "tab-foundry vs nanoTabPFN"
-        if nanotabpfn_records
-        else "tab-foundry benchmark"
-    )
+    external_labels: list[str] = []
+    if nanotabpfn_records:
+        external_labels.append("nanoTabPFN")
+    if tabiclv2_records:
+        external_labels.append("TabICLv2")
+    title = "tab-foundry benchmark" if not external_labels else "tab-foundry vs external baselines"
     tab_times, tab_mean, _tab_std = aggregate_curve(tab_foundry_records, value_key=metric_key)
     nano_times, nano_mean, nano_std = aggregate_curve(nanotabpfn_records, value_key=metric_key)
+    tabicl_times, tabicl_mean, tabicl_std = aggregate_curve(
+        [] if tabiclv2_records is None else tabiclv2_records,
+        value_key=metric_key,
+    )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -94,11 +100,21 @@ def plot_comparison_curve(
         ax.plot(nano_times, nano_mean, label="nanoTabPFN", color="#d62728", linewidth=2.0)
         if np.any(nano_std > 0):
             ax.fill_between(nano_times, nano_mean - nano_std, nano_mean + nano_std, alpha=0.2, color="#d62728")
+    if tabicl_times.size > 0:
+        ax.plot(tabicl_times, tabicl_mean, label="TabICLv2", color="#2ca02c", linewidth=2.0)
+        if np.any(tabicl_std > 0):
+            ax.fill_between(
+                tabicl_times,
+                tabicl_mean - tabicl_std,
+                tabicl_mean + tabicl_std,
+                alpha=0.2,
+                color="#2ca02c",
+            )
     ax.set_xlabel("training time (s)")
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     ax.grid(True, alpha=0.3)
-    if tab_times.size > 0 or nano_times.size > 0:
+    if tab_times.size > 0 or nano_times.size > 0 or tabicl_times.size > 0:
         ax.legend()
     fig.tight_layout()
     fig.savefig(out_path, dpi=144)
@@ -135,6 +151,7 @@ def build_comparison_summary(
     *,
     tab_foundry_records: list[dict[str, Any]],
     nanotabpfn_records: list[dict[str, Any]],
+    tabiclv2_records: list[dict[str, Any]] | None = None,
     benchmark_tasks: list[dict[str, Any]],
     benchmark_bundle: Mapping[str, Any],
     benchmark_bundle_path: Path,
@@ -142,6 +159,8 @@ def build_comparison_summary(
     task_type: str,
     nanotabpfn_root: Path | None = None,
     nanotabpfn_python: Path | None = None,
+    tabiclv2_root: Path | None = None,
+    tabiclv2_python: Path | None = None,
     control_baseline: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a compact JSON summary for the benchmark comparison."""
@@ -367,48 +386,69 @@ def build_comparison_summary(
         "checkpoints": cast(list[dict[str, Any]], tab_foundry_curve["records"]),
         "failed_checkpoints": cast(list[dict[str, Any]], tab_foundry_curve["failed_records"]),
     }
-    if nanotabpfn_records:
-        nanotabpfn_summary = {
-            **_summary_metrics(nanotabpfn_records),
-            "root": None if nanotabpfn_root is None else str(nanotabpfn_root.expanduser().resolve()),
-            "python": None
-            if nanotabpfn_python is None
-            else str(nanotabpfn_python.expanduser().resolve()),
-            "num_seeds": int(len({int(record["seed"]) for record in nanotabpfn_records})),
+    def _external_baseline_summary(
+        records: list[dict[str, Any]],
+        *,
+        root: Path | None,
+        python: Path | None,
+        extra_fields: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        baseline_summary = {
+            **_summary_metrics(records),
+            "root": None if root is None else str(root.expanduser().resolve()),
+            "python": None if python is None else str(python.expanduser().resolve()),
         }
-        best_step_raw = nanotabpfn_summary.get("best_step")
-        final_step_raw = nanotabpfn_summary.get("final_step")
+        if extra_fields is not None:
+            baseline_summary.update(dict(extra_fields))
+        best_step_raw = baseline_summary.get("best_step")
+        final_step_raw = baseline_summary.get("final_step")
         best_step = 0.0 if best_step_raw is None else float(best_step_raw)
         final_step = 0.0 if final_step_raw is None else float(final_step_raw)
-        best_record = None
-        if best_step > 0.0:
-            best_record = next(
-                (record for record in nanotabpfn_records if float(record.get("step", -1.0)) == best_step),
-                None,
-            )
-        final_record = None
-        if final_step > 0.0:
-            final_record = next(
-                (record for record in nanotabpfn_records if float(record.get("step", -1.0)) == final_step),
-                None,
-            )
+        best_record = next(
+            (record for record in records if float(record.get("step", -1.0)) == best_step),
+            None,
+        )
+        final_record = next(
+            (record for record in records if float(record.get("step", -1.0)) == final_step),
+            None,
+        )
         _apply_metric_summaries(
-            nanotabpfn_summary,
-            nanotabpfn_records,
+            baseline_summary,
+            records,
             best_step=best_step,
             final_step=final_step,
             best_record=best_record,
             final_record=final_record,
         )
-        summary["nanotabpfn"] = nanotabpfn_summary
+        return baseline_summary
+
+    if nanotabpfn_records:
+        summary["nanotabpfn"] = _external_baseline_summary(
+            nanotabpfn_records,
+            root=nanotabpfn_root,
+            python=nanotabpfn_python,
+            extra_fields={"num_seeds": int(len({int(record["seed"]) for record in nanotabpfn_records}))},
+        )
+    if tabiclv2_records:
+        summary["tabiclv2"] = _external_baseline_summary(
+            tabiclv2_records,
+            root=tabiclv2_root,
+            python=tabiclv2_python,
+        )
     if task_type == _CLASSIFICATION_TASK_TYPE:
         if tab_foundry_summary.get("final_log_loss") is None:
             raise RuntimeError("tab-foundry benchmark produced no log-loss values")
         if nanotabpfn_records and cast(dict[str, Any], summary["nanotabpfn"]).get("final_log_loss") is None:
             raise RuntimeError("nanoTabPFN benchmark produced no log-loss values")
+        if tabiclv2_records and cast(dict[str, Any], summary["tabiclv2"]).get("final_log_loss") is None:
+            raise RuntimeError("TabICLv2 benchmark produced no log-loss values")
     elif task_type == _REGRESSION_TASK_TYPE:
         if tab_foundry_summary.get("final_crps") is None:
             raise RuntimeError("tab-foundry benchmark produced no CRPS values")
+        if nanotabpfn_records and cast(dict[str, Any], summary["nanotabpfn"]).get("final_crps") is None:
+            raise RuntimeError("nanoTabPFN benchmark produced no CRPS values")
+        if tabiclv2_records and cast(dict[str, Any], summary["tabiclv2"]).get("final_crps") is None:
+            raise RuntimeError("TabICLv2 benchmark produced no CRPS values")
     else:
         raise RuntimeError(f"unsupported benchmark task_type: {task_type!r}")
     if control_baseline is not None:

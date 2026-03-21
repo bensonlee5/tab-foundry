@@ -199,7 +199,55 @@ def test_compare_main_parses_cli_invocation(
     assert config.control_baseline_id == "cls_benchmark_linear_v1"
     assert config.control_baseline_registry == tmp_path / "control_baselines.json"
     assert config.benchmark_bundle_path == tmp_path / "bundle.json"
-    assert "nanoTabPFN comparison complete:" in capsys.readouterr().out
+    assert config.with_tabiclv2 is False
+    assert config.tabicl_root == Path("~/dev/tabicl")
+    assert "benchmark comparison complete:" in capsys.readouterr().out
+
+
+def test_compare_main_parses_cli_invocation_with_tabiclv2(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run(config):
+        captured["config"] = config
+        return {
+            "dataset_count": 3,
+            "tab_foundry": {"best_roc_auc": 0.71, "final_roc_auc": 0.70},
+            "nanotabpfn": {"best_roc_auc": 0.72, "final_roc_auc": 0.71},
+            "tabiclv2": {"best_roc_auc": 0.74, "final_roc_auc": 0.73},
+            "artifacts": {"comparison_curve_png": "/tmp/comparison_curve.png"},
+        }
+
+    monkeypatch.setattr(compare_module, "run_nanotabpfn_benchmark", _fake_run)
+
+    exit_code = compare_module.main(
+        [
+            "--tab-foundry-run-dir",
+            str(tmp_path / "run"),
+            "--out-root",
+            str(tmp_path / "bench"),
+            "--with-tabiclv2",
+            "--tabicl-root",
+            str(tmp_path / "tabicl"),
+            "--tabicl-classifier-checkpoint-version",
+            "classifier.ckpt",
+            "--tabicl-regressor-checkpoint-version",
+            "regressor.ckpt",
+        ]
+    )
+
+    assert exit_code == 0
+    config = captured["config"]
+    assert config.with_tabiclv2 is True
+    assert config.tabicl_root == tmp_path / "tabicl"
+    assert config.tabicl_classifier_checkpoint_version == "classifier.ckpt"
+    assert config.tabicl_regressor_checkpoint_version == "regressor.ckpt"
+    stdout = capsys.readouterr().out
+    assert "benchmark comparison complete:" in stdout
+    assert "tabiclv2=" in stdout
 
 
 def test_load_openml_benchmark_datasets_fails_on_bundle_drift(
@@ -707,6 +755,271 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert captured_posthoc["payload"]["benchmark"]["nanotabpfn"]["final_log_loss"] == pytest.approx(0.48)
     written_bundle = json.loads((out_root / "benchmark_tasks.json").read_text(encoding="utf-8"))
     assert written_bundle == benchmark_bundle
+
+
+def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    (smoke_run_dir / "gradient_history.jsonl").write_text("{}\n", encoding="utf-8")
+    (smoke_run_dir / "telemetry.json").write_text("{}\n", encoding="utf-8")
+    nanotab_root = tmp_path / "nano"
+    (nanotab_root / ".venv" / "bin").mkdir(parents=True)
+    (nanotab_root / ".venv" / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
+    prior_dump = nanotab_root / "300k_150x5_2.h5"
+    prior_dump.write_bytes(b"prior")
+    tabicl_root = tmp_path / "tabicl"
+    (tabicl_root / ".venv" / "bin").mkdir(parents=True)
+    tabicl_python = tabicl_root / ".venv" / "bin" / "python"
+    tabicl_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    out_root = tmp_path / "benchmark_out"
+    source_bundle_path = _write_benchmark_bundle(
+        tmp_path / "source_bundle.json",
+        tasks=[
+            {
+                "task_id": 1,
+                "dataset_name": "toy",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+        ],
+    )
+    benchmark_bundle = json.loads(source_bundle_path.read_text(encoding="utf-8"))
+    captured_posthoc: dict[str, Any] = {}
+    helper_calls: list[tuple[str, Path]] = []
+
+    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: source_bundle_path)
+    monkeypatch.setattr(
+        compare_module,
+        "load_benchmark_bundle_for_execution",
+        lambda path=None: (benchmark_bundle, False),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "load_openml_benchmark_datasets",
+        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+            {
+                "toy": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64),
+                )
+            },
+            [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
+        ),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "evaluate_tab_foundry_run",
+        lambda *_args, **_kwargs: [
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "log_loss": 0.42,
+                "brier_score": 0.12,
+                "dataset_roc_auc": {"toy": 0.81},
+                "dataset_log_loss": {"toy": 0.42},
+                "dataset_brier_score": {"toy": 0.12},
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "derive_benchmark_run_record",
+        lambda **_kwargs: {
+            "manifest_path": "data/manifests/binary.parquet",
+            "seed_set": [1],
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "nano_exact",
+                "benchmark_profile": "nano_exact",
+                "d_icl": 96,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+            },
+            "benchmark_bundle": {
+                "name": "test_bundle",
+                "version": 1,
+                "source_path": str(source_bundle_path.resolve()),
+                "task_count": 1,
+                "task_ids": [1],
+            },
+            "artifacts": {
+                "run_dir": str(smoke_run_dir.resolve()),
+                "benchmark_dir": str(out_root.resolve()),
+                "prior_dir": None,
+                "history_path": str((smoke_run_dir / "train_history.jsonl").resolve()),
+                "best_checkpoint_path": str((smoke_run_dir / "checkpoints" / "best.pt").resolve()),
+                "comparison_summary_path": str((out_root / "comparison_summary.json").resolve()),
+                "comparison_curve_path": str((out_root / "comparison_curve.png").resolve()),
+                "benchmark_run_record_path": str((out_root / "benchmark_run_record.json").resolve()),
+                "training_surface_record_path": str(
+                    (smoke_run_dir / "training_surface_record.json").resolve()
+                ),
+            },
+            "tab_foundry_metrics": {
+                "best_step": 25.0,
+                "best_training_time": 1.2,
+                "best_roc_auc": 0.81,
+                "final_step": 25.0,
+                "final_training_time": 1.2,
+                "final_roc_auc": 0.81,
+                "final_log_loss": 0.42,
+                "final_brier_score": 0.12,
+            },
+            "training_diagnostics": {
+                "best_val_loss": 0.2,
+                "final_val_loss": 0.21,
+                "best_val_step": 25.0,
+                "post_warmup_train_loss_var": 0.01,
+                "mean_grad_norm": 0.4,
+                "max_grad_norm": 0.5,
+                "final_grad_norm": 0.45,
+                "train_elapsed_seconds": 1.2,
+                "wall_elapsed_seconds": 1.3,
+            },
+            "model_size": {"total_params": 1234, "trainable_params": 1234},
+            "generated_at_utc": "2026-03-13T00:00:00Z",
+        },
+    )
+    monkeypatch.setattr(compare_module, "resolve_device", lambda device: "cuda")
+    monkeypatch.setattr(compare_module, "benchmark_host_fingerprint", lambda: "host-a")
+    monkeypatch.setattr(
+        compare_module,
+        "posthoc_update_wandb_summary",
+        lambda *, telemetry_path, payload: captured_posthoc.update(
+            {"telemetry_path": telemetry_path, "payload": payload}
+        )
+        or True,
+    )
+
+    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+        script_name = Path(cmd[1]).name
+        helper_calls.append((script_name, cwd))
+        out_path = Path(cmd[cmd.index("--out-path") + 1])
+        if script_name == "nanotabpfn_helper.py":
+            payload = {
+                "seed": 0,
+                "step": 25,
+                "training_time": 2.0,
+                "roc_auc": 0.78,
+                "log_loss": 0.48,
+                "brier_score": 0.16,
+                "dataset_roc_auc": {"toy": 0.78},
+                "dataset_log_loss": {"toy": 0.48},
+                "dataset_brier_score": {"toy": 0.16},
+            }
+        elif script_name == "tabiclv2_helper.py":
+            payload = {
+                "seed": 0,
+                "step": 0,
+                "training_time": 3.5,
+                "roc_auc": 0.84,
+                "log_loss": 0.39,
+                "brier_score": 0.11,
+                "dataset_roc_auc": {"toy": 0.84},
+                "dataset_log_loss": {"toy": 0.39},
+                "dataset_brier_score": {"toy": 0.11},
+            }
+        else:
+            raise AssertionError(f"unexpected helper script {script_name!r}")
+        out_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(
+        compare_module,
+        "subprocess",
+        SimpleNamespace(run=_fake_run, CalledProcessError=subprocess.CalledProcessError),
+    )
+
+    summary = compare_module.run_nanotabpfn_benchmark(
+        compare_module.NanoTabPFNBenchmarkConfig(
+            tab_foundry_run_dir=smoke_run_dir,
+            out_root=out_root,
+            nanotabpfn_root=nanotab_root,
+            nanotab_prior_dump=prior_dump,
+            with_tabiclv2=True,
+            tabicl_root=tabicl_root,
+            tabicl_classifier_checkpoint_version="classifier.ckpt",
+        )
+    )
+
+    assert helper_calls == [
+        ("nanotabpfn_helper.py", nanotab_root.resolve()),
+        ("tabiclv2_helper.py", tabicl_root.resolve()),
+    ]
+    assert summary["tabiclv2"]["final_roc_auc"] == pytest.approx(0.84)
+    assert summary["tabiclv2"]["final_log_loss"] == pytest.approx(0.39)
+    assert summary["tabiclv2"]["final_brier_score"] == pytest.approx(0.11)
+    assert summary["tabiclv2"]["checkpoint_version"] == "classifier.ckpt"
+    assert summary["tabiclv2"]["root"] == str(tabicl_root.resolve())
+    assert summary["tabiclv2"]["python"] == str(tabicl_python.resolve())
+    assert summary["tabiclv2"]["device"] == "auto"
+    assert summary["tabiclv2"]["resolved_device"] == "cuda"
+    assert summary["tabiclv2"]["benchmark_host_fingerprint"] == "host-a"
+    assert summary["artifacts"]["tabiclv2_curve_jsonl"] == str(
+        (out_root.resolve() / "tabiclv2_curve.jsonl")
+    )
+    written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
+    assert written_summary["tabiclv2"]["final_dataset_log_loss"] == {"toy": pytest.approx(0.39)}
+    assert written_summary["artifacts"]["tabiclv2_curve_jsonl"] == str(
+        (out_root.resolve() / "tabiclv2_curve.jsonl")
+    )
+    assert captured_posthoc["telemetry_path"] == smoke_run_dir / "telemetry.json"
+    assert captured_posthoc["payload"]["benchmark"]["tabiclv2"]["final_log_loss"] == pytest.approx(0.39)
+    assert (out_root / "tabiclv2_curve.jsonl").exists()
+
+
+def test_run_nanotabpfn_benchmark_with_tabiclv2_fails_clear_when_env_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    nanotab_root = tmp_path / "nano"
+    (nanotab_root / ".venv" / "bin").mkdir(parents=True)
+    (nanotab_root / ".venv" / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
+    prior_dump = nanotab_root / "300k_150x5_2.h5"
+    prior_dump.write_bytes(b"prior")
+    bundle_path = _write_benchmark_bundle(
+        tmp_path / "bundle.json",
+        tasks=[
+            {
+                "task_id": 1,
+                "dataset_name": "toy",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+        ],
+    )
+    benchmark_bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+
+    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: bundle_path)
+    monkeypatch.setattr(
+        compare_module,
+        "load_benchmark_bundle_for_execution",
+        lambda path=None: (benchmark_bundle, False),
+    )
+
+    with pytest.raises(RuntimeError, match="TabICLv2 root does not exist"):
+        compare_module.run_nanotabpfn_benchmark(
+            compare_module.NanoTabPFNBenchmarkConfig(
+                tab_foundry_run_dir=smoke_run_dir,
+                out_root=tmp_path / "benchmark_out",
+                nanotabpfn_root=nanotab_root,
+                nanotab_prior_dump=prior_dump,
+                with_tabiclv2=True,
+                tabicl_root=tmp_path / "missing_tabicl",
+            )
+        )
 
 
 def test_run_nanotabpfn_benchmark_explicit_large_bundle_allows_missing_inputs(

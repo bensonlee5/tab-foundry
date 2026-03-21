@@ -23,6 +23,8 @@ def _export(names: list[str]) -> None:
 _export(
     [
         "test_run_nanotabpfn_benchmark_orchestrates_external_helper",
+        "test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2",
+        "test_run_nanotabpfn_benchmark_with_tabiclv2_fails_clear_when_env_missing",
         "test_run_nanotabpfn_benchmark_explicit_large_bundle_allows_missing_inputs",
         "test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path",
         "test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure",

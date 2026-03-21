@@ -20,4 +20,9 @@ def _export(names: list[str]) -> None:
         globals()[name] = _wrapped
 
 
-_export(["test_compare_main_parses_cli_invocation"])
+_export(
+    [
+        "test_compare_main_parses_cli_invocation",
+        "test_compare_main_parses_cli_invocation_with_tabiclv2",
+    ]
+)
