@@ -16,6 +16,7 @@ Related docs:
 
 - design decisions and repo structure: `docs/development/design-decisions.md`
 - codebase navigation: `docs/development/codebase-navigation.md`
+- dataset curation and license gate: `docs/development/dataset-curation.md`
 - architecture reference: `docs/development/model-architecture.md`
 - architecture deltas: `docs/development/architecture-deltas.md`
 - workflow runbooks: `docs/workflows.md`
@@ -92,6 +93,12 @@ Important non-goals for this roadmap:
 - Training adequacy should become explicit before the repo keeps treating
   optimizer and schedule choices as sweep-local notes instead of a cross-cutting
   decision surface.
+- Harder real-data ladders should keep one canonical OpenML baseline where the
+  benchmark tooling is already native, allow manifest-backed external
+  real-data augmentations when they add regimes OpenML does not cover cleanly,
+  and require completed review records before those datasets enter curated
+  bundles or manifests; `dagzoo` remains the synthetic-data lane under
+  TF-RD-013 rather than an external real-data source.
 - The deliberate post-008 execution order is now:
   TF-RD-018 training adequacy first; TF-RD-014 missingness and TF-RD-017
   class-imbalance as the preferred first harder-surface ladders; TF-RD-013
@@ -126,7 +133,7 @@ retained for traceability.
 | 7 | TF-RD-006 | Column-set integration | completed | Implemented |
 | 8 | TF-RD-007 | Row-level context and QASS attribution | completed | Implemented |
 | 9 | TF-RD-008 | Coherent classification anchor promotion | implemented | Implemented |
-| 10 | TF-RD-018 | Training-surface adequacy on the promoted anchor | planned | Next |
+| 10 | TF-RD-018 | Training-surface adequacy on the promoted anchor | planned | Now |
 | 11 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
 | 12 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
 | 13 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | planned | Next |
@@ -147,12 +154,12 @@ flowchart TD
     RD011["TF-RD-011 ✅<br/>Repo-wide enablers<br/>(independent)"]
 
     RD003["TF-RD-003 ✅<br/>Shared-surface unlock"]
-    RD004["TF-RD-004<br/>Tokenization migration"]
-    RD005["TF-RD-005<br/>Row-embedding unlock"]
-    RD006["TF-RD-006<br/>Column-set integration"]
-    RD007["TF-RD-007<br/>Row-level context & QASS"]
+    RD004["TF-RD-004 ✅<br/>Tokenization migration"]
+    RD005["TF-RD-005 ✅<br/>Row-embedding unlock"]
+    RD006["TF-RD-006 ✅<br/>Column-set integration"]
+    RD007["TF-RD-007 ✅<br/>Row-level context & QASS"]
     RD008["TF-RD-008 ✅<br/>DEFAULT SETTLED<br/>Coherent anchor"]
-    RD018["TF-RD-018<br/>Training-surface<br/>adequacy"]
+    RD018["TF-RD-018 ▶<br/>Training-surface<br/>adequacy"]
     RD014["TF-RD-014<br/>Missingness<br/>robustness"]
     RD017["TF-RD-017<br/>Class-imbalance<br/>robustness"]
     RD013["TF-RD-013<br/>Dagzoo synthetic<br/>data efficacy"]
@@ -184,15 +191,15 @@ flowchart TD
 
     classDef done fill:#d4edda,stroke:#28a745,color:#155724;
     classDef readyNow fill:#fff3cd,stroke:#ffc107,color:#856404;
-    classDef chain fill:#e8f0fe,stroke:#4285f4,color:#1a3d6e;
+    classDef now fill:#fce4ec,stroke:#e91e63,color:#880e4f;
     classDef gate fill:#fff1d6,stroke:#c67a00,color:#3d2a00;
     classDef later fill:#f3e8ff,stroke:#7c3aed,color:#3b1f6e;
 
-    class RD000,RD001,RD002,RD003,RD008,RD011 done;
-    class RD004,RD005,RD006,RD007 chain;
-    class RD013,RD014,RD017,RD018,RD010,RD015 readyNow;
+    class RD000,RD001,RD002,RD003,RD004,RD005,RD006,RD007,RD008,RD011 done;
+    class RD009,RD013,RD014,RD017,RD010,RD015 readyNow;
+    class RD018 now;
     class RD016 gate;
-    class RD009,RD012 later;
+    class RD012 later;
 ```
 
 Critical path: **003 → 004 → 005 → 006 → 007 → 008**. 000, 001, 002, 003, and
@@ -588,6 +595,9 @@ This roadmap assumes the following repo truths:
     row-first backbone for the first many-class program
   - run the first many-class benchmark and adequacy sweeps on top of the
     promoted row-first base rather than reopening older hybrid lines
+  - if many-class curation expands, keep the current OpenML bundle as the
+    baseline surface and use only license-cleared manifest-backed external
+    datasets as augmentations
   - keep many-class as an extension of the same staged family
   - avoid opening a separate architecture lane for many-class
   - record an explicit keep/defer decision for the row-first many-class path
@@ -650,6 +660,8 @@ This roadmap assumes the following repo truths:
   - the dagzoo handoff boundary is complete through closed TF-RD-011 work
   - dagzoo smoke and manifest identity are no longer the main blocker
   - there is no benchmark-facing post-008 data-source comparison program yet
+  - dagzoo is the synthetic-data generation lane, not an external real-data
+    ingestion surface
   - the roadmap now prefers TF-RD-014 and TF-RD-017 as the first harder-surface
     reads unless dagzoo clearly provides stronger architecture discrimination
 - Required work:
@@ -657,7 +669,9 @@ This roadmap assumes the following repo truths:
     proves more decision-relevant than those ladders
   - define the canonical dagzoo corpus variants, provenance rules, and first
     post-008 data-source sweep ladder
-  - compare the current corpus against dagzoo-generated corpora on the promoted
+  - compare the current corpus against dagzoo-generated corpora and the curated
+    real-data ladders, including both the OpenML baselines and any
+    license-cleared manifest-backed external augmentations, on the promoted
     row-first anchor rather than on older hybrid surfaces
   - record whether dagzoo becomes the canonical harder research surface,
     complements the benchmark ladders, or stays auxiliary
@@ -684,6 +698,14 @@ This roadmap assumes the following repo truths:
     benchmark surface
 - Required work:
   - re-anchor missingness work on the promoted row-first base
+  - keep one pinned OpenML missingness ladder as the canonical benchmark
+    baseline and allow license-cleared manifest-backed external augmentations
+    when they add missingness regimes OpenML does not cover cleanly
+  - use a review ledger for both OpenML datasets and vetted external real-data
+    candidates rather than relying on source names alone
+  - keep regime identity in task-source names, bundle names, manifest names,
+    and curation reports rather than changing benchmark bundle schema in this
+    pass
   - separate missing-token or missingness-mechanism adequacy from synthetic
     missingness training and from benchmark-surface evaluation
   - decide whether explicit missingness handling belongs in the default
@@ -709,6 +731,14 @@ This roadmap assumes the following repo truths:
 - Required work:
   - define the canonical imbalance-focused binary bundle or bundle-selection
     ladder on the promoted row-first anchor
+  - keep one pinned OpenML imbalance ladder as the canonical benchmark
+    baseline and allow license-cleared manifest-backed external augmentations
+    when they add skew regimes OpenML does not cover cleanly
+  - use the same review ledger for OpenML datasets and vetted external
+    real-data candidates
+  - keep regime identity in task-source names, bundle names, manifest names,
+    and curation reports rather than changing benchmark bundle schema in this
+    pass
   - define benchmark-facing comparison and reporting that includes PR AUC,
     average precision, and balanced accuracy alongside ROC/log loss/Brier
   - measure the promoted anchor first without class reweighting or focal-style
@@ -724,7 +754,7 @@ This roadmap assumes the following repo truths:
 ### TF-RD-018: Training-Surface Adequacy On The Promoted Anchor
 
 - Status: `planned`
-- Milestone: `Next`
+- Milestone: `Now`
 - Goal: make optimizer, schedule, budget, and runtime adequacy the first
   deliberate post-008 gate instead of leaving it as sweep-local interpretation
 - Current state:
@@ -766,6 +796,8 @@ This roadmap assumes the following repo truths:
 - Required work:
   - define the canonical regression benchmark surface or surfaces for the staged
     family
+  - if regression curation expands, keep one OpenML baseline where possible and
+    use only license-cleared manifest-backed external datasets as augmentations
   - define the staged regression head and loss contract on the promoted
     row-first base
   - build the first architecture and adequacy sweep ladder for regression while
