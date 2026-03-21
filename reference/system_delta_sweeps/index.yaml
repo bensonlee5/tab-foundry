@@ -108,28 +108,28 @@ sweeps:
     control_baseline_id: cls_benchmark_linear_v2
   row_embedding_attribution_v1:
     parent_sweep_id: tokenization_migration_v1
-    status: draft
+    status: superseded
     anchor_run_id: sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
   row_embedding_attribution_v2:
     parent_sweep_id: tokenization_migration_v1
-    status: draft
+    status: completed
     anchor_run_id: sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
   row_embedding_attribution_v3:
     parent_sweep_id: row_embedding_attribution_v2
-    status: draft
+    status: completed
     anchor_run_id: sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
   qass_tfcol_adequacy_v1:
     parent_sweep_id: row_embedding_attribution_v3
-    status: draft
+    status: completed
     anchor_run_id: sd_row_embedding_attribution_v3_03_delta_qass_context_v3_v1
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
