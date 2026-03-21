@@ -21,6 +21,10 @@ Contents:
 - `papers.md`: curated paper list, adoption tiers, and borrowing rules for
   architecture and training ideas
 - `evidence.md`: roadmap-to-reference mapping and per-epic evidence notes
+- `dataset_license_reviews.csv`: review ledger for approving or rejecting
+  real-data datasets before they enter curated bundles or manifests
+- `dataset_license_review_summary.md`: current status summary for the repo's
+  reviewed real-data datasets
 - `system_delta_catalog.yaml`: reusable delta definitions for the active
   system-delta workflow
 - `system_delta_campaign_template.md`: required research-package template for

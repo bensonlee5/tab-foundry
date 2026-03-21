@@ -7,6 +7,7 @@ Related docs:
 - quickstart: `README.md`
 - design decisions and repo structure: `docs/development/design-decisions.md`
 - codebase navigation: `docs/development/codebase-navigation.md`
+- dataset curation and license gate: `docs/development/dataset-curation.md`
 - inference/export contract: `docs/inference.md`
 - canonical roadmap: `docs/development/roadmap.md`
 
@@ -106,6 +107,27 @@ Keep these workflows separate:
 1. confirmatory benchmarking against `nanoTabPFN`
 
 The sweep loop should not call the OpenML benchmark directly.
+
+## Dataset Curation Gate
+
+Real-data additions now require a license review before they can enter a
+curated OpenML bundle, manifest-backed external dataset set, or benchmark
+ladder.
+
+- record approvals in `reference/dataset_license_reviews.csv`
+- follow the policy in `docs/development/dataset-curation.md`
+- keep OpenML as the canonical benchmark baseline where the benchmark tooling
+  is already native
+- allow vetted external real-data datasets as manifest-backed augmentation
+  sets when they add regimes OpenML does not cover cleanly
+- treat OpenML and vetted external real-data sources the same for license
+  review before they enter curated ladders
+- treat `dagzoo` as synthetic-only rather than as an external real-data source
+
+This gate is intentionally outside runtime data loading in v1. The operational
+rule is simple: do not add a dataset to a curated bundle or manifest until the
+ledger contains an `approved` review record for it, and do not add a new
+loader path for external real-data ingestion.
 
 ## Manifest Build
 
