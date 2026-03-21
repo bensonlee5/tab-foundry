@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from itertools import product
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.config import compose_config
@@ -114,6 +114,11 @@ def _build_trial_config(
     return cfg
 
 
+def _optional_metric(metrics: Mapping[str, float | None], key: str) -> float | None:
+    value = metrics.get(key)
+    return None if value is None else float(value)
+
+
 def _summarize_trial(
     *,
     trial_id: int,
@@ -122,15 +127,21 @@ def _summarize_trial(
     warmup_ratio: float,
     grad_clip: float,
     cfg: Any,
-    train_metrics: dict[str, float],
+    train_metrics: Mapping[str, float | None],
 ) -> dict[str, Any]:
     history_path = trial_root / "train_outputs" / "train_history.jsonl"
     history, history_summary = load_history_summary(history_path, raw_cfg=cfg)
     val_losses = finite_history_values(history, "val_loss")
     if not val_losses:
         raise RuntimeError(f"trial produced no finite validation losses: {trial_root}")
-    grad_norms = finite_history_values(history, "grad_norm")
     best_checkpoint = trial_root / "train_outputs" / "checkpoints" / "best.pt"
+    train_elapsed_seconds = _optional_metric(train_metrics, "train_elapsed_seconds")
+    if train_elapsed_seconds is None:
+        train_elapsed_seconds = _optional_metric(history_summary, "train_elapsed_seconds")
+    wall_elapsed_seconds = _optional_metric(train_metrics, "wall_elapsed_seconds")
+    if wall_elapsed_seconds is None:
+        wall_elapsed_seconds = _optional_metric(history_summary, "wall_elapsed_seconds")
+    best_val_step = _optional_metric(train_metrics, "best_val_step")
 
     return {
         "status": "ok",
@@ -141,22 +152,12 @@ def _summarize_trial(
         "best_val_loss": float(min(val_losses)),
         "final_val_loss": float(val_losses[-1]),
         "post_warmup_train_loss_var": float(post_warmup_variance(history, raw_cfg=cfg)),
-        "mean_grad_norm": float(sum(grad_norms) / float(len(grad_norms))) if grad_norms else 0.0,
-        "max_grad_norm": float(max(grad_norms)) if grad_norms else 0.0,
-        "final_grad_norm": float(grad_norms[-1]) if grad_norms else 0.0,
-        "train_elapsed_seconds": float(
-            train_metrics.get(
-                "train_elapsed_seconds",
-                history_summary["train_elapsed_seconds"] or 0.0,
-            )
-        ),
-        "wall_elapsed_seconds": float(
-            train_metrics.get(
-                "wall_elapsed_seconds",
-                history_summary["wall_elapsed_seconds"] or 0.0,
-            )
-        ),
-        "best_val_step": float(train_metrics.get("best_val_step", 0.0)),
+        "mean_grad_norm": history_summary["mean_grad_norm"],
+        "max_grad_norm": history_summary["max_grad_norm"],
+        "final_grad_norm": history_summary["final_grad_norm"],
+        "train_elapsed_seconds": 0.0 if train_elapsed_seconds is None else float(train_elapsed_seconds),
+        "wall_elapsed_seconds": 0.0 if wall_elapsed_seconds is None else float(wall_elapsed_seconds),
+        "best_val_step": 0.0 if best_val_step is None else float(best_val_step),
         "run_dir": str(trial_root.resolve()),
         "best_checkpoint": str(best_checkpoint.resolve()) if best_checkpoint.exists() else None,
         "error": None,
@@ -220,9 +221,9 @@ def run_tuning(config: TuneConfig) -> dict[str, Any]:
                 "best_val_loss": float("inf"),
                 "final_val_loss": float("inf"),
                 "post_warmup_train_loss_var": float("inf"),
-                "mean_grad_norm": 0.0,
-                "max_grad_norm": 0.0,
-                "final_grad_norm": 0.0,
+                "mean_grad_norm": None,
+                "max_grad_norm": None,
+                "final_grad_norm": None,
                 "train_elapsed_seconds": 0.0,
                 "wall_elapsed_seconds": 0.0,
                 "best_val_step": 0.0,

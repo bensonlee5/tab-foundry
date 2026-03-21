@@ -3,6 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 import importlib.util
 import json
+import math
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -2020,6 +2021,77 @@ def test_train_tabfoundry_simple_prior_logs_wandb_failure_summary(
     assert fake_run.summary["error/type"] == "PriorDumpNonFiniteInputError"
     assert "contains NaN or Inf" in str(fake_run.summary["error/message"])
     assert fake_run.summary["missingness/prior_dump/affected_batch_count"] == 1
+
+
+def test_train_tabfoundry_simple_prior_skips_non_finite_loss_steps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_nan_loss.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    fake_run = _FakeWandbRun()
+    optimizer = _CountingOptimizer()
+    loss_calls = {"count": 0}
+
+    def _loss_with_one_nan(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        loss_calls["count"] += 1
+        if loss_calls["count"] == 1:
+            return logits.sum() * float("nan")
+        return classification_loss(logits, targets)
+
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    monkeypatch.setattr(prior_train_module, "classification_loss", _loss_with_one_nan)
+    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    cfg = _prior_cfg(tmp_path, max_steps=2)
+    cfg.logging.use_wandb = True
+    cfg.logging.project = "test-project"
+    cfg.logging.run_name = "prior-nan-guard"
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=1,
+    )
+    history = [
+        json.loads(line)
+        for line in (result.output_dir / "train_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    telemetry = json.loads((result.output_dir / "telemetry.json").read_text(encoding="utf-8"))
+
+    assert optimizer.step_count == 1
+    assert result.metrics["nan_skip_count"] == 1.0
+    assert result.metrics["final_train_loss"] is not None
+    assert result.metrics["final_train_acc"] is not None
+    assert result.metrics["mean_grad_norm"] is not None
+    assert len(history) == 2
+    assert math.isnan(float(history[0]["train_loss"]))
+    assert history[0]["grad_norm"] is None
+    assert math.isfinite(float(history[1]["train_loss"]))
+    assert history[1]["train_loss_ema"] is not None
+    assert math.isfinite(float(history[1]["train_loss_ema"]))
+    assert any(
+        payload.get("train/nan_guard_triggered") is True and step == 1
+        for payload, step in fake_run.logged
+    )
+    assert telemetry["success"] is True
+    assert telemetry["gradient_summary"]["record_count"] == 1
 
 
 def test_train_tabfoundry_simple_prior_closes_wandb_for_setup_failures(

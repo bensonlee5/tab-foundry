@@ -179,8 +179,8 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
             )
         )
         timings_seconds["eval"] = time.perf_counter() - stage_start
-        ensure_finite_metrics(train_result.metrics, context="train")
-        ensure_finite_metrics(eval_result.metrics, context="eval")
+        normalized_train_metrics = ensure_finite_metrics(train_result.metrics, context="train")
+        normalized_eval_metrics = ensure_finite_metrics(eval_result.metrics, context="eval")
 
         plot_loss_curve(history_path, loss_curve_path)
         checkpoint_snapshots = checkpoint_snapshots_from_history(
@@ -193,9 +193,9 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
         telemetry["checkpoint_snapshots"] = checkpoint_snapshots
         telemetry["train_metrics"] = {
             "global_step": int(train_result.global_step),
-            **{key: float(value) for key, value in train_result.metrics.items()},
+            **normalized_train_metrics,
         }
-        telemetry["eval_metrics"] = {key: float(value) for key, value in eval_result.metrics.items()}
+        telemetry["eval_metrics"] = normalized_eval_metrics
         telemetry["artifacts"].update(
             {
                 "best_checkpoint": str(train_result.best_checkpoint),

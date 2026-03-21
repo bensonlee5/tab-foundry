@@ -235,6 +235,34 @@ def _mean_or_none(values: Sequence[float]) -> float | None:
     return float(sum(values) / float(len(values)))
 
 
+def grad_norm_summary_from_values(values: Sequence[float]) -> dict[str, float | None]:
+    """Summarize one finite grad-norm history with nullable outputs."""
+
+    return {
+        "mean_grad_norm": _mean_or_none(values),
+        "max_grad_norm": None if not values else float(max(values)),
+        "final_grad_norm": None if not values else float(values[-1]),
+    }
+
+
+def grad_norm_summary_from_running_totals(
+    *,
+    grad_norm_sum: float,
+    grad_norm_count: int,
+    max_grad_norm: float,
+    final_grad_norm: float,
+) -> dict[str, float | None]:
+    """Summarize grad norms from running totals while preserving missing state."""
+
+    if grad_norm_count <= 0:
+        return grad_norm_summary_from_values(())
+    return {
+        "mean_grad_norm": float(grad_norm_sum / float(grad_norm_count)),
+        "max_grad_norm": float(max_grad_norm),
+        "final_grad_norm": float(final_grad_norm),
+    }
+
+
 def _linear_slope_or_none(points: Sequence[tuple[float, float]]) -> float | None:
     if len(points) < 2:
         return None
@@ -365,9 +393,7 @@ def _module_window_summary(
                     values.append(value)
             window_summaries[window_name] = {
                 "record_count": int(len(values)),
-                "mean_grad_norm": _mean_or_none(values),
-                "max_grad_norm": None if not values else float(max(values)),
-                "final_grad_norm": None if not values else float(values[-1]),
+                **grad_norm_summary_from_values(values),
             }
         modules[module_name] = {
             "windows": window_summaries,
@@ -585,23 +611,13 @@ def gradient_trace_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, An
 
     return {
         "record_count": int(len(records)),
-        "global": {
-            "mean_grad_norm": None
-            if not global_grad_norms
-            else float(sum(global_grad_norms) / float(len(global_grad_norms))),
-            "max_grad_norm": None if not global_grad_norms else float(max(global_grad_norms)),
-            "final_grad_norm": None if not global_grad_norms else float(global_grad_norms[-1]),
-        },
+        "global": grad_norm_summary_from_values(global_grad_norms),
         "non_finite_global_grad_norm_counts": non_finite_global_grad_norm_counts,
         "final_global_grad_norm_kind": None
         if not records
         else _record_global_grad_norm_kind(records[-1]),
         "modules": {
-            name: {
-                "mean_grad_norm": float(sum(values) / float(len(values))),
-                "max_grad_norm": float(max(values)),
-                "final_grad_norm": float(values[-1]),
-            }
+            name: grad_norm_summary_from_values(values)
             for name, values in sorted(module_history.items())
         },
         "activations": {

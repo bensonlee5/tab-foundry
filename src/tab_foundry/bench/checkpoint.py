@@ -16,7 +16,7 @@ from tab_foundry.input_normalization import (
     normalize_train_test_arrays,
 )
 from tab_foundry.model.factory import build_model_from_spec
-from tab_foundry.model.outputs import ClassificationOutput
+from tab_foundry.model.outputs import ClassificationOutput, validate_classification_output_contract
 from tab_foundry.model.spec import (
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
@@ -233,10 +233,16 @@ class TabFoundryClassifier:
             output = self.model(batch)
             if not isinstance(output, ClassificationOutput):
                 raise RuntimeError("checkpoint output does not expose classification probabilities")
+            resolved_num_classes = validate_classification_output_contract(
+                output,
+                expected_rows=int(batch.x_test.shape[0]),
+                expected_num_classes=num_classes,
+                context="checkpoint classifier",
+            )
             if output.logits is not None:
-                probs = F.softmax(output.logits[:, :num_classes], dim=-1)
+                probs = F.softmax(output.logits[:, :resolved_num_classes], dim=-1)
             elif output.class_probs is not None:
-                probs = output.class_probs[:, :num_classes]
+                probs = output.class_probs
             else:
                 raise RuntimeError("checkpoint output does not expose logits or class probabilities")
         return probs.cpu().numpy()

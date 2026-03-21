@@ -131,6 +131,9 @@ Scope:
 - persisted checksum and schema validation
 - runtime-derived preprocessing using the support set
 - model-native outputs out (`class_probs` for classification)
+- earlier task rejection for unsupported non-classification bundles
+- strict output validation for classification heads: logits must be wide enough
+  for the declared class count, and emitted `class_probs` must match it exactly
 
 Out of scope here:
 

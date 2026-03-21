@@ -6,6 +6,8 @@ import math
 from pathlib import Path
 from typing import Any, Mapping
 
+from .instability import grad_norm_summary_from_running_totals
+
 
 def _trainer_summary_payload(
     *,
@@ -45,13 +47,18 @@ def _trainer_summary_payload(
         "final_val_loss": None
         if last_val_metrics is None
         else _summary_float(last_val_metrics.get("val_loss")),
-        "final_grad_norm": float(final_grad_norm),
-        "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
-        "max_grad_norm": float(max_grad_norm),
         "train_elapsed_seconds": float(train_elapsed_seconds),
         "wall_elapsed_seconds": float(wall_elapsed_seconds),
         "nan_skip_count": float(nan_skip_count),
     }
+    metrics_payload.update(
+        grad_norm_summary_from_running_totals(
+            grad_norm_sum=grad_norm_sum,
+            grad_norm_count=grad_norm_count,
+            max_grad_norm=max_grad_norm,
+            final_grad_norm=final_grad_norm,
+        )
+    )
     if last_train_metrics is not None:
         final_train_acc = _summary_float(last_train_metrics.get("acc"))
         if final_train_acc is not None:

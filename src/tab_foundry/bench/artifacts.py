@@ -45,13 +45,22 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return records
 
 
-def ensure_finite_metrics(metrics: Mapping[str, float], *, context: str) -> None:
-    """Reject non-finite metric payloads."""
+def ensure_finite_metrics(
+    metrics: Mapping[str, float | None],
+    *,
+    context: str,
+) -> dict[str, float]:
+    """Reject missing or non-finite metric payloads and return normalized floats."""
 
+    normalized: dict[str, float] = {}
     for key, value in metrics.items():
+        if value is None:
+            raise RuntimeError(f"{context} metric must be finite: key={key}, value=None")
         value_f = float(value)
         if not math.isfinite(value_f):
             raise RuntimeError(f"{context} metric must be finite: key={key}, value={value_f!r}")
+        normalized[str(key)] = value_f
+    return normalized
 
 
 def load_history(path: Path) -> list[dict[str, Any]]:

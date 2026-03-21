@@ -70,20 +70,26 @@ def _git_sha() -> str | None:
 def _package_version() -> str:
     try:
         version = importlib.metadata.version("tab-foundry")
+    except importlib.metadata.PackageNotFoundError:
+        version = None
+    else:
         if isinstance(version, str) and version.strip():
             return version
-    except Exception:
-        pass
+        raise RuntimeError("installed tab-foundry package metadata returned an empty version")
+
+    pyproject_path = Path(__file__).resolve().parents[3] / "pyproject.toml"
     try:
-        pyproject_path = Path(__file__).resolve().parents[3] / "pyproject.toml"
         with pyproject_path.open("rb") as handle:
             payload = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise RuntimeError(f"failed to load tab-foundry version from {pyproject_path}") from exc
+    try:
         version = payload["project"]["version"]
-        if isinstance(version, str) and version.strip():
-            return version
-    except Exception:
-        pass
-    return "0.0.0"
+    except (KeyError, TypeError) as exc:
+        raise RuntimeError(f"{pyproject_path} is missing project.version metadata") from exc
+    if isinstance(version, str) and version.strip():
+        return version
+    raise RuntimeError(f"{pyproject_path} must define a non-empty project.version string")
 
 
 def _producer_info() -> ProducerInfo:

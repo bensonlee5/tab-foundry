@@ -17,6 +17,7 @@ from tab_foundry.model.spec import (
     checkpoint_model_build_spec_from_mappings,
     ModelBuildSpec,
 )
+from tab_foundry.training.instability import grad_norm_summary_from_values
 from tab_foundry.training.schedule import build_stage_configs, warmup_steps_for_stage
 from tab_foundry.training.surface import write_training_surface_record
 
@@ -97,11 +98,7 @@ def _training_diagnostics_from_history(
         "final_val_loss": None if final_val_loss is None else float(final_val_loss),
         "best_val_step": None if best_val_step is None else float(best_val_step),
         "post_warmup_train_loss_var": _history_variance(post_warmup_losses),
-        "mean_grad_norm": None
-        if not grad_norms
-        else float(sum(grad_norms) / float(len(grad_norms))),
-        "max_grad_norm": None if not grad_norms else float(max(grad_norms)),
-        "final_grad_norm": None if not grad_norms else float(grad_norms[-1]),
+        **grad_norm_summary_from_values(grad_norms),
         "train_elapsed_seconds": train_elapsed if math.isfinite(train_elapsed) else None,
         "wall_elapsed_seconds": wall_elapsed if math.isfinite(wall_elapsed) else None,
     }

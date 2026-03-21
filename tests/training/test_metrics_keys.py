@@ -80,3 +80,40 @@ def test_classification_metrics_raise_for_empty_test_targets() -> None:
     )
     with pytest.raises(RuntimeError, match="zero test labels"):
         _ = _compute_loss_and_metrics(output, batch, task="classification")
+
+
+def test_classification_metrics_raise_for_underwidth_logits() -> None:
+    output = ClassificationOutput(
+        logits=torch.randn(6, 2),
+        num_classes=3,
+    )
+    batch = TaskBatch(
+        x_train=torch.randn(8, 4),
+        y_train=torch.randint(0, 3, (8,)),
+        x_test=torch.randn(6, 4),
+        y_test=torch.randint(0, 3, (6,)),
+        metadata={},
+        num_classes=3,
+    )
+
+    with pytest.raises(RuntimeError, match="logits width=2"):
+        _ = _compute_loss_and_metrics(output, batch, task="classification")
+
+
+def test_classification_metrics_raise_for_underwidth_class_probs() -> None:
+    output = ClassificationOutput(
+        logits=None,
+        class_probs=torch.full((6, 2), 0.5),
+        num_classes=3,
+    )
+    batch = TaskBatch(
+        x_train=torch.randn(8, 4),
+        y_train=torch.randint(0, 3, (8,)),
+        x_test=torch.randn(6, 4),
+        y_test=torch.randint(0, 3, (6,)),
+        metadata={},
+        num_classes=3,
+    )
+
+    with pytest.raises(RuntimeError, match="class_probs width=2"):
+        _ = _compute_loss_and_metrics(output, batch, task="classification")

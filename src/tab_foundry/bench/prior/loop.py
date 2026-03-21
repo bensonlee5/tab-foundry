@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
 import sys
 import time
@@ -11,6 +12,7 @@ from typing import Any, cast
 from omegaconf import DictConfig, OmegaConf
 import torch
 
+from tab_foundry.training.instability import grad_norm_summary_from_running_totals
 from tab_foundry.types import TrainResult
 
 
@@ -271,6 +273,8 @@ def run_prior_training(
 
     history_step_loss = 0.0
     history_step_acc = 0.0
+    final_train_loss: float | None = None
+    final_train_acc: float | None = None
     global_step = 0
     latest_checkpoint: Path | None = None
     final_grad_norm = 0.0
@@ -278,6 +282,7 @@ def run_prior_training(
     grad_norm_count = 0
     max_grad_norm = 0.0
     clipped_step_count = 0
+    nan_skip_count = 0
     train_start = time.perf_counter()
     train_elapsed_seconds = 0.0
     previous_train_loss: float | None = None
@@ -404,6 +409,36 @@ def run_prior_training(
                 trace_activations=trace_activations,
                 flush_activation_trace=flush_activation_trace,
             )
+            step_train_duration = time.perf_counter() - step_train_start
+            train_elapsed_seconds += step_train_duration
+            global_step = int(prior_step.step_index)
+            if not math.isfinite(history_step_loss):
+                nan_skip_count += 1
+                optimizer.zero_grad(set_to_none=True)
+                nan_log: dict[str, Any] = {
+                    "train/nan_guard_triggered": True,
+                    "train/nan_skip_count": float(nan_skip_count),
+                }
+                deps.log_wandb_metrics(run, nan_log, step=global_step)
+                history_payload = deps.history_record(
+                    global_step=global_step,
+                    stage_name=_PRIOR_STAGE_NAME,
+                    train_loss=float("nan"),
+                    train_metrics={"nan_guard_triggered": 1.0},
+                    lr=float(optimizer.param_groups[0]["lr"]),
+                    grad_norm=None,
+                    elapsed_seconds=time.perf_counter() - train_start,
+                    train_elapsed_seconds=train_elapsed_seconds,
+                    val_metrics=None,
+                    train_loss_delta=None,
+                    train_loss_ema=loss_ema,
+                    grad_clip_threshold=float(grad_clip),
+                    grad_clip_triggered=False,
+                )
+                history_records.append(history_payload)
+                if history_path is not None:
+                    deps.append_history_record(history_path, history_payload)
+                continue
 
             pre_clip_module_grad_norms = deps.module_grad_norms(model)
             local_grad_norm = deps.total_grad_norm(model.parameters())
@@ -414,10 +449,9 @@ def run_prior_training(
                 clipped_step_count += 1
 
             optimizer.step()
-            step_train_duration = time.perf_counter() - step_train_start
-            train_elapsed_seconds += step_train_duration
-            global_step = int(prior_step.step_index)
 
+            final_train_loss = float(history_step_loss)
+            final_train_acc = float(history_step_acc)
             final_grad_norm = float(local_grad_norm)
             grad_norm_sum += final_grad_norm
             grad_norm_count += 1
@@ -562,13 +596,17 @@ def run_prior_training(
             latest_checkpoint=latest_checkpoint,
             global_step=global_step,
             metrics={
-                "final_train_loss": float(history_step_loss),
-                "final_train_acc": float(history_step_acc),
-                "final_grad_norm": float(final_grad_norm),
-                "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
-                "max_grad_norm": float(max_grad_norm),
+                "final_train_loss": None if final_train_loss is None else float(final_train_loss),
+                "final_train_acc": None if final_train_acc is None else float(final_train_acc),
                 "train_elapsed_seconds": float(train_elapsed_seconds),
                 "wall_elapsed_seconds": float(wall_elapsed_seconds),
+                "nan_skip_count": float(nan_skip_count),
+                **grad_norm_summary_from_running_totals(
+                    grad_norm_sum=grad_norm_sum,
+                    grad_norm_count=grad_norm_count,
+                    max_grad_norm=max_grad_norm,
+                    final_grad_norm=final_grad_norm,
+                ),
             },
         )
     except Exception as exc:

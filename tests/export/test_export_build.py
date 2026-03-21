@@ -34,5 +34,8 @@ _export(
         "test_export_manifest_embeds_policy_only_preprocessor",
         "test_export_manifest_embeds_resolved_nondefault_preprocessing_policy",
         "test_export_checkpoint_uses_explicit_weights_only_false",
+        "test_package_version_prefers_installed_metadata",
+        "test_package_version_falls_back_to_pyproject_when_metadata_missing",
+        "test_package_version_raises_when_resolution_fails",
     ]
 )

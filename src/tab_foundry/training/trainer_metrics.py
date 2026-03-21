@@ -8,7 +8,7 @@ from accelerate import Accelerator
 import torch
 from torch.utils.data import DataLoader
 
-from tab_foundry.model.outputs import ClassificationOutput
+from tab_foundry.model.outputs import ClassificationOutput, validate_classification_output_contract
 from tab_foundry.types import TaskBatch
 
 from .batching import move_batch
@@ -37,9 +37,16 @@ def _compute_loss_and_metrics(
     n_test = int(batch.y_test.shape[0])
     if n_test <= 0:
         raise RuntimeError("classification batch has zero test labels")
+    expected_num_classes = None if batch.num_classes is None else int(batch.num_classes)
+    resolved_num_classes = validate_classification_output_contract(
+        output,
+        expected_rows=n_test,
+        expected_num_classes=expected_num_classes,
+        context="classification training/evaluation",
+    )
 
     if output.logits is not None:
-        logits = output.logits[:, : output.num_classes]
+        logits = output.logits[:, :resolved_num_classes]
         target = batch.y_test.to(torch.int64)
         loss = classification_loss(logits, target)
         acc = (logits.argmax(dim=-1) == target).float().mean().item()

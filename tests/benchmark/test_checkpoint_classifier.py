@@ -61,6 +61,82 @@ def test_tab_foundry_classifier_predicts_probabilities(
     assert np.allclose(probabilities.sum(axis=1), 1.0, atol=1.0e-6)
 
 
+def test_tab_foundry_classifier_rejects_underwidth_logits(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class _UnderwidthLogitClassifier(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear = nn.Linear(4, 2)
+
+        def forward(self, batch: TaskBatch) -> ClassificationOutput:
+            logits = torch.zeros((batch.x_test.shape[0], 1), dtype=batch.x_test.dtype, device=batch.x_test.device)
+            return ClassificationOutput(logits=logits, num_classes=2)
+
+    fake_spec = SimpleNamespace(task="classification")
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "build_model_from_spec",
+        lambda _spec: _UnderwidthLogitClassifier(),
+    )
+
+    checkpoint = tmp_path / "underwidth_logits.pt"
+    torch.save(
+        {"model": _TinyClassifier().state_dict(), "config": {"task": "classification", "model": {}}},
+        checkpoint,
+    )
+
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    classifier.fit(np.ones((6, 4), dtype=np.float32), np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64))
+
+    with pytest.raises(RuntimeError, match="logits width=1"):
+        _ = classifier.predict_proba(np.zeros((3, 4), dtype=np.float32))
+
+
+def test_tab_foundry_classifier_rejects_underwidth_class_probs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class _UnderwidthProbClassifier(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear = nn.Linear(4, 2)
+
+        def forward(self, batch: TaskBatch) -> ClassificationOutput:
+            probs = torch.full((batch.x_test.shape[0], 1), 1.0, dtype=batch.x_test.dtype, device=batch.x_test.device)
+            return ClassificationOutput(logits=None, class_probs=probs, num_classes=2)
+
+    fake_spec = SimpleNamespace(task="classification")
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "checkpoint_model_build_spec_from_mappings",
+        lambda **_kwargs: fake_spec,
+    )
+    monkeypatch.setattr(
+        checkpoint_classifier,
+        "build_model_from_spec",
+        lambda _spec: _UnderwidthProbClassifier(),
+    )
+
+    checkpoint = tmp_path / "underwidth_probs.pt"
+    torch.save(
+        {"model": _TinyClassifier().state_dict(), "config": {"task": "classification", "model": {}}},
+        checkpoint,
+    )
+
+    classifier = checkpoint_classifier.TabFoundryClassifier(checkpoint, device="cpu")
+    classifier.fit(np.ones((6, 4), dtype=np.float32), np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64))
+
+    with pytest.raises(RuntimeError, match="class_probs width=1"):
+        _ = classifier.predict_proba(np.zeros((3, 4), dtype=np.float32))
+
+
 @pytest.mark.parametrize(
     "mode",
     ["none", "train_zscore", "train_zscore_clip", "train_zscore_tanh"],

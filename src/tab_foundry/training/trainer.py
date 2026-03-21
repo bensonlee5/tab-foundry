@@ -30,6 +30,7 @@ from .batching import move_batch
 from .distributed import _reduce_any_flag, _reduction_float_dtype, _reduce_keyed_weighted_scalars
 from .instability import (
     build_training_telemetry,
+    grad_norm_summary_from_running_totals,
     gradient_history_path,
     module_grad_norms,
     normalize_grad_norm_value,
@@ -668,12 +669,15 @@ def train(cfg: DictConfig) -> TrainResult:
                 "final_val_loss": float(last_val_metrics["val_loss"])
                 if last_val_metrics is not None
                 else float(best_val),
-                "final_grad_norm": float(final_grad_norm),
-                "mean_grad_norm": float(grad_norm_sum / grad_norm_count) if grad_norm_count > 0 else 0.0,
-                "max_grad_norm": float(max_grad_norm),
                 "train_elapsed_seconds": float(train_elapsed_seconds),
                 "wall_elapsed_seconds": float(wall_elapsed_seconds),
                 "nan_skip_count": float(nan_skip_count),
+                **grad_norm_summary_from_running_totals(
+                    grad_norm_sum=grad_norm_sum,
+                    grad_norm_count=grad_norm_count,
+                    max_grad_norm=max_grad_norm,
+                    final_grad_norm=final_grad_norm,
+                ),
             },
         )
         if accelerator.is_main_process:

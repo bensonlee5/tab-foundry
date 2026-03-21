@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 from types import SimpleNamespace
+import tomllib
 import typing
 
 import numpy as np
@@ -23,6 +24,7 @@ from tab_foundry.export.contracts import (
 from tab_foundry.export.exporter import export_checkpoint, validate_export_bundle
 from tab_foundry.export.loader_ref import load_export_bundle, run_reference_consumer
 from tab_foundry.model.factory import build_model
+from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.types import TaskBatch
 
 
@@ -1224,9 +1226,9 @@ def test_reference_consumer_rejects_nonfinite_class_probabilities(
     loaded = load_export_bundle(out_dir)
 
     class _NaNModel:
-        def __call__(self, batch: TaskBatch) -> SimpleNamespace:
+        def __call__(self, batch: TaskBatch) -> ClassificationOutput:
             logits = torch.full((batch.x_test.shape[0], int(batch.num_classes or 0)), float("nan"))
-            return SimpleNamespace(
+            return ClassificationOutput(
                 class_probs=None,
                 logits=logits,
                 num_classes=int(batch.num_classes or 0),
@@ -1242,3 +1244,98 @@ def test_reference_consumer_rejects_nonfinite_class_probabilities(
             y_train=np.asarray([0, 1], dtype=np.int64),
             x_test=np.asarray([[5.0, 6.0]], dtype=np.float32),
         )
+
+
+def test_reference_batch_rejects_non_classification_before_preprocessing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    called = {"preprocess": False}
+
+    def _unexpected_preprocess(*_args: object, **_kwargs: object) -> object:
+        called["preprocess"] = True
+        raise AssertionError("preprocessing should not run for unsupported tasks")
+
+    monkeypatch.setattr(loader_ref_module, "preprocess_runtime_task_arrays", _unexpected_preprocess)
+    fake_bundle = SimpleNamespace(
+        validated=SimpleNamespace(
+            manifest=SimpleNamespace(task="regression"),
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="classification bundles"):
+        _ = loader_ref_module._reference_batch(
+            fake_bundle,
+            x_train=np.asarray([[1.0, 2.0]], dtype=np.float32),
+            y_train=np.asarray([0], dtype=np.int64),
+            x_test=np.asarray([[3.0, 4.0]], dtype=np.float32),
+        )
+
+    assert called["preprocess"] is False
+
+
+def test_reference_consumer_rejects_underwidth_logits(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    checkpoint = tmp_path / "ckpt_underwidth_logits.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=23)
+    out_dir = tmp_path / "export_underwidth_logits"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+    loaded = load_export_bundle(out_dir)
+
+    class _UnderwidthLogitModel:
+        def __call__(self, batch: TaskBatch) -> ClassificationOutput:
+            width = max(1, int(batch.num_classes or 0) - 1)
+            logits = torch.zeros((batch.x_test.shape[0], width), dtype=torch.float32)
+            return ClassificationOutput(
+                class_probs=None,
+                logits=logits,
+                num_classes=int(batch.num_classes or 0),
+            )
+
+    loaded.model = _UnderwidthLogitModel()  # type: ignore[assignment]
+    monkeypatch.setattr(loader_ref_module, "load_export_bundle", lambda _bundle_dir: loaded)
+
+    with pytest.raises(RuntimeError, match="logits width=1"):
+        _ = run_reference_consumer(
+            out_dir,
+            x_train=np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32),
+            y_train=np.asarray([0, 1], dtype=np.int64),
+            x_test=np.asarray([[5.0, 6.0]], dtype=np.float32),
+        )
+
+
+def test_package_version_prefers_installed_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(exporter_module.importlib.metadata, "version", lambda _name: "9.9.9")
+
+    assert exporter_module._package_version() == "9.9.9"
+
+
+def test_package_version_falls_back_to_pyproject_when_metadata_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        exporter_module.importlib.metadata,
+        "version",
+        lambda _name: (_ for _ in ()).throw(exporter_module.importlib.metadata.PackageNotFoundError()),
+    )
+
+    assert exporter_module._package_version() == "0.8.15"
+
+
+def test_package_version_raises_when_resolution_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        exporter_module.importlib.metadata,
+        "version",
+        lambda _name: (_ for _ in ()).throw(exporter_module.importlib.metadata.PackageNotFoundError()),
+    )
+    monkeypatch.setattr(
+        exporter_module.tomllib,
+        "load",
+        lambda _handle: (_ for _ in ()).throw(tomllib.TOMLDecodeError("bad toml", "version = ???", 0)),
+    )
+
+    with pytest.raises(RuntimeError, match="failed to load tab-foundry version"):
+        _ = exporter_module._package_version()
