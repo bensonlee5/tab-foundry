@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.metrics import log_loss, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
 
-from .datasets import BenchmarkDatasetEvaluationError, _assert_finite_benchmark_datasets
+from .dataset_common import BenchmarkDatasetEvaluationError, _assert_finite_benchmark_datasets
 
 
 _LOG_LOSS_EPS = 1.0e-15

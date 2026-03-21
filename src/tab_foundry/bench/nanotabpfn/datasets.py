@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, cast
+from typing import Any, cast
 
 import numpy as np
 import openml
@@ -15,13 +15,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, LabelEncoder, OrdinalEncoder
 
-from tab_foundry.data.validation import assert_no_non_finite_values
-
 from .bundle import (
     _CLASSIFICATION_TASK_TYPE,
     _REGRESSION_TASK_TYPE,
     benchmark_bundle_task_type,
     load_benchmark_bundle,
+)
+from .dataset_common import (
+    _assert_finite_benchmark_datasets,
 )
 
 
@@ -36,17 +37,6 @@ class PreparedOpenMLBenchmarkTask:
     observed_task: dict[str, Any]
     qualities: dict[str, float]
     task_type: str = _CLASSIFICATION_TASK_TYPE
-
-
-class BenchmarkDatasetEvaluationError(RuntimeError):
-    """One benchmark dataset failed within a checkpoint evaluation."""
-
-    def __init__(self, dataset_name: str, cause: Exception) -> None:
-        self.dataset_name = str(dataset_name)
-        self.error_type = type(cause).__name__
-        super().__init__(
-            f"benchmark evaluation failed for dataset {self.dataset_name!r}: {cause}"
-        )
 
 
 def get_feature_preprocessor(x: np.ndarray | pd.DataFrame) -> ColumnTransformer:
@@ -212,20 +202,6 @@ def prepare_openml_benchmark_task(
             ),
         },
     )
-
-
-def _assert_finite_benchmark_datasets(
-    datasets: Mapping[str, tuple[np.ndarray, np.ndarray]],
-    *,
-    context: str,
-) -> None:
-    for dataset_name, (x, y) in datasets.items():
-        assert_no_non_finite_values(
-            {"x": x, "y": y},
-            context=f"{context} dataset={dataset_name!r}",
-        )
-
-
 def load_openml_benchmark_datasets(
     *,
     new_instances: int = 200,
@@ -305,32 +281,3 @@ def load_openml_benchmark_datasets(
             context=f"benchmark bundle {bundle['name']!r}",
         )
     return datasets, benchmark_tasks
-
-
-def save_dataset_cache(path: Path, datasets: Mapping[str, tuple[np.ndarray, np.ndarray]]) -> Path:
-    """Persist benchmark datasets for reuse across envs."""
-
-    payload: dict[str, Any] = {"names": np.asarray(list(datasets.keys()), dtype=str)}
-    for index, (name, (x, y)) in enumerate(datasets.items()):
-        payload[f"x_{index:03d}"] = np.asarray(x, dtype=np.float32)
-        payload[f"y_{index:03d}"] = np.asarray(y)
-        payload[f"name_{index:03d}"] = np.asarray(name)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(path, **payload)
-    return path
-
-
-def load_dataset_cache(path: Path) -> dict[str, tuple[np.ndarray, np.ndarray]]:
-    """Load a cached benchmark dataset bundle."""
-
-    cache = np.load(path, allow_pickle=False)
-    names = [str(name) for name in cache["names"].tolist()]
-    datasets: dict[str, tuple[np.ndarray, np.ndarray]] = {}
-    for index, name in enumerate(names):
-        datasets[name] = (
-            np.asarray(cache[f"x_{index:03d}"], dtype=np.float32),
-            np.asarray(cache[f"y_{index:03d}"]),
-        )
-    if not datasets:
-        raise RuntimeError(f"dataset cache is empty: {path}")
-    return datasets

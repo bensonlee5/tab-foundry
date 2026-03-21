@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.15] - 2026-03-21
+
+### Changed
+
+- User-facing note: `tab-foundry bench compare` now accepts optional
+  TabICLv2 frontier comparison flags alongside the existing nanoTabPFN flow,
+  and the command/help text now describes external benchmark baselines rather
+  than a nano-only comparison surface.
+
+- User-facing note: `comparison_summary.json` and benchmark artifacts now
+  include optional explicit `tabiclv2` / `tabiclv2_curve_jsonl` entries when
+  TabICLv2 is requested, while keeping the existing top-level `nanotabpfn`
+  payload and current nano-pinned default compare behavior unchanged.
+
 ## [0.8.14] - 2026-03-20
 
 ### Changed
