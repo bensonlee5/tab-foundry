@@ -14,6 +14,7 @@ This file is rendered from `reference/system_delta_sweeps/cuda_stack_scale_follo
 - Anchor run id: `sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1`
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
+- External benchmarks: `nanotabpfn`
 - Training experiment: `cls_benchmark_staged_prior`
 - Training config profile: `cls_benchmark_staged_prior`
 - Surface role: `hybrid_diagnostic`

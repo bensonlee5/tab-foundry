@@ -22,6 +22,7 @@ from tab_foundry.bench.compare import (
     DEFAULT_NANOTABPFN_LR,
     DEFAULT_NANOTABPFN_SEEDS,
     DEFAULT_NANOTABPFN_STEPS,
+    EXTERNAL_BENCHMARK_NANOTABPFN,
     NanoTabPFNBenchmarkConfig,
     run_nanotabpfn_benchmark,
 )
@@ -43,6 +44,7 @@ from .artifacts import ExecutionPaths, read_yaml, result_card_text, write_resear
 from .queue_updates import append_note, optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
 from .screening import pick_screen_winner, screen_metrics
 from .selection import select_queue_rows, sorted_rows
+from .validation import resolve_sweep_external_benchmarks
 
 
 DEFAULT_PRIOR_DUMP = Path("/workspace/nanoTabPFN/300k_150x5_2.h5")
@@ -826,6 +828,7 @@ def run_row(
     training_experiment = resolve_training_experiment(sweep_meta)
     training_config_profile = resolve_training_config_profile(sweep_meta)
     surface_role = resolve_surface_role(sweep_meta)
+    external_benchmarks = tuple(resolve_sweep_external_benchmarks(sweep_meta))
     existing_run_id = queue_row.get("run_id")
     run_id = row_id_for_order(
         sweep_id,
@@ -895,22 +898,25 @@ def run_row(
         )
         return run_id
 
-    reuse_selection = resolve_reusable_nanotabpfn_curve(
-        sweep_meta=sweep_meta,
-        anchor_run_id=anchor_run_id,
-        nanotabpfn_root=nanotabpfn_root,
-        prior_dump=prior_dump,
-        requested_device=device,
-        paths=paths,
-        extra_candidates=_prior_completed_row_curve_candidates(
-            queue=queue,
-            current_order=int(queue_row["order"]),
+    reuse_selection = None
+    reuse_curve_path = None
+    if EXTERNAL_BENCHMARK_NANOTABPFN in external_benchmarks:
+        reuse_selection = resolve_reusable_nanotabpfn_curve(
+            sweep_meta=sweep_meta,
             anchor_run_id=anchor_run_id,
-            parent_run_id=parent_run_id,
-            registry_path=paths.registry_path,
-        ),
-    )
-    reuse_curve_path = None if reuse_selection is None else reuse_selection.curve_path
+            nanotabpfn_root=nanotabpfn_root,
+            prior_dump=prior_dump,
+            requested_device=device,
+            paths=paths,
+            extra_candidates=_prior_completed_row_curve_candidates(
+                queue=queue,
+                current_order=int(queue_row["order"]),
+                anchor_run_id=anchor_run_id,
+                parent_run_id=parent_run_id,
+                registry_path=paths.registry_path,
+            ),
+        )
+        reuse_curve_path = None if reuse_selection is None else reuse_selection.curve_path
     if reuse_selection is not None:
         print(
             f"[row {int(queue_row['order']):02d}] reusing nanoTabPFN curve",
@@ -918,7 +924,7 @@ def run_row(
             f"path={reuse_curve_path}",
             flush=True,
         )
-    else:
+    elif EXTERNAL_BENCHMARK_NANOTABPFN in external_benchmarks:
         _ = ensure_nanotabpfn_python(
             nanotabpfn_root=nanotabpfn_root,
             fallback_python=fallback_python,
@@ -926,6 +932,12 @@ def run_row(
         print(
             f"[row {int(queue_row['order']):02d}] running fresh nanoTabPFN helper",
             f"device={device}",
+            flush=True,
+        )
+    else:
+        print(
+            f"[row {int(queue_row['order']):02d}] running external benchmarks",
+            f"comparators={','.join(external_benchmarks)}",
             flush=True,
         )
     summary = run_nanotabpfn_benchmark(
@@ -938,6 +950,7 @@ def run_row(
             control_baseline_id=str(sweep_meta["control_baseline_id"]),
             control_baseline_registry=paths.control_baseline_registry_path,
             benchmark_bundle_path=resolve_registry_path_value(str(sweep_meta["benchmark_bundle_path"])),
+            external_benchmarks=external_benchmarks,
             reuse_nanotabpfn_curve_path=reuse_curve_path,
             reuse_nanotabpfn_metadata=(
                 None if reuse_selection is None else reuse_selection.metadata

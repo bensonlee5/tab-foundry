@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.bench.compare import EXTERNAL_BENCHMARK_LABELS
 from tab_foundry.bench.benchmark_run_registry import load_benchmark_run_registry, resolve_registry_path_value
 
 from .materialize import load_system_delta_queue, ordered_rows
@@ -289,6 +290,16 @@ def render_system_delta_matrix(
     lines.append(f"- Anchor run id: `{anchor_run_id}`")
     lines.append(f"- Benchmark bundle: `{queue['benchmark_bundle_path']}`")
     lines.append(f"- Control baseline id: `{queue['control_baseline_id']}`")
+    raw_external_benchmarks = queue.get("external_benchmarks", [])
+    external_benchmarks = (
+        [str(value) for value in raw_external_benchmarks]
+        if isinstance(raw_external_benchmarks, list) and raw_external_benchmarks
+        else ["nanotabpfn"]
+    )
+    lines.append(
+        "- External benchmarks: "
+        + ", ".join(f"`{benchmark_id}`" for benchmark_id in external_benchmarks)
+    )
     lines.append(f"- Training experiment: `{queue.get('training_experiment')}`")
     lines.append(f"- Training config profile: `{queue.get('training_config_profile')}`")
     lines.append(f"- Surface role: `{queue.get('surface_role')}`")
@@ -426,8 +437,19 @@ def render_system_delta_matrix(
                 lines.append(f"  - Best ROC AUC: `{best:.4f}` (step {step})")
                 lines.append(f"  - Final ROC AUC: `{final:.4f}`")
                 lines.append(f"  - Drift (final − best): `{drift:.4f}`")
-                if "nanotabpfn_best" in inline_metrics:
-                    lines.append(f"  - NanoTabPFN control: `{float(inline_metrics['nanotabpfn_best']):.4f}`")
+                primary_external_best = inline_metrics.get("primary_external_best")
+                if primary_external_best is not None:
+                    primary_external_label = str(
+                        inline_metrics.get("primary_external_label", "External benchmark")
+                    )
+                    lines.append(
+                        f"  - {primary_external_label} control: `{float(primary_external_best):.4f}`"
+                    )
+                elif "nanotabpfn_best" in inline_metrics:
+                    lines.append(
+                        f"  - {EXTERNAL_BENCHMARK_LABELS['nanotabpfn']} control: "
+                        f"`{float(inline_metrics['nanotabpfn_best']):.4f}`"
+                    )
                 if "max_grad_norm" in inline_metrics:
                     lines.append(f"  - max_grad_norm: `{float(inline_metrics['max_grad_norm']):.3f}`")
             else:

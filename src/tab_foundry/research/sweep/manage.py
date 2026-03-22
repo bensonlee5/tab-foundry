@@ -23,7 +23,12 @@ from .catalog import (
 from .materialize import guarded_initial_state, load_system_delta_queue, materialize_system_delta_queue
 from .matrix import render_and_write_system_delta_matrix
 from .paths_io import _copy_jsonable, _write_yaml, default_matrix_path, default_queue_path, default_sweep_index_path, sweep_metadata_path, sweep_queue_path
-from .validation import ensure_mapping, ensure_non_empty_string
+from .validation import (
+    DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
+    ensure_external_benchmarks,
+    ensure_mapping,
+    ensure_non_empty_string,
+)
 
 
 DEFAULT_SWEEP_STATUS = "draft"
@@ -107,6 +112,7 @@ def create_sweep(
     complexity_level: str,
     benchmark_bundle_path: str,
     control_baseline_id: str,
+    external_benchmarks: Sequence[str] | None = None,
     training_experiment: str | None = None,
     training_config_profile: str | None = None,
     surface_role: str | None = None,
@@ -121,6 +127,11 @@ def create_sweep(
     normalized_complexity_level = ensure_non_empty_string(complexity_level, context="complexity_level")
     normalized_benchmark_bundle_path = ensure_non_empty_string(benchmark_bundle_path, context="benchmark_bundle_path")
     normalized_control_baseline_id = ensure_non_empty_string(control_baseline_id, context="control_baseline_id")
+    resolved_external_benchmarks = ensure_external_benchmarks(
+        list(external_benchmarks) if external_benchmarks is not None else None,
+        context="external_benchmarks",
+        default=DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
+    )
     resolved_index_path = (index_path or default_sweep_index_path()).expanduser().resolve()
     resolved_sweeps_root = sweeps_root or resolved_index_path.parent
     index = load_system_delta_index(resolved_index_path)
@@ -183,6 +194,7 @@ def create_sweep(
         "anchor_run_id": normalized_anchor_run_id,
         "benchmark_bundle_path": normalized_benchmark_bundle_path,
         "control_baseline_id": normalized_control_baseline_id,
+        "external_benchmarks": resolved_external_benchmarks,
         "training_experiment": resolved_training_experiment,
         "training_config_profile": resolved_training_config_profile,
         "surface_role": resolved_surface_role,
@@ -238,6 +250,7 @@ def create_sweep(
         "complexity_level": normalized_complexity_level,
         "benchmark_bundle_path": normalized_benchmark_bundle_path,
         "control_baseline_id": normalized_control_baseline_id,
+        "external_benchmarks": resolved_external_benchmarks,
     }
     sweeps[normalized_sweep_id] = sweep_info
 

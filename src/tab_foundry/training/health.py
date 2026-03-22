@@ -365,6 +365,8 @@ def _comparison_summary_excerpt(summary: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(tab_foundry, Mapping):
         return {}
     return {
+        "external_benchmarks": _summary_value(summary, "external_benchmarks"),
+        "primary_external_benchmark": _summary_value(summary, "primary_external_benchmark"),
         "benchmark_profile": _summary_value(tab_foundry, "benchmark_profile"),
         "model_arch": _summary_value(tab_foundry, "model_arch"),
         "model_stage": _summary_value(tab_foundry, "model_stage"),

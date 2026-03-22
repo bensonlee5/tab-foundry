@@ -7,6 +7,12 @@ import math
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.bench.compare import (
+    EXTERNAL_BENCHMARK_LABELS,
+    EXTERNAL_BENCHMARK_NANOTABPFN,
+    EXTERNAL_BENCHMARK_TABICLV2,
+)
+
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
@@ -68,6 +74,22 @@ def _nested_mapping_value(payload: Mapping[str, Any], *keys: str) -> Mapping[str
             return None
         current = cast(Mapping[str, Any], next_value)
     return current
+
+
+def _primary_external_benchmark(summary: Mapping[str, Any]) -> tuple[str | None, Mapping[str, Any] | None]:
+    raw_primary = summary.get("primary_external_benchmark")
+    if isinstance(raw_primary, str) and raw_primary.strip():
+        primary_name = str(raw_primary).strip()
+        primary_payload = summary.get(primary_name)
+        if isinstance(primary_payload, Mapping):
+            return primary_name, cast(Mapping[str, Any], primary_payload)
+        return primary_name, None
+
+    for candidate_name in (EXTERNAL_BENCHMARK_NANOTABPFN, EXTERNAL_BENCHMARK_TABICLV2):
+        candidate_payload = summary.get(candidate_name)
+        if isinstance(candidate_payload, Mapping):
+            return candidate_name, cast(Mapping[str, Any], candidate_payload)
+    return None, None
 
 
 def stage_local_telemetry_metrics(run_dir: Path) -> dict[str, Any]:
@@ -142,6 +164,7 @@ def queue_metrics(
     run_entry: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     tab_foundry = cast(dict[str, Any], summary["tab_foundry"])
+    primary_external_name, primary_external = _primary_external_benchmark(summary)
     raw_nanotabpfn = summary.get("nanotabpfn")
     nanotabpfn = (
         cast(dict[str, Any], raw_nanotabpfn)
@@ -164,6 +187,12 @@ def queue_metrics(
         "max_grad_norm": max_grad_norm,
         "clipped_step_fraction": clipped_step_fraction(gradient_records),
     }
+    if primary_external_name is not None:
+        metrics["primary_external_benchmark"] = primary_external_name
+        metrics["primary_external_label"] = EXTERNAL_BENCHMARK_LABELS.get(
+            primary_external_name,
+            primary_external_name,
+        )
 
     metric_keys = (
         "best_log_loss",
@@ -183,6 +212,10 @@ def queue_metrics(
         tab_foundry_value = optional_metric(tab_foundry, metric_key)
         if tab_foundry_value is not None:
             metrics[metric_key] = tab_foundry_value
+        if primary_external is not None:
+            primary_external_value = optional_metric(primary_external, metric_key)
+            if primary_external_value is not None:
+                metrics[f"primary_external_{metric_key}"] = primary_external_value
         nanotabpfn_value = optional_metric(nanotabpfn, metric_key)
         if nanotabpfn_value is not None:
             metrics[f"nanotabpfn_{metric_key}"] = nanotabpfn_value
@@ -202,6 +235,10 @@ def queue_metrics(
 
     if metrics.get("final_minus_best_roc_auc") is not None:
         metrics["drift"] = metrics["final_minus_best_roc_auc"]
+    if metrics.get("primary_external_best_roc_auc") is not None:
+        metrics["primary_external_best"] = metrics["primary_external_best_roc_auc"]
+    if metrics.get("primary_external_final_roc_auc") is not None:
+        metrics["primary_external_final"] = metrics["primary_external_final_roc_auc"]
     if metrics.get("nanotabpfn_best_roc_auc") is not None:
         metrics["nanotabpfn_best"] = metrics["nanotabpfn_best_roc_auc"]
     if metrics.get("nanotabpfn_final_roc_auc") is not None:

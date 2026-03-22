@@ -164,6 +164,7 @@ def _mini_sweep_workspace(
                     "complexity_level": "binary_md",
                     "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
                     "control_baseline_id": "cls_benchmark_linear_v2",
+                    "external_benchmarks": ["tabiclv2"],
                 }
             },
         },
@@ -179,6 +180,7 @@ def _mini_sweep_workspace(
             "anchor_run_id": "anchor_run",
             "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
             "control_baseline_id": "cls_benchmark_linear_v2",
+            "external_benchmarks": ["tabiclv2"],
             "comparison_policy": "anchor_only",
             "training_experiment": "cls_smoke",
             "training_config_profile": "cls_smoke",
@@ -354,6 +356,7 @@ def test_inspect_sweep_row_reports_resolved_surfaces(
     )
 
     assert payload["queue"]["sweep_id"] == "mini_sweep"
+    assert payload["queue"]["external_benchmarks"] == ["tabiclv2"]
     assert payload["row"]["delta_id"] == "delta_row_cls_pool"
     assert payload["target"]["identity"]["run_id"] == "row_one_run"
     assert payload["target"]["resolved"]["model"]["stage_label"] == "row_cls_pool_test"

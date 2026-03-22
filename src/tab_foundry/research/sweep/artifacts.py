@@ -8,6 +8,11 @@ from typing import Any, Mapping, cast
 
 from omegaconf import OmegaConf
 
+from tab_foundry.bench.compare import (
+    EXTERNAL_BENCHMARK_LABELS,
+    EXTERNAL_BENCHMARK_NANOTABPFN,
+    EXTERNAL_BENCHMARK_TABICLV2,
+)
 from tab_foundry.research.lane_contract import (
     ARCHITECTURE_SCREEN_SURFACE,
     HYBRID_DIAGNOSTIC_LANE_LABEL,
@@ -76,6 +81,12 @@ def research_card_text(
     plan = cast(list[str], row.get("parameter_adequacy_plan", []))
     plan_lines = "\n".join(f"- {item}" for item in plan) if plan else "- No extra adequacy plan recorded."
     anchor_display = anchor_run_id or "none"
+    external_benchmarks = sweep_meta.get("external_benchmarks", [])
+    external_benchmarks_display = (
+        ", ".join(f"`{str(value)}`" for value in external_benchmarks)
+        if isinstance(external_benchmarks, list) and external_benchmarks
+        else "`nanotabpfn`"
+    )
     return "\n".join(
         [
             "# Research Card",
@@ -90,6 +101,7 @@ def research_card_text(
             "- `comparison_policy`: `anchor_only`",
             f"- `locked_bundle_path`: `{sweep_meta['benchmark_bundle_path']}`",
             f"- `locked_control_baseline_id`: `{sweep_meta['control_baseline_id']}`",
+            f"- `external_benchmarks`: {external_benchmarks_display}",
             f"- `training_experiment`: `{training_experiment}`",
             f"- `training_config_profile`: `{training_config_profile}`",
             f"- `surface_role`: `{surface_role}`",
@@ -133,6 +145,12 @@ def campaign_payload(
         "preprocessing": cast(dict[str, Any], queue_row.get("preprocessing", {})),
         "training": cast(dict[str, Any], queue_row.get("training", {})),
     }
+    raw_external_benchmarks = sweep_meta.get("external_benchmarks")
+    resolved_external_benchmarks = (
+        [str(value) for value in raw_external_benchmarks]
+        if isinstance(raw_external_benchmarks, list) and raw_external_benchmarks
+        else [EXTERNAL_BENCHMARK_NANOTABPFN]
+    )
     return {
         "sweep_id": sweep_id,
         "delta_id": materialized_row["delta_id"],
@@ -142,6 +160,7 @@ def campaign_payload(
         "anchor_run_id": anchor_run_id,
         "locked_bundle_path": str(sweep_meta["benchmark_bundle_path"]),
         "locked_control_baseline_id": str(sweep_meta["control_baseline_id"]),
+        "external_benchmarks": resolved_external_benchmarks,
         "training_experiment": training_experiment,
         "training_config_profile": training_config_profile,
         "surface_role": surface_role,
@@ -249,6 +268,21 @@ def _stage_local_stability_lines(queue_metrics: Mapping[str, Any]) -> list[str]:
     return lines
 
 
+def _primary_external_summary(summary: Mapping[str, Any]) -> tuple[str | None, Mapping[str, Any] | None]:
+    raw_primary = summary.get("primary_external_benchmark")
+    if isinstance(raw_primary, str) and raw_primary.strip():
+        primary_name = str(raw_primary).strip()
+        primary_payload = summary.get(primary_name)
+        if isinstance(primary_payload, Mapping):
+            return primary_name, cast(Mapping[str, Any], primary_payload)
+        return primary_name, None
+    for candidate_name in (EXTERNAL_BENCHMARK_NANOTABPFN, EXTERNAL_BENCHMARK_TABICLV2):
+        candidate_payload = summary.get(candidate_name)
+        if isinstance(candidate_payload, Mapping):
+            return candidate_name, cast(Mapping[str, Any], candidate_payload)
+    return None, None
+
+
 def result_card_text(
     *,
     row: Mapping[str, Any],
@@ -259,7 +293,12 @@ def result_card_text(
     decision: str,
     conclusion: str,
 ) -> str:
-    nanotabpfn_summary = summary.get("nanotabpfn")
+    primary_external_name, primary_external_summary = _primary_external_summary(summary)
+    primary_external_label = (
+        queue_metrics.get("primary_external_label")
+        if isinstance(queue_metrics.get("primary_external_label"), str)
+        else EXTERNAL_BENCHMARK_LABELS.get(primary_external_name or "", "External benchmark")
+    )
     anchor_display = anchor_run_id or "none"
     best_step = queue_metrics.get("best_step")
     lines = [
@@ -299,8 +338,8 @@ def result_card_text(
         append_metric_line(lines, label="Final log loss", value=queue_metrics.get("final_log_loss"))
         append_metric_line(lines, label="Final minus best log loss", value=queue_metrics.get("final_minus_best_log_loss"), signed=True)
         append_metric_line(lines, label="Delta final log loss vs anchor", value=queue_metrics.get("delta_final_log_loss"), signed=True)
-        append_metric_line(lines, label="nanoTabPFN best log loss", value=queue_metrics.get("nanotabpfn_best_log_loss"))
-        append_metric_line(lines, label="nanoTabPFN final log loss", value=queue_metrics.get("nanotabpfn_final_log_loss"))
+        append_metric_line(lines, label=f"{primary_external_label} best log loss", value=queue_metrics.get("primary_external_best_log_loss"))
+        append_metric_line(lines, label=f"{primary_external_label} final log loss", value=queue_metrics.get("primary_external_final_log_loss"))
         append_metric_line(lines, label="Final Brier score", value=queue_metrics.get("final_brier_score"))
         append_metric_line(lines, label="Final minus best Brier score", value=queue_metrics.get("final_minus_best_brier_score"), signed=True)
         append_metric_line(lines, label="Delta final Brier score vs anchor", value=queue_metrics.get("delta_final_brier_score"), signed=True)
@@ -308,15 +347,15 @@ def result_card_text(
         append_metric_line(lines, label="Final ROC AUC", value=queue_metrics.get("final_roc_auc"))
         append_metric_line(lines, label="Final minus best ROC AUC", value=queue_metrics.get("final_minus_best_roc_auc"), signed=True)
         append_metric_line(lines, label="Delta final ROC AUC vs anchor", value=queue_metrics.get("delta_final_roc_auc"), signed=True)
-        append_metric_line(lines, label="nanoTabPFN best ROC AUC", value=queue_metrics.get("nanotabpfn_best_roc_auc"))
-        append_metric_line(lines, label="nanoTabPFN final ROC AUC", value=queue_metrics.get("nanotabpfn_final_roc_auc"))
+        append_metric_line(lines, label=f"{primary_external_label} best ROC AUC", value=queue_metrics.get("primary_external_best_roc_auc"))
+        append_metric_line(lines, label=f"{primary_external_label} final ROC AUC", value=queue_metrics.get("primary_external_final_roc_auc"))
     elif has_regression_metrics:
         _append_best_metric("Best CRPS", "best_crps")
         append_metric_line(lines, label="Final CRPS", value=queue_metrics.get("final_crps"))
         append_metric_line(lines, label="Final minus best CRPS", value=queue_metrics.get("final_minus_best_crps"), signed=True)
         append_metric_line(lines, label="Delta final CRPS vs anchor", value=queue_metrics.get("delta_final_crps"), signed=True)
-        append_metric_line(lines, label="nanoTabPFN best CRPS", value=queue_metrics.get("nanotabpfn_best_crps"))
-        append_metric_line(lines, label="nanoTabPFN final CRPS", value=queue_metrics.get("nanotabpfn_final_crps"))
+        append_metric_line(lines, label=f"{primary_external_label} best CRPS", value=queue_metrics.get("primary_external_best_crps"))
+        append_metric_line(lines, label=f"{primary_external_label} final CRPS", value=queue_metrics.get("primary_external_final_crps"))
         append_metric_line(lines, label="Final avg pinball loss", value=queue_metrics.get("final_avg_pinball_loss"))
         append_metric_line(lines, label="Final minus best avg pinball loss", value=queue_metrics.get("final_minus_best_avg_pinball_loss"), signed=True)
         append_metric_line(lines, label="Delta final avg pinball loss vs anchor", value=queue_metrics.get("delta_final_avg_pinball_loss"), signed=True)
@@ -328,16 +367,16 @@ def result_card_text(
         append_metric_line(lines, label="Final ROC AUC", value=queue_metrics.get("final_roc_auc"))
         append_metric_line(lines, label="Final minus best ROC AUC", value=queue_metrics.get("final_minus_best_roc_auc"), signed=True)
         append_metric_line(lines, label="Delta final ROC AUC vs anchor", value=queue_metrics.get("delta_final_roc_auc"), signed=True)
-        append_metric_line(lines, label="nanoTabPFN best ROC AUC", value=queue_metrics.get("nanotabpfn_best_roc_auc"))
-        append_metric_line(lines, label="nanoTabPFN final ROC AUC", value=queue_metrics.get("nanotabpfn_final_roc_auc"))
+        append_metric_line(lines, label=f"{primary_external_label} best ROC AUC", value=queue_metrics.get("primary_external_best_roc_auc"))
+        append_metric_line(lines, label=f"{primary_external_label} final ROC AUC", value=queue_metrics.get("primary_external_final_roc_auc"))
 
-    if isinstance(nanotabpfn_summary, Mapping):
-        curve_source_mode = nanotabpfn_summary.get("curve_source_mode")
+    if isinstance(primary_external_summary, Mapping):
+        curve_source_mode = primary_external_summary.get("curve_source_mode")
         if isinstance(curve_source_mode, str) and curve_source_mode.strip():
-            lines.append(f"- nanoTabPFN curve source: `{curve_source_mode}`")
-        reused_curve_path = nanotabpfn_summary.get("reused_curve_path")
+            lines.append(f"- {primary_external_label} curve source: `{curve_source_mode}`")
+        reused_curve_path = primary_external_summary.get("reused_curve_path")
         if isinstance(reused_curve_path, str) and reused_curve_path.strip():
-            lines.append(f"- Reused nanoTabPFN curve path: `{reused_curve_path}`")
+            lines.append(f"- Reused {primary_external_label} curve path: `{reused_curve_path}`")
 
     append_metric_line(lines, label="max_grad_norm", value=queue_metrics.get("max_grad_norm"))
     append_metric_line(lines, label="clipped_step_fraction", value=queue_metrics.get("clipped_step_fraction"))

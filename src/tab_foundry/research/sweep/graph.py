@@ -28,7 +28,11 @@ from tab_foundry.model.spec import (
 
 from tab_foundry.research.lane_contract import resolve_training_experiment
 
-from .materialize import load_system_delta_queue, ordered_rows
+from .materialize import (
+    load_system_delta_queue,
+    load_system_delta_queue_for_inspection,
+    ordered_rows,
+)
 from .paths_io import (
     _write_text,
     default_catalog_path,
@@ -169,10 +173,101 @@ def _checkpoint_model_spec_from_path(checkpoint_path: Path) -> ModelBuildSpec:
     )
 
 
+def _optional_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return int(value)
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped:
+            try:
+                return int(stripped)
+            except ValueError:
+                return None
+    return None
+
+
+def resolve_anchor_originating_queue_row(
+    *,
+    queue: Mapping[str, Any],
+    registry_path: Path | None = None,
+    index_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    anchor_run_id = ensure_non_empty_string(queue.get("anchor_run_id"), context="anchor_run_id")
+    registry = load_benchmark_run_registry(registry_path or default_registry_path())
+    runs = ensure_mapping(registry.get("runs"), context="benchmark registry runs")
+    raw_run = runs.get(anchor_run_id)
+    if not isinstance(raw_run, dict):
+        return None
+    run = cast(dict[str, Any], raw_run)
+    sweep_payload = run.get("sweep")
+    if not isinstance(sweep_payload, Mapping):
+        return None
+    raw_sweep_id = sweep_payload.get("sweep_id")
+    if not isinstance(raw_sweep_id, str) or not raw_sweep_id.strip():
+        return None
+
+    source_queue = load_system_delta_queue_for_inspection(
+        sweep_id=str(raw_sweep_id),
+        index_path=index_path,
+        sweeps_root=sweeps_root,
+    )
+    source_training_experiment = resolve_training_experiment(source_queue)
+    queue_order = _optional_int(sweep_payload.get("queue_order"))
+    delta_id = sweep_payload.get("delta_id")
+    normalized_delta_id = str(delta_id).strip() if isinstance(delta_id, str) and delta_id.strip() else None
+
+    for row in ordered_rows(source_queue):
+        row_run_id = row.get("run_id")
+        if isinstance(row_run_id, str) and row_run_id == anchor_run_id:
+            return row, {
+                "source": "originating_sweep_row",
+                "run_id": anchor_run_id,
+                "sweep_id": str(raw_sweep_id),
+                "order": int(row["order"]),
+                "delta_id": str(row["delta_id"]),
+                "training_experiment": source_training_experiment,
+            }
+
+    if queue_order is not None:
+        for row in ordered_rows(source_queue):
+            if int(row["order"]) != queue_order:
+                continue
+            if normalized_delta_id is not None and str(row["delta_id"]) != normalized_delta_id:
+                continue
+            return row, {
+                "source": "originating_sweep_row",
+                "run_id": anchor_run_id,
+                "sweep_id": str(raw_sweep_id),
+                "order": int(row["order"]),
+                "delta_id": str(row["delta_id"]),
+                "training_experiment": source_training_experiment,
+            }
+
+    if normalized_delta_id is not None:
+        for row in ordered_rows(source_queue):
+            if str(row["delta_id"]) != normalized_delta_id:
+                continue
+            return row, {
+                "source": "originating_sweep_row",
+                "run_id": anchor_run_id,
+                "sweep_id": str(raw_sweep_id),
+                "order": int(row["order"]),
+                "delta_id": str(row["delta_id"]),
+                "training_experiment": source_training_experiment,
+            }
+
+    return None
+
+
 def resolve_anchor_model_spec(
     *,
     queue: Mapping[str, Any],
     registry_path: Path | None = None,
+    index_path: Path | None = None,
+    sweeps_root: Path | None = None,
 ) -> tuple[ModelBuildSpec, dict[str, Any]]:
     anchor_run_id = ensure_non_empty_string(queue.get("anchor_run_id"), context="anchor_run_id")
     training_experiment = resolve_training_experiment(queue)
@@ -217,10 +312,24 @@ def resolve_anchor_model_spec(
                 "checkpoint_path": str(checkpoint_path),
             }
 
+    originating_row = resolve_anchor_originating_queue_row(
+        queue=queue,
+        registry_path=registry_path,
+        index_path=index_path,
+        sweeps_root=sweeps_root,
+    )
+    if originating_row is not None:
+        row, metadata = originating_row
+        return resolve_queue_row_model_spec(
+            row,
+            training_experiment=str(metadata["training_experiment"]),
+        ), metadata
+
     raise RuntimeError(
         "unable to resolve anchor model spec for "
         f"{anchor_run_id!r}: no matching completed sweep row, readable "
-        "`training_surface_record.json`, or readable best checkpoint config"
+        "`training_surface_record.json`, readable best checkpoint config, or "
+        "originating sweep row"
     )
 
 
@@ -269,6 +378,8 @@ def _build_targets(
     orders: Sequence[int],
     delta_refs: Sequence[str],
     registry_path: Path,
+    index_path: Path | None = None,
+    sweeps_root: Path | None = None,
 ) -> list[GraphTarget]:
     if not anchor and not all_rows and not orders and not delta_refs:
         raise RuntimeError("select at least one target with --anchor, --all-rows, --order, or --delta-ref")
@@ -276,7 +387,12 @@ def _build_targets(
     training_experiment = resolve_training_experiment(queue)
     targets: list[GraphTarget] = []
     if anchor:
-        model_spec, metadata = resolve_anchor_model_spec(queue=queue, registry_path=registry_path)
+        model_spec, metadata = resolve_anchor_model_spec(
+            queue=queue,
+            registry_path=registry_path,
+            index_path=index_path,
+            sweeps_root=sweeps_root,
+        )
         run_id = str(metadata["run_id"])
         targets.append(
             GraphTarget(
@@ -441,6 +557,8 @@ def render_sweep_graphs(
         orders=[] if orders is None else [int(value) for value in orders],
         delta_refs=[] if delta_refs is None else [str(value) for value in delta_refs],
         registry_path=resolved_paths.registry_path,
+        index_path=resolved_paths.index_path,
+        sweeps_root=resolved_paths.sweeps_root,
     )
     resolved_out_dir = (out_dir or _default_out_dir(sweep_id=resolved_sweep_id)).expanduser().resolve()
     resolved_out_dir.mkdir(parents=True, exist_ok=True)

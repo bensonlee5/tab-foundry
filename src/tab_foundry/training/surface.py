@@ -192,17 +192,18 @@ def build_training_surface_record(
     data_surface = resolve_data_surface(data_cfg)
     preprocessing_surface = resolve_preprocessing_surface(preprocessing_cfg)
     manifest_payload: dict[str, Any] | None = None
-    if data_surface.manifest_path is not None and data_surface.manifest_path.exists():
+    if data_surface.manifest_path is not None:
         manifest_payload = {
             "manifest_path": str(data_surface.manifest_path),
-            "manifest_sha256": _sha256_path(data_surface.manifest_path),
         }
-        if include_manifest_characteristics:
-            try:
-                manifest_payload["characteristics"] = _manifest_characteristics(data_surface.manifest_path)
-            except Exception as exc:  # pragma: no cover - defensive compatibility fallback
-                manifest_payload["characteristics"] = None
-                manifest_payload["characteristics_error"] = str(exc)
+        if data_surface.manifest_path.exists():
+            manifest_payload["manifest_sha256"] = _sha256_path(data_surface.manifest_path)
+            if include_manifest_characteristics:
+                try:
+                    manifest_payload["characteristics"] = _manifest_characteristics(data_surface.manifest_path)
+                except Exception as exc:  # pragma: no cover - defensive compatibility fallback
+                    manifest_payload["characteristics"] = None
+                    manifest_payload["characteristics_error"] = str(exc)
 
     model_payload: dict[str, Any] = {
         "arch": str(model_spec.arch),

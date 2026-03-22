@@ -1,5 +1,160 @@
 {
   "comparisons": {
+    "anchor_vs_curated_realdata_openml_baseline": {
+      "comparison_id": "anchor_vs_curated_realdata_openml_baseline",
+      "difference_count": 31,
+      "differences": {
+        "classification_n_classes.histogram.10": {
+          "left": 2,
+          "right": null
+        },
+        "classification_n_classes.histogram.2": {
+          "left": null,
+          "right": 12
+        },
+        "classification_n_classes.histogram.3": {
+          "left": 1,
+          "right": null
+        },
+        "classification_n_classes.histogram.4": {
+          "left": 1,
+          "right": null
+        },
+        "classification_n_classes.histogram.5": {
+          "left": 1,
+          "right": null
+        },
+        "classification_n_classes.histogram.7": {
+          "left": 4,
+          "right": null
+        },
+        "classification_n_classes.histogram.9": {
+          "left": 1,
+          "right": null
+        },
+        "classification_n_classes.max": {
+          "left": 10,
+          "right": 2
+        },
+        "classification_n_classes.min": {
+          "left": 3,
+          "right": 2
+        },
+        "filter_status_counts.missing": {
+          "left": 10,
+          "right": null
+        },
+        "filter_status_counts.not_run": {
+          "left": null,
+          "right": 12
+        },
+        "missing_value_status_counts.clean": {
+          "left": null,
+          "right": 11
+        },
+        "missing_value_status_counts.contains_nan_or_inf": {
+          "left": null,
+          "right": 1
+        },
+        "missing_value_status_counts.missing": {
+          "left": 10,
+          "right": null
+        },
+        "n_features.max": {
+          "left": 63,
+          "right": 19
+        },
+        "n_features.min": {
+          "left": 27,
+          "right": 4
+        },
+        "persisted_summary": {
+          "left": null,
+          "right": {
+            "discovered_records": 12,
+            "excluded_for_missing_values": 0,
+            "excluded_records": 0,
+            "filter_policy": "include_all",
+            "filter_status_counts": {
+              "not_run": 12
+            },
+            "missing_value_policy": "allow_any",
+            "missing_value_status_counts": {
+              "clean": 11,
+              "contains_nan_or_inf": 1
+            },
+            "test_records": 0,
+            "total_records": 12,
+            "train_records": 12,
+            "val_records": 0
+          }
+        },
+        "split_counts.test": {
+          "left": 1,
+          "right": null
+        },
+        "split_counts.train": {
+          "left": 8,
+          "right": 12
+        },
+        "split_counts.val": {
+          "left": 1,
+          "right": null
+        },
+        "task_counts.classification": {
+          "left": 10,
+          "right": 12
+        },
+        "task_missing_value_status_counts.classification.clean": {
+          "left": null,
+          "right": 11
+        },
+        "task_missing_value_status_counts.classification.contains_nan_or_inf": {
+          "left": null,
+          "right": 1
+        },
+        "task_missing_value_status_counts.classification.missing": {
+          "left": 10,
+          "right": null
+        },
+        "task_split_counts.classification.test": {
+          "left": 1,
+          "right": null
+        },
+        "task_split_counts.classification.train": {
+          "left": 8,
+          "right": 12
+        },
+        "task_split_counts.classification.val": {
+          "left": 1,
+          "right": null
+        },
+        "task_train_test_record_counts.classification": {
+          "left": null,
+          "right": {
+            "test": 12,
+            "train": 12
+          }
+        },
+        "total_records": {
+          "left": 10,
+          "right": 12
+        },
+        "unique_dataset_id_count": {
+          "left": 10,
+          "right": 12
+        },
+        "unique_source_root_count": {
+          "left": 0,
+          "right": 1
+        }
+      },
+      "left_manifest_id": "anchor_manifest_default",
+      "left_manifest_path": "data/manifests/default.parquet",
+      "right_manifest_id": "curated_realdata_openml_baseline",
+      "right_manifest_path": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet",
+      "status": "available"
+    },
     "anchor_vs_generated_source": {
       "comparison_id": "anchor_vs_generated_source",
       "difference_count": 29,
@@ -145,10 +300,130 @@
       "right_manifest_id": "dagzoo_generated_source",
       "right_manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
       "status": "available"
+    },
+    "dagzoo_generated_source_vs_curated_realdata_openml_baseline": {
+      "comparison_id": "dagzoo_generated_source_vs_curated_realdata_openml_baseline",
+      "difference_count": 27,
+      "differences": {
+        "classification_n_classes.histogram.2": {
+          "left": 8192,
+          "right": 12
+        },
+        "filter_status_counts.not_run": {
+          "left": 8192,
+          "right": 12
+        },
+        "missing_value_status_counts.clean": {
+          "left": 8192,
+          "right": 11
+        },
+        "missing_value_status_counts.contains_nan_or_inf": {
+          "left": null,
+          "right": 1
+        },
+        "n_features.max": {
+          "left": 33,
+          "right": 19
+        },
+        "n_features.min": {
+          "left": 33,
+          "right": 4
+        },
+        "persisted_summary.discovered_records": {
+          "left": 8192,
+          "right": 12
+        },
+        "persisted_summary.filter_status_counts.not_run": {
+          "left": 8192,
+          "right": 12
+        },
+        "persisted_summary.missing_value_status_counts.clean": {
+          "left": 8192,
+          "right": 11
+        },
+        "persisted_summary.missing_value_status_counts.contains_nan_or_inf": {
+          "left": null,
+          "right": 1
+        },
+        "persisted_summary.test_records": {
+          "left": 402,
+          "right": 0
+        },
+        "persisted_summary.total_records": {
+          "left": 8192,
+          "right": 12
+        },
+        "persisted_summary.train_records": {
+          "left": 7392,
+          "right": 12
+        },
+        "persisted_summary.val_records": {
+          "left": 398,
+          "right": 0
+        },
+        "split_counts.test": {
+          "left": 402,
+          "right": null
+        },
+        "split_counts.train": {
+          "left": 7392,
+          "right": 12
+        },
+        "split_counts.val": {
+          "left": 398,
+          "right": null
+        },
+        "task_counts.classification": {
+          "left": 8192,
+          "right": 12
+        },
+        "task_missing_value_status_counts.classification.clean": {
+          "left": 8192,
+          "right": 11
+        },
+        "task_missing_value_status_counts.classification.contains_nan_or_inf": {
+          "left": null,
+          "right": 1
+        },
+        "task_split_counts.classification.test": {
+          "left": 402,
+          "right": null
+        },
+        "task_split_counts.classification.train": {
+          "left": 7392,
+          "right": 12
+        },
+        "task_split_counts.classification.val": {
+          "left": 398,
+          "right": null
+        },
+        "task_train_test_record_counts.classification.test": {
+          "left": 8192,
+          "right": 12
+        },
+        "task_train_test_record_counts.classification.train": {
+          "left": 8192,
+          "right": 12
+        },
+        "total_records": {
+          "left": 8192,
+          "right": 12
+        },
+        "unique_dataset_id_count": {
+          "left": 8192,
+          "right": 12
+        }
+      },
+      "left_manifest_id": "dagzoo_generated_source",
+      "left_manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
+      "right_manifest_id": "curated_realdata_openml_baseline",
+      "right_manifest_path": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet",
+      "status": "available"
     }
   },
-  "generated_at_utc": "2026-03-22T15:41:03Z",
+  "generated_at_utc": "2026-03-22T16:27:08Z",
   "issues": {
+    "execution_issue": 122,
     "materialization_issue": 120,
     "subsequent_filtering_policy_issue": 124
   },
@@ -207,6 +482,77 @@
       },
       "manifest_path": "data/manifests/default.parquet",
       "manifest_sha256": "8c56d33a87e6523bccac8dcddb92b075499952e3c0afbcf756b68c7b0e5b3f44",
+      "status": "available"
+    },
+    "curated_realdata_openml_baseline": {
+      "inspection": {
+        "classification_n_classes": {
+          "histogram": {
+            "2": 12
+          },
+          "max": 2,
+          "min": 2
+        },
+        "compatibility": null,
+        "filter_status_counts": {
+          "not_run": 12
+        },
+        "manifest_path": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet",
+        "missing_value_status_counts": {
+          "clean": 11,
+          "contains_nan_or_inf": 1
+        },
+        "n_features": {
+          "max": 19,
+          "min": 4
+        },
+        "persisted_summary": {
+          "discovered_records": 12,
+          "excluded_for_missing_values": 0,
+          "excluded_records": 0,
+          "filter_policy": "include_all",
+          "filter_status_counts": {
+            "not_run": 12
+          },
+          "missing_value_policy": "allow_any",
+          "missing_value_status_counts": {
+            "clean": 11,
+            "contains_nan_or_inf": 1
+          },
+          "test_records": 0,
+          "total_records": 12,
+          "train_records": 12,
+          "val_records": 0
+        },
+        "split_counts": {
+          "train": 12
+        },
+        "task_counts": {
+          "classification": 12
+        },
+        "task_missing_value_status_counts": {
+          "classification": {
+            "clean": 11,
+            "contains_nan_or_inf": 1
+          }
+        },
+        "task_split_counts": {
+          "classification": {
+            "train": 12
+          }
+        },
+        "task_train_test_record_counts": {
+          "classification": {
+            "test": 12,
+            "train": 12
+          }
+        },
+        "total_records": 12,
+        "unique_dataset_id_count": 12,
+        "unique_source_root_count": 1
+      },
+      "manifest_path": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet",
+      "manifest_sha256": "3d559293f23600864ea76a413e2088af39cb50a110bce895f2babce6dd9f13dc",
       "status": "available"
     },
     "dagzoo_generated_source": {
@@ -282,5 +628,5 @@
       "status": "available"
     }
   },
-  "schema": "tab-foundry-tf-rd-013-manifest-characteristics-summary-v3"
+  "schema": "tab-foundry-tf-rd-013-manifest-characteristics-summary-v4"
 }

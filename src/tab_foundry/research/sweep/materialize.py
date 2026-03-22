@@ -28,7 +28,14 @@ from .paths_io import (
     sweep_metadata_path,
     sweep_queue_path,
 )
-from .validation import ensure_non_empty_string, ensure_rows, ensure_string_list, ensure_mapping, validate_prose_fields
+from .validation import (
+    ensure_mapping,
+    ensure_non_empty_string,
+    ensure_rows,
+    ensure_string_list,
+    resolve_sweep_external_benchmarks,
+    validate_prose_fields,
+)
 
 
 MATERIALIZED_QUEUE_SCHEMA = "tab-foundry-system-delta-queue-v1"
@@ -168,6 +175,7 @@ def inspection_system_delta_queue(
         "anchor_run_id": sweep.get("anchor_run_id"),
         "benchmark_bundle_path": sweep["benchmark_bundle_path"],
         "control_baseline_id": sweep["control_baseline_id"],
+        "external_benchmarks": resolve_sweep_external_benchmarks(sweep),
         "training_experiment": resolve_training_experiment(sweep),
         "training_config_profile": resolve_training_config_profile(sweep),
         "surface_role": resolve_surface_role(sweep),
@@ -388,6 +396,7 @@ def materialize_system_delta_queue(
         "anchor_run_id": sweep["anchor_run_id"],
         "benchmark_bundle_path": sweep["benchmark_bundle_path"],
         "control_baseline_id": sweep["control_baseline_id"],
+        "external_benchmarks": resolve_sweep_external_benchmarks(sweep),
         "training_experiment": resolve_training_experiment(sweep),
         "training_config_profile": resolve_training_config_profile(sweep),
         "surface_role": resolve_surface_role(sweep),

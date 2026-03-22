@@ -1,14 +1,21 @@
 {
   "artifacts": {
+    "curated_openml_baseline_data_root": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards",
+    "curated_openml_baseline_manifest_path": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet",
+    "curated_openml_baseline_manifest_sha256": "3d559293f23600864ea76a413e2088af39cb50a110bce895f2babce6dd9f13dc",
+    "curated_openml_baseline_root": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline",
     "generated_dir": "outputs/staged_ladder_support/tf_rd_013/generated_source/generated",
     "generated_source_manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
     "generated_source_manifest_sha256": "7903d0f5523260b0b45d5673cfd326c7946df6142c8cab2fd582bcb5d706efdd",
     "generated_source_root": "outputs/staged_ladder_support/tf_rd_013/generated_source",
     "handoff_manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/handoff_manifest.json",
-    "handoff_manifest_sha256": "5a53f24737783b14ff2abf6199b88919bb6016df4e4e0c3ca2f40fa28deb58ff",
+    "handoff_manifest_sha256": "544e2e3c012898dfec7251e188114f130b6a67298459389d21045afc687b3f6b",
     "local_output_root": "outputs/staged_ladder_support/tf_rd_013"
   },
   "config_refs": {
+    "benchmark_bundle": [
+      "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
+    ],
     "dagzoo": [
       "configs/default.yaml"
     ],
@@ -20,7 +27,7 @@
     "dagzoo_root": "../dagzoo",
     "tab_foundry_root": "."
   },
-  "generated_at_utc": "2026-03-22T15:41:03Z",
+  "generated_at_utc": "2026-03-22T16:27:08Z",
   "handoff": {
     "artifacts_relative": {
       "effective_config_path": "generated/effective_config.yaml",
@@ -69,19 +76,21 @@
     },
     "throughput": {
       "generation_stage": {
-        "datasets_per_minute": 3482.779930909063,
-        "elapsed_seconds": 141.12864141596947,
+        "datasets_per_minute": 2923.118475321675,
+        "elapsed_seconds": 168.14918866602238,
         "generated_datasets": 8192
       }
     }
   },
   "issues": {
+    "execution_issue": 122,
+    "execution_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/122",
     "materialization_issue": 120,
     "materialization_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/120",
     "subsequent_filtering_policy_issue": 124,
     "subsequent_filtering_policy_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/124"
   },
-  "schema": "tab-foundry-tf-rd-013-materialization-summary-v3",
+  "schema": "tab-foundry-tf-rd-013-materialization-summary-v4",
   "steps": [
     {
       "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source\" --num-datasets 8192 --seed 1 --device cpu --hardware-policy none",
@@ -96,9 +105,237 @@
       "returncode": 0,
       "status": "completed",
       "step_id": "build_manifest_generated_source"
+    },
+    {
+      "command": "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/python scripts/materialize_tf_rd_013_support.py --force",
+      "cwd": "$TAB_FOUNDRY_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "prepare_openml_baseline_shards"
+    },
+    {
+      "command": "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards --out-manifest outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet",
+      "cwd": "$TAB_FOUNDRY_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "build_manifest_curated_realdata_openml_baseline"
     }
   ],
   "surfaces": {
+    "curated_realdata_openml_baseline": {
+      "curated_realdata_provenance": {
+        "approved_external_augmentations": [],
+        "benchmark_bundle": {
+          "all_tasks_no_missing": false,
+          "allow_missing_values": true,
+          "name": "nanotabpfn_openml_binary_large",
+          "selection": {
+            "max_classes": 2,
+            "max_features": 20,
+            "max_missing_pct": 5.0,
+            "min_minority_class_pct": 2.5,
+            "new_instances": 200,
+            "task_type": "supervised_classification"
+          },
+          "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+          "task_count": 12,
+          "task_ids": [
+            363613,
+            363618,
+            363619,
+            363621,
+            363623,
+            363629,
+            363632,
+            363671,
+            363679,
+            363682,
+            363691,
+            363700
+          ],
+          "version": 1
+        },
+        "commands": [
+          "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/python scripts/materialize_tf_rd_013_support.py --force",
+          "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards --out-manifest outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet"
+        ],
+        "comparator_role": "evidence_only_openml_baseline",
+        "dataset_names": [
+          "Amazon_employee_access",
+          "bank-marketing",
+          "Bank_Customer_Churn",
+          "blood-transfusion-service-center",
+          "churn",
+          "diabetes",
+          "E-CommereShippingData",
+          "Fitness_Club",
+          "HR_Analytics_Job_Change_of_Data_Scientists",
+          "Is-this-a-good-customer",
+          "online_shoppers_intention",
+          "seismic-bumps"
+        ],
+        "execution_issue": 122,
+        "split_policy": {
+          "fallback_mode": "unstratified_fallback",
+          "name": "deterministic_holdout",
+          "preferred_mode": "stratified",
+          "seed": 0,
+          "test_size": 0.2
+        },
+        "surface_variant": "curated_realdata_openml_baseline",
+        "task_ids": [
+          363613,
+          363618,
+          363619,
+          363621,
+          363623,
+          363629,
+          363632,
+          363671,
+          363679,
+          363682,
+          363691,
+          363700
+        ],
+        "task_summaries": [
+          {
+            "dataset_name": "Amazon_employee_access",
+            "n_classes": 2,
+            "n_features": 9,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00001_amazon_employee_access",
+            "split_mode": "stratified",
+            "task_id": 363613
+          },
+          {
+            "dataset_name": "bank-marketing",
+            "n_classes": 2,
+            "n_features": 13,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00002_bank_marketing",
+            "split_mode": "stratified",
+            "task_id": 363618
+          },
+          {
+            "dataset_name": "Bank_Customer_Churn",
+            "n_classes": 2,
+            "n_features": 10,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00003_bank_customer_churn",
+            "split_mode": "stratified",
+            "task_id": 363619
+          },
+          {
+            "dataset_name": "blood-transfusion-service-center",
+            "n_classes": 2,
+            "n_features": 4,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00004_blood_transfusion_service_center",
+            "split_mode": "stratified",
+            "task_id": 363621
+          },
+          {
+            "dataset_name": "churn",
+            "n_classes": 2,
+            "n_features": 19,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00005_churn",
+            "split_mode": "stratified",
+            "task_id": 363623
+          },
+          {
+            "dataset_name": "diabetes",
+            "n_classes": 2,
+            "n_features": 8,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00006_diabetes",
+            "split_mode": "stratified",
+            "task_id": 363629
+          },
+          {
+            "dataset_name": "E-CommereShippingData",
+            "n_classes": 2,
+            "n_features": 10,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00007_e_commereshippingdata",
+            "split_mode": "stratified",
+            "task_id": 363632
+          },
+          {
+            "dataset_name": "Fitness_Club",
+            "n_classes": 2,
+            "n_features": 6,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00008_fitness_club",
+            "split_mode": "stratified",
+            "task_id": 363671
+          },
+          {
+            "dataset_name": "HR_Analytics_Job_Change_of_Data_Scientists",
+            "n_classes": 2,
+            "n_features": 12,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00009_hr_analytics_job_change_of_data_scientists",
+            "split_mode": "stratified",
+            "task_id": 363679
+          },
+          {
+            "dataset_name": "Is-this-a-good-customer",
+            "n_classes": 2,
+            "n_features": 13,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00010_is_this_a_good_customer",
+            "split_mode": "stratified",
+            "task_id": 363682
+          },
+          {
+            "dataset_name": "online_shoppers_intention",
+            "n_classes": 2,
+            "n_features": 17,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00011_online_shoppers_intention",
+            "split_mode": "stratified",
+            "task_id": 363691
+          },
+          {
+            "dataset_name": "seismic-bumps",
+            "n_classes": 2,
+            "n_features": 15,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards/shard_00012_seismic_bumps",
+            "split_mode": "stratified",
+            "task_id": 363700
+          }
+        ]
+      },
+      "manifest_path": "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet",
+      "manifest_sha256": "3d559293f23600864ea76a413e2088af39cb50a110bce895f2babce6dd9f13dc",
+      "state": "materialized_local_only"
+    },
     "dagzoo_generated_source": {
       "dagzoo_provenance": {
         "commands": [

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Materialize unfiltered TF-RD-013 dagzoo support artifacts."""
+"""Materialize TF-RD-013 dagzoo and curated-comparator support artifacts."""
 
 from __future__ import annotations
 
@@ -10,20 +10,44 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 from typing import Any
 
+import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
+from sklearn.model_selection import train_test_split
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = REPO_ROOT / "src"
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from tab_foundry.bench.nanotabpfn.bundle import (  # noqa: E402
+    benchmark_bundle_summary,
+    load_benchmark_bundle_for_execution,
+)
+from tab_foundry.bench.nanotabpfn.datasets import (  # noqa: E402
+    PreparedOpenMLBenchmarkTask,
+    prepare_openml_benchmark_task,
+)
+
+
 DEFAULT_DAGZOO_ROOT = REPO_ROOT.parent / "dagzoo"
 DEFAULT_DAGZOO_CONFIG_REF = "configs/default.yaml"
 DEFAULT_MANIFEST_CONFIG_REF = "configs/data/default.yaml"
+DEFAULT_BENCHMARK_BUNDLE_REF = "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
 DEFAULT_NUM_DATASETS = 8192
 DEFAULT_SEED = 1
 DEFAULT_DEVICE = "cpu"
+DEFAULT_COMPARATOR_SPLIT_SEED = 0
+DEFAULT_COMPARATOR_TEST_SIZE = 0.20
 MATERIALIZATION_ISSUE_NUMBER = 120
+EXECUTION_ISSUE_NUMBER = 122
 FILTERING_POLICY_ISSUE_NUMBER = 124
 LOCAL_OUTPUT_ROOT = REPO_ROOT / "outputs" / "staged_ladder_support" / "tf_rd_013"
 SUPPORT_ROOT = (
@@ -37,6 +61,7 @@ ANCHOR_MANIFEST_PATH = REPO_ROOT / "data" / "manifests" / "default.parquet"
 TAB_FOUNDRY_BIN = REPO_ROOT / ".venv" / "bin" / "tab-foundry"
 ISSUE_URLS = {
     "materialization_issue": f"https://github.com/bensonlee5/tab-foundry/issues/{MATERIALIZATION_ISSUE_NUMBER}",
+    "execution_issue": f"https://github.com/bensonlee5/tab-foundry/issues/{EXECUTION_ISSUE_NUMBER}",
     "subsequent_filtering_policy_issue": (
         f"https://github.com/bensonlee5/tab-foundry/issues/{FILTERING_POLICY_ISSUE_NUMBER}"
     ),
@@ -50,6 +75,10 @@ class MaterializationPaths:
     generated_dir: Path
     generated_manifest_path: Path
     handoff_manifest_path: Path
+    curated_realdata_root: Path
+    curated_openml_baseline_root: Path
+    curated_openml_baseline_data_root: Path
+    curated_openml_baseline_manifest_path: Path
 
 
 def _utc_now() -> str:
@@ -153,16 +182,22 @@ def _ensure_absent(path: Path, *, force: bool) -> None:
 
 def _materialization_paths(local_output_root: Path) -> MaterializationPaths:
     generated_source_root = local_output_root / "generated_source"
+    curated_realdata_root = local_output_root / "curated_realdata"
+    curated_openml_baseline_root = curated_realdata_root / "openml_baseline"
     return MaterializationPaths(
         local_output_root=local_output_root,
         generated_source_root=generated_source_root,
         generated_dir=generated_source_root / "generated",
         generated_manifest_path=generated_source_root / "manifest.parquet",
         handoff_manifest_path=generated_source_root / "handoff_manifest.json",
+        curated_realdata_root=curated_realdata_root,
+        curated_openml_baseline_root=curated_openml_baseline_root,
+        curated_openml_baseline_data_root=curated_openml_baseline_root / "packed_shards",
+        curated_openml_baseline_manifest_path=curated_openml_baseline_root / "manifest.parquet",
     )
 
 
-def _queue_commands(paths: MaterializationPaths) -> list[str]:
+def _dagzoo_commands(paths: MaterializationPaths) -> list[str]:
     return [
         (
             'cd "$DAGZOO_ROOT" && uv run dagzoo generate '
@@ -177,6 +212,17 @@ def _queue_commands(paths: MaterializationPaths) -> list[str]:
             'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry data build-manifest '
             f"--data-root {_portable_path(paths.generated_dir)} "
             f"--out-manifest {_portable_path(paths.generated_manifest_path)}"
+        ),
+    ]
+
+
+def _curated_commands(paths: MaterializationPaths) -> list[str]:
+    return [
+        'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/python scripts/materialize_tf_rd_013_support.py --force',
+        (
+            'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry data build-manifest '
+            f"--data-root {_portable_path(paths.curated_openml_baseline_data_root)} "
+            f"--out-manifest {_portable_path(paths.curated_openml_baseline_manifest_path)}"
         ),
     ]
 
@@ -217,6 +263,174 @@ def _comparison_entry(
     }
 
 
+def _slugify(value: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_").lower()
+    return slug or "dataset"
+
+
+def _build_split_table(rows: list[tuple[int, np.ndarray, np.ndarray]]) -> pa.Table:
+    dataset_indices: list[int] = []
+    row_indices: list[int] = []
+    x_rows: list[list[float]] = []
+    y_rows: list[int] = []
+    for dataset_index, x, y in rows:
+        for row_index in range(int(x.shape[0])):
+            dataset_indices.append(int(dataset_index))
+            row_indices.append(int(row_index))
+            x_rows.append(np.asarray(x[row_index], dtype=np.float32).tolist())
+            y_rows.append(int(y[row_index]))
+
+    return pa.table(
+        {
+            "dataset_index": pa.array(dataset_indices, type=pa.int64()),
+            "row_index": pa.array(row_indices, type=pa.int64()),
+            "x": pa.array(x_rows, type=pa.list_(pa.float32())),
+            "y": pa.array(y_rows, type=pa.int64()),
+        }
+    )
+
+
+def _write_packed_shard(
+    shard_dir: Path,
+    *,
+    x_train: np.ndarray,
+    y_train: np.ndarray,
+    x_test: np.ndarray,
+    y_test: np.ndarray,
+    metadata: dict[str, Any],
+) -> None:
+    shard_dir.mkdir(parents=True, exist_ok=True)
+    pq.write_table(_build_split_table([(0, x_train, y_train)]), shard_dir / "train.parquet")
+    pq.write_table(_build_split_table([(0, x_test, y_test)]), shard_dir / "test.parquet")
+
+    payload = {
+        "dataset_index": 0,
+        "n_train": int(x_train.shape[0]),
+        "n_test": int(x_test.shape[0]),
+        "n_features": int(x_train.shape[1]),
+        "feature_types": ["num"] * int(x_train.shape[1]),
+        "metadata": metadata,
+    }
+    with (shard_dir / "metadata.ndjson").open("w", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, sort_keys=True) + "\n")
+
+
+def _split_prepared_task(
+    prepared: PreparedOpenMLBenchmarkTask,
+    *,
+    split_seed: int,
+    test_size: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, str]:
+    split_kwargs: dict[str, Any] = {
+        "test_size": float(test_size),
+        "random_state": int(split_seed),
+    }
+    try:
+        x_train, x_test, y_train, y_test = train_test_split(
+            prepared.x,
+            prepared.y,
+            stratify=prepared.y,
+            **split_kwargs,
+        )
+        return x_train, x_test, y_train, y_test, "stratified"
+    except ValueError:
+        x_train, x_test, y_train, y_test = train_test_split(
+            prepared.x,
+            prepared.y,
+            stratify=None,
+            **split_kwargs,
+        )
+        return x_train, x_test, y_train, y_test, "unstratified_fallback"
+
+
+def _materialize_curated_openml_baseline(
+    *,
+    paths: MaterializationPaths,
+    bundle_path: Path,
+) -> dict[str, Any]:
+    bundle, allow_missing_values = load_benchmark_bundle_for_execution(bundle_path)
+    selection = bundle["selection"]
+    task_ids = [int(task_id) for task_id in bundle["task_ids"]]
+    task_summaries: list[dict[str, Any]] = []
+
+    paths.curated_openml_baseline_data_root.mkdir(parents=True, exist_ok=True)
+    for task_order, task_id in enumerate(task_ids, start=1):
+        prepared = prepare_openml_benchmark_task(
+            int(task_id),
+            new_instances=int(selection["new_instances"]),
+            task_type=str(selection["task_type"]),
+        )
+        x_train, x_test, y_train, y_test, split_mode = _split_prepared_task(
+            prepared,
+            split_seed=DEFAULT_COMPARATOR_SPLIT_SEED,
+            test_size=DEFAULT_COMPARATOR_TEST_SIZE,
+        )
+        metadata = {
+            "config": {"dataset": {"task": "classification"}},
+            "filter": {"mode": "deferred", "status": "not_run"},
+            "seed": DEFAULT_COMPARATOR_SPLIT_SEED,
+            "n_features": int(prepared.x.shape[1]),
+            "n_classes": int(np.unique(prepared.y).size),
+            "source_platform": "openml",
+            "benchmark_bundle": {
+                "name": str(bundle["name"]),
+                "source_path": DEFAULT_BENCHMARK_BUNDLE_REF,
+                "task_id": int(task_id),
+                "allow_missing_values": bool(allow_missing_values),
+            },
+            "openml": {
+                "task_id": int(task_id),
+                "dataset_name": str(prepared.dataset_name),
+            },
+            "split_policy": {
+                "name": "deterministic_holdout",
+                "test_size": DEFAULT_COMPARATOR_TEST_SIZE,
+                "seed": DEFAULT_COMPARATOR_SPLIT_SEED,
+                "mode": split_mode,
+            },
+        }
+        shard_dir = paths.curated_openml_baseline_data_root / f"shard_{task_order:05d}_{_slugify(prepared.dataset_name)}"
+        _write_packed_shard(
+            shard_dir,
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+            y_test=y_test,
+            metadata=metadata,
+        )
+        task_summaries.append(
+            {
+                "task_id": int(task_id),
+                "dataset_name": str(prepared.dataset_name),
+                "n_rows": int(prepared.x.shape[0]),
+                "n_features": int(prepared.x.shape[1]),
+                "n_classes": int(np.unique(prepared.y).size),
+                "n_train": int(x_train.shape[0]),
+                "n_test": int(x_test.shape[0]),
+                "split_mode": split_mode,
+                "shard_dir": _portable_path(shard_dir),
+            }
+        )
+
+    curated_manifest_cmd = [
+        str(TAB_FOUNDRY_BIN),
+        "data",
+        "build-manifest",
+        "--data-root",
+        str(paths.curated_openml_baseline_data_root),
+        "--out-manifest",
+        str(paths.curated_openml_baseline_manifest_path),
+    ]
+    curated_manifest_completed = _run_checked(curated_manifest_cmd, cwd=REPO_ROOT)
+
+    return {
+        "bundle_summary": benchmark_bundle_summary(bundle, source_path=bundle_path),
+        "task_summaries": task_summaries,
+        "allow_missing_values": bool(allow_missing_values),
+        "build_manifest_completed": curated_manifest_completed,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dagzoo-root", default=str(DEFAULT_DAGZOO_ROOT), help="Local dagzoo checkout root")
@@ -233,10 +447,15 @@ def main(argv: list[str] | None = None) -> int:
         raise RuntimeError(f"dagzoo config does not exist: {dagzoo_config_path}")
     if not ANCHOR_MANIFEST_PATH.exists():
         raise RuntimeError(f"anchor manifest does not exist: {ANCHOR_MANIFEST_PATH}")
+    benchmark_bundle_path = REPO_ROOT / DEFAULT_BENCHMARK_BUNDLE_REF
+    if not benchmark_bundle_path.exists():
+        raise RuntimeError(f"benchmark bundle does not exist: {benchmark_bundle_path}")
 
     paths = _materialization_paths(LOCAL_OUTPUT_ROOT)
     _ensure_absent(paths.generated_source_root, force=bool(args.force))
+    _ensure_absent(paths.curated_openml_baseline_root, force=bool(args.force))
     paths.generated_source_root.mkdir(parents=True, exist_ok=True)
+    paths.curated_openml_baseline_root.mkdir(parents=True, exist_ok=True)
 
     generate_cmd = [
         "uv",
@@ -268,11 +487,17 @@ def main(argv: list[str] | None = None) -> int:
 
     generate_completed = _run_checked(generate_cmd, cwd=dagzoo_root)
     generated_manifest_completed = _run_checked(generated_manifest_cmd, cwd=REPO_ROOT)
+    curated_result = _materialize_curated_openml_baseline(
+        paths=paths,
+        bundle_path=benchmark_bundle_path,
+    )
 
     handoff_payload = _sanitize_paths(_load_json(paths.handoff_manifest_path))
-    commands = _queue_commands(paths)
+    dagzoo_commands = _dagzoo_commands(paths)
+    curated_commands = _curated_commands(paths)
     anchor_inspection = _manifest_inspect(ANCHOR_MANIFEST_PATH)
     generated_inspection = _manifest_inspect(paths.generated_manifest_path)
+    curated_inspection = _manifest_inspect(paths.curated_openml_baseline_manifest_path)
 
     manifests = {
         "anchor_manifest_default": {
@@ -287,23 +512,49 @@ def main(argv: list[str] | None = None) -> int:
             "manifest_sha256": _sha256_path(paths.generated_manifest_path),
             "inspection": generated_inspection,
         },
+        "curated_realdata_openml_baseline": {
+            "status": "available",
+            "manifest_path": _portable_path(paths.curated_openml_baseline_manifest_path),
+            "manifest_sha256": _sha256_path(paths.curated_openml_baseline_manifest_path),
+            "inspection": curated_inspection,
+        },
     }
 
     dagzoo_provenance = {
         "corpus_variant": "dagzoo_generated_source",
         "comparator_role": "promoted_anchor_candidate",
-        "commands": commands,
+        "commands": dagzoo_commands,
         "config_refs": [DEFAULT_DAGZOO_CONFIG_REF],
         "curated_root_lineage": [],
         "materialization_issue": MATERIALIZATION_ISSUE_NUMBER,
     }
+    curated_openml_provenance = {
+        "surface_variant": "curated_realdata_openml_baseline",
+        "comparator_role": "evidence_only_openml_baseline",
+        "commands": curated_commands,
+        "benchmark_bundle": curated_result["bundle_summary"],
+        "task_ids": [int(task["task_id"]) for task in curated_result["task_summaries"]],
+        "dataset_names": [str(task["dataset_name"]) for task in curated_result["task_summaries"]],
+        "task_summaries": curated_result["task_summaries"],
+        "approved_external_augmentations": [],
+        "split_policy": {
+            "name": "deterministic_holdout",
+            "test_size": DEFAULT_COMPARATOR_TEST_SIZE,
+            "seed": DEFAULT_COMPARATOR_SPLIT_SEED,
+            "preferred_mode": "stratified",
+            "fallback_mode": "unstratified_fallback",
+        },
+        "execution_issue": EXECUTION_ISSUE_NUMBER,
+    }
 
     materialization_summary = {
-        "schema": "tab-foundry-tf-rd-013-materialization-summary-v3",
+        "schema": "tab-foundry-tf-rd-013-materialization-summary-v4",
         "generated_at_utc": _utc_now(),
         "issues": {
             "materialization_issue": MATERIALIZATION_ISSUE_NUMBER,
             "materialization_issue_url": ISSUE_URLS["materialization_issue"],
+            "execution_issue": EXECUTION_ISSUE_NUMBER,
+            "execution_issue_url": ISSUE_URLS["execution_issue"],
             "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
             "subsequent_filtering_policy_issue_url": ISSUE_URLS["subsequent_filtering_policy_issue"],
         },
@@ -314,6 +565,7 @@ def main(argv: list[str] | None = None) -> int:
         "config_refs": {
             "dagzoo": [DEFAULT_DAGZOO_CONFIG_REF],
             "tab_foundry": [DEFAULT_MANIFEST_CONFIG_REF],
+            "benchmark_bundle": [DEFAULT_BENCHMARK_BUNDLE_REF],
         },
         "artifacts": {
             "local_output_root": _portable_path(paths.local_output_root),
@@ -323,21 +575,39 @@ def main(argv: list[str] | None = None) -> int:
             "generated_source_manifest_sha256": _sha256_path(paths.generated_manifest_path),
             "handoff_manifest_path": _portable_path(paths.handoff_manifest_path),
             "handoff_manifest_sha256": _sha256_path(paths.handoff_manifest_path),
+            "curated_openml_baseline_root": _portable_path(paths.curated_openml_baseline_root),
+            "curated_openml_baseline_data_root": _portable_path(paths.curated_openml_baseline_data_root),
+            "curated_openml_baseline_manifest_path": _portable_path(paths.curated_openml_baseline_manifest_path),
+            "curated_openml_baseline_manifest_sha256": _sha256_path(paths.curated_openml_baseline_manifest_path),
         },
         "steps": [
             {
                 "step_id": "dagzoo_generate",
                 "cwd": "$DAGZOO_ROOT",
-                "command": commands[0],
+                "command": dagzoo_commands[0],
                 "status": "completed",
                 "returncode": generate_completed.returncode,
             },
             {
                 "step_id": "build_manifest_generated_source",
                 "cwd": "$TAB_FOUNDRY_ROOT",
-                "command": commands[1],
+                "command": dagzoo_commands[1],
                 "status": "completed",
                 "returncode": generated_manifest_completed.returncode,
+            },
+            {
+                "step_id": "prepare_openml_baseline_shards",
+                "cwd": "$TAB_FOUNDRY_ROOT",
+                "command": curated_commands[0],
+                "status": "completed",
+                "returncode": 0,
+            },
+            {
+                "step_id": "build_manifest_curated_realdata_openml_baseline",
+                "cwd": "$TAB_FOUNDRY_ROOT",
+                "command": curated_commands[1],
+                "status": "completed",
+                "returncode": int(curated_result["build_manifest_completed"].returncode),
             },
         ],
         "handoff": {
@@ -355,15 +625,22 @@ def main(argv: list[str] | None = None) -> int:
                 "manifest_path": manifests["dagzoo_generated_source"]["manifest_path"],
                 "manifest_sha256": manifests["dagzoo_generated_source"]["manifest_sha256"],
                 "dagzoo_provenance": dagzoo_provenance,
-            }
+            },
+            "curated_realdata_openml_baseline": {
+                "state": "materialized_local_only",
+                "manifest_path": manifests["curated_realdata_openml_baseline"]["manifest_path"],
+                "manifest_sha256": manifests["curated_realdata_openml_baseline"]["manifest_sha256"],
+                "curated_realdata_provenance": curated_openml_provenance,
+            },
         },
     }
 
     manifest_characteristics_summary = {
-        "schema": "tab-foundry-tf-rd-013-manifest-characteristics-summary-v3",
+        "schema": "tab-foundry-tf-rd-013-manifest-characteristics-summary-v4",
         "generated_at_utc": _utc_now(),
         "issues": {
             "materialization_issue": MATERIALIZATION_ISSUE_NUMBER,
+            "execution_issue": EXECUTION_ISSUE_NUMBER,
             "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
         },
         "manifests": manifests,
@@ -373,7 +650,19 @@ def main(argv: list[str] | None = None) -> int:
                 left_id="anchor_manifest_default",
                 right_id="dagzoo_generated_source",
                 manifests=manifests,
-            )
+            ),
+            "anchor_vs_curated_realdata_openml_baseline": _comparison_entry(
+                comparison_id="anchor_vs_curated_realdata_openml_baseline",
+                left_id="anchor_manifest_default",
+                right_id="curated_realdata_openml_baseline",
+                manifests=manifests,
+            ),
+            "dagzoo_generated_source_vs_curated_realdata_openml_baseline": _comparison_entry(
+                comparison_id="dagzoo_generated_source_vs_curated_realdata_openml_baseline",
+                left_id="dagzoo_generated_source",
+                right_id="curated_realdata_openml_baseline",
+                manifests=manifests,
+            ),
         },
     }
 

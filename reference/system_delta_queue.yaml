@@ -11,6 +11,8 @@ complexity_level: binary_md
 anchor_run_id: sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
+external_benchmarks:
+- nanotabpfn
 training_experiment: cls_benchmark_staged_prior
 training_config_profile: cls_benchmark_staged_prior
 surface_role: hybrid_diagnostic
