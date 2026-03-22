@@ -18,9 +18,8 @@ architecture, workflows, and research surfaces.
 | Plan broader model capability work | [docs/research-contributors.md](docs/research-contributors.md) | [docs/development/roadmap.md](docs/development/roadmap.md) |
 | Learn repo vocabulary | [docs/glossary.md](docs/glossary.md) | [reference/README.md](reference/README.md) |
 
-The repo now also carries a Hugo docs app under `site/`. Canonical content
-still lives in `README.md`, `CONTRIBUTING.md`, `docs/`, `reference/`, and
-`program.md`; the site is a published navigation layer over those files.
+Check out the docs site for more guides, references, and development policies:
+[bensonlee5.github.io/tab-foundry](https://bensonlee5.github.io/tab-foundry/).
 
 ## Environment
 
@@ -160,6 +159,7 @@ tab-foundry train run experiment=cls_smoke optimizer=adamw
 
 ## Docs
 
+- Published docs site: <https://bensonlee5.github.io/tab-foundry/>
 - `docs/getting-started.md`: researcher onboarding path for architecture, sweeps, synthetic data, and model breadth
 - `docs/what-is-tab-foundry.md`: repo overview and entry-point guide
 - `docs/research-contributors.md`: research workflow onboarding path
