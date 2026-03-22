@@ -2,10 +2,10 @@
   "artifacts": {
     "generated_dir": "outputs/staged_ladder_support/tf_rd_013/generated_source/generated",
     "generated_source_manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
-    "generated_source_manifest_sha256": "c3733db05ad3b4497653df86db36027efc5255bc2ea7b8960c90d1a9831dfbe6",
+    "generated_source_manifest_sha256": "7903d0f5523260b0b45d5673cfd326c7946df6142c8cab2fd582bcb5d706efdd",
     "generated_source_root": "outputs/staged_ladder_support/tf_rd_013/generated_source",
     "handoff_manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/handoff_manifest.json",
-    "handoff_manifest_sha256": "0a031dcdb2dbdc17f7a1acdd0728b4d965fea843ed6bb7d4c865b069f52f9660",
+    "handoff_manifest_sha256": "5a53f24737783b14ff2abf6199b88919bb6016df4e4e0c3ca2f40fa28deb58ff",
     "local_output_root": "outputs/staged_ladder_support/tf_rd_013"
   },
   "config_refs": {
@@ -20,7 +20,7 @@
     "dagzoo_root": "../dagzoo",
     "tab_foundry_root": "."
   },
-  "generated_at_utc": "2026-03-22T04:37:02Z",
+  "generated_at_utc": "2026-03-22T15:41:03Z",
   "handoff": {
     "artifacts_relative": {
       "effective_config_path": "generated/effective_config.yaml",
@@ -46,7 +46,7 @@
         "missing_mechanism": null,
         "missing_mnar_logit_scale": null,
         "missing_rate": null,
-        "num_datasets": 200,
+        "num_datasets": 8192,
         "rows": null,
         "seed": 1
       }
@@ -60,18 +60,18 @@
       "tier": "cpu"
     },
     "identity": {
-      "generate_run_id": "e11c55656a2f155708c690021a4b050a",
-      "generated_corpus_id": "9aeb9b104a2c2fd80c921d3b1a5926ac",
+      "generate_run_id": "2acdc7e93fe5f2862c0bad9e5a3d8871",
+      "generated_corpus_id": "292077b6fdac07222b35e7618543125a",
       "source_family": "dagzoo.fixed_layout_scm"
     },
     "summary": {
-      "generated_datasets": 200
+      "generated_datasets": 8192
     },
     "throughput": {
       "generation_stage": {
-        "datasets_per_minute": 2600.2518052873356,
-        "elapsed_seconds": 4.614937667036429,
-        "generated_datasets": 200
+        "datasets_per_minute": 3482.779930909063,
+        "elapsed_seconds": 141.12864141596947,
+        "generated_datasets": 8192
       }
     }
   },
@@ -84,7 +84,7 @@
   "schema": "tab-foundry-tf-rd-013-materialization-summary-v3",
   "steps": [
     {
-      "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source\" --num-datasets 200 --seed 1 --device cpu --hardware-policy none",
+      "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source\" --num-datasets 8192 --seed 1 --device cpu --hardware-policy none",
       "cwd": "$DAGZOO_ROOT",
       "returncode": 0,
       "status": "completed",
@@ -102,7 +102,7 @@
     "dagzoo_generated_source": {
       "dagzoo_provenance": {
         "commands": [
-          "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source\" --num-datasets 200 --seed 1 --device cpu --hardware-policy none",
+          "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source\" --num-datasets 8192 --seed 1 --device cpu --hardware-policy none",
           "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet"
         ],
         "comparator_role": "promoted_anchor_candidate",
@@ -114,7 +114,7 @@
         "materialization_issue": 120
       },
       "manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
-      "manifest_sha256": "c3733db05ad3b4497653df86db36027efc5255bc2ea7b8960c90d1a9831dfbe6",
+      "manifest_sha256": "7903d0f5523260b0b45d5673cfd326c7946df6142c8cab2fd582bcb5d706efdd",
       "state": "materialized_local_only"
     }
   }

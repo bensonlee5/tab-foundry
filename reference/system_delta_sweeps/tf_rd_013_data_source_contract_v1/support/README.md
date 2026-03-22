@@ -12,11 +12,12 @@ Environment assumptions:
 
 - `TAB_FOUNDRY_ROOT` is this repo root.
 - `DAGZOO_ROOT` defaults to the sibling checkout `../dagzoo`.
-- The dagzoo config ref is the sibling repo's default config, `default.yaml` from dagzoo's `configs/` directory.
+- The dagzoo config ref is the sibling repo's default config, `../dagzoo/configs/default.yaml`.
 
 What the script does today:
 
-- materializes the supported dagzoo `generate` output under `outputs/staged_ladder_support/tf_rd_013/generated_source/`
+- materializes one large unfiltered dagzoo `generate` output under `outputs/staged_ladder_support/tf_rd_013/generated_source/`
+- keeps the initial promoted-anchor support surface pinned to dagzoo's `../dagzoo/configs/default.yaml` with a single `--num-datasets 8192` CPU generate call
 - builds a local manifest for that generated source
 - writes tracked JSON summaries for the initial unfiltered TF-RD-013 comparison surface
 
@@ -33,4 +34,6 @@ Local-only files:
 Filtering follow-up:
 
 - The initial TF-RD-013 sweep intentionally starts with the unfiltered generated-source corpus.
+- This support bundle still represents a single default-config generate invocation, not the longer-term multi-invocation shape program.
+- Future TF-RD-013 dagzoo work should move toward an explicit multi-invocation, shape-aware support contract once the first promoted-anchor read is complete.
 - Issue `#124` tracks the later decision about whether any filtered dagzoo variants should be introduced after that first read.

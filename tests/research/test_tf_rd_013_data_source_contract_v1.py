@@ -25,6 +25,41 @@ SUPPORT_ROOT = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "sup
 MATRIX_PATH = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "matrix.md"
 MATERIALIZATION_SUMMARY_PATH = SUPPORT_ROOT / "materialization_summary.json"
 MANIFEST_CHARACTERISTICS_SUMMARY_PATH = SUPPORT_ROOT / "manifest_characteristics_summary.json"
+EXPECTED_NUM_DATASETS = 8192
+
+
+def _assert_full_replay_training_payload(row: dict[str, Any]) -> None:
+    training = row["training"]
+    assert training["surface_label"] == "prior_linear_warmup_decay"
+    assert training["prior_dump_non_finite_policy"] == "skip"
+
+    overrides = training["overrides"]
+    assert overrides["apply_schedule"] is True
+    assert overrides["runtime"] == {
+        "max_steps": 2500,
+        "eval_every": 25,
+        "checkpoint_every": 25,
+        "trace_activations": False,
+    }
+    assert overrides["optimizer"] == {
+        "name": "schedulefree_adamw",
+        "require_requested": True,
+        "weight_decay": 0.0,
+        "betas": [0.9, 0.999],
+        "min_lr": 0.0004,
+        "muon_per_parameter_lr": False,
+    }
+    assert overrides["schedule"] == {
+        "stages": [
+            {
+                "name": "stage1",
+                "steps": 2500,
+                "lr_max": 0.004,
+                "lr_schedule": "linear",
+                "warmup_ratio": 0.05,
+            }
+        ]
+    }
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -96,6 +131,7 @@ def test_tf_rd_013_data_source_contract_metadata_and_rows_match_unfiltered_suppo
     generated_provenance = generated_overrides["dagzoo_provenance"]
     assert generated_row["data"]["surface_label"] == "tf_rd_013_dagzoo_generated_source"
     assert generated_overrides["manifest_path"] == "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet"
+    _assert_full_replay_training_payload(generated_row)
     assert generated_provenance["commands"]
     assert generated_provenance["materialization_issue"] == MATERIALIZATION_ISSUE_NUMBER
     assert generated_provenance == materialization_summary["surfaces"]["dagzoo_generated_source"]["dagzoo_provenance"]
@@ -107,6 +143,7 @@ def test_tf_rd_013_data_source_contract_metadata_and_rows_match_unfiltered_suppo
     assert realdata_row["data"]["surface_overrides"]["manifest_path"] == (
         "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet"
     )
+    _assert_full_replay_training_payload(realdata_row)
 
     assert materialization_summary["issues"]["materialization_issue"] == MATERIALIZATION_ISSUE_NUMBER
     assert materialization_summary["issues"]["subsequent_filtering_policy_issue"] == FILTERING_POLICY_ISSUE_NUMBER
@@ -121,6 +158,14 @@ def test_tf_rd_013_data_source_contract_metadata_and_rows_match_unfiltered_suppo
     assert set(steps) == {"dagzoo_generate", "build_manifest_generated_source"}
     assert steps["dagzoo_generate"]["status"] == "completed"
     assert steps["build_manifest_generated_source"]["status"] == "completed"
+    assert f"--num-datasets {EXPECTED_NUM_DATASETS}" in steps["dagzoo_generate"]["command"]
+    assert materialization_summary["handoff"]["generate_invocation"]["config_path"] == "../dagzoo/configs/default.yaml"
+    assert materialization_summary["handoff"]["generate_invocation"]["overrides"]["num_datasets"] == EXPECTED_NUM_DATASETS
+    assert materialization_summary["handoff"]["summary"]["generated_datasets"] == EXPECTED_NUM_DATASETS
+    assert (
+        materialization_summary["handoff"]["throughput"]["generation_stage"]["generated_datasets"]
+        == EXPECTED_NUM_DATASETS
+    )
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
@@ -130,6 +175,8 @@ def test_tf_rd_013_data_source_contract_metadata_and_rows_match_unfiltered_suppo
     materialized_rows = materialized["rows"]
     assert [row["delta_id"] for row in materialized_rows] == EXPECTED_ROWS
     assert [row["status"] for row in materialized_rows] == ["ready", "blocked_on_artifacts"]
+    for row in materialized_rows:
+        _assert_full_replay_training_payload(row)
 
     comparisons = manifest_characteristics_summary["comparisons"]
     assert set(comparisons) == {"anchor_vs_generated_source"}
@@ -165,6 +212,9 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
     )
     assert inspect_realdata["target"]["identity"]["status"] == "blocked_on_artifacts"
     assert inspect_realdata["target"]["resolved"]["data"]["surface_label"] == "tf_rd_013_curated_realdata_comparator"
+    assert inspect_generated["target"]["resolved"]["training"]["optimizer_name"] == "schedulefree_adamw"
+    assert inspect_generated["target"]["resolved"]["training"]["apply_schedule"] is True
+    assert inspect_generated["target"]["resolved"]["training"]["prior_dump_non_finite_policy"] == "skip"
 
     diff_payload = diff_module.diff_sweep_row(
         order=1,
@@ -184,6 +234,10 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
     }
     assert differences["resolved.data.dagzoo_provenance"]["target"]["corpus_variant"] == "dagzoo_generated_source"
     assert differences["resolved.data.dagzoo_provenance"]["against"] is None
+    assert "resolved.training.optimizer_name" not in differences
+    assert "resolved.training.apply_schedule" not in differences
+    assert "resolved.training.prior_dump_non_finite_policy" not in differences
+    assert "resolved.training.schedule_stages" not in differences
 
 
 def test_binary_md_v1_curated_dagzoo_row_is_now_marked_as_historical_precursor() -> None:
@@ -207,6 +261,7 @@ def test_tf_rd_013_support_bundle_and_catalog_defaults_are_tracked_separately() 
     assert SUPPORT_ROOT.joinpath("README.md").exists()
     assert materialization_summary["config_refs"]["dagzoo"] == ["configs/default.yaml"]
     assert materialization_summary["config_refs"]["tab_foundry"] == ["configs/data/default.yaml"]
+    assert f"--num-datasets {EXPECTED_NUM_DATASETS}" in materialization_summary["steps"][0]["command"]
     assert manifest_characteristics_summary["manifests"]["anchor_manifest_default"]["manifest_path"] == "data/manifests/default.parquet"
     assert manifest_characteristics_summary["manifests"]["dagzoo_generated_source"]["manifest_path"] == (
         "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet"
