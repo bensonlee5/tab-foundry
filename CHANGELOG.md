@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.17] - 2026-03-21
+
+### Changed
+
+- User-facing note: system-delta matrix rendering now uses the configured
+  sweep upstream reference label instead of hardcoding nanoTabPFN, so
+  TF-RD-013 can frame TabICLv2 as the primary upstream architecture
+  reference while keeping nanoTabPFN as benchmark/control context in
+  sweep-specific prose.
+
 ## [0.8.16] - 2026-03-21
 
 ### Changed

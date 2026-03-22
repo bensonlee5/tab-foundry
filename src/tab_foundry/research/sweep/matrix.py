@@ -313,7 +313,8 @@ def render_system_delta_matrix(
     lines.append("")
     lines.append(f"Upstream reference: `{upstream['name']}` from `{upstream['model_source']}`.")
     lines.append("")
-    lines.append("| Dimension | Upstream nanoTabPFN | Locked anchor | Interpretation |")
+    upstream_heading = ensure_non_empty_string(upstream.get("name"), context="upstream reference name")
+    lines.append(f"| Dimension | Upstream {upstream_heading} | Locked anchor | Interpretation |")
     lines.append("| --- | --- | --- | --- |")
     for dimension_row in cast(list[dict[str, Any]], anchor_surface["dimension_table"]):
         lines.append(

@@ -667,16 +667,20 @@ This roadmap assumes the following repo truths:
   - there is no benchmark-facing post-008 data-source comparison program yet
   - dagzoo is the synthetic-data generation lane, not an external real-data
     ingestion surface
+  - issue `#120` now records the first runnable unfiltered dagzoo generated-
+    source surface and its support artifacts for the promoted anchor
   - the roadmap now treats this as the first deliberate post-008 gate so the
     repo does not over-optimize optimizer and schedule choices on a corpus that
     may not match intended use
 - Required work:
   - define the canonical dagzoo corpus variants, provenance rules, and first
     post-008 data-source sweep ladder
-  - compare the current corpus against dagzoo-generated corpora and the curated
-    real-data ladders, including both the OpenML baselines and any
-    license-cleared manifest-backed external augmentations, on the promoted
+  - compare the current corpus against the unfiltered dagzoo generated-source
+    corpus and the curated real-data ladders, including both the OpenML baselines
+    and any license-cleared manifest-backed external augmentations, on the promoted
     row-first anchor rather than on older hybrid surfaces
+  - if the initial unfiltered read suggests later policy work is warranted, use
+    TF-RD-019 to decide whether any filtered dagzoo variants should be introduced
   - record whether dagzoo becomes the representative post-008 training-data
     surface, complements the benchmark ladders, or stays auxiliary
 - Exit criteria:
@@ -789,6 +793,42 @@ This roadmap assumes the following repo truths:
     the settled row-first anchor and at least one harder post-008 ladder
   - the repo has a clear rule for when optimizer or schedule adequacy must be
     resolved before interpreting architecture outcomes
+
+### TF-RD-019: Predictable Dagzoo Filtering Policy For Training Corpora
+
+- Status: `planned`
+- Milestone: `Next`
+- Goal: after the initial unfiltered TF-RD-013 read, decide whether tab-foundry
+  should introduce any dedicated filtering stage for dagzoo-generated training
+  corpora, and if so, what implementation and throughput budget are acceptable
+- Current state:
+  - TF-RD-013 is no longer blocked on filtering for its initial dagzoo read;
+    issue `#120` records the unfiltered generated-source support artifacts
+  - TabICLv2 uses relatively cheap predictive filtering, such as ExtraTrees-like
+    scoring, but tab-foundry has not chosen whether to adopt a similar approach
+    or avoid a separate filtering stage entirely
+  - the first policy question is whether filtering is needed at all once the
+    unfiltered generated-source comparison has been read
+  - any filtering strategy that materially reduces corpus throughput must
+    justify the cost before it becomes part of the default training-data lane
+- Required work:
+  - define what predictable training corpora mean for tab-foundry and which
+    failure modes filtering is supposed to address
+  - decide whether filtered dagzoo surfaces are required, optional, or out of
+    scope for the promoted-anchor training-data program
+  - evaluate candidate implementations, including cheap predictive filters,
+    lighter-weight heuristics, or no post-generation filter
+  - measure or estimate the throughput and operational cost of the candidate
+    approaches
+  - define the provenance and artifact contract needed if filtered dagzoo
+    surfaces are re-enabled
+- Exit criteria:
+  - the repo has an explicit recommendation on whether dagzoo filtering belongs
+    in the training-data pipeline
+  - if filtering is kept, the acceptable implementation and throughput budget
+    are documented
+  - TF-RD-013 can either re-enable filtered dagzoo surfaces under a defined
+    contract or retire them explicitly
 
 ### TF-RD-015: Regression Rebuild On The Promoted Row-First Base
 

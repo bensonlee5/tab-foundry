@@ -22,99 +22,71 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_013_data_source_
 
 ## Anchor Comparison
 
-Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob/main/model.py`.
+Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 
-| Dimension | Upstream nanoTabPFN | Locked anchor | Interpretation |
+| Dimension | Upstream TabICLv2 | Locked anchor | Interpretation |
 | --- | --- | --- | --- |
-| model anchor | Upstream nanoTabPFN has no repo-local row-first promoted-anchor contract. | The settled promoted row-first benchmark anchor `row_cls + qass + no tfcol`. | TF-RD-013 changes only the training-data comparison surface, not the promoted model surface. |
-| training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Current manifest-backed prior-training corpus with data surface label `anchor_manifest_default`. | The current corpus is the baseline comparator; TF-RD-013 rows define explicit dagzoo and curated real-data alternatives against it. |
+| model anchor | TabICLv2 is the primary row-first architectural reference, but it does not define this exact repo-local promoted-anchor contract. | The settled promoted row-first benchmark anchor `row_cls + qass + no tfcol`. | TF-RD-013 changes only the training-data comparison surface, not the promoted model surface. |
+| training data surface | TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract. | Current manifest-backed prior-training corpus with data surface label `anchor_manifest_default`. | The current corpus is the baseline comparator; TF-RD-013 starts with one explicit unfiltered dagzoo alternative plus a later curated real-data comparator lane. |
 | dagzoo provenance contract | Not applicable. | No dagzoo provenance is attached to the current-corpus anchor surface. | Dagzoo candidate rows must carry one explicit `dagzoo_provenance` payload with fixed keys before the sweep becomes runnable. |
-| real-data comparator policy | Not applicable. | Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface. | Curated real-data ladders are comparator evidence and must keep one OpenML baseline plus approved manifest-backed augmentations rather than introducing a new loader path. |
-| training recipe | No repo-local prior-dump training-surface contract. | Training surface label `prior_linear_warmup_decay`. | TF-RD-013 contract work should not mix optimizer or schedule changes into the data-source decision. |
+| benchmark and control context | TabICLv2 is the architectural reference, while nanoTabPFN remains the current benchmark/control bundle family used by this repo. | Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface. | TF-RD-013 should keep benchmark/control context stable while it reads the training-data surface change. |
+| training recipe | TabICLv2 informs the row-first staged recipe direction, but there is no repo-local shared prior-dump training-surface contract to copy literally. | Training surface label `prior_linear_warmup_decay`. | TF-RD-013 contract work should not mix optimizer or schedule changes into the data-source decision. |
 
 ## Queue Summary
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_data_filter_policy_accepted_only` | provenance | yes | blocked_on_artifacts | none | Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor. | Materialize the accepted-only manifest and fill the dagzoo command lineage under issue 120 before scheduling any comparison run. |
-| 2 | `delta_data_manifest_root_curated_dagzoo` | provenance | yes | blocked_on_artifacts | none | Point training at a curated dagzoo manifest root with explicit dagzoo command provenance. | Materialize the curated dagzoo root lineage and support artifacts under issue 120, then wire the promoted-anchor comparison row under issue 121. |
-| 3 | `delta_data_manifest_curated_realdata_comparator` | source | yes | blocked_on_artifacts | none | Define the curated real-data comparator manifest contract as one OpenML baseline plus any approved manifest-backed augmentations. | Materialize the approved OpenML-baseline comparator manifest and cite any approved manifest-backed augmentations before scheduling this row. |
+| 1 | `delta_data_manifest_root_dagzoo_generated_source` | provenance | yes | ready | none | Point training at the unfiltered dagzoo generated-source manifest with explicit dagzoo generate provenance. | Run the promoted-anchor current-versus-unfiltered-dagzoo comparison and record whether the raw generated-source corpus is strong enough to justify later filtering follow-up under issue 124. |
+| 2 | `delta_data_manifest_curated_realdata_comparator` | source | yes | blocked_on_artifacts | none | Define the curated real-data comparator manifest contract as one OpenML baseline plus any approved manifest-backed augmentations. | Materialize the approved OpenML-baseline comparator manifest and cite any approved manifest-backed augmentations before scheduling this comparator against the current corpus and the unfiltered dagzoo row. |
 
 ## Detailed Rows
 
-### 1. `delta_data_filter_policy_accepted_only`
+### 1. `delta_data_manifest_root_dagzoo_generated_source`
 
 - Dimension family: `data`
-- Status: `blocked_on_artifacts`
+- Status: `ready`
 - Binary applicable: `True`
 - Recipe alias: `none`
-- Description: Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor.
-- Rationale: Define the first canonical dagzoo candidate surface by tightening filtering while keeping the promoted row-first anchor otherwise fixed.
-- Hypothesis: An accepted-only dagzoo candidate may improve signal quality, but its value is only interpretable once manifest lineage and corpus-shape deltas are explicit.
-- Upstream delta: Not applicable; this is a repo-local manifest/provenance decision.
-- Anchor delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but replace the current corpus with a TF-RD-013 accepted-only dagzoo candidate manifest that carries the canonical dagzoo provenance payload.
-- Expected effect: Cleaner data quality with a possible diversity-versus-quality tradeoff.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_accepted_only`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
-- Data overrides: `{'source': 'manifest', 'manifest_path': 'outputs/staged_ladder_support/tf_rd_013/dagzoo_accepted_only/manifest.parquet', 'filter_policy': 'accepted_only', 'dagzoo_provenance': {'corpus_variant': 'dagzoo_accepted_only', 'comparator_role': 'promoted_anchor_candidate', 'commands': [], 'config_refs': ['configs/default.yaml'], 'curated_root_lineage': [], 'materialization_issue': 120}}`
+- Description: Point training at the unfiltered dagzoo generated-source manifest with explicit dagzoo generate provenance.
+- Rationale: Define the first canonical dagzoo candidate surface as the raw generated-source corpus so TF-RD-013 can read current-versus-dagzoo without waiting on any later filtering policy.
+- Hypothesis: The unfiltered dagzoo generated-source corpus may already be competitive enough for the promoted anchor, and the first comparison should establish that before the repo decides whether any later filtering is warranted.
+- Upstream delta: Not applicable; this is a repo-local synthetic-data generation axis.
+- Anchor delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but replace the current corpus with a TF-RD-013 unfiltered dagzoo generated-source manifest that carries the canonical dagzoo provenance payload.
+- Expected effect: Higher-throughput synthetic training data with no post-generation filtering and explicit provenance.
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_generated_source`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Data overrides: `{'source': 'manifest', 'manifest_path': 'outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet', 'dagzoo_provenance': {'corpus_variant': 'dagzoo_generated_source', 'comparator_role': 'promoted_anchor_candidate', 'commands': ['cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source" --num-datasets 200 --seed 1 --device cpu --hardware-policy none', 'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet'], 'config_refs': ['configs/default.yaml'], 'curated_root_lineage': [], 'materialization_issue': 120}}`
 - Parameter adequacy plan:
   - Compare manifest characteristics against the current-corpus anchor before reading any benchmark outcome.
-  - Treat the empty `commands` list as a contract placeholder only; issue 120 is responsible for filling the actual command lineage.
+  - Treat `filter_status_counts.not_run` as a deliberate property of the initial unfiltered sweep, not as a hidden data-contract bug.
 - Adequacy knobs to dimension explicitly:
-  - Must report dataset-count and feature/class distribution shifts versus the anchor manifest.
-- Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
-- Confounders:
-  - This row is contract-only until the accepted-only manifest and lineage are materialized.
-- Notes:
-  - This row defines the canonical top-level dagzoo provenance keys expected on TF-RD-013 promoted-anchor comparison surfaces.
-- Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_013_data_source_contract_v1/delta_data_filter_policy_accepted_only/result_card.md`
-- Benchmark metrics: pending
-
-### 2. `delta_data_manifest_root_curated_dagzoo`
-
-- Dimension family: `data`
-- Status: `blocked_on_artifacts`
-- Binary applicable: `True`
-- Recipe alias: `none`
-- Description: Point training at a curated dagzoo manifest root with explicit dagzoo command provenance.
-- Rationale: Define the promoted-anchor curated dagzoo root as a second canonical dagzoo candidate surface rather than leaving it as an old binary-md precursor row.
-- Hypothesis: A curated dagzoo root may better match intended post-008 use than the current corpus, but it must be read through explicit lineage from the accepted-only candidate rather than as an opaque manifest swap.
-- Upstream delta: Not applicable; this is a repo-local dataset-generation axis.
-- Anchor delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but point training at the curated dagzoo root contract while preserving the same canonical dagzoo provenance payload shape.
-- Expected effect: Potentially cleaner training data with a materially different corpus composition.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_curated_dagzoo_root`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
-- Data overrides: `{'source': 'manifest', 'manifest_path': 'outputs/staged_ladder_support/tf_rd_013/curated_dagzoo/manifest.parquet', 'dagzoo_provenance': {'corpus_variant': 'dagzoo_curated_root', 'comparator_role': 'promoted_anchor_candidate', 'commands': [], 'config_refs': ['configs/default.yaml'], 'curated_root_lineage': ['dagzoo_accepted_only', 'curated_root_selection'], 'materialization_issue': 120}}`
-- Parameter adequacy plan:
-  - Compare this row first against the accepted-only dagzoo candidate, then against the current-corpus anchor.
-  - Treat `curated_root_lineage` as required contract metadata, not as optional commentary.
-- Adequacy knobs to dimension explicitly:
-  - dagzoo generate/filter commands
-  - curated root lineage
+  - dagzoo generate command lineage
   - dataset count and split distribution deltas
+  - filter-status distribution versus the anchor manifest
 - Execution policy: `benchmark_full`
 - Interpretation status: `pending`
 - Decision: `None`
 - Confounders:
-  - This row remains a contract placeholder until issue 120 materializes the curated root manifest and lineage.
+  - This row intentionally measures the raw generated-source corpus before any later filtering-policy decision.
+  - Any win or weakness here may reflect the unfiltered corpus directly rather than the value of a future filtering pass.
 - Notes:
-  - This row supersedes the old `binary_md_v1` `delta_data_manifest_root_curated_dagzoo` precursor as the TF-RD-013 dagzoo-root contract surface.
+  - This row defines the canonical top-level `dagzoo_provenance` keys expected on TF-RD-013 promoted-anchor comparison surfaces.
+  - Reference-only support bundle: `reference/system_delta_sweeps/tf_rd_013_data_source_contract_v1/support/materialization_summary.json` and `reference/system_delta_sweeps/tf_rd_013_data_source_contract_v1/support/manifest_characteristics_summary.json`.
+  - Issue 124 is subsequent policy work on whether any filtered dagzoo variants should exist after the initial unfiltered read.
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_013_data_source_contract_v1/delta_data_manifest_root_curated_dagzoo/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_013_data_source_contract_v1/delta_data_manifest_root_dagzoo_generated_source/result_card.md`
 - Benchmark metrics: pending
 
-### 3. `delta_data_manifest_curated_realdata_comparator`
+### 2. `delta_data_manifest_curated_realdata_comparator`
 
 - Dimension family: `data`
 - Status: `blocked_on_artifacts`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Define the curated real-data comparator manifest contract as one OpenML baseline plus any approved manifest-backed augmentations.
-- Rationale: Make the curated real-data comparator contract explicit so TF-RD-013 reads dagzoo against a defined comparator lane instead of a vague future workstream.
+- Rationale: Make the curated real-data comparator contract explicit so TF-RD-013 reads unfiltered dagzoo against a defined comparator lane instead of a vague future workstream.
 - Hypothesis: The first comparator should stay anchored on one canonical OpenML baseline and only add approved manifest-backed external augmentations when they cover regimes OpenML misses.
 - Upstream delta: Not applicable; this is a repo-local comparator contract layered on top of the benchmark-native OpenML baseline.
-- Anchor delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but define the curated real-data comparator manifest family as a separate contract surface from both the current corpus and dagzoo candidates.
+- Anchor delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but define the curated real-data comparator manifest family as a separate contract surface from both the current corpus and the unfiltered dagzoo candidate.
 - Expected effect: A real-data comparator lane that is explicit enough to compare against current-corpus and dagzoo candidates without reopening loader boundaries.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_curated_realdata_comparator`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
 - Data overrides: `{'source': 'manifest', 'manifest_path': 'outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet'}`
