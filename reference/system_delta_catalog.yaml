@@ -2247,6 +2247,42 @@ deltas:
     default_next_action: Run only after the matrix explicitly records the anchor-versus-iris manifest characteristics.
     applicability_guards: []
 
+  delta_data_manifest_curated_realdata_comparator:
+    dimension_family: data
+    family: source
+    binary_applicable: true
+    description: Define the curated real-data comparator manifest contract as one OpenML baseline plus any approved manifest-backed augmentations.
+    upstream_delta: Not applicable; this is a repo-local comparator contract layered on top of the benchmark-native OpenML baseline.
+    expected_effect: A real-data comparator lane that is explicit enough to compare against current-corpus and dagzoo candidates without reopening loader boundaries.
+    adequacy_knobs:
+      - Approved ledger rows for every dataset referenced by the comparator manifest family.
+      - OpenML baseline versus approved external augmentation coverage notes.
+      - Manifest lineage and regime-coverage notes attached before any benchmark read is interpreted.
+    parameter_adequacy_policy:
+      default_plan:
+        - Keep the OpenML baseline canonical and treat manifest-backed external datasets as approved augmentations rather than a replacement path.
+        - Do not schedule the comparator until the referenced datasets are approved in the review ledger and the manifest lineage is attached.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_artifacts
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_013_curated_realdata_comparator
+        surface_overrides:
+          source: manifest
+          manifest_path: outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Materialize the approved OpenML-baseline comparator manifest and cite any approved external augmentations before scheduling this row.
+    applicability_guards: []
+
   delta_preproc_impute_missing_off:
     dimension_family: preprocessing
     family: missing_values

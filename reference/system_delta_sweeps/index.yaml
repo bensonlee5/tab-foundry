@@ -148,6 +148,13 @@ sweeps:
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+  tf_rd_013_data_source_contract_v1:
+    parent_sweep_id: qass_tfcol_large_missing_validation_v1
+    status: draft
+    anchor_run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
   row_first_training_adequacy_v1:
     parent_sweep_id: qass_tfcol_large_missing_validation_v1
     status: draft

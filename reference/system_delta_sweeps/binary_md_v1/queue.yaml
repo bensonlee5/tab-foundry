@@ -431,7 +431,7 @@ rows:
 
   - order: 14
     delta_ref: delta_data_manifest_root_curated_dagzoo
-    status: blocked_on_artifacts
+    status: superseded
     rationale: The queue must be able to compare not only model structure but also the exact dagzoo call set that defined the training corpus.
     hypothesis: A more curated dagzoo root may improve signal quality, but any change must be interpreted through manifest lineage and dataset-characteristic shifts.
     anchor_delta: Changes only the manifest root and its documented dagzoo provenance.
@@ -452,12 +452,13 @@ rows:
       - Do not run until the dagzoo provenance payload is filled in and the manifest characteristics are attached.
     run_id: null
     followup_run_ids: []
-    decision: null
-    interpretation_status: pending
+    decision: defer
+    interpretation_status: blocked
     confounders:
       - Requires a materialized curated dagzoo manifest and provenance references.
-    next_action: Capture the dagzoo generation/filter lineage first.
-    notes: []
+    next_action: Do not run on `binary_md_v1`; use `tf_rd_013_data_source_contract_v1` as the promoted-anchor TF-RD-013 contract surface instead.
+    notes:
+      - This row is historical precursor evidence only and no longer defines the active dagzoo closure path.
 
   - order: 15
     delta_ref: delta_data_manifest_source_binary_iris
