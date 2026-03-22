@@ -1,0 +1,81 @@
+// -- Homepage hero cover ---------------------------------------------------
+// Warm Earth sage-green gradient.
+
+.td-cover-block {
+  background: linear-gradient(135deg, #4a6741 0%, #6b8f5e 100%) !important;
+}
+
+// -- Code blocks ----------------------------------------------------------
+// Tighter, more polished code blocks that match the color palette.
+
+.td-content pre {
+  background-color: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+// -- Tables ---------------------------------------------------------------
+// Striped, hoverable tables with slightly smaller text for data-dense pages.
+
+.td-content table {
+  @extend .table;
+  @extend .table-striped;
+  @extend .table-hover;
+  font-size: 0.9rem;
+}
+
+// -- Cards ----------------------------------------------------------------
+// Subtle hover lift for all landing-page cards.
+
+.td-content .card {
+  transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
+  }
+}
+
+// -- Audience path cards (primary-colored left border) --------------------
+.card.card--audience {
+  border-left: 4px solid $primary !important;
+}
+
+// -- Topic cards (secondary-colored left border) --------------------------
+.card.card--topic {
+  border-left: 4px solid $secondary !important;
+}
+
+// -- Landing page spacing -------------------------------------------------
+// On the homepage, content (h2, p, .row) lives directly inside .td-main
+// (no .td-content wrapper). On inner pages, content is inside .td-content.
+
+// Space between the hero cover and the first section heading
+.td-cover-block + h2 {
+  margin-top: 4rem;
+}
+
+// Section headings on the homepage (direct children of .td-main)
+.td-main > h2 {
+  margin-top: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+// Intro paragraphs under section headings — both homepage and inner pages
+.td-main > h2 + p,
+.td-content > h2 + p {
+  margin-bottom: 1.5rem;
+}
+
+// Section headings on inner pages
+.td-content > h2 {
+  margin-top: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+// Bottom margin on the last card grid so it doesn't touch the footer
+.td-main > .row:last-child,
+.td-content > .row:last-child {
+  margin-bottom: 4rem;
+}

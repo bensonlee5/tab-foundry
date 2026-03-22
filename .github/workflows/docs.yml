@@ -1,0 +1,96 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - ".github/workflows/docs.yml"
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "docs/**"
+      - "reference/**"
+      - "program.md"
+      - "site/**"
+      - "scripts/docs/**"
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "0.158.0"
+          extended: true
+
+      - name: Install site dependencies
+        run: npm install --prefix site
+
+      - name: Sync generated Hugo content
+        run: python scripts/docs/sync_hugo_content.py
+
+      - name: Check generated Hugo content
+        run: python scripts/docs/sync_hugo_content.py --check
+
+      - name: Check source-doc links
+        run: python scripts/docs/check_links.py
+
+      - name: Build Hugo site
+        run: hugo --source site --minify --gc --destination public
+
+      - name: Check built output links
+        run: python scripts/docs/check_built_output_links.py site/public
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/public
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
