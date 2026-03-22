@@ -1,0 +1,17 @@
+// -- Color palette --------------------------------------------------------
+// "Warm Earth" theme — sage green + terracotta. Approachable, calm,
+// gender-neutral. Feels like a well-tended community garden.
+
+$primary:   #4a6741;   // sage green — navbar, headings, primary buttons
+$secondary: #c4784a;   // warm terracotta — accent links, secondary buttons
+$info:      #5b7f95;   // dusty blue — informational alerts, inline links
+$success:   #38a169;   // green — status badges, success states
+$body-color: #3d3d3d;  // warm dark gray for readable body text
+
+// -- Typography -----------------------------------------------------------
+// Nunito for headings (rounded, friendly, highly legible).
+// Source Sans 3 for body text (clean, neutral, open).
+
+$font-family-sans-serif: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+$headings-font-family:   "Nunito", $font-family-sans-serif;
+$font-size-base: 1rem;

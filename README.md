@@ -2,6 +2,26 @@
 
 Modular tabular prior-data fitted network training on `dagzoo` packed shard outputs.
 
+## Start Here
+
+Use these entry points when you want the shortest path to the current
+architecture, workflows, and research surfaces.
+
+| Goal | Start here | Then go deeper |
+| ---- | ---------- | -------------- |
+| Understand what this repo is | [docs/what-is-tab-foundry.md](docs/what-is-tab-foundry.md) | [docs/getting-started.md](docs/getting-started.md) |
+| Get oriented quickly | [docs/getting-started.md](docs/getting-started.md) | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Contribute to research | [docs/research-contributors.md](docs/research-contributors.md) | [program.md](program.md) and [docs/workflows.md](docs/workflows.md) |
+| Work as ML engineering / infra | [docs/ml-engineering.md](docs/ml-engineering.md) | [docs/inference.md](docs/inference.md) and [docs/workflows.md](docs/workflows.md) |
+| Understand the active architecture | [docs/getting-started.md](docs/getting-started.md) | [docs/development/model-architecture.md](docs/development/model-architecture.md) |
+| Think through synthetic data and dagzoo | [docs/getting-started.md](docs/getting-started.md) | [docs/development/dataset-curation.md](docs/development/dataset-curation.md) |
+| Plan broader model capability work | [docs/research-contributors.md](docs/research-contributors.md) | [docs/development/roadmap.md](docs/development/roadmap.md) |
+| Learn repo vocabulary | [docs/glossary.md](docs/glossary.md) | [reference/README.md](reference/README.md) |
+
+The repo now also carries a Hugo docs app under `site/`. Canonical content
+still lives in `README.md`, `CONTRIBUTING.md`, `docs/`, `reference/`, and
+`program.md`; the site is a published navigation layer over those files.
+
 ## Environment
 
 - Python `3.14` (pinned in `.python-version`)
@@ -140,6 +160,12 @@ tab-foundry train run experiment=cls_smoke optimizer=adamw
 
 ## Docs
 
+- `docs/getting-started.md`: researcher onboarding path for architecture, sweeps, synthetic data, and model breadth
+- `docs/what-is-tab-foundry.md`: repo overview and entry-point guide
+- `docs/research-contributors.md`: research workflow onboarding path
+- `docs/ml-engineering.md`: artifact and workflow path for ML engineering / infra readers
+- `docs/glossary.md`: shared vocabulary for sweep and architecture work
+- `CONTRIBUTING.md`: contribution workflow for research contributors
 - `docs/workflows.md`: setup, manifest build, train/eval/export, smoke flows, tuning, benchmarking, and CI
 - `docs/inference.md`: export bundle schema and validation contract
 - `docs/development/roadmap.md`: canonical planning state and ranked roadmap
@@ -152,3 +178,4 @@ tab-foundry train run experiment=cls_smoke optimizer=adamw
 - `reference/README.md`: index for literature notes, evidence maps, and future adjacent-repo summaries
 - `reference/papers.md`: curated papers, typed-column-encoder references, and external baseline borrowing rules
 - `reference/evidence.md`: roadmap-to-reference mapping and evidence notes
+- `site/README.md`: local Hugo build, sync, and Pages publishing workflow

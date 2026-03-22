@@ -27,6 +27,22 @@ Related code paths:
 - `src/tab_foundry/model/spec.py`
 - `src/tab_foundry/model/factory.py`
 
+## Overview
+
+This page explains how the current model is structured and which model family
+the repo is actually trying to improve.
+
+The short version:
+
+- one frozen family exists for trust and comparison
+- one active staged family exists for new architecture work
+- the repo is trying to make changes inside that active family rather than
+  creating many separate model families
+
+If you want repo orientation first, use
+[docs/getting-started.md](../getting-started.md) or
+[docs/what-is-tab-foundry.md](../what-is-tab-foundry.md).
+
 ## High-Level Structure
 
 `tabfoundry_staged` is a resolved-surface classifier. Construction starts from

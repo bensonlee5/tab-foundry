@@ -13,6 +13,20 @@ fixed while isolating one question. The long-term direction for the public
 model surface still comes from `docs/development/roadmap.md` and
 `docs/development/model-architecture.md`.
 
+## Overview
+
+This page defines the rules for the active research sweep.
+
+Use it when you need to know:
+
+- what the current [anchor](docs/glossary.md#anchor) is
+- what is allowed to change in one sweep row
+- which artifacts a row must produce
+- how to interpret a result without over-claiming
+
+This is not the right page if you only want a general repo overview. Start with
+`docs/getting-started.md` or `docs/research-contributors.md` for that.
+
 ## Objective
 
 Optimize for attributable evidence against the locked anchor

@@ -115,6 +115,17 @@ The repo should keep the same role-based direction already started in code:
 - literature and evidence notes under `reference/`, indexed from
   `reference/README.md`
 
+### Single-Source Docs With Hugo Publishing
+
+- Canonical docs stay in repo Markdown: `README.md`, `CONTRIBUTING.md`,
+  `docs/`, `reference/`, and `program.md`.
+- The Hugo app under `site/` is a published navigation layer, not a second
+  policy surface.
+- Generated site inputs under `site/.generated/` should be treated as build
+  artifacts owned by the sync script.
+- Contributors should edit canonical Markdown and let the sync/build workflow
+  publish it.
+
 ### External Baseline Borrowing And Literature-First Construction
 
 - Major architecture changes should begin from curated references rather than
@@ -158,6 +169,7 @@ The end state should support:
 | `src/tab_foundry/export/` | Export package namespace for bundle contracts and compatibility handling. Direct imports should target modules such as `tab_foundry.export.contracts`, `tab_foundry.export.exporter`, and `tab_foundry.export.loader_ref`. |
 | `docs/development/` | Canonical planning, architecture rationale, codebase navigation, and dependency mapping for internal repo evolution. |
 | `docs/workflows.md` and `docs/inference.md` | Stable operational and contract docs that should remain easy to link for users and downstream repos. |
+| `site/` | Hugo + Docsy publishing shell for the docs site. Generated site inputs are derived from canonical repo Markdown. |
 | `tests/` | Coverage organized by role today across `tests/model/`, `tests/training/`, `tests/data/`, `tests/export/`, `tests/runtime/`, `tests/config/`, `tests/smoke/`, and `tests/benchmark/`. |
 
 ## Dependency Direction

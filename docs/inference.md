@@ -16,6 +16,17 @@ Planning and architecture rationale live under `docs/development/`.
 This file stays top-level because it is the stable export and validation
 contract.
 
+## Overview
+
+This page describes the artifact this repo hands off for runtime inference.
+The key idea is simple:
+
+- this repo trains models and packages [export bundles](glossary.md#export-bundle)
+- a separate runtime repo or system can then load those bundles
+
+If you want to know what the repo exports, what files are inside the bundle,
+and what this repo does or does not own at runtime, this is the canonical page.
+
 ## Schema Version
 
 Current version: `tab-foundry-export-v3`

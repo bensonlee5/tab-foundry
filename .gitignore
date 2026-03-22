@@ -35,6 +35,12 @@ dist/
 *.egg-info/
 .eggs/
 pip-wheel-metadata/
+site/.generated/
+site/.hugo_build.lock
+site/node_modules/
+site/public/
+site/resources/
+site/site/
 
 # Local env files / secrets
 .env

@@ -4,6 +4,8 @@ This document is the operational runbook for `tab-foundry`: setup, local quality
 
 Related docs:
 
+- researcher onboarding: `docs/getting-started.md`
+- contribution workflow: `CONTRIBUTING.md`
 - quickstart: `README.md`
 - design decisions and repo structure: `docs/development/design-decisions.md`
 - codebase navigation: `docs/development/codebase-navigation.md`
@@ -16,6 +18,26 @@ This file stays top-level because it is the stable operational runbook.
 For agent-driven architecture search, use `program.md` as the execution
 contract; this file stays focused on commands, artifacts, and operational
 policy.
+
+The published docs site under `site/` is a navigation layer over these
+canonical Markdown sources. Update this file instead of generated site content
+when the runbook changes.
+
+## Overview
+
+This page tells you how to operate the repo safely. It is the best place to
+learn:
+
+- which commands to run
+- what artifacts those commands produce
+- how to inspect a run, [checkpoint](glossary.md#checkpoint), or
+  [export bundle](glossary.md#export-bundle)
+- how to verify a change before review
+
+If you want repo orientation first, start with
+[docs/getting-started.md](getting-started.md). If you care mostly about
+operational artifacts and handoff boundaries, also use
+[docs/ml-engineering.md](ml-engineering.md).
 
 ## Environment And Quality Gate
 
