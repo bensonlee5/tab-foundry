@@ -27,6 +27,8 @@ from tab_foundry.model.factory import build_model
 from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.types import TaskBatch
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def _classification_reference_arrays() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return (
@@ -1320,7 +1322,8 @@ def test_package_version_falls_back_to_pyproject_when_metadata_missing(
         lambda _name: (_ for _ in ()).throw(exporter_module.importlib.metadata.PackageNotFoundError()),
     )
 
-    assert exporter_module._package_version() == "0.8.16"
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert exporter_module._package_version() == pyproject["project"]["version"]
 
 
 def test_package_version_raises_when_resolution_fails(
