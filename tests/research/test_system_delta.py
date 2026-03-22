@@ -410,10 +410,12 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
     )
     assert "10-task medium binary bundle" not in created_sweep["anchor_surface"]["notes"][0]
     assert created_queue["rows"][0]["delta_ref"] == "delta_label_token"
+    assert created_sweep["external_benchmarks"] == ["tabiclv2"]
     assert created_sweep["training_experiment"] == "cls_benchmark_staged_prior"
     assert created_sweep["training_config_profile"] == "cls_benchmark_staged_prior"
     assert created_sweep["surface_role"] == "hybrid_diagnostic"
     assert materialized["sweep_id"] == "binary_sm_v2"
+    assert materialized["external_benchmarks"] == ["tabiclv2"]
     assert materialized["training_experiment"] == "cls_benchmark_staged_prior"
     assert materialized["training_config_profile"] == "cls_benchmark_staged_prior"
     assert materialized["surface_role"] == "hybrid_diagnostic"
@@ -462,6 +464,40 @@ def test_create_sweep_derives_lane_contract_from_overridden_training_experiment(
     assert materialized["training_experiment"] == "cls_benchmark_staged"
     assert materialized["training_config_profile"] == "cls_benchmark_staged"
     assert materialized["surface_role"] == "architecture_screen"
+
+
+def test_create_sweep_preserves_explicit_external_benchmarks_override(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="input_norm_dual_external_benchmarks",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="input_norm_followup",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        external_benchmarks=["tabiclv2", "nanotabpfn"],
+        delta_refs=["delta_anchor_activation_trace_baseline"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        sweeps_root=sweeps_root,
+    )
+
+    created_sweep = load_system_delta_sweep(
+        "input_norm_dual_external_benchmarks",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="input_norm_dual_external_benchmarks",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert created_sweep["external_benchmarks"] == ["tabiclv2", "nanotabpfn"]
+    assert materialized["external_benchmarks"] == ["tabiclv2", "nanotabpfn"]
 
 
 def test_create_sweep_preserves_explicit_lane_contract_overrides(tmp_path: Path) -> None:

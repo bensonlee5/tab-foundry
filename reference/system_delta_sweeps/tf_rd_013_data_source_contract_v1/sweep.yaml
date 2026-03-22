@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_013_data_source_contract_v1
 parent_sweep_id: qass_tfcol_large_missing_validation_v1
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
@@ -15,9 +15,10 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2602.11139
 anchor_surface:
   notes:
-  - This draft sweep is the TF-RD-013 contract layer for the promoted `row_cls + qass + no tfcol` anchor.
-  - The locked current-corpus surface remains the anchor until later TF-RD-013 child issues materialize and execute comparison artifacts.
+  - This completed sweep records the first TF-RD-013 promoted-anchor comparison package for `row_cls + qass + no tfcol`.
+  - The locked current-corpus surface remains the anchor because the first promoted-anchor read under issue 122 was neutral rather than decisive.
   - The initial dagzoo read is intentionally the unfiltered generated-source surface; any later filtering policy belongs in TF-RD-019 rather than in the first TF-RD-013 sweep.
+  - The immediate TF-RD-013 follow-up is issue 127 on multi-invocation, shape-aware dagzoo coverage rather than issue 124 filtering policy.
   - Reuse the existing `dagzoo_provenance` mapping on data surfaces; do not introduce a parallel dagzoo metadata channel.
   - Keep one canonical OpenML real-data baseline and treat approved manifest-backed external datasets as augmentation evidence only after the license ledger is satisfied.
   - Keep nanoTabPFN as the benchmark/control reference bundle while TabICLv2 remains the primary upstream architecture reference for the row-first target lane.

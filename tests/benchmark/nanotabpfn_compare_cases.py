@@ -157,6 +157,7 @@ def test_compare_main_parses_cli_invocation(
             "dataset_count": 3,
             "tab_foundry": {"best_roc_auc": 0.71, "final_roc_auc": 0.70},
             "nanotabpfn": {"best_roc_auc": 0.72, "final_roc_auc": 0.71},
+            "primary_external_benchmark": compare_module.EXTERNAL_BENCHMARK_TABICLV2,
             "artifacts": {"comparison_curve_png": "/tmp/comparison_curve.png"},
         }
 
@@ -199,9 +200,12 @@ def test_compare_main_parses_cli_invocation(
     assert config.control_baseline_id == "cls_benchmark_linear_v1"
     assert config.control_baseline_registry == tmp_path / "control_baselines.json"
     assert config.benchmark_bundle_path == tmp_path / "bundle.json"
+    assert config.external_benchmarks == (compare_module.EXTERNAL_BENCHMARK_TABICLV2,)
     assert config.with_tabiclv2 is False
     assert config.tabicl_root == Path("~/dev/tabicl")
-    assert "benchmark comparison complete:" in capsys.readouterr().out
+    stdout = capsys.readouterr().out
+    assert "benchmark comparison complete:" in stdout
+    assert "primary_external_benchmark=" in stdout
 
 
 def test_compare_main_parses_cli_invocation_with_tabiclv2(
@@ -218,6 +222,7 @@ def test_compare_main_parses_cli_invocation_with_tabiclv2(
             "tab_foundry": {"best_roc_auc": 0.71, "final_roc_auc": 0.70},
             "nanotabpfn": {"best_roc_auc": 0.72, "final_roc_auc": 0.71},
             "tabiclv2": {"best_roc_auc": 0.74, "final_roc_auc": 0.73},
+            "primary_external_benchmark": compare_module.EXTERNAL_BENCHMARK_TABICLV2,
             "artifacts": {"comparison_curve_png": "/tmp/comparison_curve.png"},
         }
 
@@ -242,12 +247,52 @@ def test_compare_main_parses_cli_invocation_with_tabiclv2(
     assert exit_code == 0
     config = captured["config"]
     assert config.with_tabiclv2 is True
+    assert config.external_benchmarks == (compare_module.EXTERNAL_BENCHMARK_TABICLV2,)
     assert config.tabicl_root == tmp_path / "tabicl"
     assert config.tabicl_classifier_checkpoint_version == "classifier.ckpt"
     assert config.tabicl_regressor_checkpoint_version == "regressor.ckpt"
-    stdout = capsys.readouterr().out
+    captured_io = capsys.readouterr()
+    stdout = captured_io.out
     assert "benchmark comparison complete:" in stdout
     assert "tabiclv2=" in stdout
+    assert "--with-tabiclv2 is deprecated" in captured_io.err
+
+
+def test_compare_main_parses_cli_invocation_with_explicit_nanotabpfn(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run(config):
+        captured["config"] = config
+        return {
+            "dataset_count": 3,
+            "tab_foundry": {"best_roc_auc": 0.71, "final_roc_auc": 0.70},
+            "nanotabpfn": {"best_roc_auc": 0.72, "final_roc_auc": 0.71},
+            "primary_external_benchmark": compare_module.EXTERNAL_BENCHMARK_NANOTABPFN,
+            "artifacts": {"comparison_curve_png": "/tmp/comparison_curve.png"},
+        }
+
+    monkeypatch.setattr(compare_module, "run_nanotabpfn_benchmark", _fake_run)
+
+    exit_code = compare_module.main(
+        [
+            "--tab-foundry-run-dir",
+            str(tmp_path / "run"),
+            "--out-root",
+            str(tmp_path / "bench"),
+            "--external-benchmark",
+            "nanotabpfn",
+        ]
+    )
+
+    assert exit_code == 0
+    config = captured["config"]
+    assert config.external_benchmarks == (compare_module.EXTERNAL_BENCHMARK_NANOTABPFN,)
+    stdout = capsys.readouterr().out
+    assert "primary_external_benchmark=nanotabpfn" in stdout
 
 
 def test_load_openml_benchmark_datasets_fails_on_bundle_drift(
@@ -945,6 +990,10 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
             nanotab_prior_dump=prior_dump,
+            external_benchmarks=(
+                compare_module.EXTERNAL_BENCHMARK_NANOTABPFN,
+                compare_module.EXTERNAL_BENCHMARK_TABICLV2,
+            ),
             with_tabiclv2=True,
             tabicl_root=tabicl_root,
             tabicl_classifier_checkpoint_version="classifier.ckpt",
@@ -964,6 +1013,14 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     assert summary["tabiclv2"]["device"] == "auto"
     assert summary["tabiclv2"]["resolved_device"] == "cuda"
     assert summary["tabiclv2"]["benchmark_host_fingerprint"] == "host-a"
+    assert summary["external_benchmarks"] == [
+        compare_module.EXTERNAL_BENCHMARK_NANOTABPFN,
+        compare_module.EXTERNAL_BENCHMARK_TABICLV2,
+    ]
+    assert summary["primary_external_benchmark"] == compare_module.EXTERNAL_BENCHMARK_NANOTABPFN
+    assert summary["artifacts"]["primary_external_curve_jsonl"] == str(
+        (out_root.resolve() / "nanotabpfn_curve.jsonl")
+    )
     assert summary["artifacts"]["tabiclv2_curve_jsonl"] == str(
         (out_root.resolve() / "tabiclv2_curve.jsonl")
     )
@@ -1016,6 +1073,7 @@ def test_run_nanotabpfn_benchmark_with_tabiclv2_fails_clear_when_env_missing(
                 out_root=tmp_path / "benchmark_out",
                 nanotabpfn_root=nanotab_root,
                 nanotab_prior_dump=prior_dump,
+                external_benchmarks=(compare_module.EXTERNAL_BENCHMARK_TABICLV2,),
                 with_tabiclv2=True,
                 tabicl_root=tmp_path / "missing_tabicl",
             )
@@ -1414,6 +1472,157 @@ def test_run_nanotabpfn_benchmark_tolerates_missing_bundle_helper_failure(
     assert "nanotabpfn" not in summary
     assert summary["nanotabpfn_error"]["kind"] == "helper_failed_on_missing_bundle"
     assert summary["artifacts"]["nanotabpfn_curve_jsonl"] is None
+
+
+def test_run_nanotabpfn_benchmark_falls_back_to_successful_primary_external_benchmark(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    out_root = tmp_path / "benchmark_out"
+    bundle_path = tmp_path / "bundle.json"
+    bundle_path.write_text("{}", encoding="utf-8")
+    nanotab_root = tmp_path / "nano"
+    (nanotab_root / ".venv" / "bin").mkdir(parents=True)
+    (nanotab_root / ".venv" / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
+    prior_dump = nanotab_root / "300k_150x5_2.h5"
+    prior_dump.write_text("prior", encoding="utf-8")
+    tabicl_root = tmp_path / "tabicl"
+    tabicl_python = tabicl_root / ".venv" / "bin" / "python"
+    tabicl_python.parent.mkdir(parents=True)
+    tabicl_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    benchmark_bundle = {
+        "name": "large_bundle",
+        "version": 1,
+        "selection": {
+            "new_instances": 6,
+            "task_type": "supervised_classification",
+            "max_features": 10,
+            "max_classes": 2,
+            "max_missing_pct": 5.0,
+            "min_minority_class_pct": 2.5,
+        },
+        "task_ids": [1],
+        "tasks": [
+            {
+                "task_id": 1,
+                "dataset_name": "toy",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(
+        compare_module,
+        "load_benchmark_bundle_for_execution",
+        lambda path=None: (benchmark_bundle, True),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "load_openml_benchmark_datasets",
+        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+            {
+                "toy": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64),
+                )
+            },
+            [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
+        ),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "evaluate_tab_foundry_run",
+        lambda *_args, **_kwargs: [
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "log_loss": 0.42,
+                "brier_score": 0.12,
+                "dataset_roc_auc": {"toy": 0.81},
+                "dataset_log_loss": {"toy": 0.42},
+                "dataset_brier_score": {"toy": 0.12},
+            }
+        ],
+    )
+    monkeypatch.setattr(compare_module, "summarize_checkpoint_curve", lambda records, **_kwargs: {"records": records})
+    monkeypatch.setattr(compare_module, "plot_comparison_curve", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        compare_module,
+        "derive_benchmark_run_record",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError(
+                "checkpoint config must include explicit model.arch metadata for benchmark "
+                "registration; legacy checkpoints without persisted model.arch cannot be "
+                "registered"
+            )
+        ),
+    )
+    monkeypatch.setattr(compare_module, "resolve_device", lambda device: "cuda")
+    monkeypatch.setattr(compare_module, "benchmark_host_fingerprint", lambda: "host-a")
+
+    def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
+        script_name = Path(cmd[1]).name
+        if script_name == "nanotabpfn_helper.py":
+            raise subprocess.CalledProcessError(1, cmd)
+        if script_name != "tabiclv2_helper.py":
+            raise AssertionError(f"unexpected helper script {script_name!r}")
+        out_path = Path(cmd[cmd.index("--out-path") + 1])
+        out_path.write_text(
+            json.dumps(
+                {
+                    "seed": 0,
+                    "step": 0,
+                    "training_time": 3.5,
+                    "roc_auc": 0.84,
+                    "log_loss": 0.39,
+                    "brier_score": 0.11,
+                    "dataset_roc_auc": {"toy": 0.84},
+                    "dataset_log_loss": {"toy": 0.39},
+                    "dataset_brier_score": {"toy": 0.11},
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(
+        compare_module,
+        "subprocess",
+        SimpleNamespace(run=_fake_run, CalledProcessError=subprocess.CalledProcessError),
+    )
+
+    summary = compare_module.run_nanotabpfn_benchmark(
+        compare_module.NanoTabPFNBenchmarkConfig(
+            tab_foundry_run_dir=smoke_run_dir,
+            out_root=out_root,
+            nanotabpfn_root=nanotab_root,
+            nanotab_prior_dump=prior_dump,
+            benchmark_bundle_path=bundle_path,
+            external_benchmarks=(
+                compare_module.EXTERNAL_BENCHMARK_NANOTABPFN,
+                compare_module.EXTERNAL_BENCHMARK_TABICLV2,
+            ),
+            tabicl_root=tabicl_root,
+            tabicl_classifier_checkpoint_version="classifier.ckpt",
+        )
+    )
+
+    assert "nanotabpfn" not in summary
+    assert summary["nanotabpfn_error"]["kind"] == "helper_failed_on_missing_bundle"
+    assert summary["tabiclv2"]["final_log_loss"] == pytest.approx(0.39)
+    assert summary["primary_external_benchmark"] == compare_module.EXTERNAL_BENCHMARK_TABICLV2
+    assert summary["artifacts"]["primary_external_curve_jsonl"] == str(
+        out_root.resolve() / "tabiclv2_curve.jsonl"
+    )
+    written_summary = json.loads((out_root / "comparison_summary.json").read_text(encoding="utf-8"))
+    assert written_summary["primary_external_benchmark"] == compare_module.EXTERNAL_BENCHMARK_TABICLV2
 
 
 def test_run_nanotabpfn_benchmark_reuses_curve_without_local_nanotabpfn_env(

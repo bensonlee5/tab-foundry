@@ -382,26 +382,29 @@ Run benchmark comparison only after a run has already been selected internally:
 ```bash
 tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
-  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+  --tabicl-root ~/dev/tabicl
 ```
 
-Add TabICLv2 as an explicit frontier comparator when you want a broader
-reference without changing the current nano-pinned default behavior:
+Opt into nanoTabPFN explicitly only when you want the legacy comparator or a
+secondary no-missing control lane:
 
 ```bash
 tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
+  --external-benchmark tabiclv2 \
+  --external-benchmark nanotabpfn \
   --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5 \
-  --with-tabiclv2 \
   --tabicl-root ~/dev/tabicl
 ```
 
-`comparison_summary.json` now includes an optional top-level `tabiclv2` section
-and additive `artifacts.tabiclv2_curve_jsonl` when that extra comparator is
-requested. The default compare flow remains nano-pinned on the current
-canonical binary benchmark surface; TabICLv2 is currently opt-in here so the
-repo can broaden exploration without changing sweep-side promotion policy in
-the same step.
+`comparison_summary.json` now records ordered `external_benchmarks`,
+`primary_external_benchmark`, and `artifacts.primary_external_curve_jsonl`.
+Comparator-specific sections and artifact keys remain additive: new runs can
+include `tabiclv2` and/or `nanotabpfn`, while old nano-only summaries remain
+valid historical artifacts. New benchmark-facing sweeps should use TabICLv2 as
+the primary comparator because missing-permitting bundles are in scope; old
+sweeps without explicit comparator metadata still replay as nanoTabPFN-era
+artifacts for reproducibility.
 
 The comparison flow is pinned to the repo-tracked benchmark bundle at
 `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`. Runs fail fast
@@ -506,8 +509,7 @@ Benchmark against a non-default repo-tracked bundle with:
 ```bash
 tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
-  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json \
-  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json
 ```
 
 The benchmark-profile training config now writes `train_history.jsonl` directly
@@ -520,8 +522,7 @@ One simple preparation path is:
 ```bash
 tab-foundry bench smoke dagzoo --out-root /tmp/tab_foundry_dagzoo_smoke_bench
 tab-foundry bench compare \
-  --tab-foundry-run-dir /tmp/tab_foundry_dagzoo_smoke_bench \
-  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+  --tab-foundry-run-dir /tmp/tab_foundry_dagzoo_smoke_bench
 ```
 
 The checked-in `cls_benchmark_linear_v2` control baseline id remains the
@@ -559,8 +560,7 @@ tab-foundry train prior staged \
 tab-foundry bench compare \
   --tab-foundry-run-dir outputs/control_baselines/cls_benchmark_linear_v2/train \
   --out-root outputs/control_baselines/cls_benchmark_linear_v2/benchmark \
-  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json \
-  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 
 tab-foundry bench registry freeze-baseline \
   --baseline-id cls_benchmark_linear_v2 \
@@ -594,8 +594,7 @@ tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
   --out-root <benchmark_out_root> \
   --control-baseline-id cls_benchmark_linear_v2 \
-  --control-baseline-registry src/tab_foundry/bench/control_baselines_v1.json \
-  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5
+  --control-baseline-registry src/tab_foundry/bench/control_baselines_v1.json
 ```
 
 Review comparison summaries using:

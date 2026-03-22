@@ -210,6 +210,28 @@ def test_build_training_surface_record_marks_missing_inputs_when_manifest_is_dir
     assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is False
 
 
+def test_build_training_surface_record_keeps_manifest_path_when_file_is_missing(
+    tmp_path: Path,
+) -> None:
+    manifest_path = tmp_path / "missing_manifest.parquet"
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+        },
+        run_dir=tmp_path / "run_missing_manifest",
+    )
+
+    assert record["data"]["manifest"] == {
+        "manifest_path": str(manifest_path.resolve()),
+    }
+
+
 def test_build_training_surface_record_captures_post_encoder_norm_component(tmp_path: Path) -> None:
     manifest_path = _write_manifest(tmp_path / "manifest_post_encoder_norm.parquet")
 

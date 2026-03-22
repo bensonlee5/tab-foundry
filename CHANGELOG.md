@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-03-22
+
+### Changed
+
+- User-facing note: `tab-foundry bench compare` now defaults to TabICLv2 as the
+  primary external benchmark, adds repeatable `--external-benchmark` selection,
+  and keeps `--with-tabiclv2` only as a deprecated compatibility alias for one
+  release; nanoTabPFN is now an explicit opt-in comparator instead of the
+  default benchmark path.
+
+- User-facing note: system-delta sweep metadata now records ordered
+  `external_benchmarks`, new sweeps created through the packaged CLI default to
+  `tabiclv2`, and legacy sweeps without that field continue to replay as
+  nanoTabPFN-era runs for reproducibility.
+
+- User-facing note: new benchmark summaries now include
+  `external_benchmarks`, `primary_external_benchmark`, and
+  `artifacts.primary_external_curve_jsonl`, and sweep result surfaces now label
+  the primary external comparator generically while remaining compatible with
+  older nanoTabPFN-only artifacts.
+
 ## [0.8.17] - 2026-03-21
 
 ### Changed
