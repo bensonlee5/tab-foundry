@@ -1,0 +1,286 @@
+{
+  "comparisons": {
+    "anchor_vs_generated_source": {
+      "comparison_id": "anchor_vs_generated_source",
+      "difference_count": 29,
+      "differences": {
+        "classification_n_classes.histogram.10": {
+          "left": 2,
+          "right": null
+        },
+        "classification_n_classes.histogram.2": {
+          "left": null,
+          "right": 200
+        },
+        "classification_n_classes.histogram.3": {
+          "left": 1,
+          "right": null
+        },
+        "classification_n_classes.histogram.4": {
+          "left": 1,
+          "right": null
+        },
+        "classification_n_classes.histogram.5": {
+          "left": 1,
+          "right": null
+        },
+        "classification_n_classes.histogram.7": {
+          "left": 4,
+          "right": null
+        },
+        "classification_n_classes.histogram.9": {
+          "left": 1,
+          "right": null
+        },
+        "classification_n_classes.max": {
+          "left": 10,
+          "right": 2
+        },
+        "classification_n_classes.min": {
+          "left": 3,
+          "right": 2
+        },
+        "filter_status_counts.missing": {
+          "left": 10,
+          "right": null
+        },
+        "filter_status_counts.not_run": {
+          "left": null,
+          "right": 200
+        },
+        "missing_value_status_counts.clean": {
+          "left": null,
+          "right": 200
+        },
+        "missing_value_status_counts.missing": {
+          "left": 10,
+          "right": null
+        },
+        "n_features.max": {
+          "left": 63,
+          "right": 33
+        },
+        "n_features.min": {
+          "left": 27,
+          "right": 33
+        },
+        "persisted_summary": {
+          "left": null,
+          "right": {
+            "discovered_records": 200,
+            "excluded_for_missing_values": 0,
+            "excluded_records": 0,
+            "filter_policy": "include_all",
+            "filter_status_counts": {
+              "not_run": 200
+            },
+            "missing_value_policy": "allow_any",
+            "missing_value_status_counts": {
+              "clean": 200
+            },
+            "test_records": 8,
+            "total_records": 200,
+            "train_records": 181,
+            "val_records": 11
+          }
+        },
+        "split_counts.test": {
+          "left": 1,
+          "right": 8
+        },
+        "split_counts.train": {
+          "left": 8,
+          "right": 181
+        },
+        "split_counts.val": {
+          "left": 1,
+          "right": 11
+        },
+        "task_counts.classification": {
+          "left": 10,
+          "right": 200
+        },
+        "task_missing_value_status_counts.classification.clean": {
+          "left": null,
+          "right": 200
+        },
+        "task_missing_value_status_counts.classification.missing": {
+          "left": 10,
+          "right": null
+        },
+        "task_split_counts.classification.test": {
+          "left": 1,
+          "right": 8
+        },
+        "task_split_counts.classification.train": {
+          "left": 8,
+          "right": 181
+        },
+        "task_split_counts.classification.val": {
+          "left": 1,
+          "right": 11
+        },
+        "task_train_test_record_counts.classification": {
+          "left": null,
+          "right": {
+            "test": 200,
+            "train": 200
+          }
+        },
+        "total_records": {
+          "left": 10,
+          "right": 200
+        },
+        "unique_dataset_id_count": {
+          "left": 10,
+          "right": 200
+        },
+        "unique_source_root_count": {
+          "left": 0,
+          "right": 1
+        }
+      },
+      "left_manifest_id": "anchor_manifest_default",
+      "left_manifest_path": "data/manifests/default.parquet",
+      "right_manifest_id": "dagzoo_generated_source",
+      "right_manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
+      "status": "available"
+    }
+  },
+  "generated_at_utc": "2026-03-22T04:37:02Z",
+  "issues": {
+    "materialization_issue": 120,
+    "subsequent_filtering_policy_issue": 124
+  },
+  "manifests": {
+    "anchor_manifest_default": {
+      "inspection": {
+        "classification_n_classes": {
+          "histogram": {
+            "10": 2,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "7": 4,
+            "9": 1
+          },
+          "max": 10,
+          "min": 3
+        },
+        "compatibility": null,
+        "filter_status_counts": {
+          "missing": 10
+        },
+        "manifest_path": "data/manifests/default.parquet",
+        "missing_value_status_counts": {
+          "missing": 10
+        },
+        "n_features": {
+          "max": 63,
+          "min": 27
+        },
+        "persisted_summary": null,
+        "split_counts": {
+          "test": 1,
+          "train": 8,
+          "val": 1
+        },
+        "task_counts": {
+          "classification": 10
+        },
+        "task_missing_value_status_counts": {
+          "classification": {
+            "missing": 10
+          }
+        },
+        "task_split_counts": {
+          "classification": {
+            "test": 1,
+            "train": 8,
+            "val": 1
+          }
+        },
+        "task_train_test_record_counts": {},
+        "total_records": 10,
+        "unique_dataset_id_count": 10,
+        "unique_source_root_count": 0
+      },
+      "manifest_path": "data/manifests/default.parquet",
+      "manifest_sha256": "8c56d33a87e6523bccac8dcddb92b075499952e3c0afbcf756b68c7b0e5b3f44",
+      "status": "available"
+    },
+    "dagzoo_generated_source": {
+      "inspection": {
+        "classification_n_classes": {
+          "histogram": {
+            "2": 200
+          },
+          "max": 2,
+          "min": 2
+        },
+        "compatibility": null,
+        "filter_status_counts": {
+          "not_run": 200
+        },
+        "manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
+        "missing_value_status_counts": {
+          "clean": 200
+        },
+        "n_features": {
+          "max": 33,
+          "min": 33
+        },
+        "persisted_summary": {
+          "discovered_records": 200,
+          "excluded_for_missing_values": 0,
+          "excluded_records": 0,
+          "filter_policy": "include_all",
+          "filter_status_counts": {
+            "not_run": 200
+          },
+          "missing_value_policy": "allow_any",
+          "missing_value_status_counts": {
+            "clean": 200
+          },
+          "test_records": 8,
+          "total_records": 200,
+          "train_records": 181,
+          "val_records": 11
+        },
+        "split_counts": {
+          "test": 8,
+          "train": 181,
+          "val": 11
+        },
+        "task_counts": {
+          "classification": 200
+        },
+        "task_missing_value_status_counts": {
+          "classification": {
+            "clean": 200
+          }
+        },
+        "task_split_counts": {
+          "classification": {
+            "test": 8,
+            "train": 181,
+            "val": 11
+          }
+        },
+        "task_train_test_record_counts": {
+          "classification": {
+            "test": 200,
+            "train": 200
+          }
+        },
+        "total_records": 200,
+        "unique_dataset_id_count": 200,
+        "unique_source_root_count": 1
+      },
+      "manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
+      "manifest_sha256": "c3733db05ad3b4497653df86db36027efc5255bc2ea7b8960c90d1a9831dfbe6",
+      "status": "available"
+    }
+  },
+  "schema": "tab-foundry-tf-rd-013-manifest-characteristics-summary-v3"
+}

@@ -2142,6 +2142,46 @@ deltas:
     default_next_action: Run after the bounded row-cls reopen as the single promotion-gate confirmation row.
     applicability_guards: []
 
+  delta_data_manifest_root_dagzoo_generated_source:
+    dimension_family: data
+    family: provenance
+    binary_applicable: true
+    description: Point training at the unfiltered dagzoo generated-source manifest with explicit dagzoo generate provenance.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data generation axis.
+    expected_effect: Higher-throughput synthetic training data with no post-generation filtering and explicit provenance.
+    adequacy_knobs:
+      - dagzoo generate command lineage
+      - dataset count and split distribution deltas
+      - filter-status distribution versus the anchor manifest
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare manifest characteristics before training and record that the initial TF-RD-013 read is intentionally unfiltered.
+        - If weaker, discuss whether corpus breadth or absent filtering is the likely cause.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: dagzoo_generated_source
+        surface_overrides:
+          source: manifest
+          manifest_path: outputs/staged_ladder_support/dagzoo_generated_source/manifest.parquet
+          dagzoo_provenance:
+            commands: []
+            config_refs: []
+            curated_root_lineage: []
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run the current-versus-generated-source comparison before any later filtering-policy follow-up.
+    applicability_guards: []
+
   delta_data_filter_policy_accepted_only:
       dimension_family: data
       family: provenance
@@ -2274,10 +2314,10 @@ deltas:
       model:
         stage_label: anchor_model
       data:
-        surface_label: tf_rd_013_curated_realdata_comparator
+        surface_label: curated_realdata_comparator
         surface_overrides:
           source: manifest
-          manifest_path: outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet
+          manifest_path: outputs/staged_ladder_support/curated_realdata/openml_baseline/manifest.parquet
       preprocessing:
         surface_label: runtime_default
     default_next_action: Materialize the approved OpenML-baseline comparator manifest and cite any approved external augmentations before scheduling this row.
