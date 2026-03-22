@@ -27,6 +27,7 @@
 
 ## Sweeps and Project Tracking
 
+- Put TF-RD IDs on sweep names
 - Always log results to wandb when executing sweeps.
 - Update `roadmap.md` for sweeps when a sweep is complete, and also update associated GitHub issues.
 - Attach relevant GitHub issues to PRs, and link to relevant PRs from GitHub issues, to keep the web of context connected.
