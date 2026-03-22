@@ -135,7 +135,7 @@ retained for traceability.
 | 7 | TF-RD-006 | Column-set integration | completed | Implemented |
 | 8 | TF-RD-007 | Row-level context and QASS attribution | completed | Implemented |
 | 9 | TF-RD-008 | Coherent classification anchor promotion | implemented | Implemented |
-| 10 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | planned | Now |
+| 10 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | partial | Now |
 | 11 | TF-RD-018 | Training-surface adequacy on the promoted anchor | planned | Next |
 | 12 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
 | 13 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
@@ -224,7 +224,7 @@ attention.
 | Coherent row-first migration ladder exists in code | `implemented` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly, and `qass_tfcol_large_missing_validation_v1` closed the missing-permitting settlement sweep | The remaining work is no longer anchor coherence; it is harder and broader post-008 regime coverage on the settled row-first base | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and both large-bundle validators now separate row embeddings, plain context, TFCol-only, QASS-only, the no-TFCol default line, and the retained `qass + tfcol_heads4` calibration variant | The next comparison gap is no longer anchor settlement; it is whether harder post-008 fronts provide more decisive regime separation before scaling work | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | One promoted row-first classification anchor exists | `implemented` | `qass_tfcol_large_missing_validation_v1` closed on an explicit split: `row_cls + qass + no tfcol` is now the default row-first anchor, while `row_cls + qass + tfcol_heads4` is retained as a calibration-oriented alternative | Future work should treat the no-TFCol line as the default and reserve TFCol for explicit calibration-oriented follow-up rather than reopening anchor settlement | `TF-RD-008` |
-| Harder post-008 data surfaces can be exercised | `partial` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, and canonical no-missing versus allow-missing binary bundles already exist | There is no post-008 program yet that first decides whether dagzoo-generated corpora are the representative training-data surface for the promoted anchor before training-surface optimization and the later benchmark-backed robustness ladders | `TF-RD-011`, `TF-RD-013`, `TF-RD-014`, `TF-RD-017`, `TF-RD-018` |
+| Harder post-008 data surfaces can be exercised | `partial` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, and the first promoted-anchor TF-RD-013 comparison package under `#120`, `#121`, and `#122` now exist | The first promoted-anchor read was neutral, so the repo still lacks a representative post-008 training-data decision; the immediate blocker is broader multi-invocation dagzoo coverage under `#127`, not training-surface optimization yet | `TF-RD-011`, `TF-RD-013`, `TF-RD-014`, `TF-RD-017`, `TF-RD-018` |
 | Class-imbalance robustness is meaningfully exercised | `partial` | Current benchmark bundles enforce `min_minority_class_pct = 2.5`, so the repo already excludes degenerate class-balance cases | There is no dedicated imbalance-focused bundle ladder, imbalance-oriented reporting contract, or explicit decision on the promoted anchor under materially skewed priors | `TF-RD-017` |
 | Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, and bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist | Optimizer, schedule, step-budget, batch, and clipping adequacy are not yet tracked as one roadmap workstream with a canonical decision surface | `TF-RD-018` |
 | Many-class evaluation can start on the row-first base | `partial` | The staged family already includes `many_class`, reusable machinery exists, and `nanotabpfn_openml_classification_small_v1.json` provides a benchmark-facing multiclass bundle | Many-class still lacks a promoted row-first benchmark ladder, adequacy sweeps, and a keep/defer decision | `TF-RD-010` |
@@ -582,7 +582,7 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-010: Many-Class Promotion On The Row-First Base
 
-- Status: `planned`
+- Status: `partial`
 - Milestone: `Next`
 - Goal: extend the promoted row-first backbone into the existing `many_class`
   path
@@ -654,7 +654,7 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-013: Dagzoo Synthetic-Data Efficacy On The Promoted Anchor
 
-- Status: `planned`
+- Status: `partial`
 - Milestone: `Now`
 - Goal: decide before training-surface adequacy work whether dagzoo-generated
   corpora better match the intended post-008 training data surface than the
@@ -664,23 +664,32 @@ This roadmap assumes the following repo truths:
 - Current state:
   - the dagzoo handoff boundary is complete through closed TF-RD-011 work
   - dagzoo smoke and manifest identity are no longer the main blocker
-  - there is no benchmark-facing post-008 data-source comparison program yet
+  - issue `#122` executed the first promoted-anchor comparison against one unfiltered
+    dagzoo surface and one OpenML-only curated comparator
+  - that first read was neutral: the anchor, the single-invocation dagzoo surface,
+    and the OpenML-only comparator all landed on the same recorded large-bundle
+    metrics, while the dagzoo and curated manifests still remained materially different
+    from the anchor contract
+  - the direct nanoTabPFN helper comparison is partially confounded on this bundle
+    because dataset `Fitness_Club` produced non-finite probabilities even with
+    `--allow-missing-values`
   - dagzoo is the synthetic-data generation lane, not an external real-data
     ingestion surface
   - issue `#120` now records the first runnable unfiltered dagzoo generated-
     source surface and its support artifacts for the promoted anchor
-  - the roadmap now treats this as the first deliberate post-008 gate so the
-    repo does not over-optimize optimizer and schedule choices on a corpus that
-    may not match intended use
+  - issue `#127` now tracks the immediate follow-up on multi-invocation, shape-aware
+    dagzoo coverage because the first read did not separate the candidate surfaces
+  - issue `#107` remains blocked until TF-RD-013 reruns against that broader dagzoo
+    surface and records a representative-data decision
 - Required work:
-  - define the canonical dagzoo corpus variants, provenance rules, and first
-    post-008 data-source sweep ladder
-  - compare the current corpus against the unfiltered dagzoo generated-source
-    corpus and the curated real-data ladders, including both the OpenML baselines
-    and any license-cleared manifest-backed external augmentations, on the promoted
-    row-first anchor rather than on older hybrid surfaces
-  - if the initial unfiltered read suggests later policy work is warranted, use
-    TF-RD-019 to decide whether any filtered dagzoo variants should be introduced
+  - expand dagzoo support beyond one default-config generate run so TF-RD-013 can
+    test a multi-invocation, shape-aware synthetic corpus under issue `#127`
+  - rerun the promoted-anchor current-vs-dagzoo-vs-curated comparison once that
+    broader dagzoo surface exists
+  - keep the curated real-data lane OpenML-first and evidence-only unless later
+    approved augmentations are needed to cover regimes OpenML misses
+  - use TF-RD-019 and issue `#124` only if the broader dagzoo read later shows a
+    predictability or corpus-selection problem that actually requires filtering policy
   - record whether dagzoo becomes the representative post-008 training-data
     surface, complements the benchmark ladders, or stays auxiliary
 - Exit criteria:
@@ -775,6 +784,8 @@ This roadmap assumes the following repo truths:
   - current adequacy reads are still scattered across frontier-specific sweeps
   - this epic should follow TF-RD-013 so optimizer and schedule work are grounded
     in data that looks like intended use
+  - issue `#122` recorded a neutral first TF-RD-013 read, so issue `#107` remains
+    blocked on the broader dagzoo follow-up in issue `#127`
   - later architecture reads remain confounded until the repo has one explicit
     adequacy decision surface on the settled row-first base
 - Required work:
