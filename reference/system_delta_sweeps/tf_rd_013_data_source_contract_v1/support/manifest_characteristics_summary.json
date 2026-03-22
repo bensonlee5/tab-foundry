@@ -10,7 +10,7 @@
         },
         "classification_n_classes.histogram.2": {
           "left": null,
-          "right": 200
+          "right": 8192
         },
         "classification_n_classes.histogram.3": {
           "left": 1,
@@ -46,11 +46,11 @@
         },
         "filter_status_counts.not_run": {
           "left": null,
-          "right": 200
+          "right": 8192
         },
         "missing_value_status_counts.clean": {
           "left": null,
-          "right": 200
+          "right": 8192
         },
         "missing_value_status_counts.missing": {
           "left": 10,
@@ -67,42 +67,42 @@
         "persisted_summary": {
           "left": null,
           "right": {
-            "discovered_records": 200,
+            "discovered_records": 8192,
             "excluded_for_missing_values": 0,
             "excluded_records": 0,
             "filter_policy": "include_all",
             "filter_status_counts": {
-              "not_run": 200
+              "not_run": 8192
             },
             "missing_value_policy": "allow_any",
             "missing_value_status_counts": {
-              "clean": 200
+              "clean": 8192
             },
-            "test_records": 8,
-            "total_records": 200,
-            "train_records": 181,
-            "val_records": 11
+            "test_records": 402,
+            "total_records": 8192,
+            "train_records": 7392,
+            "val_records": 398
           }
         },
         "split_counts.test": {
           "left": 1,
-          "right": 8
+          "right": 402
         },
         "split_counts.train": {
           "left": 8,
-          "right": 181
+          "right": 7392
         },
         "split_counts.val": {
           "left": 1,
-          "right": 11
+          "right": 398
         },
         "task_counts.classification": {
           "left": 10,
-          "right": 200
+          "right": 8192
         },
         "task_missing_value_status_counts.classification.clean": {
           "left": null,
-          "right": 200
+          "right": 8192
         },
         "task_missing_value_status_counts.classification.missing": {
           "left": 10,
@@ -110,30 +110,30 @@
         },
         "task_split_counts.classification.test": {
           "left": 1,
-          "right": 8
+          "right": 402
         },
         "task_split_counts.classification.train": {
           "left": 8,
-          "right": 181
+          "right": 7392
         },
         "task_split_counts.classification.val": {
           "left": 1,
-          "right": 11
+          "right": 398
         },
         "task_train_test_record_counts.classification": {
           "left": null,
           "right": {
-            "test": 200,
-            "train": 200
+            "test": 8192,
+            "train": 8192
           }
         },
         "total_records": {
           "left": 10,
-          "right": 200
+          "right": 8192
         },
         "unique_dataset_id_count": {
           "left": 10,
-          "right": 200
+          "right": 8192
         },
         "unique_source_root_count": {
           "left": 0,
@@ -147,7 +147,7 @@
       "status": "available"
     }
   },
-  "generated_at_utc": "2026-03-22T04:37:02Z",
+  "generated_at_utc": "2026-03-22T15:41:03Z",
   "issues": {
     "materialization_issue": 120,
     "subsequent_filtering_policy_issue": 124
@@ -213,72 +213,72 @@
       "inspection": {
         "classification_n_classes": {
           "histogram": {
-            "2": 200
+            "2": 8192
           },
           "max": 2,
           "min": 2
         },
         "compatibility": null,
         "filter_status_counts": {
-          "not_run": 200
+          "not_run": 8192
         },
         "manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
         "missing_value_status_counts": {
-          "clean": 200
+          "clean": 8192
         },
         "n_features": {
           "max": 33,
           "min": 33
         },
         "persisted_summary": {
-          "discovered_records": 200,
+          "discovered_records": 8192,
           "excluded_for_missing_values": 0,
           "excluded_records": 0,
           "filter_policy": "include_all",
           "filter_status_counts": {
-            "not_run": 200
+            "not_run": 8192
           },
           "missing_value_policy": "allow_any",
           "missing_value_status_counts": {
-            "clean": 200
+            "clean": 8192
           },
-          "test_records": 8,
-          "total_records": 200,
-          "train_records": 181,
-          "val_records": 11
+          "test_records": 402,
+          "total_records": 8192,
+          "train_records": 7392,
+          "val_records": 398
         },
         "split_counts": {
-          "test": 8,
-          "train": 181,
-          "val": 11
+          "test": 402,
+          "train": 7392,
+          "val": 398
         },
         "task_counts": {
-          "classification": 200
+          "classification": 8192
         },
         "task_missing_value_status_counts": {
           "classification": {
-            "clean": 200
+            "clean": 8192
           }
         },
         "task_split_counts": {
           "classification": {
-            "test": 8,
-            "train": 181,
-            "val": 11
+            "test": 402,
+            "train": 7392,
+            "val": 398
           }
         },
         "task_train_test_record_counts": {
           "classification": {
-            "test": 200,
-            "train": 200
+            "test": 8192,
+            "train": 8192
           }
         },
-        "total_records": 200,
-        "unique_dataset_id_count": 200,
+        "total_records": 8192,
+        "unique_dataset_id_count": 8192,
         "unique_source_root_count": 1
       },
       "manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
-      "manifest_sha256": "c3733db05ad3b4497653df86db36027efc5255bc2ea7b8960c90d1a9831dfbe6",
+      "manifest_sha256": "7903d0f5523260b0b45d5673cfd326c7946df6142c8cab2fd582bcb5d706efdd",
       "status": "available"
     }
   },

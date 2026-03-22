@@ -21,7 +21,7 @@ rows:
         corpus_variant: dagzoo_generated_source
         comparator_role: promoted_anchor_candidate
         commands:
-        - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source" --num-datasets 200 --seed 1 --device cpu --hardware-policy none
+        - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source" --num-datasets 8192 --seed 1 --device cpu --hardware-policy none
         - cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet
         config_refs:
         - configs/default.yaml
@@ -31,6 +31,30 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      runtime:
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Compare manifest characteristics against the current-corpus anchor before reading any benchmark outcome.
   - Treat `filter_status_counts.not_run` as a deliberate property of the initial unfiltered sweep, not as a hidden data-contract bug.
@@ -67,6 +91,30 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      runtime:
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Keep the OpenML baseline canonical and cite approved external augmentations only after issue 114 license approval rows exist.
   - Interpret this row as comparator-surface contract work, not as a new ingestion pathway.
