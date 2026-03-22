@@ -1,0 +1,121 @@
+{
+  "artifacts": {
+    "generated_dir": "outputs/staged_ladder_support/tf_rd_013/generated_source/generated",
+    "generated_source_manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
+    "generated_source_manifest_sha256": "c3733db05ad3b4497653df86db36027efc5255bc2ea7b8960c90d1a9831dfbe6",
+    "generated_source_root": "outputs/staged_ladder_support/tf_rd_013/generated_source",
+    "handoff_manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/handoff_manifest.json",
+    "handoff_manifest_sha256": "0a031dcdb2dbdc17f7a1acdd0728b4d965fea843ed6bb7d4c865b069f52f9660",
+    "local_output_root": "outputs/staged_ladder_support/tf_rd_013"
+  },
+  "config_refs": {
+    "dagzoo": [
+      "configs/default.yaml"
+    ],
+    "tab_foundry": [
+      "configs/data/default.yaml"
+    ]
+  },
+  "env_hints": {
+    "dagzoo_root": "../dagzoo",
+    "tab_foundry_root": "."
+  },
+  "generated_at_utc": "2026-03-22T04:37:02Z",
+  "handoff": {
+    "artifacts_relative": {
+      "effective_config_path": "generated/effective_config.yaml",
+      "effective_config_trace_path": "generated/effective_config_trace.yaml",
+      "generated_dir": "generated",
+      "run_root": "."
+    },
+    "defaults": {
+      "curation_policy": "none",
+      "recommended_training_artifact_key": "generated_dir",
+      "recommended_training_corpus": "generated"
+    },
+    "generate_invocation": {
+      "config_path": "../dagzoo/configs/default.yaml",
+      "overrides": {
+        "device": "cpu",
+        "diagnostics": false,
+        "diagnostics_out_dir": null,
+        "handoff_root": "outputs/staged_ladder_support/tf_rd_013/generated_source",
+        "hardware_policy": "none",
+        "missing_mar_logit_scale": null,
+        "missing_mar_observed_fraction": null,
+        "missing_mechanism": null,
+        "missing_mnar_logit_scale": null,
+        "missing_rate": null,
+        "num_datasets": 200,
+        "rows": null,
+        "seed": 1
+      }
+    },
+    "hardware": {
+      "backend": "cpu",
+      "device_name": "cpu",
+      "hardware_policy": "none",
+      "requested_device": "cpu",
+      "resolved_device": "cpu",
+      "tier": "cpu"
+    },
+    "identity": {
+      "generate_run_id": "e11c55656a2f155708c690021a4b050a",
+      "generated_corpus_id": "9aeb9b104a2c2fd80c921d3b1a5926ac",
+      "source_family": "dagzoo.fixed_layout_scm"
+    },
+    "summary": {
+      "generated_datasets": 200
+    },
+    "throughput": {
+      "generation_stage": {
+        "datasets_per_minute": 2600.2518052873356,
+        "elapsed_seconds": 4.614937667036429,
+        "generated_datasets": 200
+      }
+    }
+  },
+  "issues": {
+    "materialization_issue": 120,
+    "materialization_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/120",
+    "subsequent_filtering_policy_issue": 124,
+    "subsequent_filtering_policy_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/124"
+  },
+  "schema": "tab-foundry-tf-rd-013-materialization-summary-v3",
+  "steps": [
+    {
+      "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source\" --num-datasets 200 --seed 1 --device cpu --hardware-policy none",
+      "cwd": "$DAGZOO_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "dagzoo_generate"
+    },
+    {
+      "command": "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
+      "cwd": "$TAB_FOUNDRY_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "build_manifest_generated_source"
+    }
+  ],
+  "surfaces": {
+    "dagzoo_generated_source": {
+      "dagzoo_provenance": {
+        "commands": [
+          "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source\" --num-datasets 200 --seed 1 --device cpu --hardware-policy none",
+          "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet"
+        ],
+        "comparator_role": "promoted_anchor_candidate",
+        "config_refs": [
+          "configs/default.yaml"
+        ],
+        "corpus_variant": "dagzoo_generated_source",
+        "curated_root_lineage": [],
+        "materialization_issue": 120
+      },
+      "manifest_path": "outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
+      "manifest_sha256": "c3733db05ad3b4497653df86db36027efc5255bc2ea7b8960c90d1a9831dfbe6",
+      "state": "materialized_local_only"
+    }
+  }
+}

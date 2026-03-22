@@ -149,13 +149,14 @@ By default this includes raw `dagzoo` outputs and warns if the manifest contains
 
 Accepted-only flow:
 
-```bash
-dagzoo filter --in data/run1 --out data/run1_filter --curated-out data/run1_curated
-tab-foundry data build-manifest \
-  --data-root data/run1_curated \
-  --filter-policy accepted_only \
-  --out-manifest data/manifests/accepted_only.parquet
-```
+- Currently unavailable. Deferred `dagzoo filter` support is disabled, so the
+  repo only treats raw `dagzoo generate` outputs as supported corpus artifacts
+  for now.
+- TF-RD-013 issue `#120` records the initial unfiltered generated-source support
+  artifacts for the first current-versus-dagzoo comparison.
+- Issue `#124` tracks the later decision about whether tab-foundry should
+  introduce any filtered dagzoo training variants after that initial unfiltered
+  read and, if so, what throughput budget is acceptable.
 
 Helper script:
 

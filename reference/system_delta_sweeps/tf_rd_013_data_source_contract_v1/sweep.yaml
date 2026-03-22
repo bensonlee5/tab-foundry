@@ -11,34 +11,35 @@ training_experiment: cls_benchmark_staged
 training_config_profile: cls_benchmark_staged
 surface_role: architecture_screen
 upstream_reference:
-  name: nanoTabPFN
-  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+  name: TabICLv2
+  model_source: https://arxiv.org/abs/2602.11139
 anchor_surface:
   notes:
   - This draft sweep is the TF-RD-013 contract layer for the promoted `row_cls + qass + no tfcol` anchor.
   - The locked current-corpus surface remains the anchor until later TF-RD-013 child issues materialize and execute comparison artifacts.
-  - The old `binary_md_v1` `delta_data_manifest_root_curated_dagzoo` row is historical precursor evidence only and should not be treated as the closure path.
+  - The initial dagzoo read is intentionally the unfiltered generated-source surface; any later filtering policy belongs in TF-RD-019 rather than in the first TF-RD-013 sweep.
   - Reuse the existing `dagzoo_provenance` mapping on data surfaces; do not introduce a parallel dagzoo metadata channel.
   - Keep one canonical OpenML real-data baseline and treat approved manifest-backed external datasets as augmentation evidence only after the license ledger is satisfied.
+  - Keep nanoTabPFN as the benchmark/control reference bundle while TabICLv2 remains the primary upstream architecture reference for the row-first target lane.
   dimension_table:
   - dimension: model anchor
-    upstream: Upstream nanoTabPFN has no repo-local row-first promoted-anchor contract.
+    upstream: TabICLv2 is the primary row-first architectural reference, but it does not define this exact repo-local promoted-anchor contract.
     anchor: The settled promoted row-first benchmark anchor `row_cls + qass + no tfcol`.
     interpretation: TF-RD-013 changes only the training-data comparison surface, not the promoted model surface.
   - dimension: training data surface
-    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract.
+    upstream: TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract.
     anchor: Current manifest-backed prior-training corpus with data surface label `anchor_manifest_default`.
-    interpretation: The current corpus is the baseline comparator; TF-RD-013 rows define explicit dagzoo and curated real-data alternatives against it.
+    interpretation: The current corpus is the baseline comparator; TF-RD-013 starts with one explicit unfiltered dagzoo alternative plus a later curated real-data comparator lane.
   - dimension: dagzoo provenance contract
     upstream: Not applicable.
     anchor: No dagzoo provenance is attached to the current-corpus anchor surface.
     interpretation: Dagzoo candidate rows must carry one explicit `dagzoo_provenance` payload with fixed keys before the sweep becomes runnable.
-  - dimension: real-data comparator policy
-    upstream: Not applicable.
+  - dimension: benchmark and control context
+    upstream: TabICLv2 is the architectural reference, while nanoTabPFN remains the current benchmark/control bundle family used by this repo.
     anchor: Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface.
-    interpretation: Curated real-data ladders are comparator evidence and must keep one OpenML baseline plus approved manifest-backed augmentations rather than introducing a new loader path.
+    interpretation: TF-RD-013 should keep benchmark/control context stable while it reads the training-data surface change.
   - dimension: training recipe
-    upstream: No repo-local prior-dump training-surface contract.
+    upstream: TabICLv2 informs the row-first staged recipe direction, but there is no repo-local shared prior-dump training-surface contract to copy literally.
     anchor: Training surface label `prior_linear_warmup_decay`.
     interpretation: TF-RD-013 contract work should not mix optimizer or schedule changes into the data-source decision.
 anchor_context:
