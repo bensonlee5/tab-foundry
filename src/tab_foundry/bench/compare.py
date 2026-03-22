@@ -43,6 +43,18 @@ DEFAULT_NANOTABPFN_BATCH_SIZE = 32
 DEFAULT_NANOTABPFN_LR = 4.0e-3
 DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION = "tabicl-classifier-v2-20260212.ckpt"
 DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION = "tabicl-regressor-v2-20260212.ckpt"
+EXTERNAL_BENCHMARK_NANOTABPFN = "nanotabpfn"
+EXTERNAL_BENCHMARK_TABICLV2 = "tabiclv2"
+ALLOWED_EXTERNAL_BENCHMARKS = (
+    EXTERNAL_BENCHMARK_TABICLV2,
+    EXTERNAL_BENCHMARK_NANOTABPFN,
+)
+DEFAULT_EXTERNAL_BENCHMARKS = (EXTERNAL_BENCHMARK_NANOTABPFN,)
+DEFAULT_CLI_EXTERNAL_BENCHMARKS = (EXTERNAL_BENCHMARK_TABICLV2,)
+EXTERNAL_BENCHMARK_LABELS = {
+    EXTERNAL_BENCHMARK_NANOTABPFN: "nanoTabPFN",
+    EXTERNAL_BENCHMARK_TABICLV2: "TabICLv2",
+}
 _BENCHMARK_METRIC_KEYS = (
     "best_step",
     "best_training_time",
@@ -86,6 +98,7 @@ class NanoTabPFNBenchmarkConfig:
     control_baseline_id: str | None = None
     control_baseline_registry: Path | None = None
     benchmark_bundle_path: Path | None = None
+    external_benchmarks: tuple[str, ...] = DEFAULT_EXTERNAL_BENCHMARKS
     reuse_nanotabpfn_curve_path: Path | None = None
     reuse_nanotabpfn_metadata: Mapping[str, Any] | None = None
     with_tabiclv2: bool = False
@@ -126,6 +139,44 @@ def _tabiclv2_python(root: Path) -> Path:
 def _is_legacy_benchmark_record_compat_error(exc: Exception) -> bool:
     message = str(exc)
     return "persisted model.arch" in message or "omitted feature_group_size" in message
+
+
+def normalize_external_benchmarks(
+    values: Sequence[str] | None,
+    *,
+    default: Sequence[str] = DEFAULT_EXTERNAL_BENCHMARKS,
+    context: str = "external_benchmarks",
+) -> tuple[str, ...]:
+    requested = default if values is None or not values else values
+    normalized: list[str] = []
+    for index, raw_value in enumerate(requested):
+        if not isinstance(raw_value, str) or not raw_value.strip():
+            raise RuntimeError(f"{context}[{index}] must be a non-empty string")
+        value = str(raw_value).strip().lower()
+        if value not in ALLOWED_EXTERNAL_BENCHMARKS:
+            raise RuntimeError(
+                f"{context}[{index}] must be one of {sorted(ALLOWED_EXTERNAL_BENCHMARKS)!r}, got {raw_value!r}"
+            )
+        if value in normalized:
+            raise RuntimeError(f"{context} must not contain duplicates: {value!r}")
+        normalized.append(value)
+    if not normalized:
+        raise RuntimeError(f"{context} must contain at least one comparator")
+    return tuple(normalized)
+
+
+def _resolve_primary_external_benchmark(
+    requested_external_benchmarks: Sequence[str],
+    *,
+    nanotabpfn_records: Sequence[Mapping[str, Any]],
+    tabiclv2_records: Sequence[Mapping[str, Any]],
+) -> str | None:
+    for external_benchmark in requested_external_benchmarks:
+        if external_benchmark == EXTERNAL_BENCHMARK_NANOTABPFN and nanotabpfn_records:
+            return external_benchmark
+        if external_benchmark == EXTERNAL_BENCHMARK_TABICLV2 and tabiclv2_records:
+            return external_benchmark
+    return None
 
 
 def _nanotabpfn_helper_command(
@@ -406,6 +457,12 @@ def _mapping_value(payload: Mapping[str, Any], key: str) -> Mapping[str, Any] | 
     return cast(Mapping[str, Any], raw_value)
 
 
+def _optional_non_empty_string(value: Any) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return str(value).strip()
+
+
 def _compact_metric_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     metrics: dict[str, Any] = {}
     for key in _BENCHMARK_METRIC_KEYS:
@@ -416,6 +473,16 @@ def _compact_metric_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 def _benchmark_wandb_summary_payload(summary: Mapping[str, Any]) -> dict[str, Any]:
     benchmark_payload: dict[str, Any] = {"benchmark": {}}
+    primary_external_benchmark = _optional_non_empty_string(summary.get("primary_external_benchmark"))
+    if primary_external_benchmark is not None:
+        benchmark_payload["benchmark"]["primary_external_benchmark"] = primary_external_benchmark
+    external_benchmarks = summary.get("external_benchmarks")
+    if isinstance(external_benchmarks, list) and external_benchmarks:
+        benchmark_payload["benchmark"]["external_benchmarks"] = [
+            str(value)
+            for value in external_benchmarks
+            if isinstance(value, str) and value.strip()
+        ]
     tab_foundry = _mapping_value(summary, "tab_foundry")
     if tab_foundry is not None:
         tab_foundry_payload = _compact_metric_payload(tab_foundry)
@@ -455,14 +522,33 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         if config.benchmark_bundle_path is None
         else config.benchmark_bundle_path.expanduser().resolve()
     )
+    requested_external_benchmarks = normalize_external_benchmarks(
+        config.external_benchmarks,
+        context="config.external_benchmarks",
+    )
     benchmark_bundle, allow_missing_values = load_benchmark_bundle_for_execution(
         benchmark_bundle_path
     )
     task_type = benchmark_bundle_task_type(benchmark_bundle)
-    require_external_control = task_type != "supervised_regression"
     reuse_curve_path = _resolve_reuse_curve_path(config)
+    if reuse_curve_path is not None and EXTERNAL_BENCHMARK_NANOTABPFN not in requested_external_benchmarks:
+        raise RuntimeError(
+            "reuse_nanotabpfn_curve_path requires config.external_benchmarks to include 'nanotabpfn'"
+        )
+    if (
+        config.reuse_nanotabpfn_metadata is not None
+        and EXTERNAL_BENCHMARK_NANOTABPFN not in requested_external_benchmarks
+    ):
+        raise RuntimeError(
+            "reuse_nanotabpfn_metadata requires config.external_benchmarks to include 'nanotabpfn'"
+        )
+    if (
+        task_type == "supervised_regression"
+        and EXTERNAL_BENCHMARK_NANOTABPFN in requested_external_benchmarks
+    ):
+        raise RuntimeError("nanoTabPFN external benchmark does not support regression bundles")
     tab_foundry_run_dir = _validate_tab_foundry_run_dir(config.tab_foundry_run_dir)
-    require_nanotabpfn_environment = require_external_control and (
+    require_nanotabpfn_environment = EXTERNAL_BENCHMARK_NANOTABPFN in requested_external_benchmarks and (
         reuse_curve_path is None or config.reuse_nanotabpfn_metadata is None
     )
     nanotabpfn_root: Path | None = None
@@ -473,7 +559,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     if require_nanotabpfn_environment:
         nanotabpfn_root, prior_dump = _validate_nanotabpfn_environment(config)
         nanotabpfn_python = _nanotabpfn_python(nanotabpfn_root)
-    if config.with_tabiclv2:
+    if EXTERNAL_BENCHMARK_TABICLV2 in requested_external_benchmarks:
         tabiclv2_root, tabiclv2_python = _validate_tabiclv2_environment(config)
     out_root = config.out_root.expanduser().resolve()
     out_root.mkdir(parents=True, exist_ok=True)
@@ -525,14 +611,17 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
 
     nanotabpfn_records: list[dict[str, Any]] = []
     nanotabpfn_error: dict[str, Any] | None = None
-    if require_external_control:
-        if reuse_curve_path is not None:
-            nanotabpfn_records = load_jsonl(reuse_curve_path)
-            if not nanotabpfn_records:
-                raise RuntimeError(f"reused nanoTabPFN curve is empty: {reuse_curve_path}")
-            write_jsonl(nanotabpfn_curve_path, nanotabpfn_records)
-        else:
-            assert nanotabpfn_root is not None
+    tabiclv2_records: list[dict[str, Any]] = []
+    for external_benchmark in requested_external_benchmarks:
+        if external_benchmark == EXTERNAL_BENCHMARK_NANOTABPFN:
+            if reuse_curve_path is not None:
+                nanotabpfn_records = load_jsonl(reuse_curve_path)
+                if not nanotabpfn_records:
+                    raise RuntimeError(f"reused nanoTabPFN curve is empty: {reuse_curve_path}")
+                write_jsonl(nanotabpfn_curve_path, nanotabpfn_records)
+                continue
+            if nanotabpfn_root is None:
+                raise RuntimeError("nanoTabPFN environment validation did not resolve a root")
             helper_command = _nanotabpfn_helper_command(
                 config=config,
                 dataset_cache=dataset_cache_path,
@@ -557,32 +646,35 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
                 nanotabpfn_records = load_jsonl(nanotabpfn_curve_path)
                 if not nanotabpfn_records:
                     raise RuntimeError("nanoTabPFN benchmark produced no curve records")
+            continue
 
-    tabiclv2_records: list[dict[str, Any]] = []
-    if config.with_tabiclv2:
-        if tabiclv2_root is None or tabiclv2_python is None:
-            raise RuntimeError("TabICLv2 environment validation did not resolve an interpreter")
-        helper_command = _tabiclv2_helper_command(
-            config=config,
-            dataset_cache=dataset_cache_path,
-            out_path=tabiclv2_curve_path,
-            task_type=task_type,
-            allow_missing_values=allow_missing_values,
-        )
-        try:
-            subprocess.run(
-                helper_command,
-                cwd=tabiclv2_root,
-                check=True,
+        if external_benchmark == EXTERNAL_BENCHMARK_TABICLV2:
+            if tabiclv2_root is None or tabiclv2_python is None:
+                raise RuntimeError("TabICLv2 environment validation did not resolve an interpreter")
+            helper_command = _tabiclv2_helper_command(
+                config=config,
+                dataset_cache=dataset_cache_path,
+                out_path=tabiclv2_curve_path,
+                task_type=task_type,
+                allow_missing_values=allow_missing_values,
             )
-        except subprocess.CalledProcessError as exc:
-            raise RuntimeError(
-                "TabICLv2 benchmark failed; ensure the sibling TabICLv2 environment exists and "
-                f"imports `tabicl`: {_tabiclv2_python(tabiclv2_root)}"
-            ) from exc
-        tabiclv2_records = load_jsonl(tabiclv2_curve_path)
-        if not tabiclv2_records:
-            raise RuntimeError("TabICLv2 benchmark produced no curve records")
+            try:
+                subprocess.run(
+                    helper_command,
+                    cwd=tabiclv2_root,
+                    check=True,
+                )
+            except subprocess.CalledProcessError as exc:
+                raise RuntimeError(
+                    "TabICLv2 benchmark failed; ensure the sibling TabICLv2 environment exists and "
+                    f"imports `tabicl`: {_tabiclv2_python(tabiclv2_root)}"
+                ) from exc
+            tabiclv2_records = load_jsonl(tabiclv2_curve_path)
+            if not tabiclv2_records:
+                raise RuntimeError("TabICLv2 benchmark produced no curve records")
+            continue
+
+        raise RuntimeError(f"unsupported external benchmark: {external_benchmark!r}")
 
     plot_comparison_curve(
         tab_foundry_records=tab_foundry_records,
@@ -606,8 +698,16 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         tabiclv2_python=tabiclv2_python,
         control_baseline=control_baseline,
     )
+    primary_external_benchmark = _resolve_primary_external_benchmark(
+        requested_external_benchmarks,
+        nanotabpfn_records=nanotabpfn_records,
+        tabiclv2_records=tabiclv2_records,
+    )
+    summary["external_benchmarks"] = list(requested_external_benchmarks)
+    if primary_external_benchmark is not None:
+        summary["primary_external_benchmark"] = primary_external_benchmark
     nanotabpfn_summary = summary.get("nanotabpfn")
-    if require_external_control and isinstance(nanotabpfn_summary, Mapping):
+    if EXTERNAL_BENCHMARK_NANOTABPFN in requested_external_benchmarks and isinstance(nanotabpfn_summary, Mapping):
         if reuse_curve_path is not None and config.reuse_nanotabpfn_metadata is not None:
             execution_metadata = _reused_nanotabpfn_execution_metadata(
                 metadata=config.reuse_nanotabpfn_metadata,
@@ -629,7 +729,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         cast(dict[str, Any], nanotabpfn_summary).update(
             execution_metadata
         )
-    if config.with_tabiclv2:
+    if EXTERNAL_BENCHMARK_TABICLV2 in requested_external_benchmarks:
         tabiclv2_summary = summary.get("tabiclv2")
         if isinstance(tabiclv2_summary, Mapping):
             if tabiclv2_root is None or tabiclv2_python is None:
@@ -651,14 +751,26 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         summary["nanotabpfn_error"] = nanotabpfn_error
     gradient_history_jsonl = gradient_history_path(tab_foundry_run_dir)
     telemetry_json = telemetry_path(tab_foundry_run_dir)
+    primary_external_curve_jsonl: str | None
+    if primary_external_benchmark == EXTERNAL_BENCHMARK_NANOTABPFN and nanotabpfn_records:
+        primary_external_curve_jsonl = str(nanotabpfn_curve_path)
+    elif primary_external_benchmark == EXTERNAL_BENCHMARK_TABICLV2 and tabiclv2_records:
+        primary_external_curve_jsonl = str(tabiclv2_curve_path)
+    else:
+        primary_external_curve_jsonl = None
     summary["artifacts"] = {
         "benchmark_tasks_json": str(benchmark_tasks_path),
         "tab_foundry_curve_jsonl": str(tab_foundry_curve_path),
+        "primary_external_curve_jsonl": primary_external_curve_jsonl,
         "nanotabpfn_curve_jsonl": (
-            str(nanotabpfn_curve_path) if require_external_control and nanotabpfn_records else None
+            str(nanotabpfn_curve_path)
+            if EXTERNAL_BENCHMARK_NANOTABPFN in requested_external_benchmarks and nanotabpfn_records
+            else None
         ),
         "tabiclv2_curve_jsonl": (
-            str(tabiclv2_curve_path) if config.with_tabiclv2 and tabiclv2_records else None
+            str(tabiclv2_curve_path)
+            if EXTERNAL_BENCHMARK_TABICLV2 in requested_external_benchmarks and tabiclv2_records
+            else None
         ),
         "comparison_curve_png": str(comparison_curve_path),
         "benchmark_dataset_cache": str(dataset_cache_path),
@@ -723,24 +835,31 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--nanotabpfn-root", default="~/dev/nanoTabPFN", help="Local nanoTabPFN checkout")
     parser.add_argument("--nanotab-prior-dump", default=None, help="Path to nanoTabPFN prior dump (.h5)")
     parser.add_argument(
+        "--external-benchmark",
+        action="append",
+        choices=ALLOWED_EXTERNAL_BENCHMARKS,
+        default=None,
+        help="Ordered external benchmark to run; repeat to add a secondary comparator. Defaults to tabiclv2.",
+    )
+    parser.add_argument(
         "--with-tabiclv2",
         action="store_true",
-        help="Also run TabICLv2 as an explicit frontier comparator",
+        help="Deprecated alias that appends tabiclv2 to --external-benchmark for one release.",
     )
     parser.add_argument(
         "--tabicl-root",
         default="~/dev/tabicl",
-        help="Local TabICLv2 checkout used with --with-tabiclv2",
+        help="Local TabICLv2 checkout used when tabiclv2 is selected",
     )
     parser.add_argument(
         "--tabicl-classifier-checkpoint-version",
         default=DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION,
-        help="TabICLv2 classifier checkpoint version used with --with-tabiclv2",
+        help="TabICLv2 classifier checkpoint version used when tabiclv2 is selected",
     )
     parser.add_argument(
         "--tabicl-regressor-checkpoint-version",
         default=DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION,
-        help="TabICLv2 regressor checkpoint version used with --with-tabiclv2",
+        help="TabICLv2 regressor checkpoint version used when tabiclv2 is selected",
     )
     parser.add_argument("--out-root", default=None, help="Output directory root")
     parser.add_argument(
@@ -782,6 +901,18 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    external_benchmarks = (
+        []
+        if args.external_benchmark is None
+        else [str(value) for value in args.external_benchmark]
+    )
+    if bool(args.with_tabiclv2):
+        print(
+            "warning: --with-tabiclv2 is deprecated; use --external-benchmark tabiclv2 instead",
+            file=sys.stderr,
+        )
+        if EXTERNAL_BENCHMARK_TABICLV2 not in external_benchmarks:
+            external_benchmarks.append(EXTERNAL_BENCHMARK_TABICLV2)
     summary = run_nanotabpfn_benchmark(
         NanoTabPFNBenchmarkConfig(
             tab_foundry_run_dir=Path(str(args.tab_foundry_run_dir)),
@@ -804,6 +935,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.benchmark_bundle_path
                 else None
             ),
+            external_benchmarks=normalize_external_benchmarks(
+                external_benchmarks,
+                default=DEFAULT_CLI_EXTERNAL_BENCHMARKS,
+                context="CLI external benchmarks",
+            ),
             with_tabiclv2=bool(args.with_tabiclv2),
             tabicl_root=Path(str(args.tabicl_root)),
             tabicl_classifier_checkpoint_version=str(args.tabicl_classifier_checkpoint_version),
@@ -813,6 +949,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("benchmark comparison complete:")
     print(f"  dataset_count={summary['dataset_count']}")
     print(f"  tab_foundry={summary['tab_foundry']}")
+    primary_external_benchmark = _optional_non_empty_string(summary.get("primary_external_benchmark"))
+    if primary_external_benchmark is not None:
+        print(f"  primary_external_benchmark={primary_external_benchmark}")
     if "nanotabpfn" in summary:
         print(f"  nanotabpfn={summary['nanotabpfn']}")
     if "tabiclv2" in summary:

@@ -748,6 +748,7 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
     )
 
     summary = {
+        'primary_external_benchmark': 'nanotabpfn',
         'tab_foundry': {
             'best_step': 75.0,
             'best_log_loss': 0.41,
@@ -792,6 +793,8 @@ def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> Non
     assert queue_metrics['delta_final_log_loss'] == pytest.approx(-0.03)
     assert queue_metrics['delta_final_brier_score'] == pytest.approx(0.01)
     assert queue_metrics['delta_final_roc_auc'] == pytest.approx(-0.02)
+    assert queue_metrics['primary_external_benchmark'] == 'nanotabpfn'
+    assert queue_metrics['primary_external_final_log_loss'] == pytest.approx(0.48)
     assert queue_metrics['nanotabpfn_final_log_loss'] == pytest.approx(0.48)
     assert queue_metrics['clipped_step_fraction'] == pytest.approx(0.5)
     assert queue_metrics['column_encoder_final_window_mean_grad_norm'] == pytest.approx(0.42)
@@ -837,9 +840,18 @@ def test_result_card_text_reports_log_loss_before_roc() -> None:
         },
         run_id='sd_test_v1',
         anchor_run_id='anchor_v1',
-        summary={'tab_foundry': {}, 'nanotabpfn': {}},
+        summary={
+            'primary_external_benchmark': 'tabiclv2',
+            'tab_foundry': {},
+            'tabiclv2': {},
+        },
         queue_metrics={
             'best_step': 125,
+            'primary_external_label': 'TabICLv2',
+            'primary_external_best_log_loss': 0.392,
+            'primary_external_final_log_loss': 0.401,
+            'primary_external_best_roc_auc': 0.818,
+            'primary_external_final_roc_auc': 0.811,
             'best_log_loss': 0.401,
             'final_log_loss': 0.409,
             'final_minus_best_log_loss': 0.008,
@@ -866,6 +878,7 @@ def test_result_card_text_reports_log_loss_before_roc() -> None:
 
     assert '- Best log loss: `0.4010` at step `125`' in text
     assert '- Delta final log loss vs anchor: `-0.0110`' in text
+    assert '- TabICLv2 best log loss: `0.3920`' in text
     assert '- Final ROC AUC: `0.8040`' in text
     assert '## Stage-local stability' in text
     assert '- Column stage: final-window mean grad norm `0.4200`, activation early-to-final mean delta `+0.1200`' in text
@@ -1258,13 +1271,19 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
 
     captured_registration: dict[str, Any] = {}
     captured_posthoc: dict[str, Any] = {}
+    captured_benchmark: dict[str, Any] = {}
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
-    monkeypatch.setattr(runner_module, 'ensure_nanotabpfn_python', lambda **_: tmp_path / 'python')
     monkeypatch.setattr(
         runner_module,
-        'run_nanotabpfn_benchmark',
-        lambda *_args, **_kwargs: {
+        'ensure_nanotabpfn_python',
+        lambda **_: (_ for _ in ()).throw(AssertionError('unexpected nanotabpfn bootstrap')),
+    )
+
+    def fake_benchmark(config: Any) -> dict[str, Any]:
+        captured_benchmark['external_benchmarks'] = config.external_benchmarks
+        return {
+            'primary_external_benchmark': 'tabiclv2',
             'tab_foundry': {
                 'best_step': 100.0,
                 'best_log_loss': 0.41,
@@ -1278,16 +1297,10 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
                 'best_to_final_roc_auc_delta': 0.01,
                 'training_diagnostics': {'max_grad_norm': 7.5},
             },
-            'nanotabpfn': {
-                'best_log_loss': 0.46,
-                'final_log_loss': 0.45,
-                'best_brier_score': 0.14,
-                'final_brier_score': 0.13,
-                'best_roc_auc': 0.78,
-                'final_roc_auc': 0.77,
-            },
-        },
-    )
+            'tabiclv2': {},
+        }
+
+    monkeypatch.setattr(runner_module, 'run_nanotabpfn_benchmark', fake_benchmark)
     monkeypatch.setattr(
         runner_module,
         'queue_metrics',
@@ -1348,6 +1361,7 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
             'benchmark_bundle_path': 'bundle.json',
+            'external_benchmarks': ['tabiclv2'],
             'training_experiment': 'cls_benchmark_staged',
             'training_config_profile': 'cls_benchmark_staged',
             'surface_role': 'architecture_screen',
@@ -1368,6 +1382,7 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     )
 
     assert observed_run_id == run_id
+    assert captured_benchmark['external_benchmarks'] == ('tabiclv2',)
     assert captured_registration['experiment'] == 'cls_benchmark_staged'
     assert captured_registration['config_profile'] == 'cls_benchmark_staged'
     assert captured_registration['sweep_id'] == sweep_id
@@ -1514,9 +1529,11 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
     )
 
     def fake_benchmark(config: Any) -> dict[str, Any]:
+        captured_benchmark_config['external_benchmarks'] = config.external_benchmarks
         captured_benchmark_config['reuse_nanotabpfn_curve_path'] = config.reuse_nanotabpfn_curve_path
         captured_benchmark_config['reuse_nanotabpfn_metadata'] = config.reuse_nanotabpfn_metadata
         return {
+            'primary_external_benchmark': 'nanotabpfn',
             'tab_foundry': {
                 'best_step': 100.0,
                 'best_log_loss': 0.41,
@@ -1583,6 +1600,7 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
     )
 
     assert observed_run_id == run_id
+    assert captured_benchmark_config['external_benchmarks'] == ('nanotabpfn',)
     assert captured_benchmark_config['reuse_nanotabpfn_curve_path'] == anchor_curve_path.resolve()
     assert captured_benchmark_config['reuse_nanotabpfn_metadata'] == {
         'root': str(nanotab_root.resolve()),
@@ -1739,9 +1757,11 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
     )
 
     def fake_benchmark(config: Any) -> dict[str, Any]:
+        captured_benchmark_config['external_benchmarks'] = config.external_benchmarks
         captured_benchmark_config['reuse_nanotabpfn_curve_path'] = config.reuse_nanotabpfn_curve_path
         captured_benchmark_config['reuse_nanotabpfn_metadata'] = config.reuse_nanotabpfn_metadata
         return {
+            'primary_external_benchmark': 'nanotabpfn',
             'tab_foundry': {
                 'best_step': 100.0,
                 'best_log_loss': 0.41,
@@ -1808,6 +1828,7 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
     )
 
     assert observed_run_id == run_id
+    assert captured_benchmark_config['external_benchmarks'] == ('nanotabpfn',)
     assert captured_benchmark_config['reuse_nanotabpfn_curve_path'] == prior_curve_path.resolve()
     assert captured_benchmark_config['reuse_nanotabpfn_metadata'] == {
         'root': str(nanotab_root.resolve()),

@@ -666,6 +666,9 @@ This roadmap assumes the following repo truths:
   - dagzoo smoke and manifest identity are no longer the main blocker
   - issue `#122` executed the first promoted-anchor comparison against one unfiltered
     dagzoo surface and one OpenML-only curated comparator
+  - that TF-RD-013 evidence remains a historical nanoTabPFN-era comparison package
+    and does not define the forward benchmark policy for new sweeps, which now
+    defaults to TabICLv2
   - that first read was neutral: the anchor, the single-invocation dagzoo surface,
     and the OpenML-only comparator all landed on the same recorded large-bundle
     metrics, while the dagzoo and curated manifests still remained materially different

@@ -167,6 +167,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Control baseline id for the new sweep",
     )
     create_parser.add_argument(
+        "--external-benchmark",
+        action="append",
+        dest="external_benchmarks",
+        default=None,
+        help="Ordered external benchmark id to record on the new sweep; repeat to add a secondary comparator. Defaults to tabiclv2.",
+    )
+    create_parser.add_argument(
         "--training-experiment",
         default=None,
         help="Optional training experiment for new rows; defaults to the parent sweep contract",
@@ -232,6 +239,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             complexity_level=str(args.complexity_level),
             benchmark_bundle_path=str(args.benchmark_bundle_path),
             control_baseline_id=str(args.control_baseline_id),
+            external_benchmarks=(
+                None
+                if args.external_benchmarks is None
+                else [str(value) for value in args.external_benchmarks]
+            ),
             training_experiment=(
                 None if args.training_experiment is None else str(args.training_experiment)
             ),
