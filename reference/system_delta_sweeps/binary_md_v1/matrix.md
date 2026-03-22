@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/binary_md_v1/queue.yam
 ## Sweep
 
 - Sweep id: `binary_md_v1`
-- Sweep status: `active`
+- Sweep status: `completed`
 - Parent sweep id: `None`
 - Complexity level: `binary_md`
 
@@ -14,6 +14,9 @@ This file is rendered from `reference/system_delta_sweeps/binary_md_v1/queue.yam
 - Anchor run id: `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
+- Training experiment: `cls_benchmark_staged_prior`
+- Training config profile: `cls_benchmark_staged_prior`
+- Surface role: `hybrid_diagnostic`
 - Comparison policy: `anchor_only`
 - Anchor metrics: best ROC AUC `0.7615`, final ROC AUC `0.7599`, final training time `355.6s`
 
@@ -50,7 +53,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | 11 | `delta_training_linear_decay` | schedule | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces but replace the exact-prior constant LR with single-stage linear decay. | Keep this as completed negative evidence for plain linear decay on the anchor surface, then move to delta_training_linear_warmup_decay to separate warmup from decay itself. |
 | 12 | `delta_training_linear_warmup_decay` | schedule | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup. | Keep this as completed evidence that warmup partly improves the decay recipe but still does not justify replacing the constant-LR anchor, then move to delta_data_manifest_source_binary_iris. |
 | 13 | `delta_data_filter_policy_accepted_only` | provenance | yes | blocked_on_artifacts | none | Rebuild the training manifest with accepted-only dagzoo filtering while holding model and preprocessing at the anchor. | Materialize the accepted-only manifest and attach its provenance before scheduling training. |
-| 14 | `delta_data_manifest_root_curated_dagzoo` | provenance | yes | blocked_on_artifacts | none | Point training at a curated dagzoo manifest root with explicit dagzoo command provenance. | Capture the dagzoo generation/filter lineage first. |
+| 14 | `delta_data_manifest_root_curated_dagzoo` | provenance | yes | superseded | none | Point training at a curated dagzoo manifest root with explicit dagzoo command provenance. | Do not run on `binary_md_v1`; use `tf_rd_013_data_source_contract_v1` as the promoted-anchor TF-RD-013 contract surface instead. |
 | 15 | `delta_data_manifest_source_binary_iris` | source | yes | ready | none | Swap the training manifest to the small binary iris support surface while keeping the model and preprocessing anchored. | Run only after the matrix explicitly records the anchor-versus-iris manifest characteristics. |
 | 16 | `delta_preproc_impute_missing_off` | missing_values | yes | deferred_separate_workstream | none | Disable runtime mean imputation while keeping the fitted label-remap path intact. | Do not run on the main no-missing campaign; revisit only in a dedicated missingness workstream with explicit missing-valued training and evaluation inputs. |
 | 17 | `delta_preproc_all_nan_fill_nonzero` | missing_values | yes | deferred_separate_workstream | none | Keep imputation on but change the all-NaN fallback fill value from 0.0 to 1.0. | Do not run on the main no-missing campaign; revisit only in a dedicated missingness workstream with explicit missing-valued training and evaluation inputs. |
@@ -78,6 +81,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - many_class_base should stay at 2 on the locked binary surface.
   - Negative evidence should be checked for calibration drift before rejection.
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -104,7 +108,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Upstream delta: Upstream nanoTabPFN keeps its own internal feature normalization/encoding path.
 - Anchor delta: Changes only feature_encoder from nano to shared; tokenizer, target conditioning, table block, row pooling, data, and preprocessing remain fixed.
 - Expected effect: Better transfer across heterogeneous columns, with risk that the shared path simply mismatches the compact binary anchor scale.
-- Effective labels: model=`delta_shared_feature_norm`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_constant_lr`
+- Effective labels: model=`delta_shared_feature_norm`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_constant_lr_trace_activations`
 - Model overrides: `{'module_overrides': {'feature_encoder': 'shared'}}`
 - Parameter adequacy plan:
   - Keep optimizer and row/context structure fixed for the first pass.
@@ -112,6 +116,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - input_normalization remains train_zscore_clip on the anchor unless the queue row explicitly changes preprocessing.
   - If performance drops, note whether the harm appears early or only after longer training.
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -146,6 +151,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - The relevant knobs are still tficl_n_heads, tficl_n_layers, and head_hidden_dim.
   - A weak result is ambiguous unless late-curve stability clearly worsens despite similar best-step performance.
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -178,6 +184,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Compare directly against both the anchor and the pre-norm-only row in the written interpretation.
 - Adequacy knobs to dimension explicitly:
   - Interpretation depends on the paired pre-norm-only result; a weak result may just indicate the block style itself remains unsettled.
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -211,6 +218,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Do not run while tokenizer changes are bypassed by the active feature encoder.
 - Adequacy knobs to dimension explicitly:
   - Revisit only after the comparison surface switches to a non-nano feature encoder.
+- Execution policy: `benchmark_full`
 - Interpretation status: `blocked`
 - Decision: `None`
 - Confounders:
@@ -241,6 +249,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfrow_n_heads
   - tfrow_n_layers
   - tfrow_cls_tokens
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -279,6 +288,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfrow_n_heads
   - tfrow_n_layers
   - tfrow_cls_tokens
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -314,6 +324,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tfcol_n_heads
   - tfcol_n_layers
   - tfcol_n_inducing
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -349,6 +360,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - tficl_n_heads
   - tficl_n_layers
   - tficl_ff_expansion
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -384,6 +396,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Adequacy knobs to dimension explicitly:
   - model.norm_type
   - model.tfrow_norm
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -420,6 +433,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - schedule.stages[0].lr_max
   - optimizer.min_lr
   - schedule.stages[0].warmup_ratio
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -456,6 +470,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - schedule.stages[0].lr_max
   - optimizer.min_lr
   - schedule.stages[0].warmup_ratio
+- Execution policy: `benchmark_full`
 - Interpretation status: `interpreted`
 - Decision: `defer`
 - Confounders:
@@ -490,6 +505,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - If weaker, discuss whether coverage loss or provenance tightening is the likely cause.
 - Adequacy knobs to dimension explicitly:
   - Must report dataset-count and feature/class distribution shifts versus the anchor manifest.
+- Execution policy: `benchmark_full`
 - Interpretation status: `pending`
 - Decision: `None`
 - Confounders:
@@ -501,7 +517,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 ### 14. `delta_data_manifest_root_curated_dagzoo`
 
 - Dimension family: `data`
-- Status: `blocked_on_artifacts`
+- Status: `superseded`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at a curated dagzoo manifest root with explicit dagzoo command provenance.
@@ -518,10 +534,13 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - dagzoo generate/filter commands
   - curated root lineage
   - dataset count and split distribution deltas
-- Interpretation status: `pending`
-- Decision: `None`
+- Execution policy: `benchmark_full`
+- Interpretation status: `blocked`
+- Decision: `defer`
 - Confounders:
   - Requires a materialized curated dagzoo manifest and provenance references.
+- Notes:
+  - This row is historical precursor evidence only and no longer defines the active dagzoo closure path.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/binary_md_v1/delta_data_manifest_root_curated_dagzoo/result_card.md`
 - Benchmark metrics: pending
@@ -544,6 +563,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Treat any weakness primarily as evidence about training-surface coverage unless metrics collapse unambiguously.
 - Adequacy knobs to dimension explicitly:
   - Compare manifest row/feature/class distributions to the anchor before training.
+- Execution policy: `benchmark_full`
 - Interpretation status: `pending`
 - Decision: `None`
 - Confounders:
@@ -570,6 +590,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - If the result is weak, note whether the benchmark tasks actually contain meaningful missingness on the support side.
 - Adequacy knobs to dimension explicitly:
   - Interpret against manifest missingness prevalence where available.
+- Execution policy: `benchmark_full`
 - Interpretation status: `blocked`
 - Decision: `None`
 - Follow-up run ids: `[]`
@@ -594,6 +615,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Interpret near-zero movement as expected if the surface rarely exercises this branch.
 - Adequacy knobs to dimension explicitly:
   - Report whether all-NaN columns are actually present in the compared manifests.
+- Execution policy: `benchmark_full`
 - Interpretation status: `blocked`
 - Decision: `None`
 - Follow-up run ids: `[]`
@@ -618,6 +640,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - Do not run until a real alternative policy exists.
 - Adequacy knobs to dimension explicitly:
   - Must record how unseen test labels are handled and whether the effective task definition changes.
+- Execution policy: `benchmark_full`
 - Interpretation status: `blocked`
 - Decision: `None`
 - Confounders:

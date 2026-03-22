@@ -1,0 +1,70 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_013_data_source_contract_v1
+parent_sweep_id: qass_tfcol_large_missing_validation_v1
+status: draft
+complexity_level: binary_md
+anchor_run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+training_experiment: cls_benchmark_staged
+training_config_profile: cls_benchmark_staged
+surface_role: architecture_screen
+upstream_reference:
+  name: nanoTabPFN
+  model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
+anchor_surface:
+  notes:
+  - This draft sweep is the TF-RD-013 contract layer for the promoted `row_cls + qass + no tfcol` anchor.
+  - The locked current-corpus surface remains the anchor until later TF-RD-013 child issues materialize and execute comparison artifacts.
+  - The old `binary_md_v1` `delta_data_manifest_root_curated_dagzoo` row is historical precursor evidence only and should not be treated as the closure path.
+  - Reuse the existing `dagzoo_provenance` mapping on data surfaces; do not introduce a parallel dagzoo metadata channel.
+  - Keep one canonical OpenML real-data baseline and treat approved manifest-backed external datasets as augmentation evidence only after the license ledger is satisfied.
+  dimension_table:
+  - dimension: model anchor
+    upstream: Upstream nanoTabPFN has no repo-local row-first promoted-anchor contract.
+    anchor: The settled promoted row-first benchmark anchor `row_cls + qass + no tfcol`.
+    interpretation: TF-RD-013 changes only the training-data comparison surface, not the promoted model surface.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract.
+    anchor: Current manifest-backed prior-training corpus with data surface label `anchor_manifest_default`.
+    interpretation: The current corpus is the baseline comparator; TF-RD-013 rows define explicit dagzoo and curated real-data alternatives against it.
+  - dimension: dagzoo provenance contract
+    upstream: Not applicable.
+    anchor: No dagzoo provenance is attached to the current-corpus anchor surface.
+    interpretation: Dagzoo candidate rows must carry one explicit `dagzoo_provenance` payload with fixed keys before the sweep becomes runnable.
+  - dimension: real-data comparator policy
+    upstream: Not applicable.
+    anchor: Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface.
+    interpretation: Curated real-data ladders are comparator evidence and must keep one OpenML baseline plus approved manifest-backed augmentations rather than introducing a new loader path.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_linear_warmup_decay`.
+    interpretation: TF-RD-013 contract work should not mix optimizer or schedule changes into the data-source decision.
+anchor_context:
+  run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
+  experiment: cls_benchmark_staged
+  config_profile: cls_benchmark_staged
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: delta_qass_no_column_v3
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_selection:
+      allow_test_self_attention: true
+      column_encoder: none
+      context_encoder: qass
+      feature_encoder: shared
+      head: small_class
+      post_encoder_norm: none
+      post_stack_norm: none
+      row_pool: row_cls
+      table_block_residual_scale: none
+      table_block_style: prenorm
+      target_conditioner: label_token
+      tokenizer: shifted_grouped
+  surface_labels:
+    data: anchor_manifest_default
+    model: delta_qass_no_column_v3
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

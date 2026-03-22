@@ -1,0 +1,121 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_013_data_source_contract_v1
+rows:
+- order: 1
+  delta_ref: delta_data_filter_policy_accepted_only
+  status: blocked_on_artifacts
+  rationale: Define the first canonical dagzoo candidate surface by tightening filtering while keeping the promoted row-first anchor otherwise fixed.
+  hypothesis: An accepted-only dagzoo candidate may improve signal quality, but its value is only interpretable once manifest lineage and corpus-shape deltas are explicit.
+  anchor_delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but replace the current corpus with a TF-RD-013 accepted-only dagzoo candidate manifest that carries the canonical dagzoo provenance payload.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_013_dagzoo_accepted_only
+    surface_overrides:
+      source: manifest
+      manifest_path: outputs/staged_ladder_support/tf_rd_013/dagzoo_accepted_only/manifest.parquet
+      filter_policy: accepted_only
+      dagzoo_provenance:
+        corpus_variant: dagzoo_accepted_only
+        comparator_role: promoted_anchor_candidate
+        commands: []
+        config_refs:
+        - configs/default.yaml
+        curated_root_lineage: []
+        materialization_issue: 120
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+  parameter_adequacy_plan:
+  - Compare manifest characteristics against the current-corpus anchor before reading any benchmark outcome.
+  - Treat the empty `commands` list as a contract placeholder only; issue 120 is responsible for filling the actual command lineage.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - This row is contract-only until the accepted-only manifest and lineage are materialized.
+  next_action: Materialize the accepted-only manifest and fill the dagzoo command lineage under issue 120 before scheduling any comparison run.
+  notes:
+  - This row defines the canonical top-level dagzoo provenance keys expected on TF-RD-013 promoted-anchor comparison surfaces.
+
+- order: 2
+  delta_ref: delta_data_manifest_root_curated_dagzoo
+  status: blocked_on_artifacts
+  parent_delta_ref: delta_data_filter_policy_accepted_only
+  rationale: Define the promoted-anchor curated dagzoo root as a second canonical dagzoo candidate surface rather than leaving it as an old binary-md precursor row.
+  hypothesis: A curated dagzoo root may better match intended post-008 use than the current corpus, but it must be read through explicit lineage from the accepted-only candidate rather than as an opaque manifest swap.
+  anchor_delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but point training at the curated dagzoo root contract while preserving the same canonical dagzoo provenance payload shape.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_013_curated_dagzoo_root
+    surface_overrides:
+      source: manifest
+      manifest_path: outputs/staged_ladder_support/tf_rd_013/curated_dagzoo/manifest.parquet
+      dagzoo_provenance:
+        corpus_variant: dagzoo_curated_root
+        comparator_role: promoted_anchor_candidate
+        commands: []
+        config_refs:
+        - configs/default.yaml
+        curated_root_lineage:
+        - dagzoo_accepted_only
+        - curated_root_selection
+        materialization_issue: 120
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+  parameter_adequacy_plan:
+  - Compare this row first against the accepted-only dagzoo candidate, then against the current-corpus anchor.
+  - Treat `curated_root_lineage` as required contract metadata, not as optional commentary.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - This row remains a contract placeholder until issue 120 materializes the curated root manifest and lineage.
+  next_action: Materialize the curated dagzoo root lineage and support artifacts under issue 120, then wire the promoted-anchor comparison row under issue 121.
+  notes:
+  - This row supersedes the old `binary_md_v1` `delta_data_manifest_root_curated_dagzoo` precursor as the TF-RD-013 dagzoo-root contract surface.
+
+- order: 3
+  delta_ref: delta_data_manifest_curated_realdata_comparator
+  status: blocked_on_artifacts
+  rationale: Make the curated real-data comparator contract explicit so TF-RD-013 reads dagzoo against a defined comparator lane instead of a vague future workstream.
+  hypothesis: The first comparator should stay anchored on one canonical OpenML baseline and only add approved manifest-backed external augmentations when they cover regimes OpenML misses.
+  anchor_delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but define the curated real-data comparator manifest family as a separate contract surface from both the current corpus and dagzoo candidates.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_013_curated_realdata_comparator
+    surface_overrides:
+      source: manifest
+      manifest_path: outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+  parameter_adequacy_plan:
+  - Keep the OpenML baseline canonical and cite approved external augmentations only after issue 114 license approval rows exist.
+  - Interpret this row as comparator-surface contract work, not as a new ingestion pathway.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders:
+  - The comparator surface depends on later curation and license backfill work under issues 97, 106, and 114.
+  next_action: Materialize the approved OpenML-baseline comparator manifest and cite any approved manifest-backed augmentations before scheduling this row.
+  notes:
+  - This row defines comparator policy only; it does not authorize any dataset outside the review ledger.
