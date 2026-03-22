@@ -212,10 +212,8 @@ Source: `subsystems.py:320-385`, `qass.py:14-201`
 
 #### Classification Heads
 
-- **`NanoBinaryHead`**: `Linear(d_icl, head_hidden_dim) → GELU →
-  Linear(head_hidden_dim, 2)`.
-- **`DirectClassifierHead`**: `Linear(d_icl, head_hidden_dim) → GELU →
-  Linear(head_hidden_dim, many_class_base)`.
+- **`NanoBinaryHead`**: `Linear(d_icl, head_hidden_dim) → GELU → Linear(head_hidden_dim, 2)`.
+- **`DirectClassifierHead`**: `Linear(d_icl, head_hidden_dim) → GELU → Linear(head_hidden_dim, many_class_base)`.
 - **Many-class**: Hierarchical mixed-radix decomposition, digit position
   embeddings `Embedding(max_mixed_radix_digits, d_icl)`, recursive tree
   traversal. `path_nll` vs `full_probs` training modes.

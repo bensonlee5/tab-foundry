@@ -257,32 +257,32 @@ predecessor. The full component matrix is in
 1. **nano_exact → label_token**: Target conditioner mean_padded_linear →
    label_token. Adds `Embedding(2, 512)` + learned test token. All other
    subsystems unchanged.
-2. **label_token → shared_norm**: Feature encoder nano → shared. Norm mode
+1. **label_token → shared_norm**: Feature encoder nano → shared. Norm mode
    internal → shared. `NanoFeatureEncoder(Linear(1,512))` replaced by
    `SharedLinearFeatureEncoder(Linear(1,512,bias=False))`.
-3. **shared_norm → prenorm_block**: Table block nano_postnorm → prenorm.
+1. **shared_norm → prenorm_block**: Table block nano_postnorm → prenorm.
    Norms move pre-attention. Explicit residual connections replace
    post-norm residual pattern.
-4. **prenorm_block → small_class_head**: Head binary_direct → small_class.
+1. **prenorm_block → small_class_head**: Head binary_direct → small_class.
    Output width 2 → many_class_base (10).
-5. **small_class_head → test_self**: Row attention mask diagonal unmasked
+1. **small_class_head → test_self**: Row attention mask diagonal unmasked
    for test rows (`allow_test_self_attention=True`).
-6. **test_self → grouped_tokens**: Tokenizer scalar_per_feature →
+1. **test_self → grouped_tokens**: Tokenizer scalar_per_feature →
    shifted_grouped. Token dim 1 → 3; feature encoder input changes from
    `Linear(1, 512, bias=False)` to `Linear(3, 512, bias=False)`.
-7. **grouped_tokens → row_cls_pool**: Row pool target_column → row_cls.
+1. **grouped_tokens → row_cls_pool**: Row pool target_column → row_cls.
    Context encoder none → plain. Adds `TFRowEncoder` (4 CLS tokens,
    3 layers) + `SequenceContextEncoder` (use_qass=False) + context label
    `Embedding(many_class_base, d_icl)`.
-8. **row_cls_pool → column_set**: Column encoder none → tfcol. Adds
+1. **row_cls_pool → column_set**: Column encoder none → tfcol. Adds
    `TFColEncoder` (3 ISAB blocks, 128 inducing points, 8 heads).
-9. **column_set → qass_context**: Context encoder plain → qass. Enables
+1. **column_set → qass_context**: Context encoder plain → qass. Enables
    `QASSScaler` in the existing `SequenceContextEncoder`.
-10. **qass_context → many_class**: Head small_class → many_class. Adds
-    digit position embeddings `Embedding(max_mixed_radix_digits, d_icl)`.
-    For `num_classes <= many_class_base`, the stage still returns direct-head
-    logits. Once `num_classes > many_class_base`, the forward path switches to
-    hierarchical tree traversal via `_forward_many_class`.
+1. **qass_context → many_class**: Head small_class → many_class. Adds
+   digit position embeddings `Embedding(max_mixed_radix_digits, d_icl)`.
+   For `num_classes <= many_class_base`, the stage still returns direct-head
+   logits. Once `num_classes > many_class_base`, the forward path switches to
+   hierarchical tree traversal via `_forward_many_class`.
 
 Source: `recipes.py:58-257`
 
