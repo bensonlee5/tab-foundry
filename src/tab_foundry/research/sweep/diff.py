@@ -70,7 +70,12 @@ def diff_sweep_row(
     else:
         if str(against).strip().lower() != "anchor":
             raise RuntimeError("only --against anchor or --against-order <N> are supported")
-        baseline = resolve_anchor_target(queue=queue, registry_path=resolved_registry_path)
+        baseline = resolve_anchor_target(
+            queue=queue,
+            registry_path=resolved_registry_path,
+            index_path=index_path,
+            sweeps_root=sweeps_root,
+        )
 
     differences: dict[str, dict[str, Any]] = {}
     _diff_values(

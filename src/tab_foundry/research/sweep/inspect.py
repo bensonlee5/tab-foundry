@@ -22,6 +22,7 @@ from tab_foundry.training.surface import build_training_surface_record
 from .anchor import anchor_training_surface_label
 from .graph import (
     _training_surface_record_model_spec,
+    resolve_anchor_originating_queue_row,
     resolve_anchor_model_spec,
 )
 from .materialize import load_system_delta_queue_for_inspection, ordered_rows
@@ -556,16 +557,79 @@ def _anchor_metrics_payload(registry_run: Mapping[str, Any] | None) -> dict[str,
     return payload or None
 
 
+def _anchor_has_training_artifacts(artifacts: Mapping[str, Any]) -> bool:
+    training_surface_entry = artifacts.get("training_surface_record_json")
+    if isinstance(training_surface_entry, Mapping) and bool(training_surface_entry.get("exists")):
+        return True
+    run_dir_entry = artifacts.get("run_dir")
+    checkpoint_entry = artifacts.get("best_checkpoint_path")
+    return (
+        isinstance(run_dir_entry, Mapping)
+        and bool(run_dir_entry.get("exists"))
+        and isinstance(checkpoint_entry, Mapping)
+        and bool(checkpoint_entry.get("exists"))
+    )
+
+
+def _queue_anchor_row(queue: Mapping[str, Any]) -> dict[str, Any] | None:
+    anchor_run_id = _optional_string(queue.get("anchor_run_id"))
+    if anchor_run_id is None:
+        return None
+    for row in ordered_rows(queue):
+        row_run_id = row.get("run_id")
+        if isinstance(row_run_id, str) and row_run_id == anchor_run_id:
+            return row
+    return None
+
+
 def resolve_anchor_target(
     *,
     queue: Mapping[str, Any],
     registry_path: Path,
+    index_path: Path | None = None,
+    sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     artifacts, registry_run = _anchor_run_artifacts(queue=queue, registry_path=registry_path)
     anchor_row = _anchor_row_payload(queue)
     try:
-        spec, metadata = resolve_anchor_model_spec(queue=queue, registry_path=registry_path)
-        training_surface_record = _anchor_training_surface_record(queue=queue, artifacts=artifacts)
+        spec, metadata = resolve_anchor_model_spec(
+            queue=queue,
+            registry_path=registry_path,
+            index_path=index_path,
+            sweeps_root=sweeps_root,
+        )
+        if _anchor_has_training_artifacts(artifacts):
+            training_surface_record = _anchor_training_surface_record(queue=queue, artifacts=artifacts)
+        else:
+            source_row: dict[str, Any] | None = None
+            source_training_experiment: str | None = None
+            if str(metadata["source"]) == "queue_row":
+                source_row = _queue_anchor_row(queue)
+                source_training_experiment = str(queue["training_experiment"])
+            elif str(metadata["source"]) == "originating_sweep_row":
+                originating_row = resolve_anchor_originating_queue_row(
+                    queue=queue,
+                    registry_path=registry_path,
+                    index_path=index_path,
+                    sweeps_root=sweeps_root,
+                )
+                if originating_row is not None:
+                    source_row, originating_metadata = originating_row
+                    source_training_experiment = str(originating_metadata["training_experiment"])
+
+            if source_row is None or source_training_experiment is None:
+                training_surface_record = _anchor_training_surface_record(queue=queue, artifacts=artifacts)
+            else:
+                run_dir = _inspection_run_dir(
+                    sweep_id=str(queue["sweep_id"]),
+                    target_kind="anchor",
+                    target_id="anchor",
+                )
+                _, training_surface_record = _inspection_spec_and_record(
+                    row=source_row,
+                    run_dir=run_dir,
+                    training_experiment=source_training_experiment,
+                )
     except RuntimeError:
         run_dir = _inspection_run_dir(
             sweep_id=str(queue["sweep_id"]),

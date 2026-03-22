@@ -25,6 +25,7 @@ EXPECTED_ROWS = [
 ]
 GENERATED_RUN_ID = "sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v1"
 CURATED_RUN_ID = "sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v1"
+REGISTRY_PATH = REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
 SUPPORT_ROOT = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "support"
 MATRIX_PATH = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "matrix.md"
 MATERIALIZATION_SUMMARY_PATH = SUPPORT_ROOT / "materialization_summary.json"
@@ -100,6 +101,21 @@ def _assert_row_execution_state(
     assert benchmark_metrics["final_log_loss"] == 0.42151055964690004
     assert benchmark_metrics["final_brier_score"] == 0.26437640199935597
     assert benchmark_metrics["final_roc_auc"] == 0.6701728307468436
+
+
+def _ci_like_registry_path(tmp_path: Path) -> Path:
+    registry_payload = _load_json(REGISTRY_PATH)
+    for run_id in (ANCHOR_RUN_ID, GENERATED_RUN_ID, CURATED_RUN_ID):
+        run_payload = registry_payload["runs"][run_id]
+        artifacts = run_payload["artifacts"]
+        assert isinstance(artifacts, dict)
+        for artifact_key, artifact_value in list(artifacts.items()):
+            if not isinstance(artifact_value, str):
+                continue
+            artifacts[artifact_key] = f"/tmp/nonexistent-ci-artifacts/{run_id}/{artifact_key}"
+    registry_copy = tmp_path / "benchmark_run_registry_v1.ci.json"
+    registry_copy.write_text(json.dumps(registry_payload, indent=2, sort_keys=True), encoding="utf-8")
+    return registry_copy
 
 
 def test_tf_rd_013_data_source_contract_is_registered_but_not_active() -> None:
@@ -320,6 +336,27 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
     assert CURATED_RUN_ID in matrix
     assert "issue 127" in matrix
     assert "Fitness_Club" in matrix
+
+
+def test_tf_rd_013_diff_uses_originating_anchor_row_when_anchor_artifacts_are_missing(
+    tmp_path: Path,
+) -> None:
+    diff_payload = diff_module.diff_sweep_row(
+        order=1,
+        sweep_id=SWEEP_ID,
+        against="anchor",
+        index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
+        catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
+        sweeps_root=REPO_ROOT / "reference" / "system_delta_sweeps",
+        registry_path=_ci_like_registry_path(tmp_path),
+    )
+
+    assert diff_payload["against"]["source"] == "originating_sweep_row"
+    differences = diff_payload["differences"]
+    assert "resolved.training.optimizer_name" not in differences
+    assert "resolved.training.apply_schedule" not in differences
+    assert "resolved.training.prior_dump_non_finite_policy" not in differences
+    assert "resolved.training.schedule_stages" not in differences
 
 
 def test_binary_md_v1_curated_dagzoo_row_is_now_marked_as_historical_precursor() -> None:
