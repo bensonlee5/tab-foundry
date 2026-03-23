@@ -60,6 +60,36 @@ def test_tf_rd_013_size_ladder_queue_uses_corpus_refs() -> None:
     }
 
 
+def test_tf_rd_013_size_ladder_recipe_sizes_match_tf_rd_008_scale() -> None:
+    recipe_root = REPO_ROOT / "reference" / "corpus_recipes"
+
+    current_default = _load_yaml(recipe_root / "tf_rd_013_current_corpus_default_v1.yaml")
+    assert current_default["dagzoo"]["num_datasets"] == 10
+
+    small = _load_yaml(recipe_root / "tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml")
+    medium = _load_yaml(recipe_root / "tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml")
+    large = _load_yaml(recipe_root / "tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml")
+
+    for recipe, expected in (
+        (small, {"benchmark_cpu": 4, "default_medium": 14, "large_shape": 2}),
+        (medium, {"benchmark_cpu": 8, "default_medium": 28, "large_shape": 4}),
+        (large, {"benchmark_cpu": 16, "default_medium": 56, "large_shape": 8}),
+    ):
+        invocations = recipe["invocations"]
+        actual = {entry["invocation_id"]: entry["num_datasets"] for entry in invocations}
+        assert actual == expected
+
+
+def test_tf_rd_013_size_ladder_notes_describe_tf_rd_008_scale_control() -> None:
+    sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID
+    sweep = _load_yaml(sweep_root / "sweep.yaml")
+
+    notes = sweep["anchor_surface"]["notes"]
+    assert isinstance(notes, list)
+    assert any("TF-RD-008-scale" in note for note in notes)
+    assert any("20, 40, and 80" in note for note in notes)
+
+
 def test_tf_rd_013_size_ladder_materialized_queue_preserves_corpus_refs() -> None:
     queue = load_system_delta_queue(
         sweep_id=SWEEP_ID,

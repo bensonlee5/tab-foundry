@@ -17,10 +17,10 @@ anchor_surface:
   notes:
   - This draft sweep reopens TF-RD-013 under issues `#96` and `#132` for one final corpus-size adequacy gate before TF-RD-018 training-surface work.
   - The locked benchmark anchor remains `sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1`, but that historical artifact was recorded through the prior-dump-era control path rather than the current manifest-backed stop contract.
-  - Row 1 now uses a fresh current-corpus corpus recipe generated from the current dagzoo default config and clears `runtime.target_train_seconds` so every remaining TF-RD-013 row shares one canonical `max_steps=2500` stop condition.
+  - Row 1 now uses a TF-RD-008-scale fresh current-corpus corpus recipe generated from the current dagzoo default config and clears `runtime.target_train_seconds` so every remaining TF-RD-013 row shares one canonical `max_steps=2500` stop condition.
   - The reopened size ladder does not rely on the stale 2026-02-22 absolute-path snapshot; operators materialize first-class corpus recipes under `outputs/corpora/` before running the sweep.
-  - Keep the fresh default current corpus as the baseline and compare only three smaller shape-aware dagzoo surfaces; do not include the curated comparator, multiclass augmentation, filtering policy, or optimizer changes here.
-  - Use this ladder only to decide whether shrunken shape-aware dagzoo corpora materially improve the promoted-anchor read enough to keep synthetic-data exploration open before a separate synthetic-data epic is warranted.
+  - Keep the TF-RD-008-scale current corpus as the baseline and compare only three modestly broader shape-aware dagzoo support surfaces at 20, 40, and 80 generated datasets; do not include the curated comparator, multiclass augmentation, filtering policy, or optimizer changes here.
+  - Use this ladder only to decide whether those modestly broader shape-aware dagzoo corpora materially improve the promoted-anchor read enough to keep synthetic-data exploration open before a separate synthetic-data epic is warranted.
   dimension_table:
   - dimension: model anchor
     upstream: TabICLv2 is the primary row-first architectural reference, but it does not define this exact repo-local promoted-anchor contract.
@@ -28,12 +28,12 @@ anchor_surface:
     interpretation: TF-RD-013 size-ladder work changes only the training-data comparison surface and the stop-condition control, not the promoted model surface.
   - dimension: training data surface
     upstream: TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract.
-    anchor: Fresh current-corpus recipe `tf_rd_013_current_corpus_default_v1` with data surface label `anchor_manifest_default`.
-    interpretation: The fresh default current corpus remains the baseline while the sweep compares three shrunken shape-aware dagzoo alternatives under the same row caps through first-class `data.corpus_ref` resolution.
+    anchor: TF-RD-008-scale fresh current-corpus recipe `tf_rd_013_current_corpus_default_v1` with data surface label `anchor_manifest_default`.
+    interpretation: The fresh current corpus now mirrors the TF-RD-008 promotion-run manifest scale while the sweep compares three modestly broader shape-aware dagzoo alternatives under the same row caps through first-class `data.corpus_ref` resolution.
   - dimension: dagzoo size ladder
     upstream: Not applicable.
-    anchor: Row 1 uses the default dagzoo recipe as the current-corpus control rather than carrying over a historical local snapshot.
-    interpretation: Each candidate row now resolves through a tracked corpus recipe so the realized corpus identity is queryable from local corpus records and training-surface artifacts rather than from inline sweep-local provenance blobs.
+    anchor: Row 1 uses a 10-dataset default dagzoo recipe as the current-corpus control rather than carrying over a historical local snapshot.
+    interpretation: Rows 2-4 now form 20-, 40-, and 80-dataset support rungs through tracked corpus recipes so the realized corpus identity is queryable from local corpus records and training-surface artifacts rather than from inline sweep-local provenance blobs.
   - dimension: benchmark and control context
     upstream: TabICLv2 is the architectural reference, while nanoTabPFN remains the benchmark/control bundle family used by this repo for this decision.
     anchor: Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface.

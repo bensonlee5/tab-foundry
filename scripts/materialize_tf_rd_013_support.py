@@ -48,6 +48,7 @@ DEFAULT_DAGZOO_CONFIG_REF = "configs/default.yaml"
 DEFAULT_MANIFEST_CONFIG_REF = "configs/data/default.yaml"
 DEFAULT_BENCHMARK_BUNDLE_REF = "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
 DEFAULT_NUM_DATASETS = 8192
+SIZE_LADDER_CONTROL_NUM_DATASETS = 10
 DEFAULT_SEED = 1
 DEFAULT_DEVICE = "cpu"
 DEFAULT_HARDWARE_POLICY = "none"
@@ -226,17 +227,17 @@ SIZE_LADDER_SURFACE_SPECS: tuple[MultiInvocationSurfaceSpec, ...] = (
             ShapeAwareInvocationSpec(
                 invocation_id="benchmark_cpu",
                 config_ref="configs/benchmark_cpu.yaml",
-                num_datasets=128,
+                num_datasets=4,
             ),
             ShapeAwareInvocationSpec(
                 invocation_id="default_medium",
                 config_ref="configs/default.yaml",
-                num_datasets=256,
+                num_datasets=14,
             ),
             ShapeAwareInvocationSpec(
                 invocation_id="large_shape",
                 config_ref="configs/benchmark_cuda_h100_large_shape.yaml",
-                num_datasets=8,
+                num_datasets=2,
             ),
         ),
     ),
@@ -246,17 +247,17 @@ SIZE_LADDER_SURFACE_SPECS: tuple[MultiInvocationSurfaceSpec, ...] = (
             ShapeAwareInvocationSpec(
                 invocation_id="benchmark_cpu",
                 config_ref="configs/benchmark_cpu.yaml",
-                num_datasets=384,
+                num_datasets=8,
             ),
             ShapeAwareInvocationSpec(
                 invocation_id="default_medium",
                 config_ref="configs/default.yaml",
-                num_datasets=768,
+                num_datasets=28,
             ),
             ShapeAwareInvocationSpec(
                 invocation_id="large_shape",
                 config_ref="configs/benchmark_cuda_h100_large_shape.yaml",
-                num_datasets=24,
+                num_datasets=4,
             ),
         ),
     ),
@@ -266,17 +267,17 @@ SIZE_LADDER_SURFACE_SPECS: tuple[MultiInvocationSurfaceSpec, ...] = (
             ShapeAwareInvocationSpec(
                 invocation_id="benchmark_cpu",
                 config_ref="configs/benchmark_cpu.yaml",
-                num_datasets=768,
+                num_datasets=16,
             ),
             ShapeAwareInvocationSpec(
                 invocation_id="default_medium",
                 config_ref="configs/default.yaml",
-                num_datasets=1536,
+                num_datasets=56,
             ),
             ShapeAwareInvocationSpec(
                 invocation_id="large_shape",
                 config_ref="configs/benchmark_cuda_h100_large_shape.yaml",
-                num_datasets=48,
+                num_datasets=8,
             ),
         ),
     ),
@@ -1418,8 +1419,8 @@ def _size_ladder_materialization_summary(
             "notes": [
                 "The size ladder now materializes through first-class corpus recipes under outputs/corpora/ instead of sweep-local dagzoo orchestration.",
                 "Every ladder surface is generated on CPU with hardware-policy none so the comparison stays about corpus content rather than generation hardware.",
-                "Row 1 is a fresh current-corpus control recipe rather than a replay of the stale 2026-02-22 absolute-path snapshot.",
-                "Rows 2-4 remain the `small`, `medium`, and `large` shrunken shape-aware ladders under the same max_steps=2500 stop contract.",
+                f"Row 1 is a TF-RD-008-scale fresh current-corpus control recipe with {SIZE_LADDER_CONTROL_NUM_DATASETS} generated datasets rather than a replay of the stale 2026-02-22 absolute-path snapshot.",
+                "Rows 2-4 remain the `small`, `medium`, and `large` shrunken shape-aware ladders, now sized to 20, 40, and 80 generated datasets under the same max_steps=2500 stop contract.",
             ],
             "recipes": recipes,
         },
