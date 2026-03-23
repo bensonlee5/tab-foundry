@@ -4,7 +4,7 @@ from pathlib import Path
 
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.control_baseline_registry import default_control_baseline_registry_path
-from tab_foundry.research.sweep.artifacts import ExecutionPaths
+from tab_foundry.research.sweep.artifacts import ExecutionPaths, PromotionPaths
 from tab_foundry.research.sweep import paths_io
 
 
@@ -28,3 +28,10 @@ def test_render_path_keeps_repo_relative_paths_relative(tmp_path: Path) -> None:
 
 def test_execution_paths_default_uses_shared_control_baseline_registry_path() -> None:
     assert ExecutionPaths.default().control_baseline_registry_path == default_control_baseline_registry_path()
+
+
+def test_execution_paths_promote_conversion_stays_within_sweep_artifacts() -> None:
+    promotion_paths = ExecutionPaths.default().promotion_paths()
+
+    assert isinstance(promotion_paths, PromotionPaths)
+    assert promotion_paths.registry_path == default_benchmark_run_registry_path()

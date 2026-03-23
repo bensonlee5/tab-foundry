@@ -37,7 +37,6 @@ from tab_foundry.research.lane_contract import (
     resolve_training_experiment,
 )
 from tab_foundry.research import system_delta
-from tab_foundry.research.system_delta_promote import promote_anchor
 from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
 from tab_foundry.training.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.surface import (
@@ -49,6 +48,7 @@ from tab_foundry.training.trainer import train as train_from_manifest_cfg
 from tab_foundry.training.wandb import posthoc_update_wandb_summary
 
 from .artifacts import ExecutionPaths, read_yaml, result_card_text, write_research_package, write_yaml
+from .promote import promote_anchor
 from .queue_updates import append_note, optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
 from .screening import pick_screen_winner, screen_metrics
 from .selection import select_queue_rows, sorted_rows

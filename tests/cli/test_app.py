@@ -9,10 +9,13 @@ import tab_foundry.cli as cli_module
 import tab_foundry.cli.data_inspect as data_inspect_module
 import tab_foundry.cli.dev as dev_module
 import tab_foundry.cli.groups.data as data_group
+import tab_foundry.cli.groups.research as research_group
 import tab_foundry.research.sweep.core as sweep_core_module
 import tab_foundry.research.sweep.diff as diff_module
+import tab_foundry.research.sweep.execute as sweep_execute_module
 import tab_foundry.research.sweep.graph as graph_module
 import tab_foundry.research.sweep.inspect as inspect_module
+import tab_foundry.research.sweep.promote as sweep_promote_module
 import tab_foundry.research.sweep.summarize as summarize_module
 import tab_foundry.training.prior_train as prior_train_module
 
@@ -205,6 +208,51 @@ def test_nested_cli_research_sweep_graph_dispatches_to_handler(
 
     assert exit_code == 0
     assert captured == {"anchor": True, "order": [7]}
+
+
+def test_nested_cli_research_sweep_execute_dispatches_to_sweep_native_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_execute_handler(args):
+        captured["sweep_id"] = None if args.sweep_id is None else str(args.sweep_id)
+        captured["include_completed"] = bool(args.include_completed)
+        return 0
+
+    monkeypatch.setattr(sweep_execute_module, "run_from_args", _fake_execute_handler)
+
+    exit_code = cli_module.main(
+        ["research", "sweep", "execute", "--sweep-id", "binary_md_v1", "--include-completed"]
+    )
+
+    assert exit_code == 0
+    assert captured == {"sweep_id": "binary_md_v1", "include_completed": True}
+
+
+def test_nested_cli_research_sweep_promote_dispatches_to_sweep_native_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_promote_handler(args):
+        captured["sweep_id"] = str(args.sweep_id)
+        captured["run_id"] = str(args.run_id)
+        return 0
+
+    monkeypatch.setattr(sweep_promote_module, "run_from_args", _fake_promote_handler)
+
+    exit_code = cli_module.main(
+        ["research", "sweep", "promote", "--sweep-id", "binary_md_v1", "--run-id", "run_001"]
+    )
+
+    assert exit_code == 0
+    assert captured == {"sweep_id": "binary_md_v1", "run_id": "run_001"}
+
+
+def test_research_cli_group_imports_sweep_native_execute_and_promote_modules() -> None:
+    assert research_group.sweep_execute.__name__ == "tab_foundry.research.sweep.execute"
+    assert research_group.sweep_promote.__name__ == "tab_foundry.research.sweep.promote"
 
 
 def test_nested_cli_research_sweep_summarize_dispatches_to_handler(

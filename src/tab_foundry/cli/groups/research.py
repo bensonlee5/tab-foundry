@@ -6,13 +6,11 @@ import argparse
 
 from tab_foundry.research.sweep import core as sweep_core
 from tab_foundry.research.sweep import diff as sweep_diff
+from tab_foundry.research.sweep import execute as sweep_execute
 from tab_foundry.research.sweep import graph as sweep_graph
 from tab_foundry.research.sweep import inspect as sweep_inspect
+from tab_foundry.research.sweep import promote as sweep_promote
 from tab_foundry.research.sweep import summarize as sweep_summarize
-from tab_foundry.research.system_delta_execute import configure_parser as configure_execute_parser
-from tab_foundry.research.system_delta_execute import run_from_args as run_execute_from_args
-from tab_foundry.research.system_delta_promote import configure_parser as configure_promote_parser
-from tab_foundry.research.system_delta_promote import run_from_args as run_promote_from_args
 
 
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -27,16 +25,16 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
 
     execute_parser = sweep_nested.add_parser("execute", help="Execute selected system-delta sweep rows")
-    configure_execute_parser(execute_parser)
-    execute_parser.set_defaults(func=run_execute_from_args)
+    sweep_execute.configure_parser(execute_parser)
+    execute_parser.set_defaults(func=sweep_execute.run_from_args)
 
     graph_parser = sweep_nested.add_parser("graph", help="Render torchview architecture graphs for sweep targets")
     sweep_graph.configure_parser(graph_parser)
     graph_parser.set_defaults(func=sweep_graph.run_from_args)
 
     promote_parser = sweep_nested.add_parser("promote", help="Promote a completed run to the sweep anchor")
-    configure_promote_parser(promote_parser)
-    promote_parser.set_defaults(func=run_promote_from_args)
+    sweep_promote.configure_parser(promote_parser)
+    promote_parser.set_defaults(func=sweep_promote.run_from_args)
 
     summarize_parser = sweep_nested.add_parser(
         "summarize",
