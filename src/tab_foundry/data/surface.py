@@ -65,6 +65,7 @@ def resolve_data_surface(
     recipe_id: str | None = None
     corpus_id: str | None = None
     corpus_record_path: Path | None = None
+    unresolved_corpus_ref = False
     if raw_corpus_ref is not None:
         requested_corpus_ref = str(raw_corpus_ref).strip()
         try:
@@ -73,6 +74,7 @@ def resolve_data_surface(
             if not allow_unresolved_corpus_ref:
                 raise
             corpus_record = None
+            unresolved_corpus_ref = True
             corpus_ref = requested_corpus_ref
             recipe_id, separator, parsed_corpus_id = requested_corpus_ref.partition("/")
             recipe_id = recipe_id.strip() or None
@@ -103,6 +105,8 @@ def resolve_data_surface(
         raw_manifest_path = (
             _mapping_from_any(corpus_record.get("manifest"), context="corpus_record.manifest").get("manifest_path")
         )
+    elif unresolved_corpus_ref:
+        raw_manifest_path = None
     manifest_path = None
     if raw_manifest_path is not None:
         manifest_path = Path(str(raw_manifest_path)).expanduser().resolve()

@@ -237,3 +237,29 @@ def test_manifest_inspect_compatibility_is_not_applicable_for_non_manifest_sourc
     compatibility = payload["compatibility"]
     assert compatibility["verdict"] == "not_applicable"
     assert compatibility["data_source"] == "dagzoo"
+
+
+def test_manifest_inspect_compatibility_reports_unmaterialized_corpus_ref(
+    tmp_path: Path,
+) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    _ = cases._write_dataset(
+        shard_dir,
+        filter_status="accepted",
+        filter_accepted=True,
+    )
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+
+    payload = manifest_inspect_payload(
+        manifest_path,
+        experiment="cls_smoke",
+        overrides=["data.surface_overrides.corpus_ref=tf_rd_013_current_corpus_default_v1"],
+    )
+
+    compatibility = payload["compatibility"]
+    assert compatibility["data_source"] == "manifest"
+    assert compatibility["resolved_manifest_path"] is None
+    assert compatibility["manifest_path_matches"] is False
+    assert compatibility["verdict"] == "incompatible"
+    assert "resolved manifest data surface has no manifest_path" in compatibility["summary"]

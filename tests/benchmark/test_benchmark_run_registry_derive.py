@@ -26,6 +26,7 @@ _export(
         "test_derive_benchmark_run_record_captures_optional_training_surface_label",
         "test_derive_benchmark_run_record_includes_optional_sweep_metadata",
         "test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surface",
+        "test_derive_benchmark_run_record_uses_materialized_corpus_manifest_path",
         "test_derive_benchmark_run_record_falls_back_to_best_benchmark_step_checkpoint",
     ]
 )

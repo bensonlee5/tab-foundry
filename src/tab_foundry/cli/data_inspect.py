@@ -42,7 +42,10 @@ def _resolved_compatibility_config(overrides: Sequence[str]) -> dict[str, Any]:
         "experiment": _resolved_experiment_name(overrides),
         "task": task,
         "model": model_surface_payload(spec),
-        "data": resolve_data_surface(_mapping_from_node(getattr(cfg, "data", None), context="cfg.data")).to_dict(),
+        "data": resolve_data_surface(
+            _mapping_from_node(getattr(cfg, "data", None), context="cfg.data"),
+            allow_unresolved_corpus_ref=True,
+        ).to_dict(),
         "preprocessing": resolve_preprocessing_surface(
             _mapping_from_node(getattr(cfg, "preprocessing", None), context="cfg.preprocessing")
         ).to_dict(),
