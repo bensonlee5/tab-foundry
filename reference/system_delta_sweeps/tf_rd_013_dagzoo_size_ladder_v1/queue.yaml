@@ -1,0 +1,307 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_013_dagzoo_size_ladder_v1
+rows:
+- order: 1
+  delta_ref: delta_training_manifest_parity_anchor_uncapped
+  status: ready
+  rationale: Re-establish the settled row-first anchor on the manifest backend without the inherited 330-second cap so the remaining TF-RD-013 rows compare against a same-backend control.
+  hypothesis: Clearing `target_train_seconds` should let the manifest-backed anchor reach the intended 2500-step contract and become the canonical control for the dagzoo size ladder.
+  anchor_delta: Keep the settled row-first model, current corpus, and preprocessing surfaces fixed, but clear the inherited time cap so the manifest trainer stops only at `max_steps=2500`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: anchor_manifest_default
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      runtime:
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the resolved backend is `manifest`, `runtime.max_steps` is `2500`, and `runtime.target_train_seconds` is `null` before reading any benchmark outcome.
+  - Use this row as the same-backend control for rows 2-4 rather than as a new training optimization claim.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run first on the CUDA machine as the canonical manifest-backed control for the reopened TF-RD-013 decision.
+  notes:
+  - The historical locked anchor artifact predates the backend-aware manifest runner; this row establishes the canonical manifest-backed control for the remaining TF-RD-013 decision.
+- order: 2
+  delta_ref: delta_data_manifest_root_dagzoo_shape_aware_size_small
+  parent_delta_ref: delta_training_manifest_parity_anchor_uncapped
+  status: ready
+  rationale: Start the reopened TF-RD-013 follow-up with the smallest shrunken shape-aware dagzoo surface so the first size-rung read is aggressively different from the previous 6272-record shape-aware corpus.
+  hypothesis: The smallest rung may recover a stronger promoted-anchor read by giving the uncapped 2500-step run materially more reuse of the mixed shape-aware regimes.
+  anchor_delta: Starting from row 1's manifest-parity anchor control, replace the current corpus with the `small` shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_013_dagzoo_shape_aware_size_small
+    source: manifest
+    manifest_path: outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/manifest.parquet
+    train_row_cap: 512
+    test_row_cap: 256
+    dagzoo_provenance:
+      corpus_variant: dagzoo_shape_aware_size_small
+      comparator_role: promoted_anchor_candidate
+      commands:
+      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/benchmark_cpu" --num-datasets 128 --seed 1 --device cpu --hardware-policy none
+      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/default_medium" --num-datasets 256 --seed 1 --device cpu --hardware-policy none
+      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/large_shape" --num-datasets 8 --seed 1 --device cpu --hardware-policy none
+      - build_manifest(data_roots=[outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/benchmark_cpu/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/default_medium/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/large_shape/generated], out_path=outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/manifest.parquet)
+      config_refs:
+      - configs/benchmark_cpu.yaml
+      - configs/default.yaml
+      - configs/benchmark_cuda_h100_large_shape.yaml
+      curated_root_lineage: []
+      materialization_issue: 132
+      invocations:
+      - invocation_id: benchmark_cpu
+        config_ref: configs/benchmark_cpu.yaml
+        num_datasets: 128
+      - invocation_id: default_medium
+        config_ref: configs/default.yaml
+        num_datasets: 256
+      - invocation_id: large_shape
+        config_ref: configs/benchmark_cuda_h100_large_shape.yaml
+        num_datasets: 8
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      runtime:
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare manifest characteristics against row 1 before reading benchmark output and confirm the intended `small` rung counts are present.
+  - Interpret this row strictly as corpus-size evidence; do not mix in filtering, multiclass, or curated-comparator conclusions.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run second and compare directly against the manifest-parity anchor before spending budget on the larger ladder rungs.
+  notes:
+  - Support-bundle regeneration instructions live in `reference/system_delta_sweeps/tf_rd_013_dagzoo_size_ladder_v1/support/README.md`; the tracked JSON summaries should be refreshed on the remote materialization machine.
+  - The size ladder stays binary-only, omits the curated comparator, and uses CPU dagzoo generation so the training read stays about corpus content rather than generator hardware.
+- order: 3
+  delta_ref: delta_data_manifest_root_dagzoo_shape_aware_size_medium
+  parent_delta_ref: delta_training_manifest_parity_anchor_uncapped
+  status: ready
+  rationale: Add a middle size rung so the reopened TF-RD-013 decision can distinguish between “dagzoo only works when heavily shrunken” and “dagzoo is size-insensitive on this anchor.”
+  hypothesis: The medium rung may balance reuse and regime breadth better than either the smallest rung or the previous broad shape-aware surface.
+  anchor_delta: Starting from row 1's manifest-parity anchor control, replace the current corpus with the `medium` shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
+    source: manifest
+    manifest_path: outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/manifest.parquet
+    train_row_cap: 512
+    test_row_cap: 256
+    dagzoo_provenance:
+      corpus_variant: dagzoo_shape_aware_size_medium
+      comparator_role: promoted_anchor_candidate
+      commands:
+      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/benchmark_cpu" --num-datasets 384 --seed 1 --device cpu --hardware-policy none
+      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/default_medium" --num-datasets 768 --seed 1 --device cpu --hardware-policy none
+      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/large_shape" --num-datasets 24 --seed 1 --device cpu --hardware-policy none
+      - build_manifest(data_roots=[outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/benchmark_cpu/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/default_medium/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/large_shape/generated], out_path=outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/manifest.parquet)
+      config_refs:
+      - configs/benchmark_cpu.yaml
+      - configs/default.yaml
+      - configs/benchmark_cuda_h100_large_shape.yaml
+      curated_root_lineage: []
+      materialization_issue: 132
+      invocations:
+      - invocation_id: benchmark_cpu
+        config_ref: configs/benchmark_cpu.yaml
+        num_datasets: 384
+      - invocation_id: default_medium
+        config_ref: configs/default.yaml
+        num_datasets: 768
+      - invocation_id: large_shape
+        config_ref: configs/benchmark_cuda_h100_large_shape.yaml
+        num_datasets: 24
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      runtime:
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare manifest characteristics against row 1 before reading benchmark output and confirm the intended `medium` rung counts are present.
+  - Use this row to decide whether any improvement appears only after the smallest rung is relaxed.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run after the small rung so size sensitivity is read as a ladder rather than as isolated one-off rows.
+  notes:
+  - Support-bundle regeneration instructions live in `reference/system_delta_sweeps/tf_rd_013_dagzoo_size_ladder_v1/support/README.md`; the tracked JSON summaries should be refreshed on the remote materialization machine.
+- order: 4
+  delta_ref: delta_data_manifest_root_dagzoo_shape_aware_size_large
+  parent_delta_ref: delta_training_manifest_parity_anchor_uncapped
+  status: ready
+  rationale: Keep one upper size rung in the reopened TF-RD-013 follow-up so the ladder still tests a broader synthetic surface while remaining far smaller than the prior shape-aware run.
+  hypothesis: The largest shrunken rung may retain enough shape diversity to help without reintroducing the severe underexposure seen on the previous 6272-record manifest.
+  anchor_delta: Starting from row 1's manifest-parity anchor control, replace the current corpus with the `large` shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_013_dagzoo_shape_aware_size_large
+    source: manifest
+    manifest_path: outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/manifest.parquet
+    train_row_cap: 512
+    test_row_cap: 256
+    dagzoo_provenance:
+      corpus_variant: dagzoo_shape_aware_size_large
+      comparator_role: promoted_anchor_candidate
+      commands:
+      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/benchmark_cpu" --num-datasets 768 --seed 1 --device cpu --hardware-policy none
+      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/default_medium" --num-datasets 1536 --seed 1 --device cpu --hardware-policy none
+      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/large_shape" --num-datasets 48 --seed 1 --device cpu --hardware-policy none
+      - build_manifest(data_roots=[outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/benchmark_cpu/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/default_medium/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/large_shape/generated], out_path=outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/manifest.parquet)
+      config_refs:
+      - configs/benchmark_cpu.yaml
+      - configs/default.yaml
+      - configs/benchmark_cuda_h100_large_shape.yaml
+      curated_root_lineage: []
+      materialization_issue: 132
+      invocations:
+      - invocation_id: benchmark_cpu
+        config_ref: configs/benchmark_cpu.yaml
+        num_datasets: 768
+      - invocation_id: default_medium
+        config_ref: configs/default.yaml
+        num_datasets: 1536
+      - invocation_id: large_shape
+        config_ref: configs/benchmark_cuda_h100_large_shape.yaml
+        num_datasets: 48
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    prior_dump_non_finite_policy: skip
+    overrides:
+      apply_schedule: true
+      runtime:
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare manifest characteristics against row 1 before reading benchmark output and confirm the intended `large` rung counts are present.
+  - Use this as the upper boundary of the size ladder before deciding whether TF-RD-013 needs any broader synthetic-data follow-up at all.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run last so the size ladder resolves from manifest-parity control through small, medium, and upper-bound large corpus sizes.
+  notes:
+  - Support-bundle regeneration instructions live in `reference/system_delta_sweeps/tf_rd_013_dagzoo_size_ladder_v1/support/README.md`; the tracked JSON summaries should be refreshed on the remote materialization machine.
