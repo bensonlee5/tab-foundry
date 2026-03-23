@@ -5,7 +5,7 @@ from pathlib import Path
 import shutil
 import subprocess
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Mapping, cast
 
 from omegaconf import OmegaConf
 import pytest
@@ -127,6 +127,8 @@ def _write_compare_summary(
     seeds: int | None = None,
     batch_size: int | None = None,
     lr: float | None = None,
+    include_nanotabpfn: bool = True,
+    nanotabpfn_error: Mapping[str, Any] | None = None,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload: dict[str, Any] = {
@@ -138,40 +140,43 @@ def _write_compare_summary(
                 else str(bundle_source_path).strip()
             ),
         },
-        'nanotabpfn': {
+        'artifacts': {},
+    }
+    if include_nanotabpfn:
+        payload['nanotabpfn'] = {
             'root': str(nanotab_root.resolve()),
             'python': str(nanotab_python.resolve()),
             'num_seeds': 2 if seeds is None else int(seeds),
-        },
-        'artifacts': {},
-    }
-    nanotabpfn = payload['nanotabpfn']
-    if device is not None:
-        nanotabpfn['device'] = str(device)
-    if device is not None and resolved_device is None:
-        nanotabpfn['resolved_device'] = runner_module.resolve_device(str(device))
-    if resolved_device is not None:
-        nanotabpfn['resolved_device'] = str(resolved_device)
-    if device is not None and host_fingerprint is None:
-        nanotabpfn['benchmark_host_fingerprint'] = runner_module.benchmark_host_fingerprint()
-    if host_fingerprint is not None:
-        nanotabpfn['benchmark_host_fingerprint'] = str(host_fingerprint)
-    if prior_dump_path is not None:
-        nanotabpfn['prior_dump_path'] = str(prior_dump_path.resolve())
-    if steps is not None:
-        nanotabpfn['steps'] = int(steps)
-    if eval_every is not None:
-        nanotabpfn['eval_every'] = int(eval_every)
-    if seeds is not None:
-        nanotabpfn['num_seeds'] = int(seeds)
-    if batch_size is not None:
-        nanotabpfn['batch_size'] = int(batch_size)
-    if lr is not None:
-        nanotabpfn['lr'] = float(lr)
+        }
+        nanotabpfn = cast(dict[str, Any], payload['nanotabpfn'])
+        if device is not None:
+            nanotabpfn['device'] = str(device)
+        if device is not None and resolved_device is None:
+            nanotabpfn['resolved_device'] = runner_module.resolve_device(str(device))
+        if resolved_device is not None:
+            nanotabpfn['resolved_device'] = str(resolved_device)
+        if device is not None and host_fingerprint is None:
+            nanotabpfn['benchmark_host_fingerprint'] = runner_module.benchmark_host_fingerprint()
+        if host_fingerprint is not None:
+            nanotabpfn['benchmark_host_fingerprint'] = str(host_fingerprint)
+        if prior_dump_path is not None:
+            nanotabpfn['prior_dump_path'] = str(prior_dump_path.resolve())
+        if steps is not None:
+            nanotabpfn['steps'] = int(steps)
+        if eval_every is not None:
+            nanotabpfn['eval_every'] = int(eval_every)
+        if seeds is not None:
+            nanotabpfn['num_seeds'] = int(seeds)
+        if batch_size is not None:
+            nanotabpfn['batch_size'] = int(batch_size)
+        if lr is not None:
+            nanotabpfn['lr'] = float(lr)
     if curve_path is not None:
         payload['artifacts']['nanotabpfn_curve_jsonl'] = str(curve_path.resolve())
     if control_baseline_id is not None:
         payload['control_baseline'] = {'baseline_id': str(control_baseline_id)}
+    if nanotabpfn_error is not None:
+        payload['nanotabpfn_error'] = dict(nanotabpfn_error)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
 
 
@@ -731,6 +736,26 @@ def test_compose_cfg_uses_requested_training_experiment(
     )
 
     assert captured['args'] == ['experiment=cls_benchmark_staged']
+
+
+def test_compose_cfg_routes_data_corpus_ref_into_surface_overrides(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'outputs' / 'staged_ladder' / 'research' / 'tf_rd_013' / 'train'
+
+    cfg = _compose_cfg(
+        row={
+            'data': {
+                'surface_label': 'anchor_manifest_default',
+                'corpus_ref': 'tf_rd_013_current_corpus_default_v1',
+                'train_row_cap': 512,
+            }
+        },
+        run_dir=run_dir,
+        device='cuda',
+    )
+
+    assert str(cfg.data.surface_label) == 'anchor_manifest_default'
+    assert str(cfg.data.surface_overrides.corpus_ref) == 'tf_rd_013_current_corpus_default_v1'
+    assert cfg.data.train_row_cap == 512
 
 
 def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> None:
@@ -2134,6 +2159,213 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
     ).read_text(encoding='utf-8')
     assert "nanoTabPFN curve source: `reused`" in result_card
     assert str(prior_curve_path.resolve()) in result_card
+
+
+def test_run_row_reuses_prior_completed_sweep_row_error_before_bootstrapping_helper(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sweep_id = 'sweep_reuse_previous_row_error'
+    prior_delta_ref = 'delta_qass_no_column_v3'
+    delta_ref = 'delta_qass_context_v3'
+    prior_run_id = f'sd_{sweep_id}_01_{prior_delta_ref}_v1'
+    run_id = f'sd_{sweep_id}_02_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    benchmark_dir = train_dir.parent / 'benchmark'
+    (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='manifest')
+    (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+    benchmark_dir.mkdir(parents=True, exist_ok=True)
+
+    bundle_path = tmp_path / 'bundle.json'
+    bundle_path.write_text('{}\n', encoding='utf-8')
+    nanotab_root = tmp_path / 'nano'
+    nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
+    prior_dump = nanotab_root / '300k_150x5_2.h5'
+    prior_error = {
+        'kind': 'helper_failed_on_missing_bundle',
+        'message': 'helper returned non-zero exit status 1',
+        'returncode': 1,
+    }
+    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(
+        runner_module,
+        'benchmark_host_fingerprint',
+        lambda: 'runner-host',
+    )
+
+    prior_summary_path = tmp_path / 'prior_row_summary.json'
+    _write_compare_summary(
+        prior_summary_path,
+        bundle_path=bundle_path,
+        curve_path=None,
+        nanotab_root=nanotab_root,
+        nanotab_python=nanotab_python,
+        control_baseline_id='cls_benchmark_linear_v2',
+        device=None,
+        prior_dump_path=None,
+        include_nanotabpfn=False,
+        nanotabpfn_error=prior_error,
+    )
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    registry_path.write_text(
+        json.dumps(
+            {
+                'runs': {
+                    prior_run_id: {
+                        'artifacts': {
+                            'comparison_summary_path': str(prior_summary_path.resolve()),
+                        }
+                    }
+                }
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    control_baseline_registry_path.write_text(
+        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+
+    prior_row = {
+        'order': 1,
+        'delta_ref': prior_delta_ref,
+        'run_id': prior_run_id,
+    }
+    queue_row = {
+        'order': 2,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'training': {},
+        'execution_policy': 'benchmark_full',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'model',
+        'family': 'tokenization',
+        'description': 'Benchmark the factorized follow-up row.',
+        'anchor_delta': 'Change only the queued model delta.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'notes': [],
+    }
+    queue = {'rows': [prior_row, queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    captured_benchmark_config: dict[str, Any] = {}
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'ensure_nanotabpfn_python',
+        lambda **_: (_ for _ in ()).throw(AssertionError('unexpected nanotabpfn bootstrap')),
+    )
+
+    def fake_benchmark(config: Any) -> dict[str, Any]:
+        captured_benchmark_config['external_benchmarks'] = config.external_benchmarks
+        captured_benchmark_config['reuse_nanotabpfn_curve_path'] = config.reuse_nanotabpfn_curve_path
+        captured_benchmark_config['reuse_nanotabpfn_error'] = config.reuse_nanotabpfn_error
+        captured_benchmark_config['reuse_nanotabpfn_metadata'] = config.reuse_nanotabpfn_metadata
+        return {
+            'tab_foundry': {
+                'best_step': 100.0,
+                'best_log_loss': 0.41,
+                'final_log_loss': 0.40,
+                'best_to_final_log_loss_delta': -0.01,
+                'best_brier_score': 0.12,
+                'final_brier_score': 0.11,
+                'best_to_final_brier_score_delta': -0.01,
+                'best_roc_auc': 0.80,
+                'final_roc_auc': 0.81,
+                'best_to_final_roc_auc_delta': 0.01,
+                'training_diagnostics': {'max_grad_norm': 7.5},
+            },
+            'nanotabpfn_error': dict(prior_error),
+        }
+
+    monkeypatch.setattr(runner_module, 'run_nanotabpfn_benchmark', fake_benchmark)
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda **_kwargs: {
+            'run': {
+                'comparisons': {
+                    'vs_anchor': {
+                        'final_log_loss_delta': -0.02,
+                        'final_brier_score_delta': -0.01,
+                        'final_roc_auc_delta': 0.01,
+                    }
+                }
+            }
+        },
+    )
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'training_experiment': 'cls_benchmark_staged',
+            'training_config_profile': 'cls_benchmark_staged',
+            'surface_role': 'architecture_screen',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_missing',
+        parent_run_id=prior_run_id,
+        queue=queue,
+        prior_dump=prior_dump,
+        nanotabpfn_root=nanotab_root,
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Reuse the prior sweep row helper outcome for the follow-up row.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert captured_benchmark_config['external_benchmarks'] == ('nanotabpfn',)
+    assert captured_benchmark_config['reuse_nanotabpfn_curve_path'] is None
+    assert captured_benchmark_config['reuse_nanotabpfn_error'] == prior_error
+    assert captured_benchmark_config['reuse_nanotabpfn_metadata'] == {
+        'root': str(nanotab_root.resolve()),
+        'python': str((nanotab_root / '.venv' / 'bin' / 'python').resolve()),
+        'device': 'cuda',
+        'resolved_device': 'cuda',
+        'benchmark_host_fingerprint': 'runner-host',
+        'prior_dump_path': str(prior_dump.resolve()),
+        'num_seeds': runner_module.DEFAULT_NANOTABPFN_SEEDS,
+        'steps': runner_module.DEFAULT_NANOTABPFN_STEPS,
+        'eval_every': runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
+        'batch_size': runner_module.DEFAULT_NANOTABPFN_BATCH_SIZE,
+        'lr': runner_module.DEFAULT_NANOTABPFN_LR,
+    }
 
 def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_anchor_is_unavailable(
     tmp_path: Path,

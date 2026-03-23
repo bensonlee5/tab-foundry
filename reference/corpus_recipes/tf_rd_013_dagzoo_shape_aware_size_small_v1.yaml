@@ -1,7 +1,7 @@
 schema: tab-foundry-corpus-recipe-v1
 recipe_id: tf_rd_013_dagzoo_shape_aware_size_small_v1
 kind: dagzoo_multi_invocation_manifest
-description: Small shrunken shape-aware dagzoo ladder rung for TF-RD-013.
+description: Small 20-dataset shape-aware dagzoo support rung for TF-RD-013.
 surface_label: tf_rd_013_dagzoo_shape_aware_size_small
 manifest:
   train_ratio: 0.90
@@ -14,19 +14,19 @@ provenance_labels:
 invocations:
   - invocation_id: benchmark_cpu
     config_ref: configs/benchmark_cpu.yaml
-    num_datasets: 128
+    num_datasets: 4
     seed: 1
     device: cpu
     hardware_policy: none
   - invocation_id: default_medium
     config_ref: configs/default.yaml
-    num_datasets: 256
+    num_datasets: 14
     seed: 1
     device: cpu
     hardware_policy: none
   - invocation_id: large_shape
     config_ref: configs/benchmark_cuda_h100_large_shape.yaml
-    num_datasets: 8
+    num_datasets: 2
     seed: 1
     device: cpu
     hardware_policy: none

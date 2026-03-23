@@ -1,7 +1,7 @@
 schema: tab-foundry-corpus-recipe-v1
 recipe_id: tf_rd_013_current_corpus_default_v1
 kind: dagzoo_single_invocation
-description: Fresh current-corpus control for the reopened TF-RD-013 size ladder, generated from the current dagzoo default config.
+description: TF-RD-008-scale fresh current-corpus control for the reopened TF-RD-013 size ladder, generated from the current dagzoo default config.
 surface_label: anchor_manifest_default
 manifest:
   train_ratio: 0.90
@@ -13,7 +13,7 @@ provenance_labels:
   comparator_role: control
 dagzoo:
   config_ref: configs/default.yaml
-  num_datasets: 8192
+  num_datasets: 10
   seed: 1
   device: cpu
   hardware_policy: none

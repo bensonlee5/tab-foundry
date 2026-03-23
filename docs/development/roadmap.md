@@ -136,7 +136,7 @@ retained for traceability.
 | 7 | TF-RD-006 | Column-set integration | completed | Implemented |
 | 8 | TF-RD-007 | Row-level context and QASS attribution | completed | Implemented |
 | 9 | TF-RD-008 | Coherent classification anchor promotion | implemented | Implemented |
-| 10 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | partial | Now |
+| 10 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | completed | Completed |
 | 11 | TF-RD-018 | Training-surface adequacy on the promoted anchor | planned | Next |
 | 12 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
 | 13 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
@@ -225,7 +225,7 @@ attention.
 | Coherent row-first migration ladder exists in code | `implemented` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly, and `qass_tfcol_large_missing_validation_v1` closed the missing-permitting settlement sweep | The remaining work is no longer anchor coherence; it is harder and broader post-008 regime coverage on the settled row-first base | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and both large-bundle validators now separate row embeddings, plain context, TFCol-only, QASS-only, the no-TFCol default line, and the retained `qass + tfcol_heads4` calibration variant | The next comparison gap is no longer anchor settlement; it is whether harder post-008 fronts provide more decisive regime separation before scaling work | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | One promoted row-first classification anchor exists | `implemented` | `qass_tfcol_large_missing_validation_v1` closed on an explicit split: `row_cls + qass + no tfcol` is now the default row-first anchor, while `row_cls + qass + tfcol_heads4` is retained as a calibration-oriented alternative | Future work should treat the no-TFCol line as the default and reserve TFCol for explicit calibration-oriented follow-up rather than reopening anchor settlement | `TF-RD-008` |
-| Harder post-008 data surfaces can be exercised | `partial` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, and the first two promoted-anchor TF-RD-013 comparison packages under `#120`, `#122`, and `#127` now exist | The repo still lacks a representative post-008 training-data decision on the current manifest backend; the immediate blocker is the reopened fresh-current-corpus control plus dagzoo size ladder under `#132`, not TF-RD-018 training-surface optimization yet | `TF-RD-011`, `TF-RD-013`, `TF-RD-014`, `TF-RD-017`, `TF-RD-018` |
+| Harder post-008 data surfaces can be exercised | `implemented` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, and the completed TF-RD-013 size ladder under `#132` now exist on the current manifest backend | The immediate blocker is no longer representative-data selection; TF-RD-018 should now treat the 40-dataset shape-aware dagzoo medium rung as the canonical post-008 training-data surface and decide optimizer or schedule adequacy there before reopening broader regime coverage | `TF-RD-011`, `TF-RD-013`, `TF-RD-014`, `TF-RD-017`, `TF-RD-018` |
 | Class-imbalance robustness is meaningfully exercised | `partial` | Current benchmark bundles enforce `min_minority_class_pct = 2.5`, so the repo already excludes degenerate class-balance cases | There is no dedicated imbalance-focused bundle ladder, imbalance-oriented reporting contract, or explicit decision on the promoted anchor under materially skewed priors | `TF-RD-017` |
 | Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, and bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist | Optimizer, schedule, step-budget, batch, and clipping adequacy are not yet tracked as one roadmap workstream with a canonical decision surface | `TF-RD-018` |
 | Many-class evaluation can start on the row-first base | `partial` | The staged family already includes `many_class`, reusable machinery exists, and `nanotabpfn_openml_classification_small_v1.json` provides a benchmark-facing multiclass bundle | Many-class still lacks a promoted row-first benchmark ladder, adequacy sweeps, and a keep/defer decision | `TF-RD-010` |
@@ -583,7 +583,7 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-010: Many-Class Promotion On The Row-First Base
 
-- Status: `partial`
+- Status: `completed`
 - Milestone: `Next`
 - Goal: extend the promoted row-first backbone into the existing `many_class`
   path
@@ -655,13 +655,13 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-013: Dagzoo Synthetic-Data Efficacy On The Promoted Anchor
 
-- Status: `partial`
-- Milestone: `Now`
+- Status: `completed`
+- Milestone: `Completed`
 - Goal: decide before training-surface adequacy work whether the fresh default
-  current-corpus dagzoo recipe or smaller shape-aware dagzoo corpora better
-  match the intended post-008 training data surface, and whether any of those
-  choices materially improve training difficulty, architecture discrimination,
-  or final quality on the promoted row-first anchor
+  current-corpus dagzoo recipe at TF-RD-008 scale or smaller shape-aware dagzoo
+  corpora better match the intended post-008 training data surface, and whether
+  any of those choices materially improve training difficulty, architecture
+  discrimination, or final quality on the promoted row-first anchor
 - Current state:
   - the dagzoo handoff boundary is complete through closed TF-RD-011 work
   - dagzoo smoke and manifest identity are no longer the main blocker
@@ -687,16 +687,22 @@ This roadmap assumes the following repo truths:
     the broader multi-invocation, shape-aware dagzoo follow-up, but it still ran
     under the inherited `runtime.target_train_seconds: 330` manifest cap while the
     historical anchor control remained a prior-dump-era artifact
-  - issue [#132](https://github.com/bensonlee5/tab-foundry/issues/132) now tracks
-    the reopened fresh-current-corpus control, uncapped current-corpus control,
-    and dagzoo size ladder needed to finish the representative-data decision
+  - issue [#132](https://github.com/bensonlee5/tab-foundry/issues/132) tracked
+    the reopened TF-RD-008-scale fresh-current-corpus control, uncapped
+    current-corpus control, and dagzoo size ladder that finished the
+    representative-data decision on 2026-03-23
   - first-class corpus recipes now exist under `reference/corpus_recipes/`, and
     TF-RD-013 is the first sweep migrated onto that shared local corpus layer
     instead of relying on sweep-local dagzoo orchestration
-  - issue [#107](https://github.com/bensonlee5/tab-foundry/issues/107) remains
-    blocked on this final TF-RD-013 gate; TF-RD-018 should not settle optimizer
-    or schedule adequacy on a training-data surface that still lacks a same-backend
-    control
+  - issue [#107](https://github.com/bensonlee5/tab-foundry/issues/107) is no
+    longer blocked on TF-RD-013; TF-RD-018 should now settle optimizer and
+    schedule adequacy on the selected same-backend medium-rung manifest surface
+  - the fresh current-corpus control resolved through recipe
+    `tf_rd_013_current_corpus_default_v1` and surface label
+    `anchor_manifest_default` now inspects to `10` total records with an
+    `8 train / 1 val / 1 test` split, so the reopened current-corpus control is
+    explicitly sized to that TF-RD-008 promotion-run scale rather than the
+    earlier `8192`-dataset current-corpus recipe
 - Evidence so far:
   - the corrected manifest-backed reruns preserved the first read direction: the
     unfiltered dagzoo generated-source surface remained close to, but still worse
@@ -705,28 +711,48 @@ This roadmap assumes the following repo truths:
     still underperformed the anchor on final large-bundle log loss and Brier, but
     it did so under the inherited 330-second manifest cap rather than an uncapped
     `max_steps=2500` contract
-  - the current TF-RD-013 blocker is therefore no longer dagzoo handoff plumbing;
-    it is whether a fresh current-corpus control on the current manifest backend
-    plus a much smaller shape-aware dagzoo ladder changes the keep/defer read
-    materially
+  - issue [#132](https://github.com/bensonlee5/tab-foundry/issues/132) executed
+    the resized `10 / 20 / 40 / 80` ladder on 2026-03-23 with runs
+    `sd_tf_rd_013_dagzoo_size_ladder_v1_01_delta_training_current_corpus_uncapped_v1`,
+    `sd_tf_rd_013_dagzoo_size_ladder_v1_02_delta_data_manifest_root_dagzoo_shape_aware_size_small_v1`,
+    `sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1`,
+    and `sd_tf_rd_013_dagzoo_size_ladder_v1_04_delta_data_manifest_root_dagzoo_shape_aware_size_large_v1`
+  - all three shape-aware dagzoo rungs materially improved final log loss over
+    the TF-RD-008-scale fresh current-corpus control, cutting final log loss from
+    `4.9823` to `2.5230`, `2.2604`, and `2.1742` for the `20`, `40`, and `80`
+    dataset rungs respectively
+  - the `40`-dataset medium rung is the best-balanced representative surface:
+    it improved final Brier from `0.6889` to `0.4912`, improved final ROC AUC
+    from `0.4889` to `0.5625`, reduced clipped-step fraction from `0.4532` to
+    `0.3364`, and kept late-run drift much smaller than the `80`-dataset rung
+  - the `80`-dataset large rung reached the lowest final log loss and clip
+    fraction, but it drifted much harder (`best_to_final_roc_auc_delta = -0.0999`)
+    and finished with a worse final Brier (`0.7078`) than both the control and
+    the `40`-dataset rung, so it is not the preferred representative surface
+  - the `20`-dataset small rung improved sharply over the control, but it remained
+    weaker than the `40`-dataset rung on final log loss, final Brier, and final
+    ROC AUC
+  - the direct nanoTabPFN helper comparison remains confounded on this bundle by
+    `Fitness_Club`; rows 3 and 4 therefore reused the recorded helper-failure
+    benchmark outcome instead of rerunning nanoTabPFN for every row
+  - the earlier reopened `8192`-dataset current-corpus recipe was not a credible
+    same-backend control for `batch_size=1` manifest training because an uncapped
+    `max_steps=2500` run would still see well under half an epoch
   - the OpenML-first curated comparator remained materially worse than the anchor
     on final large-bundle log loss and Brier in both TF-RD-013 sweeps, so it stays
     evidence-only and is omitted from the reopened size ladder
   - issue [#124](https://github.com/bensonlee5/tab-foundry/issues/124) remains
     later filtering-policy work only if a future corpus-selection or predictability
     problem appears
-- Exit criteria:
-  - execute issue [#132](https://github.com/bensonlee5/tab-foundry/issues/132):
-    materialize corpus recipe `tf_rd_013_current_corpus_default_v1`, run one
-    uncapped fresh current-corpus control, then run the `small`, `medium`, and
-    `large` shape-aware dagzoo rungs through their tracked corpus recipes with
-    `runtime.target_train_seconds: null`
-  - record whether any shrunken shape-aware dagzoo rung materially improves the
-    promoted-anchor read relative to the fresh current-corpus control
-  - then either keep the fresh default current corpus as the representative
-    post-008 training-data surface or open a separate synthetic-data epic based
-    on specific size-ladder results before TF-RD-018 becomes the main next
-    workstream
+- Decision:
+  - close issue [#132](https://github.com/bensonlee5/tab-foundry/issues/132):
+    the resized size ladder completed and settled the representative-data read
+  - carry `tf_rd_013_dagzoo_shape_aware_size_medium_v1` forward as the canonical
+    post-008 synthetic training-data surface for TF-RD-018 and issue
+    [#107](https://github.com/bensonlee5/tab-foundry/issues/107)
+  - treat the `10`-dataset current-corpus control plus the `20`- and `80`-dataset
+    rungs as supporting evidence only; they bracket the decision, but the `40`
+    dataset rung is the best-balanced surface
 
 ### TF-RD-014: Missingness Robustness On The Promoted Anchor
 
@@ -816,9 +842,10 @@ This roadmap assumes the following repo truths:
   - current adequacy reads are still scattered across frontier-specific sweeps
   - this epic should follow TF-RD-013 so optimizer and schedule work are grounded
     in data that looks like intended use
-  - issues `#122` and `#127` recorded neutral-to-negative TF-RD-013 reads, so
-    issue `#107` remains blocked on the reopened fresh-current-corpus control plus size-ladder
-    follow-up in issue `#132`
+  - issues `#122`, `#127`, and the completed size ladder in
+    [#132](https://github.com/bensonlee5/tab-foundry/issues/132) now settle the
+    representative post-008 training-data surface: TF-RD-018 should start from
+    `tf_rd_013_dagzoo_shape_aware_size_medium_v1`
   - later architecture reads remain confounded until the repo has one explicit
     adequacy decision surface on the settled row-first base
 - Required work:
