@@ -405,7 +405,7 @@ default_effective_surface:
       feature_encoder: shared
 ```
 
-This tells the sweep runner to start from the base stage, override
+This tells the sweep execution flow to start from the base stage, override
 `feature_encoder` to `shared`, and label the resulting run
 `delta_shared_feature_norm` for tracking.
 

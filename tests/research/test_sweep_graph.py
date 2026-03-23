@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import pytest
 import torch
 
+import tab_foundry.cli.research_graph as research_graph_cli_module
 import tab_foundry.research.sweep.graph as graph_module
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.model.spec import model_build_spec_from_mappings
@@ -226,9 +227,9 @@ def test_graph_main_parses_cli_selectors(
         captured.update(kwargs)
         return {"sweep_id": "cuda_stability_followup", "graphs": [], "index_path": str(tmp_path / "index.md")}
 
-    monkeypatch.setattr(graph_module, "render_sweep_graphs", _fake_render_sweep_graphs)
+    monkeypatch.setattr(research_graph_cli_module, "render_sweep_graphs", _fake_render_sweep_graphs)
 
-    exit_code = graph_module.main([*argv, "--out-dir", str(tmp_path)])
+    exit_code = research_graph_cli_module.main([*argv, "--out-dir", str(tmp_path)])
 
     assert exit_code == 0
     assert captured["anchor"] == expected["anchor"]

@@ -12,11 +12,16 @@ import tab_foundry.cli.bench_control_baseline_freeze as control_baseline_freeze_
 import tab_foundry.cli.bench_run_registration as run_registration_cli_module
 import tab_foundry.cli.data_inspect as data_inspect_module
 import tab_foundry.cli.dev as dev_module
+import tab_foundry.cli.research_diff as research_diff_cli_module
+import tab_foundry.cli.research_graph as research_graph_cli_module
+import tab_foundry.cli.research_inspect as research_inspect_cli_module
 import tab_foundry.cli.groups.bench as bench_group
 import tab_foundry.cli.groups.data as data_group
 import tab_foundry.cli.groups.research as research_group
 import tab_foundry.cli.research_execute as research_execute_cli_module
 import tab_foundry.cli.research_promote as research_promote_cli_module
+import tab_foundry.cli.research_summarize as research_summarize_cli_module
+import tab_foundry.cli.research_sweep_core as research_sweep_core_cli_module
 import tab_foundry.research.sweep.core as sweep_core_module
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.execute as sweep_execute_library_module
@@ -195,7 +200,7 @@ def test_nested_cli_research_sweep_create_sweep_dispatches_to_handler(
         captured["anchor_run_id"] = str(args.anchor_run_id)
         return 0
 
-    monkeypatch.setattr(sweep_core_module, "_run_sweep_create", _fake_run_sweep_create)
+    monkeypatch.setattr(research_sweep_core_cli_module, "_run_sweep_create", _fake_run_sweep_create)
 
     exit_code = cli_module.main(
         [
@@ -231,7 +236,7 @@ def test_nested_cli_research_sweep_list_sweeps_dispatches_to_handler(
         captured["index_path"] = str(args.index_path)
         return 0
 
-    monkeypatch.setattr(sweep_core_module, "_run_list_sweeps", _fake_run_list_sweeps)
+    monkeypatch.setattr(research_sweep_core_cli_module, "_run_list_sweeps", _fake_run_list_sweeps)
 
     exit_code = cli_module.main(
         ["research", "sweep", "list-sweeps", "--index-path", "/tmp/index.yaml"]
@@ -250,7 +255,7 @@ def test_nested_cli_research_sweep_show_active_dispatches_to_handler(
         captured["index_path"] = str(args.index_path)
         return 0
 
-    monkeypatch.setattr(sweep_core_module, "_run_show_active", _fake_run_show_active)
+    monkeypatch.setattr(research_sweep_core_cli_module, "_run_show_active", _fake_run_show_active)
 
     exit_code = cli_module.main(
         ["research", "sweep", "show-active", "--index-path", "/tmp/index.yaml"]
@@ -269,7 +274,7 @@ def test_nested_cli_research_sweep_render_dispatches_to_handler(
         captured["sweep_id"] = None if args.sweep_id is None else str(args.sweep_id)
         return 0
 
-    monkeypatch.setattr(sweep_core_module, "_run_sweep_render", _fake_run_sweep_render)
+    monkeypatch.setattr(research_sweep_core_cli_module, "_run_sweep_render", _fake_run_sweep_render)
 
     exit_code = cli_module.main(["research", "sweep", "render", "--sweep-id", "binary_md_v1"])
 
@@ -287,7 +292,7 @@ def test_nested_cli_research_sweep_graph_dispatches_to_handler(
         captured["order"] = list(args.order)
         return 0
 
-    monkeypatch.setattr(graph_module, "run_from_args", _fake_graph_handler)
+    monkeypatch.setattr(research_graph_cli_module, "run_from_args", _fake_graph_handler)
 
     exit_code = cli_module.main(["research", "sweep", "graph", "--anchor", "--order", "7"])
 
@@ -338,15 +343,32 @@ def test_nested_cli_research_sweep_promote_dispatches_to_sweep_native_handler(
 def test_cli_groups_use_cli_only_execute_promote_and_registry_modules() -> None:
     assert bench_group.run_registration_cli.__name__ == "tab_foundry.cli.bench_run_registration"
     assert bench_group.control_baseline_freeze_cli.__name__ == "tab_foundry.cli.bench_control_baseline_freeze"
+    assert research_group.research_sweep_core_cli.__name__ == "tab_foundry.cli.research_sweep_core"
+    assert research_group.research_graph_cli.__name__ == "tab_foundry.cli.research_graph"
     assert research_group.research_execute_cli.__name__ == "tab_foundry.cli.research_execute"
+    assert research_group.research_inspect_cli.__name__ == "tab_foundry.cli.research_inspect"
+    assert research_group.research_diff_cli.__name__ == "tab_foundry.cli.research_diff"
     assert research_group.research_promote_cli.__name__ == "tab_foundry.cli.research_promote"
+    assert research_group.research_summarize_cli.__name__ == "tab_foundry.cli.research_summarize"
     for library_module in (
         run_registration_library_module,
         control_baseline_freeze_library_module,
+        sweep_core_module,
         sweep_execute_library_module,
+        graph_module,
+        inspect_module,
+        diff_module,
         sweep_promote_library_module,
+        summarize_module,
     ):
-        for attribute in ("configure_parser", "build_parser", "run_from_args", "main"):
+        for attribute in (
+            "configure_parser",
+            "configure_core_path_arguments",
+            "register_core_subparsers",
+            "build_parser",
+            "run_from_args",
+            "main",
+        ):
             assert not hasattr(library_module, attribute)
 
 
@@ -360,7 +382,7 @@ def test_nested_cli_research_sweep_summarize_dispatches_to_handler(
         captured["json"] = bool(args.json)
         return 0
 
-    monkeypatch.setattr(summarize_module, "run_from_args", _fake_summarize_handler)
+    monkeypatch.setattr(research_summarize_cli_module, "run_from_args", _fake_summarize_handler)
 
     exit_code = cli_module.main(
         ["research", "sweep", "summarize", "--sweep-id", "cuda_stack_scale_followup", "--json"]
@@ -380,7 +402,7 @@ def test_nested_cli_research_sweep_inspect_dispatches_to_handler(
         captured["json"] = bool(args.json)
         return 0
 
-    monkeypatch.setattr(inspect_module, "run_from_args", _fake_inspect_handler)
+    monkeypatch.setattr(research_inspect_cli_module, "run_from_args", _fake_inspect_handler)
 
     exit_code = cli_module.main(["research", "sweep", "inspect", "--order", "6", "--json"])
 
@@ -398,7 +420,7 @@ def test_nested_cli_research_sweep_diff_dispatches_to_handler(
         captured["against_order"] = int(args.against_order)
         return 0
 
-    monkeypatch.setattr(diff_module, "run_from_args", _fake_diff_handler)
+    monkeypatch.setattr(research_diff_cli_module, "run_from_args", _fake_diff_handler)
 
     exit_code = cli_module.main(
         ["research", "sweep", "diff", "--order", "7", "--against-order", "6"]

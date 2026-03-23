@@ -693,7 +693,7 @@ Tier 2 milestones or whenever any of those inputs changes.
 `tab-foundry research sweep execute` now applies that Tier 1 reuse path
 automatically for `benchmark_full` rows when the locked anchor or frozen
 control baseline exposes a compatible `nanotabpfn_curve.jsonl`. If no
-compatible curve is available, the runner falls back to a fresh helper run on
+compatible curve is available, the sweep executor falls back to a fresh helper run on
 the same canonical medium-bundle surface.
 
 ### System-Delta Sweep Runbook

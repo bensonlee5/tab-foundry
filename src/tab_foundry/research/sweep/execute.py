@@ -8,16 +8,9 @@ from typing import Mapping
 from .artifacts import ExecutionPaths, read_yaml, write_yaml
 from . import core as sweep_core
 from .promote import promote_anchor
-from .row_execution import (
-    ALLOWED_DECISIONS,
-    DEFAULT_CONCLUSION,
-    DEFAULT_DECISION,
-    materialized_row_map,
-    resolve_parent_run_id,
-    run_row,
-    sync_active_aliases_if_active,
-    sync_sweep_matrix,
-)
+from . import row_dependencies as _row_dependencies
+from . import row_sync as _row_sync
+from .row_execution import ALLOWED_DECISIONS, DEFAULT_CONCLUSION, DEFAULT_DECISION, run_row
 from .selection import select_queue_rows, sorted_rows
 
 
@@ -50,7 +43,10 @@ def execute_sweep(
     queue_path = sweep_core.sweep_queue_path(resolved_sweep_id, sweeps_root=resolved_paths.sweeps_root)
     queue = read_yaml(queue_path)
     queue_rows = sorted_rows(queue)
-    materialized_rows = materialized_row_map(sweep_id=resolved_sweep_id, paths=resolved_paths)
+    materialized_rows = _row_sync.materialized_row_map(
+        sweep_id=resolved_sweep_id,
+        paths=resolved_paths,
+    )
     selected_rows = select_queue_rows(
         queue,
         orders=orders,
@@ -92,7 +88,7 @@ def execute_sweep(
             parent_run_id=(
                 None
                 if promote_now
-                else resolve_parent_run_id(
+                else _row_dependencies.resolve_parent_run_id(
                     queue_row=queue_row,
                     queue_rows=queue_rows,
                     active_anchor=active_anchor,
@@ -121,8 +117,11 @@ def execute_sweep(
                 index_path=resolved_paths.index_path,
                 sweeps_root=resolved_paths.sweeps_root,
             )
-        sync_sweep_matrix(sweep_id=resolved_sweep_id, paths=resolved_paths)
-        sync_active_aliases_if_active(sweep_id=resolved_sweep_id, paths=resolved_paths)
+        _row_sync.sync_sweep_matrix(sweep_id=resolved_sweep_id, paths=resolved_paths)
+        _row_sync.sync_active_aliases_if_active(
+            sweep_id=resolved_sweep_id,
+            paths=resolved_paths,
+        )
         executed_run_ids.append(run_id)
 
     return executed_run_ids

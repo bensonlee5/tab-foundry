@@ -92,6 +92,11 @@ Observed cycle status:
   should live under `research/sweep/`; higher layers should import
   `research.sweep.core`, `research.sweep.execute`, and
   `research.sweep.promote` directly instead of reintroducing wrapper modules.
+- Research CLI parser ownership should stay under `src/tab_foundry/cli/`; the
+  `research/sweep` library modules should stay parser-free.
+- Sweep row execution should stay decomposed across dedicated helper modules
+  such as `curve_reuse`, `training_state`, `row_dependencies`, and `row_sync`
+  instead of regrowing helper logic inside `row_execution.py`.
 - Python workflow entrypoints should live under the packaged nested CLI rather
   than being duplicated under `scripts/`.
 - `scripts/` should stay limited to shell convenience helpers and audit tooling

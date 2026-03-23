@@ -78,7 +78,9 @@ into the canonical library modules.
   execute/promote library entrypoints, `src/tab_foundry/research/sweep/core.py`
   is the canonical sweep manager and queue/materialization surface, and
   sweep execution internals now live under `research/sweep/configuration.py`,
-  `research/sweep/runtime_env.py`, and `research/sweep/row_execution.py`.
+  `research/sweep/runtime_env.py`, `research/sweep/curve_reuse.py`,
+  `research/sweep/training_state.py`, `research/sweep/row_dependencies.py`,
+  `research/sweep/row_sync.py`, and `research/sweep/row_execution.py`.
 
 ## 3. Workflow Surfaces
 
@@ -173,7 +175,9 @@ not absorb new orchestration logic.
 - `research/sweep/execute.py` and `research/sweep/promote.py` should remain
   the canonical execute/promote library surfaces, with CLI parser ownership
   staying under `src/tab_foundry/cli/`; `research/sweep/core.py` should
-  remain the canonical sweep-management surface.
+  remain the canonical sweep-management surface, and row-level helper logic
+  should stay factored under the dedicated sweep helper modules instead of
+  regrowing a monolithic `row_execution.py`.
 - `tabfoundry_staged` is the only active architecture surface. Shared logic
   should continue to move into `model/components/`, `model/spec.py`, and
   family-neutral helpers instead of reintroducing parallel model pathways.
