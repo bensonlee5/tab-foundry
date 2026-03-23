@@ -118,8 +118,7 @@ def render_sweep_diff_text(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Diff one system-delta sweep row against anchor or another row")
+def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--order", type=int, required=True, help="Row order to diff")
     parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
@@ -157,8 +156,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def build_parser() -> argparse.ArgumentParser:
+    return configure_parser(
+        argparse.ArgumentParser(description="Diff one system-delta sweep row against anchor or another row")
+    )
+
+
+def run_from_args(args: argparse.Namespace) -> int:
     payload = diff_sweep_row(
         order=int(args.order),
         sweep_id=None if args.sweep_id is None else str(args.sweep_id),
@@ -174,3 +178,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(render_sweep_diff_text(payload))
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    return run_from_args(build_parser().parse_args(argv))

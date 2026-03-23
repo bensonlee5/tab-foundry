@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, cast
 
-from tab_foundry.bench.compare import (
+from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_NANOTABPFN,
     EXTERNAL_BENCHMARK_TABICLV2,
     normalize_external_benchmarks as _normalize_external_benchmarks,

@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import argparse
-from typing import Sequence
 
+import tab_foundry.bench.prior_train as prior_train_module
 from tab_foundry.config import compose_config
 from tab_foundry.training.trainer import train as run_training
-
-from ..helpers import register_delegate_leaf
 
 
 _STAGED_PRIOR_EXPERIMENT = "experiment=cls_benchmark_staged_prior"
@@ -28,20 +26,13 @@ def _run_training_command(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run_prior_simple(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.prior_train import main as prior_main
-
-    return prior_main(argv)
-
-
-def _run_prior_staged(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.prior_train import main as prior_main
-
-    resolved_argv = [] if argv is None else list(argv)
-    if not any(argument in {"-h", "--help"} for argument in resolved_argv):
-        if not any(str(argument).startswith("experiment=") for argument in resolved_argv):
-            resolved_argv.append(_STAGED_PRIOR_EXPERIMENT)
-    return prior_main(None if not resolved_argv else resolved_argv)
+def _run_prior_staged(args: argparse.Namespace) -> int:
+    overrides = [str(value) for value in args.overrides]
+    if not any(value.startswith("experiment=") for value in overrides):
+        overrides.append(_STAGED_PRIOR_EXPERIMENT)
+    staged_args = argparse.Namespace(**vars(args))
+    staged_args.overrides = overrides
+    return prior_train_module.run_from_args(staged_args)
 
 
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -54,15 +45,16 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
 
     prior_parser = nested.add_parser("prior", help="Exact-prior training workflows")
     prior_nested = prior_parser.add_subparsers(dest="prior_command", required=True)
-    register_delegate_leaf(
-        prior_nested,
+    prior_simple_parser = prior_nested.add_parser(
         "simple",
         help="Train the exact-prior simple benchmark family",
-        delegate=_run_prior_simple,
     )
-    register_delegate_leaf(
-        prior_nested,
+    prior_train_module.configure_parser(prior_simple_parser)
+    prior_simple_parser.set_defaults(func=prior_train_module.run_from_args)
+
+    prior_staged_parser = prior_nested.add_parser(
         "staged",
         help="Train the exact-prior staged benchmark family",
-        delegate=_run_prior_staged,
     )
+    prior_train_module.configure_parser(prior_staged_parser)
+    prior_staged_parser.set_defaults(func=_run_prior_staged)

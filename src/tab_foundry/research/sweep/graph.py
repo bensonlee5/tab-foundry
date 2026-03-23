@@ -14,7 +14,7 @@ from typing import Any, Mapping, Sequence, cast
 from omegaconf import OmegaConf
 import torch
 
-from tab_foundry.bench.benchmark_run_registry import (
+from tab_foundry.benchmark_registry import (
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
@@ -591,8 +591,7 @@ def render_sweep_graphs(
     }
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Render torchview architecture graphs for sweep targets")
+def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
     parser.add_argument("--anchor", action="store_true", help="Render the selected sweep anchor graph")
     parser.add_argument("--all-rows", action="store_true", help="Render graphs for every row in the sweep")
@@ -631,8 +630,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def build_parser() -> argparse.ArgumentParser:
+    return configure_parser(
+        argparse.ArgumentParser(description="Render torchview architecture graphs for sweep targets")
+    )
+
+
+def run_from_args(args: argparse.Namespace) -> int:
     result = render_sweep_graphs(
         sweep_id=None if args.sweep_id is None else str(args.sweep_id),
         anchor=bool(args.anchor),
@@ -655,6 +659,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         flush=True,
     )
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    return run_from_args(build_parser().parse_args(argv))
 
 
 if __name__ == "__main__":

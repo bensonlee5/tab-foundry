@@ -3,63 +3,16 @@
 from __future__ import annotations
 
 import argparse
-from typing import Sequence
 
-from ..helpers import register_delegate_leaf
-
-
-def _run_smoke_iris(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.iris_smoke import main as iris_smoke_main
-
-    return iris_smoke_main(argv)
-
-
-def _run_smoke_dagzoo(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.dagzoo_smoke import main as dagzoo_smoke_main
-
-    return dagzoo_smoke_main(argv)
-
-
-def _run_compare(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.compare import main as compare_main
-
-    return compare_main(argv)
-
-
-def _run_tune(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.tune import main as tune_main
-
-    return tune_main(argv)
-
-
-def _run_env_bootstrap(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.envs import main as env_main
-
-    return env_main(argv)
-
-
-def _run_bundle_build_openml(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.openml_benchmark_bundle import main as bundle_main
-
-    return bundle_main(argv)
-
-
-def _run_registry_register(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.benchmark_run_registry import main as registry_main
-
-    return registry_main(argv)
-
-
-def _run_registry_freeze(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.control_baseline import main as control_main
-
-    return control_main(argv)
-
-
-def _run_diagnose_bounce(argv: Sequence[str] | None = None) -> int:
-    from tab_foundry.bench.bounce_diagnosis import main as diagnosis_main
-
-    return diagnosis_main(argv)
+import tab_foundry.bench.benchmark_run_registry as benchmark_run_registry_module
+import tab_foundry.bench.bounce_diagnosis as bounce_diagnosis_module
+import tab_foundry.bench.compare as compare_module
+import tab_foundry.bench.control_baseline as control_baseline_module
+import tab_foundry.bench.dagzoo_smoke as dagzoo_smoke_module
+import tab_foundry.bench.envs as envs_module
+import tab_foundry.bench.iris_smoke as iris_smoke_module
+import tab_foundry.bench.openml_benchmark_bundle as openml_benchmark_bundle_module
+import tab_foundry.bench.tune as tune_module
 
 
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -68,70 +21,64 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
 
     smoke_parser = nested.add_parser("smoke", help="Smoke harnesses")
     smoke_nested = smoke_parser.add_subparsers(dest="smoke_command", required=True)
-    register_delegate_leaf(
-        smoke_nested,
-        "iris",
-        help="Run the Iris smoke harness",
-        delegate=_run_smoke_iris,
-    )
-    register_delegate_leaf(
-        smoke_nested,
-        "dagzoo",
-        help="Run the dagzoo smoke harness",
-        delegate=_run_smoke_dagzoo,
-    )
+    iris_parser = smoke_nested.add_parser("iris", help="Run the Iris smoke harness")
+    iris_smoke_module.configure_parser(iris_parser)
+    iris_parser.set_defaults(func=iris_smoke_module.run_from_args)
 
-    register_delegate_leaf(
-        nested,
-        "tune",
-        help="Run the internal benchmark tuning sweep",
-        delegate=_run_tune,
-    )
-    register_delegate_leaf(
-        nested,
+    dagzoo_parser = smoke_nested.add_parser("dagzoo", help="Run the dagzoo smoke harness")
+    dagzoo_smoke_module.configure_parser(dagzoo_parser)
+    dagzoo_parser.set_defaults(func=dagzoo_smoke_module.run_from_args)
+
+    tune_parser = nested.add_parser("tune", help="Run the internal benchmark tuning sweep")
+    tune_module.configure_parser(tune_parser)
+    tune_parser.set_defaults(func=tune_module.run_from_args)
+
+    compare_parser = nested.add_parser(
         "compare",
         help="Run the benchmark comparison against external baselines",
-        delegate=_run_compare,
     )
+    compare_module.configure_parser(compare_parser)
+    compare_parser.set_defaults(func=compare_module.run_from_args)
 
     env_parser = nested.add_parser("env", help="Benchmark environment helpers")
     env_nested = env_parser.add_subparsers(dest="env_command", required=True)
-    register_delegate_leaf(
-        env_nested,
+    env_bootstrap_parser = env_nested.add_parser(
         "bootstrap",
         help="Bootstrap sibling benchmark environments",
-        delegate=_run_env_bootstrap,
     )
+    envs_module.configure_parser(env_bootstrap_parser)
+    env_bootstrap_parser.set_defaults(func=envs_module.run_from_args)
 
     bundle_parser = nested.add_parser("bundle", help="Benchmark bundle workflows")
     bundle_nested = bundle_parser.add_subparsers(dest="bundle_command", required=True)
-    register_delegate_leaf(
-        bundle_nested,
+    bundle_build_parser = bundle_nested.add_parser(
         "build-openml",
         help="Build an OpenML benchmark bundle",
-        delegate=_run_bundle_build_openml,
     )
+    openml_benchmark_bundle_module.configure_parser(bundle_build_parser)
+    bundle_build_parser.set_defaults(func=openml_benchmark_bundle_module.run_from_args)
 
     registry_parser = nested.add_parser("registry", help="Benchmark registry workflows")
     registry_nested = registry_parser.add_subparsers(dest="registry_command", required=True)
-    register_delegate_leaf(
-        registry_nested,
+    registry_register_parser = registry_nested.add_parser(
         "register-run",
         help="Register a benchmark run",
-        delegate=_run_registry_register,
     )
-    register_delegate_leaf(
-        registry_nested,
+    benchmark_run_registry_module.configure_parser(registry_register_parser)
+    registry_register_parser.set_defaults(func=benchmark_run_registry_module.run_from_args)
+
+    registry_freeze_parser = registry_nested.add_parser(
         "freeze-baseline",
         help="Freeze a control baseline",
-        delegate=_run_registry_freeze,
     )
+    control_baseline_module.configure_parser(registry_freeze_parser)
+    registry_freeze_parser.set_defaults(func=control_baseline_module.run_from_args)
 
     diagnose_parser = nested.add_parser("diagnose", help="Benchmark diagnosis flows")
     diagnose_nested = diagnose_parser.add_subparsers(dest="diagnose_command", required=True)
-    register_delegate_leaf(
-        diagnose_nested,
+    diagnose_bounce_parser = diagnose_nested.add_parser(
         "bounce",
         help="Run the benchmark bounce diagnosis flow",
-        delegate=_run_diagnose_bounce,
     )
+    bounce_diagnosis_module.configure_parser(diagnose_bounce_parser)
+    diagnose_bounce_parser.set_defaults(func=bounce_diagnosis_module.run_from_args)

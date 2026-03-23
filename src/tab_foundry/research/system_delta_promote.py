@@ -9,7 +9,11 @@ import sys
 from pathlib import Path
 from typing import Any, cast
 
-from tab_foundry.bench.benchmark_run_registry import load_benchmark_run_registry
+from tab_foundry.benchmark_registry import (
+    default_benchmark_run_registry_path,
+    load_benchmark_run_registry,
+    normalize_registry_path_value,
+)
 from tab_foundry.research import system_delta
 
 
@@ -69,6 +73,7 @@ def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: Promot
         index_path=paths.index_path,
         sweeps_root=paths.sweeps_root,
     )
+    canonical_registry_path = normalize_registry_path_value(default_benchmark_run_registry_path())
 
     program_text = paths.program_path.read_text(encoding="utf-8")
     objective = (
@@ -87,7 +92,7 @@ def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: Promot
         "- anchor benchmark: ": f"- anchor benchmark: `{artifacts['benchmark_dir']}`",
         "- canonical benchmark bundle: ": f"- canonical benchmark bundle: `{sweep['benchmark_bundle_path']}`",
         "- canonical control baseline id: ": f"- canonical control baseline id: `{sweep['control_baseline_id']}`",
-        "- canonical registry: ": "- canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`",
+        "- canonical registry: ": f"- canonical registry: `{canonical_registry_path}`",
         "- delta catalog: ": "- delta catalog: `reference/system_delta_catalog.yaml`",
         "- sweep index: ": "- sweep index: `reference/system_delta_sweeps/index.yaml`",
         "- canonical sweep queue: ": f"- canonical sweep queue: `reference/system_delta_sweeps/{sweep_id}/queue.yaml`",
@@ -192,8 +197,7 @@ def promote_anchor(
     }
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Promote a completed system-delta run to the sweep anchor")
+def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--sweep-id", required=True, help="Sweep id whose anchor should be updated")
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--run-id", help="Benchmark registry run id to promote")
@@ -202,8 +206,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def build_parser() -> argparse.ArgumentParser:
+    return configure_parser(
+        argparse.ArgumentParser(description="Promote a completed system-delta run to the sweep anchor")
+    )
+
+
+def run_from_args(args: argparse.Namespace) -> int:
     paths = PromotionPaths.default()
     run_id = (
         str(args.run_id)
@@ -223,6 +232,10 @@ def main(argv: list[str] | None = None) -> int:
         flush=True,
     )
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    return run_from_args(build_parser().parse_args(argv))
 
 
 if __name__ == "__main__":

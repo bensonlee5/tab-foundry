@@ -104,8 +104,7 @@ def execute_sweep(
     )
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Execute system-delta sweep rows")
+def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--sweep-id", default=None, help="Sweep id to execute; defaults to the active sweep")
     parser.add_argument(
         "--order",
@@ -169,8 +168,11 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def build_parser() -> argparse.ArgumentParser:
+    return configure_parser(argparse.ArgumentParser(description="Execute system-delta sweep rows"))
+
+
+def run_from_args(args: argparse.Namespace) -> int:
     prior_dump = Path(str(args.prior_dump)).expanduser().resolve()
     nanotabpfn_root = Path(str(args.nanotabpfn_root)).expanduser().resolve()
     fallback_python = _absolute_path_without_resolving_symlinks(Path(str(args.tab_foundry_python)))
@@ -215,6 +217,10 @@ def main(argv: list[str] | None = None) -> int:
         flush=True,
     )
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    return run_from_args(build_parser().parse_args(argv))
 
 
 if __name__ == "__main__":

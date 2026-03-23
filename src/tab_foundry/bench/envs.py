@@ -111,17 +111,19 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     }
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Bootstrap sibling benchmark environments")
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--nanotabpfn-root", default="~/dev/nanoTabPFN", help="Local nanoTabPFN checkout")
     parser.add_argument("--tabpfn-root", default="~/dev/TabPFN", help="Local TabPFN checkout")
     parser.add_argument("--tabicl-root", default="~/dev/tabicl", help="Local tabicl checkout")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Bootstrap sibling benchmark environments")
+    configure_parser(parser)
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def run_from_args(args: argparse.Namespace) -> int:
     summary = bootstrap_benchmark_envs(
         BenchmarkEnvConfig(
             nanotabpfn_root=Path(str(args.nanotabpfn_root)),
@@ -133,6 +135,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     for key, value in summary.items():
         print(f"  {key}={value}")
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    return run_from_args(parser.parse_args(argv))
 
 
 if __name__ == "__main__":

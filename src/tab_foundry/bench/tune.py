@@ -261,8 +261,7 @@ def run_tuning(config: TuneConfig) -> dict[str, Any]:
     return summary
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Tune tab-foundry against internal validation only")
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--manifest-path", required=True, help="Fixed manifest path used for every trial")
     parser.add_argument("--out-root", default=None, help="Output root for sweep artifacts")
     parser.add_argument(
@@ -287,12 +286,15 @@ def build_parser() -> argparse.ArgumentParser:
         default="0.5,1.0",
         help="Comma-separated grad_clip grid",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Tune tab-foundry against internal validation only")
+    configure_parser(parser)
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def run_from_args(args: argparse.Namespace) -> int:
     summary = run_tuning(
         TuneConfig(
             manifest_path=Path(str(args.manifest_path)),
@@ -310,6 +312,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"  best_trial={summary['best_trial']}")
     print(f"  artifacts={{'summary': '{Path(summary['out_root']) / 'sweep_summary.json'}', 'csv': '{Path(summary['out_root']) / 'sweep_results.csv'}'}}")
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    return run_from_args(parser.parse_args(argv))
 
 
 if __name__ == "__main__":

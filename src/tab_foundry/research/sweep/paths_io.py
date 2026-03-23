@@ -9,6 +9,9 @@ from typing import Any, Mapping, cast
 from omegaconf import OmegaConf
 import yaml
 
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
+from tab_foundry.repo_paths import repo_root as shared_repo_root
+
 
 class _SystemDeltaYamlDumper(yaml.SafeDumper):
     """Quote ambiguous scalars so queue prose round-trips as strings."""
@@ -26,7 +29,7 @@ _SystemDeltaYamlDumper.add_representer(str, _represent_system_delta_str)
 
 
 def repo_root() -> Path:
-    return Path(__file__).resolve().parents[4]
+    return shared_repo_root()
 
 
 def default_catalog_path() -> Path:
@@ -50,7 +53,7 @@ def default_matrix_path() -> Path:
 
 
 def default_registry_path() -> Path:
-    return repo_root() / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+    return default_benchmark_run_registry_path()
 
 
 def sweep_dir(sweep_id: str, *, sweeps_root: Path | None = None) -> Path:

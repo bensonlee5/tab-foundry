@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from tab_foundry.bench.compare import EXTERNAL_BENCHMARK_LABELS
-from tab_foundry.bench.benchmark_run_registry import load_benchmark_run_registry, resolve_registry_path_value
+from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_registry_path_value
+from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
 
 from .materialize import load_system_delta_queue, ordered_rows
 from .paths_io import _render_path, _write_text, default_catalog_path, default_registry_path, repo_root, sweep_matrix_path, sweep_queue_path

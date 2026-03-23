@@ -10,6 +10,7 @@ from typing import Any
 from omegaconf import OmegaConf
 import pytest
 
+from tab_foundry.control_baseline_registry import REGISTRY_SCHEMA, REGISTRY_VERSION
 from tab_foundry.research.system_delta import create_sweep
 from tab_foundry.research.system_delta_execute import (
     ExecutionPaths,
@@ -184,6 +185,26 @@ def _write_training_surface_record(path: Path, *, backend: str | None) -> None:
 def _write_training_telemetry(path: Path, *, success: bool) -> None:
     path.write_text(
         json.dumps({'success': success}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+
+
+def _write_control_baseline_registry(
+    path: Path,
+    *,
+    baselines: dict[str, Any] | None = None,
+) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                'schema': REGISTRY_SCHEMA,
+                'version': REGISTRY_VERSION,
+                'baselines': {} if baselines is None else baselines,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
         encoding='utf-8',
     )
 
@@ -1749,10 +1770,7 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
 
     queue_row = {
         'order': 1,
@@ -1972,10 +1990,7 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
 
     prior_row = {
         'order': 1,
@@ -2173,20 +2188,33 @@ def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_a
         lr=runner_module.DEFAULT_NANOTABPFN_LR,
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps(
-            {
-                'baselines': {
-                    'cls_benchmark_linear_v2': {
-                        'comparison_summary_path': str(baseline_summary_path.resolve()),
-                    }
-                }
-            },
-            indent=2,
-            sort_keys=True,
-        )
-        + '\n',
-        encoding='utf-8',
+    _write_control_baseline_registry(
+        control_baseline_registry_path,
+        baselines={
+            'cls_benchmark_linear_v2': {
+                'baseline_id': 'cls_benchmark_linear_v2',
+                'experiment': 'cls_benchmark_staged_prior',
+                'config_profile': 'cls_benchmark_staged_prior',
+                'budget_class': 'short-run',
+                'manifest_path': 'data/manifests/default.parquet',
+                'seed_set': [1],
+                'run_dir': 'outputs/control_baselines/cls_benchmark_linear_v2/train',
+                'comparison_summary_path': str(baseline_summary_path.resolve()),
+                'benchmark_bundle': {
+                    'name': 'bundle',
+                    'version': 1,
+                    'source_path': str(bundle_path.resolve()),
+                    'task_count': 0,
+                    'task_ids': [],
+                },
+                'tab_foundry_metrics': {
+                    'best_step': 25.0,
+                    'best_training_time': 1.0,
+                    'final_step': 25.0,
+                    'final_training_time': 1.0,
+                },
+            }
+        },
     )
 
     paths = ExecutionPaths(
@@ -2281,10 +2309,7 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
@@ -2371,10 +2396,7 @@ def test_resolve_reusable_nanotabpfn_curve_allows_cross_device_reuse_on_the_same
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
@@ -2463,10 +2485,7 @@ def test_resolve_reusable_nanotabpfn_curve_requires_host_fingerprint_match(
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
@@ -2555,10 +2574,7 @@ def test_resolve_reusable_nanotabpfn_curve_rejects_legacy_summary_without_timing
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
@@ -2634,10 +2650,7 @@ def test_resolve_reusable_nanotabpfn_curve_skips_missing_summary_or_curve(
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',

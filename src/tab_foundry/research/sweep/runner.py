@@ -13,9 +13,10 @@ from typing import Any, Mapping, Sequence, cast
 
 from omegaconf import DictConfig, OmegaConf
 
+from tab_foundry.benchmark_registry import resolve_registry_path_value
+import tab_foundry.control_baseline_registry as control_baseline_registry
 from tab_foundry.bench.benchmark_run_registry import (
     register_benchmark_run,
-    resolve_registry_path_value,
 )
 from tab_foundry.bench.compare import (
     DEFAULT_NANOTABPFN_BATCH_SIZE,
@@ -23,7 +24,6 @@ from tab_foundry.bench.compare import (
     DEFAULT_NANOTABPFN_LR,
     DEFAULT_NANOTABPFN_SEEDS,
     DEFAULT_NANOTABPFN_STEPS,
-    EXTERNAL_BENCHMARK_NANOTABPFN,
     NanoTabPFNBenchmarkConfig,
     run_nanotabpfn_benchmark,
 )
@@ -31,6 +31,7 @@ from tab_foundry.bench.nanotabpfn import benchmark_host_fingerprint, resolve_dev
 from tab_foundry.bench.nanotabpfn.bundle import canonical_benchmark_bundle_source_path
 from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.config import compose_config
+from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_NANOTABPFN
 from tab_foundry.research.lane_contract import (
     resolve_surface_role,
     resolve_training_config_profile,
@@ -629,21 +630,18 @@ def _control_baseline_curve_candidate(
     control_baseline_registry_path: Path,
 ) -> NanoTabPFNCurveCandidate | None:
     try:
-        payload = _read_json_mapping(control_baseline_registry_path)
+        entry = control_baseline_registry.load_control_baseline_entry(
+            control_baseline_id,
+            registry_path=control_baseline_registry_path,
+        )
     except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
-        return None
-    baselines = payload.get("baselines")
-    if not isinstance(baselines, Mapping):
-        return None
-    entry = baselines.get(control_baseline_id)
-    if not isinstance(entry, Mapping):
         return None
     summary_value = entry.get("comparison_summary_path")
     if not isinstance(summary_value, str) or not summary_value.strip():
         return None
     return NanoTabPFNCurveCandidate(
         source_label="control baseline",
-        comparison_summary_path=resolve_registry_path_value(summary_value),
+        comparison_summary_path=control_baseline_registry.resolve_registry_path_value(summary_value),
         declared_control_baseline_id=control_baseline_id,
     )
 

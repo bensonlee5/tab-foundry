@@ -597,10 +597,9 @@ def _run_run_inspect(args: argparse.Namespace) -> int:
     return 0
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Developer tooling")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
+def register_subparsers(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     resolve_parser = subparsers.add_parser(
         "resolve-config",
         help="Compose one config and print the resolved build surface",
@@ -681,6 +680,11 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_parser.add_argument("--run-dir", required=True, help="Run directory to inspect")
     inspect_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     inspect_parser.set_defaults(func=_run_run_inspect)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Developer tooling")
+    register_subparsers(parser.add_subparsers(dest="command", required=True))
     return parser
 
 

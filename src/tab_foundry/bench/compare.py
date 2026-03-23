@@ -12,9 +12,17 @@ from typing import Any, Mapping, Sequence, cast
 
 from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
 from tab_foundry.bench.benchmark_run_registry import derive_benchmark_run_record
-from tab_foundry.bench.control_baseline import (
+from tab_foundry.control_baseline_registry import (
     default_control_baseline_registry_path,
     load_control_baseline_entry,
+)
+from tab_foundry.external_benchmarks import (
+    ALLOWED_EXTERNAL_BENCHMARKS,
+    DEFAULT_CLI_EXTERNAL_BENCHMARKS,
+    DEFAULT_EXTERNAL_BENCHMARKS,
+    EXTERNAL_BENCHMARK_NANOTABPFN,
+    EXTERNAL_BENCHMARK_TABICLV2,
+    normalize_external_benchmarks,
 )
 from tab_foundry.bench.nanotabpfn import (
     benchmark_host_fingerprint,
@@ -43,18 +51,6 @@ DEFAULT_NANOTABPFN_BATCH_SIZE = 32
 DEFAULT_NANOTABPFN_LR = 4.0e-3
 DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION = "tabicl-classifier-v2-20260212.ckpt"
 DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION = "tabicl-regressor-v2-20260212.ckpt"
-EXTERNAL_BENCHMARK_NANOTABPFN = "nanotabpfn"
-EXTERNAL_BENCHMARK_TABICLV2 = "tabiclv2"
-ALLOWED_EXTERNAL_BENCHMARKS = (
-    EXTERNAL_BENCHMARK_TABICLV2,
-    EXTERNAL_BENCHMARK_NANOTABPFN,
-)
-DEFAULT_EXTERNAL_BENCHMARKS = (EXTERNAL_BENCHMARK_NANOTABPFN,)
-DEFAULT_CLI_EXTERNAL_BENCHMARKS = (EXTERNAL_BENCHMARK_TABICLV2,)
-EXTERNAL_BENCHMARK_LABELS = {
-    EXTERNAL_BENCHMARK_NANOTABPFN: "nanoTabPFN",
-    EXTERNAL_BENCHMARK_TABICLV2: "TabICLv2",
-}
 _BENCHMARK_METRIC_KEYS = (
     "best_step",
     "best_training_time",
@@ -139,30 +135,6 @@ def _tabiclv2_python(root: Path) -> Path:
 def _is_legacy_benchmark_record_compat_error(exc: Exception) -> bool:
     message = str(exc)
     return "persisted model.arch" in message or "omitted feature_group_size" in message
-
-
-def normalize_external_benchmarks(
-    values: Sequence[str] | None,
-    *,
-    default: Sequence[str] = DEFAULT_EXTERNAL_BENCHMARKS,
-    context: str = "external_benchmarks",
-) -> tuple[str, ...]:
-    requested = default if values is None or not values else values
-    normalized: list[str] = []
-    for index, raw_value in enumerate(requested):
-        if not isinstance(raw_value, str) or not raw_value.strip():
-            raise RuntimeError(f"{context}[{index}] must be a non-empty string")
-        value = str(raw_value).strip().lower()
-        if value not in ALLOWED_EXTERNAL_BENCHMARKS:
-            raise RuntimeError(
-                f"{context}[{index}] must be one of {sorted(ALLOWED_EXTERNAL_BENCHMARKS)!r}, got {raw_value!r}"
-            )
-        if value in normalized:
-            raise RuntimeError(f"{context} must not contain duplicates: {value!r}")
-        normalized.append(value)
-    if not normalized:
-        raise RuntimeError(f"{context} must contain at least one comparator")
-    return tuple(normalized)
 
 
 def _resolve_primary_external_benchmark(
@@ -823,10 +795,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     return summary
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Compare a completed tab-foundry run against external baselines"
-    )
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--tab-foundry-run-dir",
         required=True,
@@ -895,12 +864,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional repo-tracked OpenML benchmark bundle JSON path",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Compare a completed tab-foundry run against external baselines"
+    )
+    configure_parser(parser)
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def run_from_args(args: argparse.Namespace) -> int:
     external_benchmarks = (
         []
         if args.external_benchmark is None
@@ -958,6 +932,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"  tabiclv2={summary['tabiclv2']}")
     print(f"  artifacts={summary['artifacts']}")
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    return run_from_args(parser.parse_args(argv))
 
 
 if __name__ == "__main__":

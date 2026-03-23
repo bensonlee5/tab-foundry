@@ -288,10 +288,7 @@ def register_benchmark_run(
     }
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Register one completed benchmark-facing tab-foundry run"
-    )
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--run-id", required=True, help="Canonical registry id for the run")
     parser.add_argument(
         "--track",
@@ -354,12 +351,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=str(default_benchmark_run_registry_path()),
         help="Benchmark run registry JSON path",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Register one completed benchmark-facing tab-foundry run"
+    )
+    configure_parser(parser)
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def run_from_args(args: argparse.Namespace) -> int:
     result = register_benchmark_run(
         run_id=str(args.run_id),
         track=str(args.track),
@@ -387,3 +389,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"  registry_path={result['registry_path']}")
     print(f"  run={result['run']}")
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    return run_from_args(parser.parse_args(argv))

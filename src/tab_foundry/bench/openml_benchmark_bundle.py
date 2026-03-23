@@ -128,8 +128,7 @@ def _parse_max_classes_arg(raw_value: str) -> int | None:
     return _parse_max_classes_arg_impl(raw_value)
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Build a pinned OpenML benchmark bundle")
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--out-path", required=True, help="JSON output path for the bundle")
     parser.add_argument("--bundle-name", required=True, help="Bundle name persisted in the JSON payload")
     parser.add_argument("--version", type=int, required=True, help="Bundle version persisted in the JSON payload")
@@ -186,12 +185,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=2.5,
         help="Minimum required minority class percentage",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Build a pinned OpenML benchmark bundle")
+    configure_parser(parser)
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def run_from_args(args: argparse.Namespace) -> int:
     config = OpenMLBenchmarkBundleConfig(
         bundle_name=str(args.bundle_name),
         version=int(args.version),
@@ -224,6 +226,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         out_path = write_openml_benchmark_bundle(Path(str(args.out_path)), config)
     print(f"wrote benchmark bundle: {out_path}")
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    return run_from_args(parser.parse_args(argv))
 
 
 if __name__ == "__main__":

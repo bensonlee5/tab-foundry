@@ -10,7 +10,7 @@ from typing import Any, Mapping, Sequence, cast
 from omegaconf import OmegaConf
 import torch
 
-from tab_foundry.bench.benchmark_run_registry import (
+from tab_foundry.benchmark_registry import (
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
@@ -743,8 +743,7 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Inspect one system-delta sweep row")
+def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--order", type=int, required=True, help="Row order to inspect")
     parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
@@ -771,8 +770,11 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def build_parser() -> argparse.ArgumentParser:
+    return configure_parser(argparse.ArgumentParser(description="Inspect one system-delta sweep row"))
+
+
+def run_from_args(args: argparse.Namespace) -> int:
     payload = inspect_sweep_row(
         order=int(args.order),
         sweep_id=None if args.sweep_id is None else str(args.sweep_id),
@@ -786,3 +788,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(render_sweep_row_text(payload))
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    return run_from_args(build_parser().parse_args(argv))

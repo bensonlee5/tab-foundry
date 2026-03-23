@@ -4,11 +4,13 @@ import subprocess
 
 import pytest
 
+import tab_foundry.bench.compare as compare_module
 import tab_foundry.bench.prior_train as prior_train_module
 import tab_foundry.cli as cli_module
-import tab_foundry.cli.groups.dev as dev_group
+import tab_foundry.cli.data_inspect as data_inspect_module
+import tab_foundry.cli.dev as dev_module
 import tab_foundry.cli.groups.data as data_group
-import tab_foundry.research.system_delta as system_delta_module
+import tab_foundry.cli.groups.research as research_group
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.graph as graph_module
 import tab_foundry.research.sweep.inspect as inspect_module
@@ -18,20 +20,48 @@ import tab_foundry.research.sweep.summarize as summarize_module
 def test_nested_cli_bench_compare_delegates_to_compare_main(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import tab_foundry.cli.groups.bench as bench_group
-
     captured: dict[str, object] = {}
 
-    def _fake_compare(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_compare(args):
+        captured["tab_foundry_run_dir"] = str(args.tab_foundry_run_dir)
         return 0
 
-    monkeypatch.setattr(bench_group, "_run_compare", _fake_compare)
+    monkeypatch.setattr(compare_module, "run_from_args", _fake_compare)
 
     exit_code = cli_module.main(["bench", "compare", "--tab-foundry-run-dir", "/tmp/run"])
 
     assert exit_code == 0
-    assert captured["argv"] == ["--tab-foundry-run-dir", "/tmp/run"]
+    assert captured["tab_foundry_run_dir"] == "/tmp/run"
+
+
+def test_nested_cli_train_prior_simple_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_prior_handler(args):
+        captured["prior_dump"] = str(args.prior_dump)
+        captured["overrides"] = list(args.overrides)
+        return 0
+
+    monkeypatch.setattr(prior_train_module, "run_from_args", _fake_prior_handler)
+
+    exit_code = cli_module.main(
+        [
+            "train",
+            "prior",
+            "simple",
+            "--prior-dump",
+            "/tmp/prior.h5",
+            "runtime.max_steps=1",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {
+        "prior_dump": "/tmp/prior.h5",
+        "overrides": ["runtime.max_steps=1"],
+    }
 
 
 def test_nested_cli_train_prior_staged_injects_default_experiment(
@@ -39,11 +69,12 @@ def test_nested_cli_train_prior_staged_injects_default_experiment(
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_prior_main(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_prior_handler(args):
+        captured["prior_dump"] = str(args.prior_dump)
+        captured["overrides"] = list(args.overrides)
         return 0
 
-    monkeypatch.setattr(prior_train_module, "main", _fake_prior_main)
+    monkeypatch.setattr(prior_train_module, "run_from_args", _fake_prior_handler)
 
     exit_code = cli_module.main(
         [
@@ -57,176 +88,182 @@ def test_nested_cli_train_prior_staged_injects_default_experiment(
     )
 
     assert exit_code == 0
-    assert captured["argv"] == [
-        "--prior-dump",
-        "/tmp/prior.h5",
-        "runtime.max_steps=1",
-        "experiment=cls_benchmark_staged_prior",
-    ]
+    assert captured == {
+        "prior_dump": "/tmp/prior.h5",
+        "overrides": [
+            "runtime.max_steps=1",
+            "experiment=cls_benchmark_staged_prior",
+        ],
+    }
 
 
-def test_nested_cli_research_sweep_render_delegates_to_system_delta_main(
+def test_nested_cli_research_sweep_render_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_system_delta_main(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_run_sweep_render(args):
+        captured["sweep_id"] = None if args.sweep_id is None else str(args.sweep_id)
         return 0
 
-    monkeypatch.setattr(system_delta_module, "main", _fake_system_delta_main)
+    monkeypatch.setattr(research_group, "_run_sweep_render", _fake_run_sweep_render)
 
     exit_code = cli_module.main(["research", "sweep", "render", "--sweep-id", "binary_md_v1"])
 
     assert exit_code == 0
-    assert captured["argv"] == ["render", "--sweep-id", "binary_md_v1"]
+    assert captured["sweep_id"] == "binary_md_v1"
 
 
-def test_nested_cli_research_sweep_graph_delegates_to_graph_main(
+def test_nested_cli_research_sweep_graph_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_graph_main(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_graph_handler(args):
+        captured["anchor"] = bool(args.anchor)
+        captured["order"] = list(args.order)
         return 0
 
-    monkeypatch.setattr(graph_module, "main", _fake_graph_main)
+    monkeypatch.setattr(graph_module, "run_from_args", _fake_graph_handler)
 
     exit_code = cli_module.main(["research", "sweep", "graph", "--anchor", "--order", "7"])
 
     assert exit_code == 0
-    assert captured["argv"] == ["--anchor", "--order", "7"]
+    assert captured == {"anchor": True, "order": [7]}
 
 
-def test_nested_cli_research_sweep_summarize_delegates_to_summarize_main(
+def test_nested_cli_research_sweep_summarize_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_summarize_main(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_summarize_handler(args):
+        captured["sweep_id"] = None if args.sweep_id is None else str(args.sweep_id)
+        captured["json"] = bool(args.json)
         return 0
 
-    monkeypatch.setattr(summarize_module, "main", _fake_summarize_main)
+    monkeypatch.setattr(summarize_module, "run_from_args", _fake_summarize_handler)
 
     exit_code = cli_module.main(
         ["research", "sweep", "summarize", "--sweep-id", "cuda_stack_scale_followup", "--json"]
     )
 
     assert exit_code == 0
-    assert captured["argv"] == ["--sweep-id", "cuda_stack_scale_followup", "--json"]
+    assert captured == {"sweep_id": "cuda_stack_scale_followup", "json": True}
 
 
-def test_nested_cli_research_sweep_inspect_delegates_to_inspect_main(
+def test_nested_cli_research_sweep_inspect_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_inspect_main(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_inspect_handler(args):
+        captured["order"] = int(args.order)
+        captured["json"] = bool(args.json)
         return 0
 
-    monkeypatch.setattr(inspect_module, "main", _fake_inspect_main)
+    monkeypatch.setattr(inspect_module, "run_from_args", _fake_inspect_handler)
 
     exit_code = cli_module.main(["research", "sweep", "inspect", "--order", "6", "--json"])
 
     assert exit_code == 0
-    assert captured["argv"] == ["--order", "6", "--json"]
+    assert captured == {"order": 6, "json": True}
 
 
-def test_nested_cli_research_sweep_diff_delegates_to_diff_main(
+def test_nested_cli_research_sweep_diff_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_diff_main(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_diff_handler(args):
+        captured["order"] = int(args.order)
+        captured["against_order"] = int(args.against_order)
         return 0
 
-    monkeypatch.setattr(diff_module, "main", _fake_diff_main)
+    monkeypatch.setattr(diff_module, "run_from_args", _fake_diff_handler)
 
     exit_code = cli_module.main(
         ["research", "sweep", "diff", "--order", "7", "--against-order", "6"]
     )
 
     assert exit_code == 0
-    assert captured["argv"] == ["--order", "7", "--against-order", "6"]
+    assert captured == {"order": 7, "against_order": 6}
 
 
-def test_nested_cli_dev_resolve_config_delegates_to_dev_main(
+def test_nested_cli_dev_resolve_config_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_run_resolve_config(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_run_resolve_config(args):
+        captured["json"] = bool(args.json)
+        captured["overrides"] = list(args.overrides)
         return 0
 
-    monkeypatch.setattr(dev_group, "_run_resolve_config", _fake_run_resolve_config)
+    monkeypatch.setattr(dev_module, "_run_resolve_config", _fake_run_resolve_config)
 
     exit_code = cli_module.main(["dev", "resolve-config", "--json", "experiment=cls_smoke"])
 
     assert exit_code == 0
-    assert captured["argv"] == ["--json", "experiment=cls_smoke"]
+    assert captured == {"json": True, "overrides": ["experiment=cls_smoke"]}
 
 
-def test_nested_cli_dev_diff_config_delegates_to_dev_main(
+def test_nested_cli_dev_diff_config_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_run_diff_config(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_run_diff_config(args):
+        captured["left"] = list(args.left)
+        captured["right"] = list(args.right)
         return 0
 
-    monkeypatch.setattr(dev_group, "_run_diff_config", _fake_run_diff_config)
+    monkeypatch.setattr(dev_module, "_run_diff_config", _fake_run_diff_config)
 
     exit_code = cli_module.main(
         ["dev", "diff-config", "--left", "experiment=cls_smoke", "--right", "experiment=cls_workstation"]
     )
 
     assert exit_code == 0
-    assert captured["argv"] == [
-        "--left",
-        "experiment=cls_smoke",
-        "--right",
-        "experiment=cls_workstation",
-    ]
+    assert captured == {
+        "left": ["experiment=cls_smoke"],
+        "right": ["experiment=cls_workstation"],
+    }
 
 
-def test_nested_cli_dev_export_check_delegates_to_dev_main(
+def test_nested_cli_dev_export_check_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_run_export_check(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_run_export_check(args):
+        captured["checkpoint"] = str(args.checkpoint)
+        captured["json"] = bool(args.json)
         return 0
 
-    monkeypatch.setattr(dev_group, "_run_export_check", _fake_run_export_check)
+    monkeypatch.setattr(dev_module, "_run_export_check", _fake_run_export_check)
 
     exit_code = cli_module.main(["dev", "export-check", "--checkpoint", "/tmp/checkpoint.pt", "--json"])
 
     assert exit_code == 0
-    assert captured["argv"] == ["--checkpoint", "/tmp/checkpoint.pt", "--json"]
+    assert captured == {"checkpoint": "/tmp/checkpoint.pt", "json": True}
 
 
-def test_nested_cli_dev_run_inspect_delegates_to_dev_main(
+def test_nested_cli_dev_run_inspect_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_run_inspect(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_run_inspect(args):
+        captured["run_dir"] = str(args.run_dir)
         return 0
 
-    monkeypatch.setattr(dev_group, "_run_run_inspect", _fake_run_inspect)
+    monkeypatch.setattr(dev_module, "_run_run_inspect", _fake_run_inspect)
 
     exit_code = cli_module.main(["dev", "run-inspect", "--run-dir", "/tmp/run"])
 
     assert exit_code == 0
-    assert captured["argv"] == ["--run-dir", "/tmp/run"]
+    assert captured["run_dir"] == "/tmp/run"
 
 
 def test_nested_cli_data_dagzoo_generate_manifest_dispatches_to_data_handler(
@@ -360,16 +397,19 @@ def test_nested_cli_data_build_manifest_rejects_invalid_split_ratios(
     assert called is False
 
 
-def test_nested_cli_data_manifest_inspect_delegates_to_data_inspect_main(
+def test_nested_cli_data_manifest_inspect_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_run_manifest_inspect(argv=None):
-        captured["argv"] = list(argv) if argv is not None else None
+    def _fake_run_manifest_inspect(args):
+        captured["manifest"] = str(args.manifest)
+        captured["experiment"] = str(args.experiment)
+        captured["overrides"] = list(args.override)
+        captured["json"] = bool(args.json)
         return 0
 
-    monkeypatch.setattr(data_group, "_run_manifest_inspect", _fake_run_manifest_inspect)
+    monkeypatch.setattr(data_inspect_module, "run_from_args", _fake_run_manifest_inspect)
 
     exit_code = cli_module.main(
         [
@@ -386,15 +426,12 @@ def test_nested_cli_data_manifest_inspect_delegates_to_data_inspect_main(
     )
 
     assert exit_code == 0
-    assert captured["argv"] == [
-        "--manifest",
-        "/tmp/manifest.parquet",
-        "--experiment",
-        "cls_smoke",
-        "--override",
-        "data.manifest_path=/tmp/manifest.parquet",
-        "--json",
-    ]
+    assert captured == {
+        "manifest": "/tmp/manifest.parquet",
+        "experiment": "cls_smoke",
+        "overrides": ["data.manifest_path=/tmp/manifest.parquet"],
+        "json": True,
+    }
 
 
 def test_nested_cli_data_dagzoo_generate_manifest_rejects_invalid_split_ratios(
@@ -466,6 +503,21 @@ def test_nested_cli_data_dagzoo_generate_manifest_rejects_invalid_split_ratios(
 def test_nested_cli_data_commands_reject_non_finite_split_ratios(argv: list[str]) -> None:
     with pytest.raises(SystemExit):
         _ = cli_module.build_parser().parse_args(argv)
+
+
+def test_nested_cli_rejects_unexpected_extra_arguments(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        _ = cli_module.main(
+            [
+                "data",
+                "manifest-inspect",
+                "--manifest",
+                "/tmp/manifest.parquet",
+                "--unexpected",
+            ]
+        )
+    assert exc_info.value.code == 2
+    assert "unrecognized arguments: --unexpected" in capsys.readouterr().err
 
 
 def test_nested_cli_data_dagzoo_generate_manifest_returns_subprocess_exit_code(

@@ -8,7 +8,8 @@ from typing import Any, Mapping, cast
 
 from omegaconf import OmegaConf
 
-from tab_foundry.bench.compare import (
+from tab_foundry.control_baseline_registry import default_control_baseline_registry_path
+from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_LABELS,
     EXTERNAL_BENCHMARK_NANOTABPFN,
     EXTERNAL_BENCHMARK_TABICLV2,
@@ -42,7 +43,7 @@ class ExecutionPaths:
             sweeps_root=default_sweeps_root(),
             registry_path=default_registry_path(),
             program_path=repo_root / "program.md",
-            control_baseline_registry_path=repo_root / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json",
+            control_baseline_registry_path=default_control_baseline_registry_path(),
         )
 
     def promotion_paths(self) -> Any:

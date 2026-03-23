@@ -69,10 +69,17 @@ optional surfaces explicitly:
 uv sync --no-dev --extra benchmark --extra muon
 ```
 
+Sanity-check the repo-local environment and pre-commit hook wiring:
+
+```bash
+./scripts/dev doctor
+```
+
 Review the current diff against `origin/main` and run the smallest safe
 verification slice:
 
 ```bash
+./scripts/dev ready --base-ref origin/main
 ./scripts/dev review-base
 ./scripts/dev verify affected
 ./scripts/dev verify paths src/tab_foundry/model/factory.py

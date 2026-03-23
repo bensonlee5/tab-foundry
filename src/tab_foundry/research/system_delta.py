@@ -1,4 +1,7 @@
-"""Sweep-aware helpers for the anchor-only system-delta workflow."""
+"""Compatibility re-export for sweep-aware system-delta helpers.
+
+The canonical implementation lives in ``tab_foundry.research.sweep.core``.
+"""
 
 from __future__ import annotations
 

@@ -188,8 +188,7 @@ def run_benchmark_bounce_diagnosis(config: BenchmarkBounceDiagnosisConfig) -> di
     )
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Diagnose checkpoint-level benchmark bounce for one run")
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--run-dir", default=None, help="Completed run directory to diagnose")
     parser.add_argument("--run-id", default=None, help="Benchmark registry run id to diagnose")
     parser.add_argument(
@@ -243,12 +242,15 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("auto", "prior", "train", "none"),
         help="How to rerun when --dense-checkpoint-every is set",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Diagnose checkpoint-level benchmark bounce for one run")
+    configure_parser(parser)
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def run_from_args(args: argparse.Namespace) -> int:
     if bool(args.run_dir) == bool(args.run_id):
         raise SystemExit("exactly one of --run-dir or --run-id must be provided")
     run_id = None if args.run_id is None else str(args.run_id)
@@ -290,6 +292,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"  causes={summary['classification']['primary_causes']}")
     print(f"  artifacts={summary['artifacts']}")
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    return run_from_args(parser.parse_args(argv))
 
 
 if __name__ == "__main__":

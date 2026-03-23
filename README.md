@@ -59,7 +59,8 @@ uv sync --no-dev --extra benchmark --extra muon
 
 `tab-foundry` is the canonical packaged CLI for data, dev, train, eval,
 export, bench, and research workflows. Treat `./scripts/dev` as a repo-local
-convenience wrapper only for bootstrap, verification, and Iris smoke.
+convenience wrapper only for bootstrap, doctor, ready, verification, and Iris
+smoke.
 
 For command discovery and execution, prefer `.venv/bin/tab-foundry ...` or an
 activated `.venv`. Use help in this order:
@@ -74,10 +75,17 @@ Use [codebase navigation](docs/development/codebase-navigation.md) for the full
 namespace inventory and [workflows](docs/workflows.md) for operational
 runbooks.
 
+Sanity-check the repo-local environment:
+
+```bash
+./scripts/dev doctor
+```
+
 Summarize the current diff against `origin/main` and run the smallest safe
 verification slice:
 
 ```bash
+./scripts/dev ready --base-ref origin/main
 ./scripts/dev review-base
 ./scripts/dev verify affected
 ./scripts/dev verify paths src/tab_foundry/model/architectures/tabfoundry_staged/subsystems.py

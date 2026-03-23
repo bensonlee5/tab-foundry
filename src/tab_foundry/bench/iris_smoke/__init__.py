@@ -75,8 +75,10 @@ __all__ = [
     "IrisEvalSummary",
     "IrisSmokeConfig",
     "build_parser",
+    "configure_parser",
     "main",
     "run_iris_smoke",
+    "run_from_args",
 ]
 
 
@@ -103,8 +105,7 @@ def run_iris_smoke(config: IrisSmokeConfig) -> dict[str, Any]:
     )
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the Iris-backed tab-foundry smoke harness")
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--out-root", default=None, help="Output directory root")
     parser.add_argument(
         "--device",
@@ -137,12 +138,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_CHECKPOINT_EVERY,
         help="Checkpoint snapshot cadence in steps",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run the Iris-backed tab-foundry smoke harness")
+    configure_parser(parser)
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def run_from_args(args: argparse.Namespace) -> int:
     out_root = _default_out_root() if args.out_root is None else Path(str(args.out_root))
     telemetry = run_iris_smoke(
         IrisSmokeConfig(
@@ -162,3 +166,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"  iris_benchmark_means={telemetry['iris_benchmark']['means']}")
     print(f"  timings_seconds={telemetry['timings_seconds']}")
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    return run_from_args(parser.parse_args(argv))

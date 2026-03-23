@@ -307,6 +307,11 @@ def _run_manifest_inspect(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Manifest inspection")
+    configure_parser(parser)
+    return parser
+
+
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--manifest", required=True, help="Manifest parquet path to inspect")
     parser.add_argument("--experiment", default=None, help="Optional experiment name for compatibility preflight")
     parser.add_argument(
@@ -316,10 +321,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional Hydra override applied on top of --experiment or repo defaults",
     )
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    parser.set_defaults(func=_run_manifest_inspect)
-    return parser
+    parser.set_defaults(func=run_from_args)
+
+
+def run_from_args(args: argparse.Namespace) -> int:
+    return _run_manifest_inspect(args)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    return int(args.func(args))
+    return run_from_args(build_parser().parse_args(argv))

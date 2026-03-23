@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-03-23
+
+### Changed
+
+- Contributor-facing note: `./scripts/dev` now adds `doctor` for repo-local
+  environment and hook checks plus `ready` for the common
+  `review-base` then `verify affected` sequence, while remaining limited to
+  repo-local bootstrap, verification, and smoke workflows.
+
+- Contributor-facing note: the packaged CLI now registers `tab-foundry dev ...`
+  and `tab-foundry research sweep ...` commands directly from the nested CLI
+  groups instead of routing them through delegate-only wrapper layers; command
+  names and flags are unchanged.
+
+- Internal architecture note: the packaged CLI now also registers
+  `tab-foundry data manifest-inspect ...` and `tab-foundry train prior ...`
+  directly from nested parsers, removing the last delegate-only passthrough
+  leaves and the top-level unknown-arg forwarding path.
+
+- Internal architecture note: read-only benchmark-registry access and
+  repo-relative path resolution now live in shared top-level helper modules,
+  removing the `tab_foundry.data -> tab_foundry.bench` dependency edge and the
+  previously documented top-level cycles.
+
 ## [0.9.2] - 2026-03-23
 
 ### Changed

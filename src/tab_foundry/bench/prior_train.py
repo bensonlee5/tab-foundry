@@ -238,13 +238,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Train an exact-parity tabfoundry classifier on the nanoTabPFN prior dump"
     )
+    configure_parser(parser)
+    return parser
+
+
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--prior-dump",
         default=str(DEFAULT_PRIOR_DUMP_PATH),
         help="Path to the nanoTabPFN prior dump (.h5)",
     )
     parser.add_argument("overrides", nargs="*", help="Optional Hydra override strings")
-    return parser
 
 
 def _compose_prior_cfg(overrides: Sequence[str]) -> DictConfig:
@@ -254,9 +258,7 @@ def _compose_prior_cfg(overrides: Sequence[str]) -> DictConfig:
     return compose_config(resolved_overrides)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def run_from_args(args: argparse.Namespace) -> int:
     cfg = _compose_prior_cfg(args.overrides)
     result = train_tabfoundry_simple_prior(
         cfg,
@@ -270,6 +272,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"metrics={result.metrics}",
     )
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    return run_from_args(parser.parse_args(argv))
 
 
 if __name__ == "__main__":

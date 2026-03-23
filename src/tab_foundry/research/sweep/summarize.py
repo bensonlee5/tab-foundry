@@ -155,8 +155,7 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Summarize local system-delta sweep results")
+def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     parser.add_argument(
@@ -182,8 +181,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def build_parser() -> argparse.ArgumentParser:
+    return configure_parser(
+        argparse.ArgumentParser(description="Summarize local system-delta sweep results")
+    )
+
+
+def run_from_args(args: argparse.Namespace) -> int:
     payload = summarize_sweep(
         sweep_id=None if args.sweep_id is None else str(args.sweep_id),
         include_screened=bool(args.include_screened),
@@ -196,3 +200,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(render_sweep_summary_table(payload))
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    return run_from_args(build_parser().parse_args(argv))

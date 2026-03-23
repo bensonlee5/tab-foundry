@@ -8,6 +8,7 @@ from typing import Any, Mapping, Sequence, cast
 
 import torch
 
+import tab_foundry.control_baseline_registry as read_control_baseline_registry
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.bench.nanotabpfn import collect_checkpoint_snapshots, resolve_tab_foundry_best_checkpoint
 from tab_foundry.bench.registry.paths import (
@@ -31,8 +32,8 @@ from tab_foundry.bench.registry.summary_metrics import (
 )
 
 
-REGISTRY_SCHEMA = "tab-foundry-control-baselines-v1"
-REGISTRY_VERSION = 1
+REGISTRY_SCHEMA = read_control_baseline_registry.REGISTRY_SCHEMA
+REGISTRY_VERSION = read_control_baseline_registry.REGISTRY_VERSION
 DEFAULT_BASELINE_ID = "cls_benchmark_linear_v2"
 DEFAULT_EXPERIMENT = "cls_benchmark_staged_prior"
 DEFAULT_CONFIG_PROFILE = DEFAULT_EXPERIMENT
@@ -98,7 +99,7 @@ def _resolve_config_path(raw_value: Any) -> Path:
 def default_control_baseline_registry_path() -> Path:
     """Return the repo-tracked control baseline registry path."""
 
-    return Path(__file__).resolve().with_name("control_baselines_v1.json")
+    return read_control_baseline_registry.default_control_baseline_registry_path()
 
 
 def _canonical_registry_path() -> Path:
@@ -157,7 +158,9 @@ def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]
 def load_control_baseline_registry(path: Path | None = None) -> dict[str, Any]:
     """Load and validate the control baseline registry."""
 
-    return _load_registry_payload(path or default_control_baseline_registry_path(), allow_missing=False)
+    return read_control_baseline_registry.load_control_baseline_registry(
+        default_control_baseline_registry_path() if path is None else path
+    )
 
 
 def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, Any]]:
@@ -210,12 +213,10 @@ def load_control_baseline_entry(
 ) -> dict[str, Any]:
     """Load one control baseline entry by id."""
 
-    registry = load_control_baseline_registry(registry_path)
-    baselines = cast(dict[str, dict[str, Any]], registry["baselines"])
-    entry = baselines.get(str(baseline_id))
-    if entry is None:
-        raise RuntimeError(f"unknown control baseline id: {baseline_id}")
-    return _copy_jsonable(entry)
+    return read_control_baseline_registry.load_control_baseline_entry(
+        baseline_id,
+        registry_path=default_control_baseline_registry_path() if registry_path is None else registry_path,
+    )
 
 
 def _resolve_baseline_checkpoint(run_dir: Path, *, summary_tab_foundry: Mapping[str, Any]) -> Path:
@@ -354,8 +355,7 @@ def freeze_control_baseline(
     }
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Freeze one canonical tab-foundry control baseline")
+def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--run-dir", required=True, help="Completed tab-foundry run directory")
     parser.add_argument(
         "--comparison-summary",
@@ -387,12 +387,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=str(default_control_baseline_registry_path()),
         help="Control baseline registry JSON path",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Freeze one canonical tab-foundry control baseline")
+    configure_parser(parser)
     return parser
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+def run_from_args(args: argparse.Namespace) -> int:
     result = freeze_control_baseline(
         baseline_id=str(args.baseline_id),
         experiment=str(args.experiment),
@@ -406,3 +409,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"  registry_path={result['registry_path']}")
     print(f"  baseline={result['baseline']}")
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    return run_from_args(parser.parse_args(argv))

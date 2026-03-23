@@ -16,13 +16,22 @@ into the canonical library modules.
   workflows.
 - `scripts/`: shell convenience helpers plus audit tooling only. Python
   workflow entrypoints have been retired in favor of the packaged CLI.
-- `scripts/dev`: diff-aware repo-local review and verification wrapper that
-  delegates to the audit tooling and packaged CLI.
+- `scripts/dev`: repo-local bootstrap, doctor, ready, verification, and smoke
+  wrapper that delegates to the audit tooling and packaged CLI.
 
 ## 2. Canonical Library Areas
 
 - `src/tab_foundry/config.py`: shared Hydra composition helpers and config root
   discovery.
+- `src/tab_foundry/repo_paths.py`: dependency-light repo-root and repo-relative
+  path helpers shared across package boundaries.
+- `src/tab_foundry/benchmark_registry.py`: dependency-light read-only
+  benchmark-registry loader and path-resolution surface for non-bench readers.
+- `src/tab_foundry/control_baseline_registry.py`: dependency-light read-only
+  control-baseline registry loader and path-resolution surface shared by
+  `bench` and `research`.
+- `src/tab_foundry/external_benchmarks.py`: dependency-light canonical source
+  for external benchmark ids, defaults, labels, and normalization.
 - `src/tab_foundry/data/` and `src/tab_foundry/data/sources/`: manifest-backed
   dataset abstractions, surface selection, source provenance wiring, and data
   construction helpers.
@@ -51,6 +60,8 @@ into the canonical library modules.
   artifact helpers.
 - `src/tab_foundry/research/`: system-delta sweep state, queue/matrix
   rendering, sweep-result summaries, and research-package path conventions.
+  The canonical sweep manager now lives under `src/tab_foundry/research/sweep/`;
+  `src/tab_foundry/research/system_delta.py` is the compatibility re-export.
 
 ## 3. Workflow Surfaces
 
@@ -61,9 +72,9 @@ The repo uses three stable workflow layers:
   registry, and research-sweep flows.
 - Shell helpers under `scripts/*.sh` plus `scripts/audit/` as repo-local
   convenience and verification surfaces only.
-- `scripts/dev` as the canonical repo-local entrypoint for branch review,
-  affected-scope verification, explicit-path verification, full verification,
-  and Iris smoke delegation.
+- `scripts/dev` as the canonical repo-local entrypoint for bootstrap checks,
+  branch review, affected-scope verification, explicit-path verification, full
+  verification, and Iris smoke delegation.
 - Reference YAML/Markdown artifacts for the active system-delta sweep.
 
 Current canonical CLI namespaces:
@@ -128,6 +139,13 @@ not absorb new orchestration logic.
 
 - `src/tab_foundry/bench/` is the canonical home for benchmark and harness
   logic. Core training/model/data packages should not start depending on it.
+- Shared repo-root and read-only benchmark-registry helpers should continue to
+  live in `src/tab_foundry/repo_paths.py` and
+  `src/tab_foundry/benchmark_registry.py`; the equivalent control-baseline and
+  external-benchmark contracts should continue to live in
+  `src/tab_foundry/control_baseline_registry.py` and
+  `src/tab_foundry/external_benchmarks.py` instead of being reimplemented in
+  lower layers.
 - `src/tab_foundry/research/` is the canonical home for sweep queue/matrix
   management; do not recreate parallel queue logic in shell helpers or
   docs-only tooling.
