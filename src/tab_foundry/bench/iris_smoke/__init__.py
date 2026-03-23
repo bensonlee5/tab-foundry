@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import argparse
-from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 from tab_foundry.bench.artifacts import (
     checkpoint_snapshots_from_history,
@@ -74,11 +72,7 @@ __all__ = [
     "DEFAULT_VAL_RATIO",
     "IrisEvalSummary",
     "IrisSmokeConfig",
-    "build_parser",
-    "configure_parser",
-    "main",
     "run_iris_smoke",
-    "run_from_args",
 ]
 
 
@@ -103,71 +97,3 @@ def run_iris_smoke(config: IrisSmokeConfig) -> dict[str, Any]:
         build_cls_smoke_eval_config_fn=build_cls_smoke_eval_config,
         build_manifest_payload_fn=build_manifest_payload,
     )
-
-
-def configure_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--out-root", default=None, help="Output directory root")
-    parser.add_argument(
-        "--device",
-        default=DEFAULT_DEVICE,
-        choices=("cpu", "cuda", "mps", "auto"),
-        help="Training and evaluation device",
-    )
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Shared run seed")
-    parser.add_argument(
-        "--initial-num-tasks",
-        type=int,
-        default=DEFAULT_INITIAL_NUM_TASKS,
-        help="Initial number of derived Iris tasks to materialize",
-    )
-    parser.add_argument(
-        "--max-num-tasks",
-        type=int,
-        default=DEFAULT_MAX_NUM_TASKS,
-        help="Maximum number of derived Iris tasks to materialize",
-    )
-    parser.add_argument(
-        "--iris-benchmark-seeds",
-        type=int,
-        default=DEFAULT_IRIS_BENCHMARK_SEEDS,
-        help="Number of binary Iris benchmark splits for the final checkpoint",
-    )
-    parser.add_argument(
-        "--checkpoint-every",
-        type=int,
-        default=DEFAULT_CHECKPOINT_EVERY,
-        help="Checkpoint snapshot cadence in steps",
-    )
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the Iris-backed tab-foundry smoke harness")
-    configure_parser(parser)
-    return parser
-
-
-def run_from_args(args: argparse.Namespace) -> int:
-    out_root = _default_out_root() if args.out_root is None else Path(str(args.out_root))
-    telemetry = run_iris_smoke(
-        IrisSmokeConfig(
-            out_root=out_root,
-            device=str(args.device),
-            seed=int(args.seed),
-            initial_num_tasks=int(args.initial_num_tasks),
-            max_num_tasks=int(args.max_num_tasks),
-            iris_benchmark_seeds=int(args.iris_benchmark_seeds),
-            checkpoint_every=int(args.checkpoint_every),
-        )
-    )
-    print("iris smoke complete:")
-    print(f"  out_root={out_root.resolve()}")
-    print(f"  best_checkpoint={telemetry['artifacts']['best_checkpoint']}")
-    print(f"  eval_metrics={telemetry['eval_metrics']}")
-    print(f"  iris_benchmark_means={telemetry['iris_benchmark']['means']}")
-    print(f"  timings_seconds={telemetry['timings_seconds']}")
-    return 0
-
-
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    return run_from_args(parser.parse_args(argv))

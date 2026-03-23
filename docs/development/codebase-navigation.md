@@ -65,11 +65,13 @@ into the canonical library modules.
 - `src/tab_foundry/bench/`: benchmark bundles, comparison flows, benchmark
   env/bootstrap helpers, smoke harnesses, registry write/orchestration
   helpers, and shared artifact helpers. `bench/compare.py` is the canonical
-  manual benchmark CLI surface, `bench/run_registration.py` and
+  manual benchmark comparison/orchestration library surface,
+  `bench/run_registration.py` and
   `bench/control_baseline_freeze.py` are the canonical programmatic registry
   write APIs, and `bench/comparison_runtime.py` is the canonical programmatic
-  benchmark-execution surface used by research. The packaged registry CLI
-  wiring now lives under `src/tab_foundry/cli/`.
+  benchmark-execution surface used by research. Packaged `bench` parser
+  ownership now lives under `src/tab_foundry/cli/bench_*.py`; the packaged
+  bench library modules are parser-free.
 - `src/tab_foundry/research/`: system-delta sweep state, queue/matrix
   rendering, sweep-result summaries, and research-package path conventions.
   The canonical sweep manager now lives under `src/tab_foundry/research/sweep/`;
@@ -121,8 +123,9 @@ Current canonical CLI namespaces:
 - `tab-foundry bench registry register-run`
 - `tab-foundry bench registry freeze-baseline`
 - `tab-foundry bench diagnose bounce`
-- `tab-foundry research sweep create`
-- `tab-foundry research sweep list`
+- `tab-foundry research sweep create-sweep`
+- `tab-foundry research sweep list-sweeps`
+- `tab-foundry research sweep show-active`
 - `tab-foundry research sweep next`
 - `tab-foundry research sweep render`
 - `tab-foundry research sweep validate`
@@ -161,6 +164,9 @@ not absorb new orchestration logic.
 - Research should keep importing the programmatic benchmark runtime from
   `src/tab_foundry/bench/comparison_runtime.py` instead of reaching into the
   manual compare CLI module.
+- Packaged `bench` command parser ownership should stay under
+  `src/tab_foundry/cli/`; the corresponding library modules under
+  `src/tab_foundry/bench/` should stay parser-free.
 - Shared repo-root and read-only benchmark-registry helpers should continue to
   live in `src/tab_foundry/repo_paths.py` and
   `src/tab_foundry/benchmark_registry.py`; the equivalent control-baseline and

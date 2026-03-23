@@ -10,9 +10,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import tab_foundry.bench.compare as compare_cli_module
 import tab_foundry.bench.comparison_runtime as compare_module
 import tab_foundry.bench.nanotabpfn as benchmark_module
+import tab_foundry.cli.bench_compare as compare_cli_module
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

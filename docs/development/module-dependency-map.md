@@ -24,7 +24,8 @@ section factual and keep design intent in the policy section below it.
 - `tab_foundry.cli` depends on `tab_foundry.bench`,
   `tab_foundry.benchmark_registry`, `tab_foundry.config`,
   `tab_foundry.control_baseline_registry`, `tab_foundry.data`,
-  `tab_foundry.device`, `tab_foundry.export`, `tab_foundry.model`,
+  `tab_foundry.device`, `tab_foundry.export`,
+  `tab_foundry.external_benchmarks`, `tab_foundry.model`,
   `tab_foundry.preprocessing`, `tab_foundry.research`, and
   `tab_foundry.training`.
 - `tab_foundry.config` depends on `tab_foundry.repo_paths`.
@@ -94,6 +95,9 @@ Observed cycle status:
   `research.sweep.promote` directly instead of reintroducing wrapper modules.
 - Research CLI parser ownership should stay under `src/tab_foundry/cli/`; the
   `research/sweep` library modules should stay parser-free.
+- Packaged `bench` CLI parser ownership should stay under
+  `src/tab_foundry/cli/`; the packaged bench library modules should stay
+  parser-free.
 - Sweep row execution should stay decomposed across dedicated helper modules
   such as `curve_reuse`, `training_state`, `row_dependencies`, and `row_sync`
   instead of regrowing helper logic inside `row_execution.py`.

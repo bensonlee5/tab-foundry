@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 import tab_foundry.bench.openml_benchmark_bundle as bundle_module
+import tab_foundry.cli.bench_bundle_openml as bundle_cli_module
 
 
 def test_build_openml_benchmark_bundle_main_parses_task_source_flag(
@@ -19,9 +20,9 @@ def test_build_openml_benchmark_bundle_main_parses_task_source_flag(
         captured["config"] = config
         return path
 
-    monkeypatch.setattr(bundle_module, "write_openml_benchmark_bundle", _fake_write)
+    monkeypatch.setattr(bundle_cli_module.bundle_module, "write_openml_benchmark_bundle", _fake_write)
 
-    exit_code = bundle_module.main(
+    exit_code = bundle_cli_module.main(
         [
             "--out-path",
             str(tmp_path / "bundle.json"),
@@ -49,7 +50,7 @@ def test_build_openml_benchmark_bundle_main_parses_discovery_flags(
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(
-        bundle_module,
+        bundle_cli_module.bundle_module,
         "build_openml_benchmark_bundle_result",
         lambda config: bundle_module.OpenMLBenchmarkBundleBuildResult(
             bundle={
@@ -98,9 +99,9 @@ def test_build_openml_benchmark_bundle_main_parses_discovery_flags(
         captured["bundle"] = bundle
         return path
 
-    monkeypatch.setattr(bundle_module, "write_openml_benchmark_bundle", _fake_write)
+    monkeypatch.setattr(bundle_cli_module.bundle_module, "write_openml_benchmark_bundle", _fake_write)
 
-    exit_code = bundle_module.main(
+    exit_code = bundle_cli_module.main(
         [
             "--out-path",
             str(tmp_path / "bundle.json"),

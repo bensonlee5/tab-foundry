@@ -4,12 +4,25 @@ import subprocess
 
 import pytest
 
-import tab_foundry.bench.compare as compare_module
+import tab_foundry.bench.bounce_diagnosis as bounce_diagnosis_library_module
+import tab_foundry.bench.compare as compare_library_module
 import tab_foundry.bench.control_baseline_freeze as control_baseline_freeze_library_module
+import tab_foundry.bench.dagzoo_smoke as dagzoo_smoke_library_module
+import tab_foundry.bench.envs as env_library_module
+import tab_foundry.bench.iris_smoke as iris_smoke_library_module
+import tab_foundry.bench.openml_benchmark_bundle as bundle_library_module
 import tab_foundry.bench.run_registration as run_registration_library_module
+import tab_foundry.bench.tune as tune_library_module
 import tab_foundry.cli as cli_module
+import tab_foundry.cli.bench_bounce_diagnosis as bounce_diagnosis_cli_module
+import tab_foundry.cli.bench_bundle_openml as bundle_cli_module
+import tab_foundry.cli.bench_compare as compare_cli_module
 import tab_foundry.cli.bench_control_baseline_freeze as control_baseline_freeze_cli_module
+import tab_foundry.cli.bench_env_bootstrap as env_bootstrap_cli_module
 import tab_foundry.cli.bench_run_registration as run_registration_cli_module
+import tab_foundry.cli.bench_smoke_dagzoo as dagzoo_smoke_cli_module
+import tab_foundry.cli.bench_smoke_iris as iris_smoke_cli_module
+import tab_foundry.cli.bench_tune as tune_cli_module
 import tab_foundry.cli.data_inspect as data_inspect_module
 import tab_foundry.cli.dev as dev_module
 import tab_foundry.cli.research_diff as research_diff_cli_module
@@ -41,12 +54,175 @@ def test_nested_cli_bench_compare_delegates_to_compare_main(
         captured["tab_foundry_run_dir"] = str(args.tab_foundry_run_dir)
         return 0
 
-    monkeypatch.setattr(compare_module, "run_from_args", _fake_compare)
+    monkeypatch.setattr(compare_cli_module, "run_from_args", _fake_compare)
 
     exit_code = cli_module.main(["bench", "compare", "--tab-foundry-run-dir", "/tmp/run"])
 
     assert exit_code == 0
     assert captured["tab_foundry_run_dir"] == "/tmp/run"
+
+
+def test_nested_cli_bench_tune_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_tune(args):
+        captured["manifest_path"] = str(args.manifest_path)
+        captured["seed"] = int(args.seed)
+        return 0
+
+    monkeypatch.setattr(tune_cli_module, "run_from_args", _fake_tune)
+
+    exit_code = cli_module.main(
+        [
+            "bench",
+            "tune",
+            "--manifest-path",
+            "/tmp/manifest.parquet",
+            "--seed",
+            "7",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {"manifest_path": "/tmp/manifest.parquet", "seed": 7}
+
+
+def test_nested_cli_bench_env_bootstrap_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_env_bootstrap(args):
+        captured["nanotabpfn_root"] = str(args.nanotabpfn_root)
+        captured["tabicl_root"] = str(args.tabicl_root)
+        return 0
+
+    monkeypatch.setattr(env_bootstrap_cli_module, "run_from_args", _fake_env_bootstrap)
+
+    exit_code = cli_module.main(
+        [
+            "bench",
+            "env",
+            "bootstrap",
+            "--nanotabpfn-root",
+            "/tmp/nano",
+            "--tabicl-root",
+            "/tmp/tabicl",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {"nanotabpfn_root": "/tmp/nano", "tabicl_root": "/tmp/tabicl"}
+
+
+def test_nested_cli_bench_bundle_build_openml_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_bundle(args):
+        captured["bundle_name"] = str(args.bundle_name)
+        captured["task_source"] = str(args.task_source)
+        return 0
+
+    monkeypatch.setattr(bundle_cli_module, "run_from_args", _fake_bundle)
+
+    exit_code = cli_module.main(
+        [
+            "bench",
+            "bundle",
+            "build-openml",
+            "--out-path",
+            "/tmp/bundle.json",
+            "--bundle-name",
+            "binary_medium",
+            "--version",
+            "1",
+            "--task-source",
+            "binary_expanded_v1",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {"bundle_name": "binary_medium", "task_source": "binary_expanded_v1"}
+
+
+def test_nested_cli_bench_smoke_iris_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_smoke(args):
+        captured["device"] = str(args.device)
+        captured["checkpoint_every"] = int(args.checkpoint_every)
+        return 0
+
+    monkeypatch.setattr(iris_smoke_cli_module, "run_from_args", _fake_smoke)
+
+    exit_code = cli_module.main(
+        ["bench", "smoke", "iris", "--device", "cpu", "--checkpoint-every", "5"]
+    )
+
+    assert exit_code == 0
+    assert captured == {"device": "cpu", "checkpoint_every": 5}
+
+
+def test_nested_cli_bench_smoke_dagzoo_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_smoke(args):
+        captured["dagzoo_root"] = str(args.dagzoo_root)
+        captured["num_datasets"] = int(args.num_datasets)
+        return 0
+
+    monkeypatch.setattr(dagzoo_smoke_cli_module, "run_from_args", _fake_smoke)
+
+    exit_code = cli_module.main(
+        [
+            "bench",
+            "smoke",
+            "dagzoo",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--num-datasets",
+            "16",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {"dagzoo_root": "/tmp/dagzoo", "num_datasets": 16}
+
+
+def test_nested_cli_bench_diagnose_bounce_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_diagnose(args):
+        captured["run_dir"] = str(args.run_dir)
+        captured["bootstrap_samples"] = int(args.bootstrap_samples)
+        return 0
+
+    monkeypatch.setattr(bounce_diagnosis_cli_module, "run_from_args", _fake_diagnose)
+
+    exit_code = cli_module.main(
+        [
+            "bench",
+            "diagnose",
+            "bounce",
+            "--run-dir",
+            "/tmp/run",
+            "--bootstrap-samples",
+            "64",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {"run_dir": "/tmp/run", "bootstrap_samples": 64}
 
 
 def test_nested_cli_bench_registry_register_run_dispatches_to_handler(
@@ -340,7 +516,14 @@ def test_nested_cli_research_sweep_promote_dispatches_to_sweep_native_handler(
     assert captured == {"sweep_id": "binary_md_v1", "run_id": "run_001"}
 
 
-def test_cli_groups_use_cli_only_execute_promote_and_registry_modules() -> None:
+def test_cli_groups_use_cli_only_execute_promote_and_bench_modules() -> None:
+    assert bench_group.compare_cli.__name__ == "tab_foundry.cli.bench_compare"
+    assert bench_group.tune_cli.__name__ == "tab_foundry.cli.bench_tune"
+    assert bench_group.env_bootstrap_cli.__name__ == "tab_foundry.cli.bench_env_bootstrap"
+    assert bench_group.bundle_openml_cli.__name__ == "tab_foundry.cli.bench_bundle_openml"
+    assert bench_group.iris_smoke_cli.__name__ == "tab_foundry.cli.bench_smoke_iris"
+    assert bench_group.dagzoo_smoke_cli.__name__ == "tab_foundry.cli.bench_smoke_dagzoo"
+    assert bench_group.bounce_diagnosis_cli.__name__ == "tab_foundry.cli.bench_bounce_diagnosis"
     assert bench_group.run_registration_cli.__name__ == "tab_foundry.cli.bench_run_registration"
     assert bench_group.control_baseline_freeze_cli.__name__ == "tab_foundry.cli.bench_control_baseline_freeze"
     assert research_group.research_sweep_core_cli.__name__ == "tab_foundry.cli.research_sweep_core"
@@ -351,6 +534,13 @@ def test_cli_groups_use_cli_only_execute_promote_and_registry_modules() -> None:
     assert research_group.research_promote_cli.__name__ == "tab_foundry.cli.research_promote"
     assert research_group.research_summarize_cli.__name__ == "tab_foundry.cli.research_summarize"
     for library_module in (
+        compare_library_module,
+        tune_library_module,
+        env_library_module,
+        bundle_library_module,
+        iris_smoke_library_module,
+        dagzoo_smoke_library_module,
+        bounce_diagnosis_library_module,
         run_registration_library_module,
         control_baseline_freeze_library_module,
         sweep_core_module,

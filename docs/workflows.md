@@ -717,7 +717,7 @@ Recommended loop:
 1. Inspect the active sweep and the next runnable row:
 
    ```bash
-   tab-foundry research sweep list
+   tab-foundry research sweep list-sweeps
    tab-foundry research sweep next
    tab-foundry research sweep summarize --include-screened
    ```
