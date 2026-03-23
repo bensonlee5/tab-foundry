@@ -7,21 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.9.3] - 2026-03-23
-
-### Fixed
-
-- User-facing note: benchmark run-record derivation now resolves
-  corpus-backed manifests from the effective data surface while preserving
-  repo-relative normalization for legacy raw `data.manifest_path`
-  checkpoints.
-
-- User-facing note: read-only inspection flows such as
-  `tab-foundry dev resolve-config`, `tab-foundry dev diff-config`, and
-  `tab-foundry data manifest-inspect` now tolerate unresolved
-  `data.corpus_ref` values by preserving corpus identity fields and leaving
-  `manifest_path` unset instead of failing before local corpus materialization.
-
 ## [0.9.2] - 2026-03-23
 
 ### Changed
@@ -45,6 +30,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   first-class corpus recipes rather than queue-local manifest wiring, and the
   support materializer now delegates size-ladder corpus generation through the
   shared corpus subsystem instead of owning dagzoo orchestration directly.
+
+### Fixed
+
+- User-facing note: benchmark run-record derivation now resolves
+  corpus-backed manifests from the effective data surface while preserving
+  repo-relative normalization for legacy raw `data.manifest_path`
+  checkpoints.
+
+- User-facing note: read-only inspection flows such as
+  `tab-foundry dev resolve-config`, `tab-foundry dev diff-config`, and
+  `tab-foundry data manifest-inspect` now tolerate unresolved
+  `data.corpus_ref` values by preserving corpus identity fields and leaving
+  `manifest_path` unset instead of failing before local corpus materialization.
+
+- User-facing note: `tab-foundry data corpus materialize` now rebuilds
+  incomplete cached corpora instead of reusing stale `corpus_record.json`
+  entries whose manifest or invocation artifacts are missing.
 
 ## [0.9.1] - 2026-03-23
 

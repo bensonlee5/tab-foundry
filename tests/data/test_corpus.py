@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import shutil
 
 import pytest
 
@@ -165,6 +166,14 @@ def _fake_run_dagzoo_generate(config) -> object:
     return load_dagzoo_handoff_info(handoff_manifest_path)
 
 
+def _counting_fake_run_dagzoo_generate(call_counter: list[int]):
+    def _run(config) -> object:
+        call_counter[0] += 1
+        return _fake_run_dagzoo_generate(config)
+
+    return _run
+
+
 def test_load_and_list_corpus_recipes(repo_tmp_path: Path) -> None:
     _write_recipe_registry(repo_tmp_path)
 
@@ -221,6 +230,131 @@ def test_materialize_corpus_recipe_writes_corpus_record_and_latest_pointer(
     loaded = load_corpus_record("current_recipe", repo_root=repo_tmp_path)
     assert loaded["corpus_ref"] == record["corpus_ref"]
     assert loaded["dagzoo_provenance"]["config_refs"] == ["configs/default.yaml"]
+
+
+def test_materialize_corpus_recipe_reuses_complete_cached_corpus(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    call_counter = [0]
+    monkeypatch.setattr(
+        corpus_module,
+        "run_dagzoo_generate",
+        _counting_fake_run_dagzoo_generate(call_counter),
+    )
+
+    record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+    reused = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=False,
+        repo_root=repo_tmp_path,
+    )
+
+    assert call_counter == [1]
+    assert reused["corpus_ref"] == record["corpus_ref"]
+    assert Path(str(reused["manifest"]["manifest_path"])).exists()
+
+
+def test_materialize_corpus_recipe_rebuilds_when_cached_manifest_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    call_counter = [0]
+    monkeypatch.setattr(
+        corpus_module,
+        "run_dagzoo_generate",
+        _counting_fake_run_dagzoo_generate(call_counter),
+    )
+
+    record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+    Path(str(record["manifest"]["manifest_path"])).unlink()
+
+    rebuilt = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=False,
+        repo_root=repo_tmp_path,
+    )
+
+    assert call_counter == [2]
+    assert rebuilt["corpus_ref"] == record["corpus_ref"]
+    assert Path(str(rebuilt["manifest"]["manifest_path"])).exists()
+
+
+def test_materialize_corpus_recipe_rebuilds_when_cached_record_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    call_counter = [0]
+    monkeypatch.setattr(
+        corpus_module,
+        "run_dagzoo_generate",
+        _counting_fake_run_dagzoo_generate(call_counter),
+    )
+
+    record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+    Path(str(record["corpus_record_path"])).unlink()
+
+    rebuilt = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=False,
+        repo_root=repo_tmp_path,
+    )
+
+    assert call_counter == [2]
+    assert rebuilt["corpus_ref"] == record["corpus_ref"]
+    assert Path(str(rebuilt["corpus_record_path"])).exists()
+    assert Path(str(rebuilt["manifest"]["manifest_path"])).exists()
+
+
+def test_materialize_corpus_recipe_rebuilds_when_cached_invocation_artifact_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    call_counter = [0]
+    monkeypatch.setattr(
+        corpus_module,
+        "run_dagzoo_generate",
+        _counting_fake_run_dagzoo_generate(call_counter),
+    )
+
+    record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+    invocation = record["dagzoo_provenance"]["invocations"][0]
+    shutil.rmtree(Path(str(invocation["handoff"]["generated_dir"])))
+
+    rebuilt = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=False,
+        repo_root=repo_tmp_path,
+    )
+
+    assert call_counter == [2]
+    assert rebuilt["corpus_ref"] == record["corpus_ref"]
+    assert Path(str(rebuilt["manifest"]["manifest_path"])).exists()
+    assert Path(str(rebuilt["dagzoo_provenance"]["invocations"][0]["handoff"]["generated_dir"])).exists()
 
 
 def test_corpus_compare_payload_reports_differences(

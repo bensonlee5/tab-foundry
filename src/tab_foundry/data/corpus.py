@@ -431,6 +431,66 @@ def load_corpus_record(
     return payload
 
 
+def _existing_path(value: Any, *, require_dir: bool) -> Path | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    candidate = Path(value).expanduser().resolve()
+    if not candidate.exists():
+        return None
+    if require_dir and not candidate.is_dir():
+        return None
+    if not require_dir and not candidate.is_file():
+        return None
+    return candidate
+
+
+def _corpus_record_is_complete_for_reuse(record: Mapping[str, Any]) -> bool:
+    if _existing_path(record.get("corpus_record_path"), require_dir=False) is None:
+        return False
+
+    artifacts = record.get("artifacts")
+    manifest = record.get("manifest")
+    dagzoo_provenance = record.get("dagzoo_provenance")
+    if not isinstance(artifacts, Mapping) or not isinstance(manifest, Mapping) or not isinstance(
+        dagzoo_provenance,
+        Mapping,
+    ):
+        return False
+    if _existing_path(artifacts.get("corpus_root"), require_dir=True) is None:
+        return False
+    if _existing_path(manifest.get("manifest_path"), require_dir=False) is None:
+        return False
+
+    invocations = dagzoo_provenance.get("invocations")
+    if not isinstance(invocations, list):
+        return False
+    for invocation in invocations:
+        if not isinstance(invocation, Mapping):
+            return False
+        if _existing_path(invocation.get("invocation_root"), require_dir=True) is None:
+            return False
+        handoff = invocation.get("handoff")
+        if not isinstance(handoff, Mapping):
+            return False
+        if _existing_path(handoff.get("handoff_manifest_path"), require_dir=False) is None:
+            return False
+        if _existing_path(handoff.get("generated_dir"), require_dir=True) is None:
+            return False
+    return True
+
+
+def _load_reusable_corpus_record(
+    corpus_ref: str,
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, Any] | None:
+    try:
+        record = load_corpus_record(corpus_ref, repo_root=repo_root)
+    except RuntimeError:
+        return None
+    return record if _corpus_record_is_complete_for_reuse(record) else None
+
+
 def _git_info(root: Path) -> dict[str, Any] | None:
     if not root.exists():
         return None
@@ -563,10 +623,9 @@ def materialize_corpus_recipe(
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
     resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
     if not force:
-        try:
-            return load_corpus_record(recipe_id, repo_root=resolved_repo_root)
-        except RuntimeError:
-            pass
+        existing_record = _load_reusable_corpus_record(recipe_id, repo_root=resolved_repo_root)
+        if existing_record is not None:
+            return existing_record
 
     recipe = load_corpus_recipe(recipe_id, repo_root=resolved_repo_root)
     recipe_root = corpus_outputs_root(repo_root=resolved_repo_root) / recipe.recipe_id
@@ -605,8 +664,11 @@ def materialize_corpus_recipe(
             if force:
                 shutil.rmtree(final_root)
             else:
-                shutil.rmtree(stage_root)
-                return load_corpus_record(corpus_ref, repo_root=resolved_repo_root)
+                existing_record = _load_reusable_corpus_record(corpus_ref, repo_root=resolved_repo_root)
+                if existing_record is not None:
+                    shutil.rmtree(stage_root)
+                    return existing_record
+                shutil.rmtree(final_root)
         shutil.move(str(stage_root), str(final_root))
         resolved_manifest_path = final_root / "manifest.parquet"
         invocation_payloads = [
