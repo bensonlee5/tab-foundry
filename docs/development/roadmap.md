@@ -697,10 +697,12 @@ This roadmap assumes the following repo truths:
   - issue [#107](https://github.com/bensonlee5/tab-foundry/issues/107) is no
     longer blocked on TF-RD-013; TF-RD-018 should now settle optimizer and
     schedule adequacy on the selected same-backend medium-rung manifest surface
-  - the copied reference manifest at `data/manifests/default.parquet` now
-    inspects to `10` total records with an `8 train / 1 val / 1 test` split, so
-    the reopened current-corpus control is explicitly sized to that TF-RD-008
-    promotion-run scale rather than the earlier `8192`-dataset current-corpus recipe
+  - the fresh current-corpus control resolved through recipe
+    `tf_rd_013_current_corpus_default_v1` and surface label
+    `anchor_manifest_default` now inspects to `10` total records with an
+    `8 train / 1 val / 1 test` split, so the reopened current-corpus control is
+    explicitly sized to that TF-RD-008 promotion-run scale rather than the
+    earlier `8192`-dataset current-corpus recipe
 - Evidence so far:
   - the corrected manifest-backed reruns preserved the first read direction: the
     unfiltered dagzoo generated-source surface remained close to, but still worse
