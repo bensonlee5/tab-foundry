@@ -18,7 +18,7 @@ import tab_foundry.control_baseline_registry as control_baseline_registry
 from tab_foundry.bench.benchmark_run_registry import (
     register_benchmark_run,
 )
-from tab_foundry.bench.compare import (
+from tab_foundry.bench.comparison_runtime import (
     DEFAULT_NANOTABPFN_BATCH_SIZE,
     DEFAULT_NANOTABPFN_EVAL_EVERY,
     DEFAULT_NANOTABPFN_LR,

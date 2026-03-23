@@ -5,6 +5,7 @@ from pathlib import Path
 import tomllib
 
 from omegaconf import OmegaConf
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -68,6 +69,7 @@ def test_program_contract_has_required_policy_sections() -> None:
 def test_program_contract_required_repo_paths_exist() -> None:
     contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
     active_sweep_id, _ = _active_sweep_payload()
+    benchmark_registry_relative_path = default_benchmark_run_registry_path().relative_to(REPO_ROOT).as_posix()
     required_repo_paths = [
         "reference/system_delta_catalog.yaml",
         "reference/system_delta_sweeps/index.yaml",
@@ -78,7 +80,7 @@ def test_program_contract_required_repo_paths_exist() -> None:
         "reference/system_delta_campaign_template.md",
         "reference/stage_research_sources.yaml",
         "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
-        "src/tab_foundry/bench/benchmark_run_registry_v1.json",
+        benchmark_registry_relative_path,
     ]
     for relative_path in required_repo_paths:
         assert f"`{relative_path}`" in contents
@@ -87,7 +89,7 @@ def test_program_contract_required_repo_paths_exist() -> None:
 
 def test_program_contract_anchor_is_resolved_via_registry() -> None:
     contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
-    registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+    registry_path = default_benchmark_run_registry_path()
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
     _, sweep_payload = _active_sweep_payload()
 

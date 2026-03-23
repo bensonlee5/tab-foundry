@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import shlex
 import sys
+from types import SimpleNamespace
 
 import pytest
+import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -121,3 +124,57 @@ def test_resolve_tool_roots_requires_bootstrapped_candidate(tmp_path: Path) -> N
                 "TAB_FOUNDRY_PRIMARY_ROOT": str(tmp_path / "primary"),
             }
         )
+
+
+def test_verify_paths_hook_entry_executes_dev_verify_through_pre_commit_exec(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    payload = yaml.safe_load((REPO_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8"))
+    hooks = payload["repos"][0]["hooks"]
+    verify_hook = next(hook for hook in hooks if hook["id"] == "verify-paths")
+    entry_argv = shlex.split(str(verify_hook["entry"]))
+    script_index = entry_argv.index("scripts/audit/pre_commit_exec.py")
+    forwarded_argv = entry_argv[script_index + 1 :]
+
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    (worktree_root / ".venv" / "bin").mkdir(parents=True)
+    (worktree_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+    monkeypatch.setenv("TAB_FOUNDRY_WORKTREE_ROOT", str(worktree_root))
+    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", str(primary_root))
+
+    calls: list[tuple[list[str], Path, dict[str, str], bool]] = []
+
+    def _fake_run(command, *, cwd, env, check):
+        calls.append((list(command), cwd, dict(env), check))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(pre_commit_exec.subprocess, "run", _fake_run)
+
+    result = pre_commit_exec.main(
+        [
+            *forwarded_argv,
+            "tests/audit/test_scripts_dev.py",
+            "tests/cli/test_app.py",
+            "tests/training/test_prior_train_cli.py",
+        ]
+    )
+
+    assert result == 0
+    assert len(calls) == 1
+    command, cwd, env, check = calls[0]
+    assert command == [
+        str(worktree_root / ".venv" / "bin" / "python"),
+        "scripts/audit/dev_verify.py",
+        "verify",
+        "paths",
+        "--pre-commit",
+        "tests/audit/test_scripts_dev.py",
+        "tests/cli/test_app.py",
+        "tests/training/test_prior_train_cli.py",
+    ]
+    assert cwd == worktree_root
+    assert env["TAB_FOUNDRY_WORKTREE_ROOT"] == str(worktree_root)
+    assert env["TAB_FOUNDRY_PRIMARY_ROOT"] == str(primary_root)
+    assert check is False

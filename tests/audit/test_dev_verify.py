@@ -279,6 +279,7 @@ def test_build_precommit_check_ids_prefers_changed_test_files_over_directory_pyt
 
     plan, explicit_pytest_paths = dev_verify.build_precommit_check_ids(
         [
+            "tests/runtime/test_program_contract.py",
             "src/tab_foundry/training/trainer.py",
             "tests/training/test_wandb.py",
             "tests/runtime/test_program_contract.py",
@@ -287,10 +288,31 @@ def test_build_precommit_check_ids_prefers_changed_test_files_over_directory_pyt
     )
 
     assert explicit_pytest_paths == (
-        "tests/training/test_wandb.py",
         "tests/runtime/test_program_contract.py",
+        "tests/training/test_wandb.py",
     )
     assert plan.check_ids == ("ruff", "mypy")
+
+
+def test_build_precommit_check_ids_sorts_and_deduplicates_explicit_test_paths() -> None:
+    index = dev_verify.load_dev_index()
+
+    plan, explicit_pytest_paths = dev_verify.build_precommit_check_ids(
+        [
+            "tests/training/test_wandb.py",
+            "tests/audit/test_scripts_dev.py",
+            "tests/cli/test_app.py",
+            "tests/training/test_wandb.py",
+        ],
+        index,
+    )
+
+    assert explicit_pytest_paths == (
+        "tests/audit/test_scripts_dev.py",
+        "tests/cli/test_app.py",
+        "tests/training/test_wandb.py",
+    )
+    assert plan.check_ids == ("mdformat", "audit", "ruff", "mypy")
 
 
 def test_execute_precommit_paths_adds_n0_to_bucket_pytest(
@@ -332,6 +354,7 @@ def test_execute_precommit_paths_adds_n0_to_changed_test_file_pytest(
 
     result = dev_verify.execute_precommit_paths(
         [
+            "tests/runtime/test_program_contract.py",
             "src/tab_foundry/training/trainer.py",
             "tests/training/test_wandb.py",
             "tests/runtime/test_program_contract.py",
@@ -348,8 +371,8 @@ def test_execute_precommit_paths_adds_n0_to_changed_test_file_pytest(
             "-m",
             "pytest",
             "-q",
-            "tests/training/test_wandb.py",
             "tests/runtime/test_program_contract.py",
+            "tests/training/test_wandb.py",
             "-n",
             "0",
         ),

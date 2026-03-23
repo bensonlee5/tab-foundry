@@ -7,12 +7,14 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.inspect as inspect_module
 from tab_foundry.research.system_delta import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+REGISTRY_PATH = default_benchmark_run_registry_path()
 SWEEP_ID = "tf_rd_013_shape_aware_dagzoo_v1"
 ANCHOR_RUN_ID = "sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1"
 SHAPE_AWARE_ISSUE_NUMBER = 127
@@ -227,7 +229,7 @@ def test_tf_rd_013_shape_aware_inspect_and_diff_resolve_broader_data_surface() -
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
         sweeps_root=REPO_ROOT / "reference" / "system_delta_sweeps",
-        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        registry_path=REGISTRY_PATH,
     )
 
     resolved_generated = inspect_generated["target"]["resolved"]["data"]
@@ -248,7 +250,7 @@ def test_tf_rd_013_shape_aware_inspect_and_diff_resolve_broader_data_surface() -
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
         sweeps_root=REPO_ROOT / "reference" / "system_delta_sweeps",
-        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        registry_path=REGISTRY_PATH,
     )
 
     differences = diff_payload["differences"]

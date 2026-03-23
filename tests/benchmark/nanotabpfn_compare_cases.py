@@ -10,7 +10,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import tab_foundry.bench.compare as compare_module
+import tab_foundry.bench.compare as compare_cli_module
+import tab_foundry.bench.comparison_runtime as compare_module
 import tab_foundry.bench.nanotabpfn as benchmark_module
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -157,13 +158,13 @@ def test_compare_main_parses_cli_invocation(
             "dataset_count": 3,
             "tab_foundry": {"best_roc_auc": 0.71, "final_roc_auc": 0.70},
             "nanotabpfn": {"best_roc_auc": 0.72, "final_roc_auc": 0.71},
-            "primary_external_benchmark": compare_module.EXTERNAL_BENCHMARK_TABICLV2,
+            "primary_external_benchmark": compare_cli_module.EXTERNAL_BENCHMARK_TABICLV2,
             "artifacts": {"comparison_curve_png": "/tmp/comparison_curve.png"},
         }
 
-    monkeypatch.setattr(compare_module, "run_nanotabpfn_benchmark", _fake_run)
+    monkeypatch.setattr(compare_cli_module, "run_nanotabpfn_benchmark", _fake_run)
 
-    exit_code = compare_module.main(
+    exit_code = compare_cli_module.main(
         [
             "--tab-foundry-run-dir",
             str(tmp_path / "run"),
@@ -200,7 +201,7 @@ def test_compare_main_parses_cli_invocation(
     assert config.control_baseline_id == "cls_benchmark_linear_v1"
     assert config.control_baseline_registry == tmp_path / "control_baselines.json"
     assert config.benchmark_bundle_path == tmp_path / "bundle.json"
-    assert config.external_benchmarks == (compare_module.EXTERNAL_BENCHMARK_TABICLV2,)
+    assert config.external_benchmarks == (compare_cli_module.EXTERNAL_BENCHMARK_TABICLV2,)
     assert config.with_tabiclv2 is False
     assert config.tabicl_root == Path("~/dev/tabicl")
     stdout = capsys.readouterr().out
@@ -222,13 +223,13 @@ def test_compare_main_parses_cli_invocation_with_tabiclv2(
             "tab_foundry": {"best_roc_auc": 0.71, "final_roc_auc": 0.70},
             "nanotabpfn": {"best_roc_auc": 0.72, "final_roc_auc": 0.71},
             "tabiclv2": {"best_roc_auc": 0.74, "final_roc_auc": 0.73},
-            "primary_external_benchmark": compare_module.EXTERNAL_BENCHMARK_TABICLV2,
+            "primary_external_benchmark": compare_cli_module.EXTERNAL_BENCHMARK_TABICLV2,
             "artifacts": {"comparison_curve_png": "/tmp/comparison_curve.png"},
         }
 
-    monkeypatch.setattr(compare_module, "run_nanotabpfn_benchmark", _fake_run)
+    monkeypatch.setattr(compare_cli_module, "run_nanotabpfn_benchmark", _fake_run)
 
-    exit_code = compare_module.main(
+    exit_code = compare_cli_module.main(
         [
             "--tab-foundry-run-dir",
             str(tmp_path / "run"),
@@ -247,7 +248,7 @@ def test_compare_main_parses_cli_invocation_with_tabiclv2(
     assert exit_code == 0
     config = captured["config"]
     assert config.with_tabiclv2 is True
-    assert config.external_benchmarks == (compare_module.EXTERNAL_BENCHMARK_TABICLV2,)
+    assert config.external_benchmarks == (compare_cli_module.EXTERNAL_BENCHMARK_TABICLV2,)
     assert config.tabicl_root == tmp_path / "tabicl"
     assert config.tabicl_classifier_checkpoint_version == "classifier.ckpt"
     assert config.tabicl_regressor_checkpoint_version == "regressor.ckpt"
@@ -275,9 +276,9 @@ def test_compare_main_parses_cli_invocation_with_explicit_nanotabpfn(
             "artifacts": {"comparison_curve_png": "/tmp/comparison_curve.png"},
         }
 
-    monkeypatch.setattr(compare_module, "run_nanotabpfn_benchmark", _fake_run)
+    monkeypatch.setattr(compare_cli_module, "run_nanotabpfn_benchmark", _fake_run)
 
-    exit_code = compare_module.main(
+    exit_code = compare_cli_module.main(
         [
             "--tab-foundry-run-dir",
             str(tmp_path / "run"),
@@ -715,7 +716,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert captured["cwd"] == nanotab_root.resolve()
     assert captured["check"] is True
     assert Path(captured["cmd"][0]) == nanotab_python.resolve()
-    assert Path(captured["cmd"][1]) == Path(compare_module.__file__).resolve().with_name("nanotabpfn_helper.py")
+    assert Path(captured["cmd"][1]) == REPO_ROOT / "src" / "tab_foundry" / "bench" / "nanotabpfn_helper.py"
     assert captured["cmd"][captured["cmd"].index("--tab-foundry-src") + 1] == str(REPO_ROOT / "src")
     assert policy_calls == {"load": [False], "datasets": [False], "evaluate": [False]}
     assert summary["dataset_count"] == 1

@@ -560,7 +560,7 @@ def execute_check_ids(
 def _explicit_pytest_paths(paths: Sequence[str]) -> tuple[str, ...]:
     return tuple(
         path
-        for path in _ordered_unique(paths)
+        for path in _ordered_unique(sorted(path.strip() for path in paths if path.strip()))
         if path.startswith("tests/") and path.endswith(".py")
     )
 
@@ -581,7 +581,7 @@ def build_precommit_check_ids(
 ) -> tuple[VerificationPlan, tuple[str, ...]]:
     plan = build_verification_plan(changed_paths, index)
     explicit_paths = _explicit_pytest_paths(changed_paths)
-    explicit_check_ids = _explicit_pytest_check_ids(changed_paths)
+    explicit_check_ids = _explicit_pytest_check_ids(explicit_paths)
     filtered_check_ids = tuple(
         check_id
         for check_id in plan.check_ids

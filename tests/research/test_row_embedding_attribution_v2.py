@@ -7,10 +7,12 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.research.system_delta import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+REGISTRY_PATH = default_benchmark_run_registry_path()
 ANCHOR_RUN_ID = "sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1"
 EXPECTED_ROWS = [
     "delta_row_embeddings_no_context_v2",
@@ -33,11 +35,7 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
 
 
 def _load_registry() -> dict[str, Any]:
-    payload = json.loads(
-        (REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    payload = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
     assert isinstance(payload, dict)
     return payload
 

@@ -7,12 +7,13 @@ from typing import Any
 from omegaconf import OmegaConf
 import pytest
 
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.research.system_delta_promote import PromotionPaths, promote_anchor, resolve_run_id_for_order
 import tab_foundry.research.system_delta_promote as promote_module
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REGISTRY_PATH = REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'benchmark_run_registry_v1.json'
+REGISTRY_PATH = default_benchmark_run_registry_path()
 
 
 def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:

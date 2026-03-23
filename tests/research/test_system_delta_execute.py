@@ -10,7 +10,12 @@ from typing import Any, Mapping, cast
 from omegaconf import OmegaConf
 import pytest
 
-from tab_foundry.control_baseline_registry import REGISTRY_SCHEMA, REGISTRY_VERSION
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
+from tab_foundry.control_baseline_registry import (
+    REGISTRY_SCHEMA,
+    REGISTRY_VERSION,
+    default_control_baseline_registry_path,
+)
 from tab_foundry.research.system_delta import create_sweep
 from tab_foundry.research.system_delta_execute import (
     ExecutionPaths,
@@ -27,7 +32,8 @@ from tab_foundry.research.sweep.screening import pick_screen_winner, screen_metr
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REGISTRY_PATH = REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'benchmark_run_registry_v1.json'
+REGISTRY_PATH = default_benchmark_run_registry_path()
+CONTROL_BASELINE_REGISTRY_PATH = default_control_baseline_registry_path()
 ANCHOR_RUN_ID = 'sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2'
 
 
@@ -69,7 +75,7 @@ def _build_paths(tmp_path: Path, sweeps_root: Path, reference_root: Path) -> Exe
         sweeps_root=sweeps_root,
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
 
@@ -212,6 +218,11 @@ def _write_control_baseline_registry(
         + '\n',
         encoding='utf-8',
     )
+
+
+def test_runner_imports_benchmark_runtime_from_comparison_runtime() -> None:
+    assert runner_module.NanoTabPFNBenchmarkConfig.__module__ == 'tab_foundry.bench.comparison_runtime'
+    assert runner_module.run_nanotabpfn_benchmark.__module__ == 'tab_foundry.bench.comparison_runtime'
 
 
 def test_select_queue_rows_defaults_to_ready_rows() -> None:
@@ -1083,7 +1094,7 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured_research_package: dict[str, Any] = {}
@@ -1235,7 +1246,7 @@ def test_run_row_uses_manifest_trainer_for_manifest_rows(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured: dict[str, Any] = {}
@@ -1331,7 +1342,7 @@ def test_run_row_uses_prior_dump_trainer_for_prior_dump_rows(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured: dict[str, Any] = {}
@@ -1449,7 +1460,7 @@ def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured_research_package: dict[str, Any] = {}
@@ -1577,7 +1588,7 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured_registration: dict[str, Any] = {}
@@ -3040,7 +3051,7 @@ def test_run_row_resolves_dynamic_post_stack_norm_from_screened_rows(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)

@@ -64,7 +64,9 @@ into the canonical library modules.
   validation contracts.
 - `src/tab_foundry/bench/`: benchmark bundles, comparison flows, benchmark
   env/bootstrap helpers, smoke harnesses, registry write/orchestration
-  helpers, and shared artifact helpers.
+  helpers, and shared artifact helpers. `bench/compare.py` is the packaged
+  CLI/manual surface; `bench/comparison_runtime.py` is the canonical
+  programmatic benchmark-execution surface used by research.
 - `src/tab_foundry/research/`: system-delta sweep state, queue/matrix
   rendering, sweep-result summaries, and research-package path conventions.
   The canonical sweep manager now lives under `src/tab_foundry/research/sweep/`;
@@ -146,6 +148,9 @@ not absorb new orchestration logic.
 
 - `src/tab_foundry/bench/` is the canonical home for benchmark and harness
   logic. Core training/model/data packages should not start depending on it.
+- Research should keep importing the programmatic benchmark runtime from
+  `src/tab_foundry/bench/comparison_runtime.py` instead of reaching into the
+  manual compare CLI module.
 - Shared repo-root and read-only benchmark-registry helpers should continue to
   live in `src/tab_foundry/repo_paths.py` and
   `src/tab_foundry/benchmark_registry.py`; the equivalent control-baseline and
