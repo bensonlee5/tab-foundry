@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-03-23
+
+### Changed
+
+- User-facing note: system-delta sweep execution now selects the tab-foundry
+  training backend from resolved `data.source`, so manifest-backed rows train
+  through the manifest trainer while prior-dump rows continue to use the
+  nanoTabPFN prior backend.
+
+- User-facing note: `training_surface_record.json` now records the execution
+  backend, and sweep train-artifact reuse rejects runs whose persisted backend
+  marker is missing or does not match the backend required by the current row.
+  Downstream readers of `training_surface_record.json` must tolerate this
+  added metadata field.
+
+- User-facing note: both the manifest trainer and the prior-dump trainer now
+  guard against non-finite gradient norms by skipping the optimizer step
+  instead of stepping through invalid gradients.
+
 ## [0.9.0] - 2026-03-22
 
 ### Changed
