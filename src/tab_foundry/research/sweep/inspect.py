@@ -388,6 +388,7 @@ def _build_lightweight_training_surface_record(
         run_dir=run_dir,
         state_dict=state_dict,
         include_manifest_characteristics=False,
+        allow_unresolved_corpus_ref=True,
     )
 
 
@@ -708,6 +709,12 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
     ]
     if data is not None:
         lines.append(f"data.surface_label={data.get('surface_label')}")
+        if data.get("corpus_ref") is not None:
+            lines.append(f"data.corpus_ref={data.get('corpus_ref')}")
+        if data.get("recipe_id") is not None:
+            lines.append(f"data.recipe_id={data.get('recipe_id')}")
+        if data.get("corpus_id") is not None:
+            lines.append(f"data.corpus_id={data.get('corpus_id')}")
     if preprocessing is not None:
         lines.append(f"preprocessing.surface_label={preprocessing.get('surface_label')}")
     if training is not None:

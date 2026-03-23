@@ -39,6 +39,22 @@ def test_resolve_config_payload_reports_resolved_surfaces() -> None:
     assert payload["model"]["parameter_counts"]["total_params"] > 0
 
 
+def test_resolve_config_payload_keeps_unmaterialized_corpus_ref_for_inspection() -> None:
+    payload = resolve_config_payload(
+        [
+            *_SMALL_STAGED_OVERRIDES,
+            "data.surface_overrides.corpus_ref=tf_rd_013_current_corpus_default_v1",
+        ]
+    )
+
+    assert payload["data"]["source"] == "manifest"
+    assert payload["data"]["corpus_ref"] == "tf_rd_013_current_corpus_default_v1"
+    assert payload["data"]["recipe_id"] == "tf_rd_013_current_corpus_default_v1"
+    assert payload["data"]["corpus_id"] is None
+    assert payload["data"]["corpus_record_path"] is None
+    assert payload["data"]["manifest_path"] is None
+
+
 def test_forward_check_passes_for_direct_head_surface() -> None:
     payload = forward_check(
         _SMALL_STAGED_OVERRIDES,

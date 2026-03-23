@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-03-23
+
+### Changed
+
+- User-facing note: `tab-foundry data corpus` is now the canonical synthetic
+  corpus workflow for recurring dagzoo-backed datasets, with first-class
+  recipe listing, materialization, inspection, comparison, and run-linkage
+  surfaces.
+
+- User-facing note: data surfaces now accept optional `data.corpus_ref`, which
+  resolves a locally materialized corpus record into the effective manifest,
+  surface label, and dagzoo provenance while preserving backward compatibility
+  for direct `manifest_path` configurations.
+
+- User-facing note: `training_surface_record.json` now persists
+  `corpus_ref`, `recipe_id`, `corpus_id`, and `corpus_record_path` when a run
+  resolves through a first-class corpus recipe. Downstream readers must
+  tolerate these added metadata fields.
+
+- User-facing note: TF-RD-013 dagzoo size-ladder rows now resolve through
+  first-class corpus recipes rather than queue-local manifest wiring, and the
+  support materializer now delegates size-ladder corpus generation through the
+  shared corpus subsystem instead of owning dagzoo orchestration directly.
+
+### Fixed
+
+- User-facing note: benchmark run-record derivation now resolves
+  corpus-backed manifests from the effective data surface while preserving
+  repo-relative normalization for legacy raw `data.manifest_path`
+  checkpoints.
+
+- User-facing note: read-only inspection flows such as
+  `tab-foundry dev resolve-config`, `tab-foundry dev diff-config`, and
+  `tab-foundry data manifest-inspect` now tolerate unresolved
+  `data.corpus_ref` values by preserving corpus identity fields and leaving
+  `manifest_path` unset instead of failing before local corpus materialization.
+
+- User-facing note: `tab-foundry data corpus materialize` now rebuilds
+  incomplete cached corpora instead of reusing stale `corpus_record.json`
+  entries whose manifest or invocation artifacts are missing.
+
 ## [0.9.1] - 2026-03-23
 
 ### Changed

@@ -21,7 +21,8 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.config`, `tab_foundry.data`, `tab_foundry.export`,
   `tab_foundry.model`, `tab_foundry.preprocessing`,
   `tab_foundry.research`, and `tab_foundry.training`.
-- `tab_foundry.data` depends on `tab_foundry.preprocessing` and
+- `tab_foundry.data` depends on `tab_foundry.bench`,
+  `tab_foundry.preprocessing`, `tab_foundry.timestamps`, and
   `tab_foundry.types`.
 - `tab_foundry.export` depends on `tab_foundry.input_normalization`,
   `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
@@ -37,7 +38,9 @@ section factual and keep design intent in the policy section below it.
 
 Observed cycle status:
 
-- no top-level cycle candidates
+- `tab_foundry.bench <-> tab_foundry.data`
+- `tab_foundry.bench <-> tab_foundry.training`
+- `tab_foundry.data <-> tab_foundry.training`
 
 ## Intended Dependency-Direction Policy
 
@@ -49,8 +52,9 @@ Observed cycle status:
 - `tab_foundry.preprocessing` should remain a leaf-style utility package that
   can be used by `data`, `training`, and `export` without growing orchestration
   logic of its own.
-- `tab_foundry.data` may depend on `preprocessing` helpers and shared types,
-  but it should not depend on `training`, `bench`, or `research`.
+- `tab_foundry.data` may depend on `preprocessing` helpers, timestamps, shared
+  types, and a narrow read-only benchmark-registry surface when corpus-result
+  linkage needs it, but it should not depend on `training` or `research`.
 - `tab_foundry.training` may depend on `data`, `model`, `preprocessing`, and
   shared helpers, but it should not depend on `bench` or `research`.
 - `tab_foundry.export` may depend on `model`, `preprocessing`, and shared

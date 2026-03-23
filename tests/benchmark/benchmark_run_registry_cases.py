@@ -7,6 +7,7 @@ import pytest
 import torch
 
 import tab_foundry.bench.benchmark_run_registry as registry_module
+import tab_foundry.data.corpus as corpus_module
 from tab_foundry.model.factory import build_model
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -200,6 +201,58 @@ def _prepare_run(
     return run_dir, summary_path
 
 
+def _write_corpus_record(
+    repo_root: Path,
+    *,
+    recipe_id: str = "current_recipe",
+    corpus_id: str = "current_recipe__123456789abc",
+    surface_label: str = "anchor_manifest_default",
+) -> Path:
+    corpus_root = repo_root / "outputs" / "corpora" / recipe_id / corpus_id
+    corpus_root.mkdir(parents=True, exist_ok=True)
+    manifest_path = corpus_root / "manifest.parquet"
+    manifest_path.write_bytes(b"manifest")
+    corpus_record_path = corpus_root / "corpus_record.json"
+    corpus_ref = f"{recipe_id}/{corpus_id}"
+    corpus_record = {
+        "schema": corpus_module.CORPUS_RECORD_SCHEMA,
+        "generated_at_utc": "2026-03-23T00:00:00Z",
+        "recipe_id": recipe_id,
+        "corpus_id": corpus_id,
+        "corpus_ref": corpus_ref,
+        "corpus_record_path": str(corpus_record_path.resolve()),
+        "surface_label": surface_label,
+        "recipe": {"invocations": []},
+        "manifest": {
+            "manifest_path": str(manifest_path.resolve()),
+            "manifest_sha256": "a" * 64,
+            "inspection": {"total_records": 1},
+            "characteristics": {"record_count": 1},
+        },
+        "dagzoo_provenance": {},
+    }
+    corpus_record_path.write_text(json.dumps(corpus_record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    latest_pointer_path = repo_root / "outputs" / "corpora" / recipe_id / "latest.json"
+    latest_pointer_path.parent.mkdir(parents=True, exist_ok=True)
+    latest_pointer_path.write_text(
+        json.dumps(
+            {
+                "schema": corpus_module.CORPUS_LATEST_SCHEMA,
+                "generated_at_utc": "2026-03-23T00:00:00Z",
+                "recipe_id": recipe_id,
+                "corpus_id": corpus_id,
+                "corpus_ref": corpus_ref,
+                "corpus_record_path": str(corpus_record_path.resolve()),
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return manifest_path
+
+
 def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -329,6 +382,44 @@ def test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surfa
         Path(surface_record["data"]["manifest"]["manifest_path"]).resolve()
         == override_manifest.resolve()
     )
+
+
+def test_derive_benchmark_run_record_uses_materialized_corpus_manifest_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    corpus_manifest = _write_corpus_record(repo_root)
+    run_dir, summary_path = _prepare_run(
+        repo_root,
+        run_name="corpus_ref_surface",
+        checkpoint_data_cfg={
+            "manifest_path": None,
+            "surface_label": "anchor_manifest_default",
+            "corpus_ref": "current_recipe",
+        },
+    )
+    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(corpus_module, "_repo_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    surface_record = json.loads(
+        (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
+    )
+    assert record["manifest_path"] == "outputs/corpora/current_recipe/current_recipe__123456789abc/manifest.parquet"
+    assert registry_module.resolve_registry_path_value(record["manifest_path"]) == corpus_manifest.resolve()
+    assert (
+        Path(surface_record["data"]["manifest"]["manifest_path"]).resolve()
+        == corpus_manifest.resolve()
+    )
+    assert surface_record["data"]["corpus_ref"] == "current_recipe/current_recipe__123456789abc"
+    assert surface_record["data"]["recipe_id"] == "current_recipe"
+    assert surface_record["data"]["corpus_id"] == "current_recipe__123456789abc"
 
 
 def test_derive_benchmark_run_record_falls_back_to_best_benchmark_step_checkpoint(

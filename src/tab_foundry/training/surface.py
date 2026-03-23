@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-from collections import Counter
 from hashlib import sha256
 import json
 from pathlib import Path
 from typing import Any, Mapping
 
-import pyarrow.parquet as pq
-
-from tab_foundry.data.manifest import MANIFEST_SUMMARY_METADATA_KEY
+from tab_foundry.data.inspection import manifest_characteristics
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import (
@@ -71,100 +68,6 @@ def _sha256_path(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _distribution(values: list[int]) -> dict[str, Any]:
-    if not values:
-        return {"count": 0, "min": None, "max": None, "mean": None}
-    return {
-        "count": len(values),
-        "min": int(min(values)),
-        "max": int(max(values)),
-        "mean": float(sum(values) / float(len(values))),
-    }
-
-
-def _manifest_characteristics(manifest_path: Path) -> dict[str, Any]:
-    parquet_file = pq.ParquetFile(manifest_path)
-    table = parquet_file.read()
-    rows = table.to_pylist()
-    missing_value_statuses = [
-        str(status).strip()
-        if isinstance((status := row.get("missing_value_status")), str) and str(status).strip()
-        else None
-        for row in rows
-    ]
-    split_counts = Counter(str(row.get("split", "missing")) for row in rows)
-    task_counts = Counter(str(row.get("task", "missing")) for row in rows)
-    filter_status_counts = Counter(str(row.get("filter_status", "missing")) for row in rows)
-    missing_value_status_counts = Counter(str(row.get("missing_value_status", "missing")) for row in rows)
-    has_complete_missing_value_metadata = bool(rows) and all(
-        status is not None for status in missing_value_statuses
-    )
-    missing_value_policies = sorted(
-        {
-            str(row["missing_value_policy"])
-            for row in rows
-            if isinstance(row.get("missing_value_policy"), str) and row["missing_value_policy"].strip()
-        }
-    )
-    source_root_ids = sorted(
-        {
-            str(row["source_root_id"])
-            for row in rows
-            if isinstance(row.get("source_root_id"), str) and row["source_root_id"].strip()
-        }
-    )
-    shard_counts = Counter(
-        str(row["source_shard_relpath"])
-        for row in rows
-        if isinstance(row.get("source_shard_relpath"), str) and row["source_shard_relpath"].strip()
-    )
-    total_rows = [
-        int(row["n_train"]) + int(row["n_test"])
-        for row in rows
-        if row.get("n_train") is not None and row.get("n_test") is not None
-    ]
-    n_features = [
-        int(row["n_features"])
-        for row in rows
-        if row.get("n_features") is not None and int(row["n_features"]) >= 0
-    ]
-    n_classes = [
-        int(row["n_classes"])
-        for row in rows
-        if row.get("n_classes") is not None
-    ]
-    raw_metadata = parquet_file.schema_arrow.metadata or {}
-    persisted_summary = None
-    raw_summary = raw_metadata.get(MANIFEST_SUMMARY_METADATA_KEY)
-    if raw_summary is not None:
-        persisted_summary = json.loads(raw_summary.decode("utf-8"))
-    return {
-        "record_count": int(len(rows)),
-        "split_counts": dict(sorted(split_counts.items())),
-        "task_counts": dict(sorted(task_counts.items())),
-        "row_count_distribution": _distribution(total_rows),
-        "feature_count_distribution": _distribution(n_features),
-        "class_count_distribution": _distribution(n_classes),
-        "filter_status_counts": dict(sorted(filter_status_counts.items())),
-        "missing_value_status_counts": dict(sorted(missing_value_status_counts.items())),
-        "missing_value_policy": None if len(missing_value_policies) != 1 else missing_value_policies[0],
-        "all_records_no_missing": (
-            None
-            if not has_complete_missing_value_metadata
-            else missing_value_status_counts.get("contains_nan_or_inf", 0) == 0
-        ),
-        "persisted_summary": persisted_summary,
-        "source_root_ids": source_root_ids,
-        "source_shard_relpath_summary": {
-            "unique_count": int(len(shard_counts)),
-            "top_counts": [
-                {"relpath": relpath, "count": int(count)}
-                for relpath, count in shard_counts.most_common(10)
-            ],
-        },
-    }
-
-
 def build_training_surface_record(
     *,
     raw_cfg: Mapping[str, Any],
@@ -172,6 +75,7 @@ def build_training_surface_record(
     state_dict: Mapping[str, Any] | None = None,
     include_manifest_characteristics: bool = True,
     backend: str | None = None,
+    allow_unresolved_corpus_ref: bool = False,
 ) -> dict[str, Any]:
     """Build one machine-readable training-surface record."""
 
@@ -222,11 +126,19 @@ def build_training_surface_record(
             primary=model_cfg,
             state_dict=state_dict,
         )
-    data_surface = resolve_data_surface(data_cfg)
+    data_surface = resolve_data_surface(
+        data_cfg,
+        allow_unresolved_corpus_ref=allow_unresolved_corpus_ref,
+    )
     preprocessing_surface = resolve_preprocessing_surface(preprocessing_cfg)
     resolved_backend = _normalize_training_backend(backend)
     if resolved_backend is None:
-        resolved_backend = resolve_training_backend_from_data_cfg(data_cfg)
+        resolved_backend = str(data_surface.source).strip().lower()
+        if resolved_backend not in _VALID_TRAINING_BACKENDS:
+            raise RuntimeError(
+                "unsupported training backend source "
+                f"{resolved_backend!r}; expected one of {sorted(_VALID_TRAINING_BACKENDS)}"
+            )
     manifest_payload: dict[str, Any] | None = None
     if data_surface.manifest_path is not None:
         manifest_payload = {
@@ -236,7 +148,7 @@ def build_training_surface_record(
             manifest_payload["manifest_sha256"] = _sha256_path(data_surface.manifest_path)
             if include_manifest_characteristics:
                 try:
-                    manifest_payload["characteristics"] = _manifest_characteristics(data_surface.manifest_path)
+                    manifest_payload["characteristics"] = manifest_characteristics(data_surface.manifest_path)
                 except Exception as exc:  # pragma: no cover - defensive compatibility fallback
                     manifest_payload["characteristics"] = None
                     manifest_payload["characteristics_error"] = str(exc)
@@ -276,6 +188,14 @@ def build_training_surface_record(
             "source": str(data_surface.source),
             "filter_policy": data_surface.filter_policy,
             "allow_missing_values": bool(data_surface.allow_missing_values),
+            "corpus_ref": data_surface.corpus_ref,
+            "recipe_id": data_surface.recipe_id,
+            "corpus_id": data_surface.corpus_id,
+            "corpus_record_path": (
+                None
+                if data_surface.corpus_record_path is None
+                else str(data_surface.corpus_record_path)
+            ),
             "manifest": manifest_payload,
             "dagzoo_provenance": data_surface.dagzoo_provenance,
             "train_row_cap": data_surface.train_row_cap,

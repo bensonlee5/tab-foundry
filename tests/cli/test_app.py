@@ -272,6 +272,65 @@ def test_nested_cli_data_dagzoo_generate_manifest_dispatches_to_data_handler(
     }
 
 
+def test_nested_cli_data_corpus_materialize_dispatches_to_data_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_handler(args):
+        captured["recipe"] = str(args.recipe)
+        captured["dagzoo_root"] = str(args.dagzoo_root)
+        captured["force"] = bool(args.force)
+        return 0
+
+    monkeypatch.setattr(data_group, "_run_corpus_materialize", _fake_handler)
+
+    exit_code = cli_module.main(
+        [
+            "data",
+            "corpus",
+            "materialize",
+            "--recipe",
+            "tf_rd_013_current_corpus_default_v1",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--force",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {
+        "recipe": "tf_rd_013_current_corpus_default_v1",
+        "dagzoo_root": "/tmp/dagzoo",
+        "force": True,
+    }
+
+
+def test_nested_cli_data_corpus_inspect_dispatches_to_data_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_handler(args):
+        captured["corpus_ref"] = str(args.corpus_ref)
+        return 0
+
+    monkeypatch.setattr(data_group, "_run_corpus_inspect", _fake_handler)
+
+    exit_code = cli_module.main(
+        [
+            "data",
+            "corpus",
+            "inspect",
+            "--corpus-ref",
+            "tf_rd_013_current_corpus_default_v1/current_recipe__123456789abc",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured["corpus_ref"] == "tf_rd_013_current_corpus_default_v1/current_recipe__123456789abc"
+
+
 def test_nested_cli_data_build_manifest_rejects_invalid_split_ratios(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

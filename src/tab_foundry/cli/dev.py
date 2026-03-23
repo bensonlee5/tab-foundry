@@ -115,7 +115,10 @@ def resolve_config_payload(overrides: Sequence[str]) -> dict[str, Any]:
     task = str(getattr(cfg, "task", "classification")).strip().lower()
     model_cfg = _mapping_from_node(getattr(cfg, "model", None), context="cfg.model")
     spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
-    data_surface = resolve_data_surface(_mapping_from_node(getattr(cfg, "data", None), context="cfg.data"))
+    data_surface = resolve_data_surface(
+        _mapping_from_node(getattr(cfg, "data", None), context="cfg.data"),
+        allow_unresolved_corpus_ref=True,
+    )
     preprocessing_surface = resolve_preprocessing_surface(
         _mapping_from_node(getattr(cfg, "preprocessing", None), context="cfg.preprocessing")
     )

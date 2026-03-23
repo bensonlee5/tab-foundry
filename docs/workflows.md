@@ -150,6 +150,31 @@ loader path for external real-data ingestion.
 
 ## Manifest Build
 
+For recurring synthetic corpora, use the first-class corpus recipe workflow
+instead of sweep-local manifest bootstraps:
+
+```bash
+.venv/bin/tab-foundry data corpus list-recipes
+
+.venv/bin/tab-foundry data corpus materialize \
+  --recipe tf_rd_013_current_corpus_default_v1 \
+  --dagzoo-root ../dagzoo \
+  --force
+
+.venv/bin/tab-foundry data corpus inspect \
+  --corpus-ref tf_rd_013_current_corpus_default_v1
+```
+
+This writes local corpus artifacts under
+`outputs/corpora/<recipe_id>/<corpus_id>/`, including a manifest and
+`corpus_record.json`. When configs use `data.corpus_ref`, the realized run
+records the fully resolved corpus identity in `training_surface_record.json`.
+
+The lower-level `tab-foundry data dagzoo generate-manifest` and
+`tab-foundry data build-manifest` commands still exist for one-off workflows,
+but `tab-foundry data corpus materialize` is the canonical path for recurring
+synthetic corpora such as TF-RD-013.
+
 Set `DAGZOO_DATA_ROOT` once if you want a stable sibling data path:
 
 ```bash

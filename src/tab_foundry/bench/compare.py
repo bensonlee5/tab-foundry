@@ -100,6 +100,7 @@ class NanoTabPFNBenchmarkConfig:
     benchmark_bundle_path: Path | None = None
     external_benchmarks: tuple[str, ...] = DEFAULT_EXTERNAL_BENCHMARKS
     reuse_nanotabpfn_curve_path: Path | None = None
+    reuse_nanotabpfn_error: Mapping[str, Any] | None = None
     reuse_nanotabpfn_metadata: Mapping[str, Any] | None = None
     with_tabiclv2: bool = False
     tabicl_root: Path = Path("~/dev/tabicl")
@@ -246,6 +247,14 @@ def _resolve_reuse_curve_path(config: NanoTabPFNBenchmarkConfig) -> Path | None:
     if config.reuse_nanotabpfn_curve_path is None:
         return None
     return config.reuse_nanotabpfn_curve_path.expanduser().resolve()
+
+
+def _resolve_reuse_nanotabpfn_error(
+    config: NanoTabPFNBenchmarkConfig,
+) -> dict[str, Any] | None:
+    if config.reuse_nanotabpfn_error is None:
+        return None
+    return dict(config.reuse_nanotabpfn_error)
 
 
 def _validate_tabiclv2_environment(config: NanoTabPFNBenchmarkConfig) -> tuple[Path, Path]:
@@ -531,9 +540,21 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     )
     task_type = benchmark_bundle_task_type(benchmark_bundle)
     reuse_curve_path = _resolve_reuse_curve_path(config)
+    reuse_nanotabpfn_error = _resolve_reuse_nanotabpfn_error(config)
+    if reuse_curve_path is not None and reuse_nanotabpfn_error is not None:
+        raise RuntimeError(
+            "reuse_nanotabpfn_curve_path and reuse_nanotabpfn_error are mutually exclusive"
+        )
     if reuse_curve_path is not None and EXTERNAL_BENCHMARK_NANOTABPFN not in requested_external_benchmarks:
         raise RuntimeError(
             "reuse_nanotabpfn_curve_path requires config.external_benchmarks to include 'nanotabpfn'"
+        )
+    if (
+        reuse_nanotabpfn_error is not None
+        and EXTERNAL_BENCHMARK_NANOTABPFN not in requested_external_benchmarks
+    ):
+        raise RuntimeError(
+            "reuse_nanotabpfn_error requires config.external_benchmarks to include 'nanotabpfn'"
         )
     if (
         config.reuse_nanotabpfn_metadata is not None
@@ -549,7 +570,11 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
         raise RuntimeError("nanoTabPFN external benchmark does not support regression bundles")
     tab_foundry_run_dir = _validate_tab_foundry_run_dir(config.tab_foundry_run_dir)
     require_nanotabpfn_environment = EXTERNAL_BENCHMARK_NANOTABPFN in requested_external_benchmarks and (
-        reuse_curve_path is None or config.reuse_nanotabpfn_metadata is None
+        (reuse_curve_path is None and reuse_nanotabpfn_error is None)
+        or (
+            reuse_curve_path is not None
+            and config.reuse_nanotabpfn_metadata is None
+        )
     )
     nanotabpfn_root: Path | None = None
     nanotabpfn_python: Path | None = None
@@ -619,6 +644,9 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
                 if not nanotabpfn_records:
                     raise RuntimeError(f"reused nanoTabPFN curve is empty: {reuse_curve_path}")
                 write_jsonl(nanotabpfn_curve_path, nanotabpfn_records)
+                continue
+            if reuse_nanotabpfn_error is not None:
+                nanotabpfn_error = dict(reuse_nanotabpfn_error)
                 continue
             if nanotabpfn_root is None:
                 raise RuntimeError("nanoTabPFN environment validation did not resolve a root")

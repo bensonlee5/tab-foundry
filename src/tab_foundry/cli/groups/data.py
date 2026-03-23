@@ -3,10 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import subprocess
 
 from tab_foundry.cli.helpers import register_delegate_leaf
+from tab_foundry.data.corpus import (
+    corpus_compare_payload,
+    corpus_results_payload,
+    list_corpus_recipes,
+    load_corpus_record,
+    materialize_corpus_recipe,
+)
 from tab_foundry.data.dagzoo_workflow import (
     DagzooGenerateManifestConfig,
     run_dagzoo_generate_manifest,
@@ -173,6 +181,93 @@ def _run_manifest_inspect(argv=None) -> int:
     return inspect_main(None if argv is None else list(argv))
 
 
+def _print_json_payload(payload: object) -> None:
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def _run_corpus_list_recipes(args: argparse.Namespace) -> int:
+    recipes = [recipe.to_dict() for recipe in list_corpus_recipes()]
+    if bool(args.json):
+        _print_json_payload({"recipes": recipes})
+        return 0
+    for recipe in recipes:
+        print(
+            f"{recipe['recipe_id']}: "
+            f"kind={recipe['kind']} "
+            f"surface_label={recipe['surface_label']} "
+            f"invocations={len(recipe['invocations'])}"
+        )
+    return 0
+
+
+def _run_corpus_materialize(args: argparse.Namespace) -> int:
+    record = materialize_corpus_recipe(
+        recipe_id=str(args.recipe),
+        dagzoo_root=Path(str(args.dagzoo_root)),
+        force=bool(args.force),
+    )
+    if bool(args.json):
+        _print_json_payload(record)
+        return 0
+    print(f"Corpus materialized: {record['corpus_ref']}")
+    print(f"Recipe: {record['recipe_id']}")
+    print(f"Manifest: {record['manifest']['manifest_path']}")
+    print(f"Surface label: {record['surface_label']}")
+    return 0
+
+
+def _run_corpus_inspect(args: argparse.Namespace) -> int:
+    record = load_corpus_record(str(args.corpus_ref))
+    if bool(args.json):
+        _print_json_payload(record)
+        return 0
+    manifest = record["manifest"]
+    print(f"Corpus: {record['corpus_ref']}")
+    print(f"Recipe: {record['recipe_id']}")
+    print(f"Surface label: {record['surface_label']}")
+    print(f"Manifest: {manifest['manifest_path']}")
+    print(f"Records: {manifest['inspection']['total_records']}")
+    print(f"Splits: {json.dumps(manifest['inspection']['split_counts'], sort_keys=True)}")
+    return 0
+
+
+def _run_corpus_compare(args: argparse.Namespace) -> int:
+    payload = corpus_compare_payload(left=str(args.left), right=str(args.right))
+    if bool(args.json):
+        _print_json_payload(payload)
+        return 0
+    print(f"Left: {payload['left']['corpus_ref']}")
+    print(f"Right: {payload['right']['corpus_ref']}")
+    print(f"Differences: {payload['difference_count']}")
+    for key in sorted(payload["differences"]):
+        difference = payload["differences"][key]
+        print(f"{key}: left={json.dumps(difference['left'], sort_keys=True)} right={json.dumps(difference['right'], sort_keys=True)}")
+    return 0
+
+
+def _run_corpus_results(args: argparse.Namespace) -> int:
+    payload = corpus_results_payload(
+        corpus_ref=str(args.corpus_ref),
+        registry_path=None if args.registry_path is None else Path(str(args.registry_path)),
+    )
+    if bool(args.json):
+        _print_json_payload(payload)
+        return 0
+    print(f"Corpus: {payload['corpus_ref']}")
+    print(f"Runs: {payload['run_count']}")
+    for run in payload["runs"]:
+        sweep = run["sweep"]
+        metrics = run["headline_metrics"] or {}
+        print(
+            f"{run['run_id']}: "
+            f"sweep={sweep['sweep_id']} "
+            f"delta={sweep['delta_id']} "
+            f"best_roc_auc={metrics.get('best_roc_auc')} "
+            f"final_roc_auc={metrics.get('final_roc_auc')}"
+        )
+    return 0
+
+
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser = subparsers.add_parser("data", help="Data workflows")
     nested = parser.add_subparsers(dest="data_command", required=True)
@@ -221,6 +316,56 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
 
     dagzoo_parser = nested.add_parser("dagzoo", help="dagzoo-backed data workflows")
     dagzoo_nested = dagzoo_parser.add_subparsers(dest="dagzoo_command", required=True)
+
+    corpus_parser = nested.add_parser("corpus", help="First-class synthetic corpus workflows")
+    corpus_nested = corpus_parser.add_subparsers(dest="corpus_command", required=True)
+
+    list_recipes_parser = corpus_nested.add_parser(
+        "list-recipes",
+        help="List tracked corpus recipes",
+    )
+    list_recipes_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    list_recipes_parser.set_defaults(func=_run_corpus_list_recipes)
+
+    materialize_parser = corpus_nested.add_parser(
+        "materialize",
+        help="Materialize one tracked corpus recipe under outputs/corpora/",
+    )
+    materialize_parser.add_argument("--recipe", required=True, help="Tracked corpus recipe id")
+    materialize_parser.add_argument("--dagzoo-root", required=True, help="Local dagzoo checkout root")
+    materialize_parser.add_argument("--force", action="store_true", help="Replace an existing local materialization")
+    materialize_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    materialize_parser.set_defaults(func=_run_corpus_materialize)
+
+    inspect_parser = corpus_nested.add_parser(
+        "inspect",
+        help="Inspect one materialized corpus record",
+    )
+    inspect_parser.add_argument("--corpus-ref", required=True, help="Corpus ref or recipe id")
+    inspect_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    inspect_parser.set_defaults(func=_run_corpus_inspect)
+
+    compare_parser = corpus_nested.add_parser(
+        "compare",
+        help="Compare two materialized corpus records",
+    )
+    compare_parser.add_argument("--left", required=True, help="Left corpus ref or recipe id")
+    compare_parser.add_argument("--right", required=True, help="Right corpus ref or recipe id")
+    compare_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    compare_parser.set_defaults(func=_run_corpus_compare)
+
+    results_parser = corpus_nested.add_parser(
+        "results",
+        help="List realized benchmark runs linked to one materialized corpus",
+    )
+    results_parser.add_argument("--corpus-ref", required=True, help="Corpus ref or recipe id")
+    results_parser.add_argument(
+        "--registry-path",
+        default=None,
+        help="Optional benchmark registry override",
+    )
+    results_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    results_parser.set_defaults(func=_run_corpus_results)
 
     generate_manifest_parser = dagzoo_nested.add_parser(
         "generate-manifest",

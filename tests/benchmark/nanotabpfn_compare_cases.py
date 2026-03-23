@@ -1768,6 +1768,123 @@ def test_run_nanotabpfn_benchmark_reuses_curve_without_local_nanotabpfn_env(
     assert summary["nanotabpfn"]["prior_dump_path"] == str(source_prior_dump.resolve())
 
 
+def test_run_nanotabpfn_benchmark_reuses_error_without_local_nanotabpfn_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    smoke_run_dir = tmp_path / "smoke_run"
+    smoke_run_dir.mkdir()
+    out_root = tmp_path / "benchmark_out"
+    bundle_path = tmp_path / "bundle.json"
+    bundle_path.write_text("{}", encoding="utf-8")
+    benchmark_bundle = {
+        "name": "large_bundle",
+        "version": 1,
+        "selection": {
+            "new_instances": 6,
+            "task_type": "supervised_classification",
+            "max_features": 10,
+            "max_classes": 2,
+            "max_missing_pct": 5.0,
+            "min_minority_class_pct": 2.5,
+        },
+        "task_ids": [1],
+        "tasks": [
+            {
+                "task_id": 1,
+                "dataset_name": "toy",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+        ],
+    }
+
+    monkeypatch.setattr(
+        compare_module,
+        "load_benchmark_bundle_for_execution",
+        lambda path=None: (benchmark_bundle, True),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "load_openml_benchmark_datasets",
+        lambda **_kwargs: (
+            {
+                "toy": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64),
+                )
+            },
+            [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
+        ),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "evaluate_tab_foundry_run",
+        lambda *_args, **_kwargs: [
+            {
+                "checkpoint_path": "/tmp/step_000025.pt",
+                "step": 25,
+                "training_time": 1.2,
+                "roc_auc": 0.81,
+                "log_loss": 0.42,
+                "brier_score": 0.12,
+                "dataset_roc_auc": {"toy": 0.81},
+                "dataset_log_loss": {"toy": 0.42},
+                "dataset_brier_score": {"toy": 0.12},
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "summarize_checkpoint_curve",
+        lambda records, **_kwargs: {"records": records},
+    )
+    monkeypatch.setattr(compare_module, "plot_comparison_curve", lambda **_kwargs: None)
+    monkeypatch.setattr(
+        compare_module,
+        "derive_benchmark_run_record",
+        lambda **_kwargs: (_ for _ in ()).throw(
+            RuntimeError(
+                "checkpoint config must include explicit model.arch metadata for benchmark "
+                "registration; legacy checkpoints without persisted model.arch cannot be "
+                "registered"
+            )
+        ),
+    )
+
+    monkeypatch.setattr(
+        compare_module,
+        "subprocess",
+        SimpleNamespace(
+            run=lambda *args, **kwargs: (_ for _ in ()).throw(
+                AssertionError("unexpected nanoTabPFN helper invocation")
+            ),
+            CalledProcessError=subprocess.CalledProcessError,
+        ),
+    )
+
+    reuse_error = {
+        "kind": "helper_failed_on_missing_bundle",
+        "message": "helper returned non-zero exit status 1",
+        "returncode": 1,
+    }
+    summary = compare_module.run_nanotabpfn_benchmark(
+        compare_module.NanoTabPFNBenchmarkConfig(
+            tab_foundry_run_dir=smoke_run_dir,
+            out_root=out_root,
+            nanotabpfn_root=tmp_path / "missing_nano",
+            nanotab_prior_dump=tmp_path / "missing_prior.h5",
+            benchmark_bundle_path=bundle_path,
+            reuse_nanotabpfn_error=reuse_error,
+        )
+    )
+
+    assert "nanotabpfn" not in summary
+    assert summary["nanotabpfn_error"] == reuse_error
+    assert summary["artifacts"]["nanotabpfn_curve_jsonl"] is None
+
+
 def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

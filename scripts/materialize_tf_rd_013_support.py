@@ -35,6 +35,11 @@ from tab_foundry.bench.nanotabpfn.datasets import (  # noqa: E402
     PreparedOpenMLBenchmarkTask,
     prepare_openml_benchmark_task,
 )
+from tab_foundry.data.corpus import (  # noqa: E402
+    corpus_compare_payload,
+    materialize_corpus_recipe,
+)
+from tab_foundry.data.inspection import compare_jsonlike_payloads  # noqa: E402
 from tab_foundry.data.manifest import build_manifest  # noqa: E402
 
 
@@ -43,15 +48,20 @@ DEFAULT_DAGZOO_CONFIG_REF = "configs/default.yaml"
 DEFAULT_MANIFEST_CONFIG_REF = "configs/data/default.yaml"
 DEFAULT_BENCHMARK_BUNDLE_REF = "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
 DEFAULT_NUM_DATASETS = 8192
+SIZE_LADDER_CONTROL_NUM_DATASETS = 10
 DEFAULT_SEED = 1
 DEFAULT_DEVICE = "cpu"
+DEFAULT_HARDWARE_POLICY = "none"
 DEFAULT_COMPARATOR_SPLIT_SEED = 0
 DEFAULT_COMPARATOR_TEST_SIZE = 0.20
 
 FIRST_MATERIALIZATION_ISSUE_NUMBER = 120
 FIRST_EXECUTION_ISSUE_NUMBER = 122
 SHAPE_AWARE_ISSUE_NUMBER = 127
+EPIC_ISSUE_NUMBER = 96
+DOWNSTREAM_TRAINING_SURFACE_ISSUE_NUMBER = 107
 FILTERING_POLICY_ISSUE_NUMBER = 124
+SIZE_LADDER_ISSUE_NUMBER = 132
 
 LOCAL_OUTPUT_ROOT = REPO_ROOT / "outputs" / "staged_ladder_support" / "tf_rd_013"
 SUPPORT_ROOT = (
@@ -75,7 +85,31 @@ SHAPE_AWARE_SUPPORT_ROOT = (
 )
 SHAPE_AWARE_DAGZOO_SURFACE_ROOT_NAME = "dagzoo_shape_aware_multi_invocation"
 
+SIZE_LADDER_SWEEP_ID = "tf_rd_013_dagzoo_size_ladder_v1"
+SIZE_LADDER_LOCAL_OUTPUT_ROOT = (
+    REPO_ROOT / "outputs" / "staged_ladder_support" / SIZE_LADDER_SWEEP_ID
+)
+SIZE_LADDER_SUPPORT_ROOT = (
+    REPO_ROOT
+    / "reference"
+    / "system_delta_sweeps"
+    / SIZE_LADDER_SWEEP_ID
+    / "support"
+)
+
 ANCHOR_MANIFEST_PATH = REPO_ROOT / "data" / "manifests" / "default.parquet"
+CURRENT_CORPUS_HANDOFF_ROOT = (
+    REPO_ROOT / "outputs" / "current_corpus" / "default_generated_source"
+)
+ANCHOR_MANIFEST_REQUIRED_COLUMNS = ("train_path", "test_path", "metadata_path")
+
+CURRENT_CORPUS_RECIPE_ID = "tf_rd_013_current_corpus_default_v1"
+SIZE_LADDER_RECIPE_IDS: tuple[str, ...] = (
+    CURRENT_CORPUS_RECIPE_ID,
+    "tf_rd_013_dagzoo_shape_aware_size_small_v1",
+    "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
+    "tf_rd_013_dagzoo_shape_aware_size_large_v1",
+)
 
 
 def _resolve_tool_root() -> Path:
@@ -132,6 +166,20 @@ class ShapeAwareInvocationPaths:
 
 
 @dataclass(frozen=True)
+class MultiInvocationSurfaceSpec:
+    surface_name: str
+    invocations: tuple[ShapeAwareInvocationSpec, ...]
+
+
+@dataclass(frozen=True)
+class MultiInvocationSurfacePaths:
+    surface_name: str
+    surface_root: Path
+    manifest_path: Path
+    invocation_paths: tuple[ShapeAwareInvocationPaths, ...]
+
+
+@dataclass(frozen=True)
 class ShapeAwareMaterializationPaths:
     local_output_root: Path
     dagzoo_surface_root: Path
@@ -141,6 +189,12 @@ class ShapeAwareMaterializationPaths:
     curated_openml_baseline_root: Path
     curated_openml_baseline_data_root: Path
     curated_openml_baseline_manifest_path: Path
+
+
+@dataclass(frozen=True)
+class SizeLadderMaterializationPaths:
+    local_output_root: Path
+    dagzoo_surfaces: tuple[MultiInvocationSurfacePaths, ...]
 
 
 SHAPE_AWARE_INVOCATIONS: tuple[ShapeAwareInvocationSpec, ...] = (
@@ -158,6 +212,74 @@ SHAPE_AWARE_INVOCATIONS: tuple[ShapeAwareInvocationSpec, ...] = (
         invocation_id="large_shape",
         config_ref="configs/benchmark_cuda_h100_large_shape.yaml",
         num_datasets=128,
+    ),
+)
+
+SHAPE_AWARE_SURFACE_SPEC = MultiInvocationSurfaceSpec(
+    surface_name=SHAPE_AWARE_DAGZOO_SURFACE_ROOT_NAME,
+    invocations=SHAPE_AWARE_INVOCATIONS,
+)
+
+SIZE_LADDER_SURFACE_SPECS: tuple[MultiInvocationSurfaceSpec, ...] = (
+    MultiInvocationSurfaceSpec(
+        surface_name="dagzoo_shape_aware_size_small",
+        invocations=(
+            ShapeAwareInvocationSpec(
+                invocation_id="benchmark_cpu",
+                config_ref="configs/benchmark_cpu.yaml",
+                num_datasets=4,
+            ),
+            ShapeAwareInvocationSpec(
+                invocation_id="default_medium",
+                config_ref="configs/default.yaml",
+                num_datasets=14,
+            ),
+            ShapeAwareInvocationSpec(
+                invocation_id="large_shape",
+                config_ref="configs/benchmark_cuda_h100_large_shape.yaml",
+                num_datasets=2,
+            ),
+        ),
+    ),
+    MultiInvocationSurfaceSpec(
+        surface_name="dagzoo_shape_aware_size_medium",
+        invocations=(
+            ShapeAwareInvocationSpec(
+                invocation_id="benchmark_cpu",
+                config_ref="configs/benchmark_cpu.yaml",
+                num_datasets=8,
+            ),
+            ShapeAwareInvocationSpec(
+                invocation_id="default_medium",
+                config_ref="configs/default.yaml",
+                num_datasets=28,
+            ),
+            ShapeAwareInvocationSpec(
+                invocation_id="large_shape",
+                config_ref="configs/benchmark_cuda_h100_large_shape.yaml",
+                num_datasets=4,
+            ),
+        ),
+    ),
+    MultiInvocationSurfaceSpec(
+        surface_name="dagzoo_shape_aware_size_large",
+        invocations=(
+            ShapeAwareInvocationSpec(
+                invocation_id="benchmark_cpu",
+                config_ref="configs/benchmark_cpu.yaml",
+                num_datasets=16,
+            ),
+            ShapeAwareInvocationSpec(
+                invocation_id="default_medium",
+                config_ref="configs/default.yaml",
+                num_datasets=56,
+            ),
+            ShapeAwareInvocationSpec(
+                invocation_id="large_shape",
+                config_ref="configs/benchmark_cuda_h100_large_shape.yaml",
+                num_datasets=8,
+            ),
+        ),
     ),
 )
 
@@ -222,6 +344,82 @@ def _sanitize_paths(value: Any) -> Any:
 
 def _render_command(cmd: list[str]) -> str:
     return subprocess.list2cmdline(cmd) if sys.platform == "win32" else " ".join(cmd)
+
+
+def _anchor_manifest_bootstrap_command() -> str:
+    return "\n".join(
+        [
+            f"{_portable_path(TAB_FOUNDRY_BIN)} data dagzoo generate-manifest \\",
+            f"  --dagzoo-root {_portable_path(DEFAULT_DAGZOO_ROOT)} \\",
+            f"  --dagzoo-config {DEFAULT_DAGZOO_CONFIG_REF} \\",
+            f"  --handoff-root {_portable_path(CURRENT_CORPUS_HANDOFF_ROOT)} \\",
+            f"  --out-manifest {_portable_path(ANCHOR_MANIFEST_PATH)} \\",
+            f"  --num-datasets {DEFAULT_NUM_DATASETS} \\",
+            f"  --seed {DEFAULT_SEED} \\",
+            f"  --device {DEFAULT_DEVICE} \\",
+            f"  --hardware-policy {DEFAULT_HARDWARE_POLICY}",
+        ]
+    )
+
+
+def _anchor_manifest_bootstrap_error(reason: str) -> RuntimeError:
+    command = _anchor_manifest_bootstrap_command()
+    return RuntimeError(
+        f"{reason}\n"
+        f"TF-RD-013 support materialization requires a fresh current-corpus manifest at "
+        f"{_portable_path(ANCHOR_MANIFEST_PATH)}.\n"
+        "Stale absolute-path local snapshots are unsupported for this flow.\n\n"
+        "From the repo root, generate it with:\n"
+        f"{command}\n\n"
+        "Then rerun `scripts/materialize_tf_rd_013_support.py --variant size-ladder --force`."
+    )
+
+
+def _resolve_manifest_record_path(*, manifest_path: Path, raw_path: str) -> Path:
+    candidate = Path(str(raw_path)).expanduser()
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (manifest_path.parent / candidate).resolve()
+
+
+def _assert_anchor_manifest_ready(manifest_path: Path) -> None:
+    if not manifest_path.exists():
+        raise _anchor_manifest_bootstrap_error(
+            f"anchor manifest does not exist: {manifest_path}"
+        )
+    try:
+        table = pq.read_table(manifest_path, columns=list(ANCHOR_MANIFEST_REQUIRED_COLUMNS))
+    except Exception as exc:  # pragma: no cover - defensive bootstrap guidance
+        raise _anchor_manifest_bootstrap_error(
+            f"anchor manifest could not be inspected: {manifest_path}: {exc}"
+        ) from exc
+
+    missing_examples: list[str] = []
+    for row_index, record in enumerate(table.to_pylist()):
+        for column in ANCHOR_MANIFEST_REQUIRED_COLUMNS:
+            raw_value = record.get(column)
+            if not isinstance(raw_value, str) or not raw_value.strip():
+                missing_examples.append(f"row {row_index} has invalid {column}={raw_value!r}")
+            else:
+                resolved = _resolve_manifest_record_path(
+                    manifest_path=manifest_path,
+                    raw_path=raw_value,
+                )
+                if not resolved.exists():
+                    missing_examples.append(
+                        f"row {row_index} {column} -> {resolved}"
+                    )
+            if len(missing_examples) >= 5:
+                break
+        if len(missing_examples) >= 5:
+            break
+
+    if missing_examples:
+        details = "\n".join(f"  - {example}" for example in missing_examples)
+        raise _anchor_manifest_bootstrap_error(
+            "anchor manifest exists but its backing files are missing or invalid:\n"
+            f"{details}"
+        )
 
 
 def _run_checked(cmd: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -290,13 +488,12 @@ def _materialization_paths(local_output_root: Path) -> MaterializationPaths:
     )
 
 
-def _shape_aware_materialization_paths(
+def _multi_invocation_surface_paths(
     local_output_root: Path,
-) -> ShapeAwareMaterializationPaths:
-    dagzoo_surface_root = local_output_root / SHAPE_AWARE_DAGZOO_SURFACE_ROOT_NAME
-    invocation_root = dagzoo_surface_root / "invocations"
-    curated_realdata_root = local_output_root / "curated_realdata"
-    curated_openml_baseline_root = curated_realdata_root / "openml_baseline"
+    surface_spec: MultiInvocationSurfaceSpec,
+) -> MultiInvocationSurfacePaths:
+    surface_root = local_output_root / surface_spec.surface_name
+    invocation_root = surface_root / "invocations"
     invocation_paths = tuple(
         ShapeAwareInvocationPaths(
             invocation_id=spec.invocation_id,
@@ -304,17 +501,46 @@ def _shape_aware_materialization_paths(
             generated_dir=invocation_root / spec.invocation_id / "generated",
             handoff_manifest_path=invocation_root / spec.invocation_id / "handoff_manifest.json",
         )
-        for spec in SHAPE_AWARE_INVOCATIONS
+        for spec in surface_spec.invocations
     )
+    return MultiInvocationSurfacePaths(
+        surface_name=surface_spec.surface_name,
+        surface_root=surface_root,
+        manifest_path=surface_root / "manifest.parquet",
+        invocation_paths=invocation_paths,
+    )
+
+
+def _shape_aware_materialization_paths(
+    local_output_root: Path,
+) -> ShapeAwareMaterializationPaths:
+    dagzoo_surface = _multi_invocation_surface_paths(
+        local_output_root,
+        SHAPE_AWARE_SURFACE_SPEC,
+    )
+    curated_realdata_root = local_output_root / "curated_realdata"
+    curated_openml_baseline_root = curated_realdata_root / "openml_baseline"
     return ShapeAwareMaterializationPaths(
         local_output_root=local_output_root,
-        dagzoo_surface_root=dagzoo_surface_root,
-        dagzoo_manifest_path=dagzoo_surface_root / "manifest.parquet",
-        invocation_paths=invocation_paths,
+        dagzoo_surface_root=dagzoo_surface.surface_root,
+        dagzoo_manifest_path=dagzoo_surface.manifest_path,
+        invocation_paths=dagzoo_surface.invocation_paths,
         curated_realdata_root=curated_realdata_root,
         curated_openml_baseline_root=curated_openml_baseline_root,
         curated_openml_baseline_data_root=curated_openml_baseline_root / "packed_shards",
         curated_openml_baseline_manifest_path=curated_openml_baseline_root / "manifest.parquet",
+    )
+
+
+def _size_ladder_materialization_paths(
+    local_output_root: Path,
+) -> SizeLadderMaterializationPaths:
+    return SizeLadderMaterializationPaths(
+        local_output_root=local_output_root,
+        dagzoo_surfaces=tuple(
+            _multi_invocation_surface_paths(local_output_root, surface_spec)
+            for surface_spec in SIZE_LADDER_SURFACE_SPECS
+        ),
     )
 
 
@@ -337,7 +563,7 @@ def _dagzoo_commands(paths: MaterializationPaths) -> list[str]:
     ]
 
 
-def _shape_aware_generate_command(
+def _multi_invocation_generate_command(
     spec: ShapeAwareInvocationSpec,
     paths: ShapeAwareInvocationPaths,
 ) -> str:
@@ -352,15 +578,19 @@ def _shape_aware_generate_command(
     )
 
 
-def _shape_aware_build_manifest_command(paths: ShapeAwareMaterializationPaths) -> str:
+def _multi_invocation_build_manifest_command(
+    *,
+    invocation_paths: tuple[ShapeAwareInvocationPaths, ...],
+    manifest_path: Path,
+) -> str:
     roots_rendered = ", ".join(
         _portable_path(invocation_paths.generated_dir)
-        for invocation_paths in paths.invocation_paths
+        for invocation_paths in invocation_paths
     )
     return (
         "build_manifest(data_roots=["
         f"{roots_rendered}"
-        f"], out_path={_portable_path(paths.dagzoo_manifest_path)})"
+        f"], out_path={_portable_path(manifest_path)})"
     )
 
 
@@ -383,18 +613,6 @@ def _curated_commands(
     ]
 
 
-def _compare_payloads(left: Any, right: Any, *, prefix: str = "") -> dict[str, dict[str, Any]]:
-    if isinstance(left, dict) and isinstance(right, dict):
-        differences: dict[str, dict[str, Any]] = {}
-        for key in sorted(set(left.keys()) | set(right.keys())):
-            next_prefix = f"{prefix}.{key}" if prefix else str(key)
-            differences.update(_compare_payloads(left.get(key), right.get(key), prefix=next_prefix))
-        return differences
-    if left == right:
-        return {}
-    return {prefix: {"left": left, "right": right}}
-
-
 def _comparison_entry(
     *,
     comparison_id: str,
@@ -406,7 +624,7 @@ def _comparison_entry(
     right = manifests[right_id]
     left_inspection = {key: value for key, value in left["inspection"].items() if key != "manifest_path"}
     right_inspection = {key: value for key, value in right["inspection"].items() if key != "manifest_path"}
-    differences = _compare_payloads(left_inspection, right_inspection)
+    differences = compare_jsonlike_payloads(left_inspection, right_inspection)
     return {
         "comparison_id": comparison_id,
         "status": "available",
@@ -592,8 +810,7 @@ def _assert_common_inputs(*, dagzoo_root: Path) -> Path:
         raise RuntimeError(f"dagzoo root does not exist: {dagzoo_root}")
     if not TAB_FOUNDRY_BIN.exists():
         raise RuntimeError(f"tab-foundry CLI not found at {TAB_FOUNDRY_BIN}")
-    if not ANCHOR_MANIFEST_PATH.exists():
-        raise RuntimeError(f"anchor manifest does not exist: {ANCHOR_MANIFEST_PATH}")
+    _assert_anchor_manifest_ready(ANCHOR_MANIFEST_PATH)
     benchmark_bundle_path = REPO_ROOT / DEFAULT_BENCHMARK_BUNDLE_REF
     if not benchmark_bundle_path.exists():
         raise RuntimeError(f"benchmark bundle does not exist: {benchmark_bundle_path}")
@@ -655,6 +872,7 @@ def _historical_materialization_summary(
         "env_hints": {
             "dagzoo_root": "../dagzoo",
             "tab_foundry_root": ".",
+            "anchor_bootstrap_command": _anchor_manifest_bootstrap_command(),
         },
         "config_refs": {
             "dagzoo": [DEFAULT_DAGZOO_CONFIG_REF],
@@ -866,7 +1084,7 @@ def _materialize_historical_support(*, dagzoo_root: Path, force: bool) -> int:
     return 0
 
 
-def _shape_aware_invocation_summary(
+def _multi_invocation_invocation_summary(
     *,
     spec: ShapeAwareInvocationSpec,
     paths: ShapeAwareInvocationPaths,
@@ -874,7 +1092,7 @@ def _shape_aware_invocation_summary(
 ) -> dict[str, Any]:
     return {
         "invocation_id": spec.invocation_id,
-        "command": _shape_aware_generate_command(spec, paths),
+        "command": _multi_invocation_generate_command(spec, paths),
         "config_ref": spec.config_ref,
         "num_datasets": spec.num_datasets,
         "seed": spec.seed,
@@ -909,7 +1127,12 @@ def _shape_aware_materialization_summary(
         execution_issue=SHAPE_AWARE_ISSUE_NUMBER,
     )
     dagzoo_commands = [str(invocation["command"]) for invocation in invocation_summaries]
-    dagzoo_commands.append(_shape_aware_build_manifest_command(paths))
+    dagzoo_commands.append(
+        _multi_invocation_build_manifest_command(
+            invocation_paths=paths.invocation_paths,
+            manifest_path=paths.dagzoo_manifest_path,
+        )
+    )
     dagzoo_provenance = {
         "corpus_variant": "dagzoo_shape_aware_multi_invocation",
         "comparator_role": "promoted_anchor_candidate",
@@ -961,10 +1184,13 @@ def _shape_aware_materialization_summary(
             "materialization_issue_url": issue_urls["materialization_issue"],
             "execution_issue": SHAPE_AWARE_ISSUE_NUMBER,
             "execution_issue_url": issue_urls["execution_issue"],
-            "epic_issue": 96,
-            "epic_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/96",
-            "downstream_training_surface_issue": 107,
-            "downstream_training_surface_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/107",
+            "epic_issue": EPIC_ISSUE_NUMBER,
+            "epic_issue_url": f"https://github.com/bensonlee5/tab-foundry/issues/{EPIC_ISSUE_NUMBER}",
+            "downstream_training_surface_issue": DOWNSTREAM_TRAINING_SURFACE_ISSUE_NUMBER,
+            "downstream_training_surface_issue_url": (
+                "https://github.com/bensonlee5/tab-foundry/issues/"
+                f"{DOWNSTREAM_TRAINING_SURFACE_ISSUE_NUMBER}"
+            ),
             "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
             "subsequent_filtering_policy_issue_url": issue_urls["subsequent_filtering_policy_issue"],
         },
@@ -1004,7 +1230,10 @@ def _shape_aware_materialization_summary(
                 {
                     "step_id": "build_manifest_dagzoo_shape_aware_multi_invocation",
                     "cwd": "$TAB_FOUNDRY_ROOT",
-                    "command": _shape_aware_build_manifest_command(paths),
+                    "command": _multi_invocation_build_manifest_command(
+                        invocation_paths=paths.invocation_paths,
+                        manifest_path=paths.dagzoo_manifest_path,
+                    ),
                     "status": "completed",
                     "returncode": 0,
                 },
@@ -1075,8 +1304,8 @@ def _shape_aware_manifest_characteristics_summary(
         "issues": {
             "materialization_issue": SHAPE_AWARE_ISSUE_NUMBER,
             "execution_issue": SHAPE_AWARE_ISSUE_NUMBER,
-            "epic_issue": 96,
-            "downstream_training_surface_issue": 107,
+            "epic_issue": EPIC_ISSUE_NUMBER,
+            "downstream_training_surface_issue": DOWNSTREAM_TRAINING_SURFACE_ISSUE_NUMBER,
             "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
         },
         "manifests": manifests,
@@ -1098,6 +1327,158 @@ def _shape_aware_manifest_characteristics_summary(
                 left_id="dagzoo_shape_aware_multi_invocation",
                 right_id="curated_realdata_openml_baseline",
                 manifests=manifests,
+            ),
+        },
+    }
+
+
+def _size_ladder_materialization_summary(
+    *,
+    corpus_records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    issue_urls = _issue_urls(
+        materialization_issue=SIZE_LADDER_ISSUE_NUMBER,
+        execution_issue=SIZE_LADDER_ISSUE_NUMBER,
+    )
+    surfaces: dict[str, dict[str, Any]] = {}
+    recipes: list[dict[str, Any]] = []
+    config_refs: set[str] = set()
+    for record in corpus_records:
+        manifest = record["manifest"]
+        dagzoo_provenance = record["dagzoo_provenance"]
+        invocations = dagzoo_provenance.get("invocations", [])
+        config_refs.update(
+            str(invocation["config_ref"])
+            for invocation in invocations
+            if isinstance(invocation, dict) and invocation.get("config_ref") is not None
+        )
+        recipe = record["recipe"]
+        requested_dataset_count = sum(
+            int(invocation["num_datasets"])
+            for invocation in recipe.get("invocations", [])
+            if isinstance(invocation, dict)
+        )
+        recipes.append(
+            {
+                "recipe_id": record["recipe_id"],
+                "corpus_ref": record["corpus_ref"],
+                "surface_label": record["surface_label"],
+                "requested_dataset_count": int(requested_dataset_count),
+                "invocations": [
+                    {
+                        "invocation_id": invocation["invocation_id"],
+                        "config_ref": invocation["config_ref"],
+                        "num_datasets": invocation["num_datasets"],
+                    }
+                    for invocation in recipe.get("invocations", [])
+                    if isinstance(invocation, dict)
+                ],
+            }
+        )
+        surfaces[str(record["surface_label"])] = {
+            "state": "materialized_local_only",
+            "recipe_id": record["recipe_id"],
+            "corpus_id": record["corpus_id"],
+            "corpus_ref": record["corpus_ref"],
+            "manifest_path": manifest["manifest_path"],
+            "manifest_sha256": manifest["manifest_sha256"],
+            "dagzoo_provenance": dagzoo_provenance,
+        }
+
+    return {
+        "schema": "tab-foundry-tf-rd-013-size-ladder-materialization-summary-v1",
+        "generated_at_utc": _utc_now(),
+        "issues": {
+            "materialization_issue": SIZE_LADDER_ISSUE_NUMBER,
+            "materialization_issue_url": issue_urls["materialization_issue"],
+            "execution_issue": SIZE_LADDER_ISSUE_NUMBER,
+            "execution_issue_url": issue_urls["execution_issue"],
+            "epic_issue": EPIC_ISSUE_NUMBER,
+            "epic_issue_url": f"https://github.com/bensonlee5/tab-foundry/issues/{EPIC_ISSUE_NUMBER}",
+            "downstream_training_surface_issue": DOWNSTREAM_TRAINING_SURFACE_ISSUE_NUMBER,
+            "downstream_training_surface_issue_url": (
+                "https://github.com/bensonlee5/tab-foundry/issues/"
+                f"{DOWNSTREAM_TRAINING_SURFACE_ISSUE_NUMBER}"
+            ),
+            "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
+            "subsequent_filtering_policy_issue_url": issue_urls["subsequent_filtering_policy_issue"],
+        },
+        "env_hints": {
+            "dagzoo_root": "../dagzoo",
+            "tab_foundry_root": ".",
+        },
+        "config_refs": {
+            "dagzoo": sorted(config_refs),
+            "tab_foundry": ["tab-foundry data corpus materialize"],
+        },
+        "artifacts": {
+            "local_output_root": _portable_path(REPO_ROOT / "outputs" / "corpora"),
+        },
+        "size_ladder_program": {
+            "kind": "shape_aware_size_ladder",
+            "notes": [
+                "The size ladder now materializes through first-class corpus recipes under outputs/corpora/ instead of sweep-local dagzoo orchestration.",
+                "Every ladder surface is generated on CPU with hardware-policy none so the comparison stays about corpus content rather than generation hardware.",
+                f"Row 1 is a TF-RD-008-scale fresh current-corpus control recipe with {SIZE_LADDER_CONTROL_NUM_DATASETS} generated datasets rather than a replay of the stale 2026-02-22 absolute-path snapshot.",
+                "Rows 2-4 remain the `small`, `medium`, and `large` shrunken shape-aware ladders, now sized to 20, 40, and 80 generated datasets under the same max_steps=2500 stop contract.",
+            ],
+            "recipes": recipes,
+        },
+        "surfaces": surfaces,
+    }
+
+
+def _size_ladder_manifest_characteristics_summary(
+    *,
+    corpus_records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    manifests = {
+        str(record["surface_label"]): {
+            "status": "available",
+            "recipe_id": record["recipe_id"],
+            "corpus_id": record["corpus_id"],
+            "corpus_ref": record["corpus_ref"],
+            "manifest_path": record["manifest"]["manifest_path"],
+            "manifest_sha256": record["manifest"]["manifest_sha256"],
+            "inspection": record["manifest"]["inspection"],
+        }
+        for record in corpus_records
+    }
+    return {
+        "schema": "tab-foundry-tf-rd-013-size-ladder-manifest-characteristics-summary-v1",
+        "generated_at_utc": _utc_now(),
+        "issues": {
+            "materialization_issue": SIZE_LADDER_ISSUE_NUMBER,
+            "execution_issue": SIZE_LADDER_ISSUE_NUMBER,
+            "epic_issue": EPIC_ISSUE_NUMBER,
+            "downstream_training_surface_issue": DOWNSTREAM_TRAINING_SURFACE_ISSUE_NUMBER,
+            "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
+        },
+        "manifests": manifests,
+        "comparisons": {
+            "anchor_vs_dagzoo_shape_aware_size_small": corpus_compare_payload(
+                left=CURRENT_CORPUS_RECIPE_ID,
+                right="tf_rd_013_dagzoo_shape_aware_size_small_v1",
+            ),
+            "anchor_vs_dagzoo_shape_aware_size_medium": corpus_compare_payload(
+                left=CURRENT_CORPUS_RECIPE_ID,
+                right="tf_rd_013_dagzoo_shape_aware_size_medium_v1",
+            ),
+            "anchor_vs_dagzoo_shape_aware_size_large": corpus_compare_payload(
+                left=CURRENT_CORPUS_RECIPE_ID,
+                right="tf_rd_013_dagzoo_shape_aware_size_large_v1",
+            ),
+            "dagzoo_shape_aware_size_small_vs_dagzoo_shape_aware_size_medium": corpus_compare_payload(
+                left="tf_rd_013_dagzoo_shape_aware_size_small_v1",
+                right="tf_rd_013_dagzoo_shape_aware_size_medium_v1",
+            ),
+            "dagzoo_shape_aware_size_medium_vs_dagzoo_shape_aware_size_large": corpus_compare_payload(
+                left="tf_rd_013_dagzoo_shape_aware_size_medium_v1",
+                right="tf_rd_013_dagzoo_shape_aware_size_large_v1",
+            ),
+            "dagzoo_shape_aware_size_small_vs_dagzoo_shape_aware_size_large": corpus_compare_payload(
+                left="tf_rd_013_dagzoo_shape_aware_size_small_v1",
+                right="tf_rd_013_dagzoo_shape_aware_size_large_v1",
             ),
         },
     }
@@ -1144,7 +1525,7 @@ def _materialize_shape_aware_support(*, dagzoo_root: Path, force: bool) -> int:
         generate_completed = _run_checked(generate_cmd, cwd=dagzoo_root)
         handoff_payload = _sanitize_paths(_load_json(invocation_paths.handoff_manifest_path))
         invocation_summaries.append(
-            _shape_aware_invocation_summary(
+            _multi_invocation_invocation_summary(
                 spec=spec,
                 paths=invocation_paths,
                 handoff_payload=handoff_payload,
@@ -1154,7 +1535,7 @@ def _materialize_shape_aware_support(*, dagzoo_root: Path, force: bool) -> int:
             {
                 "step_id": f"dagzoo_generate_{spec.invocation_id}",
                 "cwd": "$DAGZOO_ROOT",
-                "command": _shape_aware_generate_command(spec, invocation_paths),
+                "command": _multi_invocation_generate_command(spec, invocation_paths),
                 "status": "completed",
                 "returncode": generate_completed.returncode,
             }
@@ -1220,11 +1601,48 @@ def _materialize_shape_aware_support(*, dagzoo_root: Path, force: bool) -> int:
     return 0
 
 
+def _materialize_size_ladder_support(*, dagzoo_root: Path, force: bool) -> int:
+    if not dagzoo_root.exists():
+        raise RuntimeError(f"dagzoo root does not exist: {dagzoo_root}")
+    if not TAB_FOUNDRY_BIN.exists():
+        raise RuntimeError(f"tab-foundry CLI not found at {TAB_FOUNDRY_BIN}")
+
+    corpus_records = [
+        materialize_corpus_recipe(
+            recipe_id=recipe_id,
+            dagzoo_root=dagzoo_root,
+            force=force,
+        )
+        for recipe_id in SIZE_LADDER_RECIPE_IDS
+    ]
+    materialization_summary = _size_ladder_materialization_summary(
+        corpus_records=corpus_records,
+    )
+    manifest_characteristics_summary = _size_ladder_manifest_characteristics_summary(
+        corpus_records=corpus_records,
+    )
+
+    _write_json(
+        SIZE_LADDER_SUPPORT_ROOT / "materialization_summary.json",
+        materialization_summary,
+    )
+    _write_json(
+        SIZE_LADDER_SUPPORT_ROOT / "manifest_characteristics_summary.json",
+        manifest_characteristics_summary,
+    )
+    print("Wrote support summaries:")
+    print(f"  {SIZE_LADDER_SUPPORT_ROOT / 'materialization_summary.json'}")
+    print(f"  {SIZE_LADDER_SUPPORT_ROOT / 'manifest_characteristics_summary.json'}")
+    return 0
+
+
 def materialize_support(*, variant: str, dagzoo_root: Path, force: bool) -> int:
     if variant == "historical":
         return _materialize_historical_support(dagzoo_root=dagzoo_root, force=force)
     if variant == "shape-aware":
         return _materialize_shape_aware_support(dagzoo_root=dagzoo_root, force=force)
+    if variant == "size-ladder":
+        return _materialize_size_ladder_support(dagzoo_root=dagzoo_root, force=force)
     raise RuntimeError(f"unsupported materialization variant: {variant}")
 
 
@@ -1234,7 +1652,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--force", action="store_true", help="Replace existing local TF-RD-013 outputs")
     parser.add_argument(
         "--variant",
-        choices=("historical", "shape-aware"),
+        choices=("historical", "shape-aware", "size-ladder"),
         default="historical",
         help="Support bundle variant to materialize",
     )
