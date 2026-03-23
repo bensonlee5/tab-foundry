@@ -5,6 +5,8 @@ import subprocess
 import pytest
 
 import tab_foundry.bench.compare as compare_module
+import tab_foundry.bench.control_baseline_freeze as control_baseline_freeze_module
+import tab_foundry.bench.run_registration as run_registration_module
 import tab_foundry.cli as cli_module
 import tab_foundry.cli.data_inspect as data_inspect_module
 import tab_foundry.cli.dev as dev_module
@@ -35,6 +37,84 @@ def test_nested_cli_bench_compare_delegates_to_compare_main(
 
     assert exit_code == 0
     assert captured["tab_foundry_run_dir"] == "/tmp/run"
+
+
+def test_nested_cli_bench_registry_register_run_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_register_handler(args):
+        captured["run_id"] = str(args.run_id)
+        captured["registry_path"] = str(args.registry_path)
+        return 0
+
+    monkeypatch.setattr(run_registration_module, "run_from_args", _fake_register_handler)
+
+    exit_code = cli_module.main(
+        [
+            "bench",
+            "registry",
+            "register-run",
+            "--run-id",
+            "run_001",
+            "--track",
+            "binary_md_v1",
+            "--run-dir",
+            "/tmp/run",
+            "--comparison-summary",
+            "/tmp/comparison_summary.json",
+            "--experiment",
+            "cls_benchmark_staged_prior",
+            "--decision",
+            "keep",
+            "--conclusion",
+            "ok",
+            "--registry-path",
+            "/tmp/registry.json",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {
+        "run_id": "run_001",
+        "registry_path": "/tmp/registry.json",
+    }
+
+
+def test_nested_cli_bench_registry_freeze_baseline_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_freeze_handler(args):
+        captured["baseline_id"] = str(args.baseline_id)
+        captured["registry_path"] = str(args.registry_path)
+        return 0
+
+    monkeypatch.setattr(control_baseline_freeze_module, "run_from_args", _fake_freeze_handler)
+
+    exit_code = cli_module.main(
+        [
+            "bench",
+            "registry",
+            "freeze-baseline",
+            "--run-dir",
+            "/tmp/run",
+            "--comparison-summary",
+            "/tmp/comparison_summary.json",
+            "--baseline-id",
+            "baseline_v1",
+            "--registry-path",
+            "/tmp/control_baselines.json",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {
+        "baseline_id": "baseline_v1",
+        "registry_path": "/tmp/control_baselines.json",
+    }
 
 
 def test_nested_cli_train_prior_simple_dispatches_to_handler(

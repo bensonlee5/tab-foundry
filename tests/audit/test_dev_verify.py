@@ -181,7 +181,7 @@ def test_verify_affected_plan_covers_each_rule_minimum_checks() -> None:
         "training": "src/tab_foundry/training/trainer.py",
         "export": "src/tab_foundry/export/exporter.py",
         "bench": "src/tab_foundry/bench/compare.py",
-        "research": "src/tab_foundry/research/system_delta_execute.py",
+        "research": "src/tab_foundry/research/sweep/execute.py",
         "cli-config": "configs/config.yaml",
     }
     rules_by_name = {rule.name: rule for rule in index.path_rules}

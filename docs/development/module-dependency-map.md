@@ -87,9 +87,10 @@ Observed cycle status:
   `tab_foundry.control_baseline_registry`, `tab_foundry.repo_paths`, and
   read-only `training` inspection helpers, but lower layers should not depend
   on it.
-- Execute/promote CLI ownership inside `tab_foundry.research` should live under
-  `research/sweep/`; top-level `system_delta_execute.py` and
-  `system_delta_promote.py` should remain compatibility facades only.
+- Execute/promote and sweep-management ownership inside `tab_foundry.research`
+  should live under `research/sweep/`; higher layers should import
+  `research.sweep.core`, `research.sweep.execute`, and
+  `research.sweep.promote` directly instead of reintroducing wrapper modules.
 - Python workflow entrypoints should live under the packaged nested CLI rather
   than being duplicated under `scripts/`.
 - `scripts/` should stay limited to shell convenience helpers and audit tooling

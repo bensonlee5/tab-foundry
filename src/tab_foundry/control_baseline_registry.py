@@ -54,16 +54,23 @@ def default_control_baseline_registry_path() -> Path:
     return repo_root() / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
 
 
-def resolve_registry_path_value(value: str) -> Path:
+def resolve_registry_path_value(
+    value: str,
+    *,
+    root: Path | None = None,
+) -> Path:
     """Resolve one registry-stored path value."""
 
-    return resolve_repo_relative_path(value)
+    return resolve_repo_relative_path(value, root=root)
 
-
-def normalize_registry_path_value(path: Path) -> str:
+def normalize_registry_path_value(
+    path: Path,
+    *,
+    root: Path | None = None,
+) -> str:
     """Normalize one absolute path into the repo-relative registry form when possible."""
 
-    return normalize_repo_relative_path(path)
+    return normalize_repo_relative_path(path, root=root)
 
 
 def _copy_jsonable(payload: Any) -> Any:

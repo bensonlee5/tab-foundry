@@ -16,8 +16,8 @@ from tab_foundry.control_baseline_registry import (
     REGISTRY_VERSION,
     default_control_baseline_registry_path,
 )
-from tab_foundry.research.system_delta import create_sweep
-from tab_foundry.research.system_delta_execute import (
+from tab_foundry.research.sweep.core import create_sweep
+from tab_foundry.research.sweep.execute import (
     ExecutionPaths,
     _compose_cfg,
     _queue_metrics,
@@ -25,7 +25,6 @@ from tab_foundry.research.system_delta_execute import (
     execute_sweep,
     select_queue_rows,
 )
-import tab_foundry.research.system_delta_execute as execute_module
 import tab_foundry.research.sweep.execute as sweep_execute_module
 import tab_foundry.research.sweep.runner as runner_module
 from tab_foundry.research.sweep.artifacts import read_yaml as read_artifact_yaml, write_research_package
@@ -226,12 +225,6 @@ def test_runner_imports_benchmark_runtime_from_comparison_runtime() -> None:
     assert runner_module.run_nanotabpfn_benchmark.__module__ == 'tab_foundry.bench.comparison_runtime'
 
 
-def test_system_delta_execute_is_a_compatibility_facade() -> None:
-    assert execute_module.execute_sweep is sweep_execute_module.execute_sweep
-    assert execute_module.run_from_args is sweep_execute_module.run_from_args
-    assert execute_module.main is sweep_execute_module.main
-
-
 def test_select_queue_rows_defaults_to_ready_rows() -> None:
     queue = {
         'rows': [
@@ -359,7 +352,7 @@ def test_main_preserves_tab_foundry_python_symlink_path(
 
     monkeypatch.setattr(sweep_execute_module, 'execute_sweep', fake_execute_sweep)
 
-    exit_code = execute_module.main(
+    exit_code = sweep_execute_module.main(
         [
             '--sweep-id',
             'shared_surface_bridge_v1',

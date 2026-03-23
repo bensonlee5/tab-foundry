@@ -1,4 +1,4 @@
-"""Canonical benchmark-run registry helpers."""
+"""Canonical programmatic surface for benchmark-run registration."""
 
 from __future__ import annotations
 
@@ -6,16 +6,9 @@ import argparse
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from tab_foundry.benchmark_registry import (
-    default_benchmark_run_registry_path as _default_benchmark_run_registry_path_impl,
-    load_benchmark_run_registry as _load_benchmark_run_registry_impl,
-    normalize_registry_path_value as _normalize_path_value_impl,
-    resolve_registry_path_value as _resolve_registry_path_value_impl,
-)
+import tab_foundry.benchmark_registry as read_benchmark_registry
 from tab_foundry.bench.artifacts import write_json
-from tab_foundry.bench.registry.paths import (
-    resolve_config_path as _resolve_config_path_impl,
-)
+from tab_foundry.bench.registry.paths import resolve_config_path as _resolve_config_path_impl
 from tab_foundry.bench.registry.run_derivation import (
     comparison_delta as _comparison_delta_impl,
     derive_benchmark_run_entry as _derive_benchmark_run_entry_impl,
@@ -25,17 +18,14 @@ from tab_foundry.bench.registry.run_derivation import (
     validate_record_payload as _validate_record_payload_impl,
     validate_run_entry as _validate_run_entry_impl,
 )
-from tab_foundry.bench.registry.schema import (
-    ALLOWED_DECISIONS,
-    DEFAULT_BUDGET_CLASS,
-)
-from tab_foundry.bench.registry.summary_metrics import (
-    ensure_optional_finite_number as _ensure_optional_finite_number_impl,
-)
+from tab_foundry.bench.registry.schema import ALLOWED_DECISIONS, DEFAULT_BUDGET_CLASS
 from tab_foundry.bench.registry.storage import (
     ensure_registry_payload as _ensure_registry_payload_common,
     upsert_registry_entry as _upsert_registry_entry_common,
     utc_now as _utc_now_common,
+)
+from tab_foundry.bench.registry.summary_metrics import (
+    ensure_optional_finite_number as _ensure_optional_finite_number_impl,
 )
 from tab_foundry.bench.registry_common import copy_jsonable as _copy_jsonable
 from tab_foundry.repo_paths import repo_root
@@ -47,24 +37,20 @@ def project_root() -> Path:
     return repo_root()
 
 
+def _default_registry_path() -> Path:
+    return read_benchmark_registry.default_benchmark_run_registry_path()
+
+
 def _normalize_path_value(path: Path) -> str:
-    return _normalize_path_value_impl(path, root=project_root())
+    return read_benchmark_registry.normalize_registry_path_value(path, root=project_root())
 
 
-def resolve_registry_path_value(value: str) -> Path:
-    """Resolve a registry path value to an absolute path."""
-
-    return _resolve_registry_path_value_impl(value, root=project_root())
+def _resolve_registry_path_value(value: str) -> Path:
+    return read_benchmark_registry.resolve_registry_path_value(value, root=project_root())
 
 
 def _resolve_config_path(raw_value: Any) -> Path:
     return _resolve_config_path_impl(raw_value, root_fn=project_root)
-
-
-def default_benchmark_run_registry_path() -> Path:
-    """Return the repo-tracked benchmark-run registry path."""
-
-    return _default_benchmark_run_registry_path_impl()
 
 
 def _utc_now() -> str:
@@ -96,19 +82,13 @@ def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]
     resolved_path = path.expanduser().resolve()
     if allow_missing and not resolved_path.exists():
         return _empty_registry()
-    return _load_benchmark_run_registry_impl(resolved_path)
-
-
-def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
-    """Load and validate the benchmark run registry."""
-
-    return _load_benchmark_run_registry_impl(path or default_benchmark_run_registry_path())
+    return read_benchmark_registry.load_benchmark_run_registry(resolved_path)
 
 
 def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, Any]]:
     return _ensure_registry_payload_common(
         path,
-        default_path=default_benchmark_run_registry_path(),
+        default_path=_default_registry_path(),
         load_registry_payload_fn=_load_registry_payload,
     )
 
@@ -138,7 +118,7 @@ def derive_benchmark_run_record(
         queue_order=queue_order,
         run_kind=run_kind,
         normalize_path_value_fn=_normalize_path_value,
-        resolve_registry_path_value_fn=resolve_registry_path_value,
+        resolve_registry_path_value_fn=_resolve_registry_path_value,
         resolve_config_path_fn=_resolve_config_path,
         utc_now_fn=_utc_now,
     )
@@ -234,7 +214,7 @@ def upsert_benchmark_run_entry(
         entry_id_key="run_id",
         validate_entry_fn=_validate_run_entry,
         registry_path=registry_path,
-        default_path=default_benchmark_run_registry_path(),
+        default_path=_default_registry_path(),
         load_registry_payload_fn=_load_registry_payload,
         entries_key="runs",
         write_json_fn=write_json,
@@ -354,7 +334,7 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--registry-path",
-        default=str(default_benchmark_run_registry_path()),
+        default=str(_default_registry_path()),
         help="Benchmark run registry JSON path",
     )
 

@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import argparse
 
-import tab_foundry.bench.benchmark_run_registry as benchmark_run_registry_module
 import tab_foundry.bench.bounce_diagnosis as bounce_diagnosis_module
 import tab_foundry.bench.compare as compare_module
-import tab_foundry.bench.control_baseline as control_baseline_module
+import tab_foundry.bench.control_baseline_freeze as control_baseline_freeze_module
 import tab_foundry.bench.dagzoo_smoke as dagzoo_smoke_module
 import tab_foundry.bench.envs as envs_module
 import tab_foundry.bench.iris_smoke as iris_smoke_module
 import tab_foundry.bench.openml_benchmark_bundle as openml_benchmark_bundle_module
+import tab_foundry.bench.run_registration as run_registration_module
 import tab_foundry.bench.tune as tune_module
 
 
@@ -64,15 +64,15 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "register-run",
         help="Register a benchmark run",
     )
-    benchmark_run_registry_module.configure_parser(registry_register_parser)
-    registry_register_parser.set_defaults(func=benchmark_run_registry_module.run_from_args)
+    run_registration_module.configure_parser(registry_register_parser)
+    registry_register_parser.set_defaults(func=run_registration_module.run_from_args)
 
     registry_freeze_parser = registry_nested.add_parser(
         "freeze-baseline",
         help="Freeze a control baseline",
     )
-    control_baseline_module.configure_parser(registry_freeze_parser)
-    registry_freeze_parser.set_defaults(func=control_baseline_module.run_from_args)
+    control_baseline_freeze_module.configure_parser(registry_freeze_parser)
+    registry_freeze_parser.set_defaults(func=control_baseline_freeze_module.run_from_args)
 
     diagnose_parser = nested.add_parser("diagnose", help="Benchmark diagnosis flows")
     diagnose_nested = diagnose_parser.add_subparsers(dest="diagnose_command", required=True)

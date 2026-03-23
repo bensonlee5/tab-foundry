@@ -13,7 +13,7 @@ import tab_foundry.research.sweep.graph as graph_module
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.research.sweep.graph import GraphPaths
-from tab_foundry.research.system_delta import create_sweep, load_system_delta_queue
+from tab_foundry.research.sweep.core import create_sweep, load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

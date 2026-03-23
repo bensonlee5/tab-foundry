@@ -8,7 +8,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 import pytest
 
-import tab_foundry.bench.benchmark_run_registry as registry_module
+import tab_foundry.benchmark_registry as benchmark_registry
+import tab_foundry.bench.run_registration as registry_module
 
 
 _REL_PATH = st.text(
@@ -121,15 +122,12 @@ def test_registry_path_roundtrips_repo_relative_paths(
 ) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
         repo_root = (Path(tmp_dir) / "repo").resolve()
-        with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+        absolute_path = (repo_root / rel_path).resolve()
 
-            absolute_path = (repo_root / rel_path).resolve()
+        normalized = benchmark_registry.normalize_registry_path_value(absolute_path, root=repo_root)
 
-            normalized = registry_module._normalize_path_value(absolute_path)
-
-            assert normalized == str(absolute_path.relative_to(repo_root))
-            assert registry_module.resolve_registry_path_value(normalized) == absolute_path
+        assert normalized == str(absolute_path.relative_to(repo_root))
+        assert benchmark_registry.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
 
 
 @settings(deadline=None, max_examples=35)
@@ -141,15 +139,12 @@ def test_registry_path_roundtrips_absolute_paths_outside_repo(
         tmp_path = Path(tmp_dir)
         repo_root = (tmp_path / "repo").resolve()
         outside_root = tmp_path / "outside"
-        with pytest.MonkeyPatch.context() as monkeypatch:
-            monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+        absolute_path = (outside_root / rel_path).resolve()
 
-            absolute_path = (outside_root / rel_path).resolve()
+        normalized = benchmark_registry.normalize_registry_path_value(absolute_path, root=repo_root)
 
-            normalized = registry_module._normalize_path_value(absolute_path)
-
-            assert normalized == str(absolute_path)
-            assert registry_module.resolve_registry_path_value(normalized) == absolute_path
+        assert normalized == str(absolute_path)
+        assert benchmark_registry.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
 
 
 @settings(deadline=None, max_examples=35)

@@ -15,9 +15,6 @@ from omegaconf import DictConfig, OmegaConf
 
 from tab_foundry.benchmark_registry import resolve_registry_path_value
 import tab_foundry.control_baseline_registry as control_baseline_registry
-from tab_foundry.bench.benchmark_run_registry import (
-    register_benchmark_run,
-)
 from tab_foundry.bench.comparison_runtime import (
     DEFAULT_NANOTABPFN_BATCH_SIZE,
     DEFAULT_NANOTABPFN_EVAL_EVERY,
@@ -29,6 +26,7 @@ from tab_foundry.bench.comparison_runtime import (
 )
 from tab_foundry.bench.nanotabpfn import benchmark_host_fingerprint, resolve_device
 from tab_foundry.bench.nanotabpfn.bundle import canonical_benchmark_bundle_source_path
+from tab_foundry.bench.run_registration import register_benchmark_run
 from tab_foundry.config import compose_config
 from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_NANOTABPFN
 from tab_foundry.research.lane_contract import (
@@ -36,7 +34,6 @@ from tab_foundry.research.lane_contract import (
     resolve_training_config_profile,
     resolve_training_experiment,
 )
-from tab_foundry.research import system_delta
 from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
 from tab_foundry.training.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.surface import (
@@ -48,6 +45,7 @@ from tab_foundry.training.trainer import train as train_from_manifest_cfg
 from tab_foundry.training.wandb import posthoc_update_wandb_summary
 
 from .artifacts import ExecutionPaths, read_yaml, result_card_text, write_research_package, write_yaml
+from . import core as system_delta
 from .promote import promote_anchor
 from .queue_updates import append_note, optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
 from .screening import pick_screen_winner, screen_metrics

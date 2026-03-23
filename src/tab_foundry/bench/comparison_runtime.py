@@ -9,7 +9,7 @@ import sys
 from typing import Any, Mapping, Sequence, cast
 
 from tab_foundry.bench.artifacts import load_jsonl, write_json, write_jsonl
-from tab_foundry.bench.benchmark_run_registry import derive_benchmark_run_record
+from tab_foundry.bench.run_registration import derive_benchmark_run_record
 from tab_foundry.control_baseline_registry import load_control_baseline_entry
 from tab_foundry.external_benchmarks import (
     DEFAULT_EXTERNAL_BENCHMARKS,

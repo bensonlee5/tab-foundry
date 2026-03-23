@@ -1,4 +1,4 @@
-"""Canonical control-baseline registry helpers."""
+"""Canonical programmatic surface for control-baseline freezing."""
 
 from __future__ import annotations
 
@@ -11,16 +11,7 @@ import torch
 import tab_foundry.control_baseline_registry as read_control_baseline_registry
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.bench.nanotabpfn import collect_checkpoint_snapshots, resolve_tab_foundry_best_checkpoint
-from tab_foundry.bench.registry.paths import (
-    normalize_path_value as _normalize_path_value_impl,
-    project_root as _project_root_impl,
-    resolve_config_path as _resolve_config_path_impl,
-    resolve_registry_path_value as _resolve_registry_path_value_impl,
-)
-from tab_foundry.bench.registry_common import (
-    copy_jsonable as _copy_jsonable,
-    load_comparison_summary as _load_comparison_summary,
-)
+from tab_foundry.bench.registry.paths import resolve_config_path as _resolve_config_path_impl
 from tab_foundry.bench.registry.storage import (
     ensure_registry_payload as _ensure_registry_payload_common,
     load_versioned_registry_payload as _load_versioned_registry_payload,
@@ -30,6 +21,8 @@ from tab_foundry.bench.registry.summary_metrics import (
     benchmark_bundle_payload_from_summary as _benchmark_bundle_payload_from_summary,
     tab_foundry_metrics_from_summary as _tab_foundry_metrics_from_summary,
 )
+from tab_foundry.bench.registry_common import copy_jsonable as _copy_jsonable, load_comparison_summary as _load_comparison_summary
+from tab_foundry.repo_paths import repo_root
 
 
 REGISTRY_SCHEMA = read_control_baseline_registry.REGISTRY_SCHEMA
@@ -39,78 +32,42 @@ DEFAULT_EXPERIMENT = "cls_benchmark_staged_prior"
 DEFAULT_CONFIG_PROFILE = DEFAULT_EXPERIMENT
 DEFAULT_BUDGET_CLASS = "short-run"
 
-_TOP_LEVEL_KEYS = {"schema", "version", "baselines"}
-_ENTRY_KEYS = {
-    "baseline_id",
-    "experiment",
-    "config_profile",
-    "budget_class",
-    "manifest_path",
-    "seed_set",
-    "run_dir",
-    "comparison_summary_path",
-    "benchmark_bundle",
-    "tab_foundry_metrics",
-}
-_BENCHMARK_BUNDLE_KEYS = {"name", "version", "source_path", "task_count", "task_ids"}
-_REQUIRED_TAB_FOUNDRY_METRIC_KEYS = {
-    "best_step",
-    "best_training_time",
-    "final_step",
-    "final_training_time",
-}
-_OPTIONAL_TAB_FOUNDRY_METRIC_KEYS = {
-    "best_roc_auc",
-    "best_log_loss",
-    "best_brier_score",
-    "best_crps",
-    "best_avg_pinball_loss",
-    "best_picp_90",
-    "final_roc_auc",
-    "final_log_loss",
-    "final_brier_score",
-    "final_crps",
-    "final_avg_pinball_loss",
-    "final_picp_90",
-}
-_TAB_FOUNDRY_METRIC_KEYS = _REQUIRED_TAB_FOUNDRY_METRIC_KEYS | _OPTIONAL_TAB_FOUNDRY_METRIC_KEYS
-
 
 def project_root() -> Path:
     """Return the repository root for repo-relative artifact paths."""
 
-    return _project_root_impl()
+    return repo_root()
+
+
+def _default_registry_path() -> Path:
+    return read_control_baseline_registry.default_control_baseline_registry_path()
 
 
 def _normalize_path_value(path: Path) -> str:
-    return _normalize_path_value_impl(path, root_fn=project_root)
+    return read_control_baseline_registry.normalize_registry_path_value(path, root=project_root())
 
 
-def resolve_registry_path_value(value: str) -> Path:
-    """Resolve a registry path value to an absolute path."""
-
-    return _resolve_registry_path_value_impl(value, root_fn=project_root)
+def _resolve_registry_path_value(value: str) -> Path:
+    return read_control_baseline_registry.resolve_registry_path_value(value, root=project_root())
 
 
 def _resolve_config_path(raw_value: Any) -> Path:
     return _resolve_config_path_impl(raw_value, root_fn=project_root)
 
 
-def default_control_baseline_registry_path() -> Path:
-    """Return the repo-tracked control baseline registry path."""
-
-    return read_control_baseline_registry.default_control_baseline_registry_path()
-
-
 def _canonical_registry_path() -> Path:
-    return default_control_baseline_registry_path().expanduser().resolve()
+    return _default_registry_path().expanduser().resolve()
+
+
+def _validate_baseline_entry(entry: Any, *, baseline_id: str) -> None:
+    _ = read_control_baseline_registry._validate_baseline_entry(entry, baseline_id=baseline_id)
 
 
 def _ensure_repo_local_path_value(path_value: str, *, field_name: str) -> None:
-    resolved_path = resolve_registry_path_value(path_value)
-    repo_root = project_root().expanduser().resolve()
+    resolved_path = _resolve_registry_path_value(path_value)
+    resolved_root = project_root().expanduser().resolve()
     try:
-        resolved_path.relative_to(repo_root)
+        resolved_path.relative_to(resolved_root)
     except ValueError as exc:
         raise RuntimeError(
             "canonical control baseline registry requires repo-local artifact paths: "
@@ -145,7 +102,7 @@ def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]
         path,
         allow_missing=allow_missing,
         empty_payload=_empty_registry(),
-        top_level_keys=_TOP_LEVEL_KEYS,
+        top_level_keys=read_control_baseline_registry._TOP_LEVEL_KEYS,
         schema=REGISTRY_SCHEMA,
         version=REGISTRY_VERSION,
         entries_key="baselines",
@@ -155,67 +112,11 @@ def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]
     )
 
 
-def load_control_baseline_registry(path: Path | None = None) -> dict[str, Any]:
-    """Load and validate the control baseline registry."""
-
-    return read_control_baseline_registry.load_control_baseline_registry(
-        default_control_baseline_registry_path() if path is None else path
-    )
-
-
 def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, Any]]:
     return _ensure_registry_payload_common(
         path,
-        default_path=default_control_baseline_registry_path(),
+        default_path=_default_registry_path(),
         load_registry_payload_fn=_load_registry_payload,
-    )
-
-
-def _validate_baseline_entry(entry: Any, *, baseline_id: str) -> None:
-    if not isinstance(entry, dict):
-        raise RuntimeError(f"control baseline entry must be an object: baseline_id={baseline_id}")
-    actual_keys = set(entry.keys())
-    if actual_keys != _ENTRY_KEYS:
-        raise RuntimeError(
-            f"control baseline entry keys mismatch for {baseline_id}: "
-            f"missing={sorted(_ENTRY_KEYS - actual_keys)}, extra={sorted(actual_keys - _ENTRY_KEYS)}"
-        )
-    if str(entry["baseline_id"]) != baseline_id:
-        raise RuntimeError(
-            "control baseline entry baseline_id mismatch: "
-            f"expected={baseline_id!r}, actual={entry['baseline_id']!r}"
-        )
-    if not isinstance(entry["seed_set"], list) or not entry["seed_set"]:
-        raise RuntimeError(f"control baseline entry seed_set must be a non-empty list: {baseline_id}")
-    benchmark_bundle = entry["benchmark_bundle"]
-    if not isinstance(benchmark_bundle, dict) or set(benchmark_bundle.keys()) != _BENCHMARK_BUNDLE_KEYS:
-        raise RuntimeError(
-            f"control baseline entry benchmark_bundle must match expected schema: {baseline_id}"
-        )
-    tab_foundry_metrics = entry["tab_foundry_metrics"]
-    if not isinstance(tab_foundry_metrics, dict):
-        raise RuntimeError(
-            f"control baseline entry tab_foundry_metrics must match expected schema: {baseline_id}"
-        )
-    actual_metric_keys = set(tab_foundry_metrics.keys())
-    if not _REQUIRED_TAB_FOUNDRY_METRIC_KEYS.issubset(actual_metric_keys) or not actual_metric_keys.issubset(
-        _TAB_FOUNDRY_METRIC_KEYS
-    ):
-        raise RuntimeError(
-            f"control baseline entry tab_foundry_metrics must match expected schema: {baseline_id}"
-        )
-
-
-def load_control_baseline_entry(
-    baseline_id: str,
-    *,
-    registry_path: Path | None = None,
-) -> dict[str, Any]:
-    """Load one control baseline entry by id."""
-
-    return read_control_baseline_registry.load_control_baseline_entry(
-        baseline_id,
-        registry_path=default_control_baseline_registry_path() if registry_path is None else registry_path,
     )
 
 
@@ -285,7 +186,7 @@ def derive_control_baseline_entry(
         benchmark_bundle,
         source_context="comparison summary benchmark_bundle.source_path",
         normalize_path_value_fn=_normalize_path_value,
-        resolve_registry_path_value_fn=resolve_registry_path_value,
+        resolve_registry_path_value_fn=_resolve_registry_path_value,
     )
     tab_foundry_metrics = _tab_foundry_metrics_from_summary(tab_foundry)
     entry = {
@@ -316,7 +217,7 @@ def upsert_control_baseline_entry(
         entry_id_key="baseline_id",
         validate_entry_fn=_validate_baseline_entry,
         registry_path=registry_path,
-        default_path=default_control_baseline_registry_path(),
+        default_path=_default_registry_path(),
         load_registry_payload_fn=_load_registry_payload,
         entries_key="baselines",
         write_json_fn=write_json,
@@ -344,7 +245,7 @@ def freeze_control_baseline(
         run_dir=run_dir,
         comparison_summary_path=comparison_summary_path,
     )
-    requested_registry_path = default_control_baseline_registry_path() if registry_path is None else registry_path
+    requested_registry_path = _default_registry_path() if registry_path is None else registry_path
     resolved_registry_path = requested_registry_path.expanduser().resolve()
     if resolved_registry_path == _canonical_registry_path():
         _enforce_canonical_registry_entry_paths(entry)
@@ -384,7 +285,7 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--registry-path",
-        default=str(default_control_baseline_registry_path()),
+        default=str(_default_registry_path()),
         help="Control baseline registry JSON path",
     )
 

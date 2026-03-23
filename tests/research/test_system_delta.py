@@ -18,7 +18,7 @@ from tab_foundry.research.lane_contract import (
     resolve_training_experiment,
     resolve_surface_role,
 )
-from tab_foundry.research.system_delta import (
+from tab_foundry.research.sweep.core import (
     create_sweep,
     load_system_delta_catalog,
     load_system_delta_index,

@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 import torch
 
-import tab_foundry.bench.benchmark_run_registry as registry_module
+import tab_foundry.benchmark_registry as benchmark_registry
+import tab_foundry.bench.run_registration as registry_module
 import tab_foundry.data.corpus as corpus_module
 from tab_foundry.model.factory import build_model
 
@@ -377,7 +378,10 @@ def test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surfa
         (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
     )
     assert record["manifest_path"] == "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet"
-    assert registry_module.resolve_registry_path_value(record["manifest_path"]) == override_manifest.resolve()
+    assert benchmark_registry.resolve_registry_path_value(
+        record["manifest_path"],
+        root=repo_root,
+    ) == override_manifest.resolve()
     assert (
         Path(surface_record["data"]["manifest"]["manifest_path"]).resolve()
         == override_manifest.resolve()
@@ -412,7 +416,10 @@ def test_derive_benchmark_run_record_uses_materialized_corpus_manifest_path(
         (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
     )
     assert record["manifest_path"] == "outputs/corpora/current_recipe/current_recipe__123456789abc/manifest.parquet"
-    assert registry_module.resolve_registry_path_value(record["manifest_path"]) == corpus_manifest.resolve()
+    assert benchmark_registry.resolve_registry_path_value(
+        record["manifest_path"],
+        root=repo_root,
+    ) == corpus_manifest.resolve()
     assert (
         Path(surface_record["data"]["manifest"]["manifest_path"]).resolve()
         == corpus_manifest.resolve()
@@ -536,7 +543,7 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
         "outputs/label_token/benchmark/training_surface_record.json"
     )
 
-    registry = registry_module.load_benchmark_run_registry(registry_path)
+    registry = benchmark_registry.load_benchmark_run_registry(registry_path)
     assert set(registry["runs"]) == {"00_simple_anchor", "01_nano_exact"}
     assert registry["runs"]["01_nano_exact"]["comparisons"]["vs_anchor"]["final_roc_auc_delta"] == pytest.approx(0.04)
     assert registry["runs"]["01_nano_exact"]["comparisons"]["vs_anchor"]["final_log_loss_delta"] == pytest.approx(-0.03)
@@ -745,7 +752,7 @@ def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_f
 def test_checked_in_benchmark_run_registry_contains_medium_binary_anchor() -> None:
     registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
 
-    registry = registry_module.load_benchmark_run_registry(registry_path)
+    registry = benchmark_registry.load_benchmark_run_registry(registry_path)
     run = registry["runs"]["01_nano_exact_md_prior_parity_fix_binary_medium_v1"]
 
     assert run["benchmark_bundle"]["source_path"] == (

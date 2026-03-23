@@ -11,7 +11,7 @@ from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.inspect as inspect_module
 import tab_foundry.research.sweep.matrix as matrix_module
-from tab_foundry.research.system_delta import load_system_delta_queue
+from tab_foundry.research.sweep.core import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

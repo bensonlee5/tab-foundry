@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 import torch
 
-import tab_foundry.bench.control_baseline as control_baseline_module
+import tab_foundry.bench.control_baseline_freeze as control_baseline_module
+import tab_foundry.control_baseline_registry as read_control_baseline_registry
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -214,7 +215,7 @@ def test_freeze_control_baseline_writes_repo_relative_registry_entry(
     assert frozen["baseline"]["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
     )
-    registry = control_baseline_module.load_control_baseline_registry(registry_path)
+    registry = read_control_baseline_registry.load_control_baseline_registry(registry_path)
     assert registry["baselines"]["cls_benchmark_linear_v1"]["seed_set"] == [7]
 
     _ = _write_comparison_summary(
@@ -232,7 +233,7 @@ def test_freeze_control_baseline_writes_repo_relative_registry_entry(
         comparison_summary_path=summary_path,
         registry_path=registry_path,
     )
-    updated = control_baseline_module.load_control_baseline_entry(
+    updated = read_control_baseline_registry.load_control_baseline_entry(
         "cls_benchmark_linear_v1",
         registry_path=registry_path,
     )
@@ -420,7 +421,11 @@ def test_freeze_control_baseline_rejects_external_artifacts_for_canonical_regist
         include_diagnostics=True,
     )
     monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
-    monkeypatch.setattr(control_baseline_module, "default_control_baseline_registry_path", lambda: registry_path)
+    monkeypatch.setattr(
+        read_control_baseline_registry,
+        "default_control_baseline_registry_path",
+        lambda: registry_path,
+    )
 
     with pytest.raises(RuntimeError, match="canonical control baseline registry requires repo-local artifact paths"):
         control_baseline_module.freeze_control_baseline(
@@ -437,7 +442,7 @@ def test_freeze_control_baseline_rejects_external_artifacts_for_canonical_regist
 def test_checked_in_control_baseline_registry_preserves_v1_and_adds_v2() -> None:
     registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
 
-    registry = control_baseline_module.load_control_baseline_registry(registry_path)
+    registry = read_control_baseline_registry.load_control_baseline_registry(registry_path)
 
     assert {"cls_benchmark_linear_v1", "cls_benchmark_linear_v2"} <= set(registry["baselines"])
     assert registry["baselines"]["cls_benchmark_linear_v1"]["benchmark_bundle"]["source_path"] == (
