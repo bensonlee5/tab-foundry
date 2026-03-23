@@ -45,6 +45,7 @@ DEFAULT_BENCHMARK_BUNDLE_REF = "src/tab_foundry/bench/nanotabpfn_openml_binary_l
 DEFAULT_NUM_DATASETS = 8192
 DEFAULT_SEED = 1
 DEFAULT_DEVICE = "cpu"
+DEFAULT_HARDWARE_POLICY = "none"
 DEFAULT_COMPARATOR_SPLIT_SEED = 0
 DEFAULT_COMPARATOR_TEST_SIZE = 0.20
 
@@ -91,7 +92,11 @@ SIZE_LADDER_SUPPORT_ROOT = (
 )
 
 ANCHOR_MANIFEST_PATH = REPO_ROOT / "data" / "manifests" / "default.parquet"
+CURRENT_CORPUS_HANDOFF_ROOT = (
+    REPO_ROOT / "outputs" / "current_corpus" / "default_generated_source"
+)
 TAB_FOUNDRY_BIN = REPO_ROOT / ".venv" / "bin" / "tab-foundry"
+ANCHOR_MANIFEST_REQUIRED_COLUMNS = ("train_path", "test_path", "metadata_path")
 
 
 @dataclass(frozen=True)
@@ -304,6 +309,82 @@ def _sanitize_paths(value: Any) -> Any:
 
 def _render_command(cmd: list[str]) -> str:
     return subprocess.list2cmdline(cmd) if sys.platform == "win32" else " ".join(cmd)
+
+
+def _anchor_manifest_bootstrap_command() -> str:
+    return "\n".join(
+        [
+            f"{_portable_path(TAB_FOUNDRY_BIN)} data dagzoo generate-manifest \\",
+            f"  --dagzoo-root {_portable_path(DEFAULT_DAGZOO_ROOT)} \\",
+            f"  --dagzoo-config {DEFAULT_DAGZOO_CONFIG_REF} \\",
+            f"  --handoff-root {_portable_path(CURRENT_CORPUS_HANDOFF_ROOT)} \\",
+            f"  --out-manifest {_portable_path(ANCHOR_MANIFEST_PATH)} \\",
+            f"  --num-datasets {DEFAULT_NUM_DATASETS} \\",
+            f"  --seed {DEFAULT_SEED} \\",
+            f"  --device {DEFAULT_DEVICE} \\",
+            f"  --hardware-policy {DEFAULT_HARDWARE_POLICY}",
+        ]
+    )
+
+
+def _anchor_manifest_bootstrap_error(reason: str) -> RuntimeError:
+    command = _anchor_manifest_bootstrap_command()
+    return RuntimeError(
+        f"{reason}\n"
+        f"TF-RD-013 support materialization requires a fresh current-corpus manifest at "
+        f"{_portable_path(ANCHOR_MANIFEST_PATH)}.\n"
+        "Stale absolute-path local snapshots are unsupported for this flow.\n\n"
+        "From the repo root, generate it with:\n"
+        f"{command}\n\n"
+        "Then rerun `scripts/materialize_tf_rd_013_support.py --variant size-ladder --force`."
+    )
+
+
+def _resolve_manifest_record_path(*, manifest_path: Path, raw_path: str) -> Path:
+    candidate = Path(str(raw_path)).expanduser()
+    if candidate.is_absolute():
+        return candidate.resolve()
+    return (manifest_path.parent / candidate).resolve()
+
+
+def _assert_anchor_manifest_ready(manifest_path: Path) -> None:
+    if not manifest_path.exists():
+        raise _anchor_manifest_bootstrap_error(
+            f"anchor manifest does not exist: {manifest_path}"
+        )
+    try:
+        table = pq.read_table(manifest_path, columns=list(ANCHOR_MANIFEST_REQUIRED_COLUMNS))
+    except Exception as exc:  # pragma: no cover - defensive bootstrap guidance
+        raise _anchor_manifest_bootstrap_error(
+            f"anchor manifest could not be inspected: {manifest_path}: {exc}"
+        ) from exc
+
+    missing_examples: list[str] = []
+    for row_index, record in enumerate(table.to_pylist()):
+        for column in ANCHOR_MANIFEST_REQUIRED_COLUMNS:
+            raw_value = record.get(column)
+            if not isinstance(raw_value, str) or not raw_value.strip():
+                missing_examples.append(f"row {row_index} has invalid {column}={raw_value!r}")
+            else:
+                resolved = _resolve_manifest_record_path(
+                    manifest_path=manifest_path,
+                    raw_path=raw_value,
+                )
+                if not resolved.exists():
+                    missing_examples.append(
+                        f"row {row_index} {column} -> {resolved}"
+                    )
+            if len(missing_examples) >= 5:
+                break
+        if len(missing_examples) >= 5:
+            break
+
+    if missing_examples:
+        details = "\n".join(f"  - {example}" for example in missing_examples)
+        raise _anchor_manifest_bootstrap_error(
+            "anchor manifest exists but its backing files are missing or invalid:\n"
+            f"{details}"
+        )
 
 
 def _run_checked(cmd: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -706,8 +787,7 @@ def _assert_common_inputs(*, dagzoo_root: Path) -> Path:
         raise RuntimeError(f"dagzoo root does not exist: {dagzoo_root}")
     if not TAB_FOUNDRY_BIN.exists():
         raise RuntimeError(f"tab-foundry CLI not found at {TAB_FOUNDRY_BIN}")
-    if not ANCHOR_MANIFEST_PATH.exists():
-        raise RuntimeError(f"anchor manifest does not exist: {ANCHOR_MANIFEST_PATH}")
+    _assert_anchor_manifest_ready(ANCHOR_MANIFEST_PATH)
     benchmark_bundle_path = REPO_ROOT / DEFAULT_BENCHMARK_BUNDLE_REF
     if not benchmark_bundle_path.exists():
         raise RuntimeError(f"benchmark bundle does not exist: {benchmark_bundle_path}")
@@ -769,6 +849,7 @@ def _historical_materialization_summary(
         "env_hints": {
             "dagzoo_root": "../dagzoo",
             "tab_foundry_root": ".",
+            "anchor_bootstrap_command": _anchor_manifest_bootstrap_command(),
         },
         "config_refs": {
             "dagzoo": [DEFAULT_DAGZOO_CONFIG_REF],
@@ -1397,7 +1478,8 @@ def _size_ladder_materialization_summary(
             "notes": [
                 "The size ladder keeps the same three config-backed dagzoo regimes as the shape-aware follow-up while reducing requested dataset counts aggressively.",
                 "Every ladder surface is generated on CPU with hardware-policy none so the comparison stays about corpus content rather than generation hardware.",
-                "The follow-up establishes one manifest-backed anchor control with target_train_seconds cleared before comparing any dagzoo size rung.",
+                "The follow-up expects a fresh current-corpus manifest at data/manifests/default.parquet generated from the current dagzoo default config before comparing any size rung.",
+                "Row 1 keeps that fresh current-corpus baseline but clears target_train_seconds so every ladder row shares the same max_steps=2500 stop contract.",
             ],
             "surface_names": [record["surface_spec"].surface_name for record in surface_records],
             "surfaces": ladder_surfaces,

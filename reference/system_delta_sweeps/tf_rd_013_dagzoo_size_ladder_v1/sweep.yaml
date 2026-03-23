@@ -17,8 +17,9 @@ anchor_surface:
   notes:
   - This draft sweep reopens TF-RD-013 under issues `#96` and `#132` for one final corpus-size adequacy gate before TF-RD-018 training-surface work.
   - The locked benchmark anchor remains `sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1`, but that historical artifact was recorded through the prior-dump-era control path rather than the current manifest-backed stop contract.
-  - Row 1 reruns the anchor on the manifest backend with `runtime.target_train_seconds: null` so every remaining TF-RD-013 row shares one canonical `max_steps=2500` stop condition.
-  - Keep the current corpus as the baseline and compare only three smaller shape-aware dagzoo surfaces; do not include the curated comparator, multiclass augmentation, filtering policy, or optimizer changes here.
+  - Row 1 now uses a fresh current-corpus manifest generated from the current dagzoo default config and clears `runtime.target_train_seconds` so every remaining TF-RD-013 row shares one canonical `max_steps=2500` stop condition.
+  - The reopened size ladder does not rely on the stale 2026-02-22 absolute-path snapshot; operators must bootstrap `data/manifests/default.parquet` explicitly before materializing support artifacts.
+  - Keep the fresh default current corpus as the baseline and compare only three smaller shape-aware dagzoo surfaces; do not include the curated comparator, multiclass augmentation, filtering policy, or optimizer changes here.
   - Use this ladder only to decide whether shrunken shape-aware dagzoo corpora materially improve the promoted-anchor read enough to keep synthetic-data exploration open before a separate synthetic-data epic is warranted.
   dimension_table:
   - dimension: model anchor
@@ -27,11 +28,11 @@ anchor_surface:
     interpretation: TF-RD-013 size-ladder work changes only the training-data comparison surface and the stop-condition control, not the promoted model surface.
   - dimension: training data surface
     upstream: TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract.
-    anchor: Current manifest-backed prior-training corpus with data surface label `anchor_manifest_default`.
-    interpretation: The current corpus remains the baseline while the sweep compares three shrunken shape-aware dagzoo alternatives under the same row caps.
+    anchor: Fresh current-corpus manifest generated from the current dagzoo default config with data surface label `anchor_manifest_default`.
+    interpretation: The fresh default current corpus remains the baseline while the sweep compares three shrunken shape-aware dagzoo alternatives under the same row caps.
   - dimension: dagzoo size ladder
     upstream: Not applicable.
-    anchor: No dagzoo provenance is attached to the current-corpus anchor surface.
+    anchor: Row 1 uses the default dagzoo recipe as the current-corpus control rather than carrying over a historical local snapshot.
     interpretation: Each candidate row should keep one top-level `dagzoo_provenance` payload with explicit per-invocation counts so size sensitivity is reviewable rather than implicit.
   - dimension: benchmark and control context
     upstream: TabICLv2 is the architectural reference, while nanoTabPFN remains the benchmark/control bundle family used by this repo for this decision.
@@ -40,7 +41,7 @@ anchor_surface:
   - dimension: training stop contract
     upstream: TabICLv2 does not define this repo-local manifest trainer stop rule.
     anchor: Training surface label `prior_linear_warmup_decay` with `max_steps=2500`.
-    interpretation: The manifest-parity anchor replay clears `runtime.target_train_seconds` so later rows isolate corpus size rather than backend stop semantics.
+    interpretation: The fresh current-corpus control clears `runtime.target_train_seconds` so later rows isolate corpus size rather than backend stop semantics.
 anchor_context:
   run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
   experiment: cls_benchmark_staged

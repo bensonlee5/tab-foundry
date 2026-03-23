@@ -2142,13 +2142,13 @@ deltas:
     default_next_action: Run after the bounded row-cls reopen as the single promotion-gate confirmation row.
     applicability_guards: []
 
-  delta_training_manifest_parity_anchor_uncapped:
+  delta_training_current_corpus_uncapped:
     dimension_family: training
     family: baseline_replay
     binary_applicable: true
-    description: Re-run the settled row-first anchor on the manifest backend with the inherited time cap cleared so the 2500-step contract is actually reached.
-    upstream_delta: Not applicable; this is a repo-local manifest-parity control row for TF-RD-013.
-    expected_effect: Establish the canonical manifest-backed anchor control before reading any dagzoo size-rung comparison.
+    description: Run the settled row-first anchor against a fresh current-corpus manifest from current dagzoo output with the inherited time cap cleared so the 2500-step contract is actually reached.
+    upstream_delta: Not applicable; this is a repo-local fresh current-corpus control row for TF-RD-013.
+    expected_effect: Establish the canonical fresh current-corpus control before reading any dagzoo size-rung comparison.
     adequacy_knobs:
       - training.overrides.runtime.target_train_seconds
       - training.overrides.runtime.max_steps
@@ -2156,7 +2156,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the resolved backend is manifest and `target_train_seconds` is null before reading any benchmark output.
-        - Use this row only as the same-backend control for the dagzoo size ladder, not as a new training-optimization claim.
+        - Use this row only as the fresh current-corpus control for the dagzoo size ladder, not as a new training-optimization claim.
       default_negative_decision: defer
       reject_requires:
         - isolated_change
@@ -2203,7 +2203,7 @@ deltas:
                 lr_max: 0.004
                 lr_schedule: linear
                 warmup_ratio: 0.05
-    default_next_action: Run first as the manifest-parity anchor replay before comparing any shrunken dagzoo surface.
+    default_next_action: Run first after bootstrapping the fresh current-corpus manifest from current dagzoo output, before comparing any shrunken dagzoo surface.
     applicability_guards: []
 
   delta_data_manifest_root_dagzoo_generated_source:
@@ -2297,7 +2297,7 @@ deltas:
     adequacy_knobs:
       - explicit config ladder coverage across the selected dagzoo shape regimes
       - per-invocation dataset counts and combined split distribution
-      - manifest-contract deltas versus the manifest-parity anchor control
+      - manifest-contract deltas versus the fresh current-corpus control
     parameter_adequacy_policy:
       default_plan:
         - Compare manifest characteristics against the anchor before training and confirm the intended `small` ladder counts landed in the merged surface.
@@ -2327,7 +2327,7 @@ deltas:
             invocations: []
       preprocessing:
         surface_label: runtime_default
-    default_next_action: Run after the manifest-parity anchor control to determine whether a strongly shrunken dagzoo corpus improves the promoted-anchor read.
+    default_next_action: Run after the fresh current-corpus control to determine whether a strongly shrunken dagzoo corpus improves the promoted-anchor read.
     applicability_guards: []
 
   delta_data_manifest_root_dagzoo_shape_aware_size_medium:
@@ -2340,7 +2340,7 @@ deltas:
     adequacy_knobs:
       - explicit config ladder coverage across the selected dagzoo shape regimes
       - per-invocation dataset counts and combined split distribution
-      - manifest-contract deltas versus the manifest-parity anchor control
+      - manifest-contract deltas versus the fresh current-corpus control
     parameter_adequacy_policy:
       default_plan:
         - Compare manifest characteristics against the anchor before training and confirm the intended `medium` ladder counts landed in the merged surface.
@@ -2383,7 +2383,7 @@ deltas:
     adequacy_knobs:
       - explicit config ladder coverage across the selected dagzoo shape regimes
       - per-invocation dataset counts and combined split distribution
-      - manifest-contract deltas versus the manifest-parity anchor control
+      - manifest-contract deltas versus the fresh current-corpus control
     parameter_adequacy_policy:
       default_plan:
         - Compare manifest characteristics against the anchor before training and confirm the intended `large` ladder counts landed in the merged surface.

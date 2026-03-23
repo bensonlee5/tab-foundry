@@ -91,9 +91,9 @@ Important non-goals for this roadmap:
   surfaces because the bundles only enforce `min_minority_class_pct = 2.5`
   rather than defining an explicit skew ladder.
 - Training adequacy should become explicit once the repo has settled whether the
-  current corpus or dagzoo-style corpora better match the training data it
-  actually expects to use, so optimizer and schedule work does not overfit the
-  wrong data surface.
+  fresh default current corpus or alternative dagzoo-style corpora better match
+  the training data it actually expects to use, so optimizer and schedule work
+  does not overfit the wrong data surface.
 - Harder real-data ladders should keep one canonical OpenML baseline where the
   benchmark tooling is already native, allow manifest-backed external
   real-data augmentations when they add regimes OpenML does not cover cleanly,
@@ -224,7 +224,7 @@ attention.
 | Coherent row-first migration ladder exists in code | `implemented` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly, and `qass_tfcol_large_missing_validation_v1` closed the missing-permitting settlement sweep | The remaining work is no longer anchor coherence; it is harder and broader post-008 regime coverage on the settled row-first base | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and both large-bundle validators now separate row embeddings, plain context, TFCol-only, QASS-only, the no-TFCol default line, and the retained `qass + tfcol_heads4` calibration variant | The next comparison gap is no longer anchor settlement; it is whether harder post-008 fronts provide more decisive regime separation before scaling work | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | One promoted row-first classification anchor exists | `implemented` | `qass_tfcol_large_missing_validation_v1` closed on an explicit split: `row_cls + qass + no tfcol` is now the default row-first anchor, while `row_cls + qass + tfcol_heads4` is retained as a calibration-oriented alternative | Future work should treat the no-TFCol line as the default and reserve TFCol for explicit calibration-oriented follow-up rather than reopening anchor settlement | `TF-RD-008` |
-| Harder post-008 data surfaces can be exercised | `partial` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, and the first two promoted-anchor TF-RD-013 comparison packages under `#120`, `#122`, and `#127` now exist | The repo still lacks a same-backend representative post-008 training-data decision; the immediate blocker is the reopened manifest-parity anchor rerun plus dagzoo size ladder under `#132`, not TF-RD-018 training-surface optimization yet | `TF-RD-011`, `TF-RD-013`, `TF-RD-014`, `TF-RD-017`, `TF-RD-018` |
+| Harder post-008 data surfaces can be exercised | `partial` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, and the first two promoted-anchor TF-RD-013 comparison packages under `#120`, `#122`, and `#127` now exist | The repo still lacks a representative post-008 training-data decision on the current manifest backend; the immediate blocker is the reopened fresh-current-corpus control plus dagzoo size ladder under `#132`, not TF-RD-018 training-surface optimization yet | `TF-RD-011`, `TF-RD-013`, `TF-RD-014`, `TF-RD-017`, `TF-RD-018` |
 | Class-imbalance robustness is meaningfully exercised | `partial` | Current benchmark bundles enforce `min_minority_class_pct = 2.5`, so the repo already excludes degenerate class-balance cases | There is no dedicated imbalance-focused bundle ladder, imbalance-oriented reporting contract, or explicit decision on the promoted anchor under materially skewed priors | `TF-RD-017` |
 | Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, and bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist | Optimizer, schedule, step-budget, batch, and clipping adequacy are not yet tracked as one roadmap workstream with a canonical decision surface | `TF-RD-018` |
 | Many-class evaluation can start on the row-first base | `partial` | The staged family already includes `many_class`, reusable machinery exists, and `nanotabpfn_openml_classification_small_v1.json` provides a benchmark-facing multiclass bundle | Many-class still lacks a promoted row-first benchmark ladder, adequacy sweeps, and a keep/defer decision | `TF-RD-010` |
@@ -656,11 +656,11 @@ This roadmap assumes the following repo truths:
 
 - Status: `partial`
 - Milestone: `Now`
-- Goal: decide before training-surface adequacy work whether dagzoo-generated
-  corpora better match the intended post-008 training data surface than the
-  current corpus, and whether they materially improve training difficulty,
-  architecture discrimination, or final quality on the promoted row-first
-  anchor
+- Goal: decide before training-surface adequacy work whether the fresh default
+  current-corpus dagzoo recipe or smaller shape-aware dagzoo corpora better
+  match the intended post-008 training data surface, and whether any of those
+  choices materially improve training difficulty, architecture discrimination,
+  or final quality on the promoted row-first anchor
 - Current state:
   - the dagzoo handoff boundary is complete through closed TF-RD-011 work
   - dagzoo smoke and manifest identity are no longer the main blocker
@@ -687,8 +687,8 @@ This roadmap assumes the following repo truths:
     under the inherited `runtime.target_train_seconds: 330` manifest cap while the
     historical anchor control remained a prior-dump-era artifact
   - issue [#132](https://github.com/bensonlee5/tab-foundry/issues/132) now tracks
-    the reopened manifest-parity anchor rerun plus the dagzoo size ladder needed
-    to finish the representative-data decision
+    the reopened fresh-current-corpus bootstrap, uncapped current-corpus control,
+    and dagzoo size ladder needed to finish the representative-data decision
   - issue [#107](https://github.com/bensonlee5/tab-foundry/issues/107) remains
     blocked on this final TF-RD-013 gate; TF-RD-018 should not settle optimizer
     or schedule adequacy on a training-data surface that still lacks a same-backend
@@ -702,8 +702,9 @@ This roadmap assumes the following repo truths:
     it did so under the inherited 330-second manifest cap rather than an uncapped
     `max_steps=2500` contract
   - the current TF-RD-013 blocker is therefore no longer dagzoo handoff plumbing;
-    it is whether a same-backend manifest anchor control plus a much smaller
-    shape-aware dagzoo ladder changes the keep/defer read materially
+    it is whether a fresh current-corpus control on the current manifest backend
+    plus a much smaller shape-aware dagzoo ladder changes the keep/defer read
+    materially
   - the OpenML-first curated comparator remained materially worse than the anchor
     on final large-bundle log loss and Brier in both TF-RD-013 sweeps, so it stays
     evidence-only and is omitted from the reopened size ladder
@@ -712,13 +713,15 @@ This roadmap assumes the following repo truths:
     problem appears
 - Exit criteria:
   - execute issue [#132](https://github.com/bensonlee5/tab-foundry/issues/132):
-    one manifest-parity anchor replay plus the `small`, `medium`, and `large`
-    shape-aware dagzoo rungs with `runtime.target_train_seconds: null`
+    bootstrap `data/manifests/default.parquet` from the current dagzoo default config,
+    run one uncapped fresh current-corpus control, then run the `small`,
+    `medium`, and `large` shape-aware dagzoo rungs with `runtime.target_train_seconds: null`
   - record whether any shrunken shape-aware dagzoo rung materially improves the
-    promoted-anchor read relative to the manifest-parity control
-  - then either keep the current corpus as the representative post-008 training-data
-    surface or open a separate synthetic-data epic based on specific size-ladder
-    results before TF-RD-018 becomes the main next workstream
+    promoted-anchor read relative to the fresh current-corpus control
+  - then either keep the fresh default current corpus as the representative
+    post-008 training-data surface or open a separate synthetic-data epic based
+    on specific size-ladder results before TF-RD-018 becomes the main next
+    workstream
 
 ### TF-RD-014: Missingness Robustness On The Promoted Anchor
 
@@ -809,7 +812,7 @@ This roadmap assumes the following repo truths:
   - this epic should follow TF-RD-013 so optimizer and schedule work are grounded
     in data that looks like intended use
   - issues `#122` and `#127` recorded neutral-to-negative TF-RD-013 reads, so
-    issue `#107` remains blocked on the reopened manifest-parity plus size-ladder
+    issue `#107` remains blocked on the reopened fresh-current-corpus control plus size-ladder
     follow-up in issue `#132`
   - later architecture reads remain confounded until the repo has one explicit
     adequacy decision surface on the settled row-first base

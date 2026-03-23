@@ -153,6 +153,22 @@ loader path for external real-data ingestion.
 
 ## Manifest Build
 
+For the reopened TF-RD-013 size ladder, bootstrap the default current-corpus manifest explicitly from current `dagzoo` output instead of relying on an old local snapshot:
+
+```bash
+.venv/bin/tab-foundry data dagzoo generate-manifest \
+  --dagzoo-root ../dagzoo \
+  --dagzoo-config configs/default.yaml \
+  --handoff-root outputs/current_corpus/default_generated_source \
+  --out-manifest data/manifests/default.parquet \
+  --num-datasets 8192 \
+  --seed 1 \
+  --device cpu \
+  --hardware-policy none
+```
+
+`data/manifests/default.parquet` is a local/generated artifact. On a new machine, regenerate it rather than copying a stale absolute-path manifest.
+
 Set `DAGZOO_DATA_ROOT` once if you want a stable sibling data path:
 
 ```bash

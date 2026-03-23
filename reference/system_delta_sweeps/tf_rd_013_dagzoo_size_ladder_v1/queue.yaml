@@ -2,11 +2,11 @@ schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: tf_rd_013_dagzoo_size_ladder_v1
 rows:
 - order: 1
-  delta_ref: delta_training_manifest_parity_anchor_uncapped
+  delta_ref: delta_training_current_corpus_uncapped
   status: ready
-  rationale: Re-establish the settled row-first anchor on the manifest backend without the inherited 330-second cap so the remaining TF-RD-013 rows compare against a same-backend control.
-  hypothesis: Clearing `target_train_seconds` should let the manifest-backed anchor reach the intended 2500-step contract and become the canonical control for the dagzoo size ladder.
-  anchor_delta: Keep the settled row-first model, current corpus, and preprocessing surfaces fixed, but clear the inherited time cap so the manifest trainer stops only at `max_steps=2500`.
+  rationale: Re-establish the settled row-first anchor on a fresh current-corpus manifest generated from the current dagzoo default config, then clear the inherited 330-second cap so the remaining TF-RD-013 rows compare against one current same-backend control.
+  hypothesis: A fresh current-corpus bootstrap plus cleared `target_train_seconds` should produce the canonical control for the dagzoo size ladder under the current manifest-backed training path.
+  anchor_delta: Keep the settled row-first model and preprocessing surfaces fixed, point data at the fresh current-corpus manifest generated from the current dagzoo default config, and clear the inherited time cap so the manifest trainer stops only at `max_steps=2500`.
   model:
     stage: qass_context
     stage_label: delta_qass_no_column_v3
@@ -46,22 +46,23 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the resolved backend is `manifest`, `runtime.max_steps` is `2500`, and `runtime.target_train_seconds` is `null` before reading any benchmark outcome.
-  - Use this row as the same-backend control for rows 2-4 rather than as a new training optimization claim.
+  - Use this row as the fresh current-corpus control for rows 2-4 rather than as a new training optimization claim.
   run_id: null
   followup_run_ids: []
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Run first on the CUDA machine as the canonical manifest-backed control for the reopened TF-RD-013 decision.
+  next_action: Run first on the CUDA machine after bootstrapping `data/manifests/default.parquet` from current dagzoo output.
   notes:
-  - The historical locked anchor artifact predates the backend-aware manifest runner; this row establishes the canonical manifest-backed control for the remaining TF-RD-013 decision.
+  - This row relies on an explicit `tab-foundry data dagzoo generate-manifest` bootstrap and does not reuse the stale 2026-02-22 absolute-path snapshot.
+  - The historical locked anchor artifact predates the backend-aware manifest runner; this row establishes the canonical fresh current-corpus control for the remaining TF-RD-013 decision.
 - order: 2
   delta_ref: delta_data_manifest_root_dagzoo_shape_aware_size_small
-  parent_delta_ref: delta_training_manifest_parity_anchor_uncapped
+  parent_delta_ref: delta_training_current_corpus_uncapped
   status: ready
   rationale: Start the reopened TF-RD-013 follow-up with the smallest shrunken shape-aware dagzoo surface so the first size-rung read is aggressively different from the previous 6272-record shape-aware corpus.
   hypothesis: The smallest rung may recover a stronger promoted-anchor read by giving the uncapped 2500-step run materially more reuse of the mixed shape-aware regimes.
-  anchor_delta: Starting from row 1's manifest-parity anchor control, replace the current corpus with the `small` shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
+  anchor_delta: Starting from row 1's fresh current-corpus control, replace the default current corpus with the `small` shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
   model:
     stage: qass_context
     stage_label: delta_qass_no_column_v3
@@ -135,17 +136,17 @@ rows:
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Run second and compare directly against the manifest-parity anchor before spending budget on the larger ladder rungs.
+  next_action: Run second and compare directly against the fresh current-corpus control before spending budget on the larger ladder rungs.
   notes:
   - Support-bundle regeneration instructions live in `reference/system_delta_sweeps/tf_rd_013_dagzoo_size_ladder_v1/support/README.md`; the tracked JSON summaries should be refreshed on the remote materialization machine.
   - The size ladder stays binary-only, omits the curated comparator, and uses CPU dagzoo generation so the training read stays about corpus content rather than generator hardware.
 - order: 3
   delta_ref: delta_data_manifest_root_dagzoo_shape_aware_size_medium
-  parent_delta_ref: delta_training_manifest_parity_anchor_uncapped
+  parent_delta_ref: delta_training_current_corpus_uncapped
   status: ready
   rationale: Add a middle size rung so the reopened TF-RD-013 decision can distinguish between “dagzoo only works when heavily shrunken” and “dagzoo is size-insensitive on this anchor.”
   hypothesis: The medium rung may balance reuse and regime breadth better than either the smallest rung or the previous broad shape-aware surface.
-  anchor_delta: Starting from row 1's manifest-parity anchor control, replace the current corpus with the `medium` shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
+  anchor_delta: Starting from row 1's fresh current-corpus control, replace the default current corpus with the `medium` shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
   model:
     stage: qass_context
     stage_label: delta_qass_no_column_v3
@@ -224,11 +225,11 @@ rows:
   - Support-bundle regeneration instructions live in `reference/system_delta_sweeps/tf_rd_013_dagzoo_size_ladder_v1/support/README.md`; the tracked JSON summaries should be refreshed on the remote materialization machine.
 - order: 4
   delta_ref: delta_data_manifest_root_dagzoo_shape_aware_size_large
-  parent_delta_ref: delta_training_manifest_parity_anchor_uncapped
+  parent_delta_ref: delta_training_current_corpus_uncapped
   status: ready
   rationale: Keep one upper size rung in the reopened TF-RD-013 follow-up so the ladder still tests a broader synthetic surface while remaining far smaller than the prior shape-aware run.
   hypothesis: The largest shrunken rung may retain enough shape diversity to help without reintroducing the severe underexposure seen on the previous 6272-record manifest.
-  anchor_delta: Starting from row 1's manifest-parity anchor control, replace the current corpus with the `large` shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
+  anchor_delta: Starting from row 1's fresh current-corpus control, replace the default current corpus with the `large` shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
   model:
     stage: qass_context
     stage_label: delta_qass_no_column_v3
@@ -302,6 +303,6 @@ rows:
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Run last so the size ladder resolves from manifest-parity control through small, medium, and upper-bound large corpus sizes.
+  next_action: Run last so the size ladder resolves from the fresh current-corpus control through small, medium, and upper-bound large corpus sizes.
   notes:
   - Support-bundle regeneration instructions live in `reference/system_delta_sweeps/tf_rd_013_dagzoo_size_ladder_v1/support/README.md`; the tracked JSON summaries should be refreshed on the remote materialization machine.
