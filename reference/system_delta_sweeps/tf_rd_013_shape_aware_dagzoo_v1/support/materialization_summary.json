@@ -1,0 +1,634 @@
+{
+  "artifacts": {
+    "curated_openml_baseline_data_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards",
+    "curated_openml_baseline_manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/manifest.parquet",
+    "curated_openml_baseline_manifest_sha256": "0e4bd40328d6df0f03836bfb3433159963eb1651a0f92f4df1acfc9ac4c95b97",
+    "curated_openml_baseline_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline",
+    "dagzoo_shape_aware_manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/manifest.parquet",
+    "dagzoo_shape_aware_manifest_sha256": "8099cde14b8ac2d3831247fc1f85a115e699f5508064bbf6ac06122a1e98079b",
+    "dagzoo_shape_aware_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation",
+    "local_output_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1"
+  },
+  "assembly": {
+    "combined_manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/manifest.parquet",
+    "combined_manifest_sha256": "8099cde14b8ac2d3831247fc1f85a115e699f5508064bbf6ac06122a1e98079b",
+    "input_roots": [
+      "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu/generated",
+      "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium/generated",
+      "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape/generated"
+    ],
+    "invocation_count": 3,
+    "notes": [
+      "Each invocation keeps its own handoff manifest and identity record.",
+      "The follow-up sweep trains against one merged manifest that combines all generated roots."
+    ],
+    "persisted_summary": {
+      "discovered_records": 6272,
+      "excluded_for_missing_values": 0,
+      "excluded_records": 0,
+      "filter_policy": "include_all",
+      "filter_status_counts": {
+        "not_run": 6272
+      },
+      "missing_value_policy": "allow_any",
+      "missing_value_status_counts": {
+        "clean": 6272
+      },
+      "test_records": 340,
+      "total_records": 6272,
+      "train_records": 5596,
+      "val_records": 336
+    }
+  },
+  "config_refs": {
+    "benchmark_bundle": [
+      "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
+    ],
+    "dagzoo": [
+      "configs/benchmark_cpu.yaml",
+      "configs/default.yaml",
+      "configs/benchmark_cuda_h100_large_shape.yaml"
+    ],
+    "tab_foundry": [
+      "configs/data/default.yaml"
+    ]
+  },
+  "env_hints": {
+    "dagzoo_root": "../dagzoo",
+    "tab_foundry_root": "."
+  },
+  "generated_at_utc": "2026-03-23T04:11:13Z",
+  "issues": {
+    "downstream_training_surface_issue": 107,
+    "downstream_training_surface_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/107",
+    "epic_issue": 96,
+    "epic_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/96",
+    "execution_issue": 127,
+    "execution_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/127",
+    "materialization_issue": 127,
+    "materialization_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/127",
+    "subsequent_filtering_policy_issue": 124,
+    "subsequent_filtering_policy_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/124"
+  },
+  "schema": "tab-foundry-tf-rd-013-shape-aware-materialization-summary-v1",
+  "shape_program": {
+    "assembly_policy": "build_manifest(data_roots=[...]) without dagzoo_handoff_manifest_path",
+    "input_roots": [
+      "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu/generated",
+      "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium/generated",
+      "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape/generated"
+    ],
+    "invocation_ids": [
+      "benchmark_cpu",
+      "default_medium",
+      "large_shape"
+    ],
+    "kind": "config_ladder",
+    "notes": [
+      "The broader dagzoo follow-up uses three explicit config-backed invocations rather than a single default-config generate run.",
+      "The combined manifest intentionally omits single-handoff manifest metadata so the multi-invocation surface stays schema-stable.",
+      "Keep filtering policy out of this follow-up; issue 124 remains a later decision only if the broader read shows a predictability problem."
+    ]
+  },
+  "steps": [
+    {
+      "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu\" --num-datasets 2048 --seed 1 --device cpu --hardware-policy none",
+      "cwd": "$DAGZOO_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "dagzoo_generate_benchmark_cpu"
+    },
+    {
+      "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium\" --num-datasets 4096 --seed 1 --device cpu --hardware-policy none",
+      "cwd": "$DAGZOO_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "dagzoo_generate_default_medium"
+    },
+    {
+      "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape\" --num-datasets 128 --seed 1 --device cpu --hardware-policy none",
+      "cwd": "$DAGZOO_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "dagzoo_generate_large_shape"
+    },
+    {
+      "command": "build_manifest(data_roots=[outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu/generated, outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium/generated, outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape/generated], out_path=outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/manifest.parquet)",
+      "cwd": "$TAB_FOUNDRY_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "build_manifest_dagzoo_shape_aware_multi_invocation"
+    },
+    {
+      "command": "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/python scripts/materialize_tf_rd_013_support.py --variant shape-aware --force",
+      "cwd": "$TAB_FOUNDRY_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "prepare_openml_baseline_shards"
+    },
+    {
+      "command": "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards --out-manifest outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/manifest.parquet",
+      "cwd": "$TAB_FOUNDRY_ROOT",
+      "returncode": 0,
+      "status": "completed",
+      "step_id": "build_manifest_curated_realdata_openml_baseline"
+    }
+  ],
+  "surfaces": {
+    "curated_realdata_openml_baseline": {
+      "curated_realdata_provenance": {
+        "approved_external_augmentations": [],
+        "benchmark_bundle": {
+          "all_tasks_no_missing": false,
+          "allow_missing_values": true,
+          "name": "nanotabpfn_openml_binary_large",
+          "selection": {
+            "max_classes": 2,
+            "max_features": 20,
+            "max_missing_pct": 5.0,
+            "min_minority_class_pct": 2.5,
+            "new_instances": 200,
+            "task_type": "supervised_classification"
+          },
+          "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json",
+          "task_count": 12,
+          "task_ids": [
+            363613,
+            363618,
+            363619,
+            363621,
+            363623,
+            363629,
+            363632,
+            363671,
+            363679,
+            363682,
+            363691,
+            363700
+          ],
+          "version": 1
+        },
+        "commands": [
+          "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/python scripts/materialize_tf_rd_013_support.py --variant shape-aware --force",
+          "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards --out-manifest outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/manifest.parquet"
+        ],
+        "comparator_role": "evidence_only_openml_baseline",
+        "dataset_names": [
+          "Amazon_employee_access",
+          "bank-marketing",
+          "Bank_Customer_Churn",
+          "blood-transfusion-service-center",
+          "churn",
+          "diabetes",
+          "E-CommereShippingData",
+          "Fitness_Club",
+          "HR_Analytics_Job_Change_of_Data_Scientists",
+          "Is-this-a-good-customer",
+          "online_shoppers_intention",
+          "seismic-bumps"
+        ],
+        "execution_issue": 127,
+        "split_policy": {
+          "fallback_mode": "unstratified_fallback",
+          "name": "deterministic_holdout",
+          "preferred_mode": "stratified",
+          "seed": 0,
+          "test_size": 0.2
+        },
+        "surface_variant": "curated_realdata_openml_baseline",
+        "task_ids": [
+          363613,
+          363618,
+          363619,
+          363621,
+          363623,
+          363629,
+          363632,
+          363671,
+          363679,
+          363682,
+          363691,
+          363700
+        ],
+        "task_summaries": [
+          {
+            "dataset_name": "Amazon_employee_access",
+            "n_classes": 2,
+            "n_features": 9,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00001_amazon_employee_access",
+            "split_mode": "stratified",
+            "task_id": 363613
+          },
+          {
+            "dataset_name": "bank-marketing",
+            "n_classes": 2,
+            "n_features": 13,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00002_bank_marketing",
+            "split_mode": "stratified",
+            "task_id": 363618
+          },
+          {
+            "dataset_name": "Bank_Customer_Churn",
+            "n_classes": 2,
+            "n_features": 10,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00003_bank_customer_churn",
+            "split_mode": "stratified",
+            "task_id": 363619
+          },
+          {
+            "dataset_name": "blood-transfusion-service-center",
+            "n_classes": 2,
+            "n_features": 4,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00004_blood_transfusion_service_center",
+            "split_mode": "stratified",
+            "task_id": 363621
+          },
+          {
+            "dataset_name": "churn",
+            "n_classes": 2,
+            "n_features": 19,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00005_churn",
+            "split_mode": "stratified",
+            "task_id": 363623
+          },
+          {
+            "dataset_name": "diabetes",
+            "n_classes": 2,
+            "n_features": 8,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00006_diabetes",
+            "split_mode": "stratified",
+            "task_id": 363629
+          },
+          {
+            "dataset_name": "E-CommereShippingData",
+            "n_classes": 2,
+            "n_features": 10,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00007_e_commereshippingdata",
+            "split_mode": "stratified",
+            "task_id": 363632
+          },
+          {
+            "dataset_name": "Fitness_Club",
+            "n_classes": 2,
+            "n_features": 6,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00008_fitness_club",
+            "split_mode": "stratified",
+            "task_id": 363671
+          },
+          {
+            "dataset_name": "HR_Analytics_Job_Change_of_Data_Scientists",
+            "n_classes": 2,
+            "n_features": 12,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00009_hr_analytics_job_change_of_data_scientists",
+            "split_mode": "stratified",
+            "task_id": 363679
+          },
+          {
+            "dataset_name": "Is-this-a-good-customer",
+            "n_classes": 2,
+            "n_features": 13,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00010_is_this_a_good_customer",
+            "split_mode": "stratified",
+            "task_id": 363682
+          },
+          {
+            "dataset_name": "online_shoppers_intention",
+            "n_classes": 2,
+            "n_features": 17,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00011_online_shoppers_intention",
+            "split_mode": "stratified",
+            "task_id": 363691
+          },
+          {
+            "dataset_name": "seismic-bumps",
+            "n_classes": 2,
+            "n_features": 15,
+            "n_rows": 200,
+            "n_test": 40,
+            "n_train": 160,
+            "shard_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/packed_shards/shard_00012_seismic_bumps",
+            "split_mode": "stratified",
+            "task_id": 363700
+          }
+        ]
+      },
+      "manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/curated_realdata/openml_baseline/manifest.parquet",
+      "manifest_sha256": "0e4bd40328d6df0f03836bfb3433159963eb1651a0f92f4df1acfc9ac4c95b97",
+      "state": "materialized_local_only"
+    },
+    "dagzoo_shape_aware_multi_invocation": {
+      "dagzoo_provenance": {
+        "commands": [
+          "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu\" --num-datasets 2048 --seed 1 --device cpu --hardware-policy none",
+          "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium\" --num-datasets 4096 --seed 1 --device cpu --hardware-policy none",
+          "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape\" --num-datasets 128 --seed 1 --device cpu --hardware-policy none",
+          "build_manifest(data_roots=[outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu/generated, outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium/generated, outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape/generated], out_path=outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/manifest.parquet)"
+        ],
+        "comparator_role": "promoted_anchor_candidate",
+        "config_refs": [
+          "configs/benchmark_cpu.yaml",
+          "configs/default.yaml",
+          "configs/benchmark_cuda_h100_large_shape.yaml"
+        ],
+        "corpus_variant": "dagzoo_shape_aware_multi_invocation",
+        "curated_root_lineage": [],
+        "invocations": [
+          {
+            "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu\" --num-datasets 2048 --seed 1 --device cpu --hardware-policy none",
+            "config_ref": "configs/benchmark_cpu.yaml",
+            "device": "cpu",
+            "generated_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu/generated",
+            "handoff_manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu/handoff_manifest.json",
+            "handoff_manifest_sha256": "32316476bcf5f68252f0357a7c00066a246c2900fd690f7f3a19e3b6f150c4c6",
+            "hardware_policy": "none",
+            "identity": {
+              "generate_run_id": "ce57625bef61e4ec1778610bf413838b",
+              "generated_corpus_id": "fe6aa1e7ceecc560f74af2f1b5ab36c6",
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            "invocation_id": "benchmark_cpu",
+            "num_datasets": 2048,
+            "seed": 1,
+            "summary": {
+              "generated_datasets": 2048
+            }
+          },
+          {
+            "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium\" --num-datasets 4096 --seed 1 --device cpu --hardware-policy none",
+            "config_ref": "configs/default.yaml",
+            "device": "cpu",
+            "generated_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium/generated",
+            "handoff_manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium/handoff_manifest.json",
+            "handoff_manifest_sha256": "373e0609c4112d82590f90df38d67bb762c5c71c8b86225004a6d61b5cb24bec",
+            "hardware_policy": "none",
+            "identity": {
+              "generate_run_id": "d5124ed9614213e36449594149186251",
+              "generated_corpus_id": "ab63f162c4d180ec114659ba30436467",
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            "invocation_id": "default_medium",
+            "num_datasets": 4096,
+            "seed": 1,
+            "summary": {
+              "generated_datasets": 4096
+            }
+          },
+          {
+            "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape\" --num-datasets 128 --seed 1 --device cpu --hardware-policy none",
+            "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+            "device": "cpu",
+            "generated_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape/generated",
+            "handoff_manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape/handoff_manifest.json",
+            "handoff_manifest_sha256": "fb4b944c2acfed52e4e5ecdab769f5cf5d93f18a7f0ac0c609af350e94dd47a8",
+            "hardware_policy": "none",
+            "identity": {
+              "generate_run_id": "79b34914332fa3714ab65df0c41ef67b",
+              "generated_corpus_id": "23b89aefc0780e32418a8a1a438de059",
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            "invocation_id": "large_shape",
+            "num_datasets": 128,
+            "seed": 1,
+            "summary": {
+              "generated_datasets": 128
+            }
+          }
+        ],
+        "materialization_issue": 127
+      },
+      "invocation_handoffs": [
+        {
+          "artifacts_relative": {
+            "effective_config_path": "generated/effective_config.yaml",
+            "effective_config_trace_path": "generated/effective_config_trace.yaml",
+            "generated_dir": "generated",
+            "run_root": "."
+          },
+          "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu\" --num-datasets 2048 --seed 1 --device cpu --hardware-policy none",
+          "config_ref": "configs/benchmark_cpu.yaml",
+          "defaults": {
+            "curation_policy": "none",
+            "recommended_training_artifact_key": "generated_dir",
+            "recommended_training_corpus": "generated"
+          },
+          "device": "cpu",
+          "generate_invocation": {
+            "config_path": "../dagzoo/configs/benchmark_cpu.yaml",
+            "overrides": {
+              "device": "cpu",
+              "diagnostics": false,
+              "diagnostics_out_dir": null,
+              "handoff_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu",
+              "hardware_policy": "none",
+              "missing_mar_logit_scale": null,
+              "missing_mar_observed_fraction": null,
+              "missing_mechanism": null,
+              "missing_mnar_logit_scale": null,
+              "missing_rate": null,
+              "num_datasets": 2048,
+              "rows": null,
+              "seed": 1
+            }
+          },
+          "generated_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu/generated",
+          "handoff_manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu/handoff_manifest.json",
+          "handoff_manifest_sha256": "32316476bcf5f68252f0357a7c00066a246c2900fd690f7f3a19e3b6f150c4c6",
+          "hardware": {
+            "backend": "cpu",
+            "device_name": "cpu",
+            "hardware_policy": "none",
+            "requested_device": "cpu",
+            "resolved_device": "cpu",
+            "tier": "cpu"
+          },
+          "hardware_policy": "none",
+          "identity": {
+            "generate_run_id": "ce57625bef61e4ec1778610bf413838b",
+            "generated_corpus_id": "fe6aa1e7ceecc560f74af2f1b5ab36c6",
+            "source_family": "dagzoo.fixed_layout_scm"
+          },
+          "invocation_id": "benchmark_cpu",
+          "invocation_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/benchmark_cpu",
+          "num_datasets": 2048,
+          "seed": 1,
+          "summary": {
+            "generated_datasets": 2048
+          },
+          "throughput": {
+            "generation_stage": {
+              "datasets_per_minute": 3269.618312415827,
+              "elapsed_seconds": 37.58236841694452,
+              "generated_datasets": 2048
+            }
+          }
+        },
+        {
+          "artifacts_relative": {
+            "effective_config_path": "generated/effective_config.yaml",
+            "effective_config_trace_path": "generated/effective_config_trace.yaml",
+            "generated_dir": "generated",
+            "run_root": "."
+          },
+          "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium\" --num-datasets 4096 --seed 1 --device cpu --hardware-policy none",
+          "config_ref": "configs/default.yaml",
+          "defaults": {
+            "curation_policy": "none",
+            "recommended_training_artifact_key": "generated_dir",
+            "recommended_training_corpus": "generated"
+          },
+          "device": "cpu",
+          "generate_invocation": {
+            "config_path": "../dagzoo/configs/default.yaml",
+            "overrides": {
+              "device": "cpu",
+              "diagnostics": false,
+              "diagnostics_out_dir": null,
+              "handoff_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium",
+              "hardware_policy": "none",
+              "missing_mar_logit_scale": null,
+              "missing_mar_observed_fraction": null,
+              "missing_mechanism": null,
+              "missing_mnar_logit_scale": null,
+              "missing_rate": null,
+              "num_datasets": 4096,
+              "rows": null,
+              "seed": 1
+            }
+          },
+          "generated_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium/generated",
+          "handoff_manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium/handoff_manifest.json",
+          "handoff_manifest_sha256": "373e0609c4112d82590f90df38d67bb762c5c71c8b86225004a6d61b5cb24bec",
+          "hardware": {
+            "backend": "cpu",
+            "device_name": "cpu",
+            "hardware_policy": "none",
+            "requested_device": "cpu",
+            "resolved_device": "cpu",
+            "tier": "cpu"
+          },
+          "hardware_policy": "none",
+          "identity": {
+            "generate_run_id": "d5124ed9614213e36449594149186251",
+            "generated_corpus_id": "ab63f162c4d180ec114659ba30436467",
+            "source_family": "dagzoo.fixed_layout_scm"
+          },
+          "invocation_id": "default_medium",
+          "invocation_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/default_medium",
+          "num_datasets": 4096,
+          "seed": 1,
+          "summary": {
+            "generated_datasets": 4096
+          },
+          "throughput": {
+            "generation_stage": {
+              "datasets_per_minute": 3659.906156655567,
+              "elapsed_seconds": 67.14926270802971,
+              "generated_datasets": 4096
+            }
+          }
+        },
+        {
+          "artifacts_relative": {
+            "effective_config_path": "generated/effective_config.yaml",
+            "effective_config_trace_path": "generated/effective_config_trace.yaml",
+            "generated_dir": "generated",
+            "run_root": "."
+          },
+          "command": "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape\" --num-datasets 128 --seed 1 --device cpu --hardware-policy none",
+          "config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+          "defaults": {
+            "curation_policy": "none",
+            "recommended_training_artifact_key": "generated_dir",
+            "recommended_training_corpus": "generated"
+          },
+          "device": "cpu",
+          "generate_invocation": {
+            "config_path": "../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml",
+            "overrides": {
+              "device": "cpu",
+              "diagnostics": false,
+              "diagnostics_out_dir": null,
+              "handoff_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape",
+              "hardware_policy": "none",
+              "missing_mar_logit_scale": null,
+              "missing_mar_observed_fraction": null,
+              "missing_mechanism": null,
+              "missing_mnar_logit_scale": null,
+              "missing_rate": null,
+              "num_datasets": 128,
+              "rows": null,
+              "seed": 1
+            }
+          },
+          "generated_dir": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape/generated",
+          "handoff_manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape/handoff_manifest.json",
+          "handoff_manifest_sha256": "fb4b944c2acfed52e4e5ecdab769f5cf5d93f18a7f0ac0c609af350e94dd47a8",
+          "hardware": {
+            "backend": "cpu",
+            "device_name": "cpu",
+            "hardware_policy": "none",
+            "requested_device": "cpu",
+            "resolved_device": "cpu",
+            "tier": "cpu"
+          },
+          "hardware_policy": "none",
+          "identity": {
+            "generate_run_id": "79b34914332fa3714ab65df0c41ef67b",
+            "generated_corpus_id": "23b89aefc0780e32418a8a1a438de059",
+            "source_family": "dagzoo.fixed_layout_scm"
+          },
+          "invocation_id": "large_shape",
+          "invocation_root": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/invocations/large_shape",
+          "num_datasets": 128,
+          "seed": 1,
+          "summary": {
+            "generated_datasets": 128
+          },
+          "throughput": {
+            "generation_stage": {
+              "datasets_per_minute": 32.40828630314208,
+              "elapsed_seconds": 236.97643029200844,
+              "generated_datasets": 128
+            }
+          }
+        }
+      ],
+      "manifest_path": "outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/manifest.parquet",
+      "manifest_sha256": "8099cde14b8ac2d3831247fc1f85a115e699f5508064bbf6ac06122a1e98079b",
+      "state": "materialized_local_only"
+    }
+  }
+}

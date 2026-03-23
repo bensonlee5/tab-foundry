@@ -1,0 +1,71 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_013_shape_aware_dagzoo_v1
+parent_sweep_id: tf_rd_013_data_source_contract_v1
+status: completed
+complexity_level: binary_md
+anchor_run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+comparison_policy: anchor_only
+training_experiment: cls_benchmark_staged
+training_config_profile: cls_benchmark_staged
+surface_role: architecture_screen
+upstream_reference:
+  name: TabICLv2
+  model_source: https://arxiv.org/abs/2602.11139
+anchor_surface:
+  notes:
+  - This completed sweep records the issue 127 TF-RD-013 follow-up on broader multi-invocation dagzoo coverage for `row_cls + qass + no tfcol`.
+  - The locked current-corpus surface remains the anchor because the broader shape-aware read did not beat it on final large-bundle log loss or Brier.
+  - The shape-aware follow-up uses a config-backed ladder of dagzoo invocations rather than a single default-config generate run.
+  - Reuse the existing `dagzoo_provenance` mapping on data surfaces and expand it with an `invocations` array instead of introducing a parallel metadata path.
+  - Keep one canonical OpenML real-data baseline and treat approved manifest-backed external datasets as augmentation evidence only after the license ledger is satisfied.
+  - Keep nanoTabPFN as the benchmark/control reference bundle while TabICLv2 remains the primary upstream architecture reference for the row-first target lane.
+  dimension_table:
+  - dimension: model anchor
+    upstream: TabICLv2 is the primary row-first architectural reference, but it does not define this exact repo-local promoted-anchor contract.
+    anchor: The settled promoted row-first benchmark anchor `row_cls + qass + no tfcol`.
+    interpretation: TF-RD-013 changes only the training-data comparison surface, not the promoted model surface.
+  - dimension: training data surface
+    upstream: TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract.
+    anchor: Current manifest-backed prior-training corpus with data surface label `anchor_manifest_default`.
+    interpretation: The broader TF-RD-013 follow-up keeps the current corpus as baseline while testing one explicit multi-invocation dagzoo alternative plus the curated real-data comparator lane.
+  - dimension: dagzoo provenance contract
+    upstream: Not applicable.
+    anchor: No dagzoo provenance is attached to the current-corpus anchor surface.
+    interpretation: The broader dagzoo candidate row should keep one top-level `dagzoo_provenance` payload and make each generate invocation explicit inside `dagzoo_provenance.invocations`.
+  - dimension: benchmark and control context
+    upstream: TabICLv2 is the architectural reference, while nanoTabPFN remains the current benchmark/control bundle family used by this repo.
+    anchor: Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface.
+    interpretation: TF-RD-013 should keep benchmark/control context stable while it reads the training-data surface change.
+  - dimension: training recipe
+    upstream: TabICLv2 informs the row-first staged recipe direction, but there is no repo-local shared prior-dump training-surface contract to copy literally.
+    anchor: Training surface label `prior_linear_warmup_decay`.
+    interpretation: The issue 127 follow-up should not mix optimizer or schedule changes into the data-source decision.
+anchor_context:
+  run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
+  experiment: cls_benchmark_staged
+  config_profile: cls_benchmark_staged
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: delta_qass_no_column_v3
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_selection:
+      allow_test_self_attention: true
+      column_encoder: none
+      context_encoder: qass
+      feature_encoder: shared
+      head: small_class
+      post_encoder_norm: none
+      post_stack_norm: none
+      row_pool: row_cls
+      table_block_residual_scale: none
+      table_block_style: prenorm
+      target_conditioner: label_token
+      tokenizer: shifted_grouped
+  surface_labels:
+    data: anchor_manifest_default
+    model: delta_qass_no_column_v3
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

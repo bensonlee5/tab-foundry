@@ -174,6 +174,20 @@ def _write_compare_summary(
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
 
 
+def _write_training_surface_record(path: Path, *, backend: str | None) -> None:
+    payload: dict[str, Any] = {}
+    if backend is not None:
+        payload['training'] = {'backend': backend}
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+
+
+def _write_training_telemetry(path: Path, *, success: bool) -> None:
+    path.write_text(
+        json.dumps({'success': success}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+
+
 def test_select_queue_rows_defaults_to_ready_rows() -> None:
     queue = {
         'rows': [
@@ -992,8 +1006,8 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
     (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
     (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
     (train_dir / 'gradient_history.jsonl').write_text('', encoding='utf-8')
-    (train_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
-    (train_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='manifest')
     (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
 
     queue_row = {
@@ -1086,11 +1100,262 @@ def test_completed_train_artifacts_exist_accepts_stage_scoped_latest_checkpoint(
     (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
     (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
     (run_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
-    (run_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
-    (run_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    _write_training_telemetry(run_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(run_dir / 'training_surface_record.json', backend='manifest')
     (run_dir / 'checkpoints' / 'latest_stage1.pt').write_text('stub', encoding='utf-8')
 
-    assert runner_module.completed_train_artifacts_exist(run_dir) is True
+    assert runner_module.completed_train_artifacts_exist(run_dir, expected_backend='manifest') is True
+
+
+def test_completed_train_artifacts_exist_rejects_unsuccessful_telemetry(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'completed_train_run_unsuccessful_telemetry'
+    (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (run_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(run_dir / 'telemetry.json', success=False)
+    _write_training_surface_record(run_dir / 'training_surface_record.json', backend='manifest')
+    (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    assert runner_module.completed_train_artifacts_exist(run_dir, expected_backend='manifest') is False
+
+
+def test_completed_train_artifacts_exist_rejects_missing_backend_marker(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'completed_train_run_missing_backend'
+    (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (run_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(run_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(run_dir / 'training_surface_record.json', backend=None)
+    (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    assert runner_module.completed_train_artifacts_exist(run_dir, expected_backend='manifest') is False
+
+
+def test_completed_train_artifacts_exist_rejects_backend_mismatch(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'completed_train_run_backend_mismatch'
+    (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (run_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(run_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(run_dir / 'training_surface_record.json', backend='prior_dump')
+    (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    assert runner_module.completed_train_artifacts_exist(run_dir, expected_backend='manifest') is False
+
+
+def test_archive_incomplete_train_dir_moves_partial_history_aside(tmp_path: Path) -> None:
+    train_dir = tmp_path / 'partial_run' / 'train'
+    train_dir.mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+
+    archived_dir = runner_module._archive_incomplete_train_dir(train_dir)
+
+    assert archived_dir is not None
+    assert archived_dir.exists()
+    assert not train_dir.exists()
+    assert archived_dir.name.startswith('train_incomplete_')
+    assert (archived_dir / 'train_history.jsonl').exists()
+
+
+def test_run_row_uses_manifest_trainer_for_manifest_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    queue_row = {
+        'order': 1,
+        'delta_ref': 'delta_manifest_backend_probe',
+        'model': {},
+        'data': {'source': 'manifest', 'surface_label': 'manifest_probe'},
+        'training': {},
+        'execution_policy': 'screen_only',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': 'delta_manifest_backend_probe',
+        'dimension_family': 'training',
+        'family': 'screening',
+        'description': 'Probe manifest backend routing.',
+        'anchor_delta': 'Keep everything else fixed.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=REGISTRY_PATH,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+    )
+
+    captured: dict[str, Any] = {}
+
+    def fake_manifest_train(cfg: Any) -> Any:
+        captured['manifest_cfg'] = cfg
+        return SimpleNamespace(output_dir=tmp_path / 'manifest_train')
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(runner_module, 'train_from_manifest_cfg', fake_manifest_train)
+    monkeypatch.setattr(
+        runner_module,
+        'train_tabfoundry_simple_prior',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('prior trainer should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'screen_metrics',
+        lambda **_: {
+            'upper_block_final_window_mean': 1.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.5,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('registry should be skipped')),
+    )
+
+    runner_module.run_row(
+        sweep_id='backend_probe',
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': 'bundle.json',
+            'training_experiment': 'cls_benchmark_staged',
+            'training_config_profile': 'cls_benchmark_staged',
+            'surface_role': 'architecture_screen',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Probe manifest backend selection.',
+        paths=paths,
+    )
+
+    assert captured['manifest_cfg'].data.source == 'manifest'
+    assert queue_row['status'] == 'screened'
+
+
+def test_run_row_uses_prior_dump_trainer_for_prior_dump_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    queue_row = {
+        'order': 1,
+        'delta_ref': 'delta_prior_backend_probe',
+        'model': {},
+        'data': {'source': 'prior_dump', 'surface_label': 'prior_dump'},
+        'training': {},
+        'execution_policy': 'screen_only',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': 'delta_prior_backend_probe',
+        'dimension_family': 'training',
+        'family': 'screening',
+        'description': 'Probe prior backend routing.',
+        'anchor_delta': 'Keep everything else fixed.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=REGISTRY_PATH,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+    )
+
+    captured: dict[str, Any] = {}
+
+    def fake_prior_train(cfg: Any, *, prior_dump_path: Path) -> Any:
+        captured['prior_cfg'] = cfg
+        captured['prior_dump_path'] = prior_dump_path
+        return SimpleNamespace(output_dir=tmp_path / 'prior_train')
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'train_from_manifest_cfg',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('manifest trainer should be skipped')),
+    )
+    monkeypatch.setattr(runner_module, 'train_tabfoundry_simple_prior', fake_prior_train)
+    monkeypatch.setattr(
+        runner_module,
+        'screen_metrics',
+        lambda **_: {
+            'upper_block_final_window_mean': 1.0,
+            'upper_block_post_warmup_mean_slope': 0.01,
+            'clipped_step_fraction': 0.0,
+            'final_train_loss_ema': 0.5,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'run_nanotabpfn_benchmark',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('benchmark should be skipped')),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('registry should be skipped')),
+    )
+
+    runner_module.run_row(
+        sweep_id='backend_probe',
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': 'bundle.json',
+            'training_experiment': 'cls_benchmark_staged_prior',
+            'training_config_profile': 'cls_benchmark_staged_prior',
+            'surface_role': 'architecture_screen',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_v1',
+        parent_run_id='anchor_v1',
+        queue=queue,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Probe prior backend selection.',
+        paths=paths,
+    )
+
+    assert captured['prior_cfg'].data.source == 'prior_dump'
+    assert captured['prior_dump_path'] == Path('/tmp/prior.h5')
+    assert queue_row['status'] == 'screened'
+
+
+def test_resolve_training_backend_rejects_unsupported_source() -> None:
+    cfg = OmegaConf.create({'data': {'source': 'unsupported_source'}})
+
+    with pytest.raises(RuntimeError, match='unsupported training backend source'):
+        runner_module.resolve_training_backend(cfg)
 
 
 def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
@@ -1234,8 +1499,8 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
     (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
     (train_dir / 'gradient_history.jsonl').write_text('', encoding='utf-8')
-    (train_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
-    (train_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='manifest')
     (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
     benchmark_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1428,8 +1693,8 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
     (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
     (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
     (train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
-    (train_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
-    (train_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='manifest')
     (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
     benchmark_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1651,8 +1916,8 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
     (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
     (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
     (train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
-    (train_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
-    (train_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='manifest')
     (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
     benchmark_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2457,8 +2722,8 @@ def test_run_row_resolves_dynamic_post_stack_norm_from_screened_rows(
     (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
     (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
     (train_dir / 'gradient_history.jsonl').write_text('', encoding='utf-8')
-    (train_dir / 'telemetry.json').write_text('{}', encoding='utf-8')
-    (train_dir / 'training_surface_record.json').write_text('{}', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='prior_dump')
     (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
 
     row2 = {

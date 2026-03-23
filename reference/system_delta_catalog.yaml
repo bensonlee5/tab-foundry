@@ -2182,6 +2182,47 @@ deltas:
     default_next_action: Run the current-versus-generated-source comparison before any later filtering-policy follow-up.
     applicability_guards: []
 
+  delta_data_manifest_root_dagzoo_shape_aware_multi_invocation:
+    dimension_family: data
+    family: provenance
+    binary_applicable: true
+    description: Point training at the multi-invocation, shape-aware dagzoo manifest with explicit per-invocation provenance.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data generation axis.
+    expected_effect: Broader synthetic training coverage across small, anchor-scale, and large-shape dagzoo regimes while keeping provenance reviewable.
+    adequacy_knobs:
+      - explicit config ladder coverage across the selected dagzoo shape regimes
+      - per-invocation dataset counts and combined split distribution
+      - manifest-contract deltas versus the anchor and curated comparator
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare manifest characteristics before training and name which config-backed regimes are represented in the combined surface.
+        - If weaker, discuss whether the broader surface still fails to match intended representative data rather than jumping straight to filtering policy.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_013_dagzoo_shape_aware_multi_invocation
+        surface_overrides:
+          source: manifest
+          manifest_path: outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/dagzoo_shape_aware_multi_invocation/manifest.parquet
+          dagzoo_provenance:
+            commands: []
+            config_refs: []
+            curated_root_lineage: []
+            invocations: []
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Materialize the broader multi-invocation dagzoo surface, rerun TF-RD-013, and decide whether dagzoo now changes the representative post-008 training-data read.
+    applicability_guards: []
+
   delta_data_filter_policy_accepted_only:
       dimension_family: data
       family: provenance
@@ -2318,6 +2359,7 @@ deltas:
         surface_overrides:
           source: manifest
           manifest_path: outputs/staged_ladder_support/curated_realdata/openml_baseline/manifest.parquet
+        allow_missing_values: true
       preprocessing:
         surface_label: runtime_default
     default_next_action: Materialize the approved OpenML-baseline comparator manifest and cite any approved external augmentations before scheduling this row.

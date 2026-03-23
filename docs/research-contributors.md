@@ -153,7 +153,7 @@ Read in this order:
 
 1. [docs/development/dataset-curation.md](development/dataset-curation.md)
 1. [docs/development/roadmap.md](development/roadmap.md)
-1. [reference/system_delta_sweeps/tf_rd_013_data_source_contract_v1/support/README.md](../reference/system_delta_sweeps/tf_rd_013_data_source_contract_v1/support/README.md)
+1. [reference/system_delta_sweeps/tf_rd_013_shape_aware_dagzoo_v1/support/README.md](../reference/system_delta_sweeps/tf_rd_013_shape_aware_dagzoo_v1/support/README.md)
 1. [docs/workflows.md](workflows.md)
 
 Key rule:
@@ -173,7 +173,7 @@ Inspect-first commands:
   --override data.manifest_path=data/manifests/default.parquet
 .venv/bin/tab-foundry dev resolve-config experiment=cls_benchmark_staged
 .venv/bin/tab-foundry research sweep inspect \
-  --sweep-id tf_rd_013_data_source_contract_v1 \
+  --sweep-id tf_rd_013_shape_aware_dagzoo_v1 \
   --order 1
 ```
 

@@ -370,15 +370,21 @@ class _OOMRetryConstantLogitModel(_ConstantLogitModel):
 
 
 class _CountingOptimizer:
-    def __init__(self) -> None:
+    def __init__(self, optimizer: torch.optim.Optimizer | None = None) -> None:
+        self._optimizer = optimizer
         self.step_count = 0
-        self.param_groups = [{"lr": 4.0e-3}]
+        self.param_groups = (
+            optimizer.param_groups if optimizer is not None else [{"lr": 4.0e-3}]
+        )
 
     def zero_grad(self, set_to_none: bool = True) -> None:
-        _ = set_to_none
+        if self._optimizer is not None:
+            self._optimizer.zero_grad(set_to_none=set_to_none)
 
     def step(self) -> None:
         self.step_count += 1
+        if self._optimizer is not None:
+            self._optimizer.step()
 
     def train(self) -> None:
         return None
@@ -993,6 +999,7 @@ def test_train_tabfoundry_simple_prior_scales_lr_with_prior_dump_batch_size(
     assert training_surface_record["training"]["schedule_stages"][0]["lr_max"] == pytest.approx(
         4.0e-3 * scale
     )
+    assert training_surface_record["training"]["backend"] == "prior_dump"
 
 
 def test_train_tabfoundry_simple_prior_retries_with_smaller_microbatches_on_oom(
@@ -2036,7 +2043,8 @@ def test_train_tabfoundry_simple_prior_skips_non_finite_loss_steps(
         single_eval_pos=np.asarray([2], dtype=np.int64),
     )
     fake_run = _FakeWandbRun()
-    optimizer = _CountingOptimizer()
+    model = _ConstantLogitModel()
+    optimizer = _CountingOptimizer(torch.optim.SGD(model.parameters(), lr=4.0e-3))
     loss_calls = {"count": 0}
 
     def _loss_with_one_nan(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
@@ -2045,7 +2053,7 @@ def test_train_tabfoundry_simple_prior_skips_non_finite_loss_steps(
             return logits.sum() * float("nan")
         return classification_loss(logits, targets)
 
-    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
     monkeypatch.setattr(
         prior_train_module,
         "build_optimizer",
@@ -2092,6 +2100,93 @@ def test_train_tabfoundry_simple_prior_skips_non_finite_loss_steps(
     )
     assert telemetry["success"] is True
     assert telemetry["gradient_summary"]["record_count"] == 1
+
+
+@pytest.mark.parametrize(
+    ("grad_norm_value", "expected_kind"),
+    [
+        (float("nan"), "nan"),
+        (float("inf"), "pos_inf"),
+        (-float("inf"), "neg_inf"),
+    ],
+)
+def test_train_tabfoundry_simple_prior_skips_non_finite_gradient_steps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    grad_norm_value: float,
+    expected_kind: str,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / f"prior_non_finite_grad_{expected_kind}.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    fake_run = _FakeWandbRun()
+    model = _ConstantLogitModel()
+    optimizer = _CountingOptimizer(torch.optim.SGD(model.parameters(), lr=4.0e-3))
+
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+    monkeypatch.setattr(
+        prior_train_module,
+        "normalize_grad_norm_value",
+        lambda *_args, **_kwargs: grad_norm_value,
+    )
+    monkeypatch.setattr(prior_train_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+    cfg.logging.use_wandb = True
+    cfg.logging.project = "test-project"
+    cfg.logging.run_name = f"prior-non-finite-grad-{expected_kind}"
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=1,
+    )
+    history = [
+        json.loads(line)
+        for line in (result.output_dir / "train_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    gradient_history = [
+        json.loads(line)
+        for line in (result.output_dir / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    telemetry = json.loads((result.output_dir / "telemetry.json").read_text(encoding="utf-8"))
+
+    assert optimizer.step_count == 0
+    assert result.metrics["nan_skip_count"] == 1.0
+    assert result.metrics["mean_grad_norm"] is None
+    assert result.metrics["max_grad_norm"] is None
+    assert result.metrics["final_grad_norm"] is None
+    assert len(history) == 1
+    assert math.isnan(float(history[0]["train_loss"]))
+    assert len(gradient_history) == 1
+    assert gradient_history[0]["global_grad_norm"] is None
+    assert gradient_history[0]["global_grad_norm_kind"] == expected_kind
+    assert telemetry["success"] is True
+    assert telemetry["gradient_summary"]["non_finite_global_grad_norm_counts"] == {
+        "nan": 1 if expected_kind == "nan" else 0,
+        "pos_inf": 1 if expected_kind == "pos_inf" else 0,
+        "neg_inf": 1 if expected_kind == "neg_inf" else 0,
+    }
+    assert any(
+        payload.get("train/non_finite_grad_guard_triggered") is True and step == 1
+        for payload, step in fake_run.logged
+    )
 
 
 def test_train_tabfoundry_simple_prior_closes_wandb_for_setup_failures(

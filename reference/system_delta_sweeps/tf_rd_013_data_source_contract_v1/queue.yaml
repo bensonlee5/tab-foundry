@@ -69,22 +69,20 @@ rows:
     any benchmark outcome.
   - Treat `filter_status_counts.not_run` as a deliberate property of the initial unfiltered
     sweep, not as a hidden data-contract bug.
-  run_id: sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v1
+  run_id: sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v2
   followup_run_ids: []
   decision: defer
   interpretation_status: completed
   confounders:
-  - The first dagzoo candidate is still one default-config generate invocation, so
-    a neutral benchmark read does not rule out a broader multi-invocation dagzoo
-    surface.
-  - The nanoTabPFN helper failed on benchmark dataset `Fitness_Club` with non-finite
-    probabilities even though this benchmark bundle allows missing values, so the
-    direct control-lane comparison remains partially confounded until that helper
-    path is fixed.
-  next_action: Implement issue 127 to broaden dagzoo into a multi-invocation, shape-aware
-    support surface, then rerun TF-RD-013 before handing representative-data decisions
-    into issue 107; keep issue 124 reserved for later filtering policy unless the
-    broader dagzoo read exposes a predictability problem.
+    - >-
+      Direct nanoTabPFN helper comparison remains partially confounded: the
+      missing-value helper run failed (`helper_failed_on_missing_bundle`), and
+      the historical failure mode was tied to `Fitness_Club` non-finite
+      probabilities.
+  next_action: Use the completed issue 127 follow-up to keep the current corpus
+    as the representative post-008 training-data surface for issue 107; leave issue
+    124 as later filtering-policy work only if a future corpus-selection problem
+    appears.
   notes:
   - This row defines the canonical top-level `dagzoo_provenance` keys expected on
     TF-RD-013 promoted-anchor comparison surfaces.
@@ -92,32 +90,39 @@ rows:
     and `reference/system_delta_sweeps/tf_rd_013_data_source_contract_v1/support/manifest_characteristics_summary.json`.'
   - Issue 124 is subsequent policy work on whether any filtered dagzoo variants should
     exist after the initial unfiltered read.
-  - Canonical rerun registered as `sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v1`.
+  - Historical execution `sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v1`
+    was invalid because manifest-backed training ran through the prior-dump backend.
   - 'The first promoted-anchor read was neutral: the unfiltered dagzoo surface matched
     the anchor and the OpenML-only comparator on the recorded large-bundle metrics
     while remaining materially different at the manifest-contract layer.'
-  - The immediate blocker is issue 127 on broader dagzoo coverage rather than issue
-    124 filtering policy.
+  - >-
+    The completed issue 127 follow-up kept dagzoo deferred: the broader
+    multi-invocation surface remained worse than the anchor on final
+    large-bundle log loss and Brier, so TF-RD-013 keeps the current corpus as
+    the representative post-008 training-data surface.
+  - Canonical rerun registered as `sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   benchmark_metrics:
-    best_step: 2500
-    max_grad_norm: 5.782161712646484
-    clipped_step_fraction: 0.0072
-    best_log_loss: 0.42151055964690004
-    final_log_loss: 0.42151055964690004
-    best_brier_score: 0.26437640199935597
-    final_brier_score: 0.26437640199935597
-    best_roc_auc: 0.6701728307468436
-    final_roc_auc: 0.6701728307468436
-    final_minus_best_log_loss: 0.0
-    final_minus_best_brier_score: 0.0
-    final_minus_best_roc_auc: 0.0
-    drift: 0.0
-    delta_final_log_loss: -3.3296791435155626e-09
-    delta_final_brier_score: -3.026016270890608e-09
-    delta_final_roc_auc: -5.139802631570767e-05
+    best_step: 250
+    max_grad_norm: 8.983333587646484
+    clipped_step_fraction: 0.06858710562414266
+    best_log_loss: 0.46516748233892263
+    final_log_loss: 0.4671030293897789
+    best_brier_score: 0.29789851264214673
+    final_brier_score: 0.29861690039648475
+    best_roc_auc: 0.45458055038882045
+    final_roc_auc: 0.4736863453411519
+    final_minus_best_log_loss: 0.0019355470508562456
+    final_minus_best_brier_score: 0.0007183877543380235
+    final_minus_best_roc_auc: 0.019105794952331445
+    drift: 0.019105794952331445
+    delta_final_log_loss: 0.045592466413199695
+    delta_final_brier_score: 0.03424049537111251
+    delta_final_roc_auc: -0.19653788343200745
     column_encoder_final_window_mean_grad_norm: 0.0
-    row_pool_final_window_mean_grad_norm: 0.026585699878925527
-    context_encoder_final_window_mean_grad_norm: 0.047535554359473646
+    row_pool_final_window_mean_grad_norm: 0.008279819644761073
+    context_encoder_final_window_mean_grad_norm: 0.03979169685603427
 - order: 2
   delta_ref: delta_data_manifest_curated_realdata_comparator
   status: completed
@@ -139,6 +144,7 @@ rows:
     surface_label: tf_rd_013_curated_realdata_comparator
     source: manifest
     manifest_path: outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet
+    allow_missing_values: true
   preprocessing:
     surface_label: runtime_default
   training:
@@ -151,6 +157,7 @@ rows:
         eval_every: 25
         checkpoint_every: 25
         trace_activations: false
+        val_batches: 0
       optimizer:
         name: schedulefree_adamw
         require_requested: true
@@ -172,44 +179,48 @@ rows:
     after issue 114 license approval rows exist.
   - Interpret this row as comparator-surface contract work, not as a new ingestion
     pathway.
-  run_id: sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v1
+  run_id: sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v2
   followup_run_ids: []
   decision: defer
   interpretation_status: completed
   confounders:
-  - The nanoTabPFN helper failed on benchmark dataset `Fitness_Club` with non-finite
-    probabilities even though this benchmark bundle allows missing values, so the
-    direct control-lane comparison remains partially confounded until that helper
-    path is fixed.
-  next_action: Keep this OpenML-only comparator as evidence-only and keep issue 107
-    blocked until issue 127 reruns TF-RD-013 with broader dagzoo coverage; do not
-    treat this row as the representative post-008 handoff surface.
+    - >-
+      Direct nanoTabPFN helper comparison remains partially confounded: the
+      missing-value helper run failed (`helper_failed_on_missing_bundle`), and
+      the historical failure mode was tied to `Fitness_Club` non-finite
+      probabilities.
+  next_action: Keep this OpenML-only lane evidence-only; use the completed issue
+    127 follow-up to support the representative-data handoff into issue 107.
   notes:
   - This row defines comparator policy only; it does not authorize any dataset outside
     the review ledger.
-  - Canonical rerun registered as `sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v1`.
-  - OpenML-only curated comparator recorded as evidence-only for the first promoted-anchor
-    TF-RD-013 read.
-  - The OpenML-only comparator matched the anchor and the unfiltered dagzoo row on
-    the recorded benchmark bundle, so it remains evidence-only rather than a replacement
-    handoff surface.
+  - Historical execution `sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v1`
+    was invalid because manifest-backed training ran through the prior-dump backend.
+  - The completed issue 127 follow-up did not change comparator policy; this OpenML-only
+    lane remains evidence-only and materially worse than the anchor on final large-bundle
+    log loss and Brier.
+  - Supersedes historical queue run `sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v1`;
+    that invalid run id is preserved in queue notes only.
+  - Canonical rerun registered as `sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   benchmark_metrics:
-    best_step: 2500
-    max_grad_norm: 5.782161712646484
-    clipped_step_fraction: 0.0072
-    best_log_loss: 0.42151055964690004
-    final_log_loss: 0.42151055964690004
-    best_brier_score: 0.26437640199935597
-    final_brier_score: 0.26437640199935597
-    best_roc_auc: 0.6701728307468436
-    final_roc_auc: 0.6701728307468436
-    final_minus_best_log_loss: 0.0
-    final_minus_best_brier_score: 0.0
-    final_minus_best_roc_auc: 0.0
-    drift: 0.0
-    delta_final_log_loss: -3.3296791435155626e-09
-    delta_final_brier_score: -3.026016270890608e-09
-    delta_final_roc_auc: -5.139802631570767e-05
+    best_step: 325
+    max_grad_norm: 711.2716674804688
+    clipped_step_fraction: 0.6169275929549902
+    best_log_loss: 0.4613900827138487
+    final_log_loss: 2.1070736899301186
+    best_brier_score: 0.29308872328473784
+    final_brier_score: 0.49332305775491814
+    best_roc_auc: 0.5614038112865214
+    final_roc_auc: 0.5827764017871021
+    final_minus_best_log_loss: 1.64568360721627
+    final_minus_best_brier_score: 0.2002343344701803
+    final_minus_best_roc_auc: 0.021372590500580713
+    drift: 0.021372590500580713
+    delta_final_log_loss: 1.6855631269535394
+    delta_final_brier_score: 0.2289466527295459
+    delta_final_roc_auc: -0.08744782698605724
     column_encoder_final_window_mean_grad_norm: 0.0
-    row_pool_final_window_mean_grad_norm: 0.026585699878925527
-    context_encoder_final_window_mean_grad_norm: 0.047535554359473646
+    row_pool_final_window_mean_grad_norm: 3.537151723691786
+    context_encoder_final_window_mean_grad_norm: 0.9407556727893515

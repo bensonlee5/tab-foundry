@@ -6,6 +6,7 @@ import json
 import re
 import shlex
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
@@ -38,6 +39,12 @@ from tab_foundry.research.lane_contract import (
 from tab_foundry.research import system_delta
 from tab_foundry.research.system_delta_promote import promote_anchor
 from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
+from tab_foundry.training.surface import (
+    TRAINING_BACKEND_MANIFEST,
+    TRAINING_BACKEND_PRIOR_DUMP,
+    resolve_training_backend_from_data_cfg,
+)
+from tab_foundry.training.trainer import train as train_from_manifest_cfg
 from tab_foundry.training.wandb import posthoc_update_wandb_summary
 
 from .artifacts import ExecutionPaths, read_yaml, result_card_text, write_research_package, write_yaml
@@ -62,6 +69,10 @@ DEFAULT_CONCLUSION = (
 ALLOWED_DECISIONS = {"keep", "defer", "reject"}
 SCREEN_ONLY_POLICY = "screen_only"
 BENCHMARK_FULL_POLICY = "benchmark_full"
+_ALLOWED_TRAINING_BACKENDS = {
+    TRAINING_BACKEND_MANIFEST,
+    TRAINING_BACKEND_PRIOR_DUMP,
+}
 
 
 @dataclass(frozen=True)
@@ -195,18 +206,6 @@ def ensure_nanotabpfn_python(*, nanotabpfn_root: Path, fallback_python: Path) ->
     return nanotab_python
 
 
-def completed_train_artifacts_exist(run_dir: Path) -> bool:
-    required_paths = (
-        run_dir / "train_history.jsonl",
-        run_dir / "gradient_history.jsonl",
-        run_dir / "telemetry.json",
-        run_dir / "training_surface_record.json",
-    )
-    return all(path.exists() for path in required_paths) and (
-        resolve_latest_checkpoint_path(run_dir) is not None
-    )
-
-
 def materialized_row_map(*, sweep_id: str, paths: ExecutionPaths) -> dict[str, dict[str, Any]]:
     materialized = system_delta.load_system_delta_queue(
         sweep_id=sweep_id,
@@ -314,6 +313,87 @@ def _read_json_mapping(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError(f"expected JSON mapping at {path}")
     return cast(dict[str, Any], payload)
+
+
+def _cfg_data_mapping(cfg: Any) -> Mapping[str, Any] | None:
+    raw_data_cfg = getattr(cfg, "data", None)
+    if raw_data_cfg is None and isinstance(cfg, Mapping):
+        raw_data_cfg = cfg.get("data")
+    if raw_data_cfg is None:
+        return None
+    if isinstance(raw_data_cfg, DictConfig):
+        raw_data_cfg = OmegaConf.to_container(raw_data_cfg, resolve=True)
+    if not isinstance(raw_data_cfg, Mapping):
+        raise RuntimeError("cfg.data must be a mapping when present")
+    return cast(Mapping[str, Any], raw_data_cfg)
+
+
+def resolve_training_backend(cfg: Any) -> str:
+    return resolve_training_backend_from_data_cfg(_cfg_data_mapping(cfg))
+
+
+def _training_surface_record_backend(record_path: Path) -> str | None:
+    if not record_path.exists():
+        return None
+    try:
+        payload = _read_json_mapping(record_path)
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
+        return None
+    training = payload.get("training")
+    if not isinstance(training, Mapping):
+        return None
+    raw_backend = training.get("backend")
+    if not isinstance(raw_backend, str) or not raw_backend.strip():
+        return None
+    backend = str(raw_backend).strip().lower()
+    return backend if backend in _ALLOWED_TRAINING_BACKENDS else None
+
+
+def _training_telemetry_succeeded(telemetry_path: Path) -> bool:
+    if not telemetry_path.exists():
+        return False
+    try:
+        payload = _read_json_mapping(telemetry_path)
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
+        return False
+    return bool(payload.get("success") is True)
+
+
+def _archive_incomplete_train_dir(train_dir: Path) -> Path | None:
+    if not train_dir.exists() or not train_dir.is_dir():
+        return None
+    try:
+        has_entries = any(train_dir.iterdir())
+    except OSError:
+        return None
+    if not has_entries:
+        return None
+    suffix = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+    candidate = train_dir.with_name(f"{train_dir.name}_incomplete_{suffix}")
+    counter = 1
+    while candidate.exists():
+        candidate = train_dir.with_name(f"{train_dir.name}_incomplete_{suffix}_{counter:02d}")
+        counter += 1
+    train_dir.rename(candidate)
+    return candidate
+
+
+def completed_train_artifacts_exist(run_dir: Path, *, expected_backend: str | None = None) -> bool:
+    required_paths = (
+        run_dir / "train_history.jsonl",
+        run_dir / "gradient_history.jsonl",
+        run_dir / "telemetry.json",
+        run_dir / "training_surface_record.json",
+    )
+    if not all(path.exists() for path in required_paths):
+        return False
+    if resolve_latest_checkpoint_path(run_dir) is None:
+        return False
+    if not _training_telemetry_succeeded(run_dir / "telemetry.json"):
+        return False
+    if expected_backend is None:
+        return True
+    return _training_surface_record_backend(run_dir / "training_surface_record.json") == expected_backend
 
 
 def _candidate_curve_path(summary: Mapping[str, Any], *, summary_path: Path) -> Path | None:
@@ -853,25 +933,55 @@ def run_row(
         training_config_profile=training_config_profile,
         surface_role=surface_role,
     )
-    if completed_train_artifacts_exist(train_dir):
+    cfg = compose_cfg(
+        row=queue_row,
+        run_dir=train_dir,
+        device=device,
+        training_experiment=training_experiment,
+        sweep_id=sweep_id,
+    )
+    training_backend = resolve_training_backend(cfg)
+    if completed_train_artifacts_exist(train_dir, expected_backend=training_backend):
         print(
             f"[row {int(queue_row['order']):02d}] reusing existing train artifacts",
             f"run_id={run_id}",
+            f"training_backend={training_backend}",
             f"output_dir={train_dir}",
             flush=True,
         )
     else:
-        cfg = compose_cfg(
-            row=queue_row,
-            run_dir=train_dir,
-            device=device,
-            training_experiment=training_experiment,
-            sweep_id=sweep_id,
+        existing_backend = _training_surface_record_backend(train_dir / "training_surface_record.json")
+        if completed_train_artifacts_exist(train_dir) and existing_backend != training_backend:
+            print(
+                f"[row {int(queue_row['order']):02d}] existing train artifacts are not reusable",
+                f"expected_backend={training_backend}",
+                f"observed_backend={existing_backend or 'missing'}",
+                flush=True,
+            )
+        archived_train_dir = _archive_incomplete_train_dir(train_dir)
+        if archived_train_dir is not None:
+            print(
+                f"[row {int(queue_row['order']):02d}] archived incomplete train dir",
+                f"run_id={run_id}",
+                f"archived_dir={archived_train_dir}",
+                flush=True,
+            )
+        print(
+            f"[row {int(queue_row['order']):02d}] starting train",
+            f"run_id={run_id}",
+            f"training_backend={training_backend}",
+            flush=True,
         )
-        train_result = train_tabfoundry_simple_prior(cfg, prior_dump_path=prior_dump)
+        if training_backend == TRAINING_BACKEND_MANIFEST:
+            train_result = train_from_manifest_cfg(cfg)
+        elif training_backend == TRAINING_BACKEND_PRIOR_DUMP:
+            train_result = train_tabfoundry_simple_prior(cfg, prior_dump_path=prior_dump)
+        else:  # pragma: no cover - guarded by resolve_training_backend
+            raise RuntimeError(f"unsupported training backend {training_backend!r}")
         print(
             f"[row {int(queue_row['order']):02d}] train complete",
             f"run_id={run_id}",
+            f"training_backend={training_backend}",
             f"output_dir={train_result.output_dir}",
             flush=True,
         )

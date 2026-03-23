@@ -12,11 +12,20 @@ from typing import Any, cast
 from omegaconf import DictConfig, OmegaConf
 import torch
 
+from tab_foundry.training.surface import TRAINING_BACKEND_PRIOR_DUMP
 from tab_foundry.training.instability import grad_norm_summary_from_running_totals
 from tab_foundry.types import TrainResult
 
 
 _PRIOR_STAGE_NAME = "prior_dump"
+
+
+def _global_grad_norm_kind(value: float) -> str:
+    if math.isnan(value):
+        return "nan"
+    if math.isinf(value):
+        return "pos_inf" if value > 0.0 else "neg_inf"
+    return "finite"
 
 
 @dataclass(frozen=True)
@@ -306,6 +315,7 @@ def run_prior_training(
             training_surface_path,
             raw_cfg=raw_cfg,
             run_dir=output_dir,
+            backend=TRAINING_BACKEND_PRIOR_DUMP,
         )
         run = deps.init_wandb_run(
             cfg,
@@ -444,6 +454,53 @@ def run_prior_training(
             local_grad_norm = deps.total_grad_norm(model.parameters())
             clipped = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
             local_grad_norm = deps.normalize_grad_norm_value(clipped, fallback=local_grad_norm)
+            global_grad_norm_kind = _global_grad_norm_kind(float(local_grad_norm))
+            if global_grad_norm_kind != "finite":
+                nan_skip_count += 1
+                optimizer.zero_grad(set_to_none=True)
+                elapsed_seconds = time.perf_counter() - train_start
+                non_finite_grad_log: dict[str, Any] = {
+                    "train/non_finite_grad_guard_triggered": True,
+                    "train/non_finite_grad_kind": global_grad_norm_kind,
+                    "train/nan_skip_count": float(nan_skip_count),
+                }
+                deps.log_wandb_metrics(run, non_finite_grad_log, step=global_step)
+                history_payload = deps.history_record(
+                    global_step=global_step,
+                    stage_name=_PRIOR_STAGE_NAME,
+                    train_loss=float("nan"),
+                    train_metrics={"non_finite_grad_guard_triggered": 1.0},
+                    lr=float(optimizer.param_groups[0]["lr"]),
+                    grad_norm=None,
+                    elapsed_seconds=elapsed_seconds,
+                    train_elapsed_seconds=train_elapsed_seconds,
+                    val_metrics=None,
+                    train_loss_delta=None,
+                    train_loss_ema=loss_ema,
+                    grad_clip_threshold=float(grad_clip),
+                    grad_clip_triggered=False,
+                )
+                history_records.append(history_payload)
+                if history_path is not None:
+                    deps.append_history_record(history_path, history_payload)
+                gradient_payload = deps.gradient_history_record(
+                    global_step=global_step,
+                    stage_name=_PRIOR_STAGE_NAME,
+                    train_loss=float("nan"),
+                    train_acc=None,
+                    lr=float(optimizer.param_groups[0]["lr"]),
+                    global_grad_norm=None,
+                    global_grad_norm_kind=global_grad_norm_kind,
+                    module_grad_norms=pre_clip_module_grad_norms,
+                    activation_norms=activation_norms,
+                    elapsed_seconds=elapsed_seconds,
+                    train_elapsed_seconds=train_elapsed_seconds,
+                    grad_clip_threshold=float(grad_clip),
+                    grad_clip_triggered=False,
+                )
+                gradient_records.append(gradient_payload)
+                deps.append_jsonl_record(gradient_path, gradient_payload)
+                continue
             grad_clip_triggered = bool(local_grad_norm > grad_clip)
             if grad_clip_triggered:
                 clipped_step_count += 1

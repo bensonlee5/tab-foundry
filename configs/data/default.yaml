@@ -4,6 +4,7 @@ surface_label: manifest_default
 surface_overrides: {}
 filter_policy: null
 dagzoo_provenance: null
+allow_missing_values: false
 roots:
   - ${oc.env:DAGZOO_DATA_ROOT,${oc.env:HOME}/dev/dagzoo/data}
 train_row_cap: null

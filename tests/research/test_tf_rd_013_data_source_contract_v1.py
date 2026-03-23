@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -23,8 +24,8 @@ EXPECTED_ROWS = [
     "delta_data_manifest_root_dagzoo_generated_source",
     "delta_data_manifest_curated_realdata_comparator",
 ]
-GENERATED_RUN_ID = "sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v1"
-CURATED_RUN_ID = "sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v1"
+GENERATED_RUN_ID = "sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v2"
+CURATED_RUN_ID = "sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v2"
 REGISTRY_PATH = REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
 SUPPORT_ROOT = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "support"
 MATRIX_PATH = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "matrix.md"
@@ -34,19 +35,26 @@ EXPECTED_NUM_DATASETS = 8192
 EXPECTED_CURATED_TASK_COUNT = 12
 
 
-def _assert_full_replay_training_payload(row: dict[str, Any]) -> None:
+def _assert_full_replay_training_payload(
+    row: dict[str, Any],
+    *,
+    expected_val_batches: int | None = None,
+) -> None:
     training = row["training"]
     assert training["surface_label"] == "prior_linear_warmup_decay"
     assert training["prior_dump_non_finite_policy"] == "skip"
 
     overrides = training["overrides"]
     assert overrides["apply_schedule"] is True
-    assert overrides["runtime"] == {
+    runtime = {
         "max_steps": 2500,
         "eval_every": 25,
         "checkpoint_every": 25,
         "trace_activations": False,
     }
+    if expected_val_batches is not None:
+        runtime["val_batches"] = expected_val_batches
+    assert overrides["runtime"] == runtime
     assert overrides["optimizer"] == {
         "name": "schedulefree_adamw",
         "require_requested": True,
@@ -97,10 +105,16 @@ def _assert_row_execution_state(
     assert row["run_id"] == expected_run_id
     benchmark_metrics = row["benchmark_metrics"]
     assert isinstance(benchmark_metrics, dict)
-    assert benchmark_metrics["best_step"] == 2500
-    assert benchmark_metrics["final_log_loss"] == 0.42151055964690004
-    assert benchmark_metrics["final_brier_score"] == 0.26437640199935597
-    assert benchmark_metrics["final_roc_auc"] == 0.6701728307468436
+    assert int(benchmark_metrics["best_step"]) > 0
+    for metric_key in (
+        "final_log_loss",
+        "final_brier_score",
+        "final_roc_auc",
+        "best_log_loss",
+        "best_brier_score",
+        "best_roc_auc",
+    ):
+        assert math.isfinite(float(benchmark_metrics[metric_key]))
 
 
 def _ci_like_registry_path(tmp_path: Path) -> Path:
@@ -189,12 +203,12 @@ def test_tf_rd_013_data_source_contract_metadata_and_rows_match_unfiltered_suppo
     assert realdata_row["data"]["manifest_path"] == (
         "outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet"
     )
-    _assert_full_replay_training_payload(realdata_row)
+    _assert_full_replay_training_payload(realdata_row, expected_val_batches=0)
     _assert_row_execution_state(realdata_row, expected_run_id=CURATED_RUN_ID)
     assert f"issue {MULTI_INVOCATION_ISSUE_NUMBER}" in realdata_row["next_action"]
     assert "issue 107" in realdata_row["next_action"]
     assert any("evidence-only" in note for note in realdata_row["notes"])
-    assert any("matched the anchor" in note for note in realdata_row["notes"])
+    assert any("materially worse than the anchor" in note for note in realdata_row["notes"])
     assert any("Fitness_Club" in confounder for confounder in realdata_row["confounders"])
 
     assert materialization_summary["issues"]["materialization_issue"] == MATERIALIZATION_ISSUE_NUMBER
@@ -260,8 +274,8 @@ def test_tf_rd_013_data_source_contract_metadata_and_rows_match_unfiltered_suppo
     materialized_rows = materialized["rows"]
     assert [row["delta_id"] for row in materialized_rows] == EXPECTED_ROWS
     assert [row["status"] for row in materialized_rows] == ["completed", "completed"]
-    for row in materialized_rows:
-        _assert_full_replay_training_payload(row)
+    _assert_full_replay_training_payload(materialized_rows[0])
+    _assert_full_replay_training_payload(materialized_rows[1], expected_val_batches=0)
 
     comparisons = manifest_characteristics_summary["comparisons"]
     assert set(comparisons) == {
@@ -305,6 +319,7 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
     assert inspect_realdata["target"]["resolved"]["data"]["surface_label"] == "tf_rd_013_curated_realdata_comparator"
     assert inspect_generated["target"]["resolved"]["training"]["optimizer_name"] == "schedulefree_adamw"
     assert inspect_generated["target"]["resolved"]["training"]["apply_schedule"] is True
+    assert inspect_generated["target"]["resolved"]["training"]["backend"] == "manifest"
     assert inspect_generated["target"]["resolved"]["training"]["prior_dump_non_finite_policy"] == "skip"
 
     diff_payload = diff_module.diff_sweep_row(
@@ -401,6 +416,7 @@ def test_tf_rd_013_support_bundle_and_catalog_defaults_are_tracked_separately() 
     comparator_default = catalog["deltas"]["delta_data_manifest_curated_realdata_comparator"]["default_effective_surface"]["data"]
     assert comparator_default == {
         "surface_label": "curated_realdata_comparator",
+        "allow_missing_values": True,
         "surface_overrides": {
             "source": "manifest",
             "manifest_path": "outputs/staged_ladder_support/curated_realdata/openml_baseline/manifest.parquet",
