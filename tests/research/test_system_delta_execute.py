@@ -16,17 +16,16 @@ from tab_foundry.control_baseline_registry import (
     REGISTRY_VERSION,
     default_control_baseline_registry_path,
 )
+import tab_foundry.cli.research_execute as sweep_execute_cli_module
 from tab_foundry.research.sweep.core import create_sweep
-from tab_foundry.research.sweep.execute import (
-    ExecutionPaths,
-    _compose_cfg,
-    _queue_metrics,
-    _result_card_text,
-    execute_sweep,
-    select_queue_rows,
-)
+from tab_foundry.research.sweep.execute import execute_sweep
+from tab_foundry.research.sweep.artifacts import ExecutionPaths, result_card_text as _result_card_text
+import tab_foundry.research.sweep.configuration as configuration_module
+from tab_foundry.research.sweep.configuration import compose_cfg as _compose_cfg
+from tab_foundry.research.sweep.queue_updates import queue_metrics as _queue_metrics
+from tab_foundry.research.sweep.selection import select_queue_rows
 import tab_foundry.research.sweep.execute as sweep_execute_module
-import tab_foundry.research.sweep.runner as runner_module
+import tab_foundry.research.sweep.row_execution as runner_module
 from tab_foundry.research.sweep.artifacts import read_yaml as read_artifact_yaml, write_research_package
 from tab_foundry.research.sweep.screening import pick_screen_winner, screen_metrics as load_screen_metrics
 
@@ -350,9 +349,9 @@ def test_main_preserves_tab_foundry_python_symlink_path(
         captured.update(kwargs)
         return []
 
-    monkeypatch.setattr(sweep_execute_module, 'execute_sweep', fake_execute_sweep)
+    monkeypatch.setattr(sweep_execute_cli_module, 'execute_sweep', fake_execute_sweep)
 
-    exit_code = sweep_execute_module.main(
+    exit_code = sweep_execute_cli_module.main(
         [
             '--sweep-id',
             'shared_surface_bridge_v1',
@@ -400,9 +399,9 @@ def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pyte
         calls.append({'order': int(kwargs['queue_row']['order']), 'sweep_id': kwargs['sweep_id']})
         return f"run_{kwargs['queue_row']['order']}"
 
-    monkeypatch.setattr(sweep_execute_module, '_run_row', fake_run_row)
-    monkeypatch.setattr(sweep_execute_module, '_sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(sweep_execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=None,
@@ -446,10 +445,10 @@ def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pyt
         promotions.append({'sweep_id': kwargs['sweep_id'], 'anchor_run_id': kwargs['anchor_run_id']})
         return {'sweep_id': kwargs['sweep_id'], 'anchor_run_id': kwargs['anchor_run_id']}
 
-    monkeypatch.setattr(sweep_execute_module, '_run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
     monkeypatch.setattr(sweep_execute_module, 'promote_anchor', fake_promote_anchor)
-    monkeypatch.setattr(sweep_execute_module, '_sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(sweep_execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -506,9 +505,9 @@ def test_execute_sweep_uses_completed_parent_delta_ref(monkeypatch: pytest.Monke
         )
         return 'row_2_v1'
 
-    monkeypatch.setattr(sweep_execute_module, '_run_row', fake_run_row)
-    monkeypatch.setattr(sweep_execute_module, '_sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(sweep_execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -555,9 +554,9 @@ def test_execute_sweep_uses_same_invocation_parent_delta_ref(
         )
         return run_id
 
-    monkeypatch.setattr(sweep_execute_module, '_run_row', fake_run_row)
-    monkeypatch.setattr(sweep_execute_module, '_sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(sweep_execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -589,7 +588,7 @@ def test_resolve_parent_run_id_defaults_to_active_anchor() -> None:
         {'order': 2, 'delta_ref': 'delta_shared_feature_norm'},
     ]
 
-    observed = runner_module._resolve_parent_run_id(
+    observed = runner_module.resolve_parent_run_id(
         queue_row=queue_rows[1],
         queue_rows=queue_rows,
         active_anchor='anchor_v1',
@@ -606,7 +605,7 @@ def test_resolve_parent_run_id_prefers_latest_earlier_matching_row() -> None:
         {'order': 4, 'delta_ref': 'delta_target', 'parent_delta_ref': 'delta_dup'},
     ]
 
-    observed = runner_module._resolve_parent_run_id(
+    observed = runner_module.resolve_parent_run_id(
         queue_row=queue_rows[3],
         queue_rows=queue_rows,
         active_anchor='anchor_v1',
@@ -622,7 +621,7 @@ def test_resolve_parent_run_id_rejects_missing_parent_delta_ref_target() -> None
     ]
 
     with pytest.raises(RuntimeError, match='parent_delta_ref'):
-        _ = runner_module._resolve_parent_run_id(
+        _ = runner_module.resolve_parent_run_id(
             queue_row=queue_rows[1],
             queue_rows=queue_rows,
             active_anchor='anchor_v1',
@@ -635,7 +634,7 @@ def test_resolve_parent_run_id_rejects_self_reference() -> None:
     ]
 
     with pytest.raises(RuntimeError, match='not itself'):
-        _ = runner_module._resolve_parent_run_id(
+        _ = runner_module.resolve_parent_run_id(
             queue_row=queue_rows[0],
             queue_rows=queue_rows,
             active_anchor='anchor_v1',
@@ -649,7 +648,7 @@ def test_resolve_parent_run_id_rejects_forward_reference() -> None:
     ]
 
     with pytest.raises(RuntimeError, match='must reference an earlier row'):
-        _ = runner_module._resolve_parent_run_id(
+        _ = runner_module.resolve_parent_run_id(
             queue_row=queue_rows[0],
             queue_rows=queue_rows,
             active_anchor='anchor_v1',
@@ -663,7 +662,7 @@ def test_resolve_parent_run_id_rejects_parent_without_run_id() -> None:
     ]
 
     with pytest.raises(RuntimeError, match='does not have a completed run_id'):
-        _ = runner_module._resolve_parent_run_id(
+        _ = runner_module.resolve_parent_run_id(
             queue_row=queue_rows[1],
             queue_rows=queue_rows,
             active_anchor='anchor_v1',
@@ -737,7 +736,7 @@ def test_compose_cfg_uses_requested_training_experiment(
             }
         )
 
-    monkeypatch.setattr(runner_module, 'compose_config', fake_compose_config)
+    monkeypatch.setattr(configuration_module, 'compose_config', fake_compose_config)
 
     _ = _compose_cfg(
         row={'model': {'stage_label': 'dpnb_architecture_screen_probe'}},

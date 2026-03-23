@@ -41,7 +41,7 @@ from .paths_io import (
     default_sweeps_root,
     repo_root,
 )
-from .runner import compose_cfg
+from .configuration import compose_cfg
 from .validation import ensure_mapping, ensure_non_empty_string
 
 

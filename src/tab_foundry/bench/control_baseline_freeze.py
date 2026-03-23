@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
-from typing import Any, Mapping, Sequence, cast
+from typing import Any, Mapping, cast
 
 import torch
 
@@ -33,39 +32,16 @@ DEFAULT_CONFIG_PROFILE = DEFAULT_EXPERIMENT
 DEFAULT_BUDGET_CLASS = "short-run"
 
 
-def project_root() -> Path:
-    """Return the repository root for repo-relative artifact paths."""
-
-    return repo_root()
-
-
-def _default_registry_path() -> Path:
-    return read_control_baseline_registry.default_control_baseline_registry_path()
-
-
-def _normalize_path_value(path: Path) -> str:
-    return read_control_baseline_registry.normalize_registry_path_value(path, root=project_root())
-
-
-def _resolve_registry_path_value(value: str) -> Path:
-    return read_control_baseline_registry.resolve_registry_path_value(value, root=project_root())
-
-
-def _resolve_config_path(raw_value: Any) -> Path:
-    return _resolve_config_path_impl(raw_value, root_fn=project_root)
-
-
 def _canonical_registry_path() -> Path:
-    return _default_registry_path().expanduser().resolve()
-
-
-def _validate_baseline_entry(entry: Any, *, baseline_id: str) -> None:
-    _ = read_control_baseline_registry._validate_baseline_entry(entry, baseline_id=baseline_id)
+    return read_control_baseline_registry.default_control_baseline_registry_path().expanduser().resolve()
 
 
 def _ensure_repo_local_path_value(path_value: str, *, field_name: str) -> None:
-    resolved_path = _resolve_registry_path_value(path_value)
-    resolved_root = project_root().expanduser().resolve()
+    resolved_path = read_control_baseline_registry.resolve_registry_path_value(
+        path_value,
+        root=repo_root(),
+    )
+    resolved_root = repo_root().expanduser().resolve()
     try:
         resolved_path.relative_to(resolved_root)
     except ValueError as exc:
@@ -107,7 +83,7 @@ def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]
         version=REGISTRY_VERSION,
         entries_key="baselines",
         registry_label="control baseline registry",
-        validate_entry_fn=_validate_baseline_entry,
+        validate_entry_fn=read_control_baseline_registry._validate_baseline_entry,
         entry_label="baseline_id",
     )
 
@@ -115,7 +91,7 @@ def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]
 def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, Any]]:
     return _ensure_registry_payload_common(
         path,
-        default_path=_default_registry_path(),
+        default_path=read_control_baseline_registry.default_control_baseline_registry_path(),
         load_registry_payload_fn=_load_registry_payload,
     )
 
@@ -176,7 +152,7 @@ def derive_control_baseline_entry(
     runtime_cfg = raw_cfg.get("runtime")
     if not isinstance(data_cfg, dict) or not isinstance(runtime_cfg, dict):
         raise RuntimeError(f"checkpoint config must include data/runtime mappings: {best_checkpoint}")
-    manifest_path = _resolve_config_path(data_cfg.get("manifest_path"))
+    manifest_path = _resolve_config_path_impl(data_cfg.get("manifest_path"), root_fn=repo_root)
     seed_raw = runtime_cfg.get("seed")
     if not isinstance(seed_raw, int) or isinstance(seed_raw, bool):
         raise RuntimeError(f"checkpoint runtime.seed must be an int: {best_checkpoint}")
@@ -185,8 +161,18 @@ def derive_control_baseline_entry(
     benchmark_bundle_payload = _benchmark_bundle_payload_from_summary(
         benchmark_bundle,
         source_context="comparison summary benchmark_bundle.source_path",
-        normalize_path_value_fn=_normalize_path_value,
-        resolve_registry_path_value_fn=_resolve_registry_path_value,
+        normalize_path_value_fn=(
+            lambda path: read_control_baseline_registry.normalize_registry_path_value(
+                path,
+                root=repo_root(),
+            )
+        ),
+        resolve_registry_path_value_fn=(
+            lambda value: read_control_baseline_registry.resolve_registry_path_value(
+                value,
+                root=repo_root(),
+            )
+        ),
     )
     tab_foundry_metrics = _tab_foundry_metrics_from_summary(tab_foundry)
     entry = {
@@ -194,14 +180,23 @@ def derive_control_baseline_entry(
         "experiment": str(experiment),
         "config_profile": str(config_profile),
         "budget_class": str(budget_class),
-        "manifest_path": _normalize_path_value(manifest_path),
+        "manifest_path": read_control_baseline_registry.normalize_registry_path_value(
+            manifest_path,
+            root=repo_root(),
+        ),
         "seed_set": [int(seed_raw)],
-        "run_dir": _normalize_path_value(resolved_run_dir),
-        "comparison_summary_path": _normalize_path_value(resolved_summary_path),
+        "run_dir": read_control_baseline_registry.normalize_registry_path_value(
+            resolved_run_dir,
+            root=repo_root(),
+        ),
+        "comparison_summary_path": read_control_baseline_registry.normalize_registry_path_value(
+            resolved_summary_path,
+            root=repo_root(),
+        ),
         "benchmark_bundle": benchmark_bundle_payload,
         "tab_foundry_metrics": tab_foundry_metrics,
     }
-    _validate_baseline_entry(entry, baseline_id=str(baseline_id))
+    _ = read_control_baseline_registry._validate_baseline_entry(entry, baseline_id=str(baseline_id))
     return entry
 
 
@@ -215,9 +210,9 @@ def upsert_control_baseline_entry(
     return _upsert_registry_entry_common(
         entry,
         entry_id_key="baseline_id",
-        validate_entry_fn=_validate_baseline_entry,
+        validate_entry_fn=read_control_baseline_registry._validate_baseline_entry,
         registry_path=registry_path,
-        default_path=_default_registry_path(),
+        default_path=read_control_baseline_registry.default_control_baseline_registry_path(),
         load_registry_payload_fn=_load_registry_payload,
         entries_key="baselines",
         write_json_fn=write_json,
@@ -245,7 +240,11 @@ def freeze_control_baseline(
         run_dir=run_dir,
         comparison_summary_path=comparison_summary_path,
     )
-    requested_registry_path = _default_registry_path() if registry_path is None else registry_path
+    requested_registry_path = (
+        read_control_baseline_registry.default_control_baseline_registry_path()
+        if registry_path is None
+        else registry_path
+    )
     resolved_registry_path = requested_registry_path.expanduser().resolve()
     if resolved_registry_path == _canonical_registry_path():
         _enforce_canonical_registry_entry_paths(entry)
@@ -254,64 +253,3 @@ def freeze_control_baseline(
         "registry_path": str(resolved_registry_path),
         "baseline": entry,
     }
-
-
-def configure_parser(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--run-dir", required=True, help="Completed tab-foundry run directory")
-    parser.add_argument(
-        "--comparison-summary",
-        required=True,
-        help="Benchmark comparison_summary.json for the same run",
-    )
-    parser.add_argument(
-        "--baseline-id",
-        default=DEFAULT_BASELINE_ID,
-        help="Registry id for the frozen baseline",
-    )
-    parser.add_argument(
-        "--experiment",
-        default=DEFAULT_EXPERIMENT,
-        help="Logical experiment name stored in the registry entry",
-    )
-    parser.add_argument(
-        "--config-profile",
-        default=DEFAULT_CONFIG_PROFILE,
-        help="Config profile name stored in the registry entry",
-    )
-    parser.add_argument(
-        "--budget-class",
-        default=DEFAULT_BUDGET_CLASS,
-        help="Budget class label stored in the registry entry",
-    )
-    parser.add_argument(
-        "--registry-path",
-        default=str(_default_registry_path()),
-        help="Control baseline registry JSON path",
-    )
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Freeze one canonical tab-foundry control baseline")
-    configure_parser(parser)
-    return parser
-
-
-def run_from_args(args: argparse.Namespace) -> int:
-    result = freeze_control_baseline(
-        baseline_id=str(args.baseline_id),
-        experiment=str(args.experiment),
-        config_profile=str(args.config_profile),
-        budget_class=str(args.budget_class),
-        run_dir=Path(str(args.run_dir)),
-        comparison_summary_path=Path(str(args.comparison_summary)),
-        registry_path=Path(str(args.registry_path)),
-    )
-    print("Control baseline frozen:")
-    print(f"  registry_path={result['registry_path']}")
-    print(f"  baseline={result['baseline']}")
-    return 0
-
-
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    return run_from_args(parser.parse_args(argv))

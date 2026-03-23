@@ -64,17 +64,21 @@ into the canonical library modules.
   validation contracts.
 - `src/tab_foundry/bench/`: benchmark bundles, comparison flows, benchmark
   env/bootstrap helpers, smoke harnesses, registry write/orchestration
-  helpers, and shared artifact helpers. `bench/compare.py`,
-  `bench/run_registration.py`, and `bench/control_baseline_freeze.py` are the
-  canonical benchmark CLI/programmatic registry surfaces; `bench/comparison_runtime.py`
-  is the canonical programmatic benchmark-execution surface used by research.
+  helpers, and shared artifact helpers. `bench/compare.py` is the canonical
+  manual benchmark CLI surface, `bench/run_registration.py` and
+  `bench/control_baseline_freeze.py` are the canonical programmatic registry
+  write APIs, and `bench/comparison_runtime.py` is the canonical programmatic
+  benchmark-execution surface used by research. The packaged registry CLI
+  wiring now lives under `src/tab_foundry/cli/`.
 - `src/tab_foundry/research/`: system-delta sweep state, queue/matrix
   rendering, sweep-result summaries, and research-package path conventions.
   The canonical sweep manager now lives under `src/tab_foundry/research/sweep/`;
   `src/tab_foundry/research/sweep/execute.py` and
   `src/tab_foundry/research/sweep/promote.py` are the canonical
-  execute/promote entrypoints, and `src/tab_foundry/research/sweep/core.py`
-  is the canonical sweep manager and queue/materialization surface.
+  execute/promote library entrypoints, `src/tab_foundry/research/sweep/core.py`
+  is the canonical sweep manager and queue/materialization surface, and
+  sweep execution internals now live under `research/sweep/configuration.py`,
+  `research/sweep/runtime_env.py`, and `research/sweep/row_execution.py`.
 
 ## 3. Workflow Surfaces
 
@@ -167,7 +171,8 @@ not absorb new orchestration logic.
   management; do not recreate parallel queue logic in shell helpers or
   docs-only tooling.
 - `research/sweep/execute.py` and `research/sweep/promote.py` should remain
-  the canonical execute/promote surfaces, and `research/sweep/core.py` should
+  the canonical execute/promote library surfaces, with CLI parser ownership
+  staying under `src/tab_foundry/cli/`; `research/sweep/core.py` should
   remain the canonical sweep-management surface.
 - `tabfoundry_staged` is the only active architecture surface. Shared logic
   should continue to move into `model/components/`, `model/spec.py`, and

@@ -6,7 +6,7 @@ from typing import Any
 from omegaconf import OmegaConf
 
 from tab_foundry.research.sweep.core import load_system_delta_queue
-from tab_foundry.research.sweep.execute import _compose_cfg
+from tab_foundry.research.sweep.configuration import compose_cfg as _compose_cfg
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

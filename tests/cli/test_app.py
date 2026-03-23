@@ -5,19 +5,24 @@ import subprocess
 import pytest
 
 import tab_foundry.bench.compare as compare_module
-import tab_foundry.bench.control_baseline_freeze as control_baseline_freeze_module
-import tab_foundry.bench.run_registration as run_registration_module
+import tab_foundry.bench.control_baseline_freeze as control_baseline_freeze_library_module
+import tab_foundry.bench.run_registration as run_registration_library_module
 import tab_foundry.cli as cli_module
+import tab_foundry.cli.bench_control_baseline_freeze as control_baseline_freeze_cli_module
+import tab_foundry.cli.bench_run_registration as run_registration_cli_module
 import tab_foundry.cli.data_inspect as data_inspect_module
 import tab_foundry.cli.dev as dev_module
+import tab_foundry.cli.groups.bench as bench_group
 import tab_foundry.cli.groups.data as data_group
 import tab_foundry.cli.groups.research as research_group
+import tab_foundry.cli.research_execute as research_execute_cli_module
+import tab_foundry.cli.research_promote as research_promote_cli_module
 import tab_foundry.research.sweep.core as sweep_core_module
 import tab_foundry.research.sweep.diff as diff_module
-import tab_foundry.research.sweep.execute as sweep_execute_module
+import tab_foundry.research.sweep.execute as sweep_execute_library_module
 import tab_foundry.research.sweep.graph as graph_module
 import tab_foundry.research.sweep.inspect as inspect_module
-import tab_foundry.research.sweep.promote as sweep_promote_module
+import tab_foundry.research.sweep.promote as sweep_promote_library_module
 import tab_foundry.research.sweep.summarize as summarize_module
 import tab_foundry.training.prior_train as prior_train_module
 
@@ -49,7 +54,7 @@ def test_nested_cli_bench_registry_register_run_dispatches_to_handler(
         captured["registry_path"] = str(args.registry_path)
         return 0
 
-    monkeypatch.setattr(run_registration_module, "run_from_args", _fake_register_handler)
+    monkeypatch.setattr(run_registration_cli_module, "run_from_args", _fake_register_handler)
 
     exit_code = cli_module.main(
         [
@@ -92,7 +97,7 @@ def test_nested_cli_bench_registry_freeze_baseline_dispatches_to_handler(
         captured["registry_path"] = str(args.registry_path)
         return 0
 
-    monkeypatch.setattr(control_baseline_freeze_module, "run_from_args", _fake_freeze_handler)
+    monkeypatch.setattr(control_baseline_freeze_cli_module, "run_from_args", _fake_freeze_handler)
 
     exit_code = cli_module.main(
         [
@@ -300,7 +305,7 @@ def test_nested_cli_research_sweep_execute_dispatches_to_sweep_native_handler(
         captured["include_completed"] = bool(args.include_completed)
         return 0
 
-    monkeypatch.setattr(sweep_execute_module, "run_from_args", _fake_execute_handler)
+    monkeypatch.setattr(research_execute_cli_module, "run_from_args", _fake_execute_handler)
 
     exit_code = cli_module.main(
         ["research", "sweep", "execute", "--sweep-id", "binary_md_v1", "--include-completed"]
@@ -320,7 +325,7 @@ def test_nested_cli_research_sweep_promote_dispatches_to_sweep_native_handler(
         captured["run_id"] = str(args.run_id)
         return 0
 
-    monkeypatch.setattr(sweep_promote_module, "run_from_args", _fake_promote_handler)
+    monkeypatch.setattr(research_promote_cli_module, "run_from_args", _fake_promote_handler)
 
     exit_code = cli_module.main(
         ["research", "sweep", "promote", "--sweep-id", "binary_md_v1", "--run-id", "run_001"]
@@ -330,9 +335,19 @@ def test_nested_cli_research_sweep_promote_dispatches_to_sweep_native_handler(
     assert captured == {"sweep_id": "binary_md_v1", "run_id": "run_001"}
 
 
-def test_research_cli_group_imports_sweep_native_execute_and_promote_modules() -> None:
-    assert research_group.sweep_execute.__name__ == "tab_foundry.research.sweep.execute"
-    assert research_group.sweep_promote.__name__ == "tab_foundry.research.sweep.promote"
+def test_cli_groups_use_cli_only_execute_promote_and_registry_modules() -> None:
+    assert bench_group.run_registration_cli.__name__ == "tab_foundry.cli.bench_run_registration"
+    assert bench_group.control_baseline_freeze_cli.__name__ == "tab_foundry.cli.bench_control_baseline_freeze"
+    assert research_group.research_execute_cli.__name__ == "tab_foundry.cli.research_execute"
+    assert research_group.research_promote_cli.__name__ == "tab_foundry.cli.research_promote"
+    for library_module in (
+        run_registration_library_module,
+        control_baseline_freeze_library_module,
+        sweep_execute_library_module,
+        sweep_promote_library_module,
+    ):
+        for attribute in ("configure_parser", "build_parser", "run_from_args", "main"):
+            assert not hasattr(library_module, attribute)
 
 
 def test_nested_cli_research_sweep_summarize_dispatches_to_handler(

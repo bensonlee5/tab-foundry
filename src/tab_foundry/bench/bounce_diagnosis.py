@@ -31,7 +31,6 @@ from tab_foundry.bench.bounce.rerun import (
 from tab_foundry.bench.bounce.signals import (
     checkpoint_aliasing_signal as _checkpoint_aliasing_signal_impl,
     classify_causes as _classify_causes_impl,
-    curve_summary_compat as _curve_summary_impl,
     shared_bundle_analysis as _shared_bundle_analysis_impl,
     task_tradeoff_signal as _task_tradeoff_signal_impl,
     training_signal as _training_signal_impl,
@@ -96,12 +95,6 @@ def _shared_bundle_analysis(
     confirmation_records: list[dict[str, Any]] | None,
 ) -> dict[str, Any]:
     return _shared_bundle_analysis_impl(primary_records, confirmation_records)
-
-
-def _curve_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
-    return _curve_summary_impl(records)
-
-
 def _training_signal(
     *,
     history: list[dict[str, Any]],
