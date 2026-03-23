@@ -40,6 +40,7 @@ from tab_foundry.bench.nanotabpfn import (
     save_dataset_cache,
     summarize_checkpoint_curve,
 )
+from tab_foundry.repo_paths import repo_root
 from tab_foundry.training.instability import gradient_history_path, telemetry_path
 from tab_foundry.training.wandb import posthoc_update_wandb_summary
 
@@ -117,15 +118,15 @@ def _nanotabpfn_prior_dump(root: Path, override: Path | None) -> Path:
 
 
 def _helper_script_path() -> Path:
-    return Path(__file__).resolve().with_name("nanotabpfn_helper.py")
+    return repo_root() / "src" / "tab_foundry" / "bench" / "nanotabpfn_helper.py"
 
 
 def _tabiclv2_helper_script_path() -> Path:
-    return Path(__file__).resolve().with_name("tabiclv2_helper.py")
+    return repo_root() / "src" / "tab_foundry" / "bench" / "tabiclv2_helper.py"
 
 
 def _src_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+    return repo_root() / "src"
 
 
 def _tabiclv2_python(root: Path) -> Path:

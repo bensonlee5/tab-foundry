@@ -230,14 +230,36 @@ def test_pre_commit_verify_paths_covers_non_python_mapped_paths() -> None:
     assert re.search(pattern, "scripts/audit/dev_verify.py") is not None
 
 
-def test_dev_verify_uses_primary_root_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", "/tmp/tab-foundry-primary")
+def test_dev_verify_prefers_worktree_root_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    (worktree_root / ".venv" / "bin").mkdir(parents=True)
+    (primary_root / ".venv" / "bin").mkdir(parents=True)
+    (worktree_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+    (primary_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+    monkeypatch.setenv("TAB_FOUNDRY_WORKTREE_ROOT", str(worktree_root))
+    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", str(primary_root))
     override_module = _load_script_module(
         REPO_ROOT / "scripts" / "audit" / "dev_verify.py",
         "dev_verify_override_script",
     )
 
-    assert override_module.VENV_PYTHON == Path("/tmp/tab-foundry-primary/.venv/bin/python")
+    assert override_module.VENV_PYTHON == worktree_root / ".venv" / "bin" / "python"
+
+
+def test_dev_verify_falls_back_to_primary_root_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    (primary_root / ".venv" / "bin").mkdir(parents=True)
+    (primary_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+    monkeypatch.setenv("TAB_FOUNDRY_WORKTREE_ROOT", str(worktree_root))
+    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", str(primary_root))
+    override_module = _load_script_module(
+        REPO_ROOT / "scripts" / "audit" / "dev_verify.py",
+        "dev_verify_fallback_script",
+    )
+
+    assert override_module.VENV_PYTHON == primary_root / ".venv" / "bin" / "python"
 
 
 def test_build_precommit_check_ids_drops_expensive_cross_suite_pytest() -> None:

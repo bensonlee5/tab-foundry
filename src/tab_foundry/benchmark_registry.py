@@ -20,16 +20,24 @@ def default_benchmark_run_registry_path() -> Path:
     return repo_root() / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
 
 
-def resolve_registry_path_value(value: str) -> Path:
+def resolve_registry_path_value(
+    value: str,
+    *,
+    root: Path | None = None,
+) -> Path:
     """Resolve one registry-stored path value."""
 
-    return resolve_repo_relative_path(value)
+    return resolve_repo_relative_path(value, root=root)
 
 
-def normalize_registry_path_value(path: Path) -> str:
+def normalize_registry_path_value(
+    path: Path,
+    *,
+    root: Path | None = None,
+) -> str:
     """Normalize one absolute path into the repo-relative registry form when possible."""
 
-    return normalize_repo_relative_path(path)
+    return normalize_repo_relative_path(path, root=root)
 
 
 def _validate_run_entry(entry: Any, *, run_id: str) -> dict[str, Any]:
@@ -89,3 +97,21 @@ def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
         "version": REGISTRY_VERSION,
         "runs": cast(dict[str, Any], normalized_runs),
     }
+
+
+def load_benchmark_run_entry(
+    run_id: str,
+    *,
+    path: Path | None = None,
+) -> dict[str, Any]:
+    """Load one minimally validated benchmark-run registry entry."""
+
+    registry = load_benchmark_run_registry(path)
+    runs = cast(dict[str, Any], registry["runs"])
+    try:
+        entry = runs[str(run_id)]
+    except KeyError as exc:
+        raise RuntimeError(f"unknown benchmark registry run_id: {run_id!r}") from exc
+    if not isinstance(entry, dict):
+        raise RuntimeError(f"benchmark run entry {run_id!r} must be a mapping")
+    return cast(dict[str, Any], entry)

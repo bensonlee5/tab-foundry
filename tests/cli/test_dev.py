@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
+import torch
+
+import tab_foundry.cli.dev as dev_module
+import tab_foundry.device as device_module
 from tab_foundry.cli.dev import diff_config_payloads, forward_check, resolve_config_payload
 from tab_foundry.export.contracts import SCHEMA_VERSION_V2, SCHEMA_VERSION_V3
 from tab_foundry.export.inspection import export_check
@@ -68,6 +74,36 @@ def test_forward_check_passes_for_direct_head_surface() -> None:
     assert payload["batched_output"] is not None
 
 
+def test_forward_check_uses_shared_device_resolver(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, str] = {}
+
+    def fake_resolve_torch_device(requested: str) -> torch.device:
+        captured["requested"] = requested
+        return torch.device("cpu")
+
+    monkeypatch.setattr(dev_module, "resolve_torch_device", fake_resolve_torch_device)
+
+    payload = dev_module.forward_check(
+        _SMALL_STAGED_OVERRIDES,
+        requested_device="cpu",
+        seed=7,
+    )
+
+    assert captured == {"requested": "cpu"}
+    assert payload["output_kind"] == "logits"
+
+
+def test_forward_check_rejects_unavailable_cuda(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+
+    with pytest.raises(RuntimeError, match="requested --device cuda, but CUDA is not available"):
+        _ = dev_module.forward_check(
+            _SMALL_STAGED_OVERRIDES,
+            requested_device="cuda",
+            seed=7,
+        )
+
+
 def test_forward_check_passes_for_many_class_surface() -> None:
     payload = forward_check(
         [
@@ -95,6 +131,41 @@ def test_forward_check_passes_for_many_class_surface() -> None:
     assert payload["surface_label"] == "many_class_dev_test"
     assert payload["output_shape"] == [2, 5]
     assert payload["batched_output"] is None
+
+
+def test_resolve_device_auto_prefers_mps_when_cuda_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(
+        torch.backends,
+        "mps",
+        SimpleNamespace(is_available=lambda: True),
+        raising=False,
+    )
+
+    assert device_module.resolve_device("auto") == "mps"
+
+
+def test_resolve_torch_device_rejects_unavailable_mps(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        torch.backends,
+        "mps",
+        SimpleNamespace(is_available=lambda: False),
+        raising=False,
+    )
+
+    with pytest.raises(RuntimeError, match="requested --device mps, but MPS is not available"):
+        _ = device_module.resolve_torch_device("mps")
+
+
+def test_resolve_torch_device_accepts_explicit_cpu() -> None:
+    assert device_module.resolve_torch_device("cpu") == torch.device("cpu")
+
+
+def test_resolve_torch_device_rejects_unknown_device() -> None:
+    with pytest.raises(RuntimeError, match="unsupported device: 'tpu'"):
+        _ = device_module.resolve_torch_device("tpu")
 
 
 def test_diff_config_payloads_only_reports_effective_differences() -> None:

@@ -27,34 +27,97 @@ pre_commit_exec = _load_script_module(
 
 
 def test_build_command_uses_primary_python_binary(tmp_path: Path) -> None:
-    venv_bin = tmp_path / ".venv" / "bin"
-    venv_bin.mkdir(parents=True)
-    (venv_bin / "python").write_text("", encoding="utf-8")
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    (worktree_root / ".venv" / "bin").mkdir(parents=True)
+    (worktree_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+    roots = pre_commit_exec.resolve_tool_roots(
+        env={
+            "TAB_FOUNDRY_WORKTREE_ROOT": str(worktree_root),
+            "TAB_FOUNDRY_PRIMARY_ROOT": str(primary_root),
+        }
+    )
 
-    command = pre_commit_exec.build_command(["python", "-m", "mypy", "src"], venv_bin)
+    command = pre_commit_exec.build_command(["python", "-m", "mypy", "src"], tool_roots=roots)
 
-    assert command == [str(venv_bin / "python"), "-m", "mypy", "src"]
+    assert command == [str(worktree_root / ".venv" / "bin" / "python"), "-m", "mypy", "src"]
 
 
 def test_build_command_uses_tool_binary_from_primary_venv(tmp_path: Path) -> None:
-    venv_bin = tmp_path / ".venv" / "bin"
-    venv_bin.mkdir(parents=True)
-    (venv_bin / "ruff").write_text("", encoding="utf-8")
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    (worktree_root / ".venv" / "bin").mkdir(parents=True)
+    (worktree_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+    (worktree_root / ".venv" / "bin" / "ruff").write_text("", encoding="utf-8")
+    roots = pre_commit_exec.resolve_tool_roots(
+        env={
+            "TAB_FOUNDRY_WORKTREE_ROOT": str(worktree_root),
+            "TAB_FOUNDRY_PRIMARY_ROOT": str(primary_root),
+        }
+    )
 
-    command = pre_commit_exec.build_command(["ruff", "check", "src"], venv_bin)
+    command = pre_commit_exec.build_command(["ruff", "check", "src"], tool_roots=roots)
 
-    assert command == [str(venv_bin / "ruff"), "check", "src"]
+    assert command == [str(worktree_root / ".venv" / "bin" / "ruff"), "check", "src"]
 
 
 def test_build_command_rejects_missing_binary(tmp_path: Path) -> None:
-    venv_bin = tmp_path / ".venv" / "bin"
-    venv_bin.mkdir(parents=True)
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    (worktree_root / ".venv" / "bin").mkdir(parents=True)
+    (worktree_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+    roots = pre_commit_exec.resolve_tool_roots(
+        env={
+            "TAB_FOUNDRY_WORKTREE_ROOT": str(worktree_root),
+            "TAB_FOUNDRY_PRIMARY_ROOT": str(primary_root),
+        }
+    )
 
     with pytest.raises(RuntimeError, match="Missing"):
-        pre_commit_exec.build_command(["mdformat", "README.md"], venv_bin)
+        pre_commit_exec.build_command(["mdformat", "README.md"], tool_roots=roots)
 
 
-def test_resolve_primary_venv_bin_requires_primary_python(tmp_path: Path) -> None:
-    with pytest.raises(RuntimeError, match="Bootstrap the original checkout"):
-        pre_commit_exec.resolve_primary_venv_bin(tmp_path)
+def test_resolve_tool_roots_prefers_worktree_python(tmp_path: Path) -> None:
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    (worktree_root / ".venv" / "bin").mkdir(parents=True)
+    (primary_root / ".venv" / "bin").mkdir(parents=True)
+    (worktree_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+    (primary_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
 
+    roots = pre_commit_exec.resolve_tool_roots(
+        env={
+            "TAB_FOUNDRY_WORKTREE_ROOT": str(worktree_root),
+            "TAB_FOUNDRY_PRIMARY_ROOT": str(primary_root),
+        }
+    )
+
+    assert roots.source == "worktree"
+    assert roots.tool_root == worktree_root
+
+
+def test_resolve_tool_roots_falls_back_to_primary_python(tmp_path: Path) -> None:
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    (primary_root / ".venv" / "bin").mkdir(parents=True)
+    (primary_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
+
+    roots = pre_commit_exec.resolve_tool_roots(
+        env={
+            "TAB_FOUNDRY_WORKTREE_ROOT": str(worktree_root),
+            "TAB_FOUNDRY_PRIMARY_ROOT": str(primary_root),
+        }
+    )
+
+    assert roots.source == "primary"
+    assert roots.tool_root == primary_root
+
+
+def test_resolve_tool_roots_requires_bootstrapped_candidate(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="Missing bootstrap environment"):
+        pre_commit_exec.resolve_tool_roots(
+            env={
+                "TAB_FOUNDRY_WORKTREE_ROOT": str(tmp_path / "worktree"),
+                "TAB_FOUNDRY_PRIMARY_ROOT": str(tmp_path / "primary"),
+            }
+        )

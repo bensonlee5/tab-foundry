@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   removing the `tab_foundry.data -> tab_foundry.bench` dependency edge and the
   previously documented top-level cycles.
 
+- Internal architecture note: hook and audit tooling now resolve interpreter
+  roots worktree-first with primary-checkout fallback, the exact-prior
+  training surface now lives under `tab_foundry.training`, and benchmark-run
+  registry reads now flow through the canonical top-level helper.
+
 ## [0.9.2] - 2026-03-23
 
 ### Changed

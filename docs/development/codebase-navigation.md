@@ -17,7 +17,10 @@ into the canonical library modules.
 - `scripts/`: shell convenience helpers plus audit tooling only. Python
   workflow entrypoints have been retired in favor of the packaged CLI.
 - `scripts/dev`: repo-local bootstrap, doctor, ready, verification, and smoke
-  wrapper that delegates to the audit tooling and packaged CLI.
+  wrapper that delegates to the audit tooling and packaged CLI. Hook and audit
+  tooling now resolve interpreters with a worktree-first `.venv` policy and
+  fall back to the primary checkout only when the current worktree is not yet
+  bootstrapped.
 
 ## 2. Canonical Library Areas
 
@@ -25,8 +28,11 @@ into the canonical library modules.
   discovery.
 - `src/tab_foundry/repo_paths.py`: dependency-light repo-root and repo-relative
   path helpers shared across package boundaries.
+- `src/tab_foundry/device.py`: dependency-light concrete-device resolution
+  helper shared by benchmark and prior-training flows.
 - `src/tab_foundry/benchmark_registry.py`: dependency-light read-only
-  benchmark-registry loader and path-resolution surface for non-bench readers.
+  benchmark-registry loader, entry-lookup, and path-resolution surface for
+  non-mutating readers across `bench` and `research`.
 - `src/tab_foundry/control_baseline_registry.py`: dependency-light read-only
   control-baseline registry loader and path-resolution surface shared by
   `bench` and `research`.
@@ -51,13 +57,14 @@ into the canonical library modules.
   - `tabfoundry_staged`: the staged classification family and the only active
     architecture-development surface
 - `src/tab_foundry/training/`: family-agnostic training loops, batching,
-  schedules, optimizers, runtime policy, evaluation helpers, and telemetry
-  health summaries.
+  schedules, optimizers, runtime policy, evaluation helpers, telemetry health
+  summaries, and the canonical exact-prior training surface under
+  `training/prior_train.py`, `training/prior_dump.py`, and `training/prior/`.
 - `src/tab_foundry/export/`: export bundle construction, loading, and
   validation contracts.
 - `src/tab_foundry/bench/`: benchmark bundles, comparison flows, benchmark
-  env/bootstrap helpers, smoke harnesses, prior-dump wiring, and shared
-  artifact helpers.
+  env/bootstrap helpers, smoke harnesses, registry write/orchestration
+  helpers, and shared artifact helpers.
 - `src/tab_foundry/research/`: system-delta sweep state, queue/matrix
   rendering, sweep-result summaries, and research-package path conventions.
   The canonical sweep manager now lives under `src/tab_foundry/research/sweep/`;
@@ -143,7 +150,8 @@ not absorb new orchestration logic.
   live in `src/tab_foundry/repo_paths.py` and
   `src/tab_foundry/benchmark_registry.py`; the equivalent control-baseline and
   external-benchmark contracts should continue to live in
-  `src/tab_foundry/control_baseline_registry.py` and
+  `src/tab_foundry/control_baseline_registry.py`,
+  `src/tab_foundry/device.py`, and
   `src/tab_foundry/external_benchmarks.py` instead of being reimplemented in
   lower layers.
 - `src/tab_foundry/research/` is the canonical home for sweep queue/matrix

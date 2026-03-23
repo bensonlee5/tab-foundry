@@ -1,62 +1,38 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import importlib.util
 import os
 from pathlib import Path
 import subprocess
 import sys
 from typing import Sequence
 
-
-def _git_rev_parse(*args: str) -> str:
-    completed = subprocess.run(
-        ["git", "rev-parse", "--path-format=absolute", *args],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if completed.returncode != 0:
-        message = completed.stderr.strip() or "git rev-parse failed"
-        raise RuntimeError(message)
-    return completed.stdout.strip()
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 
-def resolve_repo_roots() -> tuple[Path, Path]:
-    worktree_root = Path(_git_rev_parse("--show-toplevel"))
-    common_git_dir = Path(_git_rev_parse("--git-common-dir"))
-    primary_root = common_git_dir.parent.resolve()
-    return worktree_root, primary_root
+def _load_tool_roots_module():
+    spec = importlib.util.spec_from_file_location("tool_roots_script", SCRIPT_DIR / "tool_roots.py")
+    if spec is None or spec.loader is None:
+        raise RuntimeError("unable to load scripts/audit/tool_roots.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
-def resolve_primary_venv_bin(primary_root: Path) -> Path:
-    venv_bin = primary_root / ".venv" / "bin"
-    if not (venv_bin / "python").is_file():
-        raise RuntimeError(
-            f"Missing {venv_bin / 'python'}. "
-            "Bootstrap the original checkout before running pre-commit in a worktree."
-        )
-    return venv_bin
-
-
-def build_command(command: Sequence[str], venv_bin: Path) -> list[str]:
-    if not command:
-        raise ValueError("expected a command")
-    tool = command[0]
-    executable = venv_bin / ("python" if tool == "python" else tool)
-    if not executable.is_file():
-        raise RuntimeError(f"Missing {executable}.")
-    return [str(executable), *command[1:]]
-
+tool_roots = _load_tool_roots_module()
+build_command = tool_roots.build_command
+resolve_tool_roots = tool_roots.resolve_tool_roots
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    worktree_root, primary_root = resolve_repo_roots()
-    venv_bin = resolve_primary_venv_bin(primary_root)
-    command = build_command(args, venv_bin)
+    resolved_tool_roots = tool_roots.resolve_tool_roots()
+    command = tool_roots.build_command(args, tool_roots=resolved_tool_roots)
     env = os.environ.copy()
-    env.setdefault("TAB_FOUNDRY_WORKTREE_ROOT", str(worktree_root))
-    env.setdefault("TAB_FOUNDRY_PRIMARY_ROOT", str(primary_root))
-    completed = subprocess.run(command, cwd=worktree_root, env=env, check=False)
+    env.setdefault("TAB_FOUNDRY_WORKTREE_ROOT", str(resolved_tool_roots.worktree_root))
+    env.setdefault("TAB_FOUNDRY_PRIMARY_ROOT", str(resolved_tool_roots.primary_root))
+    completed = subprocess.run(command, cwd=resolved_tool_roots.worktree_root, env=env, check=False)
     return completed.returncode
 
 

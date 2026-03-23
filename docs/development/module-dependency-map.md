@@ -14,23 +14,27 @@ section factual and keep design intent in the policy section below it.
 - `tab_foundry.__main__` depends on `tab_foundry.cli`.
 - `tab_foundry.bench` depends on `tab_foundry.config`,
   `tab_foundry.control_baseline_registry`, `tab_foundry.data`,
-  `tab_foundry.external_benchmarks`,
+  `tab_foundry.device`, `tab_foundry.external_benchmarks`,
+  `tab_foundry.benchmark_registry`,
   `tab_foundry.input_normalization`, `tab_foundry.model`,
   `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
   `tab_foundry.timestamps`, `tab_foundry.training`, and
   `tab_foundry.types`.
 - `tab_foundry.benchmark_registry` depends on `tab_foundry.repo_paths`.
 - `tab_foundry.cli` depends on `tab_foundry.bench`,
-  `tab_foundry.config`, `tab_foundry.data`, `tab_foundry.export`,
-  `tab_foundry.model`, `tab_foundry.preprocessing`,
-  `tab_foundry.research`, and `tab_foundry.training`.
+  `tab_foundry.config`, `tab_foundry.data`, `tab_foundry.device`,
+  `tab_foundry.export`, `tab_foundry.model`,
+  `tab_foundry.preprocessing`, `tab_foundry.research`, and
+  `tab_foundry.training`.
+- `tab_foundry.config` depends on `tab_foundry.repo_paths`.
 - `tab_foundry.control_baseline_registry` depends on
   `tab_foundry.repo_paths`.
 - `tab_foundry.data` depends on `tab_foundry.benchmark_registry`,
   `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
   `tab_foundry.timestamps`, and `tab_foundry.types`.
 - `tab_foundry.export` depends on `tab_foundry.input_normalization`,
-  `tab_foundry.model`, `tab_foundry.preprocessing`, and `tab_foundry.types`.
+  `tab_foundry.model`, `tab_foundry.preprocessing`,
+  `tab_foundry.repo_paths`, and `tab_foundry.types`.
 - `tab_foundry.model` depends on `tab_foundry.input_normalization` and
   `tab_foundry.types`.
 - `tab_foundry.research` depends on `tab_foundry.bench`,
@@ -38,10 +42,10 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.control_baseline_registry`,
   `tab_foundry.external_benchmarks`, `tab_foundry.model`,
   `tab_foundry.repo_paths`, and `tab_foundry.training`.
-- `tab_foundry.training` depends on `tab_foundry.data`,
-  `tab_foundry.model`, `tab_foundry.preprocessing`,
-  `tab_foundry.repo_paths`, `tab_foundry.timestamps`, and
-  `tab_foundry.types`.
+- `tab_foundry.training` depends on `tab_foundry.config`,
+  `tab_foundry.data`, `tab_foundry.device`, `tab_foundry.model`,
+  `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
+  `tab_foundry.timestamps`, and `tab_foundry.types`.
 
 <!-- module-graph:end -->
 
@@ -52,7 +56,7 @@ Observed cycle status:
 ## Intended Dependency-Direction Policy
 
 - `tab_foundry.config`, `tab_foundry.repo_paths`,
-  `tab_foundry.benchmark_registry`,
+  `tab_foundry.device`, `tab_foundry.benchmark_registry`,
   `tab_foundry.control_baseline_registry`,
   `tab_foundry.external_benchmarks`, `tab_foundry.types`,
   `tab_foundry.input_normalization`, and `tab_foundry.timestamps`
@@ -67,13 +71,14 @@ Observed cycle status:
   corpus-result linkage needs it, but it should not depend on `bench`,
   `training`, or `research`.
 - `tab_foundry.training` may depend on `data`, `model`, `preprocessing`, and
-  shared helpers such as `tab_foundry.repo_paths`, but it should not depend on
-  `bench` or `research`.
+  shared helpers such as `tab_foundry.config`, `tab_foundry.device`, and
+  `tab_foundry.repo_paths`, but it should not depend on `bench` or `research`.
 - `tab_foundry.export` may depend on `model`, `preprocessing`, and shared
   helpers, but it should not depend on `bench`, `research`, or `training`.
 - `tab_foundry.bench` is the benchmark and harness layer. It may depend on
   `config`, `data`, `model`, `preprocessing`, `training`, and shared helpers
-  such as `tab_foundry.external_benchmarks` and
+  such as `tab_foundry.benchmark_registry`, `tab_foundry.device`,
+  `tab_foundry.external_benchmarks`, and
   `tab_foundry.control_baseline_registry`, but lower layers should not depend
   on it.
 - `tab_foundry.research` is the sweep-management layer. It may depend on

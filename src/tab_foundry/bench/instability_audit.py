@@ -9,12 +9,12 @@ from pathlib import Path
 import re
 from typing import Any, Mapping
 
-from tab_foundry.bench.artifacts import load_history, write_json
-from tab_foundry.bench.benchmark_run_registry import (
+from tab_foundry.benchmark_registry import (
     default_benchmark_run_registry_path,
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
+from tab_foundry.bench.artifacts import load_history, write_json
 from tab_foundry.timestamps import utc_now as _shared_utc_now
 from tab_foundry.training.instability import history_loss_summary
 

@@ -32,10 +32,8 @@ ensure_venv() {
   fi
 }
 
-primary_repo_root() {
-  local common_git_dir
-  common_git_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
-  (cd "${common_git_dir}/.." && pwd)
+tool_root_field() {
+  python3 "${REPO_ROOT}/scripts/audit/tool_roots.py" print --field "$1"
 }
 
 common_git_dir_path() {
@@ -43,13 +41,7 @@ common_git_dir_path() {
 }
 
 pre_commit_python() {
-  local primary_root
-  primary_root="$(primary_repo_root)"
-  if [[ -x "${primary_root}/.venv/bin/python" ]]; then
-    printf '%s\n' "${primary_root}/.venv/bin/python"
-    return
-  fi
-  printf '%s\n' "${REPO_ROOT}/.venv/bin/python"
+  tool_root_field python
 }
 
 rewrite_pre_commit_hook_python() {
@@ -83,9 +75,18 @@ doctor() {
   local actual_install_python=""
   local common_git_dir=""
   local hook_path=""
+  local tool_source=""
+  local tool_root=""
 
   printf 'scripts/dev scope: repo-local bootstrap, review/verify, and smoke only.\n'
   printf 'Use .venv/bin/tab-foundry ... for data/train/eval/export/bench/research workflows.\n'
+
+  if tool_source="$(tool_root_field source 2>/dev/null)" && tool_root="$(tool_root_field tool-root 2>/dev/null)"; then
+    printf '[ok] tool root policy: source=%s root=%s\n' "${tool_source}" "${tool_root}"
+  else
+    printf '[fail] tool root policy: unable to resolve worktree-first tool root\n'
+    failures=$((failures + 1))
+  fi
 
   if command -v uv >/dev/null 2>&1; then
     printf '[ok] uv: %s\n' "$(command -v uv)"

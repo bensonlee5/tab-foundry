@@ -5,7 +5,6 @@ import subprocess
 import pytest
 
 import tab_foundry.bench.compare as compare_module
-import tab_foundry.bench.prior_train as prior_train_module
 import tab_foundry.cli as cli_module
 import tab_foundry.cli.data_inspect as data_inspect_module
 import tab_foundry.cli.dev as dev_module
@@ -15,6 +14,7 @@ import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.graph as graph_module
 import tab_foundry.research.sweep.inspect as inspect_module
 import tab_foundry.research.sweep.summarize as summarize_module
+import tab_foundry.training.prior_train as prior_train_module
 
 
 def test_nested_cli_bench_compare_delegates_to_compare_main(

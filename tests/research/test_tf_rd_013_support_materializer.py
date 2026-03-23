@@ -25,12 +25,43 @@ def _load_script_module():
     return module
 
 
-def test_materializer_uses_primary_root_override(monkeypatch) -> None:
-    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", "/tmp/tab-foundry-primary")
+def _write_tool_root(root: Path) -> None:
+    bin_dir = root / ".venv" / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    (bin_dir / "python").write_text("", encoding="utf-8")
+    (bin_dir / "tab-foundry").write_text("", encoding="utf-8")
+
+
+def _write_python_root(root: Path) -> None:
+    bin_dir = root / ".venv" / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    (bin_dir / "python").write_text("", encoding="utf-8")
+
+
+def test_materializer_prefers_worktree_tool_root(monkeypatch, tmp_path: Path) -> None:
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    _write_tool_root(worktree_root)
+    _write_tool_root(primary_root)
+    monkeypatch.setenv("TAB_FOUNDRY_WORKTREE_ROOT", str(worktree_root))
+    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", str(primary_root))
     module = _load_script_module()
 
-    assert module.TAB_FOUNDRY_ROOT == Path("/tmp/tab-foundry-primary")
-    assert module.TAB_FOUNDRY_BIN == Path("/tmp/tab-foundry-primary/.venv/bin/tab-foundry")
+    assert module.TAB_FOUNDRY_ROOT == worktree_root
+    assert module.TAB_FOUNDRY_BIN == worktree_root / ".venv" / "bin" / "tab-foundry"
+
+
+def test_materializer_falls_back_to_primary_tool_root(monkeypatch, tmp_path: Path) -> None:
+    worktree_root = tmp_path / "worktree"
+    primary_root = tmp_path / "primary"
+    _write_python_root(worktree_root)
+    _write_tool_root(primary_root)
+    monkeypatch.setenv("TAB_FOUNDRY_WORKTREE_ROOT", str(worktree_root))
+    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", str(primary_root))
+    module = _load_script_module()
+
+    assert module.TAB_FOUNDRY_ROOT == primary_root
+    assert module.TAB_FOUNDRY_BIN == primary_root / ".venv" / "bin" / "tab-foundry"
 
 
 def test_split_prepared_task_falls_back_when_stratification_is_not_possible() -> None:

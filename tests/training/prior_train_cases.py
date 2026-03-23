@@ -14,9 +14,9 @@ import torch
 from torch import nn
 
 import tab_foundry.bench.checkpoint as checkpoint_module
-import tab_foundry.bench.prior_train as prior_train_module
 from tab_foundry.bench.nanotabpfn import evaluate_tab_foundry_run
-from tab_foundry.bench.prior_dump import (
+import tab_foundry.training.prior_train as prior_train_module
+from tab_foundry.training.prior_dump import (
     PriorDumpBatchMissingness,
     PriorDumpNonFiniteInputError,
     PriorDumpTaskBatchReader,

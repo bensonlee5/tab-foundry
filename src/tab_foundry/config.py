@@ -7,11 +7,13 @@ from pathlib import Path
 from hydra import compose, initialize_config_dir
 from omegaconf import DictConfig
 
+from .repo_paths import repo_root
+
 
 def config_dir() -> Path:
     """Return the repo config directory."""
 
-    return Path(__file__).resolve().parents[2] / "configs"
+    return repo_root() / "configs"
 
 
 def compose_config(overrides: list[str] | None = None) -> DictConfig:

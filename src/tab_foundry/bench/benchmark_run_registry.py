@@ -6,19 +6,21 @@ import argparse
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from tab_foundry.benchmark_registry import (
+    default_benchmark_run_registry_path as _default_benchmark_run_registry_path_impl,
+    load_benchmark_run_registry as _load_benchmark_run_registry_impl,
+    normalize_registry_path_value as _normalize_path_value_impl,
+    resolve_registry_path_value as _resolve_registry_path_value_impl,
+)
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.bench.registry.paths import (
-    normalize_path_value as _normalize_path_value_impl,
-    project_root as _project_root_impl,
     resolve_config_path as _resolve_config_path_impl,
-    resolve_registry_path_value as _resolve_registry_path_value_impl,
 )
 from tab_foundry.bench.registry.run_derivation import (
     comparison_delta as _comparison_delta_impl,
     derive_benchmark_run_entry as _derive_benchmark_run_entry_impl,
     derive_benchmark_run_record as _derive_benchmark_run_record_impl,
     empty_registry as _empty_registry_impl,
-    load_registry_payload as _load_registry_payload_impl,
     sweep_payload as _sweep_payload_impl,
     validate_record_payload as _validate_record_payload_impl,
     validate_run_entry as _validate_run_entry_impl,
@@ -36,22 +38,23 @@ from tab_foundry.bench.registry.storage import (
     utc_now as _utc_now_common,
 )
 from tab_foundry.bench.registry_common import copy_jsonable as _copy_jsonable
+from tab_foundry.repo_paths import repo_root
 
 
 def project_root() -> Path:
     """Return the repository root for repo-relative artifact paths."""
 
-    return _project_root_impl()
+    return repo_root()
 
 
 def _normalize_path_value(path: Path) -> str:
-    return _normalize_path_value_impl(path, root_fn=project_root)
+    return _normalize_path_value_impl(path, root=project_root())
 
 
 def resolve_registry_path_value(value: str) -> Path:
     """Resolve a registry path value to an absolute path."""
 
-    return _resolve_registry_path_value_impl(value, root_fn=project_root)
+    return _resolve_registry_path_value_impl(value, root=project_root())
 
 
 def _resolve_config_path(raw_value: Any) -> Path:
@@ -61,7 +64,7 @@ def _resolve_config_path(raw_value: Any) -> Path:
 def default_benchmark_run_registry_path() -> Path:
     """Return the repo-tracked benchmark-run registry path."""
 
-    return Path(__file__).resolve().with_name("benchmark_run_registry_v1.json")
+    return _default_benchmark_run_registry_path_impl()
 
 
 def _utc_now() -> str:
@@ -90,13 +93,16 @@ def _sweep_payload(
 
 
 def _load_registry_payload(path: Path, *, allow_missing: bool) -> dict[str, Any]:
-    return _load_registry_payload_impl(path, allow_missing=allow_missing)
+    resolved_path = path.expanduser().resolve()
+    if allow_missing and not resolved_path.exists():
+        return _empty_registry()
+    return _load_benchmark_run_registry_impl(resolved_path)
 
 
 def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
     """Load and validate the benchmark run registry."""
 
-    return _load_registry_payload(path or default_benchmark_run_registry_path(), allow_missing=False)
+    return _load_benchmark_run_registry_impl(path or default_benchmark_run_registry_path())
 
 
 def _ensure_registry_payload(path: Path | None = None) -> tuple[Path, dict[str, Any]]:

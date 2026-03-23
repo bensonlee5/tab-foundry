@@ -226,6 +226,29 @@ def test_read_version_from_git_ref_reports_git_errors(monkeypatch: pytest.Monkey
         check_version_bump.read_version_from_git_ref(REPO_ROOT, ref="missing")
 
 
+def test_version_bump_check_skips_when_pyproject_is_not_staged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(check_version_bump, "is_path_staged", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(check_version_bump, "read_version_from_pyproject_path", lambda _path: "0.9.3")
+
+    exit_code = check_version_bump.main([])
+
+    assert exit_code == 0
+
+
+def test_version_bump_check_validates_when_pyproject_is_staged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(check_version_bump, "is_path_staged", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(check_version_bump, "read_version_from_git_ref", lambda *_args, **_kwargs: "0.9.2")
+    monkeypatch.setattr(check_version_bump, "read_version_from_pyproject_path", lambda _path: "0.9.3")
+
+    exit_code = check_version_bump.main([])
+
+    assert exit_code == 0
+
+
 def test_refresh_uv_lock_uses_uv_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[object] = []
 

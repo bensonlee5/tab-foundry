@@ -7,6 +7,7 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from hashlib import sha256
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,7 @@ import pyarrow.parquet as pq
 from sklearn.model_selection import train_test_split
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
@@ -111,26 +113,36 @@ SIZE_LADDER_RECIPE_IDS: tuple[str, ...] = (
 )
 
 
-def _resolve_tool_root() -> Path:
-    primary_root = os.environ.get("TAB_FOUNDRY_PRIMARY_ROOT")
-    if primary_root:
-        return Path(primary_root)
-    completed = subprocess.run(
-        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
+def _load_tool_roots_module():
+    spec = importlib.util.spec_from_file_location(
+        "tool_roots_script",
+        SCRIPT_DIR / "audit" / "tool_roots.py",
     )
-    if completed.returncode == 0:
-        candidate = Path(completed.stdout.strip()).parent.resolve()
-        if (candidate / ".venv" / "bin" / "tab-foundry").is_file():
-            return candidate
-    return REPO_ROOT
+    if spec is None or spec.loader is None:
+        raise RuntimeError("unable to load scripts/audit/tool_roots.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
-TAB_FOUNDRY_ROOT = _resolve_tool_root()
-TAB_FOUNDRY_BIN = TAB_FOUNDRY_ROOT / ".venv" / "bin" / "tab-foundry"
+tool_roots = _load_tool_roots_module()
+
+
+def _resolve_tab_foundry_roots() -> tuple[Path, Path]:
+    resolved_tool_roots = tool_roots.resolve_tool_roots(cwd=REPO_ROOT)
+    candidate_roots = [resolved_tool_roots.tool_root]
+    if resolved_tool_roots.primary_root not in candidate_roots:
+        candidate_roots.append(resolved_tool_roots.primary_root)
+    for root in candidate_roots:
+        executable = root / ".venv" / "bin" / "tab-foundry"
+        if executable.is_file():
+            return root, executable
+    attempted = ", ".join(str(root / ".venv" / "bin" / "tab-foundry") for root in candidate_roots)
+    raise RuntimeError(f"tab-foundry CLI not found. Checked {attempted}")
+
+
+TAB_FOUNDRY_ROOT, TAB_FOUNDRY_BIN = _resolve_tab_foundry_roots()
 
 
 @dataclass(frozen=True)

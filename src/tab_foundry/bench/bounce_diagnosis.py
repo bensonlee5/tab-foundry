@@ -8,8 +8,8 @@ from typing import Any, Sequence, cast
 
 from omegaconf import DictConfig
 
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.bench.artifacts import load_history, write_json, write_jsonl
-from tab_foundry.bench.benchmark_run_registry import default_benchmark_run_registry_path
 from tab_foundry.bench.bounce.config import (
     BenchmarkBounceDiagnosisConfig,
     DIAGNOSIS_SCHEMA as _DIAGNOSIS_SCHEMA,
@@ -46,7 +46,7 @@ from tab_foundry.bench.nanotabpfn import (
     load_openml_benchmark_datasets,
     summarize_checkpoint_curve,
 )
-from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
+from tab_foundry.training.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.trainer import train
 
 DIAGNOSIS_SCHEMA = _DIAGNOSIS_SCHEMA

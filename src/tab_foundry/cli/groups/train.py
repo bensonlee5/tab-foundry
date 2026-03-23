@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import argparse
 
-import tab_foundry.bench.prior_train as prior_train_module
 from tab_foundry.config import compose_config
+import tab_foundry.training.prior_train as prior_train_module
 from tab_foundry.training.trainer import train as run_training
 
 

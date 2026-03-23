@@ -8,8 +8,8 @@ from typing import Sequence
 
 from omegaconf import DictConfig
 
-from tab_foundry.bench.nanotabpfn import resolve_device
-from tab_foundry.bench.prior.config import (
+from tab_foundry.device import resolve_device
+from tab_foundry.training.prior.config import (
     _model_spec_from_cfg,
     _optimizer_kwargs,
     _resolve_lr,
@@ -23,22 +23,22 @@ from tab_foundry.bench.prior.config import (
     _validate_prior_training_model_spec,
     DEFAULT_BATCH_SIZE as _CONFIG_DEFAULT_BATCH_SIZE,
 )
-from tab_foundry.bench.prior.io import save_eval_mode_checkpoint as _save_eval_mode_checkpoint_impl
-from tab_foundry.bench.prior.io import stack_prior_step as _stack_prior_step
-from tab_foundry.bench.prior.loop import PriorTrainingDeps, run_prior_training
-from tab_foundry.bench.prior.missingness import (
+from tab_foundry.training.prior.io import save_eval_mode_checkpoint as _save_eval_mode_checkpoint_impl
+from tab_foundry.training.prior.io import stack_prior_step as _stack_prior_step
+from tab_foundry.training.prior.loop import PriorTrainingDeps, run_prior_training
+from tab_foundry.training.prior.missingness import (
     _accumulate_missingness,
     _accumulate_synthetic_missingness,
     _apply_prior_missingness,
     _initial_missingness_summary,
     _prior_wandb_summary_payload,
 )
-from tab_foundry.bench.prior.runtime import (
+from tab_foundry.training.prior.runtime import (
     resolve_prior_training_device_name as _resolve_prior_training_device_name_impl,
     seed_prior_training,
 )
-from tab_foundry.bench.prior.wandb import update_prior_wandb_summary
-from tab_foundry.bench.prior_dump import PriorDumpTaskBatchReader
+from tab_foundry.training.prior.wandb import update_prior_wandb_summary
+from tab_foundry.training.prior_dump import PriorDumpTaskBatchReader
 from tab_foundry.config import compose_config
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import ModelBuildSpec

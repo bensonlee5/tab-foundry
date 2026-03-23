@@ -29,7 +29,6 @@ from tab_foundry.bench.compare import (
 )
 from tab_foundry.bench.nanotabpfn import benchmark_host_fingerprint, resolve_device
 from tab_foundry.bench.nanotabpfn.bundle import canonical_benchmark_bundle_source_path
-from tab_foundry.bench.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.config import compose_config
 from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_NANOTABPFN
 from tab_foundry.research.lane_contract import (
@@ -40,6 +39,7 @@ from tab_foundry.research.lane_contract import (
 from tab_foundry.research import system_delta
 from tab_foundry.research.system_delta_promote import promote_anchor
 from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
+from tab_foundry.training.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.surface import (
     TRAINING_BACKEND_MANIFEST,
     TRAINING_BACKEND_PRIOR_DUMP,
