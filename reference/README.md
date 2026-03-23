@@ -1,8 +1,7 @@
 # Reference Index
 
-`reference/` is the canonical landing zone for repo-local literature notes,
-evidence maps, and adjacent-repo summaries that shape architecture and
-benchmark decisions in `tab-foundry`.
+Start here when you need the papers, evidence notes, and supporting research
+artifacts behind roadmap and architecture decisions in `tab-foundry`.
 
 Structural rules:
 
@@ -37,7 +36,7 @@ Contents:
 - `system_delta_queue.yaml`: generated active-sweep queue alias
 - `system_delta_matrix.md`: generated active-sweep matrix alias
 
-Keeping this material under one indexed home gives future architecture and
-benchmark work a stable citation surface without mixing research notes into the
+Keeping this material under one indexed home gives architecture and benchmark
+work a stable citation surface without mixing research notes into the
 operator-facing docs. The live architecture source of truth still lives in
 `docs/development/`.

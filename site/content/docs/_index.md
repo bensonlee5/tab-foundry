@@ -1,14 +1,15 @@
 ---
 title: "Documentation"
 linkTitle: "Docs"
-description: "Audience-based routing, workflow references, and canonical repo docs for tab-foundry."
+description: "Start here to choose the right docs path for repo overview, research work, or ML engineering."
 weight: 1
 no_list: true
 ---
 
 ## Start Here
 
-If you are new to the repo, choose the path that matches your goal first.
+Start with the question you are trying to answer, then take the shortest path
+into the repo.
 
 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-5">
   <div class="col d-flex">

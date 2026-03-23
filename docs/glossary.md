@@ -1,7 +1,7 @@
 # Glossary
 
-This glossary collects the repo-specific terms that show up across the roadmap,
-sweep system, architecture docs, and operational workflows.
+Use this glossary when architecture, sweep, artifact, and workflow terms start
+to carry too much repo-specific meaning.
 
 ## Anchor
 

@@ -23,6 +23,45 @@ ensure_venv() {
   fi
 }
 
+primary_repo_root() {
+  local common_git_dir
+  common_git_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
+  (cd "${common_git_dir}/.." && pwd)
+}
+
+pre_commit_python() {
+  local primary_root
+  primary_root="$(primary_repo_root)"
+  if [[ -x "${primary_root}/.venv/bin/python" ]]; then
+    printf '%s\n' "${primary_root}/.venv/bin/python"
+    return
+  fi
+  printf '%s\n' "${REPO_ROOT}/.venv/bin/python"
+}
+
+rewrite_pre_commit_hook_python() {
+  local common_git_dir hook_path install_python
+  common_git_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
+  hook_path="${common_git_dir}/hooks/pre-commit"
+  install_python="$(pre_commit_python)"
+  if [[ ! -f "${hook_path}" ]]; then
+    return
+  fi
+  HOOK_PATH="${hook_path}" INSTALL_PYTHON_PATH="${install_python}" python3 - <<'PY'
+from pathlib import Path
+import os
+
+hook_path = Path(os.environ["HOOK_PATH"])
+install_python = os.environ["INSTALL_PYTHON_PATH"]
+lines = hook_path.read_text(encoding="utf-8").splitlines()
+rewritten = [
+    f"INSTALL_PYTHON={install_python}" if line.startswith("INSTALL_PYTHON=") else line
+    for line in lines
+]
+hook_path.write_text("\n".join(rewritten) + "\n", encoding="utf-8")
+PY
+}
+
 main() {
   cd "${REPO_ROOT}"
 
@@ -38,7 +77,8 @@ main() {
         exit 1
       fi
       uv sync
-      uv run pre-commit install
+      "$(pre_commit_python)" -m pre_commit install
+      rewrite_pre_commit_hook_python
       ;;
     review-base|verify)
       ensure_venv

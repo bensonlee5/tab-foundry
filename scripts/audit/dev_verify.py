@@ -19,9 +19,30 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEV_INDEX_PATH = Path(__file__).with_name("dev_index.yaml")
-VENV_PYTHON = REPO_ROOT / ".venv" / "bin" / "python"
-VENV_RUFF = REPO_ROOT / ".venv" / "bin" / "ruff"
-VENV_MDFORMAT = REPO_ROOT / ".venv" / "bin" / "mdformat"
+
+
+def _resolve_tool_root() -> Path:
+    primary_root = os.environ.get("TAB_FOUNDRY_PRIMARY_ROOT")
+    if primary_root:
+        return Path(primary_root)
+    completed = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        candidate = Path(completed.stdout.strip()).parent.resolve()
+        if (candidate / ".venv" / "bin" / "python").is_file():
+            return candidate
+    return REPO_ROOT
+
+
+TOOL_ROOT = _resolve_tool_root()
+VENV_PYTHON = TOOL_ROOT / ".venv" / "bin" / "python"
+VENV_RUFF = TOOL_ROOT / ".venv" / "bin" / "ruff"
+VENV_MDFORMAT = TOOL_ROOT / ".venv" / "bin" / "mdformat"
 
 
 @dataclass(frozen=True, slots=True)

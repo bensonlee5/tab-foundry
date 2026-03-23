@@ -76,7 +76,28 @@ SHAPE_AWARE_SUPPORT_ROOT = (
 SHAPE_AWARE_DAGZOO_SURFACE_ROOT_NAME = "dagzoo_shape_aware_multi_invocation"
 
 ANCHOR_MANIFEST_PATH = REPO_ROOT / "data" / "manifests" / "default.parquet"
-TAB_FOUNDRY_BIN = REPO_ROOT / ".venv" / "bin" / "tab-foundry"
+
+
+def _resolve_tool_root() -> Path:
+    primary_root = os.environ.get("TAB_FOUNDRY_PRIMARY_ROOT")
+    if primary_root:
+        return Path(primary_root)
+    completed = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        candidate = Path(completed.stdout.strip()).parent.resolve()
+        if (candidate / ".venv" / "bin" / "tab-foundry").is_file():
+            return candidate
+    return REPO_ROOT
+
+
+TAB_FOUNDRY_ROOT = _resolve_tool_root()
+TAB_FOUNDRY_BIN = TAB_FOUNDRY_ROOT / ".venv" / "bin" / "tab-foundry"
 
 
 @dataclass(frozen=True)

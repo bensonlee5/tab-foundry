@@ -1,16 +1,17 @@
 # Architecture Deltas
 
-This document compares the settled row-first architecture target in `tab-foundry`
-to three reference points:
+Use this comparison when you need to explain how the settled row-first
+architecture differs from the frozen PFN control and the main external
+reference lines in `tab-foundry`.
+
+It compares the current target to three reference points:
 
 - `nanoTabPFN` as the frozen PFN control lineage
 - TabPFN / TabPFN-2.5 as the broader official PFN architecture lineage
 - TabICLv2's row-first architecture as the main external directional reference
 
-The goal is not to restate every implementation detail. It is to make the
-decision-relevant structural deltas visible enough that the repo can explain
-the TF-RD-008 settlement without confusing historical diagnostic sweeps for the
-current normative direction.
+The goal is to make the decision-relevant structural deltas visible without
+blurring historical diagnostic sweeps into the current normative direction.
 
 ## Scope
 

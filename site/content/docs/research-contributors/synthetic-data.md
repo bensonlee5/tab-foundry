@@ -1,10 +1,10 @@
 ---
 title: "Synthetic Data"
 linkTitle: "Synthetic Data"
-description: "How dagzoo-backed synthetic corpora fit into tab-foundry's training surface and roadmap."
+description: "How dagzoo-backed synthetic corpora fit into training, comparison, and roadmap work."
 weight: 30
 aliases:
-  - /docs/synthetic-data/
+- /docs/synthetic-data/
 ---
 
 ## Overview

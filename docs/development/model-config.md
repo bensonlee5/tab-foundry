@@ -1,10 +1,10 @@
 # Model Config Reference
 
-This document describes the active classification model configuration surface,
-the default values used in the repo, and how those values are resolved across
-training, evaluation, export, and bundle loading.
+Use this reference when you need to know which model settings matter, where
+they come from, and how they resolve across training, evaluation, export, and
+bundle loading.
 
-Related docs:
+Use these alongside this reference:
 
 - architecture reference: `docs/development/model-architecture.md`
 - inference contract: `docs/inference.md`

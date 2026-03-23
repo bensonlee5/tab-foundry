@@ -1,7 +1,7 @@
 # What Is tab-foundry?
 
-This page provides a concise overview of what the repository does, what it
-produces, and how to route into the rest of the docs.
+Start here when you want the shortest useful explanation of what
+`tab-foundry` owns, what it produces, and where to go next in the docs.
 
 ## Overview
 

@@ -4,7 +4,8 @@ linkTitle: "Home"
 ---
 
 {{< blocks/cover title="tab-foundry" image_anchor="top" height="med" color="dark" >}}
-<p class="lead mt-3">Training, research, and export workflows for tabular ML models, with routes for repo orientation, research contributions, and ML engineering.</p>
+
+<p class="lead mt-3">Docs, workflows, and research paths for training, comparing, and exporting tabular ML models.</p>
 <a class="btn btn-lg btn-outline-light me-3 mb-4" href="{{< relref "/docs" >}}">
   Read the Docs
 </a>
@@ -15,8 +16,8 @@ linkTitle: "Home"
 
 ## Choose Your Path
 
-Most readers should start with the question they are trying to answer, not
-with repo internals.
+Start with the question you are trying to answer, then follow the shortest
+route into the repo.
 
 <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-5">
   <div class="col d-flex">

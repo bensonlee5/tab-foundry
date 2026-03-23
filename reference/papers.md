@@ -1,10 +1,13 @@
 # Papers And References
 
-This directory is the starting point for literature-first architecture work in `tab-foundry`.
+Start here when you want the reading list that actually informs architecture,
+training, and scaling decisions in `tab-foundry`.
 
-It intentionally mirrors the role of `~/dev/dagzoo/reference`, but reads the shared literature through an **architecture, training recipe, and scaling predictability** lens rather than a data-generation lens.
+This list overlaps with `~/dev/dagzoo/reference`, but the lens here is
+**architecture, training recipe, and scaling predictability** rather than data
+generation.
 
-Related docs:
+Use these alongside this reference set:
 
 - Design decisions and repo structure: `docs/development/design-decisions.md`
 - Roadmap: `docs/development/roadmap.md`

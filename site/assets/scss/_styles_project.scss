@@ -15,6 +15,20 @@
   padding: 1rem;
 }
 
+// -- Display math ---------------------------------------------------------
+// Keep KaTeX display equations readable without breaking narrow layouts.
+
+.td-content .katex-display {
+  margin: 1.25rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.25rem;
+}
+
+.td-content .katex-display > .katex {
+  white-space: nowrap;
+}
+
 // -- Tables ---------------------------------------------------------------
 // Striped, hoverable tables with slightly smaller text for data-dense pages.
 
