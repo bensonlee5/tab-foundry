@@ -223,10 +223,21 @@ def test_pre_commit_verify_paths_covers_non_python_mapped_paths() -> None:
     pattern = str(verify_hook["files"])
 
     assert "--pre-commit" in str(verify_hook["entry"])
+    assert "pre_commit_exec.py" in str(verify_hook["entry"])
     assert "types_or" not in verify_hook
     assert re.search(pattern, "configs/config.yaml") is not None
     assert re.search(pattern, "reference/system_delta_sweeps/input_norm_followup/queue.yaml") is not None
     assert re.search(pattern, "scripts/audit/dev_verify.py") is not None
+
+
+def test_dev_verify_uses_primary_root_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", "/tmp/tab-foundry-primary")
+    override_module = _load_script_module(
+        REPO_ROOT / "scripts" / "audit" / "dev_verify.py",
+        "dev_verify_override_script",
+    )
+
+    assert override_module.VENV_PYTHON == Path("/tmp/tab-foundry-primary/.venv/bin/python")
 
 
 def test_build_precommit_check_ids_drops_expensive_cross_suite_pytest() -> None:

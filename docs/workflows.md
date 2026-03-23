@@ -1,8 +1,9 @@
 # Workflows
 
-This document is the operational runbook for `tab-foundry`: setup, local quality checks, core commands, smoke flows, tuning, and benchmark-adjacent comparisons.
+Use this runbook when you need command syntax, artifact expectations, or review
+checks for `tab-foundry`.
 
-Related docs:
+Use these alongside this runbook:
 
 - researcher onboarding: `docs/getting-started.md`
 - contribution workflow: `CONTRIBUTING.md`
@@ -13,20 +14,16 @@ Related docs:
 - inference/export contract: `docs/inference.md`
 - canonical roadmap: `docs/development/roadmap.md`
 
-Planning and repo-shape docs now live under `docs/development/`.
-This file stays top-level because it is the stable operational runbook.
-For agent-driven architecture search, use `program.md` as the execution
-contract; this file stays focused on commands, artifacts, and operational
-policy.
+Planning and repo-shape docs live under `docs/development/`. For
+agent-driven architecture search, use `program.md`; this runbook stays focused
+on commands, artifacts, and operational policy.
 
-The published docs site under `site/` is a navigation layer over these
-canonical Markdown sources. Update this file instead of generated site content
-when the runbook changes.
+Update this source when the runbook changes rather than editing generated site
+content.
 
 ## Overview
 
-This page tells you how to operate the repo safely. It is the best place to
-learn:
+Use this runbook to learn:
 
 - which commands to run
 - what artifacts those commands produce

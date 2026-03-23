@@ -1,8 +1,7 @@
 # Contributing
 
-This repo is optimized for research contributors who need to understand the
-architecture, inspect sweep state, and make bounded changes without reopening
-the entire system.
+Use this guide when you want to make a bounded change without reopening the
+entire system.
 
 Start with [docs/getting-started.md](docs/getting-started.md) for repo
 orientation, then choose the path that matches your work:

@@ -1,10 +1,10 @@
 ---
 title: "Sweeps"
 linkTitle: "Sweeps"
-description: "Entry point into the anchor-only system-delta workflow, queue discipline, and sweep artifacts."
+description: "Start here for the active sweep contract, queue discipline, and inspect-first workflow."
 weight: 10
 aliases:
-  - /docs/sweeps/
+- /docs/sweeps/
 ---
 
 ## Overview

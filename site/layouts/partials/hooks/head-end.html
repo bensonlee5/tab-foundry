@@ -4,6 +4,45 @@
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
 
 {{ with .Page }}
+{{ if .Params.katex }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script>
+  function renderKatexNodes() {
+    var root = document.querySelector(".td-content") || document.body;
+    if (!root || !window.katex) {
+      return;
+    }
+    root.querySelectorAll(".math-inline").forEach(function (node) {
+      if (node.dataset.katexRendered === "true") {
+        return;
+      }
+      window.katex.render(node.textContent || "", node, {
+        displayMode: false,
+        throwOnError: false
+      });
+      node.dataset.katexRendered = "true";
+    });
+    root.querySelectorAll(".math-display").forEach(function (node) {
+      if (node.dataset.katexRendered === "true") {
+        return;
+      }
+      window.katex.render(node.textContent || "", node, {
+        displayMode: true,
+        throwOnError: false
+      });
+      node.dataset.katexRendered = "true";
+    });
+  }
+
+  if (document.readyState === "complete") {
+    renderKatexNodes();
+  } else {
+    window.addEventListener("load", renderKatexNodes);
+    document.addEventListener("DOMContentLoaded", renderKatexNodes);
+  }
+</script>
+{{ end }}
 {{ if .Params.mermaid }}
 <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script>

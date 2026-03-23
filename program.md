@@ -1,13 +1,13 @@
 # Agent Program
 
-This file is the agent contract for the anchor-only system-delta sweep system in
-`tab-foundry`.
+Use this contract when you are running or reviewing the active anchor-only
+system-delta sweep in `tab-foundry`.
 
 Use `docs/workflows.md` for command syntax and artifact expectations. Use this
-file for the objective, the locked comparison surface, the queue discipline,
-and the interpretation policy.
+contract for the objective, the locked comparison surface, the queue
+discipline, and the interpretation policy.
 
-This file is a research-execution contract, not the architecture roadmap. The
+Treat this as a research-execution contract, not the architecture roadmap. The
 active sweep may intentionally hold a PFN-adjacent or hybrid diagnostic surface
 fixed while isolating one question. The long-term direction for the public
 model surface still comes from `docs/development/roadmap.md` and
@@ -15,9 +15,7 @@ model surface still comes from `docs/development/roadmap.md` and
 
 ## Overview
 
-This page defines the rules for the active research sweep.
-
-Use it when you need to know:
+Read it when you need to know:
 
 - what the current [anchor](docs/glossary.md#anchor) is
 - what is allowed to change in one sweep row

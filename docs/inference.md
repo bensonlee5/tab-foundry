@@ -1,9 +1,9 @@
 # Inference Contract
 
-This repository is the training-side producer of inference artifacts. Runtime
-inference is expected to live in a separate repository.
+Use this contract when you need to know what this repo hands to downstream
+runtime systems and what must remain stable.
 
-Related docs:
+Use these alongside this contract:
 
 - quickstart: `README.md`
 - workflow runbooks: `docs/workflows.md`
@@ -12,14 +12,13 @@ Related docs:
 - model config reference: `docs/development/model-config.md`
 - canonical roadmap: `docs/development/roadmap.md`
 
-Planning and architecture rationale live under `docs/development/`.
-This file stays top-level because it is the stable export and validation
-contract.
+Planning and architecture rationale live under `docs/development/`, while this
+page stays focused on the exported bundle and the validation boundary that
+downstream consumers rely on.
 
 ## Overview
 
-This page describes the artifact this repo hands off for runtime inference.
-The key idea is simple:
+The handoff boundary is simple:
 
 - this repo trains models and packages [export bundles](glossary.md#export-bundle)
 - a separate runtime repo or system can then load those bundles

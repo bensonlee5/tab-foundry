@@ -1,6 +1,7 @@
 # Getting Started
 
-Use this page for a fast orientation to `tab-foundry`.
+Start here when you need the fastest route to the right part of
+`tab-foundry`.
 
 ## Overview
 
@@ -18,7 +19,7 @@ answer:
 1. how do I contribute to the research side?
 1. how do the artifacts and workflows fit together operationally?
 
-Related docs:
+Use these alongside this page:
 
 - repo overview: [docs/what-is-tab-foundry.md](what-is-tab-foundry.md)
 - research path: [docs/research-contributors.md](research-contributors.md)

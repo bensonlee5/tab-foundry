@@ -1,9 +1,9 @@
 # Design Decisions
 
-This document captures enduring architecture direction, repo-structure policy,
-and compatibility guidance for `tab-foundry`.
+Use this page to understand the durable decisions behind the current
+architecture, repo structure, and compatibility boundaries.
 
-Related docs:
+Use these alongside this page:
 
 - quickstart: `README.md`
 - workflow runbooks: `docs/workflows.md`

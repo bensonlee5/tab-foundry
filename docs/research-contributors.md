@@ -1,7 +1,7 @@
 # Research Contributors
 
-This guide is the fastest path through `tab-foundry` if you are contributing to
-the research side of the repo.
+Use this guide when you are working on architecture, sweeps, synthetic data, or
+broader model-capability questions in `tab-foundry`.
 
 ## Overview
 
@@ -10,14 +10,14 @@ time. It uses [sweeps](glossary.md#sweep) to compare isolated changes against a
 locked [anchor](glossary.md#anchor), so the team can tell whether a model,
 data, or preprocessing change actually helped.
 
-Use this document to answer four common questions:
+Most research contributors come here to answer four common questions:
 
 1. what architecture is active here?
 1. how do sweeps work without breaking attribution?
 1. where does synthetic data fit relative to real-data ladders?
 1. how should broader model capability work be framed?
 
-Related docs:
+Use these alongside this guide:
 
 - shared vocabulary: [docs/glossary.md](glossary.md)
 - general orientation: [docs/getting-started.md](getting-started.md)

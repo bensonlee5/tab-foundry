@@ -25,6 +25,14 @@ def _load_script_module():
     return module
 
 
+def test_materializer_uses_primary_root_override(monkeypatch) -> None:
+    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", "/tmp/tab-foundry-primary")
+    module = _load_script_module()
+
+    assert module.TAB_FOUNDRY_ROOT == Path("/tmp/tab-foundry-primary")
+    assert module.TAB_FOUNDRY_BIN == Path("/tmp/tab-foundry-primary/.venv/bin/tab-foundry")
+
+
 def test_split_prepared_task_falls_back_when_stratification_is_not_possible() -> None:
     module = _load_script_module()
     prepared = module.PreparedOpenMLBenchmarkTask(

@@ -1,8 +1,7 @@
 # ML Engineering And Infra
 
-This guide is for contributors who need to understand the repo operationally:
-what artifacts it reads and writes, what this repo owns, and how to verify
-changes safely.
+Use this guide when you need the repo's operational view: artifacts, ownership
+boundaries, and verification paths.
 
 ## Overview
 
@@ -14,7 +13,7 @@ descriptions and configs into training [runs](glossary.md#run-directory),
 If you care most about files, artifacts, contracts, and validation paths, start
 here instead of the research-only docs.
 
-Related docs:
+Use these alongside this guide:
 
 - general start page: [docs/getting-started.md](getting-started.md)
 - repo overview: [docs/what-is-tab-foundry.md](what-is-tab-foundry.md)

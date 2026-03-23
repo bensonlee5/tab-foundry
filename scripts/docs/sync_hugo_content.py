@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import posixpath
 import re
@@ -44,14 +45,14 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         source_rel="docs/what-is-tab-foundry.md",
         route="getting-started/what-is-tab-foundry",
         weight=10,
-        description="Repo overview of what tab-foundry does, what it produces, and how to route into the relevant docs paths.",
+        description="Best first stop for what the repo owns, what it produces, and where to go next.",
         aliases=("/docs/what-is-tab-foundry/",),
     ),
     PageSpec(
         source_rel="docs/getting-started.md",
         route="getting-started/_index",
         weight=10,
-        description="General orientation page for repo overview, research contributions, and ML engineering paths.",
+        description="Fast route to the right docs path for repo overview, research work, or ML engineering.",
         link_title="Start Here",
         no_list=True,
     ),
@@ -59,7 +60,7 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         source_rel="docs/research-contributors.md",
         route="research-contributors/_index",
         weight=20,
-        description="Research-first route through architecture, sweeps, synthetic data, and model-breadth work.",
+        description="Research-first route through the active architecture, sweep system, synthetic-data lane, and model-breadth work.",
         link_title="Research",
         no_list=True,
     ),
@@ -67,7 +68,7 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         source_rel="docs/ml-engineering.md",
         route="ml-engineering/_index",
         weight=30,
-        description="Operational route through manifests, runs, checkpoints, export bundles, and verification paths.",
+        description="Operational route through artifacts, validation paths, and runtime handoff boundaries.",
         link_title="ML Engineering",
         no_list=True,
     ),
@@ -76,21 +77,21 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         route="research-contributors/sweep-contract",
         weight=20,
         link_title="Sweep Contract",
-        description="Active system-delta sweep contract, locked surface, and execution loop.",
+        description="Rules for the active system-delta sweep: locked surface, allowed changes, and required artifacts.",
         aliases=("/docs/sweep-contract/",),
     ),
     PageSpec(
         source_rel="docs/workflows.md",
         route="ml-engineering/workflows",
         weight=20,
-        description="Operational runbooks and command syntax for the canonical workflows.",
+        description="Command runbooks for setup, verification, smoke tests, and research execution.",
         aliases=("/docs/workflows/",),
     ),
     PageSpec(
         source_rel="docs/development/roadmap.md",
         route="development/roadmap",
         weight=10,
-        description="Canonical planning state and TF-RD priority order.",
+        description="Current priorities, frozen baselines, and evidence-gated next steps.",
         link_title="Roadmap",
         extra_params={"mermaid": True},
     ),
@@ -98,91 +99,91 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         source_rel="docs/development/model-architecture.md",
         route="development/model-architecture",
         weight=20,
-        description="Detailed architecture reference for the staged and simple model surfaces.",
-        extra_params={"mermaid": True},
+        description="Reference for the active model surface, subsystem roles, and settled row-first target.",
+        extra_params={"mermaid": True, "katex": True},
     ),
     PageSpec(
         source_rel="docs/development/design-decisions.md",
         route="development/design-decisions",
         weight=30,
-        description="Enduring architecture direction, repo-structure policy, and publishing decisions.",
+        description="Durable architecture, repo-structure, and compatibility decisions.",
     ),
     PageSpec(
         source_rel="docs/development/codebase-navigation.md",
         route="development/codebase-navigation",
         weight=40,
-        description="Package layout, workflow surfaces, and entry-point inventory.",
+        description="Where to make changes and which packages own each workflow surface.",
     ),
     PageSpec(
         source_rel="docs/development/module-dependency-map.md",
         route="development/module-dependency-map",
         weight=50,
-        description="Observed top-level package graph and intended dependency direction.",
+        description="Current package graph and intended dependency direction for refactors.",
     ),
     PageSpec(
         source_rel="docs/development/model-config.md",
         route="development/model-config",
         weight=60,
-        description="Model configuration reference and resolution rules.",
+        description="How model settings resolve across training, evaluation, export, and bundle loading.",
     ),
     PageSpec(
         source_rel="docs/development/architecture-deltas.md",
         route="development/architecture-deltas",
         weight=70,
-        description="Diagram-first comparison of the target lane and reference architectures.",
+        description="Decision-focused comparison between the settled row-first line and key reference architectures.",
         extra_params={"mermaid": True},
     ),
     PageSpec(
         source_rel="docs/development/dataset-curation.md",
         route="development/dataset-curation",
         weight=80,
-        description="Dataset curation and license-review gate for real-data ladders.",
+        description="Policy for admitting real-data datasets into curated benchmark and comparator surfaces.",
     ),
     PageSpec(
         source_rel="reference/README.md",
         route="reference/_index",
         weight=50,
-        description="Index for literature notes, evidence maps, and research surfaces.",
+        description="Start here for papers, evidence, and supporting research artifacts behind roadmap decisions.",
         link_title="References",
     ),
     PageSpec(
         source_rel="reference/papers.md",
         route="reference/papers",
         weight=10,
-        description="Curated papers, adjacent-repo borrowing rules, and adoption tiers.",
+        description="Reading list and adoption guidance for architecture and training ideas that matter in this repo.",
     ),
     PageSpec(
         source_rel="reference/evidence.md",
         route="reference/evidence",
         weight=20,
-        description="Roadmap-to-reference mapping and repo-local evidence notes.",
+        description="Map from roadmap claims to papers and repo-local evidence.",
     ),
     PageSpec(
         source_rel="reference/system_delta_sweeps/tf_rd_013_shape_aware_dagzoo_v1/support/README.md",
         route="reference/tf-rd-013-support",
         weight=30,
         link_title="TF-RD-013 Support",
-        description="Support bundle notes for the current shape-aware dagzoo synthetic-data contract.",
+        description="Regeneration assumptions and committed support notes for the current shape-aware dagzoo TF-RD-013 contract.",
     ),
     PageSpec(
         source_rel="CONTRIBUTING.md",
         route="getting-started/contributing",
         weight=30,
-        description="Contribution workflow and review readiness for research contributors.",
+        description="How to make bounded changes without losing the repo's architecture and research context.",
         aliases=("/docs/contributing/",),
     ),
     PageSpec(
         source_rel="docs/glossary.md",
         route="getting-started/glossary",
         weight=20,
-        description="Shared vocabulary for architecture and sweep work.",
+        description="Shared vocabulary for architecture, sweeps, artifacts, and workflow discussions.",
         aliases=("/docs/glossary/",),
     ),
     PageSpec(
         source_rel="README.md",
         route="repo-overview",
         weight=110,
-        description="Top-level repo overview and quickstart.",
+        description="Top-level repo overview, docs routing, and quickstart.",
         link_title="Repo Overview",
         toc_hide=True,
         hide_summary=True,
@@ -191,7 +192,7 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         source_rel="docs/inference.md",
         route="ml-engineering/inference",
         weight=30,
-        description="Export bundle schema and inference validation contract.",
+        description="Export-bundle schema, validation rules, and runtime handoff boundary.",
         aliases=("/docs/inference/",),
     ),
 )
@@ -238,6 +239,42 @@ def _strip_matching_h1(content: str, title: str) -> str:
                 del lines[idx]
     stripped = "\n".join(lines).rstrip()
     return f"{stripped}\n" if stripped else ""
+
+
+def _rewrite_katex_math(content: str) -> str:
+    def escape_inline_math(body: str) -> str:
+        escaped = html.escape(body)
+        pieces: list[str] = []
+        prev = ""
+        for ch in escaped:
+            if ch == "_" and prev != "\\":
+                pieces.append("&#95;")
+            elif ch == "*" and prev != "\\":
+                pieces.append("&#42;")
+            else:
+                pieces.append(ch)
+            prev = ch
+        return "".join(pieces)
+
+    def display_replacer(match: re.Match[str]) -> str:
+        body = html.escape(match.group(1).strip("\n"))
+        return f'\n<div class="math-display">\n{body}\n</div>\n\n'
+
+    content = re.sub(
+        r"(?ms)^\\\[\s*\n(.*?)\n\\\]\s*$",
+        display_replacer,
+        content,
+    )
+
+    def inline_replacer(match: re.Match[str]) -> str:
+        body = escape_inline_math(match.group(1))
+        return f'<span class="math-inline">{body}</span>'
+
+    return re.sub(
+        r"\\\((.+?)\\\)",
+        inline_replacer,
+        content,
+    )
 
 
 def _yaml_scalar(value: Any) -> str:
@@ -447,6 +484,8 @@ def sync_hugo_content(repo_root: Path = REPO_ROOT, *, check: bool = False) -> li
         body = _strip_matching_h1(content, title)
         body = _rewrite_markdown_links(body, spec.source_rel, route_map=route_map, repo_root=repo_root)
         body = _rewrite_html_links(body, spec.source_rel, route_map=route_map, repo_root=repo_root)
+        if spec.extra_params.get("katex"):
+            body = _rewrite_katex_math(body)
         rendered = _front_matter(title, spec, spec.source_rel, content) + body
         output_path = content_docs_root / _output_rel_path(spec.route)
         valid_paths.add(output_path)

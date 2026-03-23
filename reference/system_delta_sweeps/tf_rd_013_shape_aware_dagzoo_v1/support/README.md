@@ -1,6 +1,10 @@
 # TF-RD-013 Shape-Aware Support Bundle
 
-This directory is the committed reference-only support bundle for issue `#127`.
+Use this support bundle when you need the committed assumptions, regeneration
+flow, and comparison surfaces behind TF-RD-013 issue `#127`.
+
+It is a reference-only support surface for that shape-aware follow-up, not the
+main roadmap or sweep execution guide.
 
 The canonical local regeneration flow is:
 
@@ -18,7 +22,7 @@ Environment assumptions:
   - `../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml` with `128` datasets
 - The curated comparator baseline remains pinned to `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.
 
-What the script does for this variant:
+Current support surface:
 
 - materializes three explicit dagzoo generate runs under `outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/`
 - keeps each invocation's handoff manifest and identity separate for provenance review
