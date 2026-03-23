@@ -434,6 +434,40 @@ def test_build_training_surface_record_includes_optional_training_surface(
     assert record["training"]["effective_lr_scale_factor"] is None
 
 
+def test_build_training_surface_record_infers_manifest_backend_from_data_surface(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_backend.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+        },
+        run_dir=tmp_path / "run_manifest_backend",
+    )
+
+    assert record["training"]["backend"] == "manifest"
+
+
+def test_build_training_surface_record_infers_prior_dump_backend_without_data_cfg(
+    tmp_path: Path,
+) -> None:
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+        },
+        run_dir=tmp_path / "run_prior_dump_backend",
+    )
+
+    assert record["training"]["backend"] == "prior_dump"
+
+
 def test_build_training_surface_record_captures_prior_dump_batch_scaling_metadata(
     tmp_path: Path,
 ) -> None:

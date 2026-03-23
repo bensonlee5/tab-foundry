@@ -35,6 +35,7 @@ from tab_foundry.bench.nanotabpfn.datasets import (  # noqa: E402
     PreparedOpenMLBenchmarkTask,
     prepare_openml_benchmark_task,
 )
+from tab_foundry.data.manifest import build_manifest  # noqa: E402
 
 
 DEFAULT_DAGZOO_ROOT = REPO_ROOT.parent / "dagzoo"
@@ -46,9 +47,12 @@ DEFAULT_SEED = 1
 DEFAULT_DEVICE = "cpu"
 DEFAULT_COMPARATOR_SPLIT_SEED = 0
 DEFAULT_COMPARATOR_TEST_SIZE = 0.20
-MATERIALIZATION_ISSUE_NUMBER = 120
-EXECUTION_ISSUE_NUMBER = 122
+
+FIRST_MATERIALIZATION_ISSUE_NUMBER = 120
+FIRST_EXECUTION_ISSUE_NUMBER = 122
+SHAPE_AWARE_ISSUE_NUMBER = 127
 FILTERING_POLICY_ISSUE_NUMBER = 124
+
 LOCAL_OUTPUT_ROOT = REPO_ROOT / "outputs" / "staged_ladder_support" / "tf_rd_013"
 SUPPORT_ROOT = (
     REPO_ROOT
@@ -57,15 +61,22 @@ SUPPORT_ROOT = (
     / "tf_rd_013_data_source_contract_v1"
     / "support"
 )
+
+SHAPE_AWARE_SWEEP_ID = "tf_rd_013_shape_aware_dagzoo_v1"
+SHAPE_AWARE_LOCAL_OUTPUT_ROOT = (
+    REPO_ROOT / "outputs" / "staged_ladder_support" / SHAPE_AWARE_SWEEP_ID
+)
+SHAPE_AWARE_SUPPORT_ROOT = (
+    REPO_ROOT
+    / "reference"
+    / "system_delta_sweeps"
+    / SHAPE_AWARE_SWEEP_ID
+    / "support"
+)
+SHAPE_AWARE_DAGZOO_SURFACE_ROOT_NAME = "dagzoo_shape_aware_multi_invocation"
+
 ANCHOR_MANIFEST_PATH = REPO_ROOT / "data" / "manifests" / "default.parquet"
 TAB_FOUNDRY_BIN = REPO_ROOT / ".venv" / "bin" / "tab-foundry"
-ISSUE_URLS = {
-    "materialization_issue": f"https://github.com/bensonlee5/tab-foundry/issues/{MATERIALIZATION_ISSUE_NUMBER}",
-    "execution_issue": f"https://github.com/bensonlee5/tab-foundry/issues/{EXECUTION_ISSUE_NUMBER}",
-    "subsequent_filtering_policy_issue": (
-        f"https://github.com/bensonlee5/tab-foundry/issues/{FILTERING_POLICY_ISSUE_NUMBER}"
-    ),
-}
 
 
 @dataclass(frozen=True)
@@ -79,6 +90,67 @@ class MaterializationPaths:
     curated_openml_baseline_root: Path
     curated_openml_baseline_data_root: Path
     curated_openml_baseline_manifest_path: Path
+
+
+@dataclass(frozen=True)
+class ShapeAwareInvocationSpec:
+    invocation_id: str
+    config_ref: str
+    num_datasets: int
+    seed: int = DEFAULT_SEED
+    device: str = DEFAULT_DEVICE
+    hardware_policy: str = "none"
+
+
+@dataclass(frozen=True)
+class ShapeAwareInvocationPaths:
+    invocation_id: str
+    invocation_root: Path
+    generated_dir: Path
+    handoff_manifest_path: Path
+
+
+@dataclass(frozen=True)
+class ShapeAwareMaterializationPaths:
+    local_output_root: Path
+    dagzoo_surface_root: Path
+    dagzoo_manifest_path: Path
+    invocation_paths: tuple[ShapeAwareInvocationPaths, ...]
+    curated_realdata_root: Path
+    curated_openml_baseline_root: Path
+    curated_openml_baseline_data_root: Path
+    curated_openml_baseline_manifest_path: Path
+
+
+SHAPE_AWARE_INVOCATIONS: tuple[ShapeAwareInvocationSpec, ...] = (
+    ShapeAwareInvocationSpec(
+        invocation_id="benchmark_cpu",
+        config_ref="configs/benchmark_cpu.yaml",
+        num_datasets=2048,
+    ),
+    ShapeAwareInvocationSpec(
+        invocation_id="default_medium",
+        config_ref="configs/default.yaml",
+        num_datasets=4096,
+    ),
+    ShapeAwareInvocationSpec(
+        invocation_id="large_shape",
+        config_ref="configs/benchmark_cuda_h100_large_shape.yaml",
+        num_datasets=128,
+    ),
+)
+
+
+def _issue_urls(*, materialization_issue: int, execution_issue: int) -> dict[str, str]:
+    return {
+        "materialization_issue": (
+            f"https://github.com/bensonlee5/tab-foundry/issues/{materialization_issue}"
+        ),
+        "execution_issue": f"https://github.com/bensonlee5/tab-foundry/issues/{execution_issue}",
+        "subsequent_filtering_policy_issue": (
+            f"https://github.com/bensonlee5/tab-foundry/issues/{FILTERING_POLICY_ISSUE_NUMBER}"
+        ),
+    }
 
 
 def _utc_now() -> str:
@@ -197,6 +269,34 @@ def _materialization_paths(local_output_root: Path) -> MaterializationPaths:
     )
 
 
+def _shape_aware_materialization_paths(
+    local_output_root: Path,
+) -> ShapeAwareMaterializationPaths:
+    dagzoo_surface_root = local_output_root / SHAPE_AWARE_DAGZOO_SURFACE_ROOT_NAME
+    invocation_root = dagzoo_surface_root / "invocations"
+    curated_realdata_root = local_output_root / "curated_realdata"
+    curated_openml_baseline_root = curated_realdata_root / "openml_baseline"
+    invocation_paths = tuple(
+        ShapeAwareInvocationPaths(
+            invocation_id=spec.invocation_id,
+            invocation_root=invocation_root / spec.invocation_id,
+            generated_dir=invocation_root / spec.invocation_id / "generated",
+            handoff_manifest_path=invocation_root / spec.invocation_id / "handoff_manifest.json",
+        )
+        for spec in SHAPE_AWARE_INVOCATIONS
+    )
+    return ShapeAwareMaterializationPaths(
+        local_output_root=local_output_root,
+        dagzoo_surface_root=dagzoo_surface_root,
+        dagzoo_manifest_path=dagzoo_surface_root / "manifest.parquet",
+        invocation_paths=invocation_paths,
+        curated_realdata_root=curated_realdata_root,
+        curated_openml_baseline_root=curated_openml_baseline_root,
+        curated_openml_baseline_data_root=curated_openml_baseline_root / "packed_shards",
+        curated_openml_baseline_manifest_path=curated_openml_baseline_root / "manifest.parquet",
+    )
+
+
 def _dagzoo_commands(paths: MaterializationPaths) -> list[str]:
     return [
         (
@@ -216,9 +316,44 @@ def _dagzoo_commands(paths: MaterializationPaths) -> list[str]:
     ]
 
 
-def _curated_commands(paths: MaterializationPaths) -> list[str]:
+def _shape_aware_generate_command(
+    spec: ShapeAwareInvocationSpec,
+    paths: ShapeAwareInvocationPaths,
+) -> str:
+    return (
+        'cd "$DAGZOO_ROOT" && uv run dagzoo generate '
+        f"--config {spec.config_ref} "
+        f'--handoff-root "$TAB_FOUNDRY_ROOT/{_portable_path(paths.invocation_root)}" '
+        f"--num-datasets {spec.num_datasets} "
+        f"--seed {spec.seed} "
+        f"--device {spec.device} "
+        f"--hardware-policy {spec.hardware_policy}"
+    )
+
+
+def _shape_aware_build_manifest_command(paths: ShapeAwareMaterializationPaths) -> str:
+    roots_rendered = ", ".join(
+        _portable_path(invocation_paths.generated_dir)
+        for invocation_paths in paths.invocation_paths
+    )
+    return (
+        "build_manifest(data_roots=["
+        f"{roots_rendered}"
+        f"], out_path={_portable_path(paths.dagzoo_manifest_path)})"
+    )
+
+
+def _curated_commands(
+    paths: MaterializationPaths | ShapeAwareMaterializationPaths,
+    *,
+    variant: str,
+) -> list[str]:
+    variant_flag = "" if variant == "historical" else f" --variant {variant}"
     return [
-        'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/python scripts/materialize_tf_rd_013_support.py --force',
+        (
+            'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/python '
+            f"scripts/materialize_tf_rd_013_support.py{variant_flag} --force"
+        ),
         (
             'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry data build-manifest '
             f"--data-root {_portable_path(paths.curated_openml_baseline_data_root)} "
@@ -345,7 +480,7 @@ def _split_prepared_task(
 
 def _materialize_curated_openml_baseline(
     *,
-    paths: MaterializationPaths,
+    paths: MaterializationPaths | ShapeAwareMaterializationPaths,
     bundle_path: Path,
 ) -> dict[str, Any]:
     bundle, allow_missing_values = load_benchmark_bundle_for_execution(bundle_path)
@@ -431,102 +566,41 @@ def _materialize_curated_openml_baseline(
     }
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dagzoo-root", default=str(DEFAULT_DAGZOO_ROOT), help="Local dagzoo checkout root")
-    parser.add_argument("--force", action="store_true", help="Replace existing local TF-RD-013 outputs")
-    args = parser.parse_args(argv)
-
-    dagzoo_root = Path(str(args.dagzoo_root)).expanduser().resolve()
+def _assert_common_inputs(*, dagzoo_root: Path) -> Path:
     if not dagzoo_root.exists():
         raise RuntimeError(f"dagzoo root does not exist: {dagzoo_root}")
     if not TAB_FOUNDRY_BIN.exists():
         raise RuntimeError(f"tab-foundry CLI not found at {TAB_FOUNDRY_BIN}")
-    dagzoo_config_path = dagzoo_root / DEFAULT_DAGZOO_CONFIG_REF
-    if not dagzoo_config_path.exists():
-        raise RuntimeError(f"dagzoo config does not exist: {dagzoo_config_path}")
     if not ANCHOR_MANIFEST_PATH.exists():
         raise RuntimeError(f"anchor manifest does not exist: {ANCHOR_MANIFEST_PATH}")
     benchmark_bundle_path = REPO_ROOT / DEFAULT_BENCHMARK_BUNDLE_REF
     if not benchmark_bundle_path.exists():
         raise RuntimeError(f"benchmark bundle does not exist: {benchmark_bundle_path}")
+    return benchmark_bundle_path
 
-    paths = _materialization_paths(LOCAL_OUTPUT_ROOT)
-    _ensure_absent(paths.generated_source_root, force=bool(args.force))
-    _ensure_absent(paths.curated_openml_baseline_root, force=bool(args.force))
-    paths.generated_source_root.mkdir(parents=True, exist_ok=True)
-    paths.curated_openml_baseline_root.mkdir(parents=True, exist_ok=True)
 
-    generate_cmd = [
-        "uv",
-        "run",
-        "dagzoo",
-        "generate",
-        "--config",
-        str(dagzoo_config_path),
-        "--handoff-root",
-        str(paths.generated_source_root),
-        "--num-datasets",
-        str(DEFAULT_NUM_DATASETS),
-        "--seed",
-        str(DEFAULT_SEED),
-        "--device",
-        DEFAULT_DEVICE,
-        "--hardware-policy",
-        "none",
-    ]
-    generated_manifest_cmd = [
-        str(TAB_FOUNDRY_BIN),
-        "data",
-        "build-manifest",
-        "--data-root",
-        str(paths.generated_dir),
-        "--out-manifest",
-        str(paths.generated_manifest_path),
-    ]
-
-    generate_completed = _run_checked(generate_cmd, cwd=dagzoo_root)
-    generated_manifest_completed = _run_checked(generated_manifest_cmd, cwd=REPO_ROOT)
-    curated_result = _materialize_curated_openml_baseline(
-        paths=paths,
-        bundle_path=benchmark_bundle_path,
+def _historical_materialization_summary(
+    *,
+    paths: MaterializationPaths,
+    manifests: dict[str, dict[str, Any]],
+    handoff_payload: dict[str, Any],
+    dagzoo_commands: list[str],
+    curated_commands: list[str],
+    generate_completed: subprocess.CompletedProcess[str],
+    generated_manifest_completed: subprocess.CompletedProcess[str],
+    curated_result: dict[str, Any],
+) -> dict[str, Any]:
+    issue_urls = _issue_urls(
+        materialization_issue=FIRST_MATERIALIZATION_ISSUE_NUMBER,
+        execution_issue=FIRST_EXECUTION_ISSUE_NUMBER,
     )
-
-    handoff_payload = _sanitize_paths(_load_json(paths.handoff_manifest_path))
-    dagzoo_commands = _dagzoo_commands(paths)
-    curated_commands = _curated_commands(paths)
-    anchor_inspection = _manifest_inspect(ANCHOR_MANIFEST_PATH)
-    generated_inspection = _manifest_inspect(paths.generated_manifest_path)
-    curated_inspection = _manifest_inspect(paths.curated_openml_baseline_manifest_path)
-
-    manifests = {
-        "anchor_manifest_default": {
-            "status": "available",
-            "manifest_path": _portable_path(ANCHOR_MANIFEST_PATH),
-            "manifest_sha256": _sha256_path(ANCHOR_MANIFEST_PATH),
-            "inspection": anchor_inspection,
-        },
-        "dagzoo_generated_source": {
-            "status": "available",
-            "manifest_path": _portable_path(paths.generated_manifest_path),
-            "manifest_sha256": _sha256_path(paths.generated_manifest_path),
-            "inspection": generated_inspection,
-        },
-        "curated_realdata_openml_baseline": {
-            "status": "available",
-            "manifest_path": _portable_path(paths.curated_openml_baseline_manifest_path),
-            "manifest_sha256": _sha256_path(paths.curated_openml_baseline_manifest_path),
-            "inspection": curated_inspection,
-        },
-    }
-
     dagzoo_provenance = {
         "corpus_variant": "dagzoo_generated_source",
         "comparator_role": "promoted_anchor_candidate",
         "commands": dagzoo_commands,
         "config_refs": [DEFAULT_DAGZOO_CONFIG_REF],
         "curated_root_lineage": [],
-        "materialization_issue": MATERIALIZATION_ISSUE_NUMBER,
+        "materialization_issue": FIRST_MATERIALIZATION_ISSUE_NUMBER,
     }
     curated_openml_provenance = {
         "surface_variant": "curated_realdata_openml_baseline",
@@ -544,19 +618,18 @@ def main(argv: list[str] | None = None) -> int:
             "preferred_mode": "stratified",
             "fallback_mode": "unstratified_fallback",
         },
-        "execution_issue": EXECUTION_ISSUE_NUMBER,
+        "execution_issue": FIRST_EXECUTION_ISSUE_NUMBER,
     }
-
-    materialization_summary = {
+    return {
         "schema": "tab-foundry-tf-rd-013-materialization-summary-v4",
         "generated_at_utc": _utc_now(),
         "issues": {
-            "materialization_issue": MATERIALIZATION_ISSUE_NUMBER,
-            "materialization_issue_url": ISSUE_URLS["materialization_issue"],
-            "execution_issue": EXECUTION_ISSUE_NUMBER,
-            "execution_issue_url": ISSUE_URLS["execution_issue"],
+            "materialization_issue": FIRST_MATERIALIZATION_ISSUE_NUMBER,
+            "materialization_issue_url": issue_urls["materialization_issue"],
+            "execution_issue": FIRST_EXECUTION_ISSUE_NUMBER,
+            "execution_issue_url": issue_urls["execution_issue"],
             "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
-            "subsequent_filtering_policy_issue_url": ISSUE_URLS["subsequent_filtering_policy_issue"],
+            "subsequent_filtering_policy_issue_url": issue_urls["subsequent_filtering_policy_issue"],
         },
         "env_hints": {
             "dagzoo_root": "../dagzoo",
@@ -635,12 +708,17 @@ def main(argv: list[str] | None = None) -> int:
         },
     }
 
-    manifest_characteristics_summary = {
+
+def _historical_manifest_characteristics_summary(
+    *,
+    manifests: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    return {
         "schema": "tab-foundry-tf-rd-013-manifest-characteristics-summary-v4",
         "generated_at_utc": _utc_now(),
         "issues": {
-            "materialization_issue": MATERIALIZATION_ISSUE_NUMBER,
-            "execution_issue": EXECUTION_ISSUE_NUMBER,
+            "materialization_issue": FIRST_MATERIALIZATION_ISSUE_NUMBER,
+            "execution_issue": FIRST_EXECUTION_ISSUE_NUMBER,
             "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
         },
         "manifests": manifests,
@@ -666,13 +744,487 @@ def main(argv: list[str] | None = None) -> int:
         },
     }
 
-    _write_json(SUPPORT_ROOT / "materialization_summary.json", materialization_summary)
-    _write_json(SUPPORT_ROOT / "manifest_characteristics_summary.json", manifest_characteristics_summary)
 
+def _materialize_historical_support(*, dagzoo_root: Path, force: bool) -> int:
+    benchmark_bundle_path = _assert_common_inputs(dagzoo_root=dagzoo_root)
+    dagzoo_config_path = dagzoo_root / DEFAULT_DAGZOO_CONFIG_REF
+    if not dagzoo_config_path.exists():
+        raise RuntimeError(f"dagzoo config does not exist: {dagzoo_config_path}")
+
+    paths = _materialization_paths(LOCAL_OUTPUT_ROOT)
+    _ensure_absent(paths.generated_source_root, force=force)
+    _ensure_absent(paths.curated_openml_baseline_root, force=force)
+    paths.generated_source_root.mkdir(parents=True, exist_ok=True)
+    paths.curated_openml_baseline_root.mkdir(parents=True, exist_ok=True)
+
+    generate_cmd = [
+        "uv",
+        "run",
+        "dagzoo",
+        "generate",
+        "--config",
+        str(dagzoo_config_path),
+        "--handoff-root",
+        str(paths.generated_source_root),
+        "--num-datasets",
+        str(DEFAULT_NUM_DATASETS),
+        "--seed",
+        str(DEFAULT_SEED),
+        "--device",
+        DEFAULT_DEVICE,
+        "--hardware-policy",
+        "none",
+    ]
+    generated_manifest_cmd = [
+        str(TAB_FOUNDRY_BIN),
+        "data",
+        "build-manifest",
+        "--data-root",
+        str(paths.generated_dir),
+        "--out-manifest",
+        str(paths.generated_manifest_path),
+    ]
+
+    generate_completed = _run_checked(generate_cmd, cwd=dagzoo_root)
+    generated_manifest_completed = _run_checked(generated_manifest_cmd, cwd=REPO_ROOT)
+    curated_result = _materialize_curated_openml_baseline(
+        paths=paths,
+        bundle_path=benchmark_bundle_path,
+    )
+
+    handoff_payload = _sanitize_paths(_load_json(paths.handoff_manifest_path))
+    dagzoo_commands = _dagzoo_commands(paths)
+    curated_commands = _curated_commands(paths, variant="historical")
+    anchor_inspection = _manifest_inspect(ANCHOR_MANIFEST_PATH)
+    generated_inspection = _manifest_inspect(paths.generated_manifest_path)
+    curated_inspection = _manifest_inspect(paths.curated_openml_baseline_manifest_path)
+
+    manifests = {
+        "anchor_manifest_default": {
+            "status": "available",
+            "manifest_path": _portable_path(ANCHOR_MANIFEST_PATH),
+            "manifest_sha256": _sha256_path(ANCHOR_MANIFEST_PATH),
+            "inspection": anchor_inspection,
+        },
+        "dagzoo_generated_source": {
+            "status": "available",
+            "manifest_path": _portable_path(paths.generated_manifest_path),
+            "manifest_sha256": _sha256_path(paths.generated_manifest_path),
+            "inspection": generated_inspection,
+        },
+        "curated_realdata_openml_baseline": {
+            "status": "available",
+            "manifest_path": _portable_path(paths.curated_openml_baseline_manifest_path),
+            "manifest_sha256": _sha256_path(paths.curated_openml_baseline_manifest_path),
+            "inspection": curated_inspection,
+        },
+    }
+
+    materialization_summary = _historical_materialization_summary(
+        paths=paths,
+        manifests=manifests,
+        handoff_payload=handoff_payload,
+        dagzoo_commands=dagzoo_commands,
+        curated_commands=curated_commands,
+        generate_completed=generate_completed,
+        generated_manifest_completed=generated_manifest_completed,
+        curated_result=curated_result,
+    )
+    manifest_characteristics_summary = _historical_manifest_characteristics_summary(
+        manifests=manifests,
+    )
+
+    _write_json(SUPPORT_ROOT / "materialization_summary.json", materialization_summary)
+    _write_json(
+        SUPPORT_ROOT / "manifest_characteristics_summary.json",
+        manifest_characteristics_summary,
+    )
     print("Wrote support summaries:")
     print(f"  {SUPPORT_ROOT / 'materialization_summary.json'}")
     print(f"  {SUPPORT_ROOT / 'manifest_characteristics_summary.json'}")
     return 0
+
+
+def _shape_aware_invocation_summary(
+    *,
+    spec: ShapeAwareInvocationSpec,
+    paths: ShapeAwareInvocationPaths,
+    handoff_payload: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "invocation_id": spec.invocation_id,
+        "command": _shape_aware_generate_command(spec, paths),
+        "config_ref": spec.config_ref,
+        "num_datasets": spec.num_datasets,
+        "seed": spec.seed,
+        "device": spec.device,
+        "hardware_policy": spec.hardware_policy,
+        "invocation_root": _portable_path(paths.invocation_root),
+        "generated_dir": _portable_path(paths.generated_dir),
+        "handoff_manifest_path": _portable_path(paths.handoff_manifest_path),
+        "handoff_manifest_sha256": _sha256_path(paths.handoff_manifest_path),
+        "identity": handoff_payload.get("identity"),
+        "artifacts_relative": handoff_payload.get("artifacts_relative"),
+        "defaults": handoff_payload.get("defaults"),
+        "hardware": handoff_payload.get("hardware"),
+        "summary": handoff_payload.get("summary"),
+        "throughput": handoff_payload.get("throughput"),
+        "generate_invocation": handoff_payload.get("generate_invocation"),
+    }
+
+
+def _shape_aware_materialization_summary(
+    *,
+    paths: ShapeAwareMaterializationPaths,
+    manifests: dict[str, dict[str, Any]],
+    invocation_summaries: list[dict[str, Any]],
+    generate_steps: list[dict[str, Any]],
+    curated_commands: list[str],
+    curated_result: dict[str, Any],
+    combined_summary: Any,
+) -> dict[str, Any]:
+    issue_urls = _issue_urls(
+        materialization_issue=SHAPE_AWARE_ISSUE_NUMBER,
+        execution_issue=SHAPE_AWARE_ISSUE_NUMBER,
+    )
+    dagzoo_commands = [str(invocation["command"]) for invocation in invocation_summaries]
+    dagzoo_commands.append(_shape_aware_build_manifest_command(paths))
+    dagzoo_provenance = {
+        "corpus_variant": "dagzoo_shape_aware_multi_invocation",
+        "comparator_role": "promoted_anchor_candidate",
+        "commands": dagzoo_commands,
+        "config_refs": [spec.config_ref for spec in SHAPE_AWARE_INVOCATIONS],
+        "curated_root_lineage": [],
+        "materialization_issue": SHAPE_AWARE_ISSUE_NUMBER,
+        "invocations": [
+            {
+                "invocation_id": invocation["invocation_id"],
+                "config_ref": invocation["config_ref"],
+                "num_datasets": invocation["num_datasets"],
+                "seed": invocation["seed"],
+                "device": invocation["device"],
+                "hardware_policy": invocation["hardware_policy"],
+                "command": invocation["command"],
+                "generated_dir": invocation["generated_dir"],
+                "handoff_manifest_path": invocation["handoff_manifest_path"],
+                "handoff_manifest_sha256": invocation["handoff_manifest_sha256"],
+                "identity": invocation["identity"],
+                "summary": invocation["summary"],
+            }
+            for invocation in invocation_summaries
+        ],
+    }
+    curated_openml_provenance = {
+        "surface_variant": "curated_realdata_openml_baseline",
+        "comparator_role": "evidence_only_openml_baseline",
+        "commands": curated_commands,
+        "benchmark_bundle": curated_result["bundle_summary"],
+        "task_ids": [int(task["task_id"]) for task in curated_result["task_summaries"]],
+        "dataset_names": [str(task["dataset_name"]) for task in curated_result["task_summaries"]],
+        "task_summaries": curated_result["task_summaries"],
+        "approved_external_augmentations": [],
+        "split_policy": {
+            "name": "deterministic_holdout",
+            "test_size": DEFAULT_COMPARATOR_TEST_SIZE,
+            "seed": DEFAULT_COMPARATOR_SPLIT_SEED,
+            "preferred_mode": "stratified",
+            "fallback_mode": "unstratified_fallback",
+        },
+        "execution_issue": SHAPE_AWARE_ISSUE_NUMBER,
+    }
+    return {
+        "schema": "tab-foundry-tf-rd-013-shape-aware-materialization-summary-v1",
+        "generated_at_utc": _utc_now(),
+        "issues": {
+            "materialization_issue": SHAPE_AWARE_ISSUE_NUMBER,
+            "materialization_issue_url": issue_urls["materialization_issue"],
+            "execution_issue": SHAPE_AWARE_ISSUE_NUMBER,
+            "execution_issue_url": issue_urls["execution_issue"],
+            "epic_issue": 96,
+            "epic_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/96",
+            "downstream_training_surface_issue": 107,
+            "downstream_training_surface_issue_url": "https://github.com/bensonlee5/tab-foundry/issues/107",
+            "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
+            "subsequent_filtering_policy_issue_url": issue_urls["subsequent_filtering_policy_issue"],
+        },
+        "env_hints": {
+            "dagzoo_root": "../dagzoo",
+            "tab_foundry_root": ".",
+        },
+        "config_refs": {
+            "dagzoo": [spec.config_ref for spec in SHAPE_AWARE_INVOCATIONS],
+            "tab_foundry": [DEFAULT_MANIFEST_CONFIG_REF],
+            "benchmark_bundle": [DEFAULT_BENCHMARK_BUNDLE_REF],
+        },
+        "artifacts": {
+            "local_output_root": _portable_path(paths.local_output_root),
+            "dagzoo_shape_aware_root": _portable_path(paths.dagzoo_surface_root),
+            "dagzoo_shape_aware_manifest_path": _portable_path(paths.dagzoo_manifest_path),
+            "dagzoo_shape_aware_manifest_sha256": _sha256_path(paths.dagzoo_manifest_path),
+            "curated_openml_baseline_root": _portable_path(paths.curated_openml_baseline_root),
+            "curated_openml_baseline_data_root": _portable_path(paths.curated_openml_baseline_data_root),
+            "curated_openml_baseline_manifest_path": _portable_path(paths.curated_openml_baseline_manifest_path),
+            "curated_openml_baseline_manifest_sha256": _sha256_path(paths.curated_openml_baseline_manifest_path),
+        },
+        "shape_program": {
+            "kind": "config_ladder",
+            "assembly_policy": "build_manifest(data_roots=[...]) without dagzoo_handoff_manifest_path",
+            "notes": [
+                "The broader dagzoo follow-up uses three explicit config-backed invocations rather than a single default-config generate run.",
+                "The combined manifest intentionally omits single-handoff manifest metadata so the multi-invocation surface stays schema-stable.",
+                "Keep filtering policy out of this follow-up; issue 124 remains a later decision only if the broader read shows a predictability problem.",
+            ],
+            "invocation_ids": [spec.invocation_id for spec in SHAPE_AWARE_INVOCATIONS],
+            "input_roots": [_portable_path(invocation.generated_dir) for invocation in paths.invocation_paths],
+        },
+        "steps": (
+            generate_steps
+            + [
+                {
+                    "step_id": "build_manifest_dagzoo_shape_aware_multi_invocation",
+                    "cwd": "$TAB_FOUNDRY_ROOT",
+                    "command": _shape_aware_build_manifest_command(paths),
+                    "status": "completed",
+                    "returncode": 0,
+                },
+                {
+                    "step_id": "prepare_openml_baseline_shards",
+                    "cwd": "$TAB_FOUNDRY_ROOT",
+                    "command": curated_commands[0],
+                    "status": "completed",
+                    "returncode": 0,
+                },
+                {
+                    "step_id": "build_manifest_curated_realdata_openml_baseline",
+                    "cwd": "$TAB_FOUNDRY_ROOT",
+                    "command": curated_commands[1],
+                    "status": "completed",
+                    "returncode": int(curated_result["build_manifest_completed"].returncode),
+                },
+            ]
+        ),
+        "assembly": {
+            "combined_manifest_path": _portable_path(paths.dagzoo_manifest_path),
+            "combined_manifest_sha256": _sha256_path(paths.dagzoo_manifest_path),
+            "invocation_count": len(invocation_summaries),
+            "input_roots": [_portable_path(invocation.generated_dir) for invocation in paths.invocation_paths],
+            "persisted_summary": {
+                "discovered_records": int(combined_summary.discovered_records),
+                "excluded_records": int(combined_summary.excluded_records),
+                "excluded_for_missing_values": int(combined_summary.excluded_for_missing_values),
+                "filter_policy": str(combined_summary.filter_policy),
+                "missing_value_policy": str(combined_summary.missing_value_policy),
+                "total_records": int(combined_summary.total_records),
+                "train_records": int(combined_summary.train_records),
+                "val_records": int(combined_summary.val_records),
+                "test_records": int(combined_summary.test_records),
+                "filter_status_counts": dict(combined_summary.filter_status_counts),
+                "missing_value_status_counts": dict(combined_summary.missing_value_status_counts),
+            },
+            "notes": [
+                "Each invocation keeps its own handoff manifest and identity record.",
+                "The follow-up sweep trains against one merged manifest that combines all generated roots.",
+            ],
+        },
+        "surfaces": {
+            "dagzoo_shape_aware_multi_invocation": {
+                "state": "materialized_local_only",
+                "manifest_path": manifests["dagzoo_shape_aware_multi_invocation"]["manifest_path"],
+                "manifest_sha256": manifests["dagzoo_shape_aware_multi_invocation"]["manifest_sha256"],
+                "dagzoo_provenance": dagzoo_provenance,
+                "invocation_handoffs": invocation_summaries,
+            },
+            "curated_realdata_openml_baseline": {
+                "state": "materialized_local_only",
+                "manifest_path": manifests["curated_realdata_openml_baseline"]["manifest_path"],
+                "manifest_sha256": manifests["curated_realdata_openml_baseline"]["manifest_sha256"],
+                "curated_realdata_provenance": curated_openml_provenance,
+            },
+        },
+    }
+
+
+def _shape_aware_manifest_characteristics_summary(
+    *,
+    manifests: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "schema": "tab-foundry-tf-rd-013-shape-aware-manifest-characteristics-summary-v1",
+        "generated_at_utc": _utc_now(),
+        "issues": {
+            "materialization_issue": SHAPE_AWARE_ISSUE_NUMBER,
+            "execution_issue": SHAPE_AWARE_ISSUE_NUMBER,
+            "epic_issue": 96,
+            "downstream_training_surface_issue": 107,
+            "subsequent_filtering_policy_issue": FILTERING_POLICY_ISSUE_NUMBER,
+        },
+        "manifests": manifests,
+        "comparisons": {
+            "anchor_vs_dagzoo_shape_aware_multi_invocation": _comparison_entry(
+                comparison_id="anchor_vs_dagzoo_shape_aware_multi_invocation",
+                left_id="anchor_manifest_default",
+                right_id="dagzoo_shape_aware_multi_invocation",
+                manifests=manifests,
+            ),
+            "anchor_vs_curated_realdata_openml_baseline": _comparison_entry(
+                comparison_id="anchor_vs_curated_realdata_openml_baseline",
+                left_id="anchor_manifest_default",
+                right_id="curated_realdata_openml_baseline",
+                manifests=manifests,
+            ),
+            "dagzoo_shape_aware_multi_invocation_vs_curated_realdata_openml_baseline": _comparison_entry(
+                comparison_id="dagzoo_shape_aware_multi_invocation_vs_curated_realdata_openml_baseline",
+                left_id="dagzoo_shape_aware_multi_invocation",
+                right_id="curated_realdata_openml_baseline",
+                manifests=manifests,
+            ),
+        },
+    }
+
+
+def _materialize_shape_aware_support(*, dagzoo_root: Path, force: bool) -> int:
+    benchmark_bundle_path = _assert_common_inputs(dagzoo_root=dagzoo_root)
+    for spec in SHAPE_AWARE_INVOCATIONS:
+        dagzoo_config_path = dagzoo_root / spec.config_ref
+        if not dagzoo_config_path.exists():
+            raise RuntimeError(f"dagzoo config does not exist: {dagzoo_config_path}")
+
+    paths = _shape_aware_materialization_paths(SHAPE_AWARE_LOCAL_OUTPUT_ROOT)
+    _ensure_absent(paths.dagzoo_surface_root, force=force)
+    _ensure_absent(paths.curated_openml_baseline_root, force=force)
+    paths.dagzoo_surface_root.mkdir(parents=True, exist_ok=True)
+    paths.curated_openml_baseline_root.mkdir(parents=True, exist_ok=True)
+
+    invocation_summaries: list[dict[str, Any]] = []
+    generate_steps: list[dict[str, Any]] = []
+    for spec, invocation_paths in zip(
+        SHAPE_AWARE_INVOCATIONS,
+        paths.invocation_paths,
+        strict=True,
+    ):
+        generate_cmd = [
+            "uv",
+            "run",
+            "dagzoo",
+            "generate",
+            "--config",
+            str((dagzoo_root / spec.config_ref).resolve()),
+            "--handoff-root",
+            str(invocation_paths.invocation_root),
+            "--num-datasets",
+            str(spec.num_datasets),
+            "--seed",
+            str(spec.seed),
+            "--device",
+            spec.device,
+            "--hardware-policy",
+            spec.hardware_policy,
+        ]
+        generate_completed = _run_checked(generate_cmd, cwd=dagzoo_root)
+        handoff_payload = _sanitize_paths(_load_json(invocation_paths.handoff_manifest_path))
+        invocation_summaries.append(
+            _shape_aware_invocation_summary(
+                spec=spec,
+                paths=invocation_paths,
+                handoff_payload=handoff_payload,
+            )
+        )
+        generate_steps.append(
+            {
+                "step_id": f"dagzoo_generate_{spec.invocation_id}",
+                "cwd": "$DAGZOO_ROOT",
+                "command": _shape_aware_generate_command(spec, invocation_paths),
+                "status": "completed",
+                "returncode": generate_completed.returncode,
+            }
+        )
+
+    combined_summary = build_manifest(
+        data_roots=[invocation.generated_dir for invocation in paths.invocation_paths],
+        out_path=paths.dagzoo_manifest_path,
+    )
+    curated_result = _materialize_curated_openml_baseline(
+        paths=paths,
+        bundle_path=benchmark_bundle_path,
+    )
+    curated_commands = _curated_commands(paths, variant="shape-aware")
+
+    anchor_inspection = _manifest_inspect(ANCHOR_MANIFEST_PATH)
+    generated_inspection = _manifest_inspect(paths.dagzoo_manifest_path)
+    curated_inspection = _manifest_inspect(paths.curated_openml_baseline_manifest_path)
+    manifests = {
+        "anchor_manifest_default": {
+            "status": "available",
+            "manifest_path": _portable_path(ANCHOR_MANIFEST_PATH),
+            "manifest_sha256": _sha256_path(ANCHOR_MANIFEST_PATH),
+            "inspection": anchor_inspection,
+        },
+        "dagzoo_shape_aware_multi_invocation": {
+            "status": "available",
+            "manifest_path": _portable_path(paths.dagzoo_manifest_path),
+            "manifest_sha256": _sha256_path(paths.dagzoo_manifest_path),
+            "inspection": generated_inspection,
+        },
+        "curated_realdata_openml_baseline": {
+            "status": "available",
+            "manifest_path": _portable_path(paths.curated_openml_baseline_manifest_path),
+            "manifest_sha256": _sha256_path(paths.curated_openml_baseline_manifest_path),
+            "inspection": curated_inspection,
+        },
+    }
+    materialization_summary = _shape_aware_materialization_summary(
+        paths=paths,
+        manifests=manifests,
+        invocation_summaries=invocation_summaries,
+        generate_steps=generate_steps,
+        curated_commands=curated_commands,
+        curated_result=curated_result,
+        combined_summary=combined_summary,
+    )
+    manifest_characteristics_summary = _shape_aware_manifest_characteristics_summary(
+        manifests=manifests,
+    )
+
+    _write_json(
+        SHAPE_AWARE_SUPPORT_ROOT / "materialization_summary.json",
+        materialization_summary,
+    )
+    _write_json(
+        SHAPE_AWARE_SUPPORT_ROOT / "manifest_characteristics_summary.json",
+        manifest_characteristics_summary,
+    )
+    print("Wrote support summaries:")
+    print(f"  {SHAPE_AWARE_SUPPORT_ROOT / 'materialization_summary.json'}")
+    print(f"  {SHAPE_AWARE_SUPPORT_ROOT / 'manifest_characteristics_summary.json'}")
+    return 0
+
+
+def materialize_support(*, variant: str, dagzoo_root: Path, force: bool) -> int:
+    if variant == "historical":
+        return _materialize_historical_support(dagzoo_root=dagzoo_root, force=force)
+    if variant == "shape-aware":
+        return _materialize_shape_aware_support(dagzoo_root=dagzoo_root, force=force)
+    raise RuntimeError(f"unsupported materialization variant: {variant}")
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dagzoo-root", default=str(DEFAULT_DAGZOO_ROOT), help="Local dagzoo checkout root")
+    parser.add_argument("--force", action="store_true", help="Replace existing local TF-RD-013 outputs")
+    parser.add_argument(
+        "--variant",
+        choices=("historical", "shape-aware"),
+        default="historical",
+        help="Support bundle variant to materialize",
+    )
+    args = parser.parse_args(argv)
+
+    dagzoo_root = Path(str(args.dagzoo_root)).expanduser().resolve()
+    return materialize_support(
+        variant=str(args.variant),
+        dagzoo_root=dagzoo_root,
+        force=bool(args.force),
+    )
 
 
 if __name__ == "__main__":

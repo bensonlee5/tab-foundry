@@ -43,7 +43,7 @@ from .instability import (
 from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
 from .schedule import build_stage_configs, stage_base_lr
-from .surface import write_training_surface_record
+from .surface import TRAINING_BACKEND_MANIFEST, write_training_surface_record
 from .trainer_metrics import (
     _compute_loss_and_metrics,
     _evaluate_loader,
@@ -60,6 +60,7 @@ from .trainer_runtime_config import (
     _resolve_grad_accum_steps,
     _resolve_max_steps,
     _resolve_target_train_seconds,
+    _resolve_val_batches,
 )
 from .trainer_summary import _training_telemetry_summary_payload, _trainer_summary_payload
 from .wandb import (
@@ -106,6 +107,25 @@ def _global_grad_norm_kind(value: float) -> str:
     return "finite"
 
 
+def _reduce_global_grad_norm_kind(
+    accelerator: Any,
+    *,
+    local_kind: str,
+    device: torch.device,
+) -> str:
+    if local_kind not in {"finite", "nan", "pos_inf", "neg_inf"}:
+        raise ValueError(f"unsupported global grad norm kind {local_kind!r}")
+    if _accelerator_num_processes(accelerator) == 1:
+        return local_kind
+    if _reduce_any_flag(accelerator, local_kind == "nan", device=device):
+        return "nan"
+    if _reduce_any_flag(accelerator, local_kind == "pos_inf", device=device):
+        return "pos_inf"
+    if _reduce_any_flag(accelerator, local_kind == "neg_inf", device=device):
+        return "neg_inf"
+    return "finite"
+
+
 def train(cfg: DictConfig) -> TrainResult:
     """Train from config."""
 
@@ -124,6 +144,7 @@ def train(cfg: DictConfig) -> TrainResult:
     checkpoint_every = _checkpoint_every(cfg.runtime)
     max_steps = _resolve_max_steps(cfg.runtime)
     target_train_seconds = _resolve_target_train_seconds(cfg.runtime)
+    val_batches = _resolve_val_batches(cfg.runtime)
 
     accelerator = build_accelerator_from_runtime(
         cfg.runtime,
@@ -137,26 +158,27 @@ def train(cfg: DictConfig) -> TrainResult:
         seed=seed,
         preprocessing_cfg=cfg.get("preprocessing"),
     )
-    val_ds = build_task_dataset(
-        cfg.data,
-        split="val",
-        task=task,
-        seed=seed + 1,
-        preprocessing_cfg=cfg.get("preprocessing"),
-    )
-
     train_loader = build_task_loader(
         train_ds,
         shuffle=True,
         num_workers=int(cfg.runtime.num_workers),
         seed=seed,
     )
-    val_loader = build_task_loader(
-        val_ds,
-        shuffle=False,
-        num_workers=int(cfg.runtime.num_workers),
-        seed=seed + 1,
-    )
+    val_loader = None
+    if val_batches > 0:
+        val_ds = build_task_dataset(
+            cfg.data,
+            split="val",
+            task=task,
+            seed=seed + 1,
+            preprocessing_cfg=cfg.get("preprocessing"),
+        )
+        val_loader = build_task_loader(
+            val_ds,
+            shuffle=False,
+            num_workers=int(cfg.runtime.num_workers),
+            seed=seed + 1,
+        )
 
     raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
     model_cfg: dict[str, Any] = {}
@@ -164,7 +186,10 @@ def train(cfg: DictConfig) -> TrainResult:
         model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
     model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
     model = build_model_from_spec(model_spec)
-    model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
+    if val_loader is None:
+        model, train_loader = accelerator.prepare(model, train_loader)
+    else:
+        model, train_loader, val_loader = accelerator.prepare(model, train_loader, val_loader)
     base_model = accelerator.unwrap_model(model)
     trace_activations = bool(getattr(cfg.runtime, "trace_activations", False))
     enable_activation_trace = getattr(base_model, "enable_activation_trace", None)
@@ -266,6 +291,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 training_surface_path,
                 raw_cfg=raw_cfg,
                 run_dir=output_dir,
+                backend=TRAINING_BACKEND_MANIFEST,
             )
 
         run = init_wandb_run(
@@ -429,7 +455,74 @@ def train(cfg: DictConfig) -> TrainResult:
                 if float(cfg.runtime.grad_clip) > 0:
                     clipped = accelerator.clip_grad_norm_(model.parameters(), float(cfg.runtime.grad_clip))
                     local_grad_norm = normalize_grad_norm_value(clipped, fallback=local_grad_norm)
-                train_metric_sums["grad_norm"] = train_metric_sums.get("grad_norm", 0.0) + float(local_grad_norm)
+                global_grad_norm_kind = _reduce_global_grad_norm_kind(
+                    accelerator,
+                    local_kind=_global_grad_norm_kind(float(local_grad_norm)),
+                    device=accelerator.device,
+                )
+                if global_grad_norm_kind != "finite":
+                    _ = _flush_activation_trace_stats()
+                    nan_skip_count += 1
+                    for _opt_name, opt in prepared_opts:
+                        opt.zero_grad(set_to_none=True)
+                    train_elapsed_seconds += time.perf_counter() - step_train_start
+                    global_step += 1
+                    non_finite_grad_log: dict[str, Any] = {
+                        "train/non_finite_grad_guard_triggered": True,
+                        "train/non_finite_grad_kind": global_grad_norm_kind,
+                        "train/nan_skip_count": float(nan_skip_count),
+                    }
+                    log_wandb_metrics(run, non_finite_grad_log, step=global_step)
+                    if accelerator.is_main_process:
+                        elapsed_seconds = time.perf_counter() - train_start
+                        history_payload = history_record(
+                            global_step=global_step,
+                            stage_name=stage.name,
+                            train_loss=float("nan"),
+                            train_metrics={"non_finite_grad_guard_triggered": 1.0},
+                            lr=float(prepared_opts[0][1].param_groups[0]["lr"]),
+                            grad_norm=None,
+                            elapsed_seconds=elapsed_seconds,
+                            train_elapsed_seconds=train_elapsed_seconds,
+                            val_metrics=None,
+                            train_loss_delta=None,
+                            train_loss_ema=loss_ema,
+                            grad_clip_threshold=float(cfg.runtime.grad_clip),
+                            grad_clip_triggered=False,
+                        )
+                        history_records.append(history_payload)
+                        if history_path is not None:
+                            append_history_record(history_path, history_payload)
+                        gradient_payload = gradient_history_record(
+                            global_step=global_step,
+                            stage_name=stage.name,
+                            train_loss=float("nan"),
+                            train_acc=None,
+                            lr=float(prepared_opts[0][1].param_groups[0]["lr"]),
+                            global_grad_norm=None,
+                            global_grad_norm_kind=global_grad_norm_kind,
+                            module_grad_norms=pre_clip_module_grad_norms,
+                            activation_norms=None,
+                            elapsed_seconds=elapsed_seconds,
+                            train_elapsed_seconds=train_elapsed_seconds,
+                            grad_clip_threshold=float(cfg.runtime.grad_clip),
+                            grad_clip_triggered=False,
+                        )
+                        gradient_records.append(gradient_payload)
+                        append_jsonl_record(gradient_path, gradient_payload)
+                    if max_steps is not None and global_step >= max_steps:
+                        stop_requested = True
+                    if (
+                        target_train_seconds is not None
+                        and train_elapsed_seconds >= target_train_seconds
+                    ):
+                        stop_requested = True
+                    if stop_requested:
+                        break
+                    continue
+                train_metric_sums["grad_norm"] = train_metric_sums.get("grad_norm", 0.0) + float(
+                    local_grad_norm
+                )
                 train_metric_counts["grad_norm"] = train_metric_counts.get("grad_norm", 0) + 1
 
                 for _opt_name, opt in prepared_opts:
@@ -522,7 +615,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 log_wandb_metrics(run, train_log, step=global_step)
 
                 history_val_metrics: dict[str, float] | None = None
-                if global_step % int(cfg.runtime.eval_every) == 0:
+                if val_loader is not None and global_step % int(cfg.runtime.eval_every) == 0:
                     _ = _flush_activation_trace_stats()
                     _set_optimizer_training_mode(prepared_opts, training=False)
                     val_metrics = _evaluate_loader(
@@ -530,7 +623,7 @@ def train(cfg: DictConfig) -> TrainResult:
                         val_loader,
                         accelerator=accelerator,
                         task=task,
-                        max_batches=int(cfg.runtime.val_batches),
+                        max_batches=val_batches,
                     )
                     log_wandb_metrics(
                         run,

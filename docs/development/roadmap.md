@@ -654,8 +654,8 @@ This roadmap assumes the following repo truths:
 
 ### TF-RD-013: Dagzoo Synthetic-Data Efficacy On The Promoted Anchor
 
-- Status: `partial`
-- Milestone: `Now`
+- Status: `completed`
+- Milestone: `Implemented`
 - Goal: decide before training-surface adequacy work whether dagzoo-generated
   corpora better match the intended post-008 training data surface than the
   current corpus, and whether they materially improve training difficulty,
@@ -664,8 +664,9 @@ This roadmap assumes the following repo truths:
 - Current state:
   - the dagzoo handoff boundary is complete through closed TF-RD-011 work
   - dagzoo smoke and manifest identity are no longer the main blocker
-  - issue `#122` executed the first promoted-anchor comparison against one unfiltered
-    dagzoo surface and one OpenML-only curated comparator
+  - issue [#122](https://github.com/bensonlee5/tab-foundry/issues/122) executed
+    the first promoted-anchor comparison against one unfiltered dagzoo surface
+    and one OpenML-only curated comparator
   - that TF-RD-013 evidence remains a historical nanoTabPFN-era comparison package
     and does not define the forward benchmark policy for new sweeps, which now
     defaults to TabICLv2
@@ -678,26 +679,36 @@ This roadmap assumes the following repo truths:
     `--allow-missing-values`
   - dagzoo is the synthetic-data generation lane, not an external real-data
     ingestion surface
-  - issue `#120` now records the first runnable unfiltered dagzoo generated-
-    source surface and its support artifacts for the promoted anchor
-  - issue `#127` now tracks the immediate follow-up on multi-invocation, shape-aware
-    dagzoo coverage because the first read did not separate the candidate surfaces
-  - issue `#107` remains blocked until TF-RD-013 reruns against that broader dagzoo
-    surface and records a representative-data decision
-- Required work:
-  - expand dagzoo support beyond one default-config generate run so TF-RD-013 can
-    test a multi-invocation, shape-aware synthetic corpus under issue `#127`
-  - rerun the promoted-anchor current-vs-dagzoo-vs-curated comparison once that
-    broader dagzoo surface exists
-  - keep the curated real-data lane OpenML-first and evidence-only unless later
-    approved augmentations are needed to cover regimes OpenML misses
-  - use TF-RD-019 and issue `#124` only if the broader dagzoo read later shows a
-    predictability or corpus-selection problem that actually requires filtering policy
-  - record whether dagzoo becomes the representative post-008 training-data
-    surface, complements the benchmark ladders, or stays auxiliary
+  - issue [#120](https://github.com/bensonlee5/tab-foundry/issues/120) records
+    the first runnable unfiltered dagzoo generated-source surface and its support
+    artifacts for the promoted anchor
+  - issue [#127](https://github.com/bensonlee5/tab-foundry/issues/127) completed
+    the multi-invocation, shape-aware dagzoo follow-up and kept dagzoo deferred
+    on the promoted anchor
+  - issue [#107](https://github.com/bensonlee5/tab-foundry/issues/107) is no
+    longer blocked on TF-RD-013; the representative-data handoff is to keep the
+    current corpus and treat dagzoo as auxiliary synthetic-data evidence rather
+    than the default post-008 training surface
+- Completed evidence:
+  - the corrected manifest-backed reruns preserved the first read: the unfiltered
+    dagzoo generated-source surface remained close to, but still worse than, the
+    current-corpus anchor on final large-bundle log loss and Brier
+  - the broader shape-aware follow-up under issue [#127](https://github.com/bensonlee5/tab-foundry/issues/127)
+    did not change that outcome: the multi-invocation dagzoo surface still underperformed
+    the anchor on final large-bundle log loss and Brier
+  - the OpenML-first curated comparator remained materially worse than the anchor
+    on final large-bundle log loss and Brier in both TF-RD-013 sweeps, so it stays
+    evidence-only rather than becoming the representative training surface
+  - issue [#124](https://github.com/bensonlee5/tab-foundry/issues/124) remains
+    later filtering-policy work only if a future corpus-selection or predictability
+    problem appears
+  - the repo now has an explicit defer decision on dagzoo for the promoted anchor:
+    keep the current corpus as the representative post-008 training-data surface,
+    and treat dagzoo as an auxiliary synthetic-data lane rather than the default
 - Exit criteria:
-  - the repo has an explicit keep/defer decision on dagzoo as a post-008
-    training-data source before TF-RD-018 defines the default training surface
+  - satisfied: the repo now has an explicit keep/defer decision on dagzoo as a
+    post-008 training-data source before TF-RD-018 defines the default training
+    surface
 
 ### TF-RD-014: Missingness Robustness On The Promoted Anchor
 

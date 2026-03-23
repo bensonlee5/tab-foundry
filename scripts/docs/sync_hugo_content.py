@@ -158,11 +158,11 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         description="Roadmap-to-reference mapping and repo-local evidence notes.",
     ),
     PageSpec(
-        source_rel="reference/system_delta_sweeps/tf_rd_013_data_source_contract_v1/support/README.md",
+        source_rel="reference/system_delta_sweeps/tf_rd_013_shape_aware_dagzoo_v1/support/README.md",
         route="reference/tf-rd-013-support",
         weight=30,
         link_title="TF-RD-013 Support",
-        description="Support bundle notes for the current dagzoo synthetic-data contract.",
+        description="Support bundle notes for the current shape-aware dagzoo synthetic-data contract.",
     ),
     PageSpec(
         source_rel="CONTRIBUTING.md",

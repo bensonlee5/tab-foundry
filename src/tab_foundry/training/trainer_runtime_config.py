@@ -32,6 +32,14 @@ def _resolve_max_steps(runtime_cfg: DictConfig) -> int | None:
     return value
 
 
+def _resolve_val_batches(runtime_cfg: DictConfig) -> int:
+    raw_value = getattr(runtime_cfg, "val_batches", 0)
+    value = int(raw_value)
+    if value < 0:
+        raise ValueError(f"runtime.val_batches must be >= 0, got {value}")
+    return value
+
+
 def _resolve_target_train_seconds(runtime_cfg: DictConfig) -> float | None:
     raw_value = getattr(runtime_cfg, "target_train_seconds", None)
     if raw_value is None:

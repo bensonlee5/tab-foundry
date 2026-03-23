@@ -558,6 +558,9 @@ def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     cfg = _classification_cfg(tmp_path)
 
     result = trainer_module.train(cfg)
+    training_surface_record = json.loads(
+        (result.output_dir / 'training_surface_record.json').read_text(encoding='utf-8')
+    )
 
     assert result.global_step == 1
     assert result.best_checkpoint is not None
@@ -570,6 +573,30 @@ def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     assert result.metrics["max_grad_norm"] >= 0.0
     best_payload = torch.load(result.best_checkpoint, map_location="cpu", weights_only=False)
     assert "preprocessor_state" not in best_payload
+    assert training_surface_record['training']['backend'] == 'manifest'
+
+
+def test_train_smoke_skips_validation_loader_when_val_batches_is_zero(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+
+    def _build_task_dataset(*_args, split: str, **_kwargs):
+        if split == 'val':
+            raise AssertionError('val split should be skipped when runtime.val_batches == 0')
+        return _FakeTaskDataset()
+
+    monkeypatch.setattr(trainer_module, 'build_task_dataset', _build_task_dataset)
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.val_batches = 0
+
+    result = trainer_module.train(cfg)
+
+    assert result.global_step == 1
+    assert math.isinf(result.metrics['best_val_loss'])
+    assert math.isinf(result.metrics['final_val_loss'])
+    assert result.latest_checkpoint is not None
 
 
 def test_train_smoke_writes_step_snapshots(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -1119,11 +1146,30 @@ def test_train_records_non_finite_global_grad_norm_kinds(
     expected_kind: str,
 ) -> None:
     _install_classification_fakes(monkeypatch)
+    counting_optimizer: _CountingOptimizer | None = None
+
+    def _build_counting_optimizer(model: nn.Module, **_kwargs: object) -> OptimizerSelection:
+        nonlocal counting_optimizer
+        base_optimizer = torch.optim.AdamW(
+            [param for param in model.parameters() if param.requires_grad],
+            lr=1.0e-3,
+            weight_decay=0.0,
+            betas=(0.9, 0.95),
+        )
+        counting_optimizer = _CountingOptimizer(base_optimizer)
+        return OptimizerSelection(
+            optimizers=[("adamw", counting_optimizer)],
+            requested_name="adamw",
+            resolved_name="adamw",
+            fallback_reason=None,
+        )
+
     cfg = _classification_cfg(tmp_path)
     cfg.runtime.eval_every = 10
     cfg.logging.use_wandb = True
     fake_run = _FakeWandbRun()
     monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: fake_run)
+    monkeypatch.setattr(trainer_module, "build_optimizer", _build_counting_optimizer)
     monkeypatch.setattr(
         trainer_module,
         "normalize_grad_norm_value",
@@ -1141,6 +1187,8 @@ def test_train_records_non_finite_global_grad_norm_kinds(
 
     assert gradient_history[0]["global_grad_norm"] is None
     assert gradient_history[0]["global_grad_norm_kind"] == expected_kind
+    assert counting_optimizer is not None
+    assert counting_optimizer.step_calls == 0
     assert result.metrics["mean_grad_norm"] is None
     assert result.metrics["max_grad_norm"] is None
     assert result.metrics["final_grad_norm"] is None
@@ -1157,6 +1205,10 @@ def test_train_records_non_finite_global_grad_norm_kinds(
     assert (
         fake_run.summary[f"gradient_summary/non_finite_global_grad_norm_counts/{expected_kind}"]
         == 1
+    )
+    assert any(
+        step == 1 and payload.get("train/non_finite_grad_guard_triggered") is True
+        for payload, step in fake_run.logged
     )
 
 

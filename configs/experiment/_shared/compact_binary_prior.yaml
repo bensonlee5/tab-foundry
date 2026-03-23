@@ -1,6 +1,10 @@
 # @package _global_
 
 task: classification
+data:
+  source: prior_dump
+  surface_label: prior_dump
+  manifest_path: null
 model:
   d_icl: 96
   input_normalization: train_zscore_clip
