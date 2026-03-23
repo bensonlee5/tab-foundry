@@ -1,16 +1,17 @@
 ---
 title: "Architecture"
 linkTitle: "Architecture"
-description: "High-level entry point into the active tab-foundry model surface and the supporting development docs."
+description: "Best route from the active model question to the architecture, design, and code references that answer it."
 weight: 15
 aliases:
-  - /docs/architecture/
+- /docs/architecture/
 ---
 
 ## Overview
 
-Use this page when you want the shortest path from "what model is this repo
-training?" to the docs and files that actually answer it.
+Use this page when the question is "what model is this repo actually
+training?" and you want the shortest route to the docs and files that answer
+it.
 
 The quick mental model is:
 

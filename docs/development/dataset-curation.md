@@ -1,9 +1,9 @@
 # Dataset Curation And License Review
 
-This document defines the repo-level acceptance gate for real-data datasets
-used in `tab-foundry`.
+Use this policy when deciding whether a real-data dataset may enter a curated
+benchmark bundle or manifest-backed comparator surface in `tab-foundry`.
 
-Related surfaces:
+Use these alongside this policy:
 
 - canonical roadmap: `docs/development/roadmap.md`
 - operator workflow runbook: `docs/workflows.md`

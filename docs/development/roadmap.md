@@ -1,6 +1,7 @@
 # Mission-Aligned Roadmap (2026Q1)
 
-This is the canonical roadmap for `tab-foundry`.
+Use this roadmap to understand which questions are active now, which surfaces
+are frozen, and what evidence the repo still needs before promotion.
 
 The repo-wide plan is now architecture-first:
 
@@ -12,7 +13,7 @@ The repo-wide plan is now architecture-first:
 - defer regression, extended modalities, and broader runtime handoff until the
   row-first classification anchor is coherent and documented
 
-Related docs:
+Use these alongside this roadmap:
 
 - design decisions and repo structure: `docs/development/design-decisions.md`
 - codebase navigation: `docs/development/codebase-navigation.md`

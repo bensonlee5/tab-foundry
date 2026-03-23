@@ -4,33 +4,33 @@ repos:
   hooks:
   - id: version-bump-guard
     name: version bump guard
-    entry: ./.venv/bin/python scripts/audit/check_version_bump.py
+    entry: python3 scripts/audit/pre_commit_exec.py python scripts/audit/check_version_bump.py
     language: system
     always_run: true
     pass_filenames: false
   - id: ruff-check
     name: ruff check
-    entry: ./.venv/bin/ruff check src tests scripts
+    entry: python3 scripts/audit/pre_commit_exec.py ruff check src tests scripts
     language: system
     types_or: [python, pyi]
     files: ^(src/|tests/|scripts/)
     pass_filenames: false
   - id: mypy
     name: mypy
-    entry: ./.venv/bin/python -m mypy src
+    entry: python3 scripts/audit/pre_commit_exec.py python -m mypy src
     language: system
     types_or: [python, pyi]
     files: ^src/
     pass_filenames: false
   - id: verify-paths
     name: verify (paths)
-    entry: env TAB_FOUNDRY_LIVE_PYTEST=1 ./.venv/bin/python scripts/audit/dev_verify.py verify paths --pre-commit
+    entry: env TAB_FOUNDRY_LIVE_PYTEST=1 python3 scripts/audit/pre_commit_exec.py python scripts/audit/dev_verify.py verify paths --pre-commit
     language: system
     files: ^(AGENTS\.md|README\.md|CHANGELOG\.md|program\.md|src/|tests/|scripts/dev$|scripts/audit/|configs/|reference/|docs/)
     pass_filenames: true
   - id: mdformat
     name: mdformat
-    entry: ./.venv/bin/mdformat AGENTS.md README.md docs reference CHANGELOG.md
+    entry: python3 scripts/audit/pre_commit_exec.py mdformat AGENTS.md README.md docs reference CHANGELOG.md
     language: system
     types: [markdown]
     files: ^(AGENTS\.md|README\.md|docs/|reference/|CHANGELOG\.md$)

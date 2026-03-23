@@ -1,7 +1,10 @@
 # TF-RD-013 Support Bundle
 
-This directory is the committed reference-only support bundle for issues `#120`
-and `#122`.
+Use this support bundle when you need the committed assumptions, regeneration
+flow, and comparison surfaces behind TF-RD-013 issues `#120` and `#122`.
+
+It is a reference-only support surface for that contract, not the main roadmap
+or sweep execution guide.
 
 The canonical local regeneration flow is:
 
@@ -16,7 +19,7 @@ Environment assumptions:
 - The dagzoo config ref is the sibling repo's default config, `../dagzoo/configs/default.yaml`.
 - The curated comparator baseline is pinned to `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.
 
-What the script does today:
+Current support surface:
 
 - materializes one large unfiltered dagzoo `generate` output under `outputs/staged_ladder_support/tf_rd_013/generated_source/`
 - keeps the initial promoted-anchor support surface pinned to dagzoo's `../dagzoo/configs/default.yaml` with a single `--num-datasets 8192` CPU generate call

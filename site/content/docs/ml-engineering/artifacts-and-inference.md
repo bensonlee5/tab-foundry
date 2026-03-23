@@ -1,16 +1,16 @@
 ---
 title: "Artifacts & Inference"
 linkTitle: "Artifacts & Inference"
-description: "Entry point for manifests, runs, checkpoints, export bundles, and inference handoff boundaries."
+description: "Start here for manifests, runs, checkpoints, export bundles, and runtime handoff boundaries."
 weight: 10
 aliases:
-  - /docs/artifacts-and-inference/
+- /docs/artifacts-and-inference/
 ---
 
 ## Overview
 
-Use this page if you care most about the files and contracts the repo reads and
-writes.
+Use this page when the question is about the files and contracts this repo
+owns.
 
 `tab-foundry` takes data descriptions and training configs, then produces
 [run directories]({{< relref "/docs/getting-started/glossary.md" >}}#run-directory),

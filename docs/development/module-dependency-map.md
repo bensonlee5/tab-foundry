@@ -1,7 +1,7 @@
 # Module Dependency Map
 
-This file records the current top-level package graph under `src/tab_foundry`
-and the intended dependency-direction policy for future refactors.
+Use this map when you need the current package graph or want to plan a refactor
+without reopening dependency cycles.
 
 The observed graph is synchronized against
 `scripts/audit/module_graph.py --fail-on-doc-drift`. Keep the current-state

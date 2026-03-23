@@ -1,7 +1,7 @@
 # Codebase Navigation
 
-This document describes the current `tab-foundry` layout on the active branch
-and the intended landing zones for future work. It complements
+Use this map when you need to find the right package, entry point, or workflow
+surface before making a change. It complements
 `docs/development/module-dependency-map.md`, which records the observed
 top-level package graph plus the intended dependency direction policy.
 

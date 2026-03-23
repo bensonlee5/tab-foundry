@@ -1,10 +1,10 @@
 ---
 title: "Model Breadth"
 linkTitle: "Model Breadth"
-description: "Roadmap entry point for broader model capabilities beyond the settled classification anchor."
+description: "Entry point for many-class, regression, scaling, and later capability-expansion questions."
 weight: 40
 aliases:
-  - /docs/model-breadth/
+- /docs/model-breadth/
 ---
 
 ## Overview

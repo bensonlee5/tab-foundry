@@ -1,9 +1,9 @@
 # Literature Evidence Mapping
 
-This document links the canonical roadmap in `docs/development/roadmap.md` to
-primary references and to the most important repo-local evidence.
+Use this map when you need to trace a roadmap claim back to papers and the most
+important repo-local evidence.
 
-Related docs:
+Use these alongside this map:
 
 - Canonical roadmap: `docs/development/roadmap.md`
 - Design decisions and repo structure: `docs/development/design-decisions.md`

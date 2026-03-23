@@ -1,13 +1,13 @@
 ---
 title: "Development Docs"
 linkTitle: "Development"
-description: "Canonical architecture, roadmap, config, and codebase-evolution docs."
+description: "Deep references for architecture, planning, config, and repo-shape decisions."
 weight: 40
 no_list: true
 ---
 
-These pages are the canonical deep references for architecture, roadmap, and
-repo-shape work.
+Use this section when you need the deeper references behind architecture,
+planning, config, or repo-shape decisions.
 
 If you are not already comfortable with the repo vocabulary, start with
 [Getting Started]({{< relref "/docs/getting-started/_index.md" >}}) or

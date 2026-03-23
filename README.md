@@ -1,6 +1,7 @@
 # tab-foundry
 
-Modular tabular prior-data fitted network training on `dagzoo` packed shard outputs.
+Training, comparing, and exporting tabular ML models, with direct routes into
+research, operations, and architecture docs.
 
 ## Start Here
 

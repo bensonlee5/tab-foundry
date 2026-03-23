@@ -1,6 +1,7 @@
 # Model Architecture
 
-This document describes the current model surface in `tab-foundry`.
+Use this reference when you need to understand the current model surface, the
+active architecture target, and where the main subsystems live.
 
 The repo now has one active architecture-development surface:
 
@@ -13,13 +14,13 @@ It also keeps one frozen anchor:
 The legacy `tabfoundry` family has been removed. Regression is also removed for
 now and will be rebuilt later on top of `tabfoundry_staged`.
 
-Related docs:
+Use these alongside this page:
 
 - `docs/development/model-config.md`
 - `docs/development/architecture-deltas.md`
 - `docs/inference.md`
 
-Related code paths:
+Key code paths:
 
 - `src/tab_foundry/model/architectures/tabfoundry_staged/`
 - `src/tab_foundry/model/architectures/tabfoundry_simple.py`
@@ -29,8 +30,8 @@ Related code paths:
 
 ## Overview
 
-This page explains how the current model is structured and which model family
-the repo is actually trying to improve.
+Start here when you need the current model surface at a glance or want to
+confirm which family the repo is actively improving.
 
 The short version:
 
@@ -212,7 +213,8 @@ Source: `blocks.py:143-218`
 
 - **`SequenceContextEncoder`**: Adds label embeddings
   `Embedding(many_class_base, d_icl)` to training rows before encoding.
-  Mask: train attends to all, test attends to train + optionally self.
+  Mask: every query can attend to training rows; when
+  `allow_test_self_attention=True`, each row also keeps its diagonal entry.
   `QASSTransformerEncoder` (tficl_n_layers layers + final norm). Each
   layer: pre-norm → `QASSMultiheadAttention` → residual → pre-norm → FFN
   → residual. QASS scaling:
@@ -302,6 +304,591 @@ feature_group_size  = 1            # retained for config/export/checkpoint compa
 - bf16 / mixed precision: not enforced by model; left to training loop.
   QASS scaler adapts dtype automatically from query tensor.
 - Embedding tables: float32
+
+## Mathematical View
+
+This section gives the settled default row-first anchor as a compact operator
+pipeline. Read it when you want the exact computations, masks, and
+factorization choices rather than a prose architecture tour.
+
+### Notation
+
+- (B): task batch size
+- (N\_{\\mathrm{tr}}), (N\_{\\mathrm{te}}): train and test row counts
+- (R = N\_{\\mathrm{tr}} + N\_{\\mathrm{te}}): total row count
+- (C): number of input features
+- (d = d\_{\\mathrm{icl}}): shared embedding width
+- (K_0): label-embedding / direct-head width, corresponding to config field
+  `many_class_base`
+- (q): number of row-CLS tokens, corresponding to config field
+  `tfrow_cls_tokens`
+- (X \\in \\mathbb{R}^{B \\times R \\times C}): concatenated train/test table
+- (y \\in {0, \\dots, K_0 - 1}^{B \\times N\_{\\mathrm{tr}}}): train labels after
+  the model's clamp to `many_class_base - 1`
+- (\\mathcal{I}_{\\mathrm{tr}} = {0, \\dots, N_{\\mathrm{tr}} - 1}),
+  (\\mathcal{I}_{\\mathrm{te}} = {N_{\\mathrm{tr}}, \\dots, R - 1}): train/test
+  row index sets
+- (E^{(\\ell)} \\in \\mathbb{R}^{B \\times R \\times (C+1) \\times d}): cell table
+  after table block (\\ell)
+- (G \\in \\mathbb{R}^{B \\times R \\times d}): one row embedding per row after
+  `RowCLSPool`
+
+The default path in this section is the settled row-first anchor:
+`stage=qass_context + module_overrides.column_encoder=none`, i.e.
+`row_cls + qass + no tfcol`.
+
+### Shared Train/Test Normalization
+
+**Motivation.** The staged default keeps train/test preprocessing on one shared
+surface, but the actual transform is still delegated to
+`input_normalization`.
+
+**Operator.**
+
+\[
+\\begin{aligned}
+X\_{\\mathrm{tr}} &= X[:, 0:N\_{\\mathrm{tr}}, :] \\
+X\_{\\mathrm{te}} &= X[:, N\_{\\mathrm{tr}}:R, :] \\
+(\\widehat{X}_{\\mathrm{tr}}, \\widehat{X}_{\\mathrm{te}})
+&= \\operatorname{Norm}_{\\mathrm{shared}}
+\\bigl(X_{\\mathrm{tr}}, X\_{\\mathrm{te}}; \\texttt{input_normalization}\\bigr) \\
+X^{(0)} &= \\operatorname{concat}_{r}
+\\bigl(\\widehat{X}_{\\mathrm{tr}}, \\widehat{X}\_{\\mathrm{te}}\\bigr)
+\\end{aligned}
+\]
+
+If `input_normalization=none`, then (X^{(0)} = X). If `pre_encoder_clip=c`
+is set, the model applies finite-value clipping before tokenization:
+
+\[
+X^{(0)} \\leftarrow \\operatorname{clip}(X^{(0)}, -c, c).
+\]
+
+**Interpretation.** This keeps normalization policy outside the feature encoder,
+so the later shared linear map sees a consistent train/test surface.
+
+### Shifted-Grouped Tokenizer
+
+**Motivation.** The tokenizer injects lightweight local column context without
+introducing a learned positional system.
+
+**Operator.** Let
+(\\pi_s(c) = (c + s) \\bmod C) for shifts (s \\in {0, 1, 3}). The grouped
+token at feature (c) is
+
+# \[ T\_{b,r,c,:}
+
+\\bigl\[
+X^{(0)}_{b,r,\\pi_0(c)},
+X^{(0)}_{b,r,\\pi_1(c)},
+X^{(0)}\_{b,r,\\pi_3(c)}
+\\bigr\]
+\\in \\mathbb{R}^{3}.
+\]
+
+Stacking over all rows and features gives
+(T \\in \\mathbb{R}^{B \\times R \\times C \\times 3}).
+
+**Interpretation.** Each feature token now carries its own scalar value plus two
+deterministic neighboring views, which is the repo's compact substitute for a
+heavier learned feature-position stack.
+
+### Shared Linear Feature Encoder
+
+**Motivation.** The shared feature encoder lifts the grouped scalar view into
+the common (d\_{\\mathrm{icl}})-dimensional space used everywhere downstream.
+
+**Operator.** With
+(W\_{\\mathrm{feat}} \\in \\mathbb{R}^{3 \\times d}),
+
+\[
+F\_{b,r,c,:} = T\_{b,r,c,:} W\_{\\mathrm{feat}},
+\\qquad
+F \\in \\mathbb{R}^{B \\times R \\times C \\times d}.
+\]
+
+The staged default uses `bias=False`, so there is no additive term.
+
+**Interpretation.** Once this projection is applied, all later modules operate
+on one uniform cell embedding width instead of on raw scalars.
+
+### Label-Token Target Conditioner
+
+**Motivation.** The target conditioner provides explicit train-label evidence
+while reserving a learned placeholder token for test rows whose labels are not
+available at inference time.
+
+**Operator.** Let
+(E\_{\\mathrm{label}} \\in \\mathbb{R}^{K_0 \\times d}) be the target-conditioner
+embedding table and (\\tau\_{\\mathrm{test}} \\in \\mathbb{R}^{d}) the learned test
+token. For each row,
+
+# \[ U\_{b,r,:}
+
+\\begin{cases}
+E\_{\\mathrm{label}}[y\_{b,r}], & r \\in \\mathcal{I}_{\\mathrm{tr}}, \\
+\\tau_{\\mathrm{test}}, & r \\in \\mathcal{I}\_{\\mathrm{te}}.
+\\end{cases}
+\]
+
+The conditioner then inserts a singleton token axis:
+
+\[
+Y\_{b,r,0,:} = U\_{b,r,:},
+\\qquad
+Y \\in \\mathbb{R}^{B \\times R \\times 1 \\times d}.
+\]
+
+**Interpretation.** The model sees labels as one more cell-like token rather
+than as a separate side channel, which keeps later table blocks agnostic to
+whether a token came from features or targets.
+
+### Cell-Table Assembly
+
+**Motivation.** The default stack reasons over one row-major table of cell
+tokens, so feature evidence and target evidence must share one tensor.
+
+**Operator.**
+
+\[
+E^{(0)} = \\operatorname{concat}\_{c}(F, Y)
+\\in \\mathbb{R}^{B \\times R \\times (C+1) \\times d}.
+\]
+
+The final token position on the column axis is the target token.
+
+**Interpretation.** This is the point where the model becomes a cell-table
+transformer rather than separate feature and label pipelines.
+
+### PreNorm Cell Block
+
+**Motivation.** Each table block first mixes information across tokens within a
+row, then across rows within a token position, while blocking test-to-test
+leakage except for each test row's own diagonal entry.
+
+**Operator.** Let (M = C + 1) and let (\\gamma) be the residual branch gain
+((\\gamma = 1) by default, or ((3L)^{-1/2}) for
+`table_block_residual_scale=depth_scaled` across (L) table blocks). For block
+(\\ell),
+
+\[
+\\begin{aligned}
+\\Phi^{(\\ell)} &=
+\\operatorname{reshape}_{BR,M,d}\\bigl(E^{(\\ell)}\\bigr) \\
+\\Phi_{\\mathrm{feat}}^{(\\ell)}
+&=
+\\Phi^{(\\ell)}
+
+- \\gamma ,
+  \\operatorname{MHA}_{\\mathrm{feat}}
+  \\bigl(
+  \\operatorname{LN}_{\\mathrm{feat}}(\\Phi^{(\\ell)}),
+  \\operatorname{LN}_{\\mathrm{feat}}(\\Phi^{(\\ell)}),
+  \\operatorname{LN}_{\\mathrm{feat}}(\\Phi^{(\\ell)})
+  \\bigr).
+  \\end{aligned}
+  \]
+
+Row attention then works on the transposed cell table. The default additive
+mask (A\_{\\mathrm{cell}} \\in {0, -\\infty}^{R \\times R}) is
+
+# \[ A\_{\\mathrm{cell}}(i,j)
+
+\\begin{cases}
+-\\infty, & i,j \\in \\mathcal{I}\_{\\mathrm{te}} \\text{ and } i \\neq j, \\
+0, & \\text{otherwise}.
+\\end{cases}
+\]
+
+The row-mixing update is
+
+\[
+\\begin{aligned}
+\\Psi^{(\\ell)}
+&=
+\\operatorname{reshape}_{BM,R,d}
+\\bigl(\\operatorname{transpose}_{r,c}(\\Phi\_{\\mathrm{feat}}^{(\\ell)})\\bigr) \\
+\\Psi\_{\\mathrm{row}}^{(\\ell)}
+&=
+\\Psi^{(\\ell)}
+
+- \\gamma ,
+  \\operatorname{MHA}_{\\mathrm{row}}
+  \\bigl(
+  \\operatorname{LN}_{\\mathrm{row}}(\\Psi^{(\\ell)}),
+  \\operatorname{LN}_{\\mathrm{row}}(\\Psi^{(\\ell)}),
+  \\operatorname{LN}_{\\mathrm{row}}(\\Psi^{(\\ell)});
+  A\_{\\mathrm{cell}}
+  \\bigr).
+  \\end{aligned}
+  \]
+
+After transposing back, the block applies the per-cell feed-forward update
+
+\[
+\\begin{aligned}
+H^{(\\ell)}
+&=
+\\operatorname{transpose}_{r,c}^{-1}
+\\bigl(\\operatorname{reshape}^{-1}(\\Psi_{\\mathrm{row}}^{(\\ell)})\\bigr) \\
+E^{(\\ell+1)}
+&=
+H^{(\\ell)}
+
+- \\gamma ,
+  \\Bigl(
+  W_2 ,
+  \\operatorname{GELU}
+  \\bigl(W_1 \\operatorname{LN}\_{\\mathrm{ff}}(H^{(\\ell)}) + b_1\\bigr)
+- b_2
+  \\Bigr).
+  \\end{aligned}
+  \]
+
+**Interpretation.** The block decomposes table reasoning into
+"within-row / across-columns" and "within-column / across-rows" passes, which
+is the central factorization the staged family keeps from the PFN-style cell
+table lineage.
+
+### Row CLS Pooling
+
+**Motivation.** After cell-table reasoning, the model needs one embedding per
+row so later context reasoning can operate on rows rather than on every cell.
+
+**Operator.** The settled default has no column encoder, so the input to pooling
+is the last table-block output
+(\\bar{E} = E^{(L\_{\\mathrm{cell}})}). Let
+(C\_{\\mathrm{cls}} \\in \\mathbb{R}^{q \\times d}) be the learned CLS-token bank.
+For each row,
+
+\[
+\\begin{aligned}
+S^{(0)}_{b,r}
+&=
+\\operatorname{concat}_{c}
+\\bigl(C\_{\\mathrm{cls}}, \\bar{E}_{b,r,:,:}\\bigr)
+\\in \\mathbb{R}^{(q + C + 1) \\times d} \\
+S^{(L_{\\mathrm{row}})}_{b,r}
+&=
+\\operatorname{TFRow}
+\\bigl(S^{(0)}_{b,r}\\bigr) \\
+G\_{b,r,:}
+&=
+\\operatorname{vec}
+\\bigl(S^{(L\_{\\mathrm{row}})}_{b,r,0:q,:}\\bigr)
+W_{\\mathrm{row}}
+
+- b\_{\\mathrm{row}}.
+  \\end{aligned}
+  \]
+
+Here `TFRow` is the pre-norm `nn.TransformerEncoder` used by `TFRowEncoder`.
+
+**Interpretation.** The CLS bank acts as a learned bottleneck: each row can use
+all of its cell tokens to write into a small fixed-width summary before the
+model moves to row-level context reasoning.
+
+### QASS Context Encoder
+
+**Motivation.** The context encoder performs row-level in-context reasoning
+after pooling and makes the attention query strength depend on the available
+training context size.
+
+**Operator.** Let
+(E\_{\\mathrm{ctx}} \\in \\mathbb{R}^{K_0 \\times d}) be the context-label
+embedding table. The input sequence is first label-conditioned on training rows:
+
+# \[ H^{(0)}\_{b,r,:}
+
+\\begin{cases}
+G\_{b,r,:} + E\_{\\mathrm{ctx}}[y\_{b,r}], & r \\in \\mathcal{I}_{\\mathrm{tr}}, \\
+G_{b,r,:}, & r \\in \\mathcal{I}\_{\\mathrm{te}}.
+\\end{cases}
+\]
+
+The default boolean attention mask is
+
+# \[ M\_{\\mathrm{ctx}}(i,j)
+
+\\begin{cases}
+1, & j \\in \\mathcal{I}\_{\\mathrm{tr}}, \\
+1, & i = j, \\
+0, & \\text{otherwise}.
+\\end{cases}
+\]
+
+So every query can read training rows, and each row also keeps its own diagonal
+entry. For context layer (\\ell), with (d_h = d / n\_{\\mathrm{heads}}),
+
+\[
+\\begin{aligned}
+\\widetilde{H}^{(\\ell)} &= \\operatorname{LN}\_1(H^{(\\ell)}) \\
+Q &= \\widetilde{H}^{(\\ell)} W_Q,\\quad
+K = \\widetilde{H}^{(\\ell)} W_K,\\quad
+V = \\widetilde{H}^{(\\ell)} W_V.
+\\end{aligned}
+\]
+
+QASS then rescales the per-head queries using the number of training rows
+(N\_{\\mathrm{tr}}), not the total row count (R):
+
+# \[ Q'\_{h,i,:}
+
+Q\_{h,i,:}
+\\odot
+\\beta_h\\bigl(\\log N\_{\\mathrm{tr}}\\bigr)
+\\odot
+\\Bigl(1 + \\tanh\\bigl(g_h(Q\_{h,i,:})\\bigr)\\Bigr),
+\]
+
+where (\\beta_h(\\cdot)) is the learned base MLP output for head (h) and
+(g_h(\\cdot)) is the learned gate MLP. The masked attention update is
+
+\[
+\\begin{aligned}
+A^{(\\ell)}
+&=
+\\operatorname{MaskedSoftmax}
+\\Bigl(
+\\frac{Q' {K}^{\\top}}{\\sqrt{d_h}},
+M\_{\\mathrm{ctx}}
+\\Bigr) V \\
+\\bar{H}^{(\\ell)}
+&=
+H^{(\\ell)} + A^{(\\ell)} W_O \\
+H^{(\\ell+1)}
+&=
+\\bar{H}^{(\\ell)}
+
+- W^{\\mathrm{ctx}}\_2
+  \\operatorname{GELU}
+  \\bigl(
+  W^{\\mathrm{ctx}}\_1 \\operatorname{LN}\_2(\\bar{H}^{(\\ell)})
+  \\bigr).
+  \\end{aligned}
+  \]
+
+After (L\_{\\mathrm{ctx}}) layers, the encoder applies one final norm:
+
+\[
+H\_{\\mathrm{ctx}} = \\operatorname{LN}_{\\mathrm{final}}
+\\bigl(H^{(L_{\\mathrm{ctx}})}\\bigr).
+\]
+
+**Interpretation.** This is where the architecture becomes explicitly row-first:
+cell-table structure has already been compressed, so the context stack only has
+to model train-to-test and row-self interactions between row embeddings.
+
+### Direct Classification Head
+
+**Motivation.** The direct head is the last small-class readout from row
+embeddings to class logits.
+
+**Operator.** The head only consumes test rows:
+
+\[
+G\_{\\mathrm{te}} = H\_{\\mathrm{ctx}}[:, \\mathcal{I}\_{\\mathrm{te}}, :].
+\]
+
+With
+(W^{\\mathrm{head}}\_1 \\in \\mathbb{R}^{d \\times h}),
+(W^{\\mathrm{head}}\_2 \\in \\mathbb{R}^{h \\times K_0}), and
+(h) corresponding to config field `head_hidden_dim`,
+
+# \[ \\operatorname{logits}
+
+\\Bigl(
+\\operatorname{GELU}
+\\bigl(G\_{\\mathrm{te}} W^{\\mathrm{head}}\_1 + b^{\\mathrm{head}}\_1\\bigr)
+\\Bigr)
+W^{\\mathrm{head}}\_2
+
+- b^{\\mathrm{head}}\_2.
+  \]
+
+**Interpretation.** All of the architecture's table and context structure has
+already been distilled into (G\_{\\mathrm{te}}); the head is intentionally just
+an MLP readout.
+
+### Variant: TFCol Before Row Pooling
+
+**Motivation.** The retained TFCol variant adds an explicit column-wise set
+reasoning stage before row pooling, mainly to test whether extra calibration
+signal lives in per-column row sets.
+
+**Operator.** With TFCol on, the model permutes the cell table so each column
+position becomes its own row-set problem:
+
+# \[ \\Xi^{(0)}
+
+\\operatorname{reshape}_{B(C+1),R,d}
+\\bigl(\\operatorname{transpose}_{r,c}(E^{(L\_{\\mathrm{cell}})})\\bigr).
+\]
+
+For one ISAB block, let
+(P \\in \\mathbb{R}^{n\_{\\mathrm{ind}} \\times d}) be the learned inducing-point
+bank and let (n\_{\\mathrm{ctx}} = R). The update is
+
+\[
+\\begin{aligned}
+\\widetilde{\\Xi} &= \\operatorname{LN}\_{\\mathrm{in}}(\\Xi) \\
+P'
+&=
+P
+
+- \\operatorname{Attn}_{\\mathrm{QASS}}
+  \\bigl(P, \\widetilde{\\Xi}, \\widetilde{\\Xi}; n_{\\mathrm{ctx}} = R\\bigr) \\
+  \\Xi'
+  &=
+  \\Xi
+- \\operatorname{Attn}
+  \\bigl(
+  \\widetilde{\\Xi},
+  \\operatorname{LN}_{\\mathrm{mid}}(P'),
+  \\operatorname{LN}_{\\mathrm{mid}}(P')
+  \\bigr) \\
+  \\Xi''
+  &=
+  \\Xi'
+- \\operatorname{FF}
+  \\bigl(\\operatorname{LN}\_{\\mathrm{out}}(\\Xi')\\bigr).
+  \\end{aligned}
+  \]
+
+After the configured number of ISAB blocks, the tensor is reshaped back to
+(\\mathbb{R}^{B \\times R \\times (C+1) \\times d}) and then fed into
+`RowCLSPool`.
+
+**Interpretation.** TFCol keeps the same later row-first stack, but it gives
+each token position one extra chance to aggregate information across rows before
+the model compresses rows with CLS pooling.
+
+### Variant: Many-Class Routing
+
+**Motivation.** The many-class path keeps the same row-first backbone but avoids
+forcing one wide flat softmax when the class count grows beyond
+`many_class_base`.
+
+**Operator.** Let (K) be the task class count and let
+((b_1, \\dots, b_D) = \\operatorname{balanced_bases}(K, K_0)). For each train
+label (y_n), the mixed-radix digit at depth (v) is
+
+# \[ d^{(v)}\_n
+
+\\left\\lfloor
+\\frac{y_n}{\\prod\_{j=v+1}^{D} b_j}
+\\right\\rfloor
+\\bmod b_v.
+\]
+
+The model conditions the same row embeddings on each digit view and averages
+the resulting context outputs:
+
+\[
+\\begin{aligned}
+T^{(v)}_n
+&=
+E_{\\mathrm{ctx}}\[d^{(v)}_n\] + p_v \\
+H^{(v)}
+&=
+\\operatorname{Ctx}
+\\bigl(G, T^{(v)}\\bigr) \\
+H_{\\mathrm{mc}}
+&=
+\\frac{1}{D}
+\\sum\_{v=1}^{D} H^{(v)}.
+\\end{aligned}
+\]
+
+Here (p_v) is the optional digit-position embedding and `Ctx` is the same
+context-encoder operator as above. The hierarchical tree then recursively
+factors class probabilities. For a node (u) with node-local choice
+distribution (\\pi_u(x)),
+
+# \[ \\pi_u(x) = \\operatorname{softmax}\\bigl(h_u(x)\\bigr), \\qquad p(c \\mid x)
+
+\\prod\_{u \\in \\operatorname{path}(c)}
+\\pi_u(x)\\bigl[\\operatorname{child}\_u(c)\\bigr].
+\]
+
+If a node has no training examples, the implementation falls back to a uniform
+split across that node's children or leaf classes. In `path_nll` mode, the
+model stores the node-local logits and targets along each test sample's path
+instead of materializing the full class-probability vector during training.
+
+**Interpretation.** Many-class routing preserves the same row-first reasoning
+stack, then turns the final prediction problem into repeated bounded-base
+decisions that reuse the direct head and context machinery.
+
+### Variant: `tabfoundry_simple`
+
+**Motivation.** The frozen `tabfoundry_simple` path remains the exact binary
+anchor, so it helps to show the operator differences against the active staged
+default in one place.
+
+**Operator.** The nano path keeps normalization inside the feature encoder:
+
+\[
+\\begin{aligned}
+\\mu &= \\operatorname{mean}(X\_{\\mathrm{tr}}) \\
+\\sigma &= \\operatorname{std}(X\_{\\mathrm{tr}}) + 10^{-20} \\
+\\widetilde{X}
+&=
+\\operatorname{clip}
+\\left(
+\\frac{X - \\mu}{\\sigma},
+-100,
+100
+\\right) \\
+F\_{\\mathrm{nano}} &= \\widetilde{X} W_x + b_x.
+\\end{aligned}
+\]
+
+Its target path mean-pads the training labels before projection:
+
+\[
+\\begin{aligned}
+\\bar{y}
+&=
+\\frac{1}{N\_{\\mathrm{tr}}}
+\\sum\_{i=1}^{N\_{\\mathrm{tr}}} y_i \\
+Y\_{\\mathrm{nano}}
+&=
+\\bigl\[
+y_1, \\dots, y\_{N\_{\\mathrm{tr}}},
+\\bar{y}, \\dots, \\bar{y}
+\\bigr\] W_y + b_y.
+\\end{aligned}
+\]
+
+After concatenating feature and target cells, each nano block uses post-norm
+updates and a stricter row mask:
+
+\[
+\\begin{aligned}
+R'_{\\mathrm{tr}}
+&=
+\\operatorname{MHA}(R_{\\mathrm{tr}}, R\_{\\mathrm{tr}}, R\_{\\mathrm{tr}})
+
+- R\_{\\mathrm{tr}} \\
+  R'_{\\mathrm{te}}
+  &=
+  \\operatorname{MHA}(R_{\\mathrm{te}}, R\_{\\mathrm{tr}}, R\_{\\mathrm{tr}})
+- R\_{\\mathrm{te}}.
+  \\end{aligned}
+  \]
+
+The final row summary is just the last token position:
+
+# \[ g\_{b,r,:} = E^{(L)}_{b,r,C,:}, \\qquad \\operatorname{logits}_{\\mathrm{nano}}
+
+\\operatorname{MLP}\\bigl(g\_{b,\\mathcal{I}\_{\\mathrm{te}},:}\\bigr).
+\]
+
+**Interpretation.** Relative to the staged default, the frozen nano anchor keeps
+normalization and target encoding inside the old PFN-compatible pathway, reads
+rows out from the target column directly, and has no separate row-context
+encoder after pooling.
 
 ## Public Stage Surface
 
