@@ -458,6 +458,41 @@ def test_inspect_sweep_row_allows_ready_rows_without_run_artifacts(
     assert payload["target"]["resolved"]["training"]["surface_label"] == "training_default"
 
 
+def test_inspect_sweep_row_reports_unmaterialized_corpus_refs_for_ready_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+
+    queue_path = sweeps_root / "mini_sweep" / "queue.yaml"
+    queue_payload = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(queue_payload, dict)
+    rows = queue_payload.get("rows")
+    assert isinstance(rows, list)
+    rows[2]["data"] = {
+        "surface_label": "fresh_current_corpus",
+        "corpus_ref": "tf_rd_013_current_corpus_default_v1",
+    }
+    _write_yaml(queue_path, queue_payload)
+
+    payload = inspect_module.inspect_sweep_row(
+        order=3,
+        sweep_id="mini_sweep",
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
+    )
+
+    resolved_data = payload["target"]["resolved"]["data"]
+    assert resolved_data["surface_label"] == "fresh_current_corpus"
+    assert resolved_data["source"] == "manifest"
+    assert resolved_data["corpus_ref"] == "tf_rd_013_current_corpus_default_v1"
+    assert resolved_data["recipe_id"] == "tf_rd_013_current_corpus_default_v1"
+    assert resolved_data["corpus_id"] is None
+
+
 def test_diff_sweep_row_uses_anchor_context_when_anchor_run_is_unavailable() -> None:
     payload = diff_module.diff_sweep_row(
         order=1,

@@ -5,7 +5,10 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from tab_foundry.data import corpus as corpus_module
 from tab_foundry.training.surface import build_training_surface_record
+
+from tests.data.test_corpus import _fake_run_dagzoo_generate, _write_recipe_registry
 
 
 def _write_manifest(path: Path) -> Path:
@@ -230,6 +233,42 @@ def test_build_training_surface_record_keeps_manifest_path_when_file_is_missing(
     assert record["data"]["manifest"] == {
         "manifest_path": str(manifest_path.resolve()),
     }
+
+
+def test_build_training_surface_record_persists_corpus_identity(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir(parents=True, exist_ok=True)
+    _write_recipe_registry(repo_root)
+    dagzoo_root = tmp_path / "dagzoo"
+    (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
+    (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
+    monkeypatch.setattr(corpus_module, "run_dagzoo_generate", _fake_run_dagzoo_generate)
+    record = corpus_module.materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=dagzoo_root,
+        force=True,
+        repo_root=repo_root,
+    )
+    monkeypatch.setattr(corpus_module, "_repo_root", lambda: repo_root)
+
+    surface_record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "data": {
+                "corpus_ref": "current_recipe",
+            },
+        },
+        run_dir=tmp_path / "run_with_corpus",
+    )
+
+    assert surface_record["data"]["corpus_ref"] == record["corpus_ref"]
+    assert surface_record["data"]["recipe_id"] == "current_recipe"
+    assert surface_record["data"]["corpus_id"] == record["corpus_id"]
+    assert surface_record["data"]["corpus_record_path"] == record["corpus_record_path"]
 
 
 def test_build_training_surface_record_captures_post_encoder_norm_component(tmp_path: Path) -> None:

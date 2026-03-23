@@ -688,8 +688,11 @@ This roadmap assumes the following repo truths:
     under the inherited `runtime.target_train_seconds: 330` manifest cap while the
     historical anchor control remained a prior-dump-era artifact
   - issue [#132](https://github.com/bensonlee5/tab-foundry/issues/132) now tracks
-    the reopened fresh-current-corpus bootstrap, uncapped current-corpus control,
+    the reopened fresh-current-corpus control, uncapped current-corpus control,
     and dagzoo size ladder needed to finish the representative-data decision
+  - first-class corpus recipes now exist under `reference/corpus_recipes/`, and
+    TF-RD-013 is the first sweep migrated onto that shared local corpus layer
+    instead of relying on sweep-local dagzoo orchestration
   - issue [#107](https://github.com/bensonlee5/tab-foundry/issues/107) remains
     blocked on this final TF-RD-013 gate; TF-RD-018 should not settle optimizer
     or schedule adequacy on a training-data surface that still lacks a same-backend
@@ -714,9 +717,10 @@ This roadmap assumes the following repo truths:
     problem appears
 - Exit criteria:
   - execute issue [#132](https://github.com/bensonlee5/tab-foundry/issues/132):
-    bootstrap `data/manifests/default.parquet` from the current dagzoo default config,
-    run one uncapped fresh current-corpus control, then run the `small`,
-    `medium`, and `large` shape-aware dagzoo rungs with `runtime.target_train_seconds: null`
+    materialize corpus recipe `tf_rd_013_current_corpus_default_v1`, run one
+    uncapped fresh current-corpus control, then run the `small`, `medium`, and
+    `large` shape-aware dagzoo rungs through their tracked corpus recipes with
+    `runtime.target_train_seconds: null`
   - record whether any shrunken shape-aware dagzoo rung materially improves the
     promoted-anchor read relative to the fresh current-corpus control
   - then either keep the fresh default current corpus as the representative

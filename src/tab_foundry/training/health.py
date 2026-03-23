@@ -422,6 +422,26 @@ def _benchmark_run_record_excerpt(record: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _corpus_summary(training_surface_record: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(training_surface_record, Mapping):
+        return None
+    data_payload = training_surface_record.get("data")
+    if not isinstance(data_payload, Mapping):
+        return None
+    corpus_ref = data_payload.get("corpus_ref")
+    recipe_id = data_payload.get("recipe_id")
+    corpus_id = data_payload.get("corpus_id")
+    corpus_record_path = data_payload.get("corpus_record_path")
+    if not any(value is not None for value in (corpus_ref, recipe_id, corpus_id, corpus_record_path)):
+        return None
+    return {
+        "corpus_ref": corpus_ref,
+        "recipe_id": recipe_id,
+        "corpus_id": corpus_id,
+        "corpus_record_path": corpus_record_path,
+    }
+
+
 def run_inspect(run_dir: Path) -> dict[str, Any]:
     """Inspect one run directory and summarize available local artifacts."""
 
@@ -483,6 +503,7 @@ def run_inspect(run_dir: Path) -> dict[str, Any]:
         "run_dir": str(resolved_run_dir),
         "artifacts": artifacts,
         "surface_labels": surface_labels,
+        "corpus": _corpus_summary(training_surface_record),
         "training_surface_record": training_surface_record,
         "comparison_summary": None
         if comparison_summary is None

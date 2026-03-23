@@ -3,19 +3,34 @@
 This directory is the committed reference-only support bundle for issue `#132`
 under reopened epic `#96`.
 
-The canonical local regeneration flow is:
+The canonical local corpus regeneration flow is:
 
 ```bash
-.venv/bin/tab-foundry data dagzoo generate-manifest \
+.venv/bin/tab-foundry data corpus materialize \
+  --recipe tf_rd_013_current_corpus_default_v1 \
   --dagzoo-root ../dagzoo \
-  --dagzoo-config configs/default.yaml \
-  --handoff-root outputs/current_corpus/default_generated_source \
-  --out-manifest data/manifests/default.parquet \
-  --num-datasets 8192 \
-  --seed 1 \
-  --device cpu \
-  --hardware-policy none
+  --force
 
+.venv/bin/tab-foundry data corpus materialize \
+  --recipe tf_rd_013_dagzoo_shape_aware_size_small_v1 \
+  --dagzoo-root ../dagzoo \
+  --force
+
+.venv/bin/tab-foundry data corpus materialize \
+  --recipe tf_rd_013_dagzoo_shape_aware_size_medium_v1 \
+  --dagzoo-root ../dagzoo \
+  --force
+
+.venv/bin/tab-foundry data corpus materialize \
+  --recipe tf_rd_013_dagzoo_shape_aware_size_large_v1 \
+  --dagzoo-root ../dagzoo \
+  --force
+```
+
+The TF-RD-013 support-summary wrapper can then be used to refresh the tracked
+support JSONs from those first-class corpus records:
+
+```bash
 .venv/bin/python scripts/materialize_tf_rd_013_support.py --variant size-ladder --force
 ```
 
@@ -23,8 +38,8 @@ Environment assumptions:
 
 - `TAB_FOUNDRY_ROOT` is this repo root.
 - `DAGZOO_ROOT` defaults to the sibling checkout `../dagzoo`.
-- `data/manifests/default.parquet` is a local/generated artifact for this flow, not a portable repo fixture.
-- The fresh current-corpus bootstrap above is required on new machines before support materialization; stale absolute-path local snapshots are unsupported.
+- The canonical local artifacts for this flow now live under `outputs/corpora/<recipe_id>/<corpus_id>/`.
+- The fresh current-corpus control now resolves through recipe `tf_rd_013_current_corpus_default_v1`; stale absolute-path local snapshots are unsupported.
 - Dagzoo generation stays fixed at `--device cpu --hardware-policy none` for every rung so the ladder isolates corpus content rather than generator hardware.
 - The ladder reuses the same three config-backed regimes as the earlier shape-aware follow-up:
   - `../dagzoo/configs/benchmark_cpu.yaml`
@@ -33,11 +48,9 @@ Environment assumptions:
 
 What the script does for this variant:
 
-- treats `data/manifests/default.parquet` as the fresh current-corpus control for row 1 rather than regenerating it internally
-- materializes three explicit dagzoo ladders under `outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/`
-- keeps each invocation handoff and identity record separate for provenance review
-- assembles one merged manifest per rung with `build_manifest(data_roots=[...])`
-- writes tracked JSON summaries for the three runnable dagzoo surfaces plus the anchor manifest comparison
+- materializes the four TF-RD-013 corpus recipes through the shared `tab-foundry data corpus materialize` pathway
+- reuses the resulting local `corpus_record.json` artifacts instead of owning dagzoo generation logic directly
+- writes tracked JSON summaries for the fresh current-corpus control plus the three runnable dagzoo size-ladder surfaces
 
 Ladder definitions:
 
@@ -56,7 +69,7 @@ Remote execution note:
 
 Local-only files:
 
-- Generated dagzoo shards and local manifests live under `outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/`.
+- Generated dagzoo shards, manifests, and corpus records live under `outputs/corpora/`.
 - `outputs/` stays ignored because the generated artifacts are too large to commit as fixtures.
 
 Policy notes:

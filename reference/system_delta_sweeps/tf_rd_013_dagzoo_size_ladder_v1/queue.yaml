@@ -4,9 +4,9 @@ rows:
 - order: 1
   delta_ref: delta_training_current_corpus_uncapped
   status: ready
-  rationale: Re-establish the settled row-first anchor on a fresh current-corpus manifest generated from the current dagzoo default config, then clear the inherited 330-second cap so the remaining TF-RD-013 rows compare against one current same-backend control.
-  hypothesis: A fresh current-corpus bootstrap plus cleared `target_train_seconds` should produce the canonical control for the dagzoo size ladder under the current manifest-backed training path.
-  anchor_delta: Keep the settled row-first model and preprocessing surfaces fixed, point data at the fresh current-corpus manifest generated from the current dagzoo default config, and clear the inherited time cap so the manifest trainer stops only at `max_steps=2500`.
+  rationale: Re-establish the settled row-first anchor on a fresh current-corpus recipe generated from the current dagzoo default config, then clear the inherited 330-second cap so the remaining TF-RD-013 rows compare against one current same-backend control.
+  hypothesis: A fresh current-corpus recipe plus cleared `target_train_seconds` should produce the canonical control for the dagzoo size ladder under the current manifest-backed training path.
+  anchor_delta: Keep the settled row-first model and preprocessing surfaces fixed, point data at the fresh current-corpus corpus recipe generated from the current dagzoo default config, and clear the inherited time cap so the manifest trainer stops only at `max_steps=2500`.
   model:
     stage: qass_context
     stage_label: delta_qass_no_column_v3
@@ -14,6 +14,7 @@ rows:
       column_encoder: none
   data:
     surface_label: anchor_manifest_default
+    corpus_ref: tf_rd_013_current_corpus_default_v1
   preprocessing:
     surface_label: runtime_default
   training:
@@ -52,9 +53,9 @@ rows:
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Run first on the CUDA machine after bootstrapping `data/manifests/default.parquet` from current dagzoo output.
+  next_action: Run first on the CUDA machine after materializing corpus recipe `tf_rd_013_current_corpus_default_v1`.
   notes:
-  - This row relies on an explicit `tab-foundry data dagzoo generate-manifest` bootstrap and does not reuse the stale 2026-02-22 absolute-path snapshot.
+  - This row resolves through corpus recipe `tf_rd_013_current_corpus_default_v1` and does not reuse the stale 2026-02-22 absolute-path snapshot.
   - The historical locked anchor artifact predates the backend-aware manifest runner; this row establishes the canonical fresh current-corpus control for the remaining TF-RD-013 decision.
 - order: 2
   delta_ref: delta_data_manifest_root_dagzoo_shape_aware_size_small
@@ -71,33 +72,9 @@ rows:
   data:
     surface_label: tf_rd_013_dagzoo_shape_aware_size_small
     source: manifest
-    manifest_path: outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/manifest.parquet
+    corpus_ref: tf_rd_013_dagzoo_shape_aware_size_small_v1
     train_row_cap: 512
     test_row_cap: 256
-    dagzoo_provenance:
-      corpus_variant: dagzoo_shape_aware_size_small
-      comparator_role: promoted_anchor_candidate
-      commands:
-      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/benchmark_cpu" --num-datasets 128 --seed 1 --device cpu --hardware-policy none
-      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/default_medium" --num-datasets 256 --seed 1 --device cpu --hardware-policy none
-      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/large_shape" --num-datasets 8 --seed 1 --device cpu --hardware-policy none
-      - build_manifest(data_roots=[outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/benchmark_cpu/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/default_medium/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/invocations/large_shape/generated], out_path=outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/manifest.parquet)
-      config_refs:
-      - configs/benchmark_cpu.yaml
-      - configs/default.yaml
-      - configs/benchmark_cuda_h100_large_shape.yaml
-      curated_root_lineage: []
-      materialization_issue: 132
-      invocations:
-      - invocation_id: benchmark_cpu
-        config_ref: configs/benchmark_cpu.yaml
-        num_datasets: 128
-      - invocation_id: default_medium
-        config_ref: configs/default.yaml
-        num_datasets: 256
-      - invocation_id: large_shape
-        config_ref: configs/benchmark_cuda_h100_large_shape.yaml
-        num_datasets: 8
   preprocessing:
     surface_label: runtime_default
   training:
@@ -155,33 +132,9 @@ rows:
   data:
     surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
     source: manifest
-    manifest_path: outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/manifest.parquet
+    corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
     train_row_cap: 512
     test_row_cap: 256
-    dagzoo_provenance:
-      corpus_variant: dagzoo_shape_aware_size_medium
-      comparator_role: promoted_anchor_candidate
-      commands:
-      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/benchmark_cpu" --num-datasets 384 --seed 1 --device cpu --hardware-policy none
-      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/default_medium" --num-datasets 768 --seed 1 --device cpu --hardware-policy none
-      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/large_shape" --num-datasets 24 --seed 1 --device cpu --hardware-policy none
-      - build_manifest(data_roots=[outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/benchmark_cpu/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/default_medium/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/invocations/large_shape/generated], out_path=outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/manifest.parquet)
-      config_refs:
-      - configs/benchmark_cpu.yaml
-      - configs/default.yaml
-      - configs/benchmark_cuda_h100_large_shape.yaml
-      curated_root_lineage: []
-      materialization_issue: 132
-      invocations:
-      - invocation_id: benchmark_cpu
-        config_ref: configs/benchmark_cpu.yaml
-        num_datasets: 384
-      - invocation_id: default_medium
-        config_ref: configs/default.yaml
-        num_datasets: 768
-      - invocation_id: large_shape
-        config_ref: configs/benchmark_cuda_h100_large_shape.yaml
-        num_datasets: 24
   preprocessing:
     surface_label: runtime_default
   training:
@@ -238,33 +191,9 @@ rows:
   data:
     surface_label: tf_rd_013_dagzoo_shape_aware_size_large
     source: manifest
-    manifest_path: outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/manifest.parquet
+    corpus_ref: tf_rd_013_dagzoo_shape_aware_size_large_v1
     train_row_cap: 512
     test_row_cap: 256
-    dagzoo_provenance:
-      corpus_variant: dagzoo_shape_aware_size_large
-      comparator_role: promoted_anchor_candidate
-      commands:
-      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cpu.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/benchmark_cpu" --num-datasets 768 --seed 1 --device cpu --hardware-policy none
-      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/default_medium" --num-datasets 1536 --seed 1 --device cpu --hardware-policy none
-      - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/benchmark_cuda_h100_large_shape.yaml --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/large_shape" --num-datasets 48 --seed 1 --device cpu --hardware-policy none
-      - build_manifest(data_roots=[outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/benchmark_cpu/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/default_medium/generated, outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/invocations/large_shape/generated], out_path=outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/manifest.parquet)
-      config_refs:
-      - configs/benchmark_cpu.yaml
-      - configs/default.yaml
-      - configs/benchmark_cuda_h100_large_shape.yaml
-      curated_root_lineage: []
-      materialization_issue: 132
-      invocations:
-      - invocation_id: benchmark_cpu
-        config_ref: configs/benchmark_cpu.yaml
-        num_datasets: 768
-      - invocation_id: default_medium
-        config_ref: configs/default.yaml
-        num_datasets: 1536
-      - invocation_id: large_shape
-        config_ref: configs/benchmark_cuda_h100_large_shape.yaml
-        num_datasets: 48
   preprocessing:
     surface_label: runtime_default
   training:

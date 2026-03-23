@@ -35,6 +35,11 @@ from tab_foundry.bench.nanotabpfn.datasets import (  # noqa: E402
     PreparedOpenMLBenchmarkTask,
     prepare_openml_benchmark_task,
 )
+from tab_foundry.data.corpus import (  # noqa: E402
+    corpus_compare_payload,
+    materialize_corpus_recipe,
+)
+from tab_foundry.data.inspection import compare_jsonlike_payloads  # noqa: E402
 from tab_foundry.data.manifest import build_manifest  # noqa: E402
 
 
@@ -96,6 +101,14 @@ CURRENT_CORPUS_HANDOFF_ROOT = (
     REPO_ROOT / "outputs" / "current_corpus" / "default_generated_source"
 )
 ANCHOR_MANIFEST_REQUIRED_COLUMNS = ("train_path", "test_path", "metadata_path")
+
+CURRENT_CORPUS_RECIPE_ID = "tf_rd_013_current_corpus_default_v1"
+SIZE_LADDER_RECIPE_IDS: tuple[str, ...] = (
+    CURRENT_CORPUS_RECIPE_ID,
+    "tf_rd_013_dagzoo_shape_aware_size_small_v1",
+    "tf_rd_013_dagzoo_shape_aware_size_medium_v1",
+    "tf_rd_013_dagzoo_shape_aware_size_large_v1",
+)
 
 
 def _resolve_tool_root() -> Path:
@@ -599,18 +612,6 @@ def _curated_commands(
     ]
 
 
-def _compare_payloads(left: Any, right: Any, *, prefix: str = "") -> dict[str, dict[str, Any]]:
-    if isinstance(left, dict) and isinstance(right, dict):
-        differences: dict[str, dict[str, Any]] = {}
-        for key in sorted(set(left.keys()) | set(right.keys())):
-            next_prefix = f"{prefix}.{key}" if prefix else str(key)
-            differences.update(_compare_payloads(left.get(key), right.get(key), prefix=next_prefix))
-        return differences
-    if left == right:
-        return {}
-    return {prefix: {"left": left, "right": right}}
-
-
 def _comparison_entry(
     *,
     comparison_id: str,
@@ -622,7 +623,7 @@ def _comparison_entry(
     right = manifests[right_id]
     left_inspection = {key: value for key, value in left["inspection"].items() if key != "manifest_path"}
     right_inspection = {key: value for key, value in right["inspection"].items() if key != "manifest_path"}
-    differences = _compare_payloads(left_inspection, right_inspection)
+    differences = compare_jsonlike_payloads(left_inspection, right_inspection)
     return {
         "comparison_id": comparison_id,
         "status": "available",
@@ -1330,137 +1331,57 @@ def _shape_aware_manifest_characteristics_summary(
     }
 
 
-def _size_ladder_surface_label(surface_name: str) -> str:
-    return surface_name.rsplit("_", 1)[-1]
-
-
 def _size_ladder_materialization_summary(
     *,
-    paths: SizeLadderMaterializationPaths,
-    manifests: dict[str, dict[str, Any]],
-    surface_records: list[dict[str, Any]],
+    corpus_records: list[dict[str, Any]],
 ) -> dict[str, Any]:
     issue_urls = _issue_urls(
         materialization_issue=SIZE_LADDER_ISSUE_NUMBER,
         execution_issue=SIZE_LADDER_ISSUE_NUMBER,
     )
-    config_refs = sorted(
-        {
-            spec.config_ref
-            for surface_record in surface_records
-            for spec in surface_record["surface_spec"].invocations
-        }
-    )
-    steps: list[dict[str, Any]] = []
     surfaces: dict[str, dict[str, Any]] = {}
-    surface_artifacts: dict[str, dict[str, Any]] = {}
-    ladder_surfaces: list[dict[str, Any]] = []
-    for surface_record in surface_records:
-        surface_spec: MultiInvocationSurfaceSpec = surface_record["surface_spec"]
-        surface_paths: MultiInvocationSurfacePaths = surface_record["surface_paths"]
-        invocation_summaries: list[dict[str, Any]] = surface_record["invocation_summaries"]
-        combined_summary = surface_record["combined_summary"]
-        size_label = _size_ladder_surface_label(surface_spec.surface_name)
-        steps.extend(surface_record["generate_steps"])
-        steps.append(
-            {
-                "step_id": f"build_manifest_{surface_spec.surface_name}",
-                "cwd": "$TAB_FOUNDRY_ROOT",
-                "command": _multi_invocation_build_manifest_command(
-                    invocation_paths=surface_paths.invocation_paths,
-                    manifest_path=surface_paths.manifest_path,
-                ),
-                "status": "completed",
-                "returncode": 0,
-            }
+    recipes: list[dict[str, Any]] = []
+    config_refs: set[str] = set()
+    for record in corpus_records:
+        manifest = record["manifest"]
+        dagzoo_provenance = record["dagzoo_provenance"]
+        invocations = dagzoo_provenance.get("invocations", [])
+        config_refs.update(
+            str(invocation["config_ref"])
+            for invocation in invocations
+            if isinstance(invocation, dict) and invocation.get("config_ref") is not None
         )
-        surface_artifacts[surface_spec.surface_name] = {
-            "surface_root": _portable_path(surface_paths.surface_root),
-            "manifest_path": _portable_path(surface_paths.manifest_path),
-            "manifest_sha256": _sha256_path(surface_paths.manifest_path),
-        }
-        ladder_surfaces.append(
-            {
-                "surface_name": surface_spec.surface_name,
-                "size_label": size_label,
-                "requested_dataset_count": int(
-                    sum(spec.num_datasets for spec in surface_spec.invocations)
-                ),
-                "invocations": [
-                    {
-                        "invocation_id": spec.invocation_id,
-                        "config_ref": spec.config_ref,
-                        "num_datasets": spec.num_datasets,
-                    }
-                    for spec in surface_spec.invocations
-                ],
-            }
+        recipe = record["recipe"]
+        requested_dataset_count = sum(
+            int(invocation["num_datasets"])
+            for invocation in recipe.get("invocations", [])
+            if isinstance(invocation, dict)
         )
-        surfaces[surface_spec.surface_name] = {
-            "state": "materialized_local_only",
-            "size_label": size_label,
-            "manifest_path": manifests[surface_spec.surface_name]["manifest_path"],
-            "manifest_sha256": manifests[surface_spec.surface_name]["manifest_sha256"],
-            "dagzoo_provenance": {
-                "corpus_variant": surface_spec.surface_name,
-                "comparator_role": "promoted_anchor_candidate",
-                "commands": [
-                    str(invocation["command"]) for invocation in invocation_summaries
-                ]
-                + [
-                    _multi_invocation_build_manifest_command(
-                        invocation_paths=surface_paths.invocation_paths,
-                        manifest_path=surface_paths.manifest_path,
-                    )
-                ],
-                "config_refs": [spec.config_ref for spec in surface_spec.invocations],
-                "curated_root_lineage": [],
-                "materialization_issue": SIZE_LADDER_ISSUE_NUMBER,
+        recipes.append(
+            {
+                "recipe_id": record["recipe_id"],
+                "corpus_ref": record["corpus_ref"],
+                "surface_label": record["surface_label"],
+                "requested_dataset_count": int(requested_dataset_count),
                 "invocations": [
                     {
                         "invocation_id": invocation["invocation_id"],
                         "config_ref": invocation["config_ref"],
                         "num_datasets": invocation["num_datasets"],
-                        "seed": invocation["seed"],
-                        "device": invocation["device"],
-                        "hardware_policy": invocation["hardware_policy"],
-                        "command": invocation["command"],
-                        "generated_dir": invocation["generated_dir"],
-                        "handoff_manifest_path": invocation["handoff_manifest_path"],
-                        "handoff_manifest_sha256": invocation["handoff_manifest_sha256"],
-                        "identity": invocation["identity"],
-                        "summary": invocation["summary"],
                     }
-                    for invocation in invocation_summaries
+                    for invocation in recipe.get("invocations", [])
+                    if isinstance(invocation, dict)
                 ],
-            },
-            "assembly": {
-                "combined_manifest_path": _portable_path(surface_paths.manifest_path),
-                "combined_manifest_sha256": _sha256_path(surface_paths.manifest_path),
-                "invocation_count": len(invocation_summaries),
-                "input_roots": [
-                    _portable_path(invocation.generated_dir)
-                    for invocation in surface_paths.invocation_paths
-                ],
-                "persisted_summary": {
-                    "discovered_records": int(combined_summary.discovered_records),
-                    "excluded_records": int(combined_summary.excluded_records),
-                    "excluded_for_missing_values": int(
-                        combined_summary.excluded_for_missing_values
-                    ),
-                    "filter_policy": str(combined_summary.filter_policy),
-                    "missing_value_policy": str(combined_summary.missing_value_policy),
-                    "total_records": int(combined_summary.total_records),
-                    "train_records": int(combined_summary.train_records),
-                    "val_records": int(combined_summary.val_records),
-                    "test_records": int(combined_summary.test_records),
-                    "filter_status_counts": dict(combined_summary.filter_status_counts),
-                    "missing_value_status_counts": dict(
-                        combined_summary.missing_value_status_counts
-                    ),
-                },
-            },
-            "invocation_handoffs": invocation_summaries,
+            }
+        )
+        surfaces[str(record["surface_label"])] = {
+            "state": "materialized_local_only",
+            "recipe_id": record["recipe_id"],
+            "corpus_id": record["corpus_id"],
+            "corpus_ref": record["corpus_ref"],
+            "manifest_path": manifest["manifest_path"],
+            "manifest_sha256": manifest["manifest_sha256"],
+            "dagzoo_provenance": dagzoo_provenance,
         }
 
     return {
@@ -1486,34 +1407,42 @@ def _size_ladder_materialization_summary(
             "tab_foundry_root": ".",
         },
         "config_refs": {
-            "dagzoo": config_refs,
-            "tab_foundry": [DEFAULT_MANIFEST_CONFIG_REF],
-            "benchmark_bundle": [DEFAULT_BENCHMARK_BUNDLE_REF],
+            "dagzoo": sorted(config_refs),
+            "tab_foundry": ["tab-foundry data corpus materialize"],
         },
         "artifacts": {
-            "local_output_root": _portable_path(paths.local_output_root),
-            "surfaces": surface_artifacts,
+            "local_output_root": _portable_path(REPO_ROOT / "outputs" / "corpora"),
         },
         "size_ladder_program": {
             "kind": "shape_aware_size_ladder",
             "notes": [
-                "The size ladder keeps the same three config-backed dagzoo regimes as the shape-aware follow-up while reducing requested dataset counts aggressively.",
+                "The size ladder now materializes through first-class corpus recipes under outputs/corpora/ instead of sweep-local dagzoo orchestration.",
                 "Every ladder surface is generated on CPU with hardware-policy none so the comparison stays about corpus content rather than generation hardware.",
-                "The follow-up expects a fresh current-corpus manifest at data/manifests/default.parquet generated from the current dagzoo default config before comparing any size rung.",
-                "Row 1 keeps that fresh current-corpus baseline but clears target_train_seconds so every ladder row shares the same max_steps=2500 stop contract.",
+                "Row 1 is a fresh current-corpus control recipe rather than a replay of the stale 2026-02-22 absolute-path snapshot.",
+                "Rows 2-4 remain the `small`, `medium`, and `large` shrunken shape-aware ladders under the same max_steps=2500 stop contract.",
             ],
-            "surface_names": [record["surface_spec"].surface_name for record in surface_records],
-            "surfaces": ladder_surfaces,
+            "recipes": recipes,
         },
-        "steps": steps,
         "surfaces": surfaces,
     }
 
 
 def _size_ladder_manifest_characteristics_summary(
     *,
-    manifests: dict[str, dict[str, Any]],
+    corpus_records: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    manifests = {
+        str(record["surface_label"]): {
+            "status": "available",
+            "recipe_id": record["recipe_id"],
+            "corpus_id": record["corpus_id"],
+            "corpus_ref": record["corpus_ref"],
+            "manifest_path": record["manifest"]["manifest_path"],
+            "manifest_sha256": record["manifest"]["manifest_sha256"],
+            "inspection": record["manifest"]["inspection"],
+        }
+        for record in corpus_records
+    }
     return {
         "schema": "tab-foundry-tf-rd-013-size-ladder-manifest-characteristics-summary-v1",
         "generated_at_utc": _utc_now(),
@@ -1526,41 +1455,29 @@ def _size_ladder_manifest_characteristics_summary(
         },
         "manifests": manifests,
         "comparisons": {
-            "anchor_vs_dagzoo_shape_aware_size_small": _comparison_entry(
-                comparison_id="anchor_vs_dagzoo_shape_aware_size_small",
-                left_id="anchor_manifest_default",
-                right_id="dagzoo_shape_aware_size_small",
-                manifests=manifests,
+            "anchor_vs_dagzoo_shape_aware_size_small": corpus_compare_payload(
+                left=CURRENT_CORPUS_RECIPE_ID,
+                right="tf_rd_013_dagzoo_shape_aware_size_small_v1",
             ),
-            "anchor_vs_dagzoo_shape_aware_size_medium": _comparison_entry(
-                comparison_id="anchor_vs_dagzoo_shape_aware_size_medium",
-                left_id="anchor_manifest_default",
-                right_id="dagzoo_shape_aware_size_medium",
-                manifests=manifests,
+            "anchor_vs_dagzoo_shape_aware_size_medium": corpus_compare_payload(
+                left=CURRENT_CORPUS_RECIPE_ID,
+                right="tf_rd_013_dagzoo_shape_aware_size_medium_v1",
             ),
-            "anchor_vs_dagzoo_shape_aware_size_large": _comparison_entry(
-                comparison_id="anchor_vs_dagzoo_shape_aware_size_large",
-                left_id="anchor_manifest_default",
-                right_id="dagzoo_shape_aware_size_large",
-                manifests=manifests,
+            "anchor_vs_dagzoo_shape_aware_size_large": corpus_compare_payload(
+                left=CURRENT_CORPUS_RECIPE_ID,
+                right="tf_rd_013_dagzoo_shape_aware_size_large_v1",
             ),
-            "dagzoo_shape_aware_size_small_vs_dagzoo_shape_aware_size_medium": _comparison_entry(
-                comparison_id="dagzoo_shape_aware_size_small_vs_dagzoo_shape_aware_size_medium",
-                left_id="dagzoo_shape_aware_size_small",
-                right_id="dagzoo_shape_aware_size_medium",
-                manifests=manifests,
+            "dagzoo_shape_aware_size_small_vs_dagzoo_shape_aware_size_medium": corpus_compare_payload(
+                left="tf_rd_013_dagzoo_shape_aware_size_small_v1",
+                right="tf_rd_013_dagzoo_shape_aware_size_medium_v1",
             ),
-            "dagzoo_shape_aware_size_medium_vs_dagzoo_shape_aware_size_large": _comparison_entry(
-                comparison_id="dagzoo_shape_aware_size_medium_vs_dagzoo_shape_aware_size_large",
-                left_id="dagzoo_shape_aware_size_medium",
-                right_id="dagzoo_shape_aware_size_large",
-                manifests=manifests,
+            "dagzoo_shape_aware_size_medium_vs_dagzoo_shape_aware_size_large": corpus_compare_payload(
+                left="tf_rd_013_dagzoo_shape_aware_size_medium_v1",
+                right="tf_rd_013_dagzoo_shape_aware_size_large_v1",
             ),
-            "dagzoo_shape_aware_size_small_vs_dagzoo_shape_aware_size_large": _comparison_entry(
-                comparison_id="dagzoo_shape_aware_size_small_vs_dagzoo_shape_aware_size_large",
-                left_id="dagzoo_shape_aware_size_small",
-                right_id="dagzoo_shape_aware_size_large",
-                manifests=manifests,
+            "dagzoo_shape_aware_size_small_vs_dagzoo_shape_aware_size_large": corpus_compare_payload(
+                left="tf_rd_013_dagzoo_shape_aware_size_small_v1",
+                right="tf_rd_013_dagzoo_shape_aware_size_large_v1",
             ),
         },
     }
@@ -1684,105 +1601,24 @@ def _materialize_shape_aware_support(*, dagzoo_root: Path, force: bool) -> int:
 
 
 def _materialize_size_ladder_support(*, dagzoo_root: Path, force: bool) -> int:
-    _assert_common_inputs(dagzoo_root=dagzoo_root)
-    for surface_spec in SIZE_LADDER_SURFACE_SPECS:
-        for spec in surface_spec.invocations:
-            dagzoo_config_path = dagzoo_root / spec.config_ref
-            if not dagzoo_config_path.exists():
-                raise RuntimeError(f"dagzoo config does not exist: {dagzoo_config_path}")
+    if not dagzoo_root.exists():
+        raise RuntimeError(f"dagzoo root does not exist: {dagzoo_root}")
+    if not TAB_FOUNDRY_BIN.exists():
+        raise RuntimeError(f"tab-foundry CLI not found at {TAB_FOUNDRY_BIN}")
 
-    paths = _size_ladder_materialization_paths(SIZE_LADDER_LOCAL_OUTPUT_ROOT)
-    surface_records: list[dict[str, Any]] = []
-    for surface_spec, surface_paths in zip(
-        SIZE_LADDER_SURFACE_SPECS,
-        paths.dagzoo_surfaces,
-        strict=True,
-    ):
-        _ensure_absent(surface_paths.surface_root, force=force)
-        surface_paths.surface_root.mkdir(parents=True, exist_ok=True)
-        invocation_summaries: list[dict[str, Any]] = []
-        generate_steps: list[dict[str, Any]] = []
-        for spec, invocation_paths in zip(
-            surface_spec.invocations,
-            surface_paths.invocation_paths,
-            strict=True,
-        ):
-            generate_cmd = [
-                "uv",
-                "run",
-                "dagzoo",
-                "generate",
-                "--config",
-                str((dagzoo_root / spec.config_ref).resolve()),
-                "--handoff-root",
-                str(invocation_paths.invocation_root),
-                "--num-datasets",
-                str(spec.num_datasets),
-                "--seed",
-                str(spec.seed),
-                "--device",
-                spec.device,
-                "--hardware-policy",
-                spec.hardware_policy,
-            ]
-            generate_completed = _run_checked(generate_cmd, cwd=dagzoo_root)
-            handoff_payload = _sanitize_paths(_load_json(invocation_paths.handoff_manifest_path))
-            invocation_summaries.append(
-                _multi_invocation_invocation_summary(
-                    spec=spec,
-                    paths=invocation_paths,
-                    handoff_payload=handoff_payload,
-                )
-            )
-            generate_steps.append(
-                {
-                    "step_id": f"dagzoo_generate_{surface_spec.surface_name}_{spec.invocation_id}",
-                    "cwd": "$DAGZOO_ROOT",
-                    "command": _multi_invocation_generate_command(spec, invocation_paths),
-                    "status": "completed",
-                    "returncode": generate_completed.returncode,
-                }
-            )
-
-        combined_summary = build_manifest(
-            data_roots=[invocation.generated_dir for invocation in surface_paths.invocation_paths],
-            out_path=surface_paths.manifest_path,
+    corpus_records = [
+        materialize_corpus_recipe(
+            recipe_id=recipe_id,
+            dagzoo_root=dagzoo_root,
+            force=force,
         )
-        surface_records.append(
-            {
-                "surface_spec": surface_spec,
-                "surface_paths": surface_paths,
-                "invocation_summaries": invocation_summaries,
-                "generate_steps": generate_steps,
-                "combined_summary": combined_summary,
-            }
-        )
-
-    manifests = {
-        "anchor_manifest_default": {
-            "status": "available",
-            "manifest_path": _portable_path(ANCHOR_MANIFEST_PATH),
-            "manifest_sha256": _sha256_path(ANCHOR_MANIFEST_PATH),
-            "inspection": _manifest_inspect(ANCHOR_MANIFEST_PATH),
-        }
-    }
-    for surface_record in surface_records:
-        surface_spec: MultiInvocationSurfaceSpec = surface_record["surface_spec"]
-        surface_paths: MultiInvocationSurfacePaths = surface_record["surface_paths"]
-        manifests[surface_spec.surface_name] = {
-            "status": "available",
-            "manifest_path": _portable_path(surface_paths.manifest_path),
-            "manifest_sha256": _sha256_path(surface_paths.manifest_path),
-            "inspection": _manifest_inspect(surface_paths.manifest_path),
-        }
-
+        for recipe_id in SIZE_LADDER_RECIPE_IDS
+    ]
     materialization_summary = _size_ladder_materialization_summary(
-        paths=paths,
-        manifests=manifests,
-        surface_records=surface_records,
+        corpus_records=corpus_records,
     )
     manifest_characteristics_summary = _size_ladder_manifest_characteristics_summary(
-        manifests=manifests,
+        corpus_records=corpus_records,
     )
 
     _write_json(

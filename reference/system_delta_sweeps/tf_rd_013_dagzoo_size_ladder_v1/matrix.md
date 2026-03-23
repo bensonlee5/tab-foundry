@@ -28,8 +28,8 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 | Dimension | Upstream TabICLv2 | Locked anchor | Interpretation |
 | --- | --- | --- | --- |
 | model anchor | TabICLv2 is the primary row-first architectural reference, but it does not define this exact repo-local promoted-anchor contract. | The settled promoted row-first benchmark anchor `row_cls + qass + no tfcol`. | TF-RD-013 size-ladder work changes only the training-data comparison surface and the stop-condition control, not the promoted model surface. |
-| training data surface | TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract. | Fresh current-corpus manifest generated from the current dagzoo default config with data surface label `anchor_manifest_default`. | The fresh default current corpus remains the baseline while the sweep compares three shrunken shape-aware dagzoo alternatives under the same row caps. |
-| dagzoo size ladder | Not applicable. | Row 1 uses the default dagzoo recipe as the current-corpus control rather than carrying over a historical local snapshot. | Each candidate row should keep one top-level `dagzoo_provenance` payload with explicit per-invocation counts so size sensitivity is reviewable rather than implicit. |
+| training data surface | TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract. | Fresh current-corpus recipe `tf_rd_013_current_corpus_default_v1` with data surface label `anchor_manifest_default`. | The fresh default current corpus remains the baseline while the sweep compares three shrunken shape-aware dagzoo alternatives under the same row caps through first-class `data.corpus_ref` resolution. |
+| dagzoo size ladder | Not applicable. | Row 1 uses the default dagzoo recipe as the current-corpus control rather than carrying over a historical local snapshot. | Each candidate row now resolves through a tracked corpus recipe so the realized corpus identity is queryable from local corpus records and training-surface artifacts rather than from inline sweep-local provenance blobs. |
 | benchmark and control context | TabICLv2 is the architectural reference, while nanoTabPFN remains the benchmark/control bundle family used by this repo for this decision. | Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface. | TF-RD-013 should keep benchmark/control context stable while it reads corpus-size effects. |
 | training stop contract | TabICLv2 does not define this repo-local manifest trainer stop rule. | Training surface label `prior_linear_warmup_decay` with `max_steps=2500`. | The fresh current-corpus control clears `runtime.target_train_seconds` so later rows isolate corpus size rather than backend stop semantics. |
 
@@ -37,7 +37,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_training_current_corpus_uncapped` | baseline_replay | yes | ready | none | Run the settled row-first anchor against a fresh current-corpus manifest from current dagzoo output with the inherited time cap cleared so the 2500-step contract is actually reached. | Run first on the CUDA machine after bootstrapping `data/manifests/default.parquet` from current dagzoo output. |
+| 1 | `delta_training_current_corpus_uncapped` | baseline_replay | yes | ready | none | Run the settled row-first anchor against a fresh current-corpus manifest from current dagzoo output with the inherited time cap cleared so the 2500-step contract is actually reached. | Run first on the CUDA machine after materializing corpus recipe `tf_rd_013_current_corpus_default_v1`. |
 | 2 | `delta_data_manifest_root_dagzoo_shape_aware_size_small` | provenance | yes | ready | none | Point training at the smallest shrunken shape-aware dagzoo manifest while keeping the three-regime config mix explicit. | Run second and compare directly against the fresh current-corpus control before spending budget on the larger ladder rungs. |
 | 3 | `delta_data_manifest_root_dagzoo_shape_aware_size_medium` | provenance | yes | ready | none | Point training at the medium shrunken shape-aware dagzoo manifest so TF-RD-013 can test a middle rung between the smallest ladder and the previous broad shape-aware surface. | Run after the small rung so size sensitivity is read as a ladder rather than as isolated one-off rows. |
 | 4 | `delta_data_manifest_root_dagzoo_shape_aware_size_large` | provenance | yes | ready | none | Point training at the largest shrunken shape-aware dagzoo manifest as the upper rung of the TF-RD-013 size ladder. | Run last so the size ladder resolves from the fresh current-corpus control through small, medium, and upper-bound large corpus sizes. |
@@ -51,10 +51,10 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Run the settled row-first anchor against a fresh current-corpus manifest from current dagzoo output with the inherited time cap cleared so the 2500-step contract is actually reached.
-- Rationale: Re-establish the settled row-first anchor on a fresh current-corpus manifest generated from the current dagzoo default config, then clear the inherited 330-second cap so the remaining TF-RD-013 rows compare against one current same-backend control.
-- Hypothesis: A fresh current-corpus bootstrap plus cleared `target_train_seconds` should produce the canonical control for the dagzoo size ladder under the current manifest-backed training path.
+- Rationale: Re-establish the settled row-first anchor on a fresh current-corpus recipe generated from the current dagzoo default config, then clear the inherited 330-second cap so the remaining TF-RD-013 rows compare against one current same-backend control.
+- Hypothesis: A fresh current-corpus recipe plus cleared `target_train_seconds` should produce the canonical control for the dagzoo size ladder under the current manifest-backed training path.
 - Upstream delta: Not applicable; this is a repo-local fresh current-corpus control row for TF-RD-013.
-- Anchor delta: Keep the settled row-first model and preprocessing surfaces fixed, point data at the fresh current-corpus manifest generated from the current dagzoo default config, and clear the inherited time cap so the manifest trainer stops only at `max_steps=2500`.
+- Anchor delta: Keep the settled row-first model and preprocessing surfaces fixed, point data at the fresh current-corpus corpus recipe generated from the current dagzoo default config, and clear the inherited time cap so the manifest trainer stops only at `max_steps=2500`.
 - Expected effect: Establish the canonical fresh current-corpus control before reading any dagzoo size-rung comparison.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
 - Training overrides: `{'apply_schedule': True, 'runtime': {'max_steps': 2500, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'optimizer': {'name': 'schedulefree_adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
@@ -69,7 +69,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Interpretation status: `pending`
 - Decision: `None`
 - Notes:
-  - This row relies on an explicit `tab-foundry data dagzoo generate-manifest` bootstrap and does not reuse the stale 2026-02-22 absolute-path snapshot.
+  - This row resolves through corpus recipe `tf_rd_013_current_corpus_default_v1` and does not reuse the stale 2026-02-22 absolute-path snapshot.
   - The historical locked anchor artifact predates the backend-aware manifest runner; this row establishes the canonical fresh current-corpus control for the remaining TF-RD-013 decision.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_013_dagzoo_size_ladder_v1/delta_training_current_corpus_uncapped/result_card.md`

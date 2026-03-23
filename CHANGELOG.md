@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-03-23
+
+### Changed
+
+- User-facing note: `tab-foundry data corpus` is now the canonical synthetic
+  corpus workflow for recurring dagzoo-backed datasets, with first-class
+  recipe listing, materialization, inspection, comparison, and run-linkage
+  surfaces.
+
+- User-facing note: data surfaces now accept optional `data.corpus_ref`, which
+  resolves a locally materialized corpus record into the effective manifest,
+  surface label, and dagzoo provenance while preserving backward compatibility
+  for direct `manifest_path` configurations.
+
+- User-facing note: `training_surface_record.json` now persists
+  `corpus_ref`, `recipe_id`, `corpus_id`, and `corpus_record_path` when a run
+  resolves through a first-class corpus recipe. Downstream readers must
+  tolerate these added metadata fields.
+
+- User-facing note: TF-RD-013 dagzoo size-ladder rows now resolve through
+  first-class corpus recipes rather than queue-local manifest wiring, and the
+  support materializer now delegates size-ladder corpus generation through the
+  shared corpus subsystem instead of owning dagzoo orchestration directly.
+
 ## [0.9.1] - 2026-03-23
 
 ### Changed

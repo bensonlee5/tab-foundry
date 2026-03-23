@@ -29,6 +29,9 @@ deltas:
           target_conditioner: label_token
       data:
         surface_label: anchor_manifest_default
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_013_current_corpus_default_v1
       preprocessing:
         surface_label: runtime_default
     default_next_action: Train the first anchor-only label-token run on the locked medium binary surface.
@@ -63,6 +66,9 @@ deltas:
           feature_encoder: shared
       data:
         surface_label: anchor_manifest_default
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_013_current_corpus_default_v1
       preprocessing:
         surface_label: runtime_default
       training:
@@ -106,6 +112,9 @@ deltas:
         stage_label: delta_anchor_activation_trace_baseline
       data:
         surface_label: anchor_manifest_default
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_013_current_corpus_default_v1
       preprocessing:
         surface_label: runtime_default
       training:
@@ -808,6 +817,9 @@ deltas:
           column_encoder: none
       data:
         surface_label: anchor_manifest_default
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_013_current_corpus_default_v1
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run first and compare directly against the v2 no-context row-embedding anchor before attributing any TFCol effect.
@@ -2173,6 +2185,9 @@ deltas:
           column_encoder: none
       data:
         surface_label: anchor_manifest_default
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_013_current_corpus_default_v1
       preprocessing:
         surface_label: runtime_default
       training:
@@ -2317,14 +2332,9 @@ deltas:
         surface_label: tf_rd_013_dagzoo_shape_aware_size_small
         surface_overrides:
           source: manifest
-          manifest_path: outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_small/manifest.parquet
+          corpus_ref: tf_rd_013_dagzoo_shape_aware_size_small_v1
           train_row_cap: 512
           test_row_cap: 256
-          dagzoo_provenance:
-            commands: []
-            config_refs: []
-            curated_root_lineage: []
-            invocations: []
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run after the fresh current-corpus control to determine whether a strongly shrunken dagzoo corpus improves the promoted-anchor read.
@@ -2360,14 +2370,9 @@ deltas:
         surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
         surface_overrides:
           source: manifest
-          manifest_path: outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_medium/manifest.parquet
+          corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
           train_row_cap: 512
           test_row_cap: 256
-          dagzoo_provenance:
-            commands: []
-            config_refs: []
-            curated_root_lineage: []
-            invocations: []
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run after the small rung so TF-RD-013 can read whether dagzoo quality is size-sensitive rather than uniformly weak.
@@ -2403,14 +2408,9 @@ deltas:
         surface_label: tf_rd_013_dagzoo_shape_aware_size_large
         surface_overrides:
           source: manifest
-          manifest_path: outputs/staged_ladder_support/tf_rd_013_dagzoo_size_ladder_v1/dagzoo_shape_aware_size_large/manifest.parquet
+          corpus_ref: tf_rd_013_dagzoo_shape_aware_size_large_v1
           train_row_cap: 512
           test_row_cap: 256
-          dagzoo_provenance:
-            commands: []
-            config_refs: []
-            curated_root_lineage: []
-            invocations: []
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run last as the upper size rung before deciding whether TF-RD-013 needs any broader synthetic-data exploration beyond this ladder.

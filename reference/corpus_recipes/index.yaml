@@ -1,0 +1,10 @@
+schema: tab-foundry-corpus-recipe-index-v1
+recipes:
+  tf_rd_013_current_corpus_default_v1:
+    path: tf_rd_013_current_corpus_default_v1.yaml
+  tf_rd_013_dagzoo_shape_aware_size_small_v1:
+    path: tf_rd_013_dagzoo_shape_aware_size_small_v1.yaml
+  tf_rd_013_dagzoo_shape_aware_size_medium_v1:
+    path: tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml
+  tf_rd_013_dagzoo_shape_aware_size_large_v1:
+    path: tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml

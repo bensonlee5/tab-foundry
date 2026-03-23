@@ -11,13 +11,12 @@ from .manifest import ManifestSummary, build_manifest
 
 
 @dataclass(slots=True, frozen=True)
-class DagzooGenerateManifestConfig:
-    """Typed input for the dagzoo generate -> manifest workflow."""
+class DagzooGenerateConfig:
+    """Typed input for one dagzoo generate CLI invocation."""
 
     dagzoo_root: Path
     dagzoo_config: Path
     handoff_root: Path
-    out_manifest: Path
     num_datasets: int = 10
     seed: int | None = None
     rows: str | None = None
@@ -30,6 +29,13 @@ class DagzooGenerateManifestConfig:
     missing_mar_observed_fraction: float | None = None
     missing_mar_logit_scale: float | None = None
     missing_mnar_logit_scale: float | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class DagzooGenerateManifestConfig(DagzooGenerateConfig):
+    """Typed input for the dagzoo generate -> manifest workflow."""
+
+    out_manifest: Path = Path("manifest.parquet")
     train_ratio: float = 0.90
     val_ratio: float = 0.05
     filter_policy: str = "include_all"
@@ -49,7 +55,7 @@ def _resolve_from_root(root: Path, raw_path: Path) -> Path:
     return expanded.resolve() if expanded.is_absolute() else (root / expanded).resolve()
 
 
-def build_dagzoo_generate_argv(config: DagzooGenerateManifestConfig) -> list[str]:
+def build_dagzoo_generate_argv(config: DagzooGenerateConfig) -> list[str]:
     """Build the dagzoo CLI argv for one generate run."""
 
     dagzoo_root = config.dagzoo_root.expanduser().resolve()
@@ -102,8 +108,8 @@ def build_dagzoo_generate_argv(config: DagzooGenerateManifestConfig) -> list[str
     return argv
 
 
-def run_dagzoo_generate_manifest(config: DagzooGenerateManifestConfig) -> DagzooGenerateManifestResult:
-    """Run dagzoo generate through the CLI and materialize one tab-foundry manifest."""
+def run_dagzoo_generate(config: DagzooGenerateConfig) -> DagzooHandoffInfo:
+    """Run dagzoo generate through the CLI and return validated handoff metadata."""
 
     dagzoo_root = config.dagzoo_root.expanduser().resolve()
     if not dagzoo_root.exists():
@@ -123,6 +129,13 @@ def run_dagzoo_generate_manifest(config: DagzooGenerateManifestConfig) -> Dagzoo
         raise RuntimeError(
             f"dagzoo handoff generated directory does not exist: {handoff.generated_dir}"
         )
+    return handoff
+
+
+def run_dagzoo_generate_manifest(config: DagzooGenerateManifestConfig) -> DagzooGenerateManifestResult:
+    """Run dagzoo generate through the CLI and materialize one tab-foundry manifest."""
+
+    handoff = run_dagzoo_generate(config)
 
     summary = build_manifest(
         data_roots=[handoff.generated_dir],
