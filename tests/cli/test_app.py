@@ -9,7 +9,7 @@ import tab_foundry.cli as cli_module
 import tab_foundry.cli.data_inspect as data_inspect_module
 import tab_foundry.cli.dev as dev_module
 import tab_foundry.cli.groups.data as data_group
-import tab_foundry.cli.groups.research as research_group
+import tab_foundry.research.sweep.core as sweep_core_module
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.graph as graph_module
 import tab_foundry.research.sweep.inspect as inspect_module
@@ -97,6 +97,81 @@ def test_nested_cli_train_prior_staged_injects_default_experiment(
     }
 
 
+def test_nested_cli_research_sweep_create_sweep_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run_sweep_create(args):
+        captured["sweep_id"] = str(args.sweep_id)
+        captured["anchor_run_id"] = str(args.anchor_run_id)
+        return 0
+
+    monkeypatch.setattr(sweep_core_module, "_run_sweep_create", _fake_run_sweep_create)
+
+    exit_code = cli_module.main(
+        [
+            "research",
+            "sweep",
+            "create-sweep",
+            "--sweep-id",
+            "binary_md_v1",
+            "--anchor-run-id",
+            "run_001",
+            "--complexity-level",
+            "medium",
+            "--benchmark-bundle-path",
+            "/tmp/bundle.json",
+            "--control-baseline-id",
+            "baseline_v1",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {
+        "sweep_id": "binary_md_v1",
+        "anchor_run_id": "run_001",
+    }
+
+
+def test_nested_cli_research_sweep_list_sweeps_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run_list_sweeps(args):
+        captured["index_path"] = str(args.index_path)
+        return 0
+
+    monkeypatch.setattr(sweep_core_module, "_run_list_sweeps", _fake_run_list_sweeps)
+
+    exit_code = cli_module.main(
+        ["research", "sweep", "list-sweeps", "--index-path", "/tmp/index.yaml"]
+    )
+
+    assert exit_code == 0
+    assert captured == {"index_path": "/tmp/index.yaml"}
+
+
+def test_nested_cli_research_sweep_show_active_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run_show_active(args):
+        captured["index_path"] = str(args.index_path)
+        return 0
+
+    monkeypatch.setattr(sweep_core_module, "_run_show_active", _fake_run_show_active)
+
+    exit_code = cli_module.main(
+        ["research", "sweep", "show-active", "--index-path", "/tmp/index.yaml"]
+    )
+
+    assert exit_code == 0
+    assert captured == {"index_path": "/tmp/index.yaml"}
+
+
 def test_nested_cli_research_sweep_render_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -106,7 +181,7 @@ def test_nested_cli_research_sweep_render_dispatches_to_handler(
         captured["sweep_id"] = None if args.sweep_id is None else str(args.sweep_id)
         return 0
 
-    monkeypatch.setattr(research_group, "_run_sweep_render", _fake_run_sweep_render)
+    monkeypatch.setattr(sweep_core_module, "_run_sweep_render", _fake_run_sweep_render)
 
     exit_code = cli_module.main(["research", "sweep", "render", "--sweep-id", "binary_md_v1"])
 
@@ -188,6 +263,16 @@ def test_nested_cli_research_sweep_diff_dispatches_to_handler(
 
     assert exit_code == 0
     assert captured == {"order": 7, "against_order": 6}
+
+
+def test_nested_cli_research_sweep_create_alias_is_rejected(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        _ = cli_module.main(["research", "sweep", "create"])
+
+    assert exc_info.value.code == 2
+    assert "invalid choice: 'create'" in capsys.readouterr().err
 
 
 def test_nested_cli_dev_resolve_config_dispatches_to_handler(

@@ -59,6 +59,8 @@ def _doctor_env(repo_root: Path, *, include_uv: bool = True, include_git: bool =
         )
     env = dict(os.environ)
     env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env.pop("TAB_FOUNDRY_PRIMARY_ROOT", None)
+    env.pop("TAB_FOUNDRY_WORKTREE_ROOT", None)
     return env
 
 
@@ -152,6 +154,35 @@ def test_scripts_dev_doctor_reports_hook_python_mismatch(tmp_path: Path) -> None
 
     assert completed.returncode == 1
     assert "[fail] pre-commit hook python" in completed.stdout
+
+
+def test_scripts_dev_doctor_prefers_primary_hook_python_when_available(tmp_path: Path) -> None:
+    repo_root = _workspace(tmp_path)
+    primary_root = tmp_path / "primary"
+    _write_healthy_doctor_repo(
+        repo_root,
+        hook_python=str(primary_root / ".venv" / "bin" / "python"),
+    )
+    _write_executable(
+        primary_root / ".venv" / "bin" / "python",
+        "#!/bin/sh\n"
+        f'exec "{sys.executable}" "$@"\n',
+    )
+
+    env = _doctor_env(repo_root)
+    env["TAB_FOUNDRY_PRIMARY_ROOT"] = str(primary_root)
+
+    completed = subprocess.run(
+        ["bash", str(repo_root / "scripts" / "dev"), "doctor"],
+        cwd=repo_root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    assert f"[ok] pre-commit hook python: {primary_root / '.venv' / 'bin' / 'python'}" in completed.stdout
 
 
 def test_scripts_dev_doctor_reports_primary_tool_root_fallback(tmp_path: Path) -> None:

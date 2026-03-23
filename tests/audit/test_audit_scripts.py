@@ -226,15 +226,39 @@ def test_read_version_from_git_ref_reports_git_errors(monkeypatch: pytest.Monkey
         check_version_bump.read_version_from_git_ref(REPO_ROOT, ref="missing")
 
 
-def test_version_bump_check_skips_when_pyproject_is_not_staged(
+def test_version_bump_check_skips_when_pyproject_is_not_staged_in_staged_only_mode(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(check_version_bump, "is_path_staged", lambda *_args, **_kwargs: False)
     monkeypatch.setattr(check_version_bump, "read_version_from_pyproject_path", lambda _path: "0.9.3")
 
+    exit_code = check_version_bump.main(["--staged-only"])
+
+    assert exit_code == 0
+
+
+def test_version_bump_check_validates_on_clean_checkouts_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    monkeypatch.setattr(check_version_bump, "is_path_staged", lambda *_args, **_kwargs: False)
+
+    def _fake_read_version_from_git_ref(*_args, **_kwargs):
+        calls.append("git_ref")
+        return "0.9.2"
+
+    def _fake_read_version_from_pyproject_path(_path):
+        calls.append("pyproject")
+        return "0.9.3"
+
+    monkeypatch.setattr(check_version_bump, "read_version_from_git_ref", _fake_read_version_from_git_ref)
+    monkeypatch.setattr(check_version_bump, "read_version_from_pyproject_path", _fake_read_version_from_pyproject_path)
+
     exit_code = check_version_bump.main([])
 
     assert exit_code == 0
+    assert calls == ["git_ref", "pyproject"]
 
 
 def test_version_bump_check_validates_when_pyproject_is_staged(

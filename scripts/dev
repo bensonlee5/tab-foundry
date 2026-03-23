@@ -32,6 +32,16 @@ ensure_venv() {
   fi
 }
 
+primary_repo_root() {
+  if [[ -n "${TAB_FOUNDRY_PRIMARY_ROOT:-}" ]]; then
+    printf '%s\n' "${TAB_FOUNDRY_PRIMARY_ROOT}"
+    return
+  fi
+  local common_git_dir
+  common_git_dir="$(common_git_dir_path)"
+  (cd "${common_git_dir}/.." && pwd)
+}
+
 tool_root_field() {
   python3 "${REPO_ROOT}/scripts/audit/tool_roots.py" print --field "$1"
 }
@@ -41,7 +51,13 @@ common_git_dir_path() {
 }
 
 pre_commit_python() {
-  tool_root_field python
+  local primary_root
+  primary_root="$(primary_repo_root)"
+  if [[ -x "${primary_root}/.venv/bin/python" ]]; then
+    printf '%s\n' "${primary_root}/.venv/bin/python"
+    return
+  fi
+  printf '%s\n' "${REPO_ROOT}/.venv/bin/python"
 }
 
 rewrite_pre_commit_hook_python() {

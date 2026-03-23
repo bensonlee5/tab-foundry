@@ -123,6 +123,11 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default="pyproject.toml",
         help="Repo-relative pyproject file to validate.",
     )
+    parser.add_argument(
+        "--staged-only",
+        action="store_true",
+        help="Skip validation when the target pyproject is absent from the staged diff.",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -131,7 +136,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     pyproject_path = (REPO_ROOT / args.pyproject).resolve()
 
     try:
-        if not is_path_staged(REPO_ROOT, pathspec=args.pyproject):
+        if args.staged_only and not is_path_staged(REPO_ROOT, pathspec=args.pyproject):
             current_version = read_version_from_pyproject_path(pyproject_path)
             print(
                 "Version bump check passed: "
