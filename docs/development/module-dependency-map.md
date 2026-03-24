@@ -44,8 +44,8 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.control_baseline_registry`,
   `tab_foundry.external_benchmarks`, `tab_foundry.model`,
   `tab_foundry.repo_paths`, and `tab_foundry.training`.
-- `tab_foundry.training` depends on `tab_foundry.config`,
-  `tab_foundry.data`, `tab_foundry.device`, `tab_foundry.model`,
+- `tab_foundry.training` depends on `tab_foundry.data`,
+  `tab_foundry.device`, `tab_foundry.model`,
   `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
   `tab_foundry.timestamps`, and `tab_foundry.types`.
 
@@ -75,6 +75,8 @@ Observed cycle status:
 - `tab_foundry.training` may depend on `data`, `model`, `preprocessing`, and
   shared helpers such as `tab_foundry.config`, `tab_foundry.device`, and
   `tab_foundry.repo_paths`, but it should not depend on `bench` or `research`.
+- Packaged `train` CLI parser ownership should stay under
+  `src/tab_foundry/cli/`; `training/prior_train.py` should stay parser-free.
 - `tab_foundry.export` may depend on `model`, `preprocessing`, and shared
   helpers, but it should not depend on `bench`, `research`, or `training`.
 - `tab_foundry.bench` is the benchmark and harness layer. It may depend on

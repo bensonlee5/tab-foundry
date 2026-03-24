@@ -20,4 +20,4 @@ def _export(names: list[str]) -> None:
         globals()[name] = _wrapped
 
 
-_export(["test_prior_train_main_passes_prior_dump_and_overrides"])
+_export(["test_train_prior_cli_main_passes_prior_dump_and_overrides"])

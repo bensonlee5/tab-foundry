@@ -31,10 +31,12 @@ import tab_foundry.cli.research_inspect as research_inspect_cli_module
 import tab_foundry.cli.groups.bench as bench_group
 import tab_foundry.cli.groups.data as data_group
 import tab_foundry.cli.groups.research as research_group
+import tab_foundry.cli.groups.train as train_group
 import tab_foundry.cli.research_execute as research_execute_cli_module
 import tab_foundry.cli.research_promote as research_promote_cli_module
 import tab_foundry.cli.research_summarize as research_summarize_cli_module
 import tab_foundry.cli.research_sweep_core as research_sweep_core_cli_module
+import tab_foundry.cli.train_prior as train_prior_cli_module
 import tab_foundry.research.sweep.core as sweep_core_module
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.execute as sweep_execute_library_module
@@ -42,7 +44,7 @@ import tab_foundry.research.sweep.graph as graph_module
 import tab_foundry.research.sweep.inspect as inspect_module
 import tab_foundry.research.sweep.promote as sweep_promote_library_module
 import tab_foundry.research.sweep.summarize as summarize_module
-import tab_foundry.training.prior_train as prior_train_module
+import tab_foundry.training.prior_train as prior_train_library_module
 
 
 def test_nested_cli_bench_compare_delegates_to_compare_main(
@@ -313,7 +315,7 @@ def test_nested_cli_train_prior_simple_dispatches_to_handler(
         captured["overrides"] = list(args.overrides)
         return 0
 
-    monkeypatch.setattr(prior_train_module, "run_from_args", _fake_prior_handler)
+    monkeypatch.setattr(train_prior_cli_module, "run_from_args", _fake_prior_handler)
 
     exit_code = cli_module.main(
         [
@@ -343,7 +345,7 @@ def test_nested_cli_train_prior_staged_injects_default_experiment(
         captured["overrides"] = list(args.overrides)
         return 0
 
-    monkeypatch.setattr(prior_train_module, "run_from_args", _fake_prior_handler)
+    monkeypatch.setattr(train_prior_cli_module, "run_from_args", _fake_prior_handler)
 
     exit_code = cli_module.main(
         [
@@ -526,6 +528,7 @@ def test_cli_groups_use_cli_only_execute_promote_and_bench_modules() -> None:
     assert bench_group.bounce_diagnosis_cli.__name__ == "tab_foundry.cli.bench_bounce_diagnosis"
     assert bench_group.run_registration_cli.__name__ == "tab_foundry.cli.bench_run_registration"
     assert bench_group.control_baseline_freeze_cli.__name__ == "tab_foundry.cli.bench_control_baseline_freeze"
+    assert train_group.train_prior_cli.__name__ == "tab_foundry.cli.train_prior"
     assert research_group.research_sweep_core_cli.__name__ == "tab_foundry.cli.research_sweep_core"
     assert research_group.research_graph_cli.__name__ == "tab_foundry.cli.research_graph"
     assert research_group.research_execute_cli.__name__ == "tab_foundry.cli.research_execute"
@@ -543,6 +546,7 @@ def test_cli_groups_use_cli_only_execute_promote_and_bench_modules() -> None:
         bounce_diagnosis_library_module,
         run_registration_library_module,
         control_baseline_freeze_library_module,
+        prior_train_library_module,
         sweep_core_module,
         sweep_execute_library_module,
         graph_module,

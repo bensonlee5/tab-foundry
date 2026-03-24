@@ -60,6 +60,9 @@ into the canonical library modules.
   schedules, optimizers, runtime policy, evaluation helpers, telemetry health
   summaries, and the canonical exact-prior training surface under
   `training/prior_train.py`, `training/prior_dump.py`, and `training/prior/`.
+  Packaged `train prior` parser ownership lives under
+  `src/tab_foundry/cli/train_prior.py`; `training/prior_train.py` is a
+  parser-free library surface.
 - `src/tab_foundry/export/`: export bundle construction, loading, and
   validation contracts.
 - `src/tab_foundry/bench/`: benchmark bundles, comparison flows, benchmark
@@ -167,6 +170,8 @@ not absorb new orchestration logic.
 - Packaged `bench` command parser ownership should stay under
   `src/tab_foundry/cli/`; the corresponding library modules under
   `src/tab_foundry/bench/` should stay parser-free.
+- Packaged `train` command parser ownership should stay under
+  `src/tab_foundry/cli/`; `training/prior_train.py` should stay parser-free.
 - Shared repo-root and read-only benchmark-registry helpers should continue to
   live in `src/tab_foundry/repo_paths.py` and
   `src/tab_foundry/benchmark_registry.py`; the equivalent control-baseline and

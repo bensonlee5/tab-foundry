@@ -5,11 +5,8 @@ from __future__ import annotations
 import argparse
 
 from tab_foundry.config import compose_config
-import tab_foundry.training.prior_train as prior_train_module
+import tab_foundry.cli.train_prior as train_prior_cli
 from tab_foundry.training.trainer import train as run_training
-
-
-_STAGED_PRIOR_EXPERIMENT = "experiment=cls_benchmark_staged_prior"
 
 
 def _run_training_command(args: argparse.Namespace) -> int:
@@ -25,16 +22,6 @@ def _run_training_command(args: argparse.Namespace) -> int:
     )
     return 0
 
-
-def _run_prior_staged(args: argparse.Namespace) -> int:
-    overrides = [str(value) for value in args.overrides]
-    if not any(value.startswith("experiment=") for value in overrides):
-        overrides.append(_STAGED_PRIOR_EXPERIMENT)
-    staged_args = argparse.Namespace(**vars(args))
-    staged_args.overrides = overrides
-    return prior_train_module.run_from_args(staged_args)
-
-
 def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
     parser = subparsers.add_parser("train", help="Training workflows")
     nested = parser.add_subparsers(dest="train_command", required=True)
@@ -49,12 +36,12 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "simple",
         help="Train the exact-prior simple benchmark family",
     )
-    prior_train_module.configure_parser(prior_simple_parser)
-    prior_simple_parser.set_defaults(func=prior_train_module.run_from_args)
+    train_prior_cli.configure_parser(prior_simple_parser)
+    prior_simple_parser.set_defaults(func=train_prior_cli.run_from_args)
 
     prior_staged_parser = prior_nested.add_parser(
         "staged",
         help="Train the exact-prior staged benchmark family",
     )
-    prior_train_module.configure_parser(prior_staged_parser)
-    prior_staged_parser.set_defaults(func=_run_prior_staged)
+    train_prior_cli.configure_parser(prior_staged_parser)
+    prior_staged_parser.set_defaults(func=train_prior_cli.run_staged_from_args)
