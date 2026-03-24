@@ -221,6 +221,7 @@ def build_training_surface_record(
             training_payload = {
                 "surface_label": training_label,
                 "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
+                "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
                 "prior_dump_non_finite_policy": str(
                     training_cfg.get("prior_dump_non_finite_policy", "error")
                 ),
@@ -246,6 +247,10 @@ def build_training_surface_record(
                 if schedule_cfg is None
                 else schedule_cfg.get("stages"),
                 "overrides": training_cfg.get("overrides", {}),
+            }
+        else:
+            training_payload = {
+                "task_batch_size": 1,
             }
         if resolved_backend is not None:
             training_payload["backend"] = resolved_backend

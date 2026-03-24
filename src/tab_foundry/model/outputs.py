@@ -25,6 +25,19 @@ class ClassificationOutput:
     aux_metrics: dict[str, float] | None = None
 
 
+def flatten_classification_output_rows(tensor: torch.Tensor) -> torch.Tensor:
+    """Flatten singleton or task-batched classifier outputs to the 2D consumer contract."""
+
+    if tensor.ndim == 2:
+        return tensor
+    if tensor.ndim != 3:
+        raise RuntimeError(
+            "classification outputs must be rank 2 or 3, "
+            f"got shape={tuple(int(dim) for dim in tensor.shape)}"
+        )
+    return tensor.reshape(int(tensor.shape[0]) * int(tensor.shape[1]), int(tensor.shape[2]))
+
+
 def _resolve_expected_class_count(
     output: ClassificationOutput,
     *,

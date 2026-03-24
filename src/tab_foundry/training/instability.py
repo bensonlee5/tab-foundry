@@ -567,6 +567,7 @@ def diagnostics_summary(
                 window_name: int(len(window)) for window_name, window in window_records.items()
             },
         },
+        "task_batching": _task_batching_summary(ordered),
         "grad_clip": {
             "record_count": int(len(ordered)),
             "clipped_step_count": int(clipped_step_count),
@@ -588,6 +589,42 @@ def diagnostics_summary(
             ordered,
             warmup_end_step=warmup_end_step,
         ),
+    }
+
+
+def _task_batching_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    requested_sizes: set[int] = set()
+    actual_batch_sizes: dict[str, int] = {}
+    signature_counts: dict[str, int] = {}
+    batched_step_count = 0
+    singleton_fallback_count = 0
+    for record in records:
+        raw_requested = record.get("task_batch_size_requested")
+        if raw_requested is not None:
+            requested_sizes.add(int(raw_requested))
+        raw_actual = record.get("task_batch_size_actual")
+        if raw_actual is not None:
+            actual_batch_sizes[str(int(raw_actual))] = actual_batch_sizes.get(str(int(raw_actual)), 0) + 1
+            if int(raw_actual) > 1:
+                batched_step_count += 1
+        raw_fallback_count = record.get("task_batch_singleton_fallback_count")
+        if raw_fallback_count is not None:
+            singleton_fallback_count += int(raw_fallback_count)
+        raw_signature_counts = record.get("task_batch_signature_counts")
+        if isinstance(raw_signature_counts, Mapping):
+            for signature, count in raw_signature_counts.items():
+                signature_counts[str(signature)] = signature_counts.get(str(signature), 0) + int(count)
+    record_count = int(len(records))
+    return {
+        "record_count": record_count,
+        "requested_task_batch_sizes": sorted(requested_sizes),
+        "actual_task_batch_size_counts": actual_batch_sizes,
+        "batched_step_count": int(batched_step_count),
+        "singleton_fallback_count": int(singleton_fallback_count),
+        "singleton_fallback_fraction": 0.0
+        if record_count <= 0
+        else float(singleton_fallback_count / float(record_count)),
+        "signature_counts": signature_counts,
     }
 
 

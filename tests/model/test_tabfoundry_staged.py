@@ -44,6 +44,35 @@ def _batch(*, num_classes: int = 2) -> TaskBatch:
     )
 
 
+def _batched_batch(*, num_classes: int = 2) -> TaskBatch:
+    return TaskBatch(
+        x_train=torch.tensor(
+            [
+                [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+                [[1.5, 2.5, 3.5], [4.5, 5.5, 6.5], [7.5, 8.5, 9.5]],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=torch.tensor([[0, 1, 0], [1, 0, 1]], dtype=torch.int64),
+        x_test=torch.tensor(
+            [
+                [[0.5, 1.5, 2.5], [3.5, 4.5, 5.5]],
+                [[0.75, 1.75, 2.75], [3.75, 4.75, 5.75]],
+            ],
+            dtype=torch.float32,
+        ),
+        y_test=torch.tensor([[0, 1], [1, 0]], dtype=torch.int64),
+        metadata={
+            "task_members": [{}, {}],
+            "task_batch_size_requested": 2,
+            "task_batch_size_actual": 2,
+            "task_batch_signature": "3x2x3x2",
+            "task_batch_mode": "batched",
+        },
+        num_classes=num_classes,
+    )
+
+
 def _staged(stage: str, **overrides: object) -> TabFoundryStagedClassifier:
     kwargs = {
         "stage": stage,
@@ -192,6 +221,14 @@ def test_nano_exact_stage_matches_simple_forward_batched_logits() -> None:
 def test_binary_only_stages_reject_multiclass() -> None:
     with pytest.raises(RuntimeError, match="binary-only"):
         _ = _staged("nano_exact")(_batch(num_classes=3))
+
+
+def test_nano_exact_stage_forward_flattens_batched_task_outputs() -> None:
+    out = _staged("nano_exact")(_batched_batch())
+
+    assert out.logits is not None
+    assert tuple(out.logits.shape) == (4, 2)
+    assert out.num_classes == 2
 
 
 def test_row_cls_pool_stage_supports_rmsnorm() -> None:

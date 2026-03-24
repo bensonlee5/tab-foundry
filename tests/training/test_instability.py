@@ -11,6 +11,15 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
             "step": step,
             "train_loss": 1.0 + (0.01 * step),
             "train_loss_delta": None if step == 1 else 0.01,
+            "task_batch_size_requested": 8,
+            "task_batch_size_actual": 8 if step % 5 else 1,
+            "task_batch_batched_count": 1 if step % 5 else 0,
+            "task_batch_singleton_fallback_count": 0 if step % 5 else 1,
+            "task_batch_singleton_fallback_fraction": 0.0 if step % 5 else 1.0,
+            "task_batch_signature_counts": {
+                "24x8x6x2": 1 if step % 3 else 0,
+                "18x6x6x2": 0 if step % 3 else 1,
+            },
         }
         for step in range(1, 101)
     ]
@@ -19,6 +28,15 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
             "step": step,
             "global_grad_norm": 0.1 * step,
             "grad_clip_triggered": step % 10 == 0,
+            "task_batch_size_requested": 8,
+            "task_batch_size_actual": 8 if step % 5 else 1,
+            "task_batch_batched_count": 1 if step % 5 else 0,
+            "task_batch_singleton_fallback_count": 0 if step % 5 else 1,
+            "task_batch_singleton_fallback_fraction": 0.0 if step % 5 else 1.0,
+            "task_batch_signature_counts": {
+                "24x8x6x2": 1 if step % 3 else 0,
+                "18x6x6x2": 0 if step % 3 else 1,
+            },
             "module_grad_norms": {
                 "feature_encoder": 1.0,
                 "direct_head": 5.0,
@@ -99,6 +117,15 @@ def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> N
     ]
     assert upper_blocks["aggregate"]["final_window_mean"] > 0.0
     assert upper_blocks["aggregate"]["post_warmup_mean_slope"] is None
+    assert diagnostics["task_batching"] == {
+        "record_count": 100,
+        "requested_task_batch_sizes": [8],
+        "actual_task_batch_size_counts": {"1": 20, "8": 80},
+        "batched_step_count": 80,
+        "singleton_fallback_count": 20,
+        "singleton_fallback_fraction": 0.2,
+        "signature_counts": {"18x6x6x2": 33, "24x8x6x2": 67},
+    }
 
 
 def test_build_training_telemetry_handles_missing_context_stage_metrics(tmp_path: Path) -> None:

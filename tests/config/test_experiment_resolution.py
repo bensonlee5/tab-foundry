@@ -55,6 +55,7 @@ def test_cls_benchmark_linear_resolution() -> None:
     assert int(cfg.runtime.eval_every) == 25
     assert int(cfg.runtime.checkpoint_every) == 25
     assert int(cfg.runtime.max_steps) == 400
+    assert int(cfg.training.task_batch_size) == 1
     assert float(cfg.runtime.target_train_seconds) == 330.0
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_linear/train_history.jsonl"
     stage = cfg.schedule.stages[0]
@@ -89,6 +90,7 @@ def test_cls_benchmark_linear_simple_prior_resolution() -> None:
     assert int(cfg.runtime.checkpoint_every) == 25
     assert str(cfg.optimizer.name) == "schedulefree_adamw"
     assert bool(cfg.optimizer.require_requested) is True
+    assert int(cfg.training.task_batch_size) == 1
     assert float(cfg.optimizer.weight_decay) == 0.0
     assert list(cfg.optimizer.betas) == [0.9, 0.999]
     assert float(cfg.optimizer.min_lr) == 4.0e-3
@@ -163,6 +165,7 @@ def test_cls_benchmark_staged_prior_resolution() -> None:
     assert str(cfg.model.norm_type) == "layernorm"
     assert str(cfg.training.surface_label) == "prior_linear_warmup_decay"
     assert bool(cfg.training.apply_schedule) is True
+    assert int(cfg.training.task_batch_size) == 1
     assert str(cfg.training.prior_dump_non_finite_policy) == "skip"
     assert int(cfg.training.prior_dump_batch_size) == 32
     assert str(cfg.training.prior_dump_lr_scale_rule) == "none"
@@ -208,6 +211,7 @@ def test_cls_benchmark_staged_prior_explore_resolution() -> None:
     assert str(cfg.model.norm_type) == "layernorm"
     assert str(cfg.training.surface_label) == "prior_linear_warmup_decay"
     assert bool(cfg.training.apply_schedule) is True
+    assert int(cfg.training.task_batch_size) == 1
     assert str(cfg.training.prior_dump_non_finite_policy) == "skip"
     assert int(cfg.training.prior_dump_batch_size) == 32
     assert str(cfg.training.prior_dump_lr_scale_rule) == "none"

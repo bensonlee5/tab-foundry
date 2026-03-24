@@ -11,7 +11,7 @@ import torch
 
 @dataclass(slots=True)
 class TaskBatch:
-    """Container for one tabular task (train+test split)."""
+    """Container for one or more shape-compatible tabular tasks."""
 
     x_train: torch.Tensor
     y_train: torch.Tensor

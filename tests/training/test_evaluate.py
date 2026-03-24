@@ -391,10 +391,12 @@ def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loa
         shuffle: bool,
         num_workers: int,
         seed: int,
+        task_batch_size: int,
     ) -> None:
         captured["shuffle"] = shuffle
         captured["num_workers"] = num_workers
         captured["loader_seed"] = seed
+        captured["task_batch_size"] = task_batch_size
         raise RuntimeError("stop_after_loader")
 
     monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
@@ -425,6 +427,122 @@ def test_evaluate_checkpoint_prefers_checkpoint_runtime_seed_for_dataset_and_loa
     assert captured["loader_seed"] == 77
     assert captured["shuffle"] is False
     assert captured["num_workers"] == 3
+    assert captured["task_batch_size"] == 1
+
+
+def test_evaluate_checkpoint_recovers_task_batch_size_from_checkpoint_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    class _DummyModel:
+        def load_state_dict(self, _state: object) -> None:
+            return None
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {
+                    "arch": "tabfoundry_simple",
+                    "d_col": 128,
+                    "d_icl": 512,
+                    "feature_group_size": 1,
+                    "many_class_train_mode": "path_nll",
+                    "max_mixed_radix_digits": 64,
+                },
+                "training": {"task_batch_size": 8},
+                "runtime": {"seed": 77},
+            },
+        }
+
+    def _capture_loader(
+        _dataset: object,
+        *,
+        shuffle: bool,
+        num_workers: int,
+        seed: int,
+        task_batch_size: int,
+    ) -> None:
+        captured["shuffle"] = shuffle
+        captured["num_workers"] = num_workers
+        captured["loader_seed"] = seed
+        captured["task_batch_size"] = task_batch_size
+        raise RuntimeError("stop_after_loader")
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(evaluate_module, "build_task_loader", _capture_loader)
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {
+                "d_col": 128,
+                "d_icl": 512,
+                "feature_group_size": 1,
+                "many_class_train_mode": "path_nll",
+                "max_mixed_radix_digits": 64,
+            },
+            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "runtime": {"seed": 1, "num_workers": 3, "device": "cpu", "mixed_precision": "no"},
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="stop_after_loader"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert captured["loader_seed"] == 77
+    assert captured["task_batch_size"] == 8
+
+
+def test_evaluate_checkpoint_rejects_task_batching_for_many_class_surface(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class _DummyModel:
+        def load_state_dict(self, _state: object) -> None:
+            return None
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {
+                    "arch": "tabfoundry_staged",
+                    "stage": "many_class",
+                    "many_class_base": 4,
+                    "input_normalization": "none",
+                },
+                "training": {"task_batch_size": 2},
+            },
+        }
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "many_class",
+                "many_class_base": 4,
+                "input_normalization": "none",
+            },
+            "data": {"manifest_path": "unused.parquet", "train_row_cap": None, "test_row_cap": None},
+            "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="not supported for many_class staged surfaces"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
 
 
 def test_checkpoint_model_settings_rejects_legacy_grouped_weights_without_override() -> None:

@@ -8,7 +8,11 @@ from torch import nn
 from torch.nn.modules.transformer import Linear, MultiheadAttention
 
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES, build_norm
-from tab_foundry.model.outputs import ClassificationOutput, DEFAULT_HEAD_HIDDEN_DIM
+from tab_foundry.model.outputs import (
+    ClassificationOutput,
+    DEFAULT_HEAD_HIDDEN_DIM,
+    flatten_classification_output_rows,
+)
 from tab_foundry.types import TaskBatch
 
 
@@ -242,15 +246,33 @@ class TabFoundrySimpleClassifier(nn.Module):
     def _prepare_task_inputs(
         batch: TaskBatch,
     ) -> tuple[torch.Tensor, torch.Tensor, int]:
-        train_test_split_index = int(batch.x_train.shape[0])
+        if batch.x_train.ndim == 2:
+            train_test_split_index = int(batch.x_train.shape[0])
+            if train_test_split_index <= 0:
+                raise RuntimeError("tabfoundry_simple requires at least one training row")
+            x_all = (
+                torch.cat([batch.x_train, batch.x_test], dim=0)
+                .to(torch.float32)
+                .unsqueeze(0)
+            )
+            y_train = batch.y_train.to(torch.float32).unsqueeze(0)
+            return x_all, y_train, train_test_split_index
+        if batch.x_train.ndim != 3 or batch.x_test.ndim != 3:
+            raise RuntimeError(
+                "tabfoundry_simple task batching requires x_train/x_test rank 2 or 3, "
+                f"got x_train={tuple(int(dim) for dim in batch.x_train.shape)}, "
+                f"x_test={tuple(int(dim) for dim in batch.x_test.shape)}"
+            )
+        if batch.y_train.ndim not in {2, 3}:
+            raise RuntimeError(
+                "tabfoundry_simple task batching requires y_train rank 2 or 3, "
+                f"got shape={tuple(int(dim) for dim in batch.y_train.shape)}"
+            )
+        train_test_split_index = int(batch.x_train.shape[1])
         if train_test_split_index <= 0:
             raise RuntimeError("tabfoundry_simple requires at least one training row")
-        x_all = (
-            torch.cat([batch.x_train, batch.x_test], dim=0)
-            .to(torch.float32)
-            .unsqueeze(0)
-        )
-        y_train = batch.y_train.to(torch.float32).unsqueeze(0)
+        x_all = torch.cat([batch.x_train, batch.x_test], dim=1).to(torch.float32)
+        y_train = batch.y_train.to(torch.float32)
         return x_all, y_train, train_test_split_index
 
     @staticmethod
@@ -355,9 +377,9 @@ class TabFoundrySimpleClassifier(nn.Module):
             x_all=x_all,
             y_train=y_train,
             train_test_split_index=train_test_split_index,
-        ).squeeze(0)
+        )
         return ClassificationOutput(
-            logits=logits,
+            logits=flatten_classification_output_rows(logits),
             num_classes=_REQUIRED_MANY_CLASS_BASE,
             class_probs=None,
         )

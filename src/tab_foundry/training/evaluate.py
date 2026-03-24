@@ -9,14 +9,19 @@ from omegaconf import DictConfig, OmegaConf
 import torch
 
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
+from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import (
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
 )
+from tab_foundry.task_batching import (
+    move_batch,
+    resolve_task_batch_size,
+    task_batch_diagnostics,
+)
 from tab_foundry.types import EvalResult
 
-from .batching import move_batch
 from .distributed import _global_mean_from_local
 from .runtime import build_accelerator_from_runtime
 from .trainer import _compute_loss_and_metrics
@@ -52,6 +57,13 @@ def _checkpoint_preprocessing_settings(
     cfg: DictConfig,
 ) -> DictConfig | None:
     return _checkpoint_config_section(payload, cfg, section="preprocessing")
+
+
+def _checkpoint_training_settings(
+    payload: dict[str, Any],
+    cfg: DictConfig,
+) -> DictConfig | None:
+    return _checkpoint_config_section(payload, cfg, section="training")
 
 
 def _checkpoint_data_settings(
@@ -162,9 +174,16 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     model_spec = _checkpoint_model_settings(payload, cfg)
     data_cfg = _checkpoint_data_settings(payload, cfg)
     preprocessing_cfg = _checkpoint_preprocessing_settings(payload, cfg)
+    training_cfg = _checkpoint_training_settings(payload, cfg)
     dataset_seed = _checkpoint_dataset_seed(payload, cfg)
     task = model_spec.task
     eval_step = _resolved_checkpoint_step(payload)
+    task_batch_size = resolve_task_batch_size(training_cfg)
+    if task_batch_size > 1 and model_spec.arch == "tabfoundry_staged":
+        if resolve_staged_surface(model_spec).head == "many_class":
+            raise RuntimeError(
+                "training.task_batch_size > 1 is not supported for many_class staged surfaces"
+            )
     model = build_model_from_spec(model_spec)
     model.load_state_dict(payload["model"])
 
@@ -182,6 +201,7 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         shuffle=False,
         num_workers=int(cfg.runtime.num_workers),
         seed=dataset_seed,
+        task_batch_size=task_batch_size,
     )
 
     accelerator = build_accelerator_from_runtime(cfg.runtime)
@@ -209,9 +229,10 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
                 with accelerator.autocast():
                     output = model(batch)
                     loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-                loss_sum += float(loss.item())
-                score_sum += metrics.get(metric_name, 0.0)
-                count += 1
+                actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
+                loss_sum += float(loss.detach().item()) * float(actual_task_count)
+                score_sum += float(metrics.get(metric_name, 0.0)) * float(actual_task_count)
+                count += actual_task_count
 
         dev = accelerator.device
         loss_value = _global_mean_from_local(

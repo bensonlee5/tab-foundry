@@ -20,6 +20,8 @@ Contents:
 - `papers.md`: curated paper list, adoption tiers, and borrowing rules for
   architecture and training ideas
 - `evidence.md`: roadmap-to-reference mapping and per-epic evidence notes
+- `roadmap_evidence/`: canonical long-form evidence notes for TF-RD-018 and
+  later research-oriented roadmap epics, indexed by roadmap order
 - `dataset_license_reviews.csv`: review ledger for approving or rejecting
   real-data datasets before they enter curated bundles or manifests
 - `dataset_license_review_summary.md`: current status summary for the repo's
@@ -35,6 +37,20 @@ Contents:
   evidence even when the roadmap direction moves on
 - `system_delta_queue.yaml`: generated active-sweep queue alias
 - `system_delta_matrix.md`: generated active-sweep matrix alias
+
+## Research Epic Notes
+
+Long-form research evidence for the current epic and later research-oriented
+roadmap items now lives under `reference/roadmap_evidence/`. `papers.md`
+remains the shared bibliography, and `evidence.md` remains the compact
+cross-epic map.
+
+- [`roadmap_evidence/README.md`](roadmap_evidence/README.md): conventions and
+  roadmap-order index for per-epic evidence notes
+- [`roadmap_evidence/tf_rd_018_training_surface_adequacy.md`](roadmap_evidence/tf_rd_018_training_surface_adequacy.md):
+  canonical TF-RD-018 batch-size, LR, optimizer, and training-surface note
+- [`roadmap_evidence/tf_rd_009_scaling_law_measurement.md`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
+  canonical TF-RD-009 scaling-specific note and TF-RD-018 handoff target
 
 Keeping this material under one indexed home gives architecture and benchmark
 work a stable citation surface without mixing research notes into the

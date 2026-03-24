@@ -10,12 +10,38 @@ Use these alongside this map:
 - Architecture reference: `docs/development/model-architecture.md`
 - Architecture deltas: `docs/development/architecture-deltas.md`
 - Paper index: `reference/papers.md`
+- Detailed research-epic notes: `reference/roadmap_evidence/README.md`
 
 Conventions:
 
 - Confidence: `high`, `medium`, or `low`
 - Lane: roadmap milestone lane supported by this evidence (`Now`, `Next`,
   `Later`)
+
+## Detailed Research Epic Notes
+
+`reference/evidence.md` remains the compact cross-epic map. Canonical long-form
+evidence for TF-RD-018 and later research-oriented epics now lives under
+[`reference/roadmap_evidence/`](roadmap_evidence/README.md).
+
+- [`TF-RD-018`](roadmap_evidence/tf_rd_018_training_surface_adequacy.md):
+  training-surface adequacy, batch ladder, LR, and optimizer sequencing
+- [`TF-RD-019`](roadmap_evidence/tf_rd_019_dagzoo_filtering_policy.md):
+  dagzoo filtering-policy evidence and open curation questions
+- [`TF-RD-014`](roadmap_evidence/tf_rd_014_missingness_robustness.md):
+  missingness robustness evidence and benchmark-ladder framing
+- [`TF-RD-017`](roadmap_evidence/tf_rd_017_class_imbalance_robustness.md):
+  class-imbalance robustness evidence and reporting contract
+- [`TF-RD-016`](roadmap_evidence/tf_rd_016_architecture_surface_adequacy.md):
+  existing-surface adequacy and selective expansion evidence
+- [`TF-RD-010`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
+  many-class promotion evidence on the row-first base
+- [`TF-RD-015`](roadmap_evidence/tf_rd_015_regression_rebuild.md):
+  regression rebuild evidence on the staged family
+- [`TF-RD-012`](roadmap_evidence/tf_rd_012_inference_handoff_and_later_modalities.md):
+  inference handoff and later-modality evidence
+- [`TF-RD-009`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
+  scaling-law evidence and the TF-RD-018 handoff
 
 ## Evidence-to-Roadmap Mapping
 
@@ -30,6 +56,14 @@ Conventions:
 | FT-Transformer (2106.11959) | Per-feature embedding is the baseline tokenization reference that grouped-token work must beat or justify departing from | `TF-RD-003`, `TF-RD-004` | Now | high |
 | On Embeddings for Numerical Features in Tabular Deep Learning (2203.05556) | Value embedding choices are a high-leverage architectural lever and should be made on the shared surface, not hidden behind the nano encoder path | `TF-RD-003`, `TF-RD-004` | Now | high |
 | A Closer Look at TabPFN v2 (2502.17361) | Architecture robustness claims should be tested structurally and not inferred only from single benchmark endpoints | `TF-RD-002`, `TF-RD-008`, `TF-RD-009` | Now | medium-high |
+| McCandlish et al. (1812.06162) | Useful batch size is governed by diminishing returns rather than monotonic larger-is-better behavior | `TF-RD-018`, `TF-RD-009` | Next | high |
+| Shallue et al. (1811.03600) | Batch-size and data-parallel speedups are workload-specific and should be evaluated under matched budgets | `TF-RD-018` | Next | high |
+| Smith et al. (1711.00489) | Batch size and LR decay interact enough that schedule follow-up should start only after the preferred batch rung is chosen | `TF-RD-018` | Next | medium-high |
+| Goyal et al. (1706.02677) | Linear LR scaling plus warmup is a useful baseline heuristic, but not a universal Adam-style law | `TF-RD-018` | Next | medium |
+| Surge Phenomenon (2405.14578) | Adam-style optimal learning rate need not scale linearly with batch size, so LR should be retuned after the batch decision | `TF-RD-018`, `TF-RD-009` | Next | medium-high |
+| Nado et al. (2102.06356) | Conservative optimizer baselines should be exhausted before escalating to specialized large-batch optimizers | `TF-RD-018` | Next | medium-high |
+| Keskar et al. (1609.04836) | Large-batch optimization and generalization risks should be checked empirically rather than assumed away | `TF-RD-018` | Next | medium |
+| Islamov et al. (2603.21191) | Recent theory and experiments reinforce regime-dependent batch-size gains and diminishing returns under a fixed-budget lens | `TF-RD-018` | Next | medium |
 | SGDR (1608.03983) | Schedule work remains relevant, but should support the promoted architecture rather than substitute for it | `TF-RD-001`, `TF-RD-009` | Next | medium-high |
 | muP (2203.03466) | Hyperparameter transfer across model sizes matters once one coherent row-first anchor exists | `TF-RD-009` | Next | high |
 | Chinchilla (2203.15556) | Compute-optimal reasoning belongs on the promoted anchor, not on transient hybrid bridge surfaces | `TF-RD-009` | Next | high |
@@ -173,18 +207,53 @@ Conventions:
     as the target for future architecture and scaling work without erasing the
     retained calibration-oriented alternative
 
+### TF-RD-018: Training-Surface Adequacy On The Promoted Anchor
+
+- External evidence:
+  - McCandlish et al. and Shallue et al. imply that useful batch size is a
+    workload-specific diminishing-returns question, not a monotonic
+    larger-is-better knob
+  - Smith et al. and the Adam-style surge paper imply that batch, LR, and
+    schedule should be treated as coupled, but that Adam-family follow-up does
+    not justify a universal linear LR scaling rule
+  - Nado et al. support exhausting strong Adam-family baselines before treating
+    specialized large-batch optimizers as the default next step
+  - Keskar et al. remains the classic cautionary reference for explicit
+    stability and generalization checks when batch size grows
+- Repo-local evidence:
+  - TF-RD-013 settled
+    `tf_rd_013_dagzoo_shape_aware_size_medium_v1` as the representative
+    post-008 training-data surface
+  - `row_first_training_adequacy_v1` now begins with a manifest-backed
+    `task_batch_size` ladder on that medium surface
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_018_training_surface_adequacy.md`, with
+    the scaling-specific handoff recorded in
+    `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
+- Success signal:
+  - the repo identifies a default batch and training-recipe starting point on
+    the promoted row-first anchor before optimizer-family or scaling-law work
+    is treated as the main next decision surface
+
 ### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
 
 - External evidence:
   - Chinchilla, Kaplan, Power Lines, and Broken Neural Scaling Laws all require
     a stable family and comparable artifacts
   - muP is only meaningfully useful once one anchor family exists
+  - the TF-RD-018 batch/LR literature implies scaling reads should begin only
+    after one default training recipe is fixed on the promoted anchor
 - Repo-local evidence:
   - tuning and comparison tooling are already present
   - scaling-law artifacts are not yet canonical on the right architecture
+  - TF-RD-018 still needs to settle the default batch and LR starting point on
+    the representative medium post-008 surface before scaling curves become
+    interpretable
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:
   - scaling curves are fit on the promoted row-first anchor, not on transient
-    bridge rows
+    bridge rows, and they reuse one explicit TF-RD-018-derived training recipe
 
 ### TF-RD-010: Many-Class Promotion On The Row-First Base
 

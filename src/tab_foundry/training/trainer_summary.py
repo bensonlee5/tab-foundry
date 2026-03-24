@@ -31,6 +31,7 @@ def _trainer_summary_payload(
     train_elapsed_seconds: float,
     wall_elapsed_seconds: float,
     nan_skip_count: int = 0,
+    task_batching: Mapping[str, Any] | None = None,
     error: BaseException | None = None,
 ) -> dict[str, Any]:
     def _summary_float(value: float | None) -> float | None:
@@ -81,6 +82,11 @@ def _trainer_summary_payload(
         },
         "metrics": metrics_payload,
     }
+    if task_batching is not None:
+        summary["task_batching"] = {
+            str(key): value
+            for key, value in task_batching.items()
+        }
     if error is not None:
         summary["error"] = {"type": type(error).__name__, "message": str(error)}
     return summary

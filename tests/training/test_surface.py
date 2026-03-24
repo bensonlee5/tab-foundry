@@ -161,6 +161,7 @@ def test_build_training_surface_record_captures_model_data_and_preprocessing_sur
     assert record["data"]["dagzoo_provenance"]["commands"] == ["dagzoo filter --curated-out ..."]
     assert record["preprocessing"]["impute_missing"] is False
     assert record["preprocessing"]["all_nan_fill"] == 1.0
+    assert record["training"]["task_batch_size"] == 1
 
 
 def test_build_training_surface_record_marks_missing_inputs_when_manifest_is_dirty(

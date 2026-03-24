@@ -29,6 +29,7 @@
 
 - Put TF-RD IDs on sweep names
 - Always log results to wandb when executing sweeps.
+- When starting an epic, make sure to look at the existing `roadmap.md` and make sure backing research in reference/ and gh issues are up to date, and create/update sub-issues for the epic if they don't already exist
 - Update `roadmap.md` for sweeps when a sweep is complete, and also update associated GitHub issues.
 - Attach relevant GitHub issues to PRs, and link to relevant PRs from GitHub issues, to keep the web of context connected.
 - When `roadmap.md` is updated, update the associated GitHub issues with links to the relevant sections of `roadmap.md`, and link to the relevant GitHub issues from `roadmap.md`, to keep the web of context connected.

@@ -17,6 +17,8 @@ from tab_foundry.data.validation import assert_no_non_finite_values
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
+TaskSignature = tuple[int, int, int, int | None]
+
 
 def _packed_x_to_matrix(x_column: Any) -> np.ndarray:
     rows = x_column.to_numpy(zero_copy_only=False)
@@ -280,11 +282,21 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             raise RuntimeError(
                 f"no records found for split={split!r}, task={task!r} in {self.manifest_path}"
             )
+        self._task_signature_cache: dict[int, TaskSignature] = {}
 
     def __len__(self) -> int:
         return len(self.records)
 
-    def __getitem__(self, index: int) -> TaskBatch:
+    @staticmethod
+    def _task_signature(batch: TaskBatch) -> TaskSignature:
+        return (
+            int(batch.x_train.shape[0]),
+            int(batch.x_test.shape[0]),
+            int(batch.x_train.shape[1]),
+            None if batch.num_classes is None else int(batch.num_classes),
+        )
+
+    def _materialize_task_batch(self, index: int) -> TaskBatch:
         record = self.records[index]
         if (
             not self.allow_missing_values
@@ -369,7 +381,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
                 raise RuntimeError("regression preprocessing must produce y_test")
             y_test_t = torch.from_numpy(np.asarray(y_test, dtype=np.float32))
 
-        return TaskBatch(
+        batch = TaskBatch(
             x_train=torch.from_numpy(np.asarray(x_train, dtype=np.float32)),
             y_train=y_train_t,
             x_test=torch.from_numpy(np.asarray(x_test, dtype=np.float32)),
@@ -377,3 +389,16 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             metadata=metadata_out,
             num_classes=num_classes,
         )
+        self._task_signature_cache[int(index)] = self._task_signature(batch)
+        return batch
+
+    def __getitem__(self, index: int) -> TaskBatch:
+        return self._materialize_task_batch(int(index))
+
+    def task_signature(self, index: int) -> TaskSignature:
+        resolved_index = int(index)
+        cached = self._task_signature_cache.get(resolved_index)
+        if cached is not None:
+            return cached
+        batch = self._materialize_task_batch(resolved_index)
+        return self._task_signature(batch)

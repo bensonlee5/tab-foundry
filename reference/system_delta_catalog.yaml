@@ -1381,6 +1381,294 @@ deltas:
     default_next_action: Run after the schedule and optimizer-family rows so batch-size coupling is read on the preferred training family.
     applicability_guards: []
 
+  delta_training_task_batch4:
+    dimension_family: training
+    family: batch_size
+    binary_applicable: true
+    description: Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to four at a time on the TF-RD-013 medium corpus surface.
+    upstream_delta: Not applicable; this is a repo-local manifest task-batching adequacy rung on the settled row-first anchor.
+    expected_effect: A four-task manifest batch should improve dataset-throughput efficiency with lower packing and memory risk than the larger rungs.
+    adequacy_knobs:
+      - training.task_batch_size
+      - task_batch_singleton_fallback_fraction
+      - batched_update_count
+      - train_elapsed_seconds
+    parameter_adequacy_policy:
+      default_plan:
+        - Keep the model, data surface, preprocessing, optimizer family, schedule shape, and step budget fixed so this row isolates manifest task batching only.
+        - Compare wall-clock, singleton-fallback fraction, and the primary final metrics jointly before preferring a larger rung.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: qass_context
+        stage_label: delta_qass_no_column_v3
+        module_overrides:
+          column_encoder: none
+      data:
+        surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        task_batch_size: 4
+        prior_dump_non_finite_policy: skip
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas:
+              - 0.9
+              - 0.999
+            min_lr: 0.0004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_accum_steps: 1
+            max_steps: 2500
+            target_train_seconds: null
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+            val_batches: 0
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run first as the opening manifest task-batch rung on the settled TF-RD-013 medium surface.
+    applicability_guards: []
+
+  delta_training_task_batch8:
+    dimension_family: training
+    family: batch_size
+    binary_applicable: true
+    description: Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to eight at a time on the TF-RD-013 medium corpus surface.
+    upstream_delta: Not applicable; this is a repo-local manifest task-batching adequacy rung on the settled row-first anchor.
+    expected_effect: An eight-task manifest batch may improve wall-clock efficiency further if the medium corpus still spends too much time on singleton task dispatch.
+    adequacy_knobs:
+      - training.task_batch_size
+      - task_batch_singleton_fallback_fraction
+      - batched_update_count
+      - train_elapsed_seconds
+    parameter_adequacy_policy:
+      default_plan:
+        - Keep the model, data surface, preprocessing, optimizer family, schedule shape, and step budget fixed so this row isolates manifest task batching only.
+        - Compare wall-clock, singleton-fallback fraction, and the primary final metrics jointly before unblocking larger rungs.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage: qass_context
+        stage_label: delta_qass_no_column_v3
+        module_overrides:
+          column_encoder: none
+      data:
+        surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        task_batch_size: 8
+        prior_dump_non_finite_policy: skip
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas:
+              - 0.9
+              - 0.999
+            min_lr: 0.0004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_accum_steps: 1
+            max_steps: 2500
+            target_train_seconds: null
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+            val_batches: 0
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run second as the highest unconditional manifest task-batch rung on the settled TF-RD-013 medium surface.
+    applicability_guards: []
+
+  delta_training_task_batch16:
+    dimension_family: training
+    family: batch_size
+    binary_applicable: true
+    description: Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to sixteen at a time on the TF-RD-013 medium corpus surface.
+    upstream_delta: Not applicable; this is a repo-local manifest task-batching adequacy rung on the settled row-first anchor.
+    expected_effect: A sixteen-task manifest batch may improve throughput further, but it carries materially higher singleton-fallback and memory-pressure risk than the opening rungs.
+    adequacy_knobs:
+      - training.task_batch_size
+      - task_batch_singleton_fallback_fraction
+      - batched_update_count
+      - train_elapsed_seconds
+    parameter_adequacy_policy:
+      default_plan:
+        - Keep the model, data surface, preprocessing, optimizer family, schedule shape, and step budget fixed so this row isolates manifest task batching only.
+        - Unblock this rung only if the `task_batch_size=8` row finishes in <=900s, avoids OOM, and keeps singleton fallback at <=10 percent of updates.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage: qass_context
+        stage_label: delta_qass_no_column_v3
+        module_overrides:
+          column_encoder: none
+      data:
+        surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        task_batch_size: 16
+        prior_dump_non_finite_policy: skip
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas:
+              - 0.9
+              - 0.999
+            min_lr: 0.0004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_accum_steps: 1
+            max_steps: 2500
+            target_train_seconds: null
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+            val_batches: 0
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Leave blocked until the `task_batch_size=8` rung clears the runtime, OOM, and singleton-fallback gate.
+    applicability_guards: []
+
+  delta_training_task_batch32:
+    dimension_family: training
+    family: batch_size
+    binary_applicable: true
+    description: Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to thirty-two at a time on the TF-RD-013 medium corpus surface.
+    upstream_delta: Not applicable; this is a repo-local manifest task-batching adequacy rung on the settled row-first anchor.
+    expected_effect: A thirty-two-task manifest batch would maximize batching pressure on this medium corpus, but it is most likely to trip OOM or singleton-fallback gates before quality can be read cleanly.
+    adequacy_knobs:
+      - training.task_batch_size
+      - task_batch_singleton_fallback_fraction
+      - batched_update_count
+      - train_elapsed_seconds
+    parameter_adequacy_policy:
+      default_plan:
+        - Keep the model, data surface, preprocessing, optimizer family, schedule shape, and step budget fixed so this row isolates manifest task batching only.
+        - Unblock this rung only if the `task_batch_size=16` row finishes in <=900s, avoids OOM, and keeps singleton fallback at <=10 percent of updates.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        stage: qass_context
+        stage_label: delta_qass_no_column_v3
+        module_overrides:
+          column_encoder: none
+      data:
+        surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        task_batch_size: 32
+        prior_dump_non_finite_policy: skip
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas:
+              - 0.9
+              - 0.999
+            min_lr: 0.0004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_accum_steps: 1
+            max_steps: 2500
+            target_train_seconds: null
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+            val_batches: 0
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Leave blocked until the `task_batch_size=16` rung clears the runtime, OOM, and singleton-fallback gate.
+    applicability_guards: []
+
   delta_training_clip05:
     dimension_family: training
     family: regularization

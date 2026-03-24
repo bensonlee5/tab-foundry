@@ -8,7 +8,10 @@ import torch
 from torch import nn
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
-from tab_foundry.model.outputs import ClassificationOutput
+from tab_foundry.model.outputs import (
+    ClassificationOutput,
+    flatten_classification_output_rows,
+)
 from tab_foundry.model.spec import ModelBuildSpec, ModelStage, SUPPORTED_MANY_CLASS_TRAIN_MODES
 from tab_foundry.types import TaskBatch
 
@@ -409,9 +412,9 @@ class TabFoundryStagedClassifier(nn.Module):
             return self._forward_many_class(raw_state)
 
         head_state = self._build_direct_head_state(raw_state)
-        logits = self.direct_head(head_state.rows[:, train_test_split_index:, :]).squeeze(0)
+        logits = self.direct_head(head_state.rows[:, train_test_split_index:, :])
         return ClassificationOutput(
-            logits=logits,
+            logits=flatten_classification_output_rows(logits),
             num_classes=num_classes,
             class_probs=None,
         )
