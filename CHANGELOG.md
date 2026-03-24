@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-03-24
+
+### Fixed
+
+- User-facing note: staged `many_class` runs now accept
+  `training.task_batch_size > 1` for low-class tasks that remain on the
+  direct-head path, and checkpoint evaluation now matches training for those
+  configs instead of rejecting them eagerly.
+
+- User-facing note: per-step task-batch history and telemetry now aggregate
+  across all `runtime.grad_accum_steps` microsteps, so
+  `task_batch_size_actual`, fallback counts, and signature counts describe the
+  whole optimizer step instead of only the last microbatch.
+
+### Changed
+
+- Internal architecture note: shared hashing helpers, model-build defaults,
+  and repeated normalization/task-analysis constants are now centralized to
+  remove duplicated magic values across data, export, model, and training
+  surfaces.
+
 ## [0.10.1] - 2026-03-24
 
 ### Fixed
