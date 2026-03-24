@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: row_first_training_adequacy_v1
 parent_sweep_id: tf_rd_013_dagzoo_size_ladder_v1
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json

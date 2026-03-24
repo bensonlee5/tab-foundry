@@ -135,7 +135,7 @@ def _ci_like_registry_path(tmp_path: Path) -> Path:
 def test_tf_rd_013_data_source_contract_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "row_first_training_adequacy_v1"
+    assert index["active_sweep_id"] == "tf_rd_020_harder_dagzoo_ladder_v1"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)

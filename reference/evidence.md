@@ -224,8 +224,13 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - TF-RD-013 settled
     `tf_rd_013_dagzoo_shape_aware_size_medium_v1` as the representative
     post-008 training-data surface
-  - `row_first_training_adequacy_v1` now begins with a manifest-backed
-    `task_batch_size` ladder on that medium surface
+  - `row_first_training_adequacy_v1` completed the first manifest-backed
+    `task_batch_size` ladder on that medium surface under `#109`
+  - `TF-RD-020` now carries the adjacent harder dagzoo synthetic front plus the
+    final selected-front filter-regime decision before TF-RD-018 resumes
+    optimizer-family follow-up
+  - issue `#147` now records the canonical pre-filter TF-RD-020 harder-front
+    ladder plus the matching `tf_rd_020_*_v1` corpus recipes
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_018_training_surface_adequacy.md`, with
     the scaling-specific handoff recorded in

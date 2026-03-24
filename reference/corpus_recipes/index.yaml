@@ -8,3 +8,25 @@ recipes:
     path: tf_rd_013_dagzoo_shape_aware_size_medium_v1.yaml
   tf_rd_013_dagzoo_shape_aware_size_large_v1:
     path: tf_rd_013_dagzoo_shape_aware_size_large_v1.yaml
+  tf_rd_020_missingness_mcar_v1:
+    path: tf_rd_020_missingness_mcar_v1.yaml
+  tf_rd_020_missingness_mar_v1:
+    path: tf_rd_020_missingness_mar_v1.yaml
+  tf_rd_020_missingness_mnar_v1:
+    path: tf_rd_020_missingness_mnar_v1.yaml
+  tf_rd_020_shift_graph_drift_v1:
+    path: tf_rd_020_shift_graph_drift_v1.yaml
+  tf_rd_020_shift_mechanism_drift_v1:
+    path: tf_rd_020_shift_mechanism_drift_v1.yaml
+  tf_rd_020_shift_noise_drift_v1:
+    path: tf_rd_020_shift_noise_drift_v1.yaml
+  tf_rd_020_shift_mixed_v1:
+    path: tf_rd_020_shift_mixed_v1.yaml
+  tf_rd_020_mechanism_piecewise_v1:
+    path: tf_rd_020_mechanism_piecewise_v1.yaml
+  tf_rd_020_mechanism_gp_v1:
+    path: tf_rd_020_mechanism_gp_v1.yaml
+  tf_rd_020_noise_laplace_v1:
+    path: tf_rd_020_noise_laplace_v1.yaml
+  tf_rd_020_noise_mixture_v1:
+    path: tf_rd_020_noise_mixture_v1.yaml

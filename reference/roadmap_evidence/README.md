@@ -24,6 +24,7 @@ Conventions:
 ## Roadmap-Ordered Notes
 
 1. [TF-RD-018: Training-Surface Adequacy On The Promoted Anchor](tf_rd_018_training_surface_adequacy.md)
+1. [TF-RD-020: Harder Dagzoo Corpus Fronts On The Promoted Anchor](tf_rd_020_harder_dagzoo_corpus_fronts.md)
 1. [TF-RD-019: Predictable Dagzoo Filtering Policy For Training Corpora](tf_rd_019_dagzoo_filtering_policy.md)
 1. [TF-RD-014: Missingness Robustness On The Promoted Anchor](tf_rd_014_missingness_robustness.md)
 1. [TF-RD-017: Class-Imbalance Robustness On The Promoted Anchor](tf_rd_017_class_imbalance_robustness.md)

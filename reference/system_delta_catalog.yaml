@@ -2700,6 +2700,435 @@ deltas:
     default_next_action: Run last as the 80-dataset upper size rung before deciding whether TF-RD-013 needs any broader synthetic-data exploration beyond this ladder.
     applicability_guards: []
 
+  delta_data_manifest_root_tf_rd_020_missingness_mcar:
+    dimension_family: data
+    family: missingness
+    binary_applicable: true
+    description: Point training at the TF-RD-020 MCAR harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: Moderate MCAR may make the synthetic training surface harder without introducing mechanism-linked missingness structure.
+    adequacy_knobs:
+      - explicit `missing_rate` and `missing_mechanism` resolution across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix before reading benchmark output.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other missingness rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_missingness_mcar
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_missingness_mcar_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run first under issue `#148`, then compare directly against the MAR and MNAR rows before nominating one missingness winner.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_missingness_mar:
+    dimension_family: data
+    family: missingness
+    binary_applicable: true
+    description: Point training at the TF-RD-020 MAR harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: Structured MAR missingness may create a clearer harder front than MCAR without the stronger self-masking bias of MNAR.
+    adequacy_knobs:
+      - explicit MAR override resolution across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MAR override fields in provenance.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other missingness rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_missingness_mar
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_missingness_mar_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run second under issue `#148`, then compare directly against the MCAR and MNAR rows before nominating one missingness winner.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_missingness_mnar:
+    dimension_family: data
+    family: missingness
+    binary_applicable: true
+    description: Point training at the TF-RD-020 MNAR harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: Structured MNAR missingness may be the strongest missingness harder front, but it risks a less interpretable synthetic lane than MCAR or MAR.
+    adequacy_knobs:
+      - explicit MNAR override resolution across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MNAR override fields in provenance.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other missingness rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_missingness_mnar
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_missingness_mnar_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run third under issue `#148`, then select exactly one missingness nominee for cross-front comparison.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_shift_graph_drift:
+    dimension_family: data
+    family: shift
+    binary_applicable: true
+    description: Point training at the TF-RD-020 graph-drift harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: Moderate graph drift may create a harder synthetic front without simultaneously changing mechanism or noise structure.
+    adequacy_knobs:
+      - explicit `shift.mode=graph_drift` resolution with `graph_scale=0.5` across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the graph-drift effective config artifacts.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other shift rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_shift_graph_drift
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_shift_graph_drift_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run first under issue `#149`, then compare directly against the mechanism-drift, noise-drift, and mixed rows before nominating one shift winner.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_shift_mechanism_drift:
+    dimension_family: data
+    family: shift
+    binary_applicable: true
+    description: Point training at the TF-RD-020 mechanism-drift harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: Moderate mechanism drift may create a clearer harder front than pure graph drift by changing function-family mass between train and test.
+    adequacy_knobs:
+      - explicit `shift.mode=mechanism_drift` resolution with `mechanism_scale=0.5` across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mechanism-drift effective config artifacts.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other shift rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_shift_mechanism_drift
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_shift_mechanism_drift_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run second under issue `#149`, then compare directly against the graph-drift, noise-drift, and mixed rows before nominating one shift winner.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_shift_noise_drift:
+    dimension_family: data
+    family: shift
+    binary_applicable: true
+    description: Point training at the TF-RD-020 noise-drift harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: Moderate variance drift may create a harder front if the current overfitting problem is partly a mismatch in stochasticity rather than structure.
+    adequacy_knobs:
+      - explicit `shift.mode=noise_drift` resolution with `variance_scale=0.5` across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the noise-drift effective config artifacts.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other shift rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_shift_noise_drift
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_shift_noise_drift_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run third under issue `#149`, then compare directly against the graph-drift, mechanism-drift, and mixed rows before nominating one shift winner.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_shift_mixed:
+    dimension_family: data
+    family: shift
+    binary_applicable: true
+    description: Point training at the TF-RD-020 mixed-drift harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: Mixed drift may be the strongest shift candidate, but it also risks becoming less interpretable than the single-axis rows.
+    adequacy_knobs:
+      - explicit `shift.mode=mixed` resolution with all three `0.5` scales across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mixed-drift effective config artifacts.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other shift rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_shift_mixed
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_shift_mixed_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run fourth under issue `#149`, then select exactly one shift or drift nominee for cross-front comparison.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_mechanism_piecewise:
+    dimension_family: data
+    family: mechanism_diversity
+    binary_applicable: true
+    description: Point training at the TF-RD-020 piecewise-mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: The shipped piecewise-plus-linear family mix may create a more data-hungry synthetic front without introducing explicit train-test shift.
+    adequacy_knobs:
+      - explicit mechanism family-mix resolution across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the piecewise effective config artifacts.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other mechanism or noise rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_mechanism_piecewise
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_mechanism_piecewise_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run first under issue `#150`, then compare directly against the GP-only and heavier-tail noise rows before nominating one mechanism or noise winner.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_mechanism_gp:
+    dimension_family: data
+    family: mechanism_diversity
+    binary_applicable: true
+    description: Point training at the TF-RD-020 GP-only mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: The widened GP family may create a more sample-hungry but still interpretable harder front if the current corpus is too easy.
+    adequacy_knobs:
+      - explicit GP-only family-mix resolution across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the GP-only effective config artifacts.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other mechanism or noise rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_mechanism_gp
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_mechanism_gp_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run second under issue `#150`, then compare directly against the piecewise and heavier-tail noise rows before nominating one mechanism or noise winner.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_noise_laplace:
+    dimension_family: data
+    family: noise
+    binary_applicable: true
+    description: Point training at the TF-RD-020 Laplace-noise harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: Laplace noise may create a harder front through heavier tails without the broader ambiguity of the mixture-noise row.
+    adequacy_knobs:
+      - explicit Laplace-noise resolution across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the Laplace effective config artifacts.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other mechanism or noise rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_noise_laplace
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_noise_laplace_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run third under issue `#150`, then compare directly against the mechanism rows and mixture noise row before nominating one mechanism or noise winner.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_020_noise_mixture:
+    dimension_family: data
+    family: noise
+    binary_applicable: true
+    description: Point training at the TF-RD-020 mixture-noise harder-front manifest while keeping the settled four-task row-first recipe fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic-data harder-front axis.
+    expected_effect: Mixture noise may be the strongest heavier-tail noise candidate, but it also risks becoming noisier and less interpretable than the mechanism rows.
+    adequacy_knobs:
+      - explicit mixture-noise resolution across the carried `8/28/4` invocation mix
+      - manifest-contract deltas versus the kept TF-RD-013 medium control
+      - benchmark-facing generalization under the settled four-task row-first recipe
+    parameter_adequacy_policy:
+      default_plan:
+        - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mixture-noise effective config artifacts.
+        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other mechanism or noise rows.
+        - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: tf_rd_020_noise_mixture
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_020_noise_mixture_v1
+          train_row_cap: 512
+          test_row_cap: 256
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Run fourth under issue `#150`, then select exactly one mechanism-diversity or noise nominee for cross-front comparison.
+    applicability_guards: []
+
   delta_data_filter_policy_accepted_only:
       dimension_family: data
       family: provenance
