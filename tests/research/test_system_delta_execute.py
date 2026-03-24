@@ -10,23 +10,34 @@ from typing import Any, Mapping, cast
 from omegaconf import OmegaConf
 import pytest
 
-from tab_foundry.research.system_delta import create_sweep
-from tab_foundry.research.system_delta_execute import (
-    ExecutionPaths,
-    _compose_cfg,
-    _queue_metrics,
-    _result_card_text,
-    execute_sweep,
-    select_queue_rows,
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
+from tab_foundry.control_baseline_registry import (
+    REGISTRY_SCHEMA,
+    REGISTRY_VERSION,
+    default_control_baseline_registry_path,
 )
-import tab_foundry.research.system_delta_execute as execute_module
-import tab_foundry.research.sweep.runner as runner_module
+import tab_foundry.cli.research_execute as sweep_execute_cli_module
+from tab_foundry.research.sweep.manage import create_sweep
+from tab_foundry.research.sweep.execute import execute_sweep
+from tab_foundry.research.sweep.artifacts import ExecutionPaths, result_card_text as _result_card_text
+import tab_foundry.research.sweep.configuration as configuration_module
+from tab_foundry.research.sweep.configuration import compose_cfg as _compose_cfg
+import tab_foundry.research.sweep.curve_reuse as curve_reuse_module
+from tab_foundry.research.sweep.queue_updates import queue_metrics as _queue_metrics
+import tab_foundry.research.sweep.row_dependencies as row_dependencies_module
+import tab_foundry.research.sweep.row_execution as runner_module
+import tab_foundry.research.sweep.row_sync as row_sync_module
+import tab_foundry.research.sweep.runtime_env as runtime_env_module
+from tab_foundry.research.sweep.selection import select_queue_rows
+import tab_foundry.research.sweep.execute as sweep_execute_module
+import tab_foundry.research.sweep.training_state as training_state_module
 from tab_foundry.research.sweep.artifacts import read_yaml as read_artifact_yaml, write_research_package
 from tab_foundry.research.sweep.screening import pick_screen_winner, screen_metrics as load_screen_metrics
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REGISTRY_PATH = REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'benchmark_run_registry_v1.json'
+REGISTRY_PATH = default_benchmark_run_registry_path()
+CONTROL_BASELINE_REGISTRY_PATH = default_control_baseline_registry_path()
 ANCHOR_RUN_ID = 'sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2'
 
 
@@ -68,7 +79,7 @@ def _build_paths(tmp_path: Path, sweeps_root: Path, reference_root: Path) -> Exe
         sweeps_root=sweeps_root,
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
 
@@ -151,11 +162,11 @@ def _write_compare_summary(
         if device is not None:
             nanotabpfn['device'] = str(device)
         if device is not None and resolved_device is None:
-            nanotabpfn['resolved_device'] = runner_module.resolve_device(str(device))
+            nanotabpfn['resolved_device'] = curve_reuse_module.resolve_device(str(device))
         if resolved_device is not None:
             nanotabpfn['resolved_device'] = str(resolved_device)
         if device is not None and host_fingerprint is None:
-            nanotabpfn['benchmark_host_fingerprint'] = runner_module.benchmark_host_fingerprint()
+            nanotabpfn['benchmark_host_fingerprint'] = curve_reuse_module.benchmark_host_fingerprint()
         if host_fingerprint is not None:
             nanotabpfn['benchmark_host_fingerprint'] = str(host_fingerprint)
         if prior_dump_path is not None:
@@ -193,6 +204,31 @@ def _write_training_telemetry(path: Path, *, success: bool) -> None:
     )
 
 
+def _write_control_baseline_registry(
+    path: Path,
+    *,
+    baselines: dict[str, Any] | None = None,
+) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                'schema': REGISTRY_SCHEMA,
+                'version': REGISTRY_VERSION,
+                'baselines': {} if baselines is None else baselines,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + '\n',
+        encoding='utf-8',
+    )
+
+
+def test_runner_imports_benchmark_runtime_from_comparison_runtime() -> None:
+    assert runner_module.NanoTabPFNBenchmarkConfig.__module__ == 'tab_foundry.bench.comparison_runtime'
+    assert runner_module.run_nanotabpfn_benchmark.__module__ == 'tab_foundry.bench.comparison_runtime'
+
+
 def test_select_queue_rows_defaults_to_ready_rows() -> None:
     queue = {
         'rows': [
@@ -227,7 +263,7 @@ def test_ensure_nanotabpfn_python_rewrites_existing_interpreter_without_torch(tm
     _write_python_probe_stub(nanotab_python, torch_import_exit_code=1)
     _write_python_probe_stub(fallback_python, torch_import_exit_code=0)
 
-    observed = runner_module.ensure_nanotabpfn_python(
+    observed = runtime_env_module.ensure_nanotabpfn_python(
         nanotabpfn_root=nanotabpfn_root,
         fallback_python=fallback_python,
     )
@@ -249,7 +285,7 @@ def test_ensure_nanotabpfn_python_keeps_existing_usable_interpreter(tmp_path: Pa
     _write_python_probe_stub(fallback_python, torch_import_exit_code=1)
     original_contents = nanotab_python.read_text(encoding='utf-8')
 
-    observed = runner_module.ensure_nanotabpfn_python(
+    observed = runtime_env_module.ensure_nanotabpfn_python(
         nanotabpfn_root=nanotabpfn_root,
         fallback_python=fallback_python,
     )
@@ -281,7 +317,7 @@ def test_ensure_nanotabpfn_python_preserves_fallback_symlink_path(tmp_path: Path
     fallback_python.parent.mkdir(parents=True, exist_ok=True)
     fallback_python.symlink_to(resolved_target)
 
-    observed = runner_module.ensure_nanotabpfn_python(
+    observed = runtime_env_module.ensure_nanotabpfn_python(
         nanotabpfn_root=nanotabpfn_root,
         fallback_python=fallback_python,
     )
@@ -318,9 +354,9 @@ def test_main_preserves_tab_foundry_python_symlink_path(
         captured.update(kwargs)
         return []
 
-    monkeypatch.setattr(execute_module, 'execute_sweep', fake_execute_sweep)
+    monkeypatch.setattr(sweep_execute_cli_module, 'execute_sweep', fake_execute_sweep)
 
-    exit_code = execute_module.main(
+    exit_code = sweep_execute_cli_module.main(
         [
             '--sweep-id',
             'shared_surface_bridge_v1',
@@ -368,9 +404,9 @@ def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pyte
         calls.append({'order': int(kwargs['queue_row']['order']), 'sweep_id': kwargs['sweep_id']})
         return f"run_{kwargs['queue_row']['order']}"
 
-    monkeypatch.setattr(execute_module, '_run_row', fake_run_row)
-    monkeypatch.setattr(execute_module, '_sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=None,
@@ -414,10 +450,10 @@ def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pyt
         promotions.append({'sweep_id': kwargs['sweep_id'], 'anchor_run_id': kwargs['anchor_run_id']})
         return {'sweep_id': kwargs['sweep_id'], 'anchor_run_id': kwargs['anchor_run_id']}
 
-    monkeypatch.setattr(execute_module, '_run_row', fake_run_row)
-    monkeypatch.setattr(execute_module, 'promote_anchor', fake_promote_anchor)
-    monkeypatch.setattr(execute_module, '_sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'promote_anchor', fake_promote_anchor)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -474,9 +510,9 @@ def test_execute_sweep_uses_completed_parent_delta_ref(monkeypatch: pytest.Monke
         )
         return 'row_2_v1'
 
-    monkeypatch.setattr(execute_module, '_run_row', fake_run_row)
-    monkeypatch.setattr(execute_module, '_sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -523,9 +559,9 @@ def test_execute_sweep_uses_same_invocation_parent_delta_ref(
         )
         return run_id
 
-    monkeypatch.setattr(execute_module, '_run_row', fake_run_row)
-    monkeypatch.setattr(execute_module, '_sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(execute_module, '_sync_active_aliases_if_active', lambda **_: None)
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -557,7 +593,7 @@ def test_resolve_parent_run_id_defaults_to_active_anchor() -> None:
         {'order': 2, 'delta_ref': 'delta_shared_feature_norm'},
     ]
 
-    observed = runner_module._resolve_parent_run_id(
+    observed = row_dependencies_module.resolve_parent_run_id(
         queue_row=queue_rows[1],
         queue_rows=queue_rows,
         active_anchor='anchor_v1',
@@ -574,7 +610,7 @@ def test_resolve_parent_run_id_prefers_latest_earlier_matching_row() -> None:
         {'order': 4, 'delta_ref': 'delta_target', 'parent_delta_ref': 'delta_dup'},
     ]
 
-    observed = runner_module._resolve_parent_run_id(
+    observed = row_dependencies_module.resolve_parent_run_id(
         queue_row=queue_rows[3],
         queue_rows=queue_rows,
         active_anchor='anchor_v1',
@@ -590,7 +626,7 @@ def test_resolve_parent_run_id_rejects_missing_parent_delta_ref_target() -> None
     ]
 
     with pytest.raises(RuntimeError, match='parent_delta_ref'):
-        _ = runner_module._resolve_parent_run_id(
+        _ = row_dependencies_module.resolve_parent_run_id(
             queue_row=queue_rows[1],
             queue_rows=queue_rows,
             active_anchor='anchor_v1',
@@ -603,7 +639,7 @@ def test_resolve_parent_run_id_rejects_self_reference() -> None:
     ]
 
     with pytest.raises(RuntimeError, match='not itself'):
-        _ = runner_module._resolve_parent_run_id(
+        _ = row_dependencies_module.resolve_parent_run_id(
             queue_row=queue_rows[0],
             queue_rows=queue_rows,
             active_anchor='anchor_v1',
@@ -617,7 +653,7 @@ def test_resolve_parent_run_id_rejects_forward_reference() -> None:
     ]
 
     with pytest.raises(RuntimeError, match='must reference an earlier row'):
-        _ = runner_module._resolve_parent_run_id(
+        _ = row_dependencies_module.resolve_parent_run_id(
             queue_row=queue_rows[0],
             queue_rows=queue_rows,
             active_anchor='anchor_v1',
@@ -631,7 +667,7 @@ def test_resolve_parent_run_id_rejects_parent_without_run_id() -> None:
     ]
 
     with pytest.raises(RuntimeError, match='does not have a completed run_id'):
-        _ = runner_module._resolve_parent_run_id(
+        _ = row_dependencies_module.resolve_parent_run_id(
             queue_row=queue_rows[1],
             queue_rows=queue_rows,
             active_anchor='anchor_v1',
@@ -705,7 +741,7 @@ def test_compose_cfg_uses_requested_training_experiment(
             }
         )
 
-    monkeypatch.setattr(runner_module, 'compose_config', fake_compose_config)
+    monkeypatch.setattr(configuration_module, 'compose_config', fake_compose_config)
 
     _ = _compose_cfg(
         row={'model': {'stage_label': 'dpnb_architecture_screen_probe'}},
@@ -1062,7 +1098,7 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured_research_package: dict[str, Any] = {}
@@ -1129,7 +1165,10 @@ def test_completed_train_artifacts_exist_accepts_stage_scoped_latest_checkpoint(
     _write_training_surface_record(run_dir / 'training_surface_record.json', backend='manifest')
     (run_dir / 'checkpoints' / 'latest_stage1.pt').write_text('stub', encoding='utf-8')
 
-    assert runner_module.completed_train_artifacts_exist(run_dir, expected_backend='manifest') is True
+    assert training_state_module.completed_train_artifacts_exist(
+        run_dir,
+        expected_backend='manifest',
+    ) is True
 
 
 def test_completed_train_artifacts_exist_rejects_unsuccessful_telemetry(tmp_path: Path) -> None:
@@ -1141,7 +1180,10 @@ def test_completed_train_artifacts_exist_rejects_unsuccessful_telemetry(tmp_path
     _write_training_surface_record(run_dir / 'training_surface_record.json', backend='manifest')
     (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
 
-    assert runner_module.completed_train_artifacts_exist(run_dir, expected_backend='manifest') is False
+    assert training_state_module.completed_train_artifacts_exist(
+        run_dir,
+        expected_backend='manifest',
+    ) is False
 
 
 def test_completed_train_artifacts_exist_rejects_missing_backend_marker(tmp_path: Path) -> None:
@@ -1153,7 +1195,10 @@ def test_completed_train_artifacts_exist_rejects_missing_backend_marker(tmp_path
     _write_training_surface_record(run_dir / 'training_surface_record.json', backend=None)
     (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
 
-    assert runner_module.completed_train_artifacts_exist(run_dir, expected_backend='manifest') is False
+    assert training_state_module.completed_train_artifacts_exist(
+        run_dir,
+        expected_backend='manifest',
+    ) is False
 
 
 def test_completed_train_artifacts_exist_rejects_backend_mismatch(tmp_path: Path) -> None:
@@ -1165,7 +1210,10 @@ def test_completed_train_artifacts_exist_rejects_backend_mismatch(tmp_path: Path
     _write_training_surface_record(run_dir / 'training_surface_record.json', backend='prior_dump')
     (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
 
-    assert runner_module.completed_train_artifacts_exist(run_dir, expected_backend='manifest') is False
+    assert training_state_module.completed_train_artifacts_exist(
+        run_dir,
+        expected_backend='manifest',
+    ) is False
 
 
 def test_archive_incomplete_train_dir_moves_partial_history_aside(tmp_path: Path) -> None:
@@ -1173,7 +1221,7 @@ def test_archive_incomplete_train_dir_moves_partial_history_aside(tmp_path: Path
     train_dir.mkdir(parents=True, exist_ok=True)
     (train_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
 
-    archived_dir = runner_module._archive_incomplete_train_dir(train_dir)
+    archived_dir = training_state_module.archive_incomplete_train_dir(train_dir)
 
     assert archived_dir is not None
     assert archived_dir.exists()
@@ -1214,7 +1262,7 @@ def test_run_row_uses_manifest_trainer_for_manifest_rows(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured: dict[str, Any] = {}
@@ -1310,7 +1358,7 @@ def test_run_row_uses_prior_dump_trainer_for_prior_dump_rows(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured: dict[str, Any] = {}
@@ -1428,7 +1476,7 @@ def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured_research_package: dict[str, Any] = {}
@@ -1556,7 +1604,7 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     captured_registration: dict[str, Any] = {}
@@ -1728,9 +1776,9 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
     nanotab_root = tmp_path / 'nano'
     nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
     prior_dump = nanotab_root / '300k_150x5_2.h5'
-    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
-        runner_module,
+        curve_reuse_module,
         'benchmark_host_fingerprint',
         lambda: 'runner-host',
     )
@@ -1774,10 +1822,7 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
 
     queue_row = {
         'order': 1,
@@ -1951,9 +1996,9 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
     nanotab_root = tmp_path / 'nano'
     nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
     prior_dump = nanotab_root / '300k_150x5_2.h5'
-    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
-        runner_module,
+        curve_reuse_module,
         'benchmark_host_fingerprint',
         lambda: 'runner-host',
     )
@@ -1997,10 +2042,7 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
 
     prior_row = {
         'order': 1,
@@ -2184,9 +2226,9 @@ def test_run_row_reuses_prior_completed_sweep_row_error_before_bootstrapping_hel
         'message': 'helper returned non-zero exit status 1',
         'returncode': 1,
     }
-    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
-        runner_module,
+        curve_reuse_module,
         'benchmark_host_fingerprint',
         lambda: 'runner-host',
     )
@@ -2396,7 +2438,7 @@ def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_a
         control_baseline_id=None,
         device='cuda',
         resolved_device='cuda',
-        host_fingerprint=runner_module.benchmark_host_fingerprint(),
+        host_fingerprint=curve_reuse_module.benchmark_host_fingerprint(),
         prior_dump_path=prior_dump,
         steps=runner_module.DEFAULT_NANOTABPFN_STEPS,
         eval_every=runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
@@ -2405,20 +2447,33 @@ def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_a
         lr=runner_module.DEFAULT_NANOTABPFN_LR,
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps(
-            {
-                'baselines': {
-                    'cls_benchmark_linear_v2': {
-                        'comparison_summary_path': str(baseline_summary_path.resolve()),
-                    }
-                }
-            },
-            indent=2,
-            sort_keys=True,
-        )
-        + '\n',
-        encoding='utf-8',
+    _write_control_baseline_registry(
+        control_baseline_registry_path,
+        baselines={
+            'cls_benchmark_linear_v2': {
+                'baseline_id': 'cls_benchmark_linear_v2',
+                'experiment': 'cls_benchmark_staged_prior',
+                'config_profile': 'cls_benchmark_staged_prior',
+                'budget_class': 'short-run',
+                'manifest_path': 'data/manifests/default.parquet',
+                'seed_set': [1],
+                'run_dir': 'outputs/control_baselines/cls_benchmark_linear_v2/train',
+                'comparison_summary_path': str(baseline_summary_path.resolve()),
+                'benchmark_bundle': {
+                    'name': 'bundle',
+                    'version': 1,
+                    'source_path': str(bundle_path.resolve()),
+                    'task_count': 0,
+                    'task_ids': [],
+                },
+                'tab_foundry_metrics': {
+                    'best_step': 25.0,
+                    'best_training_time': 1.0,
+                    'final_step': 25.0,
+                    'final_training_time': 1.0,
+                },
+            }
+        },
     )
 
     paths = ExecutionPaths(
@@ -2431,7 +2486,7 @@ def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_a
         control_baseline_registry_path=control_baseline_registry_path,
     )
 
-    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+    selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
             'benchmark_bundle_path': str(bundle_path.resolve()),
@@ -2466,9 +2521,9 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
     prior_dump = nanotab_root / '300k_150x5_2.h5'
     prior_dump.write_bytes(b'prior')
 
-    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
-        runner_module,
+        curve_reuse_module,
         'benchmark_host_fingerprint',
         lambda: 'runner-host',
     )
@@ -2513,10 +2568,7 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
@@ -2527,7 +2579,7 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
         control_baseline_registry_path=control_baseline_registry_path,
     )
 
-    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+    selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
             'benchmark_bundle_path': 'src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json',
@@ -2558,9 +2610,9 @@ def test_resolve_reusable_nanotabpfn_curve_allows_cross_device_reuse_on_the_same
     prior_dump = nanotab_root / '300k_150x5_2.h5'
     prior_dump.write_bytes(b'prior')
 
-    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
-        runner_module,
+        curve_reuse_module,
         'benchmark_host_fingerprint',
         lambda: 'runner-host',
     )
@@ -2603,10 +2655,7 @@ def test_resolve_reusable_nanotabpfn_curve_allows_cross_device_reuse_on_the_same
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
@@ -2617,7 +2666,7 @@ def test_resolve_reusable_nanotabpfn_curve_allows_cross_device_reuse_on_the_same
         control_baseline_registry_path=control_baseline_registry_path,
     )
 
-    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+    selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
             'benchmark_bundle_path': str(bundle_path.resolve()),
@@ -2649,9 +2698,9 @@ def test_resolve_reusable_nanotabpfn_curve_requires_host_fingerprint_match(
     nanotab_python.chmod(0o755)
     prior_dump = nanotab_root / '300k_150x5_2.h5'
     prior_dump.write_bytes(b'prior')
-    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
-        runner_module,
+        curve_reuse_module,
         'benchmark_host_fingerprint',
         lambda: 'runner-host',
     )
@@ -2695,10 +2744,7 @@ def test_resolve_reusable_nanotabpfn_curve_requires_host_fingerprint_match(
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
@@ -2709,7 +2755,7 @@ def test_resolve_reusable_nanotabpfn_curve_requires_host_fingerprint_match(
         control_baseline_registry_path=control_baseline_registry_path,
     )
 
-    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+    selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
             'benchmark_bundle_path': str(bundle_path.resolve()),
@@ -2737,9 +2783,9 @@ def test_resolve_reusable_nanotabpfn_curve_rejects_legacy_summary_without_timing
     nanotab_python.chmod(0o755)
     prior_dump = nanotab_root / '300k_150x5_2.h5'
     prior_dump.write_bytes(b'prior')
-    monkeypatch.setattr(runner_module, 'resolve_device', lambda _device: 'cuda')
+    monkeypatch.setattr(curve_reuse_module, 'resolve_device', lambda _device: 'cuda')
     monkeypatch.setattr(
-        runner_module,
+        curve_reuse_module,
         'benchmark_host_fingerprint',
         lambda: 'runner-host',
     )
@@ -2787,10 +2833,7 @@ def test_resolve_reusable_nanotabpfn_curve_rejects_legacy_summary_without_timing
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
@@ -2801,7 +2844,7 @@ def test_resolve_reusable_nanotabpfn_curve_rejects_legacy_summary_without_timing
         control_baseline_registry_path=control_baseline_registry_path,
     )
 
-    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+    selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
             'benchmark_bundle_path': str(bundle_path.resolve()),
@@ -2839,7 +2882,7 @@ def test_resolve_reusable_nanotabpfn_curve_skips_missing_summary_or_curve(
         control_baseline_id='cls_benchmark_linear_v2',
         device='cuda',
         resolved_device='cuda',
-        host_fingerprint=runner_module.benchmark_host_fingerprint(),
+        host_fingerprint=curve_reuse_module.benchmark_host_fingerprint(),
         prior_dump_path=prior_dump,
         steps=runner_module.DEFAULT_NANOTABPFN_STEPS,
         eval_every=runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
@@ -2866,10 +2909,7 @@ def test_resolve_reusable_nanotabpfn_curve_skips_missing_summary_or_curve(
         encoding='utf-8',
     )
     control_baseline_registry_path = tmp_path / 'control_baselines.json'
-    control_baseline_registry_path.write_text(
-        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
-        encoding='utf-8',
-    )
+    _write_control_baseline_registry(control_baseline_registry_path)
     paths = ExecutionPaths(
         repo_root=tmp_path,
         index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
@@ -2880,7 +2920,7 @@ def test_resolve_reusable_nanotabpfn_curve_skips_missing_summary_or_curve(
         control_baseline_registry_path=control_baseline_registry_path,
     )
 
-    selection = runner_module.resolve_reusable_nanotabpfn_curve(
+    selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
             'benchmark_bundle_path': str(bundle_path.resolve()),
@@ -3027,7 +3067,7 @@ def test_run_row_resolves_dynamic_post_stack_norm_from_screened_rows(
         sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
         registry_path=REGISTRY_PATH,
         program_path=tmp_path / 'program.md',
-        control_baseline_registry_path=REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'control_baselines_v1.json',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
     )
 
     monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)

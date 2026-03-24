@@ -9,13 +9,17 @@ from types import SimpleNamespace
 import pytest
 import torch
 
+import tab_foundry.cli.research_graph as research_graph_cli_module
 import tab_foundry.research.sweep.graph as graph_module
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.research.sweep.graph import GraphPaths
-from tab_foundry.research.system_delta import create_sweep, load_system_delta_queue
+from tab_foundry.research.sweep.manage import create_sweep
+from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+REGISTRY_PATH = default_benchmark_run_registry_path()
 
 
 def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:
@@ -72,7 +76,7 @@ def test_resolve_anchor_model_spec_prefers_matching_completed_queue_row() -> Non
 
     spec, metadata = graph_module.resolve_anchor_model_spec(
         queue=queue,
-        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        registry_path=REGISTRY_PATH,
     )
 
     assert metadata["source"] == "queue_row"
@@ -224,9 +228,9 @@ def test_graph_main_parses_cli_selectors(
         captured.update(kwargs)
         return {"sweep_id": "cuda_stability_followup", "graphs": [], "index_path": str(tmp_path / "index.md")}
 
-    monkeypatch.setattr(graph_module, "render_sweep_graphs", _fake_render_sweep_graphs)
+    monkeypatch.setattr(research_graph_cli_module, "render_sweep_graphs", _fake_render_sweep_graphs)
 
-    exit_code = graph_module.main([*argv, "--out-dir", str(tmp_path)])
+    exit_code = research_graph_cli_module.main([*argv, "--out-dir", str(tmp_path)])
 
     assert exit_code == 0
     assert captured["anchor"] == expected["anchor"]
@@ -290,7 +294,7 @@ def test_render_sweep_graphs_writes_svg_and_index_without_mutating_sweep_metadat
             index_path=sweeps_root / "index.yaml",
             catalog_path=reference_root / "system_delta_catalog.yaml",
             sweeps_root=sweeps_root,
-            registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+            registry_path=REGISTRY_PATH,
         ),
     )
 
@@ -324,7 +328,7 @@ def test_render_sweep_graphs_respects_non_default_sweep_training_experiment(
         delta_refs=["delta_anchor_activation_trace_baseline"],
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
-        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        registry_path=REGISTRY_PATH,
         sweeps_root=sweeps_root,
     )
 
@@ -352,7 +356,7 @@ def test_render_sweep_graphs_respects_non_default_sweep_training_experiment(
             index_path=sweeps_root / "index.yaml",
             catalog_path=reference_root / "system_delta_catalog.yaml",
             sweeps_root=sweeps_root,
-            registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+            registry_path=REGISTRY_PATH,
         ),
     )
 

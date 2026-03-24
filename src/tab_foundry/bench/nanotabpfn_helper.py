@@ -1,40 +1,33 @@
-"""External nanoTabPFN benchmark helper entrypoint."""
+"""Library helper for external nanoTabPFN benchmark execution."""
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 from typing import Any
-from typing import Sequence
 import sys
 
 import numpy as np
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Train and evaluate nanoTabPFN on cached benchmark datasets")
-    parser.add_argument("--tab-foundry-src", required=True, help="tab-foundry src directory for shared helpers")
-    parser.add_argument("--dataset-cache", required=True, help="Path to cached benchmark datasets (.npz)")
-    parser.add_argument("--prior-dump", required=True, help="Path to nanoTabPFN prior dump (.h5)")
-    parser.add_argument("--out-path", required=True, help="Output JSONL path")
-    parser.add_argument("--device", default="auto", help="Device override")
-    parser.add_argument("--steps", type=int, default=2500, help="Training steps")
-    parser.add_argument("--eval-every", type=int, default=250, help="Evaluation cadence in steps")
-    parser.add_argument("--seeds", type=int, default=2, help="Number of random seeds")
-    parser.add_argument("--batch-size", type=int, default=32, help="Prior batch size")
-    parser.add_argument("--lr", type=float, default=4.0e-3, help="Learning rate")
-    parser.add_argument(
-        "--allow-missing-values",
-        action="store_true",
-        help="Permit missing-valued benchmark inputs when the bundle explicitly allows them",
-    )
-    return parser
+def run_nanotabpfn_helper(
+    *,
+    tab_foundry_src: Path,
+    dataset_cache: Path,
+    prior_dump: Path,
+    out_path: Path,
+    device: str = "auto",
+    steps: int = 2500,
+    eval_every: int = 250,
+    seeds: int = 2,
+    batch_size: int = 32,
+    lr: float = 4.0e-3,
+    allow_missing_values: bool = False,
+    helper_root: Path | None = None,
+) -> int:
+    """Train and evaluate nanoTabPFN on cached benchmark datasets."""
 
-
-def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    src_root = Path(str(args.tab_foundry_src)).expanduser().resolve()
-    nanotabpfn_root = Path.cwd().resolve()
+    src_root = tab_foundry_src.expanduser().resolve()
+    nanotabpfn_root = Path.cwd().resolve() if helper_root is None else helper_root.expanduser().resolve()
     if str(nanotabpfn_root) not in sys.path:
         sys.path.insert(0, str(nanotabpfn_root))
     if str(src_root) not in sys.path:
@@ -51,21 +44,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     from train import PriorDumpDataLoader, get_default_device, set_randomness_seed, train
 
-    device = get_default_device() if str(args.device).strip().lower() == "auto" else str(args.device)
-    datasets = load_dataset_cache(Path(str(args.dataset_cache)).expanduser().resolve())
-    prior_dump = Path(str(args.prior_dump)).expanduser().resolve()
-    if not prior_dump.exists():
-        raise RuntimeError(f"nanoTabPFN prior dump does not exist: {prior_dump}")
+    resolved_device = get_default_device() if str(device).strip().lower() == "auto" else str(device)
+    dataset_cache_path = dataset_cache.expanduser().resolve()
+    prior_dump_path = prior_dump.expanduser().resolve()
+    out_path = out_path.expanduser().resolve()
+    if not prior_dump_path.exists():
+        raise RuntimeError(f"nanoTabPFN prior dump does not exist: {prior_dump_path}")
+    datasets = load_dataset_cache(dataset_cache_path)
 
     records: list[dict[str, object]] = []
     num_outputs = max(int(np.unique(np.asarray(y)).size) for _name, (_x, y) in datasets.items())
-    for seed in range(int(args.seeds)):
+    for seed in range(int(seeds)):
         set_randomness_seed(seed)
         prior = PriorDumpDataLoader(
-            str(prior_dump),
-            num_steps=int(args.steps),
-            batch_size=int(args.batch_size),
-            device=device,
+            str(prior_dump_path),
+            num_steps=int(steps),
+            batch_size=int(batch_size),
+            device=resolved_device,
         )
         model = NanoTabPFNModel(
             embedding_size=96,
@@ -78,13 +73,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         model_instance, history = train(
             model_instance,
             prior,
-            lr=float(args.lr),
-            device=device,
-            steps_per_eval=int(args.eval_every),
+            lr=float(lr),
+            device=resolved_device,
+            steps_per_eval=int(eval_every),
             eval_func=lambda classifier: evaluate_classifier(
                 classifier,
                 datasets,
-                allow_missing_values=bool(args.allow_missing_values),
+                allow_missing_values=bool(allow_missing_values),
             ),
         )
         _ = model_instance
@@ -92,7 +87,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             records.append(
                 {
                     "seed": int(seed),
-                    "step": int(index * int(args.eval_every)),
+                    "step": int(index * int(eval_every)),
                     "training_time": float(training_time),
                     "roc_auc": float(metrics["ROC AUC"]),
                     "log_loss": float(metrics["Log Loss"]),
@@ -103,9 +98,5 @@ def main(argv: Sequence[str] | None = None) -> int:
                 }
             )
 
-    write_jsonl(Path(str(args.out_path)).expanduser().resolve(), records)
+    write_jsonl(out_path, records)
     return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

@@ -6,7 +6,9 @@ from pathlib import Path
 import pytest
 import torch
 
-import tab_foundry.bench.benchmark_run_registry as registry_module
+import tab_foundry.benchmark_registry as benchmark_registry
+import tab_foundry.bench.run_registration as registry_module
+import tab_foundry.cli.bench_run_registration as registry_cli_module
 import tab_foundry.data.corpus as corpus_module
 from tab_foundry.model.factory import build_model
 
@@ -259,7 +261,7 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
 ) -> None:
     repo_root = tmp_path / "repo"
     run_dir, summary_path = _prepare_run(repo_root, run_name="stage_01")
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
     record = registry_module.derive_benchmark_run_record(
         run_dir=run_dir,
@@ -302,7 +304,7 @@ def test_derive_benchmark_run_record_captures_optional_training_surface_label(
             "overrides": {"optimizer": {"min_lr": 4.0e-4}},
         },
     )
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
     record = registry_module.derive_benchmark_run_record(
         run_dir=run_dir,
@@ -319,7 +321,7 @@ def test_derive_benchmark_run_record_includes_optional_sweep_metadata(
 ) -> None:
     repo_root = tmp_path / "repo"
     run_dir, summary_path = _prepare_run(repo_root, run_name="stage_01")
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
     record = registry_module.derive_benchmark_run_record(
         run_dir=run_dir,
@@ -365,7 +367,7 @@ def test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surfa
             },
         },
     )
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
     record = registry_module.derive_benchmark_run_record(
         run_dir=run_dir,
@@ -377,7 +379,10 @@ def test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surfa
         (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
     )
     assert record["manifest_path"] == "outputs/staged_ladder_support/binary_iris_manifest/manifest.parquet"
-    assert registry_module.resolve_registry_path_value(record["manifest_path"]) == override_manifest.resolve()
+    assert benchmark_registry.resolve_registry_path_value(
+        record["manifest_path"],
+        root=repo_root,
+    ) == override_manifest.resolve()
     assert (
         Path(surface_record["data"]["manifest"]["manifest_path"]).resolve()
         == override_manifest.resolve()
@@ -399,7 +404,7 @@ def test_derive_benchmark_run_record_uses_materialized_corpus_manifest_path(
             "corpus_ref": "current_recipe",
         },
     )
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
     monkeypatch.setattr(corpus_module, "_repo_root", lambda: repo_root)
 
     record = registry_module.derive_benchmark_run_record(
@@ -412,7 +417,10 @@ def test_derive_benchmark_run_record_uses_materialized_corpus_manifest_path(
         (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
     )
     assert record["manifest_path"] == "outputs/corpora/current_recipe/current_recipe__123456789abc/manifest.parquet"
-    assert registry_module.resolve_registry_path_value(record["manifest_path"]) == corpus_manifest.resolve()
+    assert benchmark_registry.resolve_registry_path_value(
+        record["manifest_path"],
+        root=repo_root,
+    ) == corpus_manifest.resolve()
     assert (
         Path(surface_record["data"]["manifest"]["manifest_path"]).resolve()
         == corpus_manifest.resolve()
@@ -428,7 +436,7 @@ def test_derive_benchmark_run_record_falls_back_to_best_benchmark_step_checkpoin
 ) -> None:
     repo_root = tmp_path / "repo"
     run_dir, summary_path = _prepare_run(repo_root, run_name="prior_like")
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
     best_checkpoint = run_dir / "checkpoints" / "best.pt"
     best_checkpoint.unlink()
@@ -480,7 +488,7 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
         final_roc_auc=0.87,
         final_log_loss=0.39,
     )
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
     _ = registry_module.register_benchmark_run(
         run_id="00_simple_anchor",
@@ -536,7 +544,7 @@ def test_register_benchmark_run_writes_repo_relative_entry_and_deltas(
         "outputs/label_token/benchmark/training_surface_record.json"
     )
 
-    registry = registry_module.load_benchmark_run_registry(registry_path)
+    registry = benchmark_registry.load_benchmark_run_registry(registry_path)
     assert set(registry["runs"]) == {"00_simple_anchor", "01_nano_exact"}
     assert registry["runs"]["01_nano_exact"]["comparisons"]["vs_anchor"]["final_roc_auc_delta"] == pytest.approx(0.04)
     assert registry["runs"]["01_nano_exact"]["comparisons"]["vs_anchor"]["final_log_loss_delta"] == pytest.approx(-0.03)
@@ -549,7 +557,7 @@ def test_register_benchmark_run_rejects_unknown_parent(
     repo_root = tmp_path / "repo"
     registry_path = repo_root / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
     run_dir, summary_path = _prepare_run(repo_root, run_name="stage_01")
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
     with pytest.raises(RuntimeError, match="unknown parent_run_id"):
         registry_module.register_benchmark_run(
@@ -581,9 +589,9 @@ def test_register_benchmark_run_main_parses_cli_and_defaults_config_profile(
             "run": {"run_id": kwargs["run_id"], "decision": kwargs["decision"]},
         }
 
-    monkeypatch.setattr(registry_module, "register_benchmark_run", _fake_register_benchmark_run)
+    monkeypatch.setattr(registry_cli_module, "register_benchmark_run", _fake_register_benchmark_run)
 
-    exit_code = registry_module.main(
+    exit_code = registry_cli_module.main(
         [
             "--run-id",
             "02_label_token_md_prior",
@@ -645,13 +653,18 @@ def test_register_benchmark_run_main_parses_cli_and_defaults_config_profile(
     assert "Benchmark run registered:" in capsys.readouterr().out
 
 
+def test_run_registration_library_module_is_parser_free() -> None:
+    for attribute in ("configure_parser", "build_parser", "run_from_args", "main"):
+        assert not hasattr(registry_module, attribute)
+
+
 def test_derive_benchmark_run_record_rejects_legacy_checkpoint_without_arch_metadata(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     repo_root = tmp_path / "repo"
     run_dir, summary_path = _prepare_run(repo_root, run_name="legacy_simple_anchor")
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
     simple_model = build_model(
         task="classification",
@@ -708,7 +721,7 @@ def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_f
 ) -> None:
     repo_root = tmp_path / "repo"
     run_dir, summary_path = _prepare_run(repo_root, run_name="legacy_grouped")
-    monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
     torch.save(
         {
@@ -745,7 +758,7 @@ def test_derive_benchmark_run_record_rejects_legacy_grouped_checkpoint_without_f
 def test_checked_in_benchmark_run_registry_contains_medium_binary_anchor() -> None:
     registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
 
-    registry = registry_module.load_benchmark_run_registry(registry_path)
+    registry = benchmark_registry.load_benchmark_run_registry(registry_path)
     run = registry["runs"]["01_nano_exact_md_prior_parity_fix_binary_medium_v1"]
 
     assert run["benchmark_bundle"]["source_path"] == (

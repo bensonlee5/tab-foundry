@@ -6,10 +6,13 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
-from tab_foundry.research.system_delta import load_system_delta_catalog, load_system_delta_queue
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
+from tab_foundry.research.sweep.catalog import load_system_delta_catalog
+from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+REGISTRY_PATH = default_benchmark_run_registry_path()
 EXPECTED_ROW_ORDER = [
     "delta_architecture_screen_nano_exact_replay",
     "delta_architecture_screen_shared_norm",
@@ -150,9 +153,7 @@ def test_shared_surface_bridge_v1_matrix_records_the_stage_native_bridge_rows() 
 
 def test_shared_surface_bridge_v1_registry_records_prenorm_block_as_locked_handoff() -> None:
     registry = json.loads(
-        (REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json").read_text(
-            encoding="utf-8"
-        )
+        REGISTRY_PATH.read_text(encoding="utf-8")
     )
 
     run = registry["runs"]["sd_shared_surface_bridge_v1_03_delta_architecture_screen_prenorm_block_v1"]
@@ -166,9 +167,7 @@ def test_shared_surface_bridge_v1_registry_records_prenorm_block_as_locked_hando
 
 def test_shared_surface_bridge_v1_registry_records_sequential_parent_lineage() -> None:
     registry = json.loads(
-        (REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json").read_text(
-            encoding="utf-8"
-        )
+        REGISTRY_PATH.read_text(encoding="utf-8")
     )
 
     for delta_id, parent_run_id in EXPECTED_PARENT_RUN_ID_BY_DELTA.items():

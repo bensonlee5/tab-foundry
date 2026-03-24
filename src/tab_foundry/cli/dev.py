@@ -13,6 +13,7 @@ import torch
 
 from tab_foundry.config import compose_config, config_dir
 from tab_foundry.data.surface import resolve_data_surface
+from tab_foundry.device import resolve_torch_device
 from tab_foundry.export.contracts import SCHEMA_VERSION_V3
 from tab_foundry.export.inspection import export_check
 from tab_foundry.model.factory import build_model_from_spec
@@ -255,29 +256,6 @@ def render_diff_config_text(payload: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _resolve_device(requested: str) -> torch.device:
-    normalized = str(requested).strip().lower()
-    if normalized == "auto":
-        if torch.cuda.is_available():
-            return torch.device("cuda")
-        mps_backend = getattr(torch.backends, "mps", None)
-        if mps_backend is not None and mps_backend.is_available():
-            return torch.device("mps")
-        return torch.device("cpu")
-    if normalized == "cuda":
-        if not torch.cuda.is_available():
-            raise RuntimeError("requested --device cuda, but CUDA is not available")
-        return torch.device("cuda")
-    if normalized == "mps":
-        mps_backend = getattr(torch.backends, "mps", None)
-        if mps_backend is None or not mps_backend.is_available():
-            raise RuntimeError("requested --device mps, but MPS is not available")
-        return torch.device("mps")
-    if normalized == "cpu":
-        return torch.device("cpu")
-    raise RuntimeError(f"unsupported device: {requested!r}")
-
-
 def _require_finite_tensor(tensor: torch.Tensor, *, context: str) -> torch.Tensor:
     if not torch.isfinite(tensor).all():
         raise RuntimeError(f"{context} contains non-finite values")
@@ -331,7 +309,7 @@ def forward_check(
     task = str(getattr(cfg, "task", "classification")).strip().lower()
     model_cfg = _mapping_from_node(getattr(cfg, "model", None), context="cfg.model")
     spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
-    device = _resolve_device(requested_device)
+    device = resolve_torch_device(requested_device)
     torch.manual_seed(int(seed))
     if device.type == "cuda":
         torch.cuda.manual_seed_all(int(seed))
@@ -597,10 +575,9 @@ def _run_run_inspect(args: argparse.Namespace) -> int:
     return 0
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Developer tooling")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
+def register_subparsers(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     resolve_parser = subparsers.add_parser(
         "resolve-config",
         help="Compose one config and print the resolved build surface",
@@ -681,6 +658,11 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_parser.add_argument("--run-dir", required=True, help="Run directory to inspect")
     inspect_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     inspect_parser.set_defaults(func=_run_run_inspect)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Developer tooling")
+    register_subparsers(parser.add_subparsers(dest="command", required=True))
     return parser
 
 

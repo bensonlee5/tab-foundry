@@ -1,8 +1,22 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 import tab_foundry.bench.iris as iris_module
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+IRIS_SCRIPT_PATH = REPO_ROOT / "scripts" / "bench" / "iris.py"
+
+
+def _load_script_module():
+    spec = importlib.util.spec_from_file_location("bench_iris_script", IRIS_SCRIPT_PATH)
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_iris_main_prints_ranked_summary(
@@ -10,12 +24,13 @@ def test_iris_main_prints_ranked_summary(
     capsys,
     tmp_path: Path,
 ) -> None:
+    script_module = _load_script_module()
     checkpoint_path = tmp_path / "model.pt"
     checkpoint_path.write_bytes(b"checkpoint")
     resolved_checkpoint = checkpoint_path.resolve()
 
     monkeypatch.setattr(
-        iris_module,
+        script_module.iris_module,
         "evaluate_iris_checkpoint",
         lambda checkpoint_path, device, seeds: iris_module.IrisEvalSummary(
             checkpoint=checkpoint_path.resolve(),
@@ -27,7 +42,7 @@ def test_iris_main_prints_ranked_summary(
         ),
     )
 
-    exit_code = iris_module.main(
+    exit_code = script_module.main(
         ["--checkpoint", str(checkpoint_path), "--device", "cpu", "--seeds", "4"]
     )
 

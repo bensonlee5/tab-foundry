@@ -112,7 +112,8 @@ Read in this order:
 Inspect-first commands:
 
 ```bash
-.venv/bin/tab-foundry research sweep list
+.venv/bin/tab-foundry research sweep list-sweeps
+.venv/bin/tab-foundry research sweep list --sweep-id <sweep_id>
 .venv/bin/tab-foundry research sweep next
 .venv/bin/tab-foundry research sweep summarize --include-screened
 .venv/bin/tab-foundry research sweep inspect --order <order> --sweep-id <sweep_id>

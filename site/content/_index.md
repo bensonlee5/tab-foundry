@@ -1,7 +1,6 @@
----
-title: "tab-foundry"
-linkTitle: "Home"
----
+______________________________________________________________________
+
+## title: "tab-foundry" linkTitle: "Home"
 
 {{< blocks/cover title="tab-foundry" image_anchor="top" height="med" color="dark" >}}
 

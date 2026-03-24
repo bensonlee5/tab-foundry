@@ -14,9 +14,10 @@ import torch
 from torch import nn
 
 import tab_foundry.bench.checkpoint as checkpoint_module
-import tab_foundry.bench.prior_train as prior_train_module
 from tab_foundry.bench.nanotabpfn import evaluate_tab_foundry_run
-from tab_foundry.bench.prior_dump import (
+import tab_foundry.cli.train_prior as train_prior_cli_module
+import tab_foundry.training.prior_train as prior_train_module
+from tab_foundry.training.prior_dump import (
     PriorDumpBatchMissingness,
     PriorDumpNonFiniteInputError,
     PriorDumpTaskBatchReader,
@@ -1630,7 +1631,7 @@ def test_train_tabfoundry_staged_prior_writes_context_gradient_keys_when_active(
     assert "digit_position_embed" not in gradient_history[0]["module_grad_norms"]
 
 
-def test_prior_train_main_passes_prior_dump_and_overrides(
+def test_train_prior_cli_main_passes_prior_dump_and_overrides(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -1653,10 +1654,10 @@ def test_prior_train_main_passes_prior_dump_and_overrides(
             metrics={"final_train_loss": 0.42},
         )
 
-    monkeypatch.setattr(prior_train_module, "_compose_prior_cfg", _fake_compose)
-    monkeypatch.setattr(prior_train_module, "train_tabfoundry_simple_prior", _fake_train)
+    monkeypatch.setattr(train_prior_cli_module, "_compose_prior_cfg", _fake_compose)
+    monkeypatch.setattr(train_prior_cli_module, "train_tabfoundry_simple_prior", _fake_train)
 
-    exit_code = prior_train_module.main(
+    exit_code = train_prior_cli_module.main(
         [
             "--prior-dump",
             str(tmp_path / "prior_dump.h5"),
@@ -1666,7 +1667,11 @@ def test_prior_train_main_passes_prior_dump_and_overrides(
     )
 
     assert exit_code == 0
-    assert captured["overrides"] == ["model.stage=label_token", "runtime.output_dir=/tmp/cli-prior"]
+    assert captured["overrides"] == [
+        prior_train_module.DEFAULT_EXPERIMENT,
+        "model.stage=label_token",
+        "runtime.output_dir=/tmp/cli-prior",
+    ]
     assert captured["cfg"] is cfg
     assert captured["prior_dump_path"] == tmp_path / "prior_dump.h5"
     assert captured["batch_size"] == prior_train_module.DEFAULT_BATCH_SIZE

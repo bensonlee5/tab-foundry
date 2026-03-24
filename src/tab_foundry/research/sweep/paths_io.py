@@ -9,6 +9,9 @@ from typing import Any, Mapping, cast
 from omegaconf import OmegaConf
 import yaml
 
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
+from tab_foundry.repo_paths import repo_root as shared_repo_root
+
 
 class _SystemDeltaYamlDumper(yaml.SafeDumper):
     """Quote ambiguous scalars so queue prose round-trips as strings."""
@@ -26,7 +29,7 @@ _SystemDeltaYamlDumper.add_representer(str, _represent_system_delta_str)
 
 
 def repo_root() -> Path:
-    return Path(__file__).resolve().parents[4]
+    return shared_repo_root()
 
 
 def default_catalog_path() -> Path:
@@ -50,7 +53,7 @@ def default_matrix_path() -> Path:
 
 
 def default_registry_path() -> Path:
-    return repo_root() / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+    return default_benchmark_run_registry_path()
 
 
 def sweep_dir(sweep_id: str, *, sweeps_root: Path | None = None) -> Path:
@@ -82,7 +85,7 @@ def _render_path(path: Path) -> str:
         return str(resolved)
 
 
-def _load_yaml_mapping(path: Path, *, context: str) -> dict[str, Any]:
+def load_yaml_mapping(path: Path, *, context: str) -> dict[str, Any]:
     payload = OmegaConf.to_container(
         OmegaConf.load(path.expanduser().resolve()),
         resolve=True,
@@ -92,7 +95,7 @@ def _load_yaml_mapping(path: Path, *, context: str) -> dict[str, Any]:
     return cast(dict[str, Any], payload)
 
 
-def _write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
+def write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
     resolved = path.expanduser().resolve()
     resolved.parent.mkdir(parents=True, exist_ok=True)
     text = yaml.dump(
@@ -104,7 +107,7 @@ def _write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
     resolved.write_text(text, encoding="utf-8")
 
 
-def _write_text(path: Path, contents: str) -> None:
+def write_text(path: Path, contents: str) -> None:
     resolved = path.expanduser().resolve()
     resolved.parent.mkdir(parents=True, exist_ok=True)
     resolved.write_text(contents, encoding="utf-8")

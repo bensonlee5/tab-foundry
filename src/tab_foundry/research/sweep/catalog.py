@@ -5,7 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .paths_io import _load_yaml_mapping, default_catalog_path, default_sweep_index_path, sweep_metadata_path, sweep_queue_path
+from .paths_io import (
+    default_catalog_path,
+    default_sweep_index_path,
+    load_yaml_mapping,
+    sweep_metadata_path,
+    sweep_queue_path,
+)
 from .validation import ensure_non_empty_string, ensure_rows, validate_prose_fields
 
 
@@ -16,7 +22,7 @@ SWEEP_QUEUE_SCHEMA = "tab-foundry-system-delta-sweep-queue-v1"
 
 
 def load_system_delta_catalog(path: Path | None = None) -> dict[str, Any]:
-    catalog = _load_yaml_mapping(path or default_catalog_path(), context="system delta catalog")
+    catalog = load_yaml_mapping(path or default_catalog_path(), context="system delta catalog")
     if catalog.get("schema") != CATALOG_SCHEMA:
         raise RuntimeError(
             f"system delta catalog schema must be {CATALOG_SCHEMA!r}, got {catalog.get('schema')!r}"
@@ -28,7 +34,7 @@ def load_system_delta_catalog(path: Path | None = None) -> dict[str, Any]:
 
 
 def load_system_delta_index(path: Path | None = None) -> dict[str, Any]:
-    index = _load_yaml_mapping(path or default_sweep_index_path(), context="system delta sweep index")
+    index = load_yaml_mapping(path or default_sweep_index_path(), context="system delta sweep index")
     if index.get("schema") != SWEEP_INDEX_SCHEMA:
         raise RuntimeError(
             f"system delta sweep index schema must be {SWEEP_INDEX_SCHEMA!r}, got {index.get('schema')!r}"
@@ -58,7 +64,7 @@ def load_system_delta_sweep(
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_sweep_id = resolve_selected_sweep_id(sweep_id, index_path=index_path)
-    sweep = _load_yaml_mapping(
+    sweep = load_yaml_mapping(
         sweep_metadata_path(resolved_sweep_id, sweeps_root=sweeps_root),
         context=f"system delta sweep {resolved_sweep_id!r}",
     )
@@ -80,7 +86,7 @@ def load_system_delta_queue_instance(
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_sweep_id = resolve_selected_sweep_id(sweep_id, index_path=index_path)
-    queue = _load_yaml_mapping(
+    queue = load_yaml_mapping(
         sweep_queue_path(resolved_sweep_id, sweeps_root=sweeps_root),
         context=f"system delta queue instance {resolved_sweep_id!r}",
     )

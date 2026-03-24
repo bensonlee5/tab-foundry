@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from tab_foundry.bench.compare import (
+from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_LABELS,
     EXTERNAL_BENCHMARK_NANOTABPFN,
     EXTERNAL_BENCHMARK_TABICLV2,

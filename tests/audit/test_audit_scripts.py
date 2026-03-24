@@ -28,6 +28,10 @@ check_markdown_links = _load_script_module(
     REPO_ROOT / "scripts" / "audit" / "check_markdown_links.py",
     "check_markdown_links_script",
 )
+check_docs_consistency = _load_script_module(
+    REPO_ROOT / "scripts" / "audit" / "check_docs_consistency.py",
+    "check_docs_consistency_script",
+)
 module_graph = _load_script_module(
     REPO_ROOT / "scripts" / "audit" / "module_graph.py",
     "module_graph_script",
@@ -128,6 +132,101 @@ def test_markdown_link_audit_passes_on_repo_docs() -> None:
     assert errors == []
 
 
+def test_docs_consistency_audit_passes_on_repo_docs() -> None:
+    errors = check_docs_consistency.scan_docs_consistency(
+        REPO_ROOT,
+        check_docs_consistency.DEFAULT_ROOTS,
+    )
+
+    assert errors == []
+
+
+def test_docs_consistency_reports_stale_python_module_entrypoint(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text(
+        "Run `python -m tab_foundry.bench.instability_audit --staged-ladder-root outputs/staged_ladder`.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert errors[0][2].startswith("stale direct module entrypoint")
+
+
+def test_docs_consistency_reports_unsupported_python_script_entrypoint(tmp_path: Path) -> None:
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "custom_helper.py").write_text("print('ok')\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text(
+        "Run `.venv/bin/python scripts/custom_helper.py --demo`.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert errors[0][2] == "unsupported Python script entrypoint in docs: `scripts/custom_helper.py`"
+
+
+def test_docs_consistency_reports_nonexistent_tab_foundry_command(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text(
+        "Use `tab-foundry research sweep create --sweep-id demo`.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert "unknown tab-foundry command token" in errors[0][2]
+    assert "create" in errors[0][2]
+
+
+def test_docs_consistency_reports_removed_module_reference(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text(
+        "Import `tab_foundry.research.system_delta_execute` for sweep execution.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert "removed research compatibility wrapper reference" == errors[0][2]
+
+
+def test_docs_consistency_reports_missing_repo_script_entrypoint(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text(
+        "Run `./scripts/not_real.sh` before opening a PR.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert errors[0][2] == "documented repo-local script entrypoint is missing: `scripts/not_real.sh`"
+
+
+def test_docs_consistency_reports_codebase_navigation_inventory_mismatch(tmp_path: Path) -> None:
+    docs_dir = tmp_path / "docs" / "development"
+    docs_dir.mkdir(parents=True)
+    (docs_dir / "codebase-navigation.md").write_text(
+        "\n".join(
+            [
+                "# Codebase Navigation",
+                "",
+                "Current canonical CLI namespaces:",
+                "",
+                "- `tab-foundry train run`",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["docs"])
+
+    assert any("missing canonical CLI inventory entry" in error[2] for error in errors)
+    assert any("tab-foundry research sweep list" in error[2] for error in errors)
+
+
 def test_module_dependency_doc_matches_observed_graph() -> None:
     report = module_graph.build_module_graph_report(REPO_ROOT)
 
@@ -224,6 +323,53 @@ def test_read_version_from_git_ref_reports_git_errors(monkeypatch: pytest.Monkey
 
     with pytest.raises(RuntimeError, match="invalid object name"):
         check_version_bump.read_version_from_git_ref(REPO_ROOT, ref="missing")
+
+
+def test_version_bump_check_skips_when_pyproject_is_not_staged_in_staged_only_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(check_version_bump, "is_path_staged", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(check_version_bump, "read_version_from_pyproject_path", lambda _path: "0.9.3")
+
+    exit_code = check_version_bump.main(["--staged-only"])
+
+    assert exit_code == 0
+
+
+def test_version_bump_check_validates_on_clean_checkouts_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    monkeypatch.setattr(check_version_bump, "is_path_staged", lambda *_args, **_kwargs: False)
+
+    def _fake_read_version_from_git_ref(*_args, **_kwargs):
+        calls.append("git_ref")
+        return "0.9.2"
+
+    def _fake_read_version_from_pyproject_path(_path):
+        calls.append("pyproject")
+        return "0.9.3"
+
+    monkeypatch.setattr(check_version_bump, "read_version_from_git_ref", _fake_read_version_from_git_ref)
+    monkeypatch.setattr(check_version_bump, "read_version_from_pyproject_path", _fake_read_version_from_pyproject_path)
+
+    exit_code = check_version_bump.main([])
+
+    assert exit_code == 0
+    assert calls == ["git_ref", "pyproject"]
+
+
+def test_version_bump_check_validates_when_pyproject_is_staged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(check_version_bump, "is_path_staged", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(check_version_bump, "read_version_from_git_ref", lambda *_args, **_kwargs: "0.9.2")
+    monkeypatch.setattr(check_version_bump, "read_version_from_pyproject_path", lambda _path: "0.9.3")
+
+    exit_code = check_version_bump.main([])
+
+    assert exit_code == 0
 
 
 def test_refresh_uv_lock_uses_uv_lock(monkeypatch: pytest.MonkeyPatch) -> None:

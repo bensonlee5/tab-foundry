@@ -1,26 +1,25 @@
 # tab-foundry
 
-Training, comparing, and exporting tabular ML models, with direct routes into
-research, operations, and architecture docs.
+Training, benchmarking, and exporting tabular ML models, with research and
+workflow guidance documented in the repo docs and published docs site.
+
+> Docs-first: start with the published docs at
+> [bensonlee5.github.io/tab-foundry](https://bensonlee5.github.io/tab-foundry/)
+> for the fastest route to the current workflows, architecture, and research
+> context.
 
 ## Start Here
 
-Use these entry points when you want the shortest path to the current
-architecture, workflows, and research surfaces.
+Use the docs site first, then fall back to the local Markdown docs when you
+are working in the repo.
 
-| Goal | Start here | Then go deeper |
-| ---- | ---------- | -------------- |
-| Understand what this repo is | [docs/what-is-tab-foundry.md](docs/what-is-tab-foundry.md) | [docs/getting-started.md](docs/getting-started.md) |
+| If you want to... | Start here | Then go deeper |
+| --- | --- | --- |
+| Understand what this repo does | [docs/what-is-tab-foundry.md](docs/what-is-tab-foundry.md) | [docs/getting-started.md](docs/getting-started.md) |
 | Get oriented quickly | [docs/getting-started.md](docs/getting-started.md) | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| Contribute to research | [docs/research-contributors.md](docs/research-contributors.md) | [program.md](program.md) and [docs/workflows.md](docs/workflows.md) |
-| Work as ML engineering / infra | [docs/ml-engineering.md](docs/ml-engineering.md) | [docs/inference.md](docs/inference.md) and [docs/workflows.md](docs/workflows.md) |
-| Understand the active architecture | [docs/getting-started.md](docs/getting-started.md) | [docs/development/model-architecture.md](docs/development/model-architecture.md) |
-| Think through synthetic data and dagzoo | [docs/getting-started.md](docs/getting-started.md) | [docs/development/dataset-curation.md](docs/development/dataset-curation.md) |
-| Plan broader model capability work | [docs/research-contributors.md](docs/research-contributors.md) | [docs/development/roadmap.md](docs/development/roadmap.md) |
-| Learn repo vocabulary | [docs/glossary.md](docs/glossary.md) | [reference/README.md](reference/README.md) |
-
-Check out the docs site for more guides, references, and development policies:
-[bensonlee5.github.io/tab-foundry](https://bensonlee5.github.io/tab-foundry/).
+| Work on research or sweeps | [docs/research-contributors.md](docs/research-contributors.md) | [program.md](program.md) and [docs/workflows.md](docs/workflows.md) |
+| Work on artifacts or infra | [docs/ml-engineering.md](docs/ml-engineering.md) | [docs/inference.md](docs/inference.md) and [docs/workflows.md](docs/workflows.md) |
+| Find exact command syntax | [docs/workflows.md](docs/workflows.md) | [docs/development/codebase-navigation.md](docs/development/codebase-navigation.md) |
 
 ## Environment
 
@@ -33,150 +32,120 @@ Check out the docs site for more guides, references, and development policies:
 ./scripts/dev bootstrap
 ```
 
-`./scripts/dev bootstrap` wraps the canonical repo-local setup:
+`./scripts/dev bootstrap` wraps the canonical repo-local setup (`uv sync` plus
+`pre-commit install`). For deeper setup and workflow details, use
+[docs/workflows.md](docs/workflows.md).
 
-```bash
-uv sync
-pre-commit install
-```
-
-After setup, activate the virtual environment so you can run commands directly
-without the `uv run` prefix:
-
-```bash
-source .venv/bin/activate
-```
-
-Repo-local `uv sync` includes the benchmark helper dependencies plus Muon
-through the dev environment. For a minimal non-dev install, opt into the extra
-surfaces explicitly:
-
-```bash
-uv sync --no-dev --extra benchmark --extra muon
-```
-
-## CLI Navigation
+## Finding Commands
 
 `tab-foundry` is the canonical packaged CLI for data, dev, train, eval,
 export, bench, and research workflows. Treat `./scripts/dev` as a repo-local
-convenience wrapper only for bootstrap, verification, and Iris smoke.
+convenience wrapper only for bootstrap, doctor, ready, verification, and Iris
+smoke.
 
-For command discovery and execution, prefer `.venv/bin/tab-foundry ...` or an
-activated `.venv`. Use help in this order:
+### Entry Points
 
-```bash
-.venv/bin/tab-foundry --help
-.venv/bin/tab-foundry <group> --help
-.venv/bin/tab-foundry <group> <command> --help
-```
+| Surface | Use it for |
+| --- | --- |
+| `tab-foundry` | Packaged CLI for data, dev, train, eval, export, bench, and research workflows |
+| `./scripts/dev` | Repo-local bootstrap, doctor, ready, verification, and Iris smoke |
+| `scripts/bench/` | Standalone internal benchmark helpers when a runbook calls for them explicitly |
+| `scripts/materialize_tf_rd_013_support.py` | TF-RD-013 support materialization for committed support bundles |
 
-Use [codebase navigation](docs/development/codebase-navigation.md) for the full
-namespace inventory and [workflows](docs/workflows.md) for operational
-runbooks.
-
-Summarize the current diff against `origin/main` and run the smallest safe
-verification slice:
+After installation, use `tab-foundry ...` for command discovery and execution.
+Use `--help` in this order:
 
 ```bash
-./scripts/dev review-base
-./scripts/dev verify affected
-./scripts/dev verify paths src/tab_foundry/model/architectures/tabfoundry_staged/subsystems.py
+tab-foundry --help
+tab-foundry <group> --help
+tab-foundry <group> <command> --help
 ```
 
-Run the full local quality gate:
+### Top-Level Namespaces
+
+| Namespace | Purpose | Read next |
+| --- | --- | --- |
+| `data` | Manifests, corpora, and dataset inspection | [docs/workflows.md](docs/workflows.md) |
+| `dev` | Config resolution, forward checks, export checks, and run inspection | [docs/workflows.md](docs/workflows.md) |
+| `train` | Training entrypoints, including prior workflows | [docs/workflows.md](docs/workflows.md) |
+| `eval` | Checkpoint evaluation | [docs/workflows.md](docs/workflows.md) |
+| `export` | Inference bundle export and validation | [docs/workflows.md](docs/workflows.md) and [docs/inference.md](docs/inference.md) |
+| `bench` | Smoke, benchmarking, tuning, and registry flows | [docs/workflows.md](docs/workflows.md) |
+| `research` | System-delta sweep management and execution | [docs/research-contributors.md](docs/research-contributors.md), [program.md](program.md), and [docs/workflows.md](docs/workflows.md) |
+
+Repo-local sanity check:
 
 ```bash
-./scripts/dev verify full
+./scripts/dev doctor
 ```
 
-Inspect one resolved config or run a forward-only construction smoke check:
+<details>
+<summary>Full CLI tree</summary>
 
-```bash
-tab-foundry dev resolve-config experiment=cls_smoke
-tab-foundry dev forward-check experiment=cls_smoke
-tab-foundry dev diff-config --left experiment=cls_smoke --right experiment=cls_smoke --right model.stage=many_class
+```text
+tab-foundry
+├── data                          data workflows
+│   ├── build-manifest              build manifest parquet from dagzoo shard outputs
+│   ├── manifest-inspect            inspect a manifest and preflight compatibility
+│   ├── dagzoo
+│   │   └── generate-manifest       generate dagzoo corpus and emit a manifest
+│   └── corpus
+│       ├── list-recipes            list tracked corpus recipes
+│       ├── materialize             materialize a corpus recipe under outputs/corpora/
+│       ├── inspect                 inspect a materialized corpus record
+│       ├── compare                 diff two materialized corpus records
+│       └── results                 list benchmark runs linked to a corpus
+├── dev                           developer inspection and diagnostics
+│   ├── resolve-config              compose and print the resolved config surface
+│   ├── forward-check               build a model and run a synthetic forward smoke
+│   ├── diff-config                 compare two resolved config surfaces
+│   ├── export-check                export a checkpoint, validate, and run a smoke
+│   ├── health-check                summarize run telemetry and instability signals
+│   └── run-inspect                 inspect a run directory and its artifacts
+├── train                         training workflows
+│   ├── run                         train from Hydra config overrides
+│   └── prior
+│       ├── simple                  train the exact-prior simple benchmark family
+│       └── staged                  train the exact-prior staged benchmark family
+├── eval                          evaluation workflows
+│   └── checkpoint                  evaluate a checkpoint on a selected split
+├── export                        export workflows
+│   ├── bundle                      export a checkpoint as an inference bundle
+│   └── validate                    validate an exported inference bundle
+├── bench                         benchmark workflows
+│   ├── smoke
+│   │   ├── iris                    run the Iris smoke harness
+│   │   └── dagzoo                  run the dagzoo smoke harness
+│   ├── tune                        run the internal benchmark tuning sweep
+│   ├── compare                     compare a run against external baselines
+│   ├── env
+│   │   └── bootstrap               bootstrap sibling benchmark environments
+│   ├── bundle
+│   │   └── build-openml            build an OpenML benchmark bundle
+│   ├── registry
+│   │   ├── register-run            register a benchmark run
+│   │   └── freeze-baseline         freeze a control baseline
+│   └── diagnose
+│       └── bounce                  run the benchmark bounce diagnosis flow
+└── research                      research workflows
+    └── sweep
+        ├── list-sweeps             list known sweeps
+        ├── show-active             print the active sweep id
+        ├── set-active              set the active sweep and regenerate aliases
+        ├── create-sweep            bootstrap a new sweep from the delta catalog
+        ├── list                    list queue rows in order
+        ├── next                    print the next ready row
+        ├── render                  render the sweep matrix as Markdown
+        ├── validate                validate completed rows for a sweep
+        ├── execute                 execute selected sweep rows
+        ├── graph                   render architecture graphs for sweep targets
+        ├── promote                 promote a completed run to the sweep anchor
+        ├── summarize               summarize local sweep results into one table
+        ├── inspect                 inspect a materialized sweep row
+        └── diff                    diff a sweep row against the anchor or another row
 ```
 
-Summarize one run's instability telemetry or one sweep's local results:
+</details>
 
-```bash
-tab-foundry dev health-check --run-dir outputs/cls_smoke
-tab-foundry dev run-inspect --run-dir outputs/cls_smoke
-tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
-tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
-tab-foundry research sweep summarize --include-screened
-tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
-tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1
-```
-
-## Quickstart
-
-Build a manifest:
-
-```bash
-export DAGZOO_DATA_ROOT="$HOME/dev/dagzoo/data"
-tab-foundry data build-manifest \
-  --data-root "${DAGZOO_DATA_ROOT:-$HOME/dev/dagzoo/data}" \
-  --out-manifest data/manifests/default.parquet
-```
-
-Train a smoke profile:
-
-```bash
-tab-foundry train run experiment=cls_smoke
-```
-
-Evaluate a checkpoint:
-
-```bash
-tab-foundry eval checkpoint \
-  --checkpoint outputs/cls_smoke/checkpoints/best.pt \
-  experiment=cls_smoke
-```
-
-Export and validate an inference bundle:
-
-```bash
-tab-foundry export bundle \
-  --checkpoint outputs/cls_smoke/checkpoints/best.pt \
-  --out-dir outputs/exports/cls_smoke_v3
-
-tab-foundry export validate \
-  --bundle-dir outputs/exports/cls_smoke_v3
-```
-
-Run the Iris smoke harness:
-
-```bash
-./scripts/dev smoke iris
-```
-
-Repo-local `uv sync` includes Muon. If you are using a minimal install without
-the `muon` extra, override the optimizer explicitly:
-
-```bash
-tab-foundry train run experiment=cls_smoke optimizer=adamw
-```
-
-## Docs
-
-- Published docs site: <https://bensonlee5.github.io/tab-foundry/>
-- `docs/getting-started.md`: researcher onboarding path for architecture, sweeps, synthetic data, and model breadth
-- `docs/what-is-tab-foundry.md`: repo overview and entry-point guide
-- `docs/research-contributors.md`: research workflow onboarding path
-- `docs/ml-engineering.md`: artifact and workflow path for ML engineering / infra readers
-- `docs/glossary.md`: shared vocabulary for sweep and architecture work
-- `CONTRIBUTING.md`: contribution workflow for research contributors
-- `docs/workflows.md`: setup, manifest build, train/eval/export, smoke flows, tuning, benchmarking, and CI
-- `docs/inference.md`: export bundle schema and validation contract
-- `docs/development/roadmap.md`: canonical planning state and ranked roadmap
-- `docs/development/design-decisions.md`: architecture direction, repo-structure policy, and compatibility guidance
-- `docs/development/model-architecture.md`: detailed architecture reference for the current staged/simple model surfaces
-- `docs/development/architecture-deltas.md`: diagram-first comparison of the active row-first target direction against TabPFN and TabICLv2 reference lineages
-- `docs/development/model-config.md`: model configuration reference, defaults, and resolution rules
-- `docs/development/codebase-navigation.md`: current package layout and workflow entry surfaces
-- `docs/development/module-dependency-map.md`: maintained baseline dependency view for repo evolution
-- `reference/README.md`: index for literature notes, evidence maps, and future adjacent-repo summaries
-- `reference/papers.md`: curated papers, typed-column-encoder references, and external baseline borrowing rules
-- `reference/evidence.md`: roadmap-to-reference mapping and evidence notes
-- `site/README.md`: local Hugo build, sync, and Pages publishing workflow
+For the full namespace inventory, use
+[docs/development/codebase-navigation.md](docs/development/codebase-navigation.md).

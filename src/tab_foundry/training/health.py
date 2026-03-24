@@ -7,6 +7,8 @@ import math
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.repo_paths import resolve_repo_relative_path
+
 from .instability import (
     _UPPER_BLOCK_END,
     _UPPER_BLOCK_START,
@@ -26,11 +28,6 @@ _WARN_UPPER_BLOCK_SLOPE = 0.02
 _FAIL_UPPER_BLOCK_SLOPE = 0.10
 _FAIL_UPPER_BLOCK_FINAL_TO_EARLY_RATIO = 2.0
 _WARN_FINAL_TRAIN_LOSS_MULTIPLIER = 1.05
-
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
 
 def _read_json_mapping(path: Path) -> dict[str, Any] | None:
     if not path.exists():
@@ -53,14 +50,6 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
             records.append(cast(dict[str, Any], payload))
     return records
 
-
-def _resolve_registry_path_value(value: str) -> Path:
-    path = Path(str(value)).expanduser()
-    if path.is_absolute():
-        return path.resolve()
-    return (_repo_root() / path).resolve()
-
-
 def _benchmark_training_surface_record_path(
     benchmark_run_record: Mapping[str, Any] | None,
 ) -> Path | None:
@@ -72,7 +61,7 @@ def _benchmark_training_surface_record_path(
     raw_path = raw_artifacts.get("training_surface_record_path")
     if not isinstance(raw_path, str) or not raw_path.strip():
         return None
-    return _resolve_registry_path_value(raw_path)
+    return resolve_repo_relative_path(raw_path)
 
 
 def _run_inspect_training_surface_record_path(

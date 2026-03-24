@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 from pathlib import Path
-from typing import Any, Mapping, Sequence, cast
+from typing import Any, Mapping, cast
 
 from omegaconf import OmegaConf
 import torch
 
-from tab_foundry.bench.benchmark_run_registry import (
+from tab_foundry.benchmark_registry import (
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
@@ -28,10 +27,7 @@ from .graph import (
 from .materialize import load_system_delta_queue_for_inspection, ordered_rows
 from .paths_io import (
     _copy_jsonable,
-    default_catalog_path,
     default_registry_path,
-    default_sweep_index_path,
-    default_sweeps_root,
     repo_root,
 )
 def _load_json_mapping(path: Path, *, context: str) -> dict[str, Any]:
@@ -741,48 +737,3 @@ def render_sweep_row_text(payload: Mapping[str, Any]) -> str:
         if isinstance(entry, Mapping):
             lines.append(f"{key}={entry['path']}")
     return "\n".join(lines)
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Inspect one system-delta sweep row")
-    parser.add_argument("--order", type=int, required=True, help="Row order to inspect")
-    parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
-    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
-    parser.add_argument(
-        "--catalog-path",
-        default=str(default_catalog_path()),
-        help="Path to reference/system_delta_catalog.yaml",
-    )
-    parser.add_argument(
-        "--index-path",
-        default=str(default_sweep_index_path()),
-        help="Path to reference/system_delta_sweeps/index.yaml",
-    )
-    parser.add_argument(
-        "--sweeps-root",
-        default=str(default_sweeps_root()),
-        help="Path to reference/system_delta_sweeps/",
-    )
-    parser.add_argument(
-        "--registry-path",
-        default=str(default_registry_path()),
-        help="Path to the benchmark run registry",
-    )
-    return parser
-
-
-def main(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    payload = inspect_sweep_row(
-        order=int(args.order),
-        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
-        index_path=Path(str(args.index_path)).expanduser().resolve(),
-        catalog_path=Path(str(args.catalog_path)).expanduser().resolve(),
-        sweeps_root=Path(str(args.sweeps_root)).expanduser().resolve(),
-        registry_path=Path(str(args.registry_path)).expanduser().resolve(),
-    )
-    if bool(args.json):
-        print(json.dumps(payload, indent=2, sort_keys=True))
-    else:
-        print(render_sweep_row_text(payload))
-    return 0

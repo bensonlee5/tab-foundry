@@ -7,10 +7,11 @@ from typing import Any
 
 from omegaconf import OmegaConf
 
+from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.inspect as inspect_module
 import tab_foundry.research.sweep.matrix as matrix_module
-from tab_foundry.research.system_delta import load_system_delta_queue
+from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -26,7 +27,7 @@ EXPECTED_ROWS = [
 ]
 GENERATED_RUN_ID = "sd_tf_rd_013_data_source_contract_v1_01_delta_data_manifest_root_dagzoo_generated_source_v2"
 CURATED_RUN_ID = "sd_tf_rd_013_data_source_contract_v1_02_delta_data_manifest_curated_realdata_comparator_v2"
-REGISTRY_PATH = REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+REGISTRY_PATH = default_benchmark_run_registry_path()
 SUPPORT_ROOT = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "support"
 MATRIX_PATH = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "matrix.md"
 MATERIALIZATION_SUMMARY_PATH = SUPPORT_ROOT / "materialization_summary.json"
@@ -295,7 +296,7 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
         sweeps_root=REPO_ROOT / "reference" / "system_delta_sweeps",
-        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        registry_path=REGISTRY_PATH,
     )
 
     resolved_generated = inspect_generated["target"]["resolved"]["data"]
@@ -313,7 +314,7 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
         sweeps_root=REPO_ROOT / "reference" / "system_delta_sweeps",
-        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        registry_path=REGISTRY_PATH,
     )
     assert inspect_realdata["target"]["identity"]["status"] == "completed"
     assert inspect_realdata["target"]["resolved"]["data"]["surface_label"] == "tf_rd_013_curated_realdata_comparator"
@@ -329,7 +330,7 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
         sweeps_root=REPO_ROOT / "reference" / "system_delta_sweeps",
-        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        registry_path=REGISTRY_PATH,
     )
 
     assert diff_payload["difference_count"] > 0
@@ -433,7 +434,7 @@ def test_tf_rd_013_matrix_uses_tabiclv2_as_dynamic_upstream_reference(tmp_path: 
     out_path = tmp_path / "matrix.md"
     matrix_module.render_and_write_system_delta_matrix(
         queue=queue,
-        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
+        registry_path=REGISTRY_PATH,
         out_path=out_path,
     )
 

@@ -1,4 +1,4 @@
-"""Artifact and report helpers for system-delta execution."""
+"""Artifact and report helpers for system-delta execution and promotion."""
 
 from __future__ import annotations
 
@@ -8,7 +8,8 @@ from typing import Any, Mapping, cast
 
 from omegaconf import OmegaConf
 
-from tab_foundry.bench.compare import (
+from tab_foundry.control_baseline_registry import default_control_baseline_registry_path
+from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_LABELS,
     EXTERNAL_BENCHMARK_NANOTABPFN,
     EXTERNAL_BENCHMARK_TABICLV2,
@@ -19,7 +20,34 @@ from tab_foundry.research.lane_contract import (
     PFN_CONTROL_LANE_LABEL,
 )
 
-from .paths_io import _write_yaml as _write_yaml_file, default_catalog_path, default_registry_path, default_sweep_index_path, default_sweeps_root, repo_root as _repo_root
+from .paths_io import (
+    default_catalog_path,
+    default_registry_path,
+    default_sweep_index_path,
+    default_sweeps_root,
+    repo_root as _repo_root,
+    write_yaml as _write_yaml_file,
+)
+
+
+@dataclass(frozen=True)
+class PromotionPaths:
+    index_path: Path
+    catalog_path: Path
+    sweeps_root: Path
+    registry_path: Path
+    program_path: Path
+
+    @classmethod
+    def default(cls) -> "PromotionPaths":
+        repo_root = _repo_root()
+        return cls(
+            index_path=default_sweep_index_path(),
+            catalog_path=default_catalog_path(),
+            sweeps_root=default_sweeps_root(),
+            registry_path=default_registry_path(),
+            program_path=repo_root / "program.md",
+        )
 
 
 @dataclass(frozen=True)
@@ -42,12 +70,10 @@ class ExecutionPaths:
             sweeps_root=default_sweeps_root(),
             registry_path=default_registry_path(),
             program_path=repo_root / "program.md",
-            control_baseline_registry_path=repo_root / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json",
+            control_baseline_registry_path=default_control_baseline_registry_path(),
         )
 
-    def promotion_paths(self) -> Any:
-        from tab_foundry.research.system_delta_promote import PromotionPaths
-
+    def promotion_paths(self) -> PromotionPaths:
         return PromotionPaths(
             index_path=self.index_path,
             catalog_path=self.catalog_path,

@@ -24,10 +24,5 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
-    args, extras = parser.parse_known_args(argv)
-    if extras:
-        if getattr(args, "allow_unknown_args", False):
-            args.argv = extras
-        else:
-            parser.error(f"unrecognized arguments: {' '.join(extras)}")
+    args = parser.parse_args(argv)
     return int(args.func(args))
