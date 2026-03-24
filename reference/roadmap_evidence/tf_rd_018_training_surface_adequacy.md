@@ -46,6 +46,9 @@ This is the canonical long-form evidence note for
   harder dagzoo synthetic front and final small-shot ease filter-regime
   decision before TF-RD-018 resumes optimizer-family, LR-shape, clipping, or
   step-budget follow-up
+- [#147](https://github.com/bensonlee5/tab-foundry/issues/147) now records the
+  canonical pre-filter harder-front ladder under
+  [tf_rd_020_harder_dagzoo_ladder_v1](../system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md)
 
 ## Current Interpretation
 
@@ -59,6 +62,9 @@ This is the canonical long-form evidence note for
   than as the next open TF-RD-018 question
 - carry that settled batch rung onto TF-RD-020 before reopening optimizer or
   schedule-family follow-up
+- use the recorded `tf_rd_020_harder_dagzoo_ladder_v1` ladder as the fixed
+  pre-filter handoff for issues `#148`, `#149`, `#150`, and `#151` rather than
+  reopening harder-front design inside TF-RD-018
 - after the full harder dagzoo blocker closes, including the final filter-regime
   decision, retune LR and schedule on the settled rung rather than jointly
   searching batch and LR across the whole ladder

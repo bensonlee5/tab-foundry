@@ -1,0 +1,663 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
+rows:
+- order: 1
+  delta_ref: delta_data_manifest_root_tf_rd_020_missingness_mcar
+  status: ready
+  rationale: Open issue `#148` with the lowest-assumption missingness row so TF-RD-020 can test whether moderate MCAR alone is enough to create a harder synthetic front.
+  hypothesis: A `25%` MCAR variant may increase sample difficulty without introducing the label-correlated structure of MAR or MNAR.
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_missingness_mcar_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_missingness_mcar
+    source: manifest
+    corpus_ref: tf_rd_020_missingness_mcar_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix before reading benchmark output.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other missingness rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#148` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run first under issue `#148`, then compare directly against the MAR and MNAR rows before nominating one missingness winner.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 2
+  delta_ref: delta_data_manifest_root_tf_rd_020_missingness_mar
+  status: ready
+  rationale: Add one structured missingness row with resolved MAR logits so the missingness lane can distinguish random masking from observed-feature-driven null structure.
+  hypothesis: MAR at `missing_rate=0.25`, `missing_mar_observed_fraction=0.6`, and `missing_mar_logit_scale=1.4` may create a clearer harder front than MCAR without the full self-masking bias of MNAR.
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_missingness_mar_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_missingness_mar
+    source: manifest
+    corpus_ref: tf_rd_020_missingness_mar_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MAR override fields in the per-invocation provenance.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other missingness rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#148` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run second under issue `#148`, then compare directly against the MCAR and MNAR rows before nominating one missingness winner.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 3
+  delta_ref: delta_data_manifest_root_tf_rd_020_missingness_mnar
+  status: ready
+  rationale: Close the missingness lane with one self-masking row so TF-RD-020 can read whether the harder front comes from mechanism structure rather than rate alone.
+  hypothesis: MNAR at `missing_rate=0.25` and `missing_mnar_logit_scale=1.6` may be the strongest missingness harder front, but it also risks producing a more confounded synthetic lane than MCAR or MAR.
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_missingness_mnar_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_missingness_mnar
+    source: manifest
+    corpus_ref: tf_rd_020_missingness_mnar_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MNAR override fields in the per-invocation provenance.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other missingness rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#148` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run third under issue `#148`, then select exactly one missingness nominee for cross-front comparison.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 4
+  delta_ref: delta_data_manifest_root_tf_rd_020_shift_graph_drift
+  status: ready
+  rationale: Open issue `#149` with the most structurally local shift row so TF-RD-020 can test whether moderate graph drift alone is enough to create a clearer harder front.
+  hypothesis: "`graph_drift` at `graph_scale=0.5` may increase structural mismatch without immediately changing mechanism or noise complexity."
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_shift_graph_drift_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_shift_graph_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_graph_drift_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=graph_drift` with `graph_scale=0.5` in effective config artifacts.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run first under issue `#149`, then compare directly against the mechanism-drift, noise-drift, and mixed rows before nominating one shift winner.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 5
+  delta_ref: delta_data_manifest_root_tf_rd_020_shift_mechanism_drift
+  status: ready
+  rationale: Add the mechanism-tilt shift row so the shift lane can distinguish graph-structure changes from controlled increases in nonlinear mechanism mass.
+  hypothesis: "`mechanism_drift` at `mechanism_scale=0.5` may create a stronger harder front than pure graph drift because it directly perturbs function-family mix between train and test."
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_shift_mechanism_drift_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_shift_mechanism_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_mechanism_drift_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=mechanism_drift` with `mechanism_scale=0.5` in effective config artifacts.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run second under issue `#149`, then compare directly against the graph-drift, noise-drift, and mixed rows before nominating one shift winner.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 6
+  delta_ref: delta_data_manifest_root_tf_rd_020_shift_noise_drift
+  status: ready
+  rationale: Add the variance-only shift row so the shift lane can isolate test-time noise inflation from graph or mechanism drift.
+  hypothesis: "`noise_drift` at `variance_scale=0.5` may create a harder front if the current overfitting problem is partly a mismatch in stochasticity rather than structure."
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_shift_noise_drift_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_shift_noise_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_noise_drift_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=noise_drift` with `variance_scale=0.5` in effective config artifacts.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run third under issue `#149`, then compare directly against the graph-drift, mechanism-drift, and mixed rows before nominating one shift winner.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 7
+  delta_ref: delta_data_manifest_root_tf_rd_020_shift_mixed
+  status: ready
+  rationale: Close the shift lane with the combined drift row so TF-RD-020 can test whether one mixed surface is the clearest synthetic harder front before moving on to mechanism and noise comparisons.
+  hypothesis: "`mixed` drift at `graph_scale=0.5`, `mechanism_scale=0.5`, and `variance_scale=0.5` may be the strongest shift candidate, but it risks being harder to interpret than the single-axis rows."
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_shift_mixed_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_shift_mixed
+    source: manifest
+    corpus_ref: tf_rd_020_shift_mixed_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=mixed` with all three `0.5` drift scales in effective config artifacts.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run fourth under issue `#149`, then select exactly one shift or drift nominee for cross-front comparison.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 8
+  delta_ref: delta_data_manifest_root_tf_rd_020_mechanism_piecewise
+  status: ready
+  rationale: Open issue `#150` with the shipped piecewise control so TF-RD-020 can test whether broader mechanism family structure is a cleaner harder front than explicit train/test drift.
+  hypothesis: A `piecewise=0.3`, `linear=0.7` family mix may create a more data-hungry synthetic front without changing evaluation-time shift assumptions.
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_mechanism_piecewise_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_mechanism_piecewise
+    source: manifest
+    corpus_ref: tf_rd_020_mechanism_piecewise_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the piecewise-plus-linear family mix in the per-invocation effective config artifacts.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run first under issue `#150`, then compare directly against the GP-only and heavier-tail noise rows before nominating one mechanism or noise winner.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 9
+  delta_ref: delta_data_manifest_root_tf_rd_020_mechanism_gp
+  status: ready
+  rationale: Add the GP-only mechanism row so the mechanism lane can distinguish the shipped piecewise control from the widened GP family path.
+  hypothesis: "`gp=1.0` may create a more sample-hungry but still interpretable harder front if the current corpus is too easy because it under-exercises smoother nonlinear families."
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_mechanism_gp_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_mechanism_gp
+    source: manifest
+    corpus_ref: tf_rd_020_mechanism_gp_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the GP-only family mix in the per-invocation effective config artifacts.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run second under issue `#150`, then compare directly against the piecewise and heavier-tail noise rows before nominating one mechanism or noise winner.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 10
+  delta_ref: delta_data_manifest_root_tf_rd_020_noise_laplace
+  status: ready
+  rationale: Add the simplest non-Gaussian noise row so the mechanism or noise lane can test whether heavier tails alone create a clearer harder front than function-family changes.
+  hypothesis: Laplace noise at `base_scale=1.0` may increase stochastic difficulty without the broader regime ambiguity of the mixture row.
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_noise_laplace_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_noise_laplace
+    source: manifest
+    corpus_ref: tf_rd_020_noise_laplace_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the Laplace noise family in the per-invocation effective config artifacts.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run third under issue `#150`, then compare directly against the mechanism rows and mixture noise row before nominating one mechanism or noise winner.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+- order: 11
+  delta_ref: delta_data_manifest_root_tf_rd_020_noise_mixture
+  status: ready
+  rationale: Close issue `#150` with the heaviest-tailed candidate so TF-RD-020 can test whether one mixed noise surface is the clearest non-mechanism harder front.
+  hypothesis: Mixture noise with `gaussian=0.5`, `laplace=0.3`, `student_t=0.2`, and `student_t_df=6.0` may be the strongest noise candidate, but it risks becoming a noisier and less interpretable front than the mechanism rows.
+  anchor_delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_noise_mixture_v1`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_noise_mixture
+    source: manifest
+    corpus_ref: tf_rd_020_noise_mixture_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mixture-noise family plus mixture weights in the per-invocation effective config artifacts.
+  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run fourth under issue `#150`, then select exactly one mechanism-diversity or noise nominee for cross-front comparison.
+  notes:
+  - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.

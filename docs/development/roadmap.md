@@ -219,8 +219,7 @@ flowchart TD
 
 Critical path: **003 → 004 → 005 → 006 → 007 → 008**. 000, 001, 002, 003, and
 011 are implemented; 004, 005, 006, 007, and 013 are completed evidence steps;
-and 008 is now implemented as an explicit split with `row_cls + qass + no
-tfcol` as the default row-first anchor. With TF-RD-013 complete and the
+and 008 is now implemented as an explicit split with `row_cls + qass + no tfcol` as the default row-first anchor. With TF-RD-013 complete and the
 representative post-008 training-data surface now settled, the deliberate
 post-008 execution order is TF-RD-018 next to define the default training
 surface on that representative data base, TF-RD-020 next to settle the
@@ -920,6 +919,10 @@ This roadmap assumes the following repo truths:
     the first larger dataset-batch ladder on the representative medium surface
   - the settled post-008 synthetic training-data surface remains
     `tf_rd_013_dagzoo_shape_aware_size_medium_v1`
+  - issue [#147](https://github.com/bensonlee5/tab-foundry/issues/147) now
+    records the canonical pre-filter harder-front ladder in
+    [`tf_rd_020_harder_dagzoo_ladder_v1`](../../reference/system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md),
+    along with the corresponding `tf_rd_020_*_v1` corpus recipes
   - issue [#146](https://github.com/bensonlee5/tab-foundry/issues/146) is the
     new sibling epic to issue
     [#107](https://github.com/bensonlee5/tab-foundry/issues/107) and now blocks
@@ -927,8 +930,8 @@ This roadmap assumes the following repo truths:
     the full harder-front lane closes, including the final filter-regime
     decision
   - the repo already has explicit dagzoo surfaces for missingness, shift or
-    drift, mechanism diversity, and noise, but there is no canonical harder
-    dagzoo corpus ladder yet
+    drift, mechanism diversity, and noise, and the pre-filter TF-RD-020
+    ladder now fixes their initial ordering and nomination rubric
   - dagzoo now ships a small-shot ease filter contract rather than the removed
     threshold-era filter contract, but TF-RD-020 should apply that only after a
     harder front is selected rather than reopening filtering earlier in the
@@ -941,14 +944,12 @@ This roadmap assumes the following repo truths:
     the later filtering-policy lane rather than owning threshold-setting for
     this harder-front program
 - Required work:
-  - define the canonical harder dagzoo corpus ladder on the promoted anchor
-    under issue [#147](https://github.com/bensonlee5/tab-foundry/issues/147)
-  - execute the missingness ladder on the settled row-first recipe under issue
+  - execute the missingness ladder defined under issue
     [#148](https://github.com/bensonlee5/tab-foundry/issues/148)
-  - execute the shift or drift ladder on the settled row-first recipe under
+  - execute the shift or drift ladder defined under issue
     issue [#149](https://github.com/bensonlee5/tab-foundry/issues/149)
-  - execute the mechanism-diversity and noise ladder on the settled row-first
-    recipe under issue [#150](https://github.com/bensonlee5/tab-foundry/issues/150)
+  - execute the mechanism-diversity and noise ladder defined under issue
+    [#150](https://github.com/bensonlee5/tab-foundry/issues/150)
   - record which harder dagzoo front becomes the canonical synthetic
     carry-forward surface for later architecture or scaling interpretation
   - after the harder front is selected, set the dagzoo small-shot ease filter
@@ -961,6 +962,9 @@ This roadmap assumes the following repo truths:
   - the repo has one explicit keep or defer decision on the harder dagzoo
     corpus fronts that should carry forward as the next synthetic harder post-008
     surface
+  - issue [#147](https://github.com/bensonlee5/tab-foundry/issues/147) is closed
+    because the canonical pre-filter ladder and handoff are recorded in
+    [`tf_rd_020_harder_dagzoo_ladder_v1`](../../reference/system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md)
   - the repo has one explicit carried small-shot ease filter regime or explicit
     `filter.enabled=false` decision on that selected harder front
   - TF-RD-018 can resume from a documented default recipe plus one settled

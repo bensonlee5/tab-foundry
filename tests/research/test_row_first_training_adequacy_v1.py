@@ -41,7 +41,7 @@ def test_row_first_training_adequacy_v1_is_registered_on_the_tf_rd_013_medium_an
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_013_dagzoo_size_ladder_v1",
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",

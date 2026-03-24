@@ -1,0 +1,36 @@
+schema: tab-foundry-corpus-recipe-v1
+recipe_id: tf_rd_020_noise_laplace_v1
+kind: dagzoo_multi_invocation_manifest
+description: TF-RD-020 pre-filter Laplace-noise front on the settled medium invocation
+  mix.
+surface_label: tf_rd_020_noise_laplace
+manifest:
+  train_ratio: 0.9
+  val_ratio: 0.05
+  filter_policy: include_all
+  missing_value_policy: allow_any
+provenance_labels:
+  corpus_variant: tf_rd_020_noise_laplace
+  comparator_role: tf_rd_020_candidate
+  harder_front_family: noise
+  downstream_issue: 150
+  noise_family: laplace
+invocations:
+- invocation_id: benchmark_cpu
+  config_ref: configs/tf_rd_020_noise_laplace_benchmark_cpu_v1.yaml
+  num_datasets: 8
+  seed: 1
+  device: cpu
+  hardware_policy: none
+- invocation_id: default_medium
+  config_ref: configs/tf_rd_020_noise_laplace_default_v1.yaml
+  num_datasets: 28
+  seed: 1
+  device: cpu
+  hardware_policy: none
+- invocation_id: large_shape
+  config_ref: configs/tf_rd_020_noise_laplace_benchmark_cuda_h100_large_shape_v1.yaml
+  num_datasets: 4
+  seed: 1
+  device: cpu
+  hardware_policy: none

@@ -1,0 +1,67 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
+parent_sweep_id: row_first_training_adequacy_v1
+status: draft
+complexity_level: binary_md
+anchor_run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+training_experiment: cls_benchmark_staged_corpus
+training_config_profile: cls_benchmark_staged_corpus
+surface_role: architecture_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: TabICLv2
+  model_source: https://arxiv.org/abs/2602.11139
+anchor_surface:
+  notes:
+  - This sweep closes TF-RD-020 issue `#147` by recording the canonical pre-filter harder-front ladder on top of the kept TF-RD-018 four-task batch rung.
+  - Keep the settled row-first model, preprocessing surface, benchmark bundle, and warmup-decay training recipe fixed; only the synthetic dagzoo corpus front changes across rows.
+  - The carried control surface remains `tf_rd_013_dagzoo_shape_aware_size_medium_v1`, now trained with `training.task_batch_size=4`.
+  - Missingness rows use existing tab-foundry dagzoo CLI overrides; shift, mechanism-diversity, and noise rows resolve through dedicated dagzoo config refs derived from `benchmark_cpu.yaml`, `default.yaml`, and `benchmark_cuda_h100_large_shape.yaml`.
+  - Every row stays pre-filter with `filter.enabled=false`; the final small-shot ease filter decision belongs only to TF-RD-020 issue `#151` after one cross-front winner is chosen.
+  - Issues `#148`, `#149`, and `#150` each nominate exactly one pre-filter winner, and issue `#151` runs only on the single cross-front winner that survives the sweep-level rubric.
+  dimension_table:
+  - dimension: promoted anchor
+    upstream: TabICLv2 motivates synthetic pretraining but does not define this repo-local row-first promoted-anchor contract.
+    anchor: The kept `row_cls + qass + no tfcol` anchor trained on the settled `task_batch_size=4` manifest-batched surface from TF-RD-018 issue `#109`.
+    interpretation: TF-RD-020 should change only the synthetic corpus front while keeping the promoted row-first training recipe fixed.
+  - dimension: harder dagzoo corpus front
+    upstream: No dedicated upstream reference defines this exact dagzoo harder-front ladder.
+    anchor: "`tf_rd_013_dagzoo_shape_aware_size_medium_v1` is the carried medium control surface."
+    interpretation: Rows nominate missingness, shift/drift, and mechanism-diversity or noise candidates that can become the next synthetic harder carry-forward front.
+  - dimension: filtering sequence
+    upstream: Not applicable.
+    anchor: The carried medium control remains unfiltered.
+    interpretation: Keep all issue `#147` rows pre-filter and defer the final small-shot ease filter decision to issue `#151`.
+  - dimension: nomination rubric
+    upstream: Not applicable.
+    anchor: No harder-front nomination rubric existed before this sweep.
+    interpretation: Rank rows by final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third while treating runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails.
+anchor_context:
+  run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
+  experiment: cls_benchmark_staged_corpus
+  config_profile: cls_benchmark_staged_corpus
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: delta_qass_no_column_v3
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_selection:
+      allow_test_self_attention: true
+      column_encoder: none
+      context_encoder: qass
+      feature_encoder: shared
+      head: small_class
+      post_encoder_norm: none
+      post_stack_norm: none
+      row_pool: row_cls
+      table_block_residual_scale: none
+      table_block_style: prenorm
+      target_conditioner: label_token
+      tokenizer: shifted_grouped
+  surface_labels:
+    data: tf_rd_013_dagzoo_shape_aware_size_medium
+    model: delta_qass_no_column_v3
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

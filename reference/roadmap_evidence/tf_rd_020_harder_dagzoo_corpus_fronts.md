@@ -33,6 +33,10 @@ This is the canonical long-form evidence note for
   representative post-008 synthetic training-data surface
 - `row_first_training_adequacy_v1` completed the first TF-RD-018 dataset-batch
   ladder and closed [#109](https://github.com/bensonlee5/tab-foundry/issues/109)
+- issue [#147](https://github.com/bensonlee5/tab-foundry/issues/147) now records
+  the canonical pre-filter harder-front ladder in
+  [`tf_rd_020_harder_dagzoo_ladder_v1`](../system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md)
+  plus the matching `tf_rd_020_*_v1` corpus recipes
 - Dagzoo already exposes explicit surfaces for missingness, shift or drift,
   mechanism diversity, and noise on the same synthetic-data lane
 - Dagzoo now also ships a small-shot ease filter contract rather than the
@@ -47,8 +51,9 @@ This is the canonical long-form evidence note for
 
 - reuse the settled row-first recipe rather than reopening TF-RD-018 recipe
   choice inside this epic
-- define one explicit harder dagzoo corpus ladder before the remaining
-  optimizer-family, LR-shape, clipping, and budget work resumes under TF-RD-018
+- use `tf_rd_020_harder_dagzoo_ladder_v1` as the canonical pre-filter ladder
+  before the remaining optimizer-family, LR-shape, clipping, and budget work
+  resumes under TF-RD-018
 - treat missingness, shift or drift, and mechanism-diversity or noise as the
   bounded first candidate fronts rather than opening a broad new corpus program
 - keep those first harder-front comparisons pre-filter, then run one final
@@ -60,7 +65,6 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- the repo does not yet have one canonical harder dagzoo corpus ladder
 - there is no selected synthetic carry-forward surface for later architecture or
   scaling interpretation
 - there is no explicit kept small-shot ease filter regime or explicit no-filter
@@ -73,6 +77,8 @@ This is the canonical long-form evidence note for
 - the repo has one explicit keep or defer decision on the harder dagzoo corpus
   fronts that should carry forward as the next synthetic harder post-008
   surface
+- issue [#147](https://github.com/bensonlee5/tab-foundry/issues/147) is closed
+  because the canonical pre-filter ladder and handoff are now recorded
 - TF-RD-018 continuation resumes only after that harder dagzoo front and the
   final small-shot ease filter-regime decision are settled
 - the relationship between TF-RD-020 and the benchmark-front epics TF-RD-014
