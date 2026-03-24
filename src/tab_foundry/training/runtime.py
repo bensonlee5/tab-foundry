@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from accelerate import Accelerator
+from accelerate.utils import DataLoaderConfiguration
 from omegaconf import DictConfig
 
 
@@ -37,9 +38,15 @@ def build_accelerator_from_runtime(
     *,
     mixed_precision_override: str | None = None,
     grad_accum_steps_override: int | None = None,
+    dataloader_even_batches_override: bool | None = None,
 ) -> Accelerator:
     """Create an Accelerator honoring runtime device policy."""
 
+    dataloader_config = None
+    if dataloader_even_batches_override is not None:
+        dataloader_config = DataLoaderConfiguration(
+            even_batches=bool(dataloader_even_batches_override),
+        )
     return Accelerator(
         mixed_precision=resolve_mixed_precision(runtime_cfg, override=mixed_precision_override),
         gradient_accumulation_steps=resolve_grad_accum_steps(
@@ -47,4 +54,5 @@ def build_accelerator_from_runtime(
             override=grad_accum_steps_override,
         ),
         cpu=resolve_cpu_mode(runtime_cfg),
+        dataloader_config=dataloader_config,
     )

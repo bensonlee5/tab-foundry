@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-03-24
+
+### Fixed
+
+- User-facing note: manifest-backed `training.task_batch_size > 1` loaders now
+  remain compatible with multi-process Accelerate runs, disable even-batch
+  padding on the task-batched path, and avoid eager whole-shard label scans
+  during task-signature resolution.
+
+- User-facing note: manifest-backed task batching now preserves manifest order
+  when `shuffle=False`, so capped validation and checkpoint evaluation continue
+  to measure the first `runtime.val_batches` / `eval.max_batches` manifest
+  tasks instead of regrouping them by shape signature.
+
 ## [0.10.0] - 2026-03-23
 
 ### Changed
