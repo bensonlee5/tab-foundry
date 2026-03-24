@@ -201,7 +201,10 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         task_batch_size=task_batch_size,
     )
 
-    accelerator = build_accelerator_from_runtime(cfg.runtime)
+    accelerator = build_accelerator_from_runtime(
+        cfg.runtime,
+        dataloader_even_batches_override=False if task_batch_size > 1 else None,
+    )
     model, loader = accelerator.prepare(model, loader)
     logging_cfg = cfg.get("logging")
     use_wandb = bool(getattr(logging_cfg, "use_wandb", False)) if logging_cfg is not None else False

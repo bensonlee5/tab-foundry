@@ -175,50 +175,47 @@ def _subsample_values(
     return values[idx]
 
 
-def _read_packed_split_labels(split_path: Path) -> dict[int, np.ndarray]:
+def _read_packed_split_targets(
+    split_path: Path,
+    *,
+    dataset_index: int,
+) -> np.ndarray:
     try:
         table = pq.read_table(
             split_path,
-            columns=["dataset_index", "row_index", "y"],
+            filters=[("dataset_index", "=", int(dataset_index))],
+            columns=["row_index", "y"],
         )
     except Exception as exc:  # pragma: no cover - pyarrow error typing is backend-specific
-        raise RuntimeError(f"failed to read packed split parquet path={split_path}") from exc
+        raise RuntimeError(
+            f"failed to read packed split parquet path={split_path}, dataset_index={dataset_index}"
+        ) from exc
 
     if table.num_rows <= 0:
-        raise RuntimeError(f"packed split has zero rows: path={split_path}")
+        raise RuntimeError(
+            f"packed split has zero rows for dataset_index={dataset_index}: path={split_path}"
+        )
 
-    dataset_indices = table["dataset_index"].to_numpy(zero_copy_only=False).astype(np.int64, copy=False)
     row_index = table["row_index"].to_numpy(zero_copy_only=False).astype(np.int64, copy=False)
     y = table["y"].to_numpy(zero_copy_only=False)
-    if dataset_indices.shape[0] != row_index.shape[0] or dataset_indices.shape[0] != y.shape[0]:
+    if row_index.shape[0] != y.shape[0]:
         raise RuntimeError(
             "packed split row count mismatch: "
-            f"path={split_path}, dataset_index={dataset_indices.shape[0]}, "
+            f"path={split_path}, dataset_index={dataset_index}, "
             f"row_index={row_index.shape[0]}, y={y.shape[0]}"
         )
 
-    order = np.lexsort((row_index, dataset_indices))
+    order = np.argsort(row_index, kind="stable")
     if not np.array_equal(order, np.arange(order.shape[0])):
-        dataset_indices = dataset_indices[order]
         row_index = row_index[order]
         y = y[order]
 
-    labels_by_dataset: dict[int, np.ndarray] = {}
-    start = 0
-    while start < dataset_indices.shape[0]:
-        dataset_index = int(dataset_indices[start])
-        end = start + 1
-        while end < dataset_indices.shape[0] and int(dataset_indices[end]) == dataset_index:
-            end += 1
-        dataset_row_index = row_index[start:end]
-        unique = np.unique(dataset_row_index)
-        if unique.shape[0] != dataset_row_index.shape[0]:
-            raise RuntimeError(
-                f"packed split row_index values must be unique: path={split_path}, dataset_index={dataset_index}"
-            )
-        labels_by_dataset[dataset_index] = np.asarray(y[start:end])
-        start = end
-    return labels_by_dataset
+    unique = np.unique(row_index)
+    if unique.shape[0] != row_index.shape[0]:
+        raise RuntimeError(
+            f"packed split row_index values must be unique: path={split_path}, dataset_index={dataset_index}"
+        )
+    return np.asarray(y)
 
 
 @dataclass(slots=True)
@@ -352,7 +349,6 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
                 f"no records found for split={split!r}, task={task!r} in {self.manifest_path}"
             )
         self._task_signature_cache: dict[int, TaskSignature] = {}
-        self._split_label_cache: dict[Path, dict[int, np.ndarray]] = {}
 
     def __len__(self) -> int:
         return len(self.records)
@@ -477,18 +473,6 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
             return None
         return n_features
 
-    def _split_labels(self, split_path: Path, *, dataset_index: int) -> np.ndarray:
-        cached = self._split_label_cache.get(split_path)
-        if cached is None:
-            cached = _read_packed_split_labels(split_path)
-            self._split_label_cache[split_path] = cached
-        labels = cached.get(int(dataset_index))
-        if labels is None:
-            raise RuntimeError(
-                f"packed split has zero rows for dataset_index={dataset_index}: path={split_path}"
-            )
-        return labels
-
     def _fast_task_signature(self, index: int) -> TaskSignature | None:
         record = self.records[index]
         if (
@@ -512,8 +496,8 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         dataset_index = int(record["dataset_index"])
         train_path = _resolve_record_path(self.manifest_path, str(record["train_path"]))
         test_path = _resolve_record_path(self.manifest_path, str(record["test_path"]))
-        train_labels_raw = self._split_labels(train_path, dataset_index=dataset_index)
-        test_labels_raw = self._split_labels(test_path, dataset_index=dataset_index)
+        train_labels_raw = _read_packed_split_targets(train_path, dataset_index=dataset_index)
+        test_labels_raw = _read_packed_split_targets(test_path, dataset_index=dataset_index)
 
         expected_n_train = int(record.get("n_train", -1))
         expected_n_test = int(record.get("n_test", -1))

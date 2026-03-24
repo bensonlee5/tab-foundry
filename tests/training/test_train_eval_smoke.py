@@ -1103,6 +1103,27 @@ def test_train_smoke_task_batching_manifest_loader_emits_batching_telemetry(
     }
 
 
+def test_train_disables_even_batch_padding_for_task_batching(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _capture_accelerator(_runtime: object, **kwargs: object) -> None:
+        captured["dataloader_even_batches_override"] = kwargs.get("dataloader_even_batches_override")
+        raise RuntimeError("stop_after_accelerator")
+
+    monkeypatch.setattr(trainer_module, "build_accelerator_from_runtime", _capture_accelerator)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.training = {"task_batch_size": 2}
+
+    with pytest.raises(RuntimeError, match="stop_after_accelerator"):
+        _ = trainer_module.train(cfg)
+
+    assert captured["dataloader_even_batches_override"] is False
+
+
 def test_train_rejects_task_batching_for_non_manifest_loader(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
