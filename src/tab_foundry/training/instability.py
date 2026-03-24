@@ -151,11 +151,26 @@ def train_loss_delta(train_loss: float, *, previous_train_loss: float | None) ->
 def history_loss_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, float | int | None]:
     """Summarize train-loss volatility from history-style records."""
 
-    losses = [
-        float(record["train_loss"])
-        for record in records
-        if record.get("train_loss") is not None and math.isfinite(float(record["train_loss"]))
-    ]
+    weighted_losses: list[tuple[float, float]] = []
+    losses: list[float] = []
+    for record in records:
+        raw_loss = record.get("train_loss")
+        if raw_loss is None:
+            continue
+        loss_value = float(raw_loss)
+        if not math.isfinite(loss_value):
+            continue
+        raw_weight = record.get("task_batch_size_actual")
+        weight = 1.0
+        if raw_weight is not None:
+            try:
+                resolved_weight = int(raw_weight)
+            except (TypeError, ValueError):
+                resolved_weight = 1
+            if resolved_weight > 0:
+                weight = float(resolved_weight)
+        losses.append(loss_value)
+        weighted_losses.append((loss_value, weight))
     deltas = [
         float(record["train_loss_delta"])
         for record in records
@@ -173,10 +188,16 @@ def history_loss_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, floa
             "train_loss_variance": None,
             "max_abs_train_loss_delta": None,
         }
-    mean_loss = sum(losses) / float(len(losses))
+    total_weight = sum(weight for _loss, weight in weighted_losses)
+    mean_loss = (
+        sum(loss_value * weight for loss_value, weight in weighted_losses) / float(total_weight)
+        if total_weight > 0.0
+        else sum(losses) / float(len(losses))
+    )
     variance = (
-        sum((loss_value - mean_loss) ** 2 for loss_value in losses) / float(len(losses))
-        if len(losses) > 1
+        sum(weight * ((loss_value - mean_loss) ** 2) for loss_value, weight in weighted_losses)
+        / float(total_weight)
+        if total_weight > 0.0 and len(losses) > 1
         else 0.0
     )
     return {

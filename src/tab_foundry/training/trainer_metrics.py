@@ -108,6 +108,7 @@ def _evaluate_loader(
     loss_sum = 0.0
     score_sum = 0.0
     count = 0
+    tasks_seen = 0
     if task != "classification":
         raise RuntimeError(
             "Only classification evaluation is supported in this branch; "
@@ -116,17 +117,20 @@ def _evaluate_loader(
     metric_name = "acc"
 
     with torch.no_grad():
-        for step, batch in enumerate(loader):
-            if step >= max_batches:
+        for batch in loader:
+            if tasks_seen >= max_batches:
+                break
+            actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
+            if tasks_seen + actual_task_count > max_batches:
                 break
             batch = move_batch(batch, accelerator.device)
             with accelerator.autocast():
                 output = model(batch)
                 loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-            actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
             loss_sum += float(loss.detach().item()) * float(actual_task_count)
             score_sum += float(metrics[metric_name]) * float(actual_task_count)
             count += actual_task_count
+            tasks_seen += actual_task_count
 
     model.train()
     dev = accelerator.device

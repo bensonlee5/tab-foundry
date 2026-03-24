@@ -411,16 +411,23 @@ def train(cfg: DictConfig) -> TrainResult:
                 for _micro_step in range(grad_accum_steps):
                     batch = move_batch(next(train_iter), accelerator.device)
                     step_batch_payload = _task_batch_step_payload(batch)
+                    actual_task_count = int(step_batch_payload["task_batch_size_actual"])
                     with accelerator.accumulate(model):
                         with accelerator.autocast():
                             output = model(batch)
                             loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
                         accelerator.backward(loss)
-                    train_loss_sum += float(loss.detach().item())
-                    train_loss_count += 1
+                    train_loss_sum += float(loss.detach().item()) * float(actual_task_count)
+                    train_loss_count += actual_task_count
                     for key, value in metrics.items():
-                        train_metric_sums[key] = train_metric_sums.get(key, 0.0) + float(value)
-                        train_metric_counts[key] = train_metric_counts.get(key, 0) + 1
+                        train_metric_sums[key] = (
+                            train_metric_sums.get(key, 0.0)
+                            + (float(value) * float(actual_task_count))
+                        )
+                        train_metric_counts[key] = (
+                            train_metric_counts.get(key, 0)
+                            + actual_task_count
+                        )
                     batch_activation_trace_stats = _flush_activation_trace_stats()
                     if batch_activation_trace_stats is not None:
                         for activation_name, (activation_sum_sq, activation_count) in batch_activation_trace_stats.items():

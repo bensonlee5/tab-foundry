@@ -217,22 +217,26 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     loss_sum = 0.0
     score_sum = 0.0
     count = 0
+    tasks_seen = 0
 
     metric_name = "acc"
 
     try:
         with torch.no_grad():
-            for i, batch in enumerate(loader):
-                if i >= max_batches:
+            for batch in loader:
+                if tasks_seen >= max_batches:
+                    break
+                actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
+                if tasks_seen + actual_task_count > max_batches:
                     break
                 batch = move_batch(batch, accelerator.device)
                 with accelerator.autocast():
                     output = model(batch)
                     loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-                actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
                 loss_sum += float(loss.detach().item()) * float(actual_task_count)
                 score_sum += float(metrics.get(metric_name, 0.0)) * float(actual_task_count)
                 count += actual_task_count
+                tasks_seen += actual_task_count
 
         dev = accelerator.device
         loss_value = _global_mean_from_local(
