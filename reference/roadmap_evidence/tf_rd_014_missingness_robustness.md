@@ -6,7 +6,9 @@ This is the canonical long-form evidence note for
 - Status: `planned`
 - Milestone: `Next`
 - Dependency position: follows [TF-RD-018](tf_rd_018_training_surface_adequacy.md)
-  as one of the first preferred harder benchmark-backed ladders and feeds into
+  as one of the first preferred harder benchmark-backed ladders, sits adjacent
+  to the synthetic-data-only front
+  [TF-RD-020](tf_rd_020_harder_dagzoo_corpus_fronts.md), and feeds into
   [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md)
 
 ## External Evidence
@@ -28,6 +30,8 @@ This is the canonical long-form evidence note for
   bundle contracts
 - TF-RD-008 settled the row-first default on the allow-missing benchmark
   surface, but there is still no explicit row-first missingness recommendation
+- TF-RD-020 now occupies the adjacent synthetic harder-dagzoo slot and does
+  not replace this benchmark-front missingness program
 
 ## Current Interpretation
 

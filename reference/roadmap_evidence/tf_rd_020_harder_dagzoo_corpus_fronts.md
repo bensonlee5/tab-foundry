@@ -1,0 +1,80 @@
+# TF-RD-020: Harder Dagzoo Corpus Fronts On The Promoted Anchor
+
+This is the canonical long-form evidence note for
+[TF-RD-020](../../docs/development/roadmap.md#tf-rd-020-harder-dagzoo-corpus-fronts-on-the-promoted-anchor).
+
+- Status: `planned`
+- Milestone: `Next`
+- Dependency position: follows the initial TF-RD-018 batch-ladder closure under
+  [#109](https://github.com/bensonlee5/tab-foundry/issues/109), blocks the
+  remaining optimizer or LR or clipping continuation under
+  [TF-RD-018](tf_rd_018_training_surface_adequacy.md), and sits adjacent to the
+  benchmark-front harder-surface epics
+  [TF-RD-014](tf_rd_014_missingness_robustness.md) and
+  [TF-RD-017](tf_rd_017_class_imbalance_robustness.md); the full blocker now
+  includes the final small-shot ease filter-regime decision on the selected
+  harder front under
+  [#151](https://github.com/bensonlee5/tab-foundry/issues/151)
+
+## External Evidence
+
+- Shared bibliography: [reference/papers.md](../papers.md)
+- The current curated evidence is still broad tabular pretraining and
+  robustness context rather than a dedicated “harder synthetic dagzoo corpus”
+  bibliography
+- Dedicated literature for this epic is not yet curated in this repo
+- External evidence to curate next: synthetic tabular robustness papers on
+  missingness, shift or drift, mechanism diversity, heavy-tail noise, and
+  regime-separation criteria for compact tabular transformers
+
+## Repo-Local Evidence
+
+- TF-RD-013 settled `tf_rd_013_dagzoo_shape_aware_size_medium_v1` as the
+  representative post-008 synthetic training-data surface
+- `row_first_training_adequacy_v1` completed the first TF-RD-018 dataset-batch
+  ladder and closed [#109](https://github.com/bensonlee5/tab-foundry/issues/109)
+- Dagzoo already exposes explicit surfaces for missingness, shift or drift,
+  mechanism diversity, and noise on the same synthetic-data lane
+- Dagzoo now also ships a small-shot ease filter contract rather than the
+  removed threshold-era filter contract, but TF-RD-020 now treats filter-regime
+  tuning as the final follow-on after a harder front is selected
+- The benchmark-front missingness and imbalance epics already exist as
+  [#97](https://github.com/bensonlee5/tab-foundry/issues/97) and
+  [#106](https://github.com/bensonlee5/tab-foundry/issues/106), so TF-RD-020
+  should remain synthetic-data-only rather than absorbing those programs
+
+## Current Interpretation
+
+- reuse the settled row-first recipe rather than reopening TF-RD-018 recipe
+  choice inside this epic
+- define one explicit harder dagzoo corpus ladder before the remaining
+  optimizer-family, LR-shape, clipping, and budget work resumes under TF-RD-018
+- treat missingness, shift or drift, and mechanism-diversity or noise as the
+  bounded first candidate fronts rather than opening a broad new corpus program
+- keep those first harder-front comparisons pre-filter, then run one final
+  small-shot ease filter-regime decision on the selected harder front
+- keep TF-RD-020 distinct from benchmark-front missingness or imbalance
+  conclusions even when the underlying regimes overlap conceptually
+- keep the broader default-pipeline filtering-policy question under
+  [TF-RD-019](tf_rd_019_dagzoo_filtering_policy.md) rather than absorbing it
+
+## Open Evidence Gaps
+
+- the repo does not yet have one canonical harder dagzoo corpus ladder
+- there is no selected synthetic carry-forward surface for later architecture or
+  scaling interpretation
+- there is no explicit kept small-shot ease filter regime or explicit no-filter
+  decision on the selected harder front
+- the handoff contract from TF-RD-020 back into TF-RD-018 optimizer or LR or
+  clipping continuation is not yet documented in one place
+
+## Exit Signals
+
+- the repo has one explicit keep or defer decision on the harder dagzoo corpus
+  fronts that should carry forward as the next synthetic harder post-008
+  surface
+- TF-RD-018 continuation resumes only after that harder dagzoo front and the
+  final small-shot ease filter-regime decision are settled
+- the relationship between TF-RD-020 and the benchmark-front epics TF-RD-014
+  and TF-RD-017 plus the later filtering-policy lane TF-RD-019 remains
+  explicit and non-overlapping
