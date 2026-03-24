@@ -1199,6 +1199,57 @@ def test_train_task_batch_grad_accum_matches_all_tasks_reference_update(
         assert torch.allclose(trained_param, reference_param, atol=1.0e-6)
 
 
+def test_train_grad_accum_streams_move_and_forward_in_lockstep(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    events: list[str] = []
+    train_batches = [
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=1),
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=1),
+    ]
+
+    class _EventOrderClassifier(_TaskBatchAwareTinyClassifier):
+        def forward(self, batch: TaskBatch) -> ClassificationOutput:
+            events.append("forward")
+            return super().forward(batch)
+
+    monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(trainer_module, "build_task_loader", lambda *_args, **_kwargs: train_batches)
+    monkeypatch.setattr(trainer_module, "build_model_from_spec", lambda _spec: _EventOrderClassifier())
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **kwargs: _GradAccumFakeAccelerator(
+            gradient_accumulation_steps=int(kwargs.get("grad_accum_steps_override", 1) or 1),
+        ),
+    )
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_optimizer",
+        lambda model, **_kwargs: OptimizerSelection(
+            optimizers=[("sgd", torch.optim.SGD(model.parameters(), lr=0.1))],
+            requested_name="sgd",
+            resolved_name="sgd",
+        ),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "move_batch",
+        lambda batch, _device: events.append("move") or batch,
+    )
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.grad_accum_steps = 2
+    cfg.runtime.val_batches = 0
+
+    result = trainer_module.train(cfg)
+
+    assert result.global_step == 1
+    assert events == ["move", "forward", "move", "forward"]
+
+
 def test_train_smoke_task_batching_manifest_loader_emits_batching_telemetry(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

@@ -19,7 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User-facing note: per-step task-batch history and telemetry now aggregate
   across all `runtime.grad_accum_steps` microsteps, so
   `task_batch_size_actual`, fallback counts, and signature counts describe the
-  whole optimizer step instead of only the last microbatch.
+  whole optimizer step instead of only the last microbatch, while keeping
+  gradient-accumulation execution streamed so microsteps are no longer
+  preloaded onto the accelerator device.
 
 ### Changed
 

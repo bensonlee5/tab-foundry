@@ -197,26 +197,39 @@ def _accumulate_task_batch_step_payload(
         step_signature_counts[key] = step_signature_counts.get(key, 0) + int(count)
 
 
-def _scaled_microstep_loss(
+def _task_weighted_microstep_loss(
     loss: torch.Tensor,
     *,
     actual_task_count: int,
-    step_total_task_count: int,
     accelerator: Any,
 ) -> torch.Tensor:
-    if step_total_task_count <= 0:
+    resolved_task_count = int(actual_task_count)
+    if resolved_task_count <= 0:
         raise RuntimeError(
-            "task-batch accumulation requires a positive step_total_task_count, "
-            f"got {step_total_task_count}"
+            "task-batch accumulation requires a positive actual_task_count, "
+            f"got {resolved_task_count}"
         )
     accumulation_steps = getattr(accelerator, "gradient_accumulation_steps", 1)
     if not isinstance(accumulation_steps, int) or accumulation_steps <= 0:
         accumulation_steps = 1
-    return (
-        loss
-        * (float(actual_task_count) / float(step_total_task_count))
-        * float(accumulation_steps)
-    )
+    return loss * float(resolved_task_count) * float(accumulation_steps)
+
+
+def _normalize_accumulated_task_gradients(
+    model: torch.nn.Module,
+    *,
+    step_total_task_count: int,
+) -> None:
+    resolved_task_count = int(step_total_task_count)
+    if resolved_task_count <= 0:
+        raise RuntimeError(
+            "task-batch accumulation requires a positive step_total_task_count, "
+            f"got {resolved_task_count}"
+        )
+    scale = 1.0 / float(resolved_task_count)
+    for parameter in model.parameters():
+        if parameter.grad is not None:
+            parameter.grad.mul_(scale)
 
 
 def train(cfg: DictConfig) -> TrainResult:
@@ -480,34 +493,26 @@ def train(cfg: DictConfig) -> TrainResult:
                 step_batch_payload = _empty_task_batch_step_payload(
                     requested_task_batch_size=task_batch_size,
                 )
-                step_batches: list[TaskBatch] = []
-                step_microstep_payloads: list[dict[str, Any]] = []
                 step_train_start = time.perf_counter()
+                step_total_task_count = 0
                 for _micro_step in range(grad_accum_steps):
-                    batch = move_batch(next(train_iter), accelerator.device)
+                    batch = next(train_iter)
                     microstep_batch_payload = _task_batch_microstep_payload(batch)
                     _accumulate_task_batch_step_payload(
                         step_batch_payload,
                         microstep_payload=microstep_batch_payload,
                     )
-                    step_batches.append(batch)
-                    step_microstep_payloads.append(microstep_batch_payload)
-                step_total_task_count = int(step_batch_payload["task_batch_size_actual"])
-                for batch, microstep_batch_payload in zip(
-                    step_batches,
-                    step_microstep_payloads,
-                    strict=True,
-                ):
                     actual_task_count = int(microstep_batch_payload["task_batch_size_actual"])
+                    step_total_task_count += actual_task_count
+                    batch = move_batch(batch, accelerator.device)
                     with accelerator.accumulate(model):
                         with accelerator.autocast():
                             output = model(batch)
                             loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
                         accelerator.backward(
-                            _scaled_microstep_loss(
+                            _task_weighted_microstep_loss(
                                 loss,
                                 actual_task_count=actual_task_count,
-                                step_total_task_count=step_total_task_count,
                                 accelerator=accelerator,
                             )
                         )
@@ -533,6 +538,10 @@ def train(cfg: DictConfig) -> TrainResult:
                                 activation_element_counts.get(activation_name, 0.0)
                                 + float(activation_count)
                             )
+                _normalize_accumulated_task_gradients(
+                    model,
+                    step_total_task_count=step_total_task_count,
+                )
 
                 local_nan_detected = not math.isfinite(train_loss_sum)
                 global_nan_detected = _reduce_any_flag(
