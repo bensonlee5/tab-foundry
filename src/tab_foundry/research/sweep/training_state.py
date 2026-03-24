@@ -9,14 +9,14 @@ from typing import Any, Mapping, cast
 
 from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
 from tab_foundry.training.surface import (
+    TRAINING_BACKEND_LEGACY_PRIOR,
     TRAINING_BACKEND_MANIFEST,
-    TRAINING_BACKEND_PRIOR_DUMP,
 )
 
 
 _ALLOWED_TRAINING_BACKENDS = {
     TRAINING_BACKEND_MANIFEST,
-    TRAINING_BACKEND_PRIOR_DUMP,
+    TRAINING_BACKEND_LEGACY_PRIOR,
 }
 
 

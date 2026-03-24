@@ -44,7 +44,7 @@ def compose_cfg(
     row: Mapping[str, Any],
     run_dir: Path,
     device: str,
-    training_experiment: str = "cls_benchmark_staged_prior",
+    training_experiment: str = "cls_benchmark_staged_corpus",
     sweep_id: str | None = None,
 ) -> DictConfig:
     cfg = compose_config([f"experiment={training_experiment}"])
@@ -61,13 +61,38 @@ def compose_cfg(
     for key in (
         "surface_label",
         "task_batch_size",
-        "prior_dump_non_finite_policy",
-        "prior_dump_batch_size",
-        "prior_dump_lr_scale_rule",
-        "prior_dump_batch_reference_size",
     ):
         if key in training_payload:
             OmegaConf.update(cfg, f"training.{key}", training_payload[key], merge=True)
+    legacy_prior_payload = training_payload.get("legacy_prior")
+    if isinstance(legacy_prior_payload, dict):
+        for source_key, target_key in (
+            ("non_finite_policy", "non_finite_policy"),
+            ("batch_size", "batch_size"),
+            ("lr_scale_rule", "lr_scale_rule"),
+            ("batch_reference_size", "batch_reference_size"),
+        ):
+            if source_key in legacy_prior_payload:
+                OmegaConf.update(
+                    cfg,
+                    f"legacy_prior.{target_key}",
+                    legacy_prior_payload[source_key],
+                    merge=True,
+                )
+    else:
+        for source_key, target_key in (
+            ("prior_dump_non_finite_policy", "non_finite_policy"),
+            ("prior_dump_batch_size", "batch_size"),
+            ("prior_dump_lr_scale_rule", "lr_scale_rule"),
+            ("prior_dump_batch_reference_size", "batch_reference_size"),
+        ):
+            if source_key in training_payload:
+                OmegaConf.update(
+                    cfg,
+                    f"legacy_prior.{target_key}",
+                    training_payload[source_key],
+                    merge=True,
+                )
 
     overrides = cast(Mapping[str, Any], training_payload.get("overrides", {}))
     if "apply_schedule" in overrides:

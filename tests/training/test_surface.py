@@ -468,10 +468,7 @@ def test_build_training_surface_record_includes_optional_training_surface(
     assert record["training"]["optimizer_name"] == "schedulefree_adamw"
     assert record["training"]["optimizer_min_lr"] == 4.0e-4
     assert record["training"]["schedule_stages"][0]["warmup_ratio"] == 0.05
-    assert record["training"]["prior_dump_batch_size"] is None
-    assert record["training"]["prior_dump_lr_scale_rule"] is None
-    assert record["training"]["prior_dump_batch_reference_size"] is None
-    assert record["training"]["effective_lr_scale_factor"] is None
+    assert "legacy_prior" not in record["training"]
 
 
 def test_build_training_surface_record_infers_manifest_backend_from_data_surface(
@@ -494,7 +491,7 @@ def test_build_training_surface_record_infers_manifest_backend_from_data_surface
     assert record["training"]["backend"] == "manifest"
 
 
-def test_build_training_surface_record_infers_prior_dump_backend_without_data_cfg(
+def test_build_training_surface_record_infers_legacy_prior_backend_without_data_cfg(
     tmp_path: Path,
 ) -> None:
     record = build_training_surface_record(
@@ -505,10 +502,10 @@ def test_build_training_surface_record_infers_prior_dump_backend_without_data_cf
         run_dir=tmp_path / "run_prior_dump_backend",
     )
 
-    assert record["training"]["backend"] == "prior_dump"
+    assert record["training"]["backend"] == "legacy_prior"
 
 
-def test_build_training_surface_record_captures_prior_dump_batch_scaling_metadata(
+def test_build_training_surface_record_captures_legacy_prior_batch_scaling_metadata(
     tmp_path: Path,
 ) -> None:
     record = build_training_surface_record(
@@ -518,10 +515,12 @@ def test_build_training_surface_record_captures_prior_dump_batch_scaling_metadat
             "training": {
                 "surface_label": "prior_linear_warmup_decay",
                 "apply_schedule": True,
-                "prior_dump_non_finite_policy": "skip",
-                "prior_dump_batch_size": 64,
-                "prior_dump_lr_scale_rule": "sqrt",
-                "prior_dump_batch_reference_size": 32,
+            },
+            "legacy_prior": {
+                "non_finite_policy": "skip",
+                "batch_size": 64,
+                "lr_scale_rule": "sqrt",
+                "batch_reference_size": 32,
                 "effective_lr_scale_factor": 2 ** 0.5,
             },
             "optimizer": {
@@ -543,9 +542,13 @@ def test_build_training_surface_record_captures_prior_dump_batch_scaling_metadat
         run_dir=tmp_path / "run_prior_scaling",
     )
 
-    assert record["training"]["prior_dump_batch_size"] == 64
-    assert record["training"]["prior_dump_lr_scale_rule"] == "sqrt"
-    assert record["training"]["prior_dump_batch_reference_size"] == 32
-    assert record["training"]["effective_lr_scale_factor"] == 2 ** 0.5
+    assert record["training"]["backend"] == "legacy_prior"
+    assert record["training"]["legacy_prior"] == {
+        "non_finite_policy": "skip",
+        "batch_size": 64,
+        "lr_scale_rule": "sqrt",
+        "batch_reference_size": 32,
+        "effective_lr_scale_factor": 2 ** 0.5,
+    }
     assert record["training"]["optimizer_min_lr"] == 5.656854249492381e-4
     assert record["training"]["schedule_stages"][0]["lr_max"] == 5.656854249492381e-3

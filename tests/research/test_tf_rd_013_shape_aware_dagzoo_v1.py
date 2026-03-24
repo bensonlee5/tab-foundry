@@ -36,8 +36,7 @@ MANIFEST_CHARACTERISTICS_SUMMARY_PATH = SUPPORT_ROOT / "manifest_characteristics
 
 def _assert_training_payload(row: dict[str, Any], *, expected_val_batches: int) -> None:
     training = row["training"]
-    assert training["surface_label"] == "prior_linear_warmup_decay"
-    assert training["prior_dump_non_finite_policy"] == "skip"
+    assert training["surface_label"] == "linear_warmup_decay"
     overrides = training["overrides"]
     assert overrides["apply_schedule"] is True
     assert overrides["runtime"] == {
@@ -108,7 +107,7 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
 def test_tf_rd_013_shape_aware_sweep_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "cuda_stack_scale_followup"
+    assert index["active_sweep_id"] == "row_first_training_adequacy_v1"
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {

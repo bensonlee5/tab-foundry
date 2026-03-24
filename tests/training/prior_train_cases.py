@@ -444,6 +444,7 @@ def _prior_cfg(
     *,
     max_steps: int,
     training_cfg: dict[str, object] | None = None,
+    legacy_prior_cfg: dict[str, object] | None = None,
     schedule_cfg: dict[str, object] | None = None,
 ) -> object:
     payload: dict[str, object] = {
@@ -496,6 +497,8 @@ def _prior_cfg(
     }
     if training_cfg is not None:
         payload["training"] = training_cfg
+    if legacy_prior_cfg is not None:
+        payload["legacy_prior"] = legacy_prior_cfg
     if schedule_cfg is not None:
         payload["schedule"] = schedule_cfg
     return OmegaConf.create(payload)
@@ -964,9 +967,11 @@ def test_train_tabfoundry_simple_prior_scales_lr_with_prior_dump_batch_size(
         training_cfg={
             "surface_label": "prior_linear_decay",
             "apply_schedule": True,
-            "prior_dump_batch_size": 16,
-            "prior_dump_lr_scale_rule": "sqrt",
-            "prior_dump_batch_reference_size": 32,
+        },
+        legacy_prior_cfg={
+            "batch_size": 16,
+            "lr_scale_rule": "sqrt",
+            "batch_reference_size": 32,
         },
         schedule_cfg={
             "stages": [
@@ -992,15 +997,15 @@ def test_train_tabfoundry_simple_prior_scales_lr_with_prior_dump_batch_size(
     training_surface_record = json.loads(
         (tmp_path / "train_out" / "training_surface_record.json").read_text(encoding="utf-8")
     )
-    assert training_surface_record["training"]["prior_dump_batch_size"] == 16
-    assert training_surface_record["training"]["prior_dump_lr_scale_rule"] == "sqrt"
-    assert training_surface_record["training"]["prior_dump_batch_reference_size"] == 32
-    assert training_surface_record["training"]["effective_lr_scale_factor"] == pytest.approx(scale)
+    assert training_surface_record["training"]["legacy_prior"]["batch_size"] == 16
+    assert training_surface_record["training"]["legacy_prior"]["lr_scale_rule"] == "sqrt"
+    assert training_surface_record["training"]["legacy_prior"]["batch_reference_size"] == 32
+    assert training_surface_record["training"]["legacy_prior"]["effective_lr_scale_factor"] == pytest.approx(scale)
     assert training_surface_record["training"]["optimizer_min_lr"] == pytest.approx(4.0e-4 * scale)
     assert training_surface_record["training"]["schedule_stages"][0]["lr_max"] == pytest.approx(
         4.0e-3 * scale
     )
-    assert training_surface_record["training"]["backend"] == "prior_dump"
+    assert training_surface_record["training"]["backend"] == "legacy_prior"
 
 
 def test_train_tabfoundry_simple_prior_retries_with_smaller_microbatches_on_oom(
@@ -2271,7 +2276,7 @@ def test_train_tabfoundry_simple_prior_skip_policy_preserves_successful_step_bud
         ),
     )
     cfg = _prior_cfg(tmp_path, max_steps=1)
-    cfg.training = OmegaConf.create({"prior_dump_non_finite_policy": "skip"})
+    cfg.legacy_prior = OmegaConf.create({"non_finite_policy": "skip"})
 
     result = prior_train_module.train_tabfoundry_simple_prior(
         cfg,

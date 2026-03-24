@@ -1,0 +1,4 @@
+non_finite_policy: error
+batch_size: 32
+lr_scale_rule: none
+batch_reference_size: 32

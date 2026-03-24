@@ -85,10 +85,7 @@ Repo-local sanity check:
 ```text
 tab-foundry
 ├── data                          data workflows
-│   ├── build-manifest              build manifest parquet from dagzoo shard outputs
 │   ├── manifest-inspect            inspect a manifest and preflight compatibility
-│   ├── dagzoo
-│   │   └── generate-manifest       generate dagzoo corpus and emit a manifest
 │   └── corpus
 │       ├── list-recipes            list tracked corpus recipes
 │       ├── materialize             materialize a corpus recipe under outputs/corpora/
@@ -101,7 +98,10 @@ tab-foundry
 │   ├── diff-config                 compare two resolved config surfaces
 │   ├── export-check                export a checkpoint, validate, and run a smoke
 │   ├── health-check                summarize run telemetry and instability signals
-│   └── run-inspect                 inspect a run directory and its artifacts
+│   ├── run-inspect                 inspect a run directory and its artifacts
+│   └── data
+│       ├── build-manifest          build a manifest parquet from packed shard outputs
+│       └── generate-manifest       generate a dagzoo corpus and emit a manifest
 ├── train                         training workflows
 │   ├── run                         train from Hydra config overrides
 │   └── prior

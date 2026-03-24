@@ -21,9 +21,8 @@ rows:
     preprocessing:
       surface_label: runtime_default
     training:
-      surface_label: prior_linear_warmup_decay
+      surface_label: linear_warmup_decay
       task_batch_size: 4
-      prior_dump_non_finite_policy: skip
       overrides:
         apply_schedule: true
         optimizer:
@@ -80,9 +79,8 @@ rows:
     preprocessing:
       surface_label: runtime_default
     training:
-      surface_label: prior_linear_warmup_decay
+      surface_label: linear_warmup_decay
       task_batch_size: 8
-      prior_dump_non_finite_policy: skip
       overrides:
         apply_schedule: true
         optimizer:
@@ -140,9 +138,8 @@ rows:
     preprocessing:
       surface_label: runtime_default
     training:
-      surface_label: prior_linear_warmup_decay
+      surface_label: linear_warmup_decay
       task_batch_size: 16
-      prior_dump_non_finite_policy: skip
       overrides:
         apply_schedule: true
         optimizer:
@@ -201,9 +198,8 @@ rows:
     preprocessing:
       surface_label: runtime_default
     training:
-      surface_label: prior_linear_warmup_decay
+      surface_label: linear_warmup_decay
       task_batch_size: 32
-      prior_dump_non_finite_policy: skip
       overrides:
         apply_schedule: true
         optimizer:

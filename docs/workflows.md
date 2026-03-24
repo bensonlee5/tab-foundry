@@ -178,10 +178,10 @@ This writes local corpus artifacts under
 `corpus_record.json`. When configs use `data.corpus_ref`, the realized run
 records the fully resolved corpus identity in `training_surface_record.json`.
 
-The lower-level `tab-foundry data dagzoo generate-manifest` and
-`tab-foundry data build-manifest` commands still exist for one-off workflows,
-but `tab-foundry data corpus materialize` is the canonical path for recurring
-synthetic corpora such as TF-RD-013.
+The lower-level `tab-foundry dev data generate-manifest` and
+`tab-foundry dev data build-manifest` commands still exist for one-off
+workflows, but `tab-foundry data corpus materialize` is the canonical path for
+recurring synthetic corpora such as TF-RD-013.
 
 Set `DAGZOO_DATA_ROOT` once if you want a stable sibling data path:
 
@@ -192,7 +192,7 @@ export DAGZOO_DATA_ROOT="$HOME/dev/dagzoo/data"
 Build the default manifest:
 
 ```bash
-tab-foundry data build-manifest \
+tab-foundry dev data build-manifest \
   --data-root "${DAGZOO_DATA_ROOT:-$HOME/dev/dagzoo/data}" \
   --out-manifest data/manifests/default.parquet
 ```
@@ -258,12 +258,14 @@ Prior-dump training for the staged family uses the same harness with the staged
 experiment default:
 
 ```bash
-tab-foundry train prior staged
+tab-foundry train legacy-prior staged
 ```
 
-`~/dev/nanoTabPFN/300k_150x5_2.h5` is an input to `tab-foundry train prior ...`
-and `tab-foundry bench compare`. Plain `tab-foundry train run ...` commands
-still consume a packed parquet manifest instead.
+`~/dev/nanoTabPFN/300k_150x5_2.h5` is an input to
+`tab-foundry train legacy-prior ...` and to `tab-foundry bench compare` when
+you opt into the nanoTabPFN comparator with
+`--nanotabpfn-prior-dump`. Plain `tab-foundry train run ...` commands still
+consume a packed parquet manifest instead.
 
 Use the queue row plus `reference/system_delta_campaign_template.md` to decide
 the staged labels, any bounded module overrides, and the research-package paths
@@ -423,7 +425,7 @@ tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
   --external-benchmark tabiclv2 \
   --external-benchmark nanotabpfn \
-  --nanotab-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5 \
+  --nanotabpfn-prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5 \
   --tabicl-root ~/dev/tabicl
 ```
 
@@ -583,7 +585,7 @@ If you intentionally refresh the underlying control run, keep the new artifacts
 inside the repo and use the prior-trained staged path:
 
 ```bash
-tab-foundry train prior staged \
+tab-foundry train legacy-prior staged \
   --prior-dump ~/dev/nanoTabPFN/300k_150x5_2.h5 \
   runtime.output_dir=outputs/control_baselines/cls_benchmark_linear_v2/train
 
@@ -601,9 +603,9 @@ tab-foundry bench registry freeze-baseline \
 ```
 
 Keep the chosen refresh train directory empty before rerunning the training
-command; `tab-foundry train run` and `tab-foundry train prior staged` fail fast
-if `runtime.output_dir` already contains a non-empty history file or checkpoint
-`.pt` artifacts.
+command; `tab-foundry train run` and
+`tab-foundry train legacy-prior staged` fail fast if `runtime.output_dir`
+already contains a non-empty history file or checkpoint `.pt` artifacts.
 
 `cls_benchmark_linear_v2` is the canonical control baseline id for the medium
 binary bundle. `cls_benchmark_linear_v1` remains in the registry unchanged as a

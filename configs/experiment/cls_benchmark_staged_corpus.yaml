@@ -1,0 +1,14 @@
+# @package _global_
+
+defaults:
+  - cls_benchmark_staged
+  - _self_
+
+training:
+  surface_label: linear_warmup_decay
+
+runtime:
+  output_dir: outputs/cls_benchmark_staged_corpus
+
+logging:
+  run_name: cls-benchmark-staged-corpus

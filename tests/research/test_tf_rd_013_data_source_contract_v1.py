@@ -42,8 +42,7 @@ def _assert_full_replay_training_payload(
     expected_val_batches: int | None = None,
 ) -> None:
     training = row["training"]
-    assert training["surface_label"] == "prior_linear_warmup_decay"
-    assert training["prior_dump_non_finite_policy"] == "skip"
+    assert training["surface_label"] == "linear_warmup_decay"
 
     overrides = training["overrides"]
     assert overrides["apply_schedule"] is True
@@ -136,7 +135,7 @@ def _ci_like_registry_path(tmp_path: Path) -> Path:
 def test_tf_rd_013_data_source_contract_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "cuda_stack_scale_followup"
+    assert index["active_sweep_id"] == "row_first_training_adequacy_v1"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
@@ -168,7 +167,7 @@ def test_tf_rd_013_data_source_contract_metadata_and_rows_match_unfiltered_suppo
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["model"]["stage"] == "qass_context"
     assert sweep["anchor_context"]["surface_labels"]["data"] == "anchor_manifest_default"
-    assert sweep["anchor_context"]["surface_labels"]["training"] == "prior_linear_warmup_decay"
+    assert sweep["anchor_context"]["surface_labels"]["training"] == "linear_warmup_decay"
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert any("TabICLv2" in note for note in notes)
@@ -321,7 +320,7 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
     assert inspect_generated["target"]["resolved"]["training"]["optimizer_name"] == "schedulefree_adamw"
     assert inspect_generated["target"]["resolved"]["training"]["apply_schedule"] is True
     assert inspect_generated["target"]["resolved"]["training"]["backend"] == "manifest"
-    assert inspect_generated["target"]["resolved"]["training"]["prior_dump_non_finite_policy"] == "skip"
+    assert inspect_generated["target"]["resolved"]["training"]["surface_label"] == "linear_warmup_decay"
 
     diff_payload = diff_module.diff_sweep_row(
         order=1,
@@ -343,7 +342,7 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
     assert differences["resolved.data.dagzoo_provenance"]["against"] is None
     assert "resolved.training.optimizer_name" not in differences
     assert "resolved.training.apply_schedule" not in differences
-    assert "resolved.training.prior_dump_non_finite_policy" not in differences
+    assert "resolved.training.legacy_prior" not in differences
     assert "resolved.training.schedule_stages" not in differences
 
     matrix = MATRIX_PATH.read_text(encoding="utf-8")
@@ -371,7 +370,7 @@ def test_tf_rd_013_diff_uses_originating_anchor_row_when_anchor_artifacts_are_mi
     differences = diff_payload["differences"]
     assert "resolved.training.optimizer_name" not in differences
     assert "resolved.training.apply_schedule" not in differences
-    assert "resolved.training.prior_dump_non_finite_policy" not in differences
+    assert "resolved.training.legacy_prior" not in differences
     assert "resolved.training.schedule_stages" not in differences
 
 

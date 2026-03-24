@@ -172,7 +172,7 @@ def test_compare_main_parses_cli_invocation(
             str(tmp_path / "bench"),
             "--nanotabpfn-root",
             str(tmp_path / "nano"),
-            "--nanotab-prior-dump",
+            "--nanotabpfn-prior-dump",
             str(tmp_path / "prior.h5"),
             "--device",
             "cpu",

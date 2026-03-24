@@ -47,10 +47,10 @@ def hybrid_diagnostic_surface_payload() -> dict[str, Any]:
         },
         "training": {
             "surface_label": str(cfg.training.surface_label),
-            "prior_dump_non_finite_policy": str(cfg.training.prior_dump_non_finite_policy),
-            "prior_dump_batch_size": int(cfg.training.prior_dump_batch_size),
-            "prior_dump_lr_scale_rule": str(cfg.training.prior_dump_lr_scale_rule),
-            "prior_dump_batch_reference_size": int(cfg.training.prior_dump_batch_reference_size),
+            "prior_dump_non_finite_policy": str(cfg.legacy_prior.non_finite_policy),
+            "prior_dump_batch_size": int(cfg.legacy_prior.batch_size),
+            "prior_dump_lr_scale_rule": str(cfg.legacy_prior.lr_scale_rule),
+            "prior_dump_batch_reference_size": int(cfg.legacy_prior.batch_reference_size),
             "optimizer_min_lr": float(cfg.optimizer.min_lr),
             "runtime": {
                 "grad_clip": float(cfg.runtime.grad_clip),

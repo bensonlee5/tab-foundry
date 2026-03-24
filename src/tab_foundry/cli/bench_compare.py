@@ -31,7 +31,11 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
         help="Completed tab-foundry run directory with checkpoint snapshots",
     )
     parser.add_argument("--nanotabpfn-root", default="~/dev/nanoTabPFN", help="Local nanoTabPFN checkout")
-    parser.add_argument("--nanotab-prior-dump", default=None, help="Path to nanoTabPFN prior dump (.h5)")
+    parser.add_argument(
+        "--nanotabpfn-prior-dump",
+        default=None,
+        help="Path to nanoTabPFN prior dump (.h5)",
+    )
     parser.add_argument(
         "--external-benchmark",
         action="append",
@@ -121,7 +125,11 @@ def run_from_args(args: argparse.Namespace) -> int:
             tab_foundry_run_dir=Path(str(args.tab_foundry_run_dir)),
             out_root=_default_out_root() if args.out_root is None else Path(str(args.out_root)),
             nanotabpfn_root=Path(str(args.nanotabpfn_root)),
-            nanotab_prior_dump=(Path(str(args.nanotab_prior_dump)) if args.nanotab_prior_dump else None),
+            nanotab_prior_dump=(
+                Path(str(args.nanotabpfn_prior_dump))
+                if args.nanotabpfn_prior_dump
+                else None
+            ),
             device=str(args.device),
             nanotabpfn_steps=int(args.nanotabpfn_steps),
             nanotabpfn_seeds=int(args.nanotabpfn_seeds),

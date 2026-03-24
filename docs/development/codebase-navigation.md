@@ -61,7 +61,7 @@ into the canonical library modules.
   schedules, optimizers, runtime policy, evaluation helpers, telemetry health
   summaries, and the canonical exact-prior training surface under
   `training/prior_train.py`, `training/prior_dump.py`, and `training/prior/`.
-  Packaged `train prior` parser ownership lives under
+  Packaged `train legacy-prior` parser ownership lives under
   `src/tab_foundry/cli/train_prior.py`; `training/prior_train.py` is a
   parser-free library surface.
 - `src/tab_foundry/export/`: export bundle construction, loading, and
@@ -112,13 +112,11 @@ The repo uses three stable workflow layers:
 
 Current canonical CLI namespaces:
 
-- `tab-foundry data build-manifest`
 - `tab-foundry data corpus compare`
 - `tab-foundry data corpus inspect`
 - `tab-foundry data corpus list-recipes`
 - `tab-foundry data corpus materialize`
 - `tab-foundry data corpus results`
-- `tab-foundry data dagzoo generate-manifest`
 - `tab-foundry data manifest-inspect`
 - `tab-foundry dev resolve-config`
 - `tab-foundry dev forward-check`
@@ -126,9 +124,11 @@ Current canonical CLI namespaces:
 - `tab-foundry dev export-check`
 - `tab-foundry dev health-check`
 - `tab-foundry dev run-inspect`
+- `tab-foundry dev data build-manifest`
+- `tab-foundry dev data generate-manifest`
 - `tab-foundry train run`
-- `tab-foundry train prior simple`
-- `tab-foundry train prior staged`
+- `tab-foundry train legacy-prior simple`
+- `tab-foundry train legacy-prior staged`
 - `tab-foundry eval checkpoint`
 - `tab-foundry export bundle`
 - `tab-foundry export validate`

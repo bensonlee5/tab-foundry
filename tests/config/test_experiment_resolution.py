@@ -113,6 +113,19 @@ def test_cls_benchmark_staged_resolution() -> None:
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_staged/train_history.jsonl"
 
 
+def test_cls_benchmark_staged_corpus_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_staged_corpus")
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry_staged"
+    assert str(cfg.model.stage) == "nano_exact"
+    assert str(cfg.training.surface_label) == "linear_warmup_decay"
+    assert bool(cfg.training.apply_schedule) is False
+    assert int(cfg.training.task_batch_size) == 1
+    assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_staged_corpus"
+    assert str(cfg.logging.run_name) == "cls-benchmark-staged-corpus"
+    assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_staged_corpus/train_history.jsonl"
+
+
 def test_cls_benchmark_staged_explore_resolution() -> None:
     cfg = _compose("experiment=cls_benchmark_staged_explore")
     assert str(cfg.task) == "classification"
@@ -166,10 +179,10 @@ def test_cls_benchmark_staged_prior_resolution() -> None:
     assert str(cfg.training.surface_label) == "prior_linear_warmup_decay"
     assert bool(cfg.training.apply_schedule) is True
     assert int(cfg.training.task_batch_size) == 1
-    assert str(cfg.training.prior_dump_non_finite_policy) == "skip"
-    assert int(cfg.training.prior_dump_batch_size) == 32
-    assert str(cfg.training.prior_dump_lr_scale_rule) == "none"
-    assert int(cfg.training.prior_dump_batch_reference_size) == 32
+    assert str(cfg.legacy_prior.non_finite_policy) == "skip"
+    assert int(cfg.legacy_prior.batch_size) == 32
+    assert str(cfg.legacy_prior.lr_scale_rule) == "none"
+    assert int(cfg.legacy_prior.batch_reference_size) == 32
     stage = cfg.schedule.stages[0]
     assert str(stage["name"]) == "prior_dump"
     assert int(stage["steps"]) == 2500
@@ -212,10 +225,10 @@ def test_cls_benchmark_staged_prior_explore_resolution() -> None:
     assert str(cfg.training.surface_label) == "prior_linear_warmup_decay"
     assert bool(cfg.training.apply_schedule) is True
     assert int(cfg.training.task_batch_size) == 1
-    assert str(cfg.training.prior_dump_non_finite_policy) == "skip"
-    assert int(cfg.training.prior_dump_batch_size) == 32
-    assert str(cfg.training.prior_dump_lr_scale_rule) == "none"
-    assert int(cfg.training.prior_dump_batch_reference_size) == 32
+    assert str(cfg.legacy_prior.non_finite_policy) == "skip"
+    assert int(cfg.legacy_prior.batch_size) == 32
+    assert str(cfg.legacy_prior.lr_scale_rule) == "none"
+    assert int(cfg.legacy_prior.batch_reference_size) == 32
     stage = cfg.schedule.stages[0]
     assert str(stage["name"]) == "prior_dump"
     assert int(stage["steps"]) == 2500
@@ -263,10 +276,10 @@ def test_cls_benchmark_staged_prior_cuda_scale_resolution() -> None:
     assert bool(cfg.optimizer.muon_per_parameter_lr) is False
     assert str(cfg.training.surface_label) == "prior_linear_warmup_decay"
     assert bool(cfg.training.apply_schedule) is True
-    assert str(cfg.training.prior_dump_non_finite_policy) == "skip"
-    assert int(cfg.training.prior_dump_batch_size) == 64
-    assert str(cfg.training.prior_dump_lr_scale_rule) == "sqrt"
-    assert int(cfg.training.prior_dump_batch_reference_size) == 32
+    assert str(cfg.legacy_prior.non_finite_policy) == "skip"
+    assert int(cfg.legacy_prior.batch_size) == 64
+    assert str(cfg.legacy_prior.lr_scale_rule) == "sqrt"
+    assert int(cfg.legacy_prior.batch_reference_size) == 32
     stage = cfg.schedule.stages[0]
     assert str(stage["name"]) == "prior_dump"
     assert int(stage["steps"]) == 2500
@@ -314,10 +327,10 @@ def test_cls_benchmark_staged_prior_cuda_scale_explore_resolution() -> None:
     assert bool(cfg.optimizer.muon_per_parameter_lr) is False
     assert str(cfg.training.surface_label) == "prior_linear_warmup_decay"
     assert bool(cfg.training.apply_schedule) is True
-    assert str(cfg.training.prior_dump_non_finite_policy) == "skip"
-    assert int(cfg.training.prior_dump_batch_size) == 64
-    assert str(cfg.training.prior_dump_lr_scale_rule) == "sqrt"
-    assert int(cfg.training.prior_dump_batch_reference_size) == 32
+    assert str(cfg.legacy_prior.non_finite_policy) == "skip"
+    assert int(cfg.legacy_prior.batch_size) == 64
+    assert str(cfg.legacy_prior.lr_scale_rule) == "sqrt"
+    assert int(cfg.legacy_prior.batch_reference_size) == 32
     stage = cfg.schedule.stages[0]
     assert str(stage["name"]) == "prior_dump"
     assert int(stage["steps"]) == 2500

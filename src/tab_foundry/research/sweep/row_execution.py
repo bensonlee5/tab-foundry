@@ -24,8 +24,8 @@ from tab_foundry.research.lane_contract import (
 )
 from tab_foundry.training.prior_train import train_tabfoundry_simple_prior
 from tab_foundry.training.surface import (
+    TRAINING_BACKEND_LEGACY_PRIOR,
     TRAINING_BACKEND_MANIFEST,
-    TRAINING_BACKEND_PRIOR_DUMP,
 )
 from tab_foundry.training.trainer import train as train_from_manifest_cfg
 from tab_foundry.training.wandb import posthoc_update_wandb_summary
@@ -239,7 +239,7 @@ def run_row(
         )
         if training_backend == TRAINING_BACKEND_MANIFEST:
             train_result = train_from_manifest_cfg(cfg)
-        elif training_backend == TRAINING_BACKEND_PRIOR_DUMP:
+        elif training_backend == TRAINING_BACKEND_LEGACY_PRIOR:
             train_result = train_tabfoundry_simple_prior(cfg, prior_dump_path=prior_dump)
         else:  # pragma: no cover - guarded by resolve_training_backend
             raise RuntimeError(f"unsupported training backend {training_backend!r}")

@@ -361,7 +361,7 @@ def _render_command(cmd: list[str]) -> str:
 def _anchor_manifest_bootstrap_command() -> str:
     return "\n".join(
         [
-            f"{_portable_path(TAB_FOUNDRY_BIN)} data dagzoo generate-manifest \\",
+            f"{_portable_path(TAB_FOUNDRY_BIN)} dev data generate-manifest \\",
             f"  --dagzoo-root {_portable_path(DEFAULT_DAGZOO_ROOT)} \\",
             f"  --dagzoo-config {DEFAULT_DAGZOO_CONFIG_REF} \\",
             f"  --handoff-root {_portable_path(CURRENT_CORPUS_HANDOFF_ROOT)} \\",
@@ -568,7 +568,7 @@ def _dagzoo_commands(paths: MaterializationPaths) -> list[str]:
             "--hardware-policy none"
         ),
         (
-            'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry data build-manifest '
+            'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry dev data build-manifest '
             f"--data-root {_portable_path(paths.generated_dir)} "
             f"--out-manifest {_portable_path(paths.generated_manifest_path)}"
         ),
@@ -618,7 +618,7 @@ def _curated_commands(
             f"scripts/materialize_tf_rd_013_support.py{variant_flag} --force"
         ),
         (
-            'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry data build-manifest '
+            'cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry dev data build-manifest '
             f"--data-root {_portable_path(paths.curated_openml_baseline_data_root)} "
             f"--out-manifest {_portable_path(paths.curated_openml_baseline_manifest_path)}"
         ),
@@ -800,6 +800,7 @@ def _materialize_curated_openml_baseline(
 
     curated_manifest_cmd = [
         str(TAB_FOUNDRY_BIN),
+        "dev",
         "data",
         "build-manifest",
         "--data-root",
@@ -1028,6 +1029,7 @@ def _materialize_historical_support(*, dagzoo_root: Path, force: bool) -> int:
     ]
     generated_manifest_cmd = [
         str(TAB_FOUNDRY_BIN),
+        "dev",
         "data",
         "build-manifest",
         "--data-root",

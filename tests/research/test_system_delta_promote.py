@@ -68,6 +68,7 @@ def test_promote_anchor_updates_sweep_and_index_without_touching_program_for_ina
 ) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
     paths = _build_paths(tmp_path, sweeps_root, reference_root)
+    program_before = paths.program_path.read_text(encoding='utf-8')
     rendered: list[str] = []
     synced: list[str] = []
 
@@ -93,7 +94,7 @@ def test_promote_anchor_updates_sweep_and_index_without_touching_program_for_ina
     assert index['sweeps']['input_norm_followup']['anchor_run_id'] == 'sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1'
     assert rendered == ['input_norm_followup']
     assert synced == []
-    assert 'sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2' in program_text
+    assert program_text == program_before
 
 
 def test_promote_anchor_updates_program_for_active_sweep(
@@ -102,6 +103,10 @@ def test_promote_anchor_updates_program_for_active_sweep(
 ) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
     paths = _build_paths(tmp_path, sweeps_root, reference_root)
+    index = _load_yaml(sweeps_root / 'index.yaml')
+    active_sweep_id = str(index['active_sweep_id'])
+    active_sweep = _load_yaml(sweeps_root / active_sweep_id / 'sweep.yaml')
+    active_anchor_run_id = str(active_sweep['anchor_run_id'])
     rendered: list[str] = []
     synced: list[str] = []
 
@@ -113,16 +118,15 @@ def test_promote_anchor_updates_program_for_active_sweep(
     )
 
     _ = promote_anchor(
-        sweep_id='cuda_stack_scale_followup',
-        anchor_run_id='sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1',
+        sweep_id=active_sweep_id,
+        anchor_run_id=active_anchor_run_id,
         paths=paths,
     )
 
     program_text = paths.program_path.read_text(encoding='utf-8')
 
-    assert rendered == ['cuda_stack_scale_followup']
-    assert synced == ['cuda_stack_scale_followup']
-    assert 'sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1' in program_text
-    assert 'outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_replay/sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1/train' in program_text
-    assert '- active sweep id: `cuda_stack_scale_followup`' in program_text
-    assert '- canonical sweep queue: `reference/system_delta_sweeps/cuda_stack_scale_followup/queue.yaml`' in program_text
+    assert rendered == [active_sweep_id]
+    assert synced == [active_sweep_id]
+    assert active_anchor_run_id in program_text
+    assert f'- active sweep id: `{active_sweep_id}`' in program_text
+    assert f'- canonical sweep queue: `reference/system_delta_sweeps/{active_sweep_id}/queue.yaml`' in program_text

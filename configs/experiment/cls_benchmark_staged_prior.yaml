@@ -20,7 +20,8 @@ optimizer:
   min_lr: 4.0e-4
 training:
   surface_label: prior_linear_warmup_decay
-  prior_dump_non_finite_policy: skip
+legacy_prior:
+  non_finite_policy: skip
 runtime:
   output_dir: outputs/cls_benchmark_staged_prior
   trace_activations: true

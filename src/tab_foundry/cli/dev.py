@@ -11,6 +11,7 @@ from typing import Any, Mapping, Sequence, cast
 from omegaconf import OmegaConf
 import torch
 
+import tab_foundry.cli.groups.data as data_group
 from tab_foundry.config import compose_config, config_dir
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.device import resolve_torch_device
@@ -72,6 +73,8 @@ def _resolved_experiment_name(overrides: Sequence[str]) -> str | None:
 def _training_surface_payload(
     training_cfg: Mapping[str, Any],
     *,
+    legacy_prior_cfg: Mapping[str, Any],
+    backend: str,
     optimizer_cfg: Mapping[str, Any],
     schedule_cfg: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -92,24 +95,39 @@ def _training_surface_payload(
                     "lr_schedule": None if item.get("lr_schedule") is None else str(item["lr_schedule"]),
                 }
             )
-    return {
+    payload = {
         "surface_label": str(training_cfg.get("surface_label", "training_default")),
         "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
         "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
-        "prior_dump_non_finite_policy": training_cfg.get("prior_dump_non_finite_policy"),
-        "prior_dump_batch_size": (
-            None if training_cfg.get("prior_dump_batch_size") is None else int(training_cfg["prior_dump_batch_size"])
-        ),
-        "prior_dump_lr_scale_rule": training_cfg.get("prior_dump_lr_scale_rule"),
-        "prior_dump_batch_reference_size": (
-            None
-            if training_cfg.get("prior_dump_batch_reference_size") is None
-            else int(training_cfg["prior_dump_batch_reference_size"])
-        ),
         "overrides": dict(cast(dict[str, Any], training_cfg.get("overrides", {}))),
+        "backend": backend,
         "optimizer_name": None if optimizer_cfg.get("name") is None else str(optimizer_cfg["name"]),
+        "optimizer_min_lr": None
+        if optimizer_cfg.get("min_lr") is None
+        else float(optimizer_cfg["min_lr"]),
         "schedule_stages": rendered_stages,
     }
+    if backend == "legacy_prior" or legacy_prior_cfg:
+        payload["legacy_prior"] = {
+            "non_finite_policy": legacy_prior_cfg.get("non_finite_policy"),
+            "batch_size": (
+                None
+                if legacy_prior_cfg.get("batch_size") is None
+                else int(legacy_prior_cfg["batch_size"])
+            ),
+            "lr_scale_rule": legacy_prior_cfg.get("lr_scale_rule"),
+            "batch_reference_size": (
+                None
+                if legacy_prior_cfg.get("batch_reference_size") is None
+                else int(legacy_prior_cfg["batch_reference_size"])
+            ),
+            "effective_lr_scale_factor": (
+                None
+                if legacy_prior_cfg.get("effective_lr_scale_factor") is None
+                else float(legacy_prior_cfg["effective_lr_scale_factor"])
+            ),
+        }
+    return payload
 
 
 def resolve_config_payload(overrides: Sequence[str]) -> dict[str, Any]:
@@ -124,8 +142,12 @@ def resolve_config_payload(overrides: Sequence[str]) -> dict[str, Any]:
     preprocessing_surface = resolve_preprocessing_surface(
         _mapping_from_node(getattr(cfg, "preprocessing", None), context="cfg.preprocessing")
     )
+    legacy_prior_cfg = _mapping_from_node(getattr(cfg, "legacy_prior", None), context="cfg.legacy_prior")
+    backend = "manifest" if str(data_surface.source).strip().lower() == "manifest" else "legacy_prior"
     training_payload = _training_surface_payload(
         _mapping_from_node(getattr(cfg, "training", None), context="cfg.training"),
+        legacy_prior_cfg=legacy_prior_cfg,
+        backend=backend,
         optimizer_cfg=_mapping_from_node(getattr(cfg, "optimizer", None), context="cfg.optimizer"),
         schedule_cfg=_mapping_from_node(getattr(cfg, "schedule", None), context="cfg.schedule"),
     )
@@ -659,6 +681,24 @@ def register_subparsers(
     inspect_parser.add_argument("--run-dir", required=True, help="Run directory to inspect")
     inspect_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     inspect_parser.set_defaults(func=_run_run_inspect)
+
+    data_parser = subparsers.add_parser(
+        "data",
+        help="Internal data materialization helpers",
+    )
+    data_nested = data_parser.add_subparsers(dest="dev_data_command", required=True)
+
+    build_manifest_parser = data_nested.add_parser(
+        "build-manifest",
+        help="Build a manifest parquet from packed shard outputs",
+    )
+    data_group.configure_build_manifest_parser(build_manifest_parser)
+
+    generate_manifest_parser = data_nested.add_parser(
+        "generate-manifest",
+        help="Generate a dagzoo corpus and build a tab-foundry manifest",
+    )
+    data_group.configure_generate_manifest_parser(generate_manifest_parser)
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -62,8 +62,7 @@ rows:
   preprocessing:
     surface_label: runtime_default
   training:
-    surface_label: prior_linear_warmup_decay
-    prior_dump_non_finite_policy: skip
+    surface_label: linear_warmup_decay
     overrides:
       apply_schedule: true
       runtime:
@@ -170,8 +169,7 @@ rows:
   preprocessing:
     surface_label: runtime_default
   training:
-    surface_label: prior_linear_warmup_decay
-    prior_dump_non_finite_policy: skip
+    surface_label: linear_warmup_decay
     overrides:
       apply_schedule: true
       runtime:

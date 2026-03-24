@@ -63,7 +63,7 @@ def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() 
         "data": "tf_rd_013_dagzoo_shape_aware_size_medium",
         "model": "delta_qass_no_column_v3",
         "preprocessing": "runtime_default",
-        "training": "prior_linear_warmup_decay",
+        "training": "linear_warmup_decay",
     }
 
     notes = sweep["anchor_surface"]["notes"]
@@ -95,7 +95,7 @@ def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() 
             "train_row_cap": 512,
             "test_row_cap": 256,
         }
-        assert row["training"]["surface_label"] == "prior_linear_warmup_decay"
+        assert row["training"]["surface_label"] == "linear_warmup_decay"
         assert row["training"]["task_batch_size"] == task_batch_size
         assert row["training"]["overrides"]["runtime"] == {
             "grad_accum_steps": 1,
