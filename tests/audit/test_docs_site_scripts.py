@@ -128,6 +128,52 @@ def test_check_links_flags_root_absolute_site_links_without_base_path(tmp_path: 
     ]
 
 
+def test_check_links_accepts_valid_relref_shortcode_target(tmp_path: Path) -> None:
+    (tmp_path / "site" / "content" / "docs" / "getting-started").mkdir(parents=True)
+    (tmp_path / "site" / "hugo.yaml").write_text(
+        "baseURL: https://example.com/tab-foundry/\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "site" / "content" / "docs" / "getting-started" / "_index.md").write_text(
+        "# Getting Started\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "site" / "content" / "docs" / "page.md").write_text(
+        '[ok]({{< relref "/docs/getting-started/_index.md" >}})\n',
+        encoding="utf-8",
+    )
+
+    errors = check_links.scan_links(tmp_path, ["site/content"])
+
+    assert errors == []
+
+
+def test_check_links_reports_invalid_relref_shortcode_target(tmp_path: Path) -> None:
+    (tmp_path / "site" / "content" / "docs" / "getting-started").mkdir(parents=True)
+    (tmp_path / "site" / "hugo.yaml").write_text(
+        "baseURL: https://example.com/tab-foundry/\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "site" / "content" / "docs" / "getting-started" / "_index.md").write_text(
+        "# Getting Started\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "site" / "content" / "docs" / "page.md").write_text(
+        '[bad]({{< relref "/docs/getting-started/\\_index.md" >}})\n',
+        encoding="utf-8",
+    )
+
+    errors = check_links.scan_links(tmp_path, ["site/content"])
+
+    assert errors == [
+        (
+            tmp_path / "site" / "content" / "docs" / "page.md",
+            1,
+            "/docs/getting-started/\\_index.md",
+        )
+    ]
+
+
 def test_check_built_output_links_reports_missing_routes_and_generated_source_links(tmp_path: Path) -> None:
     (tmp_path / "site" / "public").mkdir(parents=True)
     (tmp_path / "site" / "hugo.yaml").write_text(

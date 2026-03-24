@@ -6,7 +6,7 @@ Use this section when you need the deeper references behind architecture,
 planning, config, or repo-shape decisions.
 
 If you are not already comfortable with the repo vocabulary, start with
-\[Getting Started\]({{< relref "/docs/getting-started/\_index.md" >}}) or
+\[Getting Started\]({{< relref "/docs/getting-started/_index.md" >}}) or
 \[What Is tab-foundry?\]({{< relref "/docs/getting-started/what-is-tab-foundry.md" >}}) first.
 
 - \[Roadmap\]({{< relref "/docs/development/roadmap.md" >}})

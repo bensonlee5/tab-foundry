@@ -27,6 +27,15 @@ HTML_LINK_RE = re.compile(
     r"(?:\bhref|\bsrc)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s>]+))",
     re.IGNORECASE,
 )
+SHORTCODE_LINK_RE = re.compile(
+    r"""
+    ^\{\{(?:<|%)
+    \s*(?P<name>ref|relref)
+    \s+(?:"(?P<double>[^"]+)"|'(?P<single>[^']+)')
+    \s*(?:>|%)\}\}$
+    """,
+    re.VERBOSE,
+)
 
 SKIP_PREFIXES = (
     "http://",
@@ -73,15 +82,18 @@ def _iter_doc_files(root: Path) -> Iterable[Path]:
             yield path
 
 
-def _normalize_target(raw_target: str) -> str:
+def _normalize_target(raw_target: str) -> tuple[str, bool]:
     target = raw_target.strip()
     if target.startswith("<") and target.endswith(">"):
         target = target[1:-1].strip()
     if target.startswith(("{{<", "{{%")) and target.endswith((">}}", "%}}")):
-        return target
+        match = SHORTCODE_LINK_RE.match(target)
+        if match is not None:
+            return (match.group("double") or match.group("single") or "", True)
+        return (target, False)
     if " " in target and not target.startswith(("http://", "https://")):
         target = target.split(" ", 1)[0]
-    return target
+    return (target, False)
 
 
 def _collect_targets(line: str, suffix: str) -> list[str]:
@@ -198,7 +210,7 @@ def scan_links(repo_root: Path = REPO_ROOT, roots: Iterable[str] = DEFAULT_ROOTS
             suffix = path.suffix.lower()
             for lineno, line in enumerate(_read_text(path).splitlines(), start=1):
                 for raw_target in _collect_targets(line, suffix):
-                    target = _normalize_target(raw_target)
+                    target, is_shortcode_link = _normalize_target(raw_target)
                     if not target or target.startswith("#") or target.startswith(("{{<", "{{%")):
                         continue
                     target = _normalize_repo_site_target(target, base_url, base_path)
@@ -207,7 +219,12 @@ def scan_links(repo_root: Path = REPO_ROOT, roots: Iterable[str] = DEFAULT_ROOTS
                     target_path = target.split("#", 1)[0].split("?", 1)[0]
                     if not target_path:
                         continue
-                    if _root_absolute_policy_violation(repo_root, path, target_path, base_path):
+                    if not is_shortcode_link and _root_absolute_policy_violation(
+                        repo_root,
+                        path,
+                        target_path,
+                        base_path,
+                    ):
                         errors.append(
                             (
                                 path,

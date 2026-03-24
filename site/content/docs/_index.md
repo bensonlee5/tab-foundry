@@ -147,9 +147,9 @@ These topic pages are the next layer down once you know which surface you need.
   schema and inference handoff contract.
 - \[Sweep Contract\]({{< relref "/docs/research-contributors/sweep-contract.md" >}}): active
   system-delta execution rules.
-- \[Development Docs\]({{< relref "/docs/development/\_index.md" >}}): roadmap,
+- \[Development Docs\]({{< relref "/docs/development/_index.md" >}}): roadmap,
   architecture, design decisions, config, and module boundaries.
-- \[References\]({{< relref "/docs/reference/\_index.md" >}}): papers, evidence,
+- \[References\]({{< relref "/docs/reference/_index.md" >}}): papers, evidence,
   and repo-local research notes.
 - \[Contributing\]({{< relref "/docs/getting-started/contributing.md" >}}): how to choose the
   right unit of work and prepare a branch for review.

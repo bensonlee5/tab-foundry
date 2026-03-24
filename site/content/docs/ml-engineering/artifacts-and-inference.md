@@ -24,14 +24,14 @@ systems own long-lived serving.
 
 ## Where To Start
 
-- \[ML Engineering & Infra\]({{< relref "/docs/ml-engineering/\_index.md" >}}): the
+- \[ML Engineering & Infra\]({{< relref "/docs/ml-engineering/_index.md" >}}): the
   fastest operational route through repo ownership, artifacts, and verification
   flows.
 - \[Workflows\]({{< relref "/docs/ml-engineering/workflows.md" >}}): command syntax and artifact
   expectations.
 - \[Inference Contract\]({{< relref "/docs/ml-engineering/inference.md" >}}): export-bundle
   schema and runtime handoff boundary.
-- \[Getting Started\]({{< relref "/docs/getting-started/\_index.md" >}}): general repo
+- \[Getting Started\]({{< relref "/docs/getting-started/_index.md" >}}): general repo
   orientation and glossary-linked terminology.
 
 ## Key Questions This Page Helps Answer
