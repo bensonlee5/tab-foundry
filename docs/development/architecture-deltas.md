@@ -4,11 +4,13 @@ Use this comparison when you need to explain how the settled row-first
 architecture differs from the frozen PFN control and the main external
 reference lines in `tab-foundry`.
 
-It compares the current target to three reference points:
+It compares the current target to four reference points:
 
 - `nanoTabPFN` as the frozen PFN control lineage
+- `nanotabicl` as the concrete minimal TabICLv2 implementation
 - TabPFN / TabPFN-2.5 as the broader official PFN architecture lineage
-- TabICLv2's row-first architecture as the main external directional reference
+- TabICLv2's paper/full-repo row-first architecture as the main external
+  directional reference
 
 The goal is to make the decision-relevant structural deltas visible without
 blurring historical diagnostic sweeps into the current normative direction.
@@ -31,6 +33,9 @@ Roadmap-first framing:
 - Older sweep matrices, including the large-CUDA diagnostic surfaces, remain
   valid research evidence, but they are historical or diagnostic surfaces, not
   the architecture target described here.
+- This doc intentionally separates `nanotabicl` from TabICLv2 itself:
+  `nanotabicl` is the concrete minimal implementation comparison, while the
+  TabICLv2 section is the broader row-first architecture-direction read.
 
 Code landing zones:
 
@@ -47,7 +52,7 @@ Code landing zones:
   `src/tab_foundry/model/components/blocks.py` and
   `src/tab_foundry/model/components/qass.py`
 
-## Settled Row-First Target At A Glance
+## Tab-Foundry Default Model At A Glance
 
 ```mermaid
 flowchart LR
@@ -109,7 +114,7 @@ flowchart LR
         tp_read --> tp_head[binary decoder]
     end
 
-    subgraph TA[Active row-first target]
+    subgraph TA[Tab-Foundry default model]
         ta_x[train/test table] --> ta_tok[shared plus grouped tokens]
         ta_y[y_train] --> ta_tc[label-token conditioning]
         ta_tok --> ta_blk[prenorm test-self cell blocks]
@@ -179,7 +184,7 @@ flowchart LR
         tp_pf --> tp_head[classification or regression head]
     end
 
-    subgraph TA[Active row-first target]
+    subgraph TA[Tab-Foundry default model]
         ta_x[train/test table] --> ta_tok[shared plus grouped tokens]
         ta_y[y_train] --> ta_tc[label-token conditioning]
         ta_tok --> ta_blk[prenorm test-self cell blocks]
@@ -208,22 +213,97 @@ surface deliberately. That makes the clean benchmark-control comparison
 `nanoTabPFN`, while the TabPFN / TabPFN-2.5 comparison is the broader
 architecture-lineage read.
 
+## Delta Vs NanoTabICL
+
+Reference points for this section:
+
+- [`nanotabicl` README](https://github.com/soda-inria/nanotabicl/blob/main/README.md)
+- [`nanotabicl/model.py`](https://github.com/soda-inria/nanotabicl/blob/main/model.py)
+
+This section is about the concrete defaults in the minimal `nanotabicl`
+implementation, not the full TabICLv2 family surface.
+
+Key structural deltas:
+
+- `nanotabicl` hard-wires `TF_col -> TF_row + CLS -> TF_icl`, whereas the
+  settled repo default keeps TFCol off and only retains it as the
+  calibration-oriented `tfcol_heads4` alternative
+- `nanotabicl` uses `embed_dim=128` for the column/row stages and reaches
+  `icl_dim=512` only after flattening 4 CLS tokens, whereas the settled target
+  keeps `d_icl=512` through the active staged surface
+- `nanotabicl` injects `y` twice: `y_embed_in` before the column/row stages and
+  `y_embed_icl` before the final ICL stage; the settled target instead uses
+  label-token conditioning plus context-stage label injection
+- `nanotabicl` uses RoPE in the row stage and QASSMax in the column and ICL
+  stages, whereas the repo keeps `TFRowEncoder` and `QASSTransformerEncoder`
+  as separate staged subsystems
+- `nanotabicl` supports both classification and regression outputs, while the
+  active staged target remains classification-only today
+
+```mermaid
+flowchart LR
+    subgraph NI[nanotabicl]
+        ni_x["train/test table"] --> ni_norm["train-only x standardization"]
+        ni_norm --> ni_tok["grouped feature shifts<br/>size 3, shifts 0 1 3"]
+        ni_y["y_train"] --> ni_yin["y_embed_in"]
+        ni_tok --> ni_xemb["x_embed Linear(3,128)"]
+        ni_xemb --> ni_inj["train-row label injection"]
+        ni_yin --> ni_inj
+        ni_inj --> ni_col["TF_col induced attention<br/>3 blocks, 128 inducing rows, QASSMax"]
+        ni_col --> ni_row["TF_row plus 4 CLS columns<br/>3 blocks, RoPE"]
+        ni_row --> ni_flat["row LN plus flatten CLS<br/>icl_dim 512"]
+        ni_y --> ni_yicl["y_embed_icl"]
+        ni_flat --> ni_ctx["train-row ICL label injection"]
+        ni_yicl --> ni_ctx
+        ni_ctx --> ni_icl["TF_icl self-attention<br/>12 blocks, QASSMax"]
+        ni_icl --> ni_head["MLP head<br/>classification or regression"]
+    end
+
+    subgraph TA[Tab-Foundry default model]
+        ta_x["train/test table"] --> ta_tok["shared plus grouped tokens"]
+        ta_y["y_train"] --> ta_tc["label-token conditioning"]
+        ta_tok --> ta_blk["prenorm test-self cell blocks"]
+        ta_tc --> ta_blk
+        ta_blk --> ta_col["optional TFCol<br/>default off"]
+        ta_col --> ta_pool["row CLS pool"]
+        ta_pool --> ta_ctx["QASS context"]
+        ta_ctx --> ta_head["small-class head"]
+    end
+
+    ni_col -. mandatory TF_col .- ta_col
+    ni_row -. row summary via flattened CLS .- ta_pool
+    ni_icl -. monolithic row-level context stage .- ta_ctx
+
+    classDef nano fill:#e9f8ef,stroke:#2d8a57,color:#123322;
+    classDef anchor fill:#fff1d6,stroke:#c67a00,color:#3d2a00;
+    class ni_x,ni_norm,ni_tok,ni_y,ni_yin,ni_xemb,ni_inj,ni_col,ni_row,ni_flat,ni_yicl,ni_ctx,ni_icl,ni_head nano;
+    class ta_x,ta_tok,ta_y,ta_tc,ta_blk,ta_col,ta_pool,ta_ctx,ta_head anchor;
+```
+
+### What This Means
+
+Relative to `nanotabicl`, the repo is already on the same broad row-first
+trajectory, but it still chooses a lighter default. The key difference is not
+whether row-level reasoning exists; it is that the settled target keeps
+column-set reasoning optional and keeps the 512-wide staged surface intact
+instead of hard-wiring the minimal `TF_col -> TF_row -> TF_icl` stack.
+
 ## Component-Level Dimension Deltas
 
-| Dimension | nanoTabPFN / tabfoundry_simple | TabPFN / TabPFN-2.5 reference | Settled Row-First Target | TabICLv2 Reference |
+| Dimension | nanoTabPFN / tabfoundry_simple | TabPFN / TabPFN-2.5 reference | Tab-Foundry Default Model | NanoTabICL Reference |
 |---|---|---|---|---|
-| Feature tokenization | 1 scalar per feature | grouped per-feature PFN tokens plus feature positional embeddings | 3 shifted-grouped channels | 1 per feature |
-| Main embedding width | `d_icl=512` | public base config `emsize=192` | `d_icl=512` | 256 |
-| Core backbone | post-norm cell-table blocks | PerFeatureTransformer with alternating feature/item attention | prenorm cell-table blocks plus separate row-context stage | row-first stack |
-| Core stack depth | 12 blocks | model-card lineage: 18-24 alternating layers | 12 cell blocks plus 12 context layers | row encoder plus ICL stack |
-| Separate column encoder | none | none as a separate module; feature reasoning stays in the PFN backbone | optional TFCol, default off | column-wise set encoder |
-| Separate row pool | target-column readout | none as a separate stage | row CLS (4 tokens, 3 layers) | CLS-based row encoder |
-| Separate context encoder | none | none as a separate stage | QASS (12 layers) | row-level ICL transformer |
-| Attention heads | 8 | public base config `nhead=6` | 8 | 4 |
-| FFN hidden | 1024 | `nhid_factor=4 * emsize` in the public base config | 1024 in the table/head path | 512 |
+| Feature tokenization | 1 scalar per feature | grouped per-feature PFN tokens plus feature positional embeddings | 3 shifted-grouped channels | grouped feature windows size 3 with shifts `(0, 1, 3)` |
+| Main embedding width | `d_icl=512` | public base config `emsize=192` | `d_icl=512` | `embed_dim=128`, `icl_dim=512` after flattening 4 CLS tokens |
+| Core backbone | post-norm cell-table blocks | PerFeatureTransformer with alternating feature/item attention | prenorm cell-table blocks plus separate row-context stage | `TF_col -> TF_row + CLS -> TF_icl` |
+| Core stack depth | 12 blocks | model-card lineage: 18-24 alternating layers | 12 cell blocks plus 12 context layers | 3 column blocks + 3 row blocks + 12 ICL blocks |
+| Separate column encoder | none | none as a separate module; feature reasoning stays in the PFN backbone | optional TFCol, default off | mandatory induced TF_col with `n_cls_rows=128` |
+| Separate row pool | target-column readout | none as a separate stage | row CLS (4 tokens, 3 layers) | 4 CLS row tokens flattened into `icl_dim=512` |
+| Separate context encoder | none | none as a separate stage | QASS (12 layers) | mandatory TF_icl row-level context stage |
+| Attention heads | 8 | public base config `nhead=6` | 8 | 8 / 8 / 8 defaults |
+| FFN hidden | 1024 | `nhid_factor=4 * emsize` in the public base config | 1024 in the table/head path | 256 in embed blocks; 1024 in ICL/head path |
 | Output scope | binary classification only | classification and regression checkpoint families | classification only today | classification or regression |
-| Label injection | mean-padded linear | target encoder inside the PFN backbone | label token plus learned test token, then row-context label injection | embedding at ICL stage |
-| Positional signal | none beyond table layout | explicit feature positional embeddings | parameter-free feature shifts `(0, 1, 3)` | row-first ordering/model-specific |
+| Label injection | mean-padded linear | target encoder inside the PFN backbone | label token plus learned test token, then row-context label injection | `y_embed_in` before TF_col/TF_row plus `y_embed_icl` before TF_icl |
+| Positional signal | none beyond table layout | explicit feature positional embeddings | parameter-free feature shifts `(0, 1, 3)` | grouped feature shifts plus RoPE in TF_row |
 | Norm layout | post-norm LayerNorm | LayerNorm inside the PFN backbone | pre-norm LayerNorm or RMSNorm | pre-norm LayerNorm |
 
 Rationale notes:
@@ -231,19 +311,23 @@ Rationale notes:
 - **`d_icl=512` vs the official TabPFN public base config**: The repo kept
   the wider nano-compatible control dimension because the cell-table trunk
   still carries both row and feature interaction load before pooling.
+- **Single-width staged surface vs `nanotabicl`'s split widths**: The repo
+  keeps one `d_icl=512` trunk through the active target, while `nanotabicl`
+  uses `embed_dim=128` in the column/row stages and only reaches 512 after
+  flattening the 4 CLS row tokens.
 - **Shifted-grouped vs feature positional embeddings**: Official TabPFN keeps
   grouped feature tokens plus explicit positional signals. The staged target
   instead uses parameter-free feature shifts and keeps TFCol as an optional
   branch.
-- **Explicit subsystem split vs monolithic PFN stack**: Official TabPFN keeps
-  item reasoning inside one PFN backbone. The staged target makes row pooling
-  and row-context encoding explicit so the repo can attribute and promote
-  deltas cleanly.
-- **Cell-table stage retained relative to TabICLv2**: TabICLv2 drops the
-  cell-table entirely and encodes rows from raw features. The repo keeps the
-  cell-table trunk because it provides a natural location for feature-level
-  attention before row pooling, which the staged ladder exploits for
-  incremental ablation.
+- **Modular row-first split vs `nanotabicl`'s mandatory stack**:
+  `nanotabicl` hard-wires column, row, and ICL stages into one row-first
+  pipeline. The staged target instead keeps row pooling and row-context
+  encoding explicit, with TFCol remaining optional so the repo can attribute
+  and promote deltas cleanly.
+- **`nanotabicl` defaults vs broader TabICLv2 direction**: `nanotabicl` is a
+  concise implementation of the TabICLv2 line, but it is not the whole
+  reference surface. The TabICLv2 section below is intentionally about the
+  paper/full-repo direction rather than one exact minimal-config snapshot.
 
 See `docs/development/model-architecture.md` (Component Details, Default Build
 Fields, and Settled Default Resolved Surface) for the full per-component shape
@@ -289,16 +373,19 @@ Source: `recipes.py:58-257`
 
 ## Delta Vs TabICLv2
 
-TabICLv2 remains the main external reference for the row-first direction. The
-active staged target is much closer to that direction than the older
-large-CUDA diagnostic surfaces were, but it is still not a literal TabICLv2
-copy.
+TabICLv2 remains the main external reference for the row-first direction at the
+paper/full-repo level. Unlike the `nanotabicl` section above, this section is
+not trying to pin one exact code configuration. It describes the broader
+row-first architecture direction that informs the staged target.
 
 Key structural deltas:
 
 - the staged target still reaches row-level reasoning through a staged
   cell-table trunk instead of presenting one monolithic row-first stack from
   the start
+- the staged target decomposes the row-first flow into explicit tokenization,
+  row pooling, and row-context subsystems so each step can be ablated and
+  promoted independently
 - TFCol and QASS remain modular staged choices rather than mandatory features
   of every model family surface
 - column-set modeling is retained as an optional branch, not the default
@@ -308,7 +395,7 @@ Key structural deltas:
 
 ```mermaid
 flowchart LR
-    subgraph TA[Active row-first target]
+    subgraph TA[Tab-Foundry default model]
         ta_x[train/test table] --> ta_tok[shared plus grouped tokens]
         ta_y[y_train] --> ta_tc[label-token conditioning]
         ta_tok --> ta_blk[prenorm test-self cell blocks]

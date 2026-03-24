@@ -223,7 +223,10 @@ class PreNormCellBlock(nn.Module):
         ).transpose(2, 1)
 
         ff_norm = self.ff_norm(cells)
-        ff_out = self.ff_dropout(self.linear2(F.gelu(self.linear1(ff_norm)))) * self.residual_branch_gain
+        ff_out = (
+            self.ff_dropout(self.linear2(F.gelu(self.linear1(ff_norm))))
+            * self.residual_branch_gain
+        )
         return ff_out + cells
 
 
