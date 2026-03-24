@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import shutil
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 import re
@@ -12,7 +14,7 @@ from typing import Any, Mapping, Sequence, cast
 from omegaconf import OmegaConf
 import torch
 
-from tab_foundry.benchmark_registry import (
+from tab_foundry.bench.benchmark_run_registry import (
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
@@ -32,14 +34,14 @@ from .materialize import (
     ordered_rows,
 )
 from .paths_io import (
+    _write_text,
     default_catalog_path,
     default_registry_path,
     default_sweep_index_path,
     default_sweeps_root,
     repo_root,
-    write_text,
 )
-from .configuration import compose_cfg
+from .runner import compose_cfg
 from .validation import ensure_mapping, ensure_non_empty_string
 
 
@@ -562,7 +564,7 @@ def render_sweep_graphs(
     resolved_out_dir.mkdir(parents=True, exist_ok=True)
     graph_paths = [render_graph_target(target, out_dir=resolved_out_dir) for target in targets]
     index_path = resolved_out_dir / "index.md"
-    write_text(
+    _write_text(
         index_path,
         _index_contents(
             sweep_id=resolved_sweep_id,
@@ -587,3 +589,73 @@ def render_sweep_graphs(
             for target, path in zip(targets, graph_paths, strict=True)
         ],
     }
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Render torchview architecture graphs for sweep targets")
+    parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
+    parser.add_argument("--anchor", action="store_true", help="Render the selected sweep anchor graph")
+    parser.add_argument("--all-rows", action="store_true", help="Render graphs for every row in the sweep")
+    parser.add_argument("--order", type=int, action="append", default=[], help="Specific queue order to render")
+    parser.add_argument(
+        "--delta-ref",
+        action="append",
+        default=[],
+        help="Specific delta_ref / materialized delta_id to render; repeatable",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default=None,
+        help="Optional output directory; defaults to outputs/staged_ladder/research/<sweep_id>/architecture_graphs",
+    )
+    parser.add_argument(
+        "--catalog-path",
+        default=str(default_catalog_path()),
+        help="Path to reference/system_delta_catalog.yaml",
+    )
+    parser.add_argument(
+        "--index-path",
+        default=str(default_sweep_index_path()),
+        help="Path to reference/system_delta_sweeps/index.yaml",
+    )
+    parser.add_argument(
+        "--registry-path",
+        default=str(default_registry_path()),
+        help="Path to benchmark_run_registry_v1.json",
+    )
+    parser.add_argument(
+        "--sweeps-root",
+        default=str(default_sweeps_root()),
+        help="Path to reference/system_delta_sweeps/",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    result = render_sweep_graphs(
+        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
+        anchor=bool(args.anchor),
+        all_rows=bool(args.all_rows),
+        orders=[int(value) for value in args.order],
+        delta_refs=[str(value) for value in args.delta_ref],
+        out_dir=None if args.out_dir is None else Path(str(args.out_dir)),
+        paths=GraphPaths(
+            index_path=Path(str(args.index_path)).expanduser().resolve(),
+            catalog_path=Path(str(args.catalog_path)).expanduser().resolve(),
+            sweeps_root=Path(str(args.sweeps_root)).expanduser().resolve(),
+            registry_path=Path(str(args.registry_path)).expanduser().resolve(),
+        ),
+    )
+    print(
+        "Sweep graph render complete.",
+        f"sweep_id={result['sweep_id']}",
+        f"graphs={len(result['graphs'])}",
+        f"index={result['index_path']}",
+        flush=True,
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

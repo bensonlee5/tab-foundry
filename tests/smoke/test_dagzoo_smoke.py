@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 import tab_foundry.bench.dagzoo_smoke as smoke_module
-import tab_foundry.cli.bench_smoke_dagzoo as smoke_cli_module
 from tab_foundry.data.dagzoo_handoff import DagzooHandoffInfo
 from tab_foundry.data.dagzoo_workflow import DagzooGenerateManifestResult
 from tab_foundry.data.manifest import ManifestSummary
@@ -13,7 +12,7 @@ from tab_foundry.types import EvalResult, TrainResult
 
 
 def test_build_parser_defaults_match_indicative_profile() -> None:
-    args = smoke_cli_module.build_parser().parse_args([])
+    args = smoke_module.build_parser().parse_args([])
     assert args.num_datasets == 128
     assert args.rows == 1024
     assert args.train_steps == 250

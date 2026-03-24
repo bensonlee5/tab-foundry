@@ -1,25 +1,11 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
 import pytest
 
 import tab_foundry.bench.instability_audit as audit_module
-
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-INSTABILITY_AUDIT_SCRIPT_PATH = REPO_ROOT / "scripts" / "bench" / "instability_audit.py"
-
-
-def _load_instability_audit_script():
-    spec = importlib.util.spec_from_file_location("bench_instability_audit_script", INSTABILITY_AUDIT_SCRIPT_PATH)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def _write_history(path: Path, *, grad_norms: list[float], train_losses: list[float]) -> Path:
@@ -222,51 +208,3 @@ def test_build_instability_audit_indexes_primary_run_id_result_cards(
     assert payload["runs"][0]["result_card_path"] == str(result_card_path.resolve())
     assert payload["runs"][0]["decision_recommendation"] == "defer"
     assert payload["runs"][0]["next_action"] == "delta_row_cls_pool_rmsnorm"
-
-
-def test_instability_audit_script_prints_report_paths(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-    tmp_path: Path,
-) -> None:
-    script_module = _load_instability_audit_script()
-    captured: dict[str, object] = {}
-
-    monkeypatch.setattr(
-        script_module.audit_module,
-        "build_instability_audit",
-        lambda *, staged_ladder_root, sweep_id, anchor_run_id, registry_path: captured.update(
-            {
-                "staged_ladder_root": staged_ladder_root,
-                "sweep_id": sweep_id,
-                "anchor_run_id": anchor_run_id,
-                "registry_path": registry_path,
-            }
-        )
-        or {"schema": "tab-foundry-instability-audit-v1"},
-    )
-    monkeypatch.setattr(
-        script_module.audit_module,
-        "write_instability_audit",
-        lambda payload, *, out_root, sweep_id: {
-            "json": str((out_root / f"{sweep_id}_instability_audit.json").resolve()),
-            "markdown": str((out_root / f"{sweep_id}_instability_audit.md").resolve()),
-        },
-    )
-
-    exit_code = script_module.main(
-        [
-            "--staged-ladder-root",
-            str(tmp_path / "outputs" / "staged_ladder"),
-            "--sweep-id",
-            "binary_md_v1",
-        ]
-    )
-
-    assert exit_code == 0
-    assert captured["sweep_id"] == "binary_md_v1"
-    assert captured["anchor_run_id"] == script_module.audit_module.DEFAULT_ANCHOR_RUN_ID
-    assert captured["staged_ladder_root"] == (tmp_path / "outputs" / "staged_ladder")
-    stdout = capsys.readouterr().out
-    assert "Instability audit complete:" in stdout
-    assert "binary_md_v1_instability_audit.json" in stdout

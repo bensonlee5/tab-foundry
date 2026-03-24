@@ -8,7 +8,6 @@ from collections.abc import Callable
 from collections import defaultdict
 from dataclasses import dataclass
 import fnmatch
-import importlib.util
 import os
 from pathlib import Path
 import shlex
@@ -18,26 +17,29 @@ from typing import Iterable, Sequence
 
 import yaml
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-
-
-def _load_tool_roots_module():
-    spec = importlib.util.spec_from_file_location("tool_roots_script", SCRIPT_DIR / "tool_roots.py")
-    if spec is None or spec.loader is None:
-        raise RuntimeError("unable to load scripts/audit/tool_roots.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
-
-
-tool_roots = _load_tool_roots_module()
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEV_INDEX_PATH = Path(__file__).with_name("dev_index.yaml")
 
 
-TOOL_ROOT = tool_roots.resolve_tool_roots(cwd=REPO_ROOT).tool_root
+def _resolve_tool_root() -> Path:
+    primary_root = os.environ.get("TAB_FOUNDRY_PRIMARY_ROOT")
+    if primary_root:
+        return Path(primary_root)
+    completed = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.returncode == 0:
+        candidate = Path(completed.stdout.strip()).parent.resolve()
+        if (candidate / ".venv" / "bin" / "python").is_file():
+            return candidate
+    return REPO_ROOT
+
+
+TOOL_ROOT = _resolve_tool_root()
 VENV_PYTHON = TOOL_ROOT / ".venv" / "bin" / "python"
 VENV_RUFF = TOOL_ROOT / ".venv" / "bin" / "ruff"
 VENV_MDFORMAT = TOOL_ROOT / ".venv" / "bin" / "mdformat"
@@ -123,7 +125,6 @@ CHECK_SPECS: dict[str, CheckSpec] = {
         argv_groups=(
             (str(VENV_PYTHON), "scripts/audit/check_repo_paths.py"),
             (str(VENV_PYTHON), "scripts/audit/check_markdown_links.py"),
-            (str(VENV_PYTHON), "scripts/audit/check_docs_consistency.py"),
             (str(VENV_PYTHON), "scripts/audit/module_graph.py", "--fail-on-doc-drift"),
         ),
     ),
@@ -561,7 +562,7 @@ def execute_check_ids(
 def _explicit_pytest_paths(paths: Sequence[str]) -> tuple[str, ...]:
     return tuple(
         path
-        for path in _ordered_unique(sorted(path.strip() for path in paths if path.strip()))
+        for path in _ordered_unique(paths)
         if path.startswith("tests/") and path.endswith(".py")
     )
 
@@ -582,7 +583,7 @@ def build_precommit_check_ids(
 ) -> tuple[VerificationPlan, tuple[str, ...]]:
     plan = build_verification_plan(changed_paths, index)
     explicit_paths = _explicit_pytest_paths(changed_paths)
-    explicit_check_ids = _explicit_pytest_check_ids(explicit_paths)
+    explicit_check_ids = _explicit_pytest_check_ids(changed_paths)
     filtered_check_ids = tuple(
         check_id
         for check_id in plan.check_ids

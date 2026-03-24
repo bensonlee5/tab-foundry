@@ -9,7 +9,6 @@ from omegaconf import OmegaConf
 import pytest
 
 import tab_foundry.research.sweep.matrix as matrix_module
-from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.research.lane_contract import (
     ARCHITECTURE_SCREEN_LANE,
     HYBRID_DIAGNOSTIC_LANE,
@@ -18,19 +17,20 @@ from tab_foundry.research.lane_contract import (
     resolve_training_experiment,
     resolve_surface_role,
 )
-from tab_foundry.research.sweep.catalog import (
+from tab_foundry.research.system_delta import (
+    create_sweep,
     load_system_delta_catalog,
     load_system_delta_index,
+    load_system_delta_queue,
     load_system_delta_queue_instance,
     load_system_delta_sweep,
+    next_ready_row,
+    render_system_delta_matrix,
+    validate_system_delta_queue,
 )
-from tab_foundry.research.sweep.manage import create_sweep
-from tab_foundry.research.sweep.materialize import load_system_delta_queue, next_ready_row
-from tab_foundry.research.sweep.matrix import render_system_delta_matrix, validate_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REGISTRY_PATH = default_benchmark_run_registry_path()
 
 
 def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:
@@ -167,7 +167,7 @@ def test_system_delta_matrix_render_includes_sweep_and_namespaced_result_card() 
     }
     matrix = render_system_delta_matrix(
         queue,
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
     )
 
     assert "reference/system_delta_sweeps/binary_md_v1/queue.yaml" in matrix
@@ -292,7 +292,7 @@ def test_create_sweep_supports_explicit_delta_ref_order(tmp_path: Path) -> None:
         ],
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
         sweeps_root=sweeps_root,
     )
 
@@ -334,7 +334,7 @@ def test_create_sweep_supports_missing_permitting_bundle_anchor_surface(tmp_path
         surface_role="architecture_screen",
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
         sweeps_root=sweeps_root,
     )
 
@@ -363,7 +363,7 @@ def test_create_sweep_rejects_unknown_explicit_delta_ref(tmp_path: Path) -> None
             delta_refs=["delta_anchor_activation_trace_baseline", "delta_missing_unknown"],
             index_path=sweeps_root / "index.yaml",
             catalog_path=reference_root / "system_delta_catalog.yaml",
-            registry_path=REGISTRY_PATH,
+            registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
             sweeps_root=sweeps_root,
         )
 
@@ -380,7 +380,7 @@ def test_create_sweep_bootstraps_from_catalog_and_applies_guards(tmp_path: Path)
         control_baseline_id="cls_benchmark_linear_v2",
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
         sweeps_root=sweeps_root,
     )
 
@@ -442,7 +442,7 @@ def test_create_sweep_derives_lane_contract_from_overridden_training_experiment(
         delta_refs=["delta_anchor_activation_trace_baseline"],
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
         sweeps_root=sweeps_root,
     )
 
@@ -480,7 +480,7 @@ def test_create_sweep_preserves_explicit_external_benchmarks_override(tmp_path: 
         delta_refs=["delta_anchor_activation_trace_baseline"],
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
         sweeps_root=sweeps_root,
     )
 
@@ -516,7 +516,7 @@ def test_create_sweep_preserves_explicit_lane_contract_overrides(tmp_path: Path)
         delta_refs=["delta_anchor_activation_trace_baseline"],
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
         sweeps_root=sweeps_root,
     )
 
@@ -554,7 +554,7 @@ def test_create_sweep_labels_simple_surface_as_pfn_control(tmp_path: Path) -> No
         delta_refs=["delta_anchor_activation_trace_baseline"],
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
         sweeps_root=sweeps_root,
     )
 
@@ -603,7 +603,7 @@ def test_create_sweep_marks_unknown_training_label_for_unlabeled_nonprior_anchor
         control_baseline_id="cls_benchmark_linear_v2",
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
         sweeps_root=sweeps_root,
     )
 
@@ -672,7 +672,7 @@ def test_system_delta_queue_validation_passes_when_no_rows_are_completed() -> No
 
     assert validate_system_delta_queue(
         queue_without_completed_rows,
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
     ) == []
 
 
@@ -691,7 +691,7 @@ def test_system_delta_queue_validation_detects_completed_metric_mismatch(
 
     issues = validate_system_delta_queue(
         queue,
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
     )
 
     assert any(
@@ -805,7 +805,7 @@ def test_checked_in_completed_system_delta_queues_validate_against_registry(
         )
         assert validate_system_delta_queue(
             queue,
-            registry_path=REGISTRY_PATH,
+            registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
         ) == []
 
 
@@ -818,7 +818,7 @@ def test_checked_in_system_delta_matrix_matches_rendered_active_sweep() -> None:
     )
     rendered = render_system_delta_matrix(
         queue,
-        registry_path=REGISTRY_PATH,
+        registry_path=REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json",
     )
     checked_in = (REPO_ROOT / "reference" / "system_delta_matrix.md").read_text(encoding="utf-8")
 

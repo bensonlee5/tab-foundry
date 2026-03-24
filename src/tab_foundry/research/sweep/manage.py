@@ -22,15 +22,7 @@ from .catalog import (
 )
 from .materialize import guarded_initial_state, load_system_delta_queue, materialize_system_delta_queue
 from .matrix import render_and_write_system_delta_matrix
-from .paths_io import (
-    _copy_jsonable,
-    default_matrix_path,
-    default_queue_path,
-    default_sweep_index_path,
-    sweep_metadata_path,
-    sweep_queue_path,
-    write_yaml,
-)
+from .paths_io import _copy_jsonable, _write_yaml, default_matrix_path, default_queue_path, default_sweep_index_path, sweep_metadata_path, sweep_queue_path
 from .validation import (
     DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
     ensure_external_benchmarks,
@@ -262,9 +254,9 @@ def create_sweep(
     }
     sweeps[normalized_sweep_id] = sweep_info
 
-    write_yaml(sweep_metadata_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), sweep_payload)
-    write_yaml(sweep_queue_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), queue_payload)
-    write_yaml(resolved_index_path, index)
+    _write_yaml(sweep_metadata_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), sweep_payload)
+    _write_yaml(sweep_queue_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), queue_payload)
+    _write_yaml(resolved_index_path, index)
 
     queue = materialize_system_delta_queue(
         catalog=catalog,
@@ -311,7 +303,7 @@ def set_active_sweep(
     if normalized_sweep_id not in sweeps:
         raise RuntimeError(f"unknown sweep_id: {normalized_sweep_id}")
     index["active_sweep_id"] = normalized_sweep_id
-    write_yaml(resolved_index_path, index)
+    _write_yaml(resolved_index_path, index)
     return sync_active_sweep_aliases(
         sweep_id=normalized_sweep_id,
         index_path=resolved_index_path,
@@ -337,7 +329,7 @@ def sync_active_sweep_aliases(
     )
     alias_queue_path = default_queue_path()
     alias_matrix_path = default_matrix_path()
-    write_yaml(alias_queue_path, queue)
+    _write_yaml(alias_queue_path, queue)
     _ = render_and_write_system_delta_matrix(
         sweep_id=str(queue["sweep_id"]),
         queue=queue,

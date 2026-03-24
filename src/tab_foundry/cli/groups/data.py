@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import subprocess
 
-import tab_foundry.cli.data_inspect as data_inspect_module
+from tab_foundry.cli.helpers import register_delegate_leaf
 from tab_foundry.data.corpus import (
     corpus_compare_payload,
     corpus_results_payload,
@@ -175,6 +175,12 @@ def _run_dagzoo_generate_manifest(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_manifest_inspect(argv=None) -> int:
+    from tab_foundry.cli.data_inspect import main as inspect_main
+
+    return inspect_main(None if argv is None else list(argv))
+
+
 def _print_json_payload(payload: object) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
@@ -301,12 +307,12 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     build_parser.set_defaults(func=_run_build_manifest)
 
-    manifest_inspect_parser = nested.add_parser(
+    register_delegate_leaf(
+        nested,
         "manifest-inspect",
         help="Inspect one manifest parquet and optionally preflight compatibility",
+        delegate=_run_manifest_inspect,
     )
-    data_inspect_module.configure_parser(manifest_inspect_parser)
-    manifest_inspect_parser.set_defaults(func=data_inspect_module.run_from_args)
 
     dagzoo_parser = nested.add_parser("dagzoo", help="dagzoo-backed data workflows")
     dagzoo_nested = dagzoo_parser.add_subparsers(dest="dagzoo_command", required=True)

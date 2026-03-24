@@ -7,13 +7,12 @@ from typing import Any
 from omegaconf import OmegaConf
 import pytest
 
-from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
-from tab_foundry.research.sweep.promote import PromotionPaths, promote_anchor, resolve_run_id_for_order
-import tab_foundry.research.sweep.promote as promote_module
+from tab_foundry.research.system_delta_promote import PromotionPaths, promote_anchor, resolve_run_id_for_order
+import tab_foundry.research.system_delta_promote as promote_module
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-REGISTRY_PATH = default_benchmark_run_registry_path()
+REGISTRY_PATH = REPO_ROOT / 'src' / 'tab_foundry' / 'bench' / 'benchmark_run_registry_v1.json'
 
 
 def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:
@@ -53,6 +52,7 @@ def _build_paths(tmp_path: Path, sweeps_root: Path, reference_root: Path) -> Pro
         program_path=program_path,
     )
 
+
 def test_resolve_run_id_for_order_uses_queue_run_id(tmp_path: Path) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
     paths = _build_paths(tmp_path, sweeps_root, reference_root)
@@ -73,7 +73,7 @@ def test_promote_anchor_updates_sweep_and_index_without_touching_program_for_ina
 
     monkeypatch.setattr(promote_module, '_render_sweep_matrix', lambda **kwargs: rendered.append(kwargs['sweep_id']))
     monkeypatch.setattr(
-        promote_module,
+        promote_module.system_delta,
         'sync_active_sweep_aliases',
         lambda **kwargs: synced.append(kwargs['sweep_id']) or {},
     )
@@ -107,7 +107,7 @@ def test_promote_anchor_updates_program_for_active_sweep(
 
     monkeypatch.setattr(promote_module, '_render_sweep_matrix', lambda **kwargs: rendered.append(kwargs['sweep_id']))
     monkeypatch.setattr(
-        promote_module,
+        promote_module.system_delta,
         'sync_active_sweep_aliases',
         lambda **kwargs: synced.append(kwargs['sweep_id']) or {},
     )

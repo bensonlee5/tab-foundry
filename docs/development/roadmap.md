@@ -225,9 +225,9 @@ attention.
 | Coherent row-first migration ladder exists in code | `implemented` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly, and `qass_tfcol_large_missing_validation_v1` closed the missing-permitting settlement sweep | The remaining work is no longer anchor coherence; it is harder and broader post-008 regime coverage on the settled row-first base | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and both large-bundle validators now separate row embeddings, plain context, TFCol-only, QASS-only, the no-TFCol default line, and the retained `qass + tfcol_heads4` calibration variant | The next comparison gap is no longer anchor settlement; it is whether harder post-008 fronts provide more decisive regime separation before scaling work | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | One promoted row-first classification anchor exists | `implemented` | `qass_tfcol_large_missing_validation_v1` closed on an explicit split: `row_cls + qass + no tfcol` is now the default row-first anchor, while `row_cls + qass + tfcol_heads4` is retained as a calibration-oriented alternative | Future work should treat the no-TFCol line as the default and reserve TFCol for explicit calibration-oriented follow-up rather than reopening anchor settlement | `TF-RD-008` |
-| Harder post-008 data surfaces can be exercised | `implemented` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, and the completed TF-RD-013 size ladder under `#132` now exist on the current manifest backend | The immediate blocker is no longer representative-data selection; TF-RD-018 should now treat the 40-dataset shape-aware dagzoo medium rung as the canonical post-008 training-data surface, start with a larger dataset-batching ladder there, and only then carry the preferred rung into optimizer or schedule follow-up | `TF-RD-011`, `TF-RD-013`, `TF-RD-014`, `TF-RD-017`, `TF-RD-018` |
+| Harder post-008 data surfaces can be exercised | `implemented` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, and the completed TF-RD-013 size ladder under `#132` now exist on the current manifest backend | The immediate blocker is no longer representative-data selection; TF-RD-018 should now treat the 40-dataset shape-aware dagzoo medium rung as the canonical post-008 training-data surface and decide optimizer or schedule adequacy there before reopening broader regime coverage | `TF-RD-011`, `TF-RD-013`, `TF-RD-014`, `TF-RD-017`, `TF-RD-018` |
 | Class-imbalance robustness is meaningfully exercised | `partial` | Current benchmark bundles enforce `min_minority_class_pct = 2.5`, so the repo already excludes degenerate class-balance cases | There is no dedicated imbalance-focused bundle ladder, imbalance-oriented reporting contract, or explicit decision on the promoted anchor under materially skewed priors | `TF-RD-017` |
-| Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, and bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist | The repo still lacks one canonical TF-RD-018 adequacy spine that starts with manifest-backed dataset batching on the TF-RD-013 medium surface and then carries that settled rung into optimizer, schedule, budget, and clipping follow-up | `TF-RD-018` |
+| Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, and bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist | Optimizer, schedule, step-budget, batch, and clipping adequacy are not yet tracked as one roadmap workstream with a canonical decision surface | `TF-RD-018` |
 | Many-class evaluation can start on the row-first base | `partial` | The staged family already includes `many_class`, reusable machinery exists, and `nanotabpfn_openml_classification_small_v1.json` provides a benchmark-facing multiclass bundle | Many-class still lacks a promoted row-first benchmark ladder, adequacy sweeps, and a keep/defer decision | `TF-RD-010` |
 | Regression rebuild can start on the staged base | `research` | Regression metrics and benchmark-bundle normalization support already exist in the repo | There is no active staged regression program, canonical regression bundle, or staged regression head/loss contract | `TF-RD-015` |
 | The staged surface is broad enough for future adequacy work before adding new knobs | `partial` | Tokenization already includes `scalar_per_feature`, `scalar_per_feature_nan_mask`, and `shifted_grouped`; token count is already adjustable through `feature_group_size`; norms, widths, depths, row CLS count, TFCol inducing count, context FF expansion, dropout, and clipping are already exposed | The repo still needs a deliberate decision on whether the existing surface is sufficient on harder regimes and, only if not, whether low-level or hardcoded choices such as special-token init scale, activation family, row or column FF expansion, QASS scaler capacity, grouped shift recipe, or many-class threshold should be surfaced selectively | `TF-RD-016` |
@@ -695,9 +695,8 @@ This roadmap assumes the following repo truths:
     TF-RD-013 is the first sweep migrated onto that shared local corpus layer
     instead of relying on sweep-local dagzoo orchestration
   - issue [#107](https://github.com/bensonlee5/tab-foundry/issues/107) is no
-    longer blocked on TF-RD-013; TF-RD-018 should now start with a larger
-    manifest-backed dataset-batching ladder on the selected same-backend
-    medium-rung manifest surface before reopening optimizer and schedule follow-up
+    longer blocked on TF-RD-013; TF-RD-018 should now settle optimizer and
+    schedule adequacy on the selected same-backend medium-rung manifest surface
   - the fresh current-corpus control resolved through recipe
     `tf_rd_013_current_corpus_default_v1` and surface label
     `anchor_manifest_default` now inspects to `10` total records with an
@@ -832,59 +831,37 @@ This roadmap assumes the following repo truths:
 - Status: `planned`
 - Milestone: `Next`
 - Goal: once TF-RD-013 has fixed the representative post-008 training-data
-  surface, make dataset batching, optimizer, schedule, budget, and runtime
-  adequacy an explicit cross-cutting decision surface instead of leaving it as
-  sweep-local interpretation
+  surface, make optimizer, schedule, budget, and runtime adequacy an explicit
+  cross-cutting decision surface instead of leaving it as sweep-local
+  interpretation
 - Current state:
   - adequacy work already exists in `parameter_adequacy_plan` notes and
     isolated sweeps, but there is no canonical training-surface epic
   - `Muon` is already supported in the optimizer surface but has no clean
     roadmap home
   - current adequacy reads are still scattered across frontier-specific sweeps
-  - this epic now has a linked tracking issue
-    [#107](https://github.com/bensonlee5/tab-foundry/issues/107) and a first
-    execution issue
-    [#109](https://github.com/bensonlee5/tab-foundry/issues/109)
+  - this epic should follow TF-RD-013 so optimizer and schedule work are grounded
+    in data that looks like intended use
   - issues `#122`, `#127`, and the completed size ladder in
     [#132](https://github.com/bensonlee5/tab-foundry/issues/132) now settle the
     representative post-008 training-data surface: TF-RD-018 should start from
     `tf_rd_013_dagzoo_shape_aware_size_medium_v1`
-  - the first TF-RD-018 ladder is no longer optimizer-family-first: the next
-    read should test larger manifest-backed dataset batches on the settled
-    `40`-dataset medium surface because TF-RD-013 showed that more datasets can
-    improve final log loss when drift remains controlled
-  - the current medium-surface singleton runtime is about `227s`, so larger
-    dataset batches remain compatible with iterative reads if the queue keeps a
-    `30` minute wall-clock gate
   - later architecture reads remain confounded until the repo has one explicit
     adequacy decision surface on the settled row-first base
 - Required work:
   - define the canonical adequacy ladder on the promoted anchor using the
     representative data surface settled by TF-RD-013 and then carry it onto the
     first harder post-008 ladders
-  - start with a larger dataset-batching ladder on
-    `tf_rd_013_dagzoo_shape_aware_size_medium_v1`, keeping the rest of the
-    medium-surface family fixed while testing manifest-backed task batches
-  - run `task_batch_size=4` and `task_batch_size=8` unconditionally as the
-    first TF-RD-018 rows
-  - treat `task_batch_size=16` and `task_batch_size=32` as conditional
-    follow-ups only if the previous rung finishes in `<= 900s`, needs no OOM
-    mitigation, and stays on the batched path for at least `90%` of updates
-  - stop the ladder once a rung exceeds `1800s`, requires OOM mitigation, or
-    falls back to singleton for more than `10%` of updates
-  - after the preferred batch rung is chosen, carry the remaining optimizer
-    family, LR/schedule/warmup shape, step-budget, and clipping comparisons on
-    top of that rung instead of reopening singleton first
+  - start with optimizer family, LR/schedule/warmup shape, step budget, batch
+    size or accumulation, and clipping policy
   - include `schedulefree_adamw`, `adamw`, and `muon` in the bounded optimizer
-    family comparison after the batch ladder settles
+    family comparison
   - keep architecture changes out of this epic and treat device/runtime
     constraints only insofar as they change interpretation of optimizer or
     schedule adequacy
 - Exit criteria:
   - the repo has an explicit default training surface for next-tier fronts on
-    the settled row-first anchor, starting from a documented dataset-batch
-    ladder on the TF-RD-013 medium surface, and at least one harder post-008
-    ladder
+    the settled row-first anchor and at least one harder post-008 ladder
   - the repo has a clear rule for when optimizer or schedule adequacy must be
     resolved before interpreting architecture outcomes
 

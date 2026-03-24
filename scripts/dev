@@ -7,21 +7,12 @@ usage() {
   cat <<'EOF'
 Usage:
   ./scripts/dev bootstrap
-  ./scripts/dev doctor
-  ./scripts/dev ready [--base-ref <git-ref>]
   ./scripts/dev review-base [--base-ref <git-ref>]
   ./scripts/dev verify affected [--base-ref <git-ref>]
   ./scripts/dev verify paths <PATH...>
   ./scripts/dev verify audit
   ./scripts/dev verify full
   ./scripts/dev smoke iris [tab-foundry bench smoke iris args...]
-
-Repo-local only:
-  scripts/dev is for bootstrap, environment checks, review/verify, and smoke.
-  For data/train/eval/export/bench/research workflows, use:
-    .venv/bin/tab-foundry --help
-    .venv/bin/tab-foundry <group> --help
-    .venv/bin/tab-foundry <group> <command> --help
 EOF
 }
 
@@ -33,21 +24,9 @@ ensure_venv() {
 }
 
 primary_repo_root() {
-  if [[ -n "${TAB_FOUNDRY_PRIMARY_ROOT:-}" ]]; then
-    printf '%s\n' "${TAB_FOUNDRY_PRIMARY_ROOT}"
-    return
-  fi
   local common_git_dir
-  common_git_dir="$(common_git_dir_path)"
+  common_git_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
   (cd "${common_git_dir}/.." && pwd)
-}
-
-tool_root_field() {
-  python3 "${REPO_ROOT}/scripts/audit/tool_roots.py" print --field "$1"
-}
-
-common_git_dir_path() {
-  git rev-parse --path-format=absolute --git-common-dir
 }
 
 pre_commit_python() {
@@ -62,7 +41,7 @@ pre_commit_python() {
 
 rewrite_pre_commit_hook_python() {
   local common_git_dir hook_path install_python
-  common_git_dir="$(common_git_dir_path)"
+  common_git_dir="$(git rev-parse --path-format=absolute --git-common-dir)"
   hook_path="${common_git_dir}/hooks/pre-commit"
   install_python="$(pre_commit_python)"
   if [[ ! -f "${hook_path}" ]]; then
@@ -83,97 +62,6 @@ hook_path.write_text("\n".join(rewritten) + "\n", encoding="utf-8")
 PY
 }
 
-doctor() {
-  local failures=0
-  local required_python=""
-  local detected_python=""
-  local expected_install_python=""
-  local actual_install_python=""
-  local common_git_dir=""
-  local hook_path=""
-  local tool_source=""
-  local tool_root=""
-
-  printf 'scripts/dev scope: repo-local bootstrap, review/verify, and smoke only.\n'
-  printf 'Use .venv/bin/tab-foundry ... for data/train/eval/export/bench/research workflows.\n'
-
-  if tool_source="$(tool_root_field source 2>/dev/null)" && tool_root="$(tool_root_field tool-root 2>/dev/null)"; then
-    printf '[ok] tool root policy: source=%s root=%s\n' "${tool_source}" "${tool_root}"
-  else
-    printf '[fail] tool root policy: unable to resolve worktree-first tool root\n'
-    failures=$((failures + 1))
-  fi
-
-  if command -v uv >/dev/null 2>&1; then
-    printf '[ok] uv: %s\n' "$(command -v uv)"
-  else
-    printf '[fail] uv: not found on PATH\n'
-    failures=$((failures + 1))
-  fi
-
-  if [[ -x "${REPO_ROOT}/.venv/bin/python" ]]; then
-    printf '[ok] .venv python: %s\n' "${REPO_ROOT}/.venv/bin/python"
-    required_python="$(tr -d '[:space:]' < "${REPO_ROOT}/.python-version")"
-    detected_python="$("${REPO_ROOT}/.venv/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
-    if [[ "${detected_python}" == "${required_python}" ]]; then
-      printf '[ok] python version: %s\n' "${detected_python}"
-    else
-      printf '[fail] python version: expected=%s actual=%s\n' "${required_python}" "${detected_python}"
-      failures=$((failures + 1))
-    fi
-    if "${REPO_ROOT}/.venv/bin/python" -m pre_commit --version >/dev/null 2>&1; then
-      printf '[ok] pre-commit package: installed in .venv\n'
-    else
-      printf '[fail] pre-commit package: missing from .venv\n'
-      failures=$((failures + 1))
-    fi
-  else
-    printf '[fail] .venv python: missing %s\n' "${REPO_ROOT}/.venv/bin/python"
-    failures=$((failures + 1))
-  fi
-
-  if [[ -x "${REPO_ROOT}/.venv/bin/tab-foundry" ]]; then
-    printf '[ok] tab-foundry console script: %s\n' "${REPO_ROOT}/.venv/bin/tab-foundry"
-  else
-    printf '[fail] tab-foundry console script: missing %s\n' "${REPO_ROOT}/.venv/bin/tab-foundry"
-    failures=$((failures + 1))
-  fi
-
-  if common_git_dir="$(common_git_dir_path 2>/dev/null)"; then
-    hook_path="${common_git_dir}/hooks/pre-commit"
-    if [[ -f "${hook_path}" ]]; then
-      printf '[ok] pre-commit hook: %s\n' "${hook_path}"
-      expected_install_python="$(pre_commit_python)"
-      actual_install_python="$(grep -E '^INSTALL_PYTHON=' "${hook_path}" | head -n 1 | cut -d= -f2- || true)"
-      if [[ -n "${actual_install_python}" && "${actual_install_python}" == "${expected_install_python}" ]]; then
-        printf '[ok] pre-commit hook python: %s\n' "${actual_install_python}"
-      else
-        printf '[fail] pre-commit hook python: expected=%s actual=%s\n' "${expected_install_python}" "${actual_install_python:-missing}"
-        failures=$((failures + 1))
-      fi
-    else
-      printf '[fail] pre-commit hook: missing %s\n' "${hook_path}"
-      failures=$((failures + 1))
-    fi
-  else
-    printf '[fail] git common dir: unable to resolve\n'
-    failures=$((failures + 1))
-  fi
-
-  if [[ "${failures}" -eq 0 ]]; then
-    printf 'doctor: ok\n'
-    return 0
-  fi
-  printf 'doctor: %s issue(s) detected\n' "${failures}"
-  return 1
-}
-
-ready() {
-  ensure_venv
-  ./.venv/bin/python scripts/audit/dev_verify.py review-base "$@"
-  ./.venv/bin/python scripts/audit/dev_verify.py verify affected "$@"
-}
-
 main() {
   cd "${REPO_ROOT}"
 
@@ -191,18 +79,6 @@ main() {
       uv sync
       "$(pre_commit_python)" -m pre_commit install
       rewrite_pre_commit_hook_python
-      ;;
-    doctor)
-      shift
-      if [[ $# -ne 0 ]]; then
-        usage >&2
-        exit 1
-      fi
-      doctor
-      ;;
-    ready)
-      shift
-      ready "$@"
       ;;
     review-base|verify)
       ensure_venv

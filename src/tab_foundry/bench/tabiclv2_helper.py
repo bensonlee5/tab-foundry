@@ -1,11 +1,12 @@
-"""Library helper for external TabICLv2 benchmark execution."""
+"""External TabICLv2 benchmark helper entrypoint."""
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 import sys
 import time
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 
@@ -42,21 +43,31 @@ class TabICLv2QuantileRegressorAdapter:
         )
 
 
-def run_tabiclv2_helper(
-    *,
-    tab_foundry_src: Path,
-    dataset_cache: Path,
-    out_path: Path,
-    task_type: str,
-    checkpoint_version: str,
-    device: str = "auto",
-    allow_missing_values: bool = False,
-    helper_root: Path | None = None,
-) -> int:
-    """Evaluate TabICLv2 on cached benchmark datasets."""
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Evaluate TabICLv2 on cached benchmark datasets")
+    parser.add_argument("--tab-foundry-src", required=True, help="tab-foundry src directory for shared helpers")
+    parser.add_argument("--dataset-cache", required=True, help="Path to cached benchmark datasets (.npz)")
+    parser.add_argument("--out-path", required=True, help="Output JSONL path")
+    parser.add_argument(
+        "--task-type",
+        required=True,
+        choices=("supervised_classification", "supervised_regression"),
+        help="Benchmark task type",
+    )
+    parser.add_argument("--checkpoint-version", required=True, help="TabICLv2 checkpoint version")
+    parser.add_argument("--device", default="auto", help="Device override")
+    parser.add_argument(
+        "--allow-missing-values",
+        action="store_true",
+        help="Permit missing-valued benchmark inputs when the bundle explicitly allows them",
+    )
+    return parser
 
-    src_root = tab_foundry_src.expanduser().resolve()
-    tabicl_root = Path.cwd().resolve() if helper_root is None else helper_root.expanduser().resolve()
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    src_root = Path(str(args.tab_foundry_src)).expanduser().resolve()
+    tabicl_root = Path.cwd().resolve()
     if str(tabicl_root) not in sys.path:
         sys.path.insert(0, str(tabicl_root))
     if str(src_root) not in sys.path:
@@ -83,24 +94,19 @@ def run_tabiclv2_helper(
         evaluate_regressor,
     )
 
-    resolved_device = None if str(device).strip().lower() == "auto" else str(device).strip()
-    resolved_checkpoint_version = str(checkpoint_version).strip()
-    resolved_task_type = str(task_type).strip()
-    dataset_cache_path = dataset_cache.expanduser().resolve()
-    out_path = out_path.expanduser().resolve()
-    if not resolved_checkpoint_version:
+    device = None if str(args.device).strip().lower() == "auto" else str(args.device).strip()
+    checkpoint_version = str(args.checkpoint_version).strip()
+    if not checkpoint_version:
         raise RuntimeError("checkpoint_version must be a non-empty string")
-    if resolved_task_type not in {"supervised_classification", "supervised_regression"}:
-        raise RuntimeError(f"unsupported task_type: {resolved_task_type!r}")
-    datasets = load_dataset_cache(dataset_cache_path)
-    allow_missing_values = bool(allow_missing_values)
+    datasets = load_dataset_cache(Path(str(args.dataset_cache)).expanduser().resolve())
+    allow_missing_values = bool(args.allow_missing_values)
     started_at = time.perf_counter()
 
-    if resolved_task_type == "supervised_classification":
+    if str(args.task_type) == "supervised_classification":
         classifier = TabICLClassifier(
             kv_cache=False,
-            checkpoint_version=resolved_checkpoint_version,
-            device=resolved_device,
+            checkpoint_version=checkpoint_version,
+            device=device,
         )
         metrics = evaluate_classifier(
             classifier,
@@ -124,8 +130,8 @@ def run_tabiclv2_helper(
         regressor = TabICLv2QuantileRegressorAdapter(
             TabICLRegressor(
                 kv_cache=False,
-                checkpoint_version=resolved_checkpoint_version,
-                device=resolved_device,
+                checkpoint_version=checkpoint_version,
+                device=device,
             )
         )
         metrics = evaluate_regressor(
@@ -147,5 +153,9 @@ def run_tabiclv2_helper(
             }
         ]
 
-    write_jsonl(out_path, records)
+    write_jsonl(Path(str(args.out_path)).expanduser().resolve(), records)
     return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

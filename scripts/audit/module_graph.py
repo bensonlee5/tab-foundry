@@ -79,12 +79,9 @@ def collect_top_level_edges(graph: grimp.ImportGraph, top_level_modules: list[st
 
 
 def collect_top_level_cycles(graph: grimp.ImportGraph, top_level_modules: list[str]) -> list[tuple[str, str]]:
-    available_modules = set(graph.modules)
     cycles: list[tuple[str, str]] = []
     for index, source in enumerate(top_level_modules):
         for target in top_level_modules[index + 1 :]:
-            if source not in available_modules or target not in available_modules:
-                continue
             if graph.chain_exists(source, target, as_packages=True) and graph.chain_exists(
                 target,
                 source,

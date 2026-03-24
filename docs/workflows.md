@@ -69,17 +69,10 @@ optional surfaces explicitly:
 uv sync --no-dev --extra benchmark --extra muon
 ```
 
-Sanity-check the repo-local environment and pre-commit hook wiring:
-
-```bash
-./scripts/dev doctor
-```
-
 Review the current diff against `origin/main` and run the smallest safe
 verification slice:
 
 ```bash
-./scripts/dev ready --base-ref origin/main
 ./scripts/dev review-base
 ./scripts/dev verify affected
 ./scripts/dev verify paths src/tab_foundry/model/factory.py
@@ -101,7 +94,6 @@ tab-foundry dev health-check --run-dir outputs/cls_smoke
 tab-foundry dev run-inspect --run-dir outputs/cls_smoke
 tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
 tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
-tab-foundry research sweep list --sweep-id binary_md_v1
 tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
 tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1
 ```
@@ -694,8 +686,8 @@ Tier 2 milestones or whenever any of those inputs changes.
 `tab-foundry research sweep execute` now applies that Tier 1 reuse path
 automatically for `benchmark_full` rows when the locked anchor or frozen
 control baseline exposes a compatible `nanotabpfn_curve.jsonl`. If no
-compatible curve is available, the sweep executor falls back to a fresh
-helper-backed benchmark execution on the same canonical medium-bundle surface.
+compatible curve is available, the runner falls back to a fresh helper run on
+the same canonical medium-bundle surface.
 
 ### System-Delta Sweep Runbook
 
@@ -718,8 +710,7 @@ Recommended loop:
 1. Inspect the active sweep and the next runnable row:
 
    ```bash
-   tab-foundry research sweep list-sweeps
-   tab-foundry research sweep list --sweep-id <sweep_id>
+   tab-foundry research sweep list
    tab-foundry research sweep next
    tab-foundry research sweep summarize --include-screened
    ```

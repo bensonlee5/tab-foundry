@@ -19,7 +19,6 @@ from tab_foundry.preprocessing import (
     MISSING_VALUE_STRATEGY_TRAIN_MEAN,
     resolve_preprocessing_surface,
 )
-from tab_foundry.repo_paths import repo_root
 
 from .checksums import sha256_file
 from .contracts import (
@@ -78,7 +77,7 @@ def _package_version() -> str:
             return version
         raise RuntimeError("installed tab-foundry package metadata returned an empty version")
 
-    pyproject_path = repo_root() / "pyproject.toml"
+    pyproject_path = Path(__file__).resolve().parents[3] / "pyproject.toml"
     try:
         with pyproject_path.open("rb") as handle:
             payload = tomllib.load(handle)

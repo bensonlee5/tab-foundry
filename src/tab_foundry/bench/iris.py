@@ -1,9 +1,11 @@
-"""Iris evaluation helpers for tab-foundry checkpoints."""
+"""Iris evaluation helpers and CLI for tab-foundry checkpoints."""
 
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Sequence
 
 import numpy as np
 
@@ -95,14 +97,29 @@ def evaluate_iris_checkpoint(
     return IrisEvalSummary(checkpoint=checkpoint_path.expanduser().resolve(), results=results)
 
 
-def render_iris_summary(summary: IrisEvalSummary) -> str:
-    """Render the human-readable Iris benchmark table."""
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Evaluate a tab-foundry checkpoint on binary Iris")
+    parser.add_argument("--checkpoint", required=True, help="Classification checkpoint path")
+    parser.add_argument(
+        "--device",
+        default="cpu",
+        choices=("cpu", "cuda", "mps"),
+        help="Inference device for the checkpointed model",
+    )
+    parser.add_argument("--seeds", type=int, default=5, help="Number of train/test splits")
+    return parser
 
-    lines = [
-        f"Iris evaluation for checkpoint={summary.checkpoint}",
-        f"{'Method':<15} {'ROC AUC':>8} {'Std':>8}",
-        "-" * 33,
-    ]
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    summary = evaluate_iris_checkpoint(
+        Path(str(args.checkpoint)),
+        device=str(args.device),
+        seeds=int(args.seeds),
+    )
+    print(f"Iris evaluation for checkpoint={summary.checkpoint}")
+    print(f"{'Method':<15} {'ROC AUC':>8} {'Std':>8}")
+    print("-" * 33)
     for name, values in sorted(summary.results.items(), key=lambda item: -np.mean(item[1])):
-        lines.append(f"{name:<15} {np.mean(values):>8.3f} {np.std(values):>8.3f}")
-    return "\n".join(lines) + "\n"
+        print(f"{name:<15} {np.mean(values):>8.3f} {np.std(values):>8.3f}")
+    return 0

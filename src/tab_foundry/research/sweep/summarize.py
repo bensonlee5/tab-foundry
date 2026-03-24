@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 from pathlib import Path
-from typing import Any, Mapping, cast
+from typing import Any, Mapping, Sequence, cast
 
 from .materialize import load_system_delta_queue_for_inspection, ordered_rows
+from .paths_io import default_catalog_path, default_sweep_index_path, default_sweeps_root
 
 
 _WARN_CLIPPED_STEP_FRACTION = 0.05
@@ -150,3 +153,46 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
             "  ".join(value.ljust(widths[index]) for index, value in enumerate(rendered_row))
         )
     return "\n".join(lines)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Summarize local system-delta sweep results")
+    parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
+    parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
+    parser.add_argument(
+        "--include-screened",
+        action="store_true",
+        help="Include screened rows alongside completed or blocked rows",
+    )
+    parser.add_argument(
+        "--catalog-path",
+        default=str(default_catalog_path()),
+        help="Path to reference/system_delta_catalog.yaml",
+    )
+    parser.add_argument(
+        "--index-path",
+        default=str(default_sweep_index_path()),
+        help="Path to reference/system_delta_sweeps/index.yaml",
+    )
+    parser.add_argument(
+        "--sweeps-root",
+        default=str(default_sweeps_root()),
+        help="Path to reference/system_delta_sweeps/",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    payload = summarize_sweep(
+        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
+        include_screened=bool(args.include_screened),
+        index_path=Path(str(args.index_path)).expanduser().resolve(),
+        catalog_path=Path(str(args.catalog_path)).expanduser().resolve(),
+        sweeps_root=Path(str(args.sweeps_root)).expanduser().resolve(),
+    )
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(render_sweep_summary_table(payload))
+    return 0

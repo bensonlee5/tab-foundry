@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from tab_foundry.repo_paths import repo_root
+from tab_foundry.bench.registry_common import project_root as _project_root
 
 
 BENCHMARK_BUNDLE_FILENAME = "nanotabpfn_openml_binary_medium_v1.json"
@@ -22,11 +22,11 @@ _REPO_TRACKED_BUNDLE_SENTINEL = ("src", "tab_foundry", "bench")
 def default_benchmark_bundle_path() -> Path:
     """Return the repo-tracked canonical benchmark bundle path."""
 
-    return repo_root() / "src" / "tab_foundry" / "bench" / BENCHMARK_BUNDLE_FILENAME
+    return Path(__file__).resolve().parents[1] / BENCHMARK_BUNDLE_FILENAME
 
 
 def _default_repo_root() -> Path:
-    return repo_root().expanduser().resolve()
+    return _project_root().expanduser().resolve()
 
 
 def _portable_repo_relative_bundle_path(

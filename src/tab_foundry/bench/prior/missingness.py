@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import torch
 
-from tab_foundry.training.prior_dump import PriorDumpBatchMissingness
+from tab_foundry.bench.prior_dump import PriorDumpBatchMissingness
 
 
 def _initial_missingness_summary(

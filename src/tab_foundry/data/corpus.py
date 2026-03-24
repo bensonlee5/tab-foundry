@@ -10,10 +10,8 @@ import shutil
 import subprocess
 from typing import Any, Mapping, cast
 
-import tab_foundry.benchmark_registry as benchmark_registry
 import yaml
 
-from tab_foundry.repo_paths import repo_root as shared_repo_root
 from tab_foundry.timestamps import utc_now
 
 from .dagzoo_handoff import load_dagzoo_handoff_info
@@ -35,7 +33,7 @@ _VALID_RECIPE_KINDS = {
 
 
 def _repo_root() -> Path:
-    return shared_repo_root()
+    return Path(__file__).resolve().parents[3]
 
 
 def corpus_recipes_root(*, repo_root: Path | None = None) -> Path:
@@ -775,11 +773,15 @@ def corpus_results_payload(
     registry_path: Path | None = None,
     repo_root: Path | None = None,
 ) -> dict[str, Any]:
+    from tab_foundry.bench.benchmark_run_registry import (
+        default_benchmark_run_registry_path,
+        load_benchmark_run_registry,
+        resolve_registry_path_value,
+    )
+
     record = load_corpus_record(corpus_ref, repo_root=repo_root)
     normalized_corpus_ref = _ensure_non_empty_string(record.get("corpus_ref"), context="corpus record corpus_ref")
-    registry = benchmark_registry.load_benchmark_run_registry(
-        registry_path or benchmark_registry.default_benchmark_run_registry_path()
-    )
+    registry = load_benchmark_run_registry(registry_path or default_benchmark_run_registry_path())
     runs = _ensure_mapping(registry.get("runs"), context="benchmark run registry runs")
     matched_runs: list[dict[str, Any]] = []
     for run_id in sorted(runs):
@@ -792,7 +794,7 @@ def corpus_results_payload(
         training_surface_record_path = artifacts.get("training_surface_record_path")
         if not isinstance(training_surface_record_path, str) or not training_surface_record_path.strip():
             continue
-        resolved_surface_path = benchmark_registry.resolve_registry_path_value(training_surface_record_path)
+        resolved_surface_path = resolve_registry_path_value(training_surface_record_path)
         if not resolved_surface_path.exists():
             continue
         training_surface_record = _read_json_mapping(

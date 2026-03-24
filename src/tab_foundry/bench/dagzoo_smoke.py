@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import time
-from typing import Any
+from typing import Any, Sequence
 
 from tab_foundry.bench.artifacts import (
     checkpoint_snapshots_from_history,
@@ -210,3 +211,60 @@ def run_dagzoo_smoke(config: SmokeConfig) -> dict[str, Any]:
     finally:
         timings_seconds["total"] = time.perf_counter() - total_start
         write_json(telemetry_path, telemetry)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run the dagzoo-backed tab-foundry smoke harness")
+    parser.add_argument("--dagzoo-root", default="~/dev/dagzoo", help="Local dagzoo checkout root")
+    parser.add_argument("--out-root", default=None, help="Output directory root")
+    parser.add_argument(
+        "--num-datasets",
+        type=int,
+        default=DEFAULT_NUM_DATASETS,
+        help="Number of dagzoo datasets to generate",
+    )
+    parser.add_argument("--rows", type=int, default=DEFAULT_ROWS, help="Rows per generated dataset")
+    parser.add_argument(
+        "--device",
+        default=DEFAULT_DEVICE,
+        choices=("cpu", "cuda", "mps", "auto"),
+        help="Generation and training device",
+    )
+    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Shared run seed")
+    parser.add_argument(
+        "--train-steps",
+        type=int,
+        default=DEFAULT_TRAIN_STEPS,
+        help="Training steps for the smoke harness",
+    )
+    parser.add_argument(
+        "--checkpoint-every",
+        type=int,
+        default=DEFAULT_CHECKPOINT_EVERY,
+        help="Checkpoint snapshot cadence in steps",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    out_root = _default_out_root() if args.out_root is None else Path(str(args.out_root))
+    telemetry = run_dagzoo_smoke(
+        SmokeConfig(
+            dagzoo_root=Path(str(args.dagzoo_root)),
+            out_root=out_root,
+            num_datasets=int(args.num_datasets),
+            rows=int(args.rows),
+            device=str(args.device),
+            seed=int(args.seed),
+            train_steps=int(args.train_steps),
+            checkpoint_every=int(args.checkpoint_every),
+        )
+    )
+    print("dagzoo smoke complete:")
+    print(f"  out_root={out_root.resolve()}")
+    print(f"  best_checkpoint={telemetry['artifacts']['best_checkpoint']}")
+    print(f"  eval_metrics={telemetry['eval_metrics']}")
+    print(f"  timings_seconds={telemetry['timings_seconds']}")
+    return 0

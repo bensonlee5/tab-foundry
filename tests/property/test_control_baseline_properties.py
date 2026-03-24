@@ -9,7 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 import pytest
 
-import tab_foundry.control_baseline_registry as control_baseline_registry
+import tab_foundry.bench.control_baseline as control_baseline_module
 
 
 _REL_PATH = st.text(
@@ -56,8 +56,8 @@ def _valid_baseline_entry(baseline_id: str = "baseline_v1") -> dict[str, object]
 
 def _write_registry(path: Path, *, baselines: dict[str, object], schema: str | None = None, version: int | None = None) -> None:
     payload = {
-        "schema": control_baseline_registry.REGISTRY_SCHEMA if schema is None else schema,
-        "version": control_baseline_registry.REGISTRY_VERSION if version is None else version,
+        "schema": control_baseline_module.REGISTRY_SCHEMA if schema is None else schema,
+        "version": control_baseline_module.REGISTRY_VERSION if version is None else version,
         "baselines": baselines,
     }
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -69,15 +69,14 @@ def _write_registry(path: Path, *, baselines: dict[str, object], schema: str | N
 def test_control_baseline_paths_roundtrip_repo_relative_paths(rel_path: str) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
         repo_root = (Path(tmp_dir) / "repo").resolve()
-        absolute_path = (repo_root / rel_path).resolve()
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
+            absolute_path = (repo_root / rel_path).resolve()
 
-        normalized = control_baseline_registry.normalize_registry_path_value(
-            absolute_path,
-            root=repo_root,
-        )
+            normalized = control_baseline_module._normalize_path_value(absolute_path)
 
-        assert normalized == str(absolute_path.relative_to(repo_root))
-        assert control_baseline_registry.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
+            assert normalized == str(absolute_path.relative_to(repo_root))
+            assert control_baseline_module.resolve_registry_path_value(normalized) == absolute_path
 
 
 @settings(deadline=None, max_examples=35)
@@ -87,15 +86,14 @@ def test_control_baseline_paths_roundtrip_absolute_paths_outside_repo(rel_path: 
         tmp_path = Path(tmp_dir)
         repo_root = (tmp_path / "repo").resolve()
         outside_root = tmp_path / "outside"
-        absolute_path = (outside_root / rel_path).resolve()
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
+            absolute_path = (outside_root / rel_path).resolve()
 
-        normalized = control_baseline_registry.normalize_registry_path_value(
-            absolute_path,
-            root=repo_root,
-        )
+            normalized = control_baseline_module._normalize_path_value(absolute_path)
 
-        assert normalized == str(absolute_path)
-        assert control_baseline_registry.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
+            assert normalized == str(absolute_path)
+            assert control_baseline_module.resolve_registry_path_value(normalized) == absolute_path
 
 
 @settings(deadline=None, max_examples=25)
@@ -120,7 +118,7 @@ def test_validate_baseline_entry_rejects_missing_required_fields(location: tuple
         nested.pop(key, None)
 
     with pytest.raises(RuntimeError, match="control baseline entry"):
-        control_baseline_registry._validate_baseline_entry(entry, baseline_id="baseline_v1")
+        control_baseline_module._validate_baseline_entry(entry, baseline_id="baseline_v1")
 
 
 @settings(deadline=None, max_examples=25)
@@ -132,7 +130,7 @@ def test_validate_baseline_entry_rejects_baseline_id_mismatch(other_baseline_id:
     entry["baseline_id"] = other_baseline_id
 
     with pytest.raises(RuntimeError, match="baseline_id mismatch"):
-        control_baseline_registry._validate_baseline_entry(entry, baseline_id="baseline_v1")
+        control_baseline_module._validate_baseline_entry(entry, baseline_id="baseline_v1")
 
 
 def test_load_control_baseline_entry_returns_deep_copy() -> None:
@@ -143,14 +141,14 @@ def test_load_control_baseline_entry_returns_deep_copy() -> None:
             baselines={"baseline_v1": _valid_baseline_entry()},
         )
 
-        loaded = control_baseline_registry.load_control_baseline_entry(
+        loaded = control_baseline_module.load_control_baseline_entry(
             "baseline_v1",
             registry_path=registry_path,
         )
         loaded["benchmark_bundle"]["task_ids"].append(999)  # type: ignore[index]
         loaded["tab_foundry_metrics"]["final_roc_auc"] = -1.0  # type: ignore[index]
 
-        reloaded = control_baseline_registry.load_control_baseline_entry(
+        reloaded = control_baseline_module.load_control_baseline_entry(
             "baseline_v1",
             registry_path=registry_path,
         )
@@ -176,8 +174,8 @@ def test_load_control_baseline_registry_rejects_malformed_registry_payloads(
     with tempfile.TemporaryDirectory() as tmp_dir:
         registry_path = Path(tmp_dir) / "control_baselines_v1.json"
         payload = {
-            "schema": control_baseline_registry.REGISTRY_SCHEMA,
-            "version": control_baseline_registry.REGISTRY_VERSION,
+            "schema": control_baseline_module.REGISTRY_SCHEMA,
+            "version": control_baseline_module.REGISTRY_VERSION,
             "baselines": {"baseline_v1": _valid_baseline_entry()},
         }
         kind, value = mutation
@@ -195,4 +193,4 @@ def test_load_control_baseline_registry_rejects_malformed_registry_payloads(
         registry_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
         with pytest.raises(RuntimeError):
-            control_baseline_registry.load_control_baseline_registry(registry_path)
+            control_baseline_module.load_control_baseline_registry(registry_path)

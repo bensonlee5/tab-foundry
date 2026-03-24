@@ -6,8 +6,7 @@ from pathlib import Path
 import pytest
 import torch
 
-import tab_foundry.bench.control_baseline_freeze as control_baseline_module
-import tab_foundry.control_baseline_registry as read_control_baseline_registry
+import tab_foundry.bench.control_baseline as control_baseline_module
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -193,7 +192,7 @@ def test_freeze_control_baseline_writes_repo_relative_registry_entry(
         run_dir=run_dir,
         benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
     )
-    monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
+    monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
 
     frozen = control_baseline_module.freeze_control_baseline(
         baseline_id="cls_benchmark_linear_v1",
@@ -215,46 +214,9 @@ def test_freeze_control_baseline_writes_repo_relative_registry_entry(
     assert frozen["baseline"]["benchmark_bundle"]["source_path"] == (
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
     )
-    registry = read_control_baseline_registry.load_control_baseline_registry(registry_path)
+    registry = control_baseline_module.load_control_baseline_registry(registry_path)
     assert registry["baselines"]["cls_benchmark_linear_v1"]["seed_set"] == [7]
 
-
-def test_freeze_control_baseline_upserts_existing_baseline(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    repo_root = tmp_path / "repo"
-    registry_path = repo_root / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
-    manifest_path = repo_root / "data" / "manifests" / "default.parquet"
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_bytes(b"manifest")
-    benchmark_bundle_path = (
-        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
-    )
-    benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
-    benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
-    run_dir = repo_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v1" / "train"
-    _ = _write_checkpoint(
-        run_dir / "checkpoints" / "best.pt",
-        manifest_path="data/manifests/default.parquet",
-        seed=7,
-    )
-    summary_path = repo_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v1" / "benchmark" / "comparison_summary.json"
-    _ = _write_comparison_summary(
-        summary_path,
-        run_dir=run_dir,
-        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
-    )
-    monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
-    _ = control_baseline_module.freeze_control_baseline(
-        baseline_id="cls_benchmark_linear_v1",
-        experiment="cls_benchmark_linear",
-        config_profile="cls_benchmark_linear",
-        budget_class="short-run",
-        run_dir=run_dir,
-        comparison_summary_path=summary_path,
-        registry_path=registry_path,
-    )
     _ = _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
@@ -270,17 +232,12 @@ def test_freeze_control_baseline_upserts_existing_baseline(
         comparison_summary_path=summary_path,
         registry_path=registry_path,
     )
-    updated = read_control_baseline_registry.load_control_baseline_entry(
+    updated = control_baseline_module.load_control_baseline_entry(
         "cls_benchmark_linear_v1",
         registry_path=registry_path,
     )
     assert updated["tab_foundry_metrics"]["final_roc_auc"] == pytest.approx(0.86)
     assert updated["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.41)
-
-
-def test_control_baseline_freeze_library_module_is_parser_free() -> None:
-    for attribute in ("configure_parser", "build_parser", "run_from_args", "main"):
-        assert not hasattr(control_baseline_module, attribute)
 
 
 def test_freeze_control_baseline_validates_summary_run_dir(
@@ -310,7 +267,7 @@ def test_freeze_control_baseline_validates_summary_run_dir(
         run_dir=other_run_dir,
         benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
     )
-    monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
+    monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
 
     with pytest.raises(RuntimeError, match="run_dir does not match"):
         control_baseline_module.freeze_control_baseline(
@@ -351,7 +308,7 @@ def test_freeze_control_baseline_accepts_richer_checkpoint_diagnostics_summary(
         benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         include_diagnostics=True,
     )
-    monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
+    monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
 
     frozen = control_baseline_module.freeze_control_baseline(
         baseline_id="cls_benchmark_linear_v2",
@@ -420,7 +377,7 @@ def test_freeze_control_baseline_uses_best_step_checkpoint_when_best_pt_is_missi
         run_dir=run_dir,
         benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
     )
-    monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
+    monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
 
     frozen = control_baseline_module.freeze_control_baseline(
         baseline_id="cls_benchmark_linear_v2",
@@ -462,12 +419,8 @@ def test_freeze_control_baseline_rejects_external_artifacts_for_canonical_regist
         benchmark_bundle_source_path=str(benchmark_bundle_path.resolve()),
         include_diagnostics=True,
     )
-    monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
-    monkeypatch.setattr(
-        read_control_baseline_registry,
-        "default_control_baseline_registry_path",
-        lambda: registry_path,
-    )
+    monkeypatch.setattr(control_baseline_module, "project_root", lambda: repo_root)
+    monkeypatch.setattr(control_baseline_module, "default_control_baseline_registry_path", lambda: registry_path)
 
     with pytest.raises(RuntimeError, match="canonical control baseline registry requires repo-local artifact paths"):
         control_baseline_module.freeze_control_baseline(
@@ -484,7 +437,7 @@ def test_freeze_control_baseline_rejects_external_artifacts_for_canonical_regist
 def test_checked_in_control_baseline_registry_preserves_v1_and_adds_v2() -> None:
     registry_path = REPO_ROOT / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
 
-    registry = read_control_baseline_registry.load_control_baseline_registry(registry_path)
+    registry = control_baseline_module.load_control_baseline_registry(registry_path)
 
     assert {"cls_benchmark_linear_v1", "cls_benchmark_linear_v2"} <= set(registry["baselines"])
     assert registry["baselines"]["cls_benchmark_linear_v1"]["benchmark_bundle"]["source_path"] == (

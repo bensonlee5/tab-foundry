@@ -7,13 +7,12 @@ from typing import Any
 import pytest
 
 import tab_foundry.bench.iris_smoke as iris_smoke_module
-import tab_foundry.cli.bench_smoke_iris as iris_smoke_cli_module
 from tab_foundry.data.manifest import ManifestSummary
 from tab_foundry.types import EvalResult, TrainResult
 
 
 def test_build_parser_defaults_match_ci_profile() -> None:
-    args = iris_smoke_cli_module.build_parser().parse_args([])
+    args = iris_smoke_module.build_parser().parse_args([])
     assert args.device == "cpu"
     assert args.initial_num_tasks == 64
     assert args.max_num_tasks == 512

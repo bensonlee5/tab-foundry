@@ -9,12 +9,12 @@ from typing import Any, cast
 
 from omegaconf import DictConfig, OmegaConf
 
+from tab_foundry.bench.prior_dump import PriorDumpNonFinitePolicy
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     ResolvedStageSurface,
     resolve_staged_surface,
 )
 from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
-from tab_foundry.training.prior_dump import PriorDumpNonFinitePolicy
 from tab_foundry.training.schedule import StageConfig, build_stage_configs
 
 

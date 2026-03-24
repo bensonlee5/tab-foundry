@@ -10,9 +10,9 @@ from typing import Any, Literal, cast
 from omegaconf import DictConfig, OmegaConf
 import torch
 
-from tab_foundry.benchmark_registry import (
+from tab_foundry.bench.benchmark_run_registry import (
     default_benchmark_run_registry_path,
-    load_benchmark_run_entry,
+    load_benchmark_run_registry,
     resolve_registry_path_value,
 )
 from tab_foundry.bench.bounce.config import BenchmarkBounceDiagnosisConfig, RerunMode, resolve_positive_int
@@ -26,10 +26,12 @@ def resolve_run_dir_from_registry(
 ) -> Path:
     """Resolve a benchmark registry run id into its concrete run directory."""
 
-    run_payload = load_benchmark_run_entry(
-        run_id,
-        path=registry_path or default_benchmark_run_registry_path(),
-    )
+    registry = load_benchmark_run_registry(registry_path or default_benchmark_run_registry_path())
+    runs = cast(dict[str, Any], registry["runs"])
+    try:
+        run_payload = cast(dict[str, Any], runs[str(run_id)])
+    except KeyError as exc:
+        raise RuntimeError(f"unknown benchmark registry run_id: {run_id!r}") from exc
     artifacts = cast(dict[str, Any], run_payload["artifacts"])
     run_dir_raw = artifacts.get("run_dir")
     if not isinstance(run_dir_raw, str) or not run_dir_raw.strip():

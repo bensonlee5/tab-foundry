@@ -1,13 +1,14 @@
-"""Internal tuning helpers for benchmark-oriented tab-foundry training."""
+"""Internal tuning runner for benchmark-oriented tab-foundry training."""
 
 from __future__ import annotations
 
+import argparse
 import csv
 from dataclasses import dataclass
 from datetime import datetime
 from itertools import product
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from tab_foundry.bench.artifacts import write_json
 from tab_foundry.config import compose_config
@@ -258,3 +259,58 @@ def run_tuning(config: TuneConfig) -> dict[str, Any]:
     write_json(out_root / "sweep_summary.json", summary)
     _write_csv(out_root / "sweep_results.csv", ranked_trials)
     return summary
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Tune tab-foundry against internal validation only")
+    parser.add_argument("--manifest-path", required=True, help="Fixed manifest path used for every trial")
+    parser.add_argument("--out-root", default=None, help="Output root for sweep artifacts")
+    parser.add_argument(
+        "--device",
+        default="auto",
+        choices=("cpu", "cuda", "mps", "auto"),
+        help="Training device override",
+    )
+    parser.add_argument("--seed", type=int, default=1, help="Base random seed used for every trial")
+    parser.add_argument(
+        "--lr-max-values",
+        default="4e-4,8e-4,1.2e-3",
+        help="Comma-separated lr_max grid",
+    )
+    parser.add_argument(
+        "--warmup-ratios",
+        default="0.0,0.05,0.1",
+        help="Comma-separated warmup_ratio grid",
+    )
+    parser.add_argument(
+        "--grad-clip-values",
+        default="0.5,1.0",
+        help="Comma-separated grad_clip grid",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    summary = run_tuning(
+        TuneConfig(
+            manifest_path=Path(str(args.manifest_path)),
+            out_root=_default_out_root() if args.out_root is None else Path(str(args.out_root)),
+            device=str(args.device),
+            seed=int(args.seed),
+            lr_max_values=_parse_float_list(str(args.lr_max_values)),
+            warmup_ratios=_parse_float_list(str(args.warmup_ratios)),
+            grad_clip_values=_parse_float_list(str(args.grad_clip_values)),
+        )
+    )
+    print("tab-foundry tuning complete:")
+    print(f"  trial_count={summary['trial_count']}")
+    if summary["best_trial"] is not None:
+        print(f"  best_trial={summary['best_trial']}")
+    print(f"  artifacts={{'summary': '{Path(summary['out_root']) / 'sweep_summary.json'}', 'csv': '{Path(summary['out_root']) / 'sweep_results.csv'}'}}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

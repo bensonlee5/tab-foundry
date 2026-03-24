@@ -2,21 +2,15 @@
 
 from __future__ import annotations
 
+import argparse
+from dataclasses import dataclass
 import re
+import sys
+from pathlib import Path
 from typing import Any, cast
 
-from tab_foundry.benchmark_registry import (
-    default_benchmark_run_registry_path,
-    load_benchmark_run_registry,
-    normalize_registry_path_value,
-)
-
-from .anchor import anchor_context_from_registry_run
-from .artifacts import PromotionPaths
-from .catalog import load_system_delta_index, load_system_delta_queue_instance, load_system_delta_sweep
-from .manage import sync_active_sweep_aliases
-from .matrix import render_and_write_system_delta_matrix
-from .paths_io import load_yaml_mapping, sweep_matrix_path, sweep_metadata_path, write_text, write_yaml
+from tab_foundry.bench.benchmark_run_registry import load_benchmark_run_registry
+from tab_foundry.research import system_delta
 
 
 _OBJECTIVE_RE = re.compile(
@@ -25,8 +19,27 @@ _OBJECTIVE_RE = re.compile(
 )
 
 
+@dataclass(frozen=True)
+class PromotionPaths:
+    index_path: Path
+    catalog_path: Path
+    sweeps_root: Path
+    registry_path: Path
+    program_path: Path
+
+    @classmethod
+    def default(cls) -> "PromotionPaths":
+        return cls(
+            index_path=system_delta.default_sweep_index_path(),
+            catalog_path=system_delta.default_catalog_path(),
+            sweeps_root=system_delta.default_sweeps_root(),
+            registry_path=system_delta.default_registry_path(),
+            program_path=system_delta.repo_root() / "program.md",
+        )
+
+
 def _render_sweep_matrix(*, sweep_id: str, paths: PromotionPaths) -> None:
-    _ = render_and_write_system_delta_matrix(
+    _ = system_delta.render_and_write_system_delta_matrix(
         sweep_id=sweep_id,
         registry_path=paths.registry_path,
         index_path=paths.index_path,
@@ -35,8 +48,8 @@ def _render_sweep_matrix(*, sweep_id: str, paths: PromotionPaths) -> None:
     )
 
 
-def _read_yaml(path, *, context: str) -> dict[str, Any]:
-    return load_yaml_mapping(path, context=context)
+def _read_yaml(path: Path, *, context: str) -> dict[str, Any]:
+    return system_delta._load_yaml_mapping(path, context=context)
 
 
 def _replace_prefixed_line(text: str, *, prefix: str, replacement: str) -> str:
@@ -51,12 +64,11 @@ def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: Promot
     runs = cast(dict[str, Any], registry["runs"])
     entry = cast(dict[str, Any], runs[anchor_run_id])
     artifacts = cast(dict[str, Any], entry["artifacts"])
-    sweep = load_system_delta_sweep(
+    sweep = system_delta.load_system_delta_sweep(
         sweep_id,
         index_path=paths.index_path,
         sweeps_root=paths.sweeps_root,
     )
-    canonical_registry_path = normalize_registry_path_value(default_benchmark_run_registry_path())
 
     program_text = paths.program_path.read_text(encoding="utf-8")
     objective = (
@@ -75,7 +87,7 @@ def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: Promot
         "- anchor benchmark: ": f"- anchor benchmark: `{artifacts['benchmark_dir']}`",
         "- canonical benchmark bundle: ": f"- canonical benchmark bundle: `{sweep['benchmark_bundle_path']}`",
         "- canonical control baseline id: ": f"- canonical control baseline id: `{sweep['control_baseline_id']}`",
-        "- canonical registry: ": f"- canonical registry: `{canonical_registry_path}`",
+        "- canonical registry: ": "- canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`",
         "- delta catalog: ": "- delta catalog: `reference/system_delta_catalog.yaml`",
         "- sweep index: ": "- sweep index: `reference/system_delta_sweeps/index.yaml`",
         "- canonical sweep queue: ": f"- canonical sweep queue: `reference/system_delta_sweeps/{sweep_id}/queue.yaml`",
@@ -86,12 +98,12 @@ def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: Promot
     for prefix, replacement in replacements.items():
         program_text = _replace_prefixed_line(program_text, prefix=prefix, replacement=replacement)
 
-    write_text(paths.program_path, program_text)
+    system_delta._write_text(paths.program_path, program_text)
 
 
 def resolve_run_id_for_order(*, sweep_id: str, order: int, paths: PromotionPaths | None = None) -> str:
     resolved_paths = PromotionPaths.default() if paths is None else paths
-    queue = load_system_delta_queue_instance(
+    queue = system_delta.load_system_delta_queue_instance(
         sweep_id,
         index_path=resolved_paths.index_path,
         sweeps_root=resolved_paths.sweeps_root,
@@ -123,37 +135,37 @@ def promote_anchor(
     if not normalized_anchor_run_id:
         raise RuntimeError("anchor_run_id must be non-empty")
 
-    _ = anchor_context_from_registry_run(
+    _ = system_delta._anchor_context_from_registry_run(
         anchor_run_id=normalized_anchor_run_id,
         registry_path=resolved_paths.registry_path,
     )
 
-    sweep_path = sweep_metadata_path(
+    sweep_path = system_delta.sweep_metadata_path(
         normalized_sweep_id,
         sweeps_root=resolved_paths.sweeps_root,
     )
     sweep = _read_yaml(sweep_path, context=f"sweep {normalized_sweep_id!r}")
     sweep["anchor_run_id"] = normalized_anchor_run_id
-    sweep["anchor_context"] = anchor_context_from_registry_run(
+    sweep["anchor_context"] = system_delta._anchor_context_from_registry_run(
         anchor_run_id=normalized_anchor_run_id,
         registry_path=resolved_paths.registry_path,
     )
-    write_yaml(sweep_path, sweep)
+    system_delta._write_yaml(sweep_path, sweep)
 
-    index = load_system_delta_index(resolved_paths.index_path)
+    index = system_delta.load_system_delta_index(resolved_paths.index_path)
     sweeps = cast(dict[str, Any], index["sweeps"])
     if normalized_sweep_id not in sweeps:
         raise RuntimeError(f"unknown sweep_id: {normalized_sweep_id}")
     cast(dict[str, Any], sweeps[normalized_sweep_id])["anchor_run_id"] = normalized_anchor_run_id
     if set_active:
         index["active_sweep_id"] = normalized_sweep_id
-    write_yaml(resolved_paths.index_path, index)
+    system_delta._write_yaml(resolved_paths.index_path, index)
 
     _render_sweep_matrix(sweep_id=normalized_sweep_id, paths=resolved_paths)
 
     active_sweep_id = str(index["active_sweep_id"])
     if active_sweep_id == normalized_sweep_id:
-        _ = sync_active_sweep_aliases(
+        _ = system_delta.sync_active_sweep_aliases(
             sweep_id=normalized_sweep_id,
             index_path=resolved_paths.index_path,
             catalog_path=resolved_paths.catalog_path,
@@ -172,9 +184,46 @@ def promote_anchor(
         "sweep_path": str(sweep_path.resolve()),
         "index_path": str(resolved_paths.index_path.resolve()),
         "matrix_path": str(
-            sweep_matrix_path(
+            system_delta.sweep_matrix_path(
                 normalized_sweep_id,
                 sweeps_root=resolved_paths.sweeps_root,
             ).resolve()
         ),
     }
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Promote a completed system-delta run to the sweep anchor")
+    parser.add_argument("--sweep-id", required=True, help="Sweep id whose anchor should be updated")
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--run-id", help="Benchmark registry run id to promote")
+    target.add_argument("--order", type=int, help="Queue order whose run_id should be promoted")
+    parser.add_argument("--set-active", action="store_true", help="Also mark this sweep as the active sweep")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    paths = PromotionPaths.default()
+    run_id = (
+        str(args.run_id)
+        if args.run_id is not None
+        else resolve_run_id_for_order(sweep_id=str(args.sweep_id), order=int(args.order), paths=paths)
+    )
+    result = promote_anchor(
+        sweep_id=str(args.sweep_id),
+        anchor_run_id=run_id,
+        set_active=bool(args.set_active),
+        paths=paths,
+    )
+    print(
+        "Promotion complete.",
+        f"sweep_id={result['sweep_id']}",
+        f"anchor_run_id={result['anchor_run_id']}",
+        flush=True,
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

@@ -181,7 +181,7 @@ def test_verify_affected_plan_covers_each_rule_minimum_checks() -> None:
         "training": "src/tab_foundry/training/trainer.py",
         "export": "src/tab_foundry/export/exporter.py",
         "bench": "src/tab_foundry/bench/compare.py",
-        "research": "src/tab_foundry/research/sweep/execute.py",
+        "research": "src/tab_foundry/research/system_delta_execute.py",
         "cli-config": "configs/config.yaml",
     }
     rules_by_name = {rule.name: rule for rule in index.path_rules}
@@ -230,36 +230,14 @@ def test_pre_commit_verify_paths_covers_non_python_mapped_paths() -> None:
     assert re.search(pattern, "scripts/audit/dev_verify.py") is not None
 
 
-def test_dev_verify_prefers_worktree_root_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    worktree_root = tmp_path / "worktree"
-    primary_root = tmp_path / "primary"
-    (worktree_root / ".venv" / "bin").mkdir(parents=True)
-    (primary_root / ".venv" / "bin").mkdir(parents=True)
-    (worktree_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
-    (primary_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
-    monkeypatch.setenv("TAB_FOUNDRY_WORKTREE_ROOT", str(worktree_root))
-    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", str(primary_root))
+def test_dev_verify_uses_primary_root_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", "/tmp/tab-foundry-primary")
     override_module = _load_script_module(
         REPO_ROOT / "scripts" / "audit" / "dev_verify.py",
         "dev_verify_override_script",
     )
 
-    assert override_module.VENV_PYTHON == worktree_root / ".venv" / "bin" / "python"
-
-
-def test_dev_verify_falls_back_to_primary_root_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    worktree_root = tmp_path / "worktree"
-    primary_root = tmp_path / "primary"
-    (primary_root / ".venv" / "bin").mkdir(parents=True)
-    (primary_root / ".venv" / "bin" / "python").write_text("", encoding="utf-8")
-    monkeypatch.setenv("TAB_FOUNDRY_WORKTREE_ROOT", str(worktree_root))
-    monkeypatch.setenv("TAB_FOUNDRY_PRIMARY_ROOT", str(primary_root))
-    override_module = _load_script_module(
-        REPO_ROOT / "scripts" / "audit" / "dev_verify.py",
-        "dev_verify_fallback_script",
-    )
-
-    assert override_module.VENV_PYTHON == primary_root / ".venv" / "bin" / "python"
+    assert override_module.VENV_PYTHON == Path("/tmp/tab-foundry-primary/.venv/bin/python")
 
 
 def test_build_precommit_check_ids_drops_expensive_cross_suite_pytest() -> None:
@@ -279,7 +257,6 @@ def test_build_precommit_check_ids_prefers_changed_test_files_over_directory_pyt
 
     plan, explicit_pytest_paths = dev_verify.build_precommit_check_ids(
         [
-            "tests/runtime/test_program_contract.py",
             "src/tab_foundry/training/trainer.py",
             "tests/training/test_wandb.py",
             "tests/runtime/test_program_contract.py",
@@ -288,31 +265,10 @@ def test_build_precommit_check_ids_prefers_changed_test_files_over_directory_pyt
     )
 
     assert explicit_pytest_paths == (
-        "tests/runtime/test_program_contract.py",
         "tests/training/test_wandb.py",
+        "tests/runtime/test_program_contract.py",
     )
     assert plan.check_ids == ("ruff", "mypy")
-
-
-def test_build_precommit_check_ids_sorts_and_deduplicates_explicit_test_paths() -> None:
-    index = dev_verify.load_dev_index()
-
-    plan, explicit_pytest_paths = dev_verify.build_precommit_check_ids(
-        [
-            "tests/training/test_wandb.py",
-            "tests/audit/test_scripts_dev.py",
-            "tests/cli/test_app.py",
-            "tests/training/test_wandb.py",
-        ],
-        index,
-    )
-
-    assert explicit_pytest_paths == (
-        "tests/audit/test_scripts_dev.py",
-        "tests/cli/test_app.py",
-        "tests/training/test_wandb.py",
-    )
-    assert plan.check_ids == ("mdformat", "audit", "ruff", "mypy")
 
 
 def test_execute_precommit_paths_adds_n0_to_bucket_pytest(
@@ -354,7 +310,6 @@ def test_execute_precommit_paths_adds_n0_to_changed_test_file_pytest(
 
     result = dev_verify.execute_precommit_paths(
         [
-            "tests/runtime/test_program_contract.py",
             "src/tab_foundry/training/trainer.py",
             "tests/training/test_wandb.py",
             "tests/runtime/test_program_contract.py",
@@ -371,8 +326,8 @@ def test_execute_precommit_paths_adds_n0_to_changed_test_file_pytest(
             "-m",
             "pytest",
             "-q",
-            "tests/runtime/test_program_contract.py",
             "tests/training/test_wandb.py",
+            "tests/runtime/test_program_contract.py",
             "-n",
             "0",
         ),

@@ -20,10 +20,10 @@ from .catalog import (
 )
 from .paths_io import (
     _copy_jsonable,
+    _load_yaml_mapping,
     _render_path,
     default_catalog_path,
     default_sweeps_root,
-    load_yaml_mapping,
     sweep_matrix_path,
     sweep_metadata_path,
     sweep_queue_path,
@@ -432,7 +432,7 @@ def load_system_delta_queue(
             sweeps_root=sweeps_root,
         )
 
-    payload = load_yaml_mapping(path, context="system delta queue")
+    payload = _load_yaml_mapping(path, context="system delta queue")
     schema = payload.get("schema")
     if schema == SWEEP_QUEUE_SCHEMA:
         queue_instance = payload
@@ -485,7 +485,7 @@ def load_system_delta_queue_for_inspection(
             sweeps_root=sweeps_root,
         )
 
-    payload = load_yaml_mapping(path, context="system delta queue")
+    payload = _load_yaml_mapping(path, context="system delta queue")
     schema = payload.get("schema")
     if schema == SWEEP_QUEUE_SCHEMA:
         queue_instance = payload

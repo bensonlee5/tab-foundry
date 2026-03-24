@@ -13,7 +13,6 @@ from tab_foundry.bench.artifacts import (
     checkpoint_snapshots_from_history,
     resolve_train_elapsed_seconds,
 )
-from tab_foundry.device import resolve_device
 
 from .bundle import _CLASSIFICATION_TASK_TYPE
 from .dataset_common import BenchmarkDatasetEvaluationError
@@ -23,6 +22,23 @@ from .metrics import (
     dataset_roc_auc_metrics,
     evaluate_classifier,
 )
+
+
+def resolve_device(device: str) -> str:
+    """Resolve auto device selection to a concrete torch device string."""
+
+    normalized = device.strip().lower()
+    if normalized != "auto":
+        return normalized
+    try:
+        import torch
+    except Exception:
+        return "cpu"
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
 
 
 def benchmark_host_fingerprint() -> str:

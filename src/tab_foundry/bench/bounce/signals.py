@@ -46,6 +46,14 @@ def shared_bundle_analysis(
         "confirmation": confirmation_summary,
         "likely_benchmark_noise": likely_benchmark_noise,
     }
+
+
+def curve_summary_compat(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Compatibility wrapper around the shared checkpoint-curve summary helper."""
+
+    return curve_summary(records)
+
+
 def history_variance(values: list[float]) -> float | None:
     if len(values) < 2:
         return None

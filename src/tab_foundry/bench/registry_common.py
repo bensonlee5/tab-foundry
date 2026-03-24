@@ -6,13 +6,11 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from tab_foundry.repo_paths import normalize_repo_relative_path, repo_root, resolve_repo_relative_path
-
 
 def project_root() -> Path:
     """Return the repository root for repo-relative artifact paths."""
 
-    return repo_root()
+    return Path(__file__).resolve().parents[3]
 
 
 def copy_jsonable(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -24,13 +22,20 @@ def copy_jsonable(payload: Mapping[str, Any]) -> dict[str, Any]:
 def normalize_path_value(path: Path, *, root: Path) -> str:
     """Normalize one path to a repo-relative registry value when possible."""
 
-    return normalize_repo_relative_path(path, root=root)
+    resolved = path.expanduser().resolve()
+    try:
+        return str(resolved.relative_to(root))
+    except ValueError:
+        return str(resolved)
 
 
 def resolve_registry_path_value(value: str, *, root: Path) -> Path:
     """Resolve a registry path value to an absolute path."""
 
-    return resolve_repo_relative_path(value, root=root)
+    path = Path(str(value)).expanduser()
+    if path.is_absolute():
+        return path.resolve()
+    return (root / path).resolve()
 
 
 def resolve_config_path(raw_value: Any, *, root: Path) -> Path:

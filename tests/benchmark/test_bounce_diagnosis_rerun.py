@@ -33,8 +33,8 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
     dense_calls: list[dict[str, Any]] = []
 
     monkeypatch.setattr(
-        diagnosis_module.rerun_module,
-        "checkpoint_cfg_from_run",
+        diagnosis_module,
+        "_checkpoint_cfg_from_run",
         lambda _run_dir: OmegaConf.create(
             {
                 "runtime": {
@@ -124,7 +124,7 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
             "benchmark_tasks": [],
             "records": records,
             "records_path": str(out_path.resolve()),
-            "summary": diagnosis_module.curve_summary(records),
+            "summary": diagnosis_module._curve_summary(records),
         }
 
     monkeypatch.setattr(diagnosis_module, "train_tabfoundry_simple_prior", _fake_prior_train)

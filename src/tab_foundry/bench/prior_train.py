@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
+from typing import Sequence
 
 from omegaconf import DictConfig
 
-from tab_foundry.device import resolve_device
-from tab_foundry.training.prior.config import (
+from tab_foundry.bench.nanotabpfn import resolve_device
+from tab_foundry.bench.prior.config import (
     _model_spec_from_cfg,
     _optimizer_kwargs,
     _resolve_lr,
@@ -21,22 +23,23 @@ from tab_foundry.training.prior.config import (
     _validate_prior_training_model_spec,
     DEFAULT_BATCH_SIZE as _CONFIG_DEFAULT_BATCH_SIZE,
 )
-from tab_foundry.training.prior.io import save_eval_mode_checkpoint as _save_eval_mode_checkpoint_impl
-from tab_foundry.training.prior.io import stack_prior_step as _stack_prior_step
-from tab_foundry.training.prior.loop import PriorTrainingDeps, run_prior_training
-from tab_foundry.training.prior.missingness import (
+from tab_foundry.bench.prior.io import save_eval_mode_checkpoint as _save_eval_mode_checkpoint_impl
+from tab_foundry.bench.prior.io import stack_prior_step as _stack_prior_step
+from tab_foundry.bench.prior.loop import PriorTrainingDeps, run_prior_training
+from tab_foundry.bench.prior.missingness import (
     _accumulate_missingness,
     _accumulate_synthetic_missingness,
     _apply_prior_missingness,
     _initial_missingness_summary,
     _prior_wandb_summary_payload,
 )
-from tab_foundry.training.prior.runtime import (
+from tab_foundry.bench.prior.runtime import (
     resolve_prior_training_device_name as _resolve_prior_training_device_name_impl,
     seed_prior_training,
 )
-from tab_foundry.training.prior.wandb import update_prior_wandb_summary
-from tab_foundry.training.prior_dump import PriorDumpTaskBatchReader
+from tab_foundry.bench.prior.wandb import update_prior_wandb_summary
+from tab_foundry.bench.prior_dump import PriorDumpTaskBatchReader
+from tab_foundry.config import compose_config
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import ModelBuildSpec
 from tab_foundry.training.artifacts import (
@@ -229,3 +232,45 @@ def train_tabfoundry_simple_prior(
         prior_dump_non_finite_policy=prior_dump_non_finite_policy,
         deps=_build_prior_training_deps(),
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Train an exact-parity tabfoundry classifier on the nanoTabPFN prior dump"
+    )
+    parser.add_argument(
+        "--prior-dump",
+        default=str(DEFAULT_PRIOR_DUMP_PATH),
+        help="Path to the nanoTabPFN prior dump (.h5)",
+    )
+    parser.add_argument("overrides", nargs="*", help="Optional Hydra override strings")
+    return parser
+
+
+def _compose_prior_cfg(overrides: Sequence[str]) -> DictConfig:
+    resolved_overrides = list(overrides)
+    if not any(str(override).startswith("experiment=") for override in resolved_overrides):
+        resolved_overrides.insert(0, f"experiment={DEFAULT_EXPERIMENT}")
+    return compose_config(resolved_overrides)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    cfg = _compose_prior_cfg(args.overrides)
+    result = train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=Path(str(args.prior_dump)),
+    )
+    print(
+        "Training complete:",
+        f"output_dir={result.output_dir}",
+        f"latest={result.latest_checkpoint}",
+        f"step={result.global_step}",
+        f"metrics={result.metrics}",
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

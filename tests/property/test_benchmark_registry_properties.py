@@ -8,9 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 import pytest
 
-import tab_foundry.benchmark_registry as read_registry_module
-import tab_foundry.bench.registry.run_derivation as run_validation_module
-import tab_foundry.bench.registry.summary_metrics as summary_metrics_module
+import tab_foundry.bench.benchmark_run_registry as registry_module
 
 
 _REL_PATH = st.text(
@@ -123,12 +121,15 @@ def test_registry_path_roundtrips_repo_relative_paths(
 ) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
         repo_root = (Path(tmp_dir) / "repo").resolve()
-        absolute_path = (repo_root / rel_path).resolve()
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
 
-        normalized = read_registry_module.normalize_registry_path_value(absolute_path, root=repo_root)
+            absolute_path = (repo_root / rel_path).resolve()
 
-        assert normalized == str(absolute_path.relative_to(repo_root))
-        assert read_registry_module.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
+            normalized = registry_module._normalize_path_value(absolute_path)
+
+            assert normalized == str(absolute_path.relative_to(repo_root))
+            assert registry_module.resolve_registry_path_value(normalized) == absolute_path
 
 
 @settings(deadline=None, max_examples=35)
@@ -140,18 +141,21 @@ def test_registry_path_roundtrips_absolute_paths_outside_repo(
         tmp_path = Path(tmp_dir)
         repo_root = (tmp_path / "repo").resolve()
         outside_root = tmp_path / "outside"
-        absolute_path = (outside_root / rel_path).resolve()
+        with pytest.MonkeyPatch.context() as monkeypatch:
+            monkeypatch.setattr(registry_module, "project_root", lambda: repo_root)
 
-        normalized = read_registry_module.normalize_registry_path_value(absolute_path, root=repo_root)
+            absolute_path = (outside_root / rel_path).resolve()
 
-        assert normalized == str(absolute_path)
-        assert read_registry_module.resolve_registry_path_value(normalized, root=repo_root) == absolute_path
+            normalized = registry_module._normalize_path_value(absolute_path)
+
+            assert normalized == str(absolute_path)
+            assert registry_module.resolve_registry_path_value(normalized) == absolute_path
 
 
 @settings(deadline=None, max_examples=35)
 @given(value=st.one_of(st.none(), st.integers(), st.floats(allow_nan=False, allow_infinity=False, width=32)))
 def test_optional_finite_number_accepts_finite_numbers_or_none(value: int | float | None) -> None:
-    resolved = summary_metrics_module.ensure_optional_finite_number(value, context="value")
+    resolved = registry_module._ensure_optional_finite_number(value, context="value")
     if value is None:
         assert resolved is None
     else:
@@ -162,7 +166,7 @@ def test_optional_finite_number_accepts_finite_numbers_or_none(value: int | floa
 @given(value=st.sampled_from([float("nan"), float("inf"), float("-inf")]))
 def test_optional_finite_number_rejects_nan_and_infinity(value: float) -> None:
     with pytest.raises(RuntimeError, match="must be finite when present"):
-        _ = summary_metrics_module.ensure_optional_finite_number(value, context="value")
+        _ = registry_module._ensure_optional_finite_number(value, context="value")
 
 
 @settings(deadline=None, max_examples=25)
@@ -191,7 +195,7 @@ def test_validate_run_entry_rejects_missing_required_fields(
         nested.pop(key, None)
 
     with pytest.raises(RuntimeError, match="benchmark run entry run_001 is invalid"):
-        run_validation_module.validate_run_entry(entry, run_id="run_001")
+        registry_module._validate_run_entry(entry, run_id="run_001")
 
 
 @settings(deadline=None, max_examples=25)
@@ -203,4 +207,4 @@ def test_validate_run_entry_rejects_run_id_mismatch(other_run_id: str) -> None:
     entry["run_id"] = other_run_id
 
     with pytest.raises(RuntimeError, match="benchmark run entry run_id mismatch"):
-        read_registry_module._validate_run_entry(entry, run_id="run_001")
+        registry_module._validate_run_entry(entry, run_id="run_001")

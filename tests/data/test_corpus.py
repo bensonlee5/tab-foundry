@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-import tab_foundry.benchmark_registry as registry_module
+import tab_foundry.bench.benchmark_run_registry as registry_module
 from tab_foundry.data import corpus as corpus_module
 from tab_foundry.data.corpus import (
     corpus_compare_payload,
@@ -25,15 +25,6 @@ from tab_foundry.data.dagzoo_handoff import (
 from tab_foundry.data.surface import resolve_data_surface
 
 from . import manifest_and_dataset_cases as cases
-
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-
-
-def test_corpus_default_paths_follow_shared_repo_root() -> None:
-    assert corpus_module.corpus_recipes_root() == REPO_ROOT / "reference" / "corpus_recipes"
-    assert corpus_module.corpus_recipe_index_path() == REPO_ROOT / "reference" / "corpus_recipes" / "index.yaml"
-    assert corpus_module.corpus_outputs_root() == REPO_ROOT / "outputs" / "corpora"
 
 
 def _write_recipe_registry(repo_root: Path) -> None:

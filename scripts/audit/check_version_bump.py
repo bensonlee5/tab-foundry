@@ -62,24 +62,6 @@ def read_version_from_git_ref(
     return load_version_from_pyproject_text(result.stdout)
 
 
-def is_path_staged(
-    repo_root: Path,
-    *,
-    pathspec: str,
-) -> bool:
-    result = subprocess.run(
-        ["git", "diff", "--cached", "--name-only", "--", pathspec],
-        cwd=repo_root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        detail = result.stderr.strip() or result.stdout.strip() or "git diff failed"
-        raise RuntimeError(f"Unable to inspect staged files for {pathspec!r}: {detail}")
-    return bool(result.stdout.strip())
-
-
 def allowed_version_bumps(version: str) -> tuple[VersionTuple, VersionTuple, VersionTuple]:
     major, minor, patch = parse_version(version)
     return (
@@ -123,11 +105,6 @@ def parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default="pyproject.toml",
         help="Repo-relative pyproject file to validate.",
     )
-    parser.add_argument(
-        "--staged-only",
-        action="store_true",
-        help="Skip validation when the target pyproject is absent from the staged diff.",
-    )
     return parser.parse_args(list(argv))
 
 
@@ -136,13 +113,6 @@ def main(argv: Iterable[str] | None = None) -> int:
     pyproject_path = (REPO_ROOT / args.pyproject).resolve()
 
     try:
-        if args.staged_only and not is_path_staged(REPO_ROOT, pathspec=args.pyproject):
-            current_version = read_version_from_pyproject_path(pyproject_path)
-            print(
-                "Version bump check passed: "
-                f"{args.pyproject} is unchanged in the staged diff; current={current_version}"
-            )
-            return 0
         base_version = read_version_from_git_ref(REPO_ROOT, ref=args.base_ref, pyproject_path=args.pyproject)
         current_version = read_version_from_pyproject_path(pyproject_path)
         error = validate_version_bump(base_version, current_version)

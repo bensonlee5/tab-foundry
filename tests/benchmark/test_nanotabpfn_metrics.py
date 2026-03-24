@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import builtins
-import importlib.util
 from pathlib import Path
 import sys
 from types import ModuleType
@@ -15,16 +14,6 @@ import tab_foundry.bench.nanotabpfn.metrics as benchmark_metrics_module
 import tab_foundry.bench.tabiclv2_helper as tabiclv2_helper_module
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TABICLV2_HELPER_SCRIPT_PATH = REPO_ROOT / "scripts" / "bench" / "tabiclv2_helper.py"
-
-
-def _load_tabiclv2_helper_script():
-    spec = importlib.util.spec_from_file_location("bench_tabiclv2_helper_script", TABICLV2_HELPER_SCRIPT_PATH)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 class _PerfectClassifier:
@@ -196,8 +185,6 @@ def test_tabiclv2_helper_main_runs_without_openml_or_pandas_imports(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    script_module = _load_tabiclv2_helper_script()
-
     class _HelperClassifier:
         def __init__(self, **_kwargs: object) -> None:
             self.classes_ = np.asarray([0, 1], dtype=np.int64)
@@ -257,7 +244,7 @@ def test_tabiclv2_helper_main_runs_without_openml_or_pandas_imports(
     monkeypatch.setattr(builtins, "__import__", _guarded_import)
 
     out_path = tmp_path / "tabiclv2_curve.jsonl"
-    exit_code = script_module.main(
+    exit_code = tabiclv2_helper_module.main(
         [
             "--tab-foundry-src",
             str((REPO_ROOT / "src").resolve()),
