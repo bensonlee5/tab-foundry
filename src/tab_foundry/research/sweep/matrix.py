@@ -9,7 +9,15 @@ from tab_foundry.benchmark_registry import load_benchmark_run_registry, resolve_
 from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_LABELS
 
 from .materialize import load_system_delta_queue, ordered_rows
-from .paths_io import _render_path, _write_text, default_catalog_path, default_registry_path, repo_root, sweep_matrix_path, sweep_queue_path
+from .paths_io import (
+    _render_path,
+    default_catalog_path,
+    default_registry_path,
+    repo_root,
+    sweep_matrix_path,
+    sweep_queue_path,
+    write_text,
+)
 from .queue_updates import stage_local_telemetry_metrics
 from .validation import ensure_non_empty_string
 
@@ -510,5 +518,5 @@ def render_and_write_system_delta_matrix(
         else Path(out_path).expanduser().resolve()
     )
     contents = render_system_delta_matrix(resolved_queue, registry_path=registry_path)
-    _write_text(resolved_out_path, contents)
+    write_text(resolved_out_path, contents)
     return resolved_out_path

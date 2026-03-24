@@ -21,12 +21,12 @@ from tab_foundry.research.lane_contract import (
 )
 
 from .paths_io import (
-    _write_yaml as _write_yaml_file,
     default_catalog_path,
     default_registry_path,
     default_sweep_index_path,
     default_sweeps_root,
     repo_root as _repo_root,
+    write_yaml as _write_yaml_file,
 )
 
 

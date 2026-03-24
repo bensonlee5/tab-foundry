@@ -18,17 +18,15 @@ from tab_foundry.research.lane_contract import (
     resolve_training_experiment,
     resolve_surface_role,
 )
-from tab_foundry.research.sweep.core import (
-    create_sweep,
+from tab_foundry.research.sweep.catalog import (
     load_system_delta_catalog,
     load_system_delta_index,
-    load_system_delta_queue,
     load_system_delta_queue_instance,
     load_system_delta_sweep,
-    next_ready_row,
-    render_system_delta_matrix,
-    validate_system_delta_queue,
 )
+from tab_foundry.research.sweep.manage import create_sweep
+from tab_foundry.research.sweep.materialize import load_system_delta_queue, next_ready_row
+from tab_foundry.research.sweep.matrix import render_system_delta_matrix, validate_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

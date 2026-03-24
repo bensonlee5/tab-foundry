@@ -11,8 +11,12 @@ from tab_foundry.benchmark_registry import (
     normalize_registry_path_value,
 )
 
-from . import core as sweep_core
+from .anchor import anchor_context_from_registry_run
 from .artifacts import PromotionPaths
+from .catalog import load_system_delta_index, load_system_delta_queue_instance, load_system_delta_sweep
+from .manage import sync_active_sweep_aliases
+from .matrix import render_and_write_system_delta_matrix
+from .paths_io import load_yaml_mapping, sweep_matrix_path, sweep_metadata_path, write_text, write_yaml
 
 
 _OBJECTIVE_RE = re.compile(
@@ -22,7 +26,7 @@ _OBJECTIVE_RE = re.compile(
 
 
 def _render_sweep_matrix(*, sweep_id: str, paths: PromotionPaths) -> None:
-    _ = sweep_core.render_and_write_system_delta_matrix(
+    _ = render_and_write_system_delta_matrix(
         sweep_id=sweep_id,
         registry_path=paths.registry_path,
         index_path=paths.index_path,
@@ -32,7 +36,7 @@ def _render_sweep_matrix(*, sweep_id: str, paths: PromotionPaths) -> None:
 
 
 def _read_yaml(path, *, context: str) -> dict[str, Any]:
-    return sweep_core._load_yaml_mapping(path, context=context)
+    return load_yaml_mapping(path, context=context)
 
 
 def _replace_prefixed_line(text: str, *, prefix: str, replacement: str) -> str:
@@ -47,7 +51,7 @@ def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: Promot
     runs = cast(dict[str, Any], registry["runs"])
     entry = cast(dict[str, Any], runs[anchor_run_id])
     artifacts = cast(dict[str, Any], entry["artifacts"])
-    sweep = sweep_core.load_system_delta_sweep(
+    sweep = load_system_delta_sweep(
         sweep_id,
         index_path=paths.index_path,
         sweeps_root=paths.sweeps_root,
@@ -82,12 +86,12 @@ def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: Promot
     for prefix, replacement in replacements.items():
         program_text = _replace_prefixed_line(program_text, prefix=prefix, replacement=replacement)
 
-    sweep_core._write_text(paths.program_path, program_text)
+    write_text(paths.program_path, program_text)
 
 
 def resolve_run_id_for_order(*, sweep_id: str, order: int, paths: PromotionPaths | None = None) -> str:
     resolved_paths = PromotionPaths.default() if paths is None else paths
-    queue = sweep_core.load_system_delta_queue_instance(
+    queue = load_system_delta_queue_instance(
         sweep_id,
         index_path=resolved_paths.index_path,
         sweeps_root=resolved_paths.sweeps_root,
@@ -119,37 +123,37 @@ def promote_anchor(
     if not normalized_anchor_run_id:
         raise RuntimeError("anchor_run_id must be non-empty")
 
-    _ = sweep_core._anchor_context_from_registry_run(
+    _ = anchor_context_from_registry_run(
         anchor_run_id=normalized_anchor_run_id,
         registry_path=resolved_paths.registry_path,
     )
 
-    sweep_path = sweep_core.sweep_metadata_path(
+    sweep_path = sweep_metadata_path(
         normalized_sweep_id,
         sweeps_root=resolved_paths.sweeps_root,
     )
     sweep = _read_yaml(sweep_path, context=f"sweep {normalized_sweep_id!r}")
     sweep["anchor_run_id"] = normalized_anchor_run_id
-    sweep["anchor_context"] = sweep_core._anchor_context_from_registry_run(
+    sweep["anchor_context"] = anchor_context_from_registry_run(
         anchor_run_id=normalized_anchor_run_id,
         registry_path=resolved_paths.registry_path,
     )
-    sweep_core._write_yaml(sweep_path, sweep)
+    write_yaml(sweep_path, sweep)
 
-    index = sweep_core.load_system_delta_index(resolved_paths.index_path)
+    index = load_system_delta_index(resolved_paths.index_path)
     sweeps = cast(dict[str, Any], index["sweeps"])
     if normalized_sweep_id not in sweeps:
         raise RuntimeError(f"unknown sweep_id: {normalized_sweep_id}")
     cast(dict[str, Any], sweeps[normalized_sweep_id])["anchor_run_id"] = normalized_anchor_run_id
     if set_active:
         index["active_sweep_id"] = normalized_sweep_id
-    sweep_core._write_yaml(resolved_paths.index_path, index)
+    write_yaml(resolved_paths.index_path, index)
 
     _render_sweep_matrix(sweep_id=normalized_sweep_id, paths=resolved_paths)
 
     active_sweep_id = str(index["active_sweep_id"])
     if active_sweep_id == normalized_sweep_id:
-        _ = sweep_core.sync_active_sweep_aliases(
+        _ = sync_active_sweep_aliases(
             sweep_id=normalized_sweep_id,
             index_path=resolved_paths.index_path,
             catalog_path=resolved_paths.catalog_path,
@@ -168,7 +172,7 @@ def promote_anchor(
         "sweep_path": str(sweep_path.resolve()),
         "index_path": str(resolved_paths.index_path.resolve()),
         "matrix_path": str(
-            sweep_core.sweep_matrix_path(
+            sweep_matrix_path(
                 normalized_sweep_id,
                 sweeps_root=resolved_paths.sweeps_root,
             ).resolve()

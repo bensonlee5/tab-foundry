@@ -17,7 +17,7 @@ from tab_foundry.control_baseline_registry import (
     default_control_baseline_registry_path,
 )
 import tab_foundry.cli.research_execute as sweep_execute_cli_module
-from tab_foundry.research.sweep.core import create_sweep
+from tab_foundry.research.sweep.manage import create_sweep
 from tab_foundry.research.sweep.execute import execute_sweep
 from tab_foundry.research.sweep.artifacts import ExecutionPaths, result_card_text as _result_card_text
 import tab_foundry.research.sweep.configuration as configuration_module

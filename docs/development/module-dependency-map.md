@@ -92,9 +92,13 @@ Observed cycle status:
   read-only `training` inspection helpers, but lower layers should not depend
   on it.
 - Execute/promote and sweep-management ownership inside `tab_foundry.research`
-  should live under `research/sweep/`; higher layers should import
-  `research.sweep.core`, `research.sweep.execute`, and
-  `research.sweep.promote` directly instead of reintroducing wrapper modules.
+  should live under `research/sweep/`; higher layers should import the
+  canonical owner modules directly (`research.sweep.catalog`,
+  `research.sweep.manage`, `research.sweep.materialize`,
+  `research.sweep.matrix`, `research.sweep.paths_io`,
+  `research.sweep.validation`, `research.sweep.anchor`,
+  `research.sweep.execute`, and `research.sweep.promote`) instead of
+  reintroducing wrapper or barrel modules.
 - Research CLI parser ownership should stay under `src/tab_foundry/cli/`; the
   `research/sweep` library modules should stay parser-free.
 - Packaged `bench` CLI parser ownership should stay under
@@ -135,8 +139,9 @@ Observed cycle status:
 - Changes here affect external-baseline comparison and benchmark registry
   records.
 
-### `src/tab_foundry/research/sweep/core.py`
+### `src/tab_foundry/research/sweep/manage.py`, `src/tab_foundry/research/sweep/materialize.py`, `src/tab_foundry/research/sweep/matrix.py`, And `src/tab_foundry/research/sweep/catalog.py`
 
-- Canonical sweep manager, queue materializer, and rendered-matrix surface.
+- Canonical sweep lifecycle, queue materialization, matrix rendering, and
+  catalog/index loading surfaces.
 - Changes here affect the active research contract and the generated alias
   views under `reference/`.

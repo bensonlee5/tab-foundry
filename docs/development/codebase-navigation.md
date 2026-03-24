@@ -77,15 +77,18 @@ into the canonical library modules.
   bench library modules are parser-free.
 - `src/tab_foundry/research/`: system-delta sweep state, queue/matrix
   rendering, sweep-result summaries, and research-package path conventions.
-  The canonical sweep manager now lives under `src/tab_foundry/research/sweep/`;
-  `src/tab_foundry/research/sweep/execute.py` and
-  `src/tab_foundry/research/sweep/promote.py` are the canonical
-  execute/promote library entrypoints, `src/tab_foundry/research/sweep/core.py`
-  is the canonical sweep manager and queue/materialization surface, and
-  sweep execution internals now live under `research/sweep/configuration.py`,
-  `research/sweep/runtime_env.py`, `research/sweep/curve_reuse.py`,
-  `research/sweep/training_state.py`, `research/sweep/row_dependencies.py`,
-  `research/sweep/row_sync.py`, and `research/sweep/row_execution.py`.
+  The canonical sweep ownership now lives under
+  `src/tab_foundry/research/sweep/`: `catalog.py` owns sweep/index/catalog
+  loading, `manage.py` owns create/set-active/alias sync, `materialize.py`
+  owns queue loading/materialization, `matrix.py` owns validation/rendering,
+  `paths_io.py` owns sweep paths plus YAML/text helpers, `validation.py`
+  owns sweep-shape validation helpers, and `anchor.py` owns anchor-context
+  derivation. `execute.py` and `promote.py` remain the canonical
+  execute/promote library entrypoints, and sweep execution internals now live
+  under `research/sweep/configuration.py`, `research/sweep/runtime_env.py`,
+  `research/sweep/curve_reuse.py`, `research/sweep/training_state.py`,
+  `research/sweep/row_dependencies.py`, `research/sweep/row_sync.py`, and
+  `research/sweep/row_execution.py`.
 
 ## 3. Workflow Surfaces
 
@@ -185,10 +188,12 @@ not absorb new orchestration logic.
   docs-only tooling.
 - `research/sweep/execute.py` and `research/sweep/promote.py` should remain
   the canonical execute/promote library surfaces, with CLI parser ownership
-  staying under `src/tab_foundry/cli/`; `research/sweep/core.py` should
-  remain the canonical sweep-management surface, and row-level helper logic
-  should stay factored under the dedicated sweep helper modules instead of
-  regrowing a monolithic `row_execution.py`.
+  staying under `src/tab_foundry/cli/`; higher layers should import the
+  canonical sweep owner modules directly (`catalog.py`, `manage.py`,
+  `materialize.py`, `matrix.py`, `paths_io.py`, `validation.py`, and
+  `anchor.py`) instead of recreating a barrel module, and row-level helper
+  logic should stay factored under the dedicated sweep helper modules instead
+  of regrowing a monolithic `row_execution.py`.
 - `tabfoundry_staged` is the only active architecture surface. Shared logic
   should continue to move into `model/components/`, `model/spec.py`, and
   family-neutral helpers instead of reintroducing parallel model pathways.

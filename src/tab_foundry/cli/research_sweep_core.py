@@ -7,7 +7,12 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from tab_foundry.research.sweep import core as sweep_core
+from tab_foundry.research.sweep import catalog as sweep_catalog
+from tab_foundry.research.sweep import manage as sweep_manage
+from tab_foundry.research.sweep import materialize as sweep_materialize
+from tab_foundry.research.sweep import matrix as sweep_matrix
+from tab_foundry.research.sweep import paths_io as sweep_paths
+from tab_foundry.research.sweep import validation as sweep_validation
 
 
 def _catalog_path(args: argparse.Namespace) -> Path:
@@ -25,23 +30,23 @@ def _registry_path(args: argparse.Namespace) -> Path:
 def configure_core_path_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--catalog-path",
-        default=str(sweep_core.default_catalog_path()),
+        default=str(sweep_paths.default_catalog_path()),
         help="Path to reference/system_delta_catalog.yaml",
     )
     parser.add_argument(
         "--index-path",
-        default=str(sweep_core.default_sweep_index_path()),
+        default=str(sweep_paths.default_sweep_index_path()),
         help="Path to reference/system_delta_sweeps/index.yaml",
     )
     parser.add_argument(
         "--registry-path",
-        default=str(sweep_core.default_registry_path()),
+        default=str(sweep_paths.default_registry_path()),
         help="Path to benchmark_run_registry_v1.json",
     )
 
 
 def _run_list_sweeps(args: argparse.Namespace) -> int:
-    for sweep_info in sweep_core.list_sweeps(index_path=_index_path(args)):
+    for sweep_info in sweep_manage.list_sweeps(index_path=_index_path(args)):
         marker = "*" if sweep_info["is_active"] else " "
         print(
             f"{marker} {sweep_info['sweep_id']}  {sweep_info['status']:<8}  "
@@ -51,13 +56,13 @@ def _run_list_sweeps(args: argparse.Namespace) -> int:
 
 
 def _run_show_active(args: argparse.Namespace) -> int:
-    index = sweep_core.load_system_delta_index(_index_path(args))
-    print(sweep_core.ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id"))
+    index = sweep_catalog.load_system_delta_index(_index_path(args))
+    print(sweep_validation.ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id"))
     return 0
 
 
 def _run_set_active(args: argparse.Namespace) -> int:
-    result = sweep_core.set_active_sweep(
+    result = sweep_manage.set_active_sweep(
         str(args.sweep_id),
         index_path=_index_path(args),
         catalog_path=_catalog_path(args),
@@ -70,7 +75,7 @@ def _run_set_active(args: argparse.Namespace) -> int:
 
 
 def _run_sweep_create(args: argparse.Namespace) -> int:
-    result = sweep_core.create_sweep(
+    result = sweep_manage.create_sweep(
         sweep_id=str(args.sweep_id),
         anchor_run_id=str(args.anchor_run_id),
         parent_sweep_id=None if args.parent_sweep_id is None else str(args.parent_sweep_id),
@@ -104,7 +109,7 @@ def _run_sweep_create(args: argparse.Namespace) -> int:
 
 def _load_queue_from_args(args: argparse.Namespace) -> dict[str, object]:
     selected_sweep_id = None if getattr(args, "sweep_id", None) is None else str(args.sweep_id)
-    return sweep_core.load_system_delta_queue(
+    return sweep_materialize.load_system_delta_queue(
         sweep_id=selected_sweep_id,
         index_path=_index_path(args),
         catalog_path=_catalog_path(args),
@@ -113,7 +118,7 @@ def _load_queue_from_args(args: argparse.Namespace) -> dict[str, object]:
 
 def _run_sweep_list(args: argparse.Namespace) -> int:
     queue = _load_queue_from_args(args)
-    for row in sweep_core.ordered_rows(queue):
+    for row in sweep_materialize.ordered_rows(queue):
         print(
             f"{int(row['order']):02d}  {row['status']:<28}  "
             f"{row['dimension_family']:<13}  {row['delta_id']}"
@@ -123,7 +128,7 @@ def _run_sweep_list(args: argparse.Namespace) -> int:
 
 def _run_sweep_next(args: argparse.Namespace) -> int:
     queue = _load_queue_from_args(args)
-    next_row = sweep_core.next_ready_row(queue)
+    next_row = sweep_materialize.next_ready_row(queue)
     if next_row is None:
         print("No ready rows.")
         return 0
@@ -133,18 +138,18 @@ def _run_sweep_next(args: argparse.Namespace) -> int:
 
 def _run_sweep_render(args: argparse.Namespace) -> int:
     queue = _load_queue_from_args(args)
-    resolved_out_path = sweep_core.render_and_write_system_delta_matrix(
+    resolved_out_path = sweep_matrix.render_and_write_system_delta_matrix(
         sweep_id=str(queue["sweep_id"]),
         queue=queue,
         registry_path=_registry_path(args),
         out_path=None if args.out_path is None else Path(str(args.out_path)),
     )
-    active_sweep_id = sweep_core.ensure_non_empty_string(
-        sweep_core.load_system_delta_index(_index_path(args)).get("active_sweep_id"),
+    active_sweep_id = sweep_validation.ensure_non_empty_string(
+        sweep_catalog.load_system_delta_index(_index_path(args)).get("active_sweep_id"),
         context="active_sweep_id",
     )
     if str(queue["sweep_id"]) == active_sweep_id:
-        sweep_core.sync_active_sweep_aliases(
+        sweep_manage.sync_active_sweep_aliases(
             sweep_id=str(queue["sweep_id"]),
             index_path=_index_path(args),
             catalog_path=_catalog_path(args),
@@ -156,7 +161,7 @@ def _run_sweep_render(args: argparse.Namespace) -> int:
 
 def _run_sweep_validate(args: argparse.Namespace) -> int:
     queue = _load_queue_from_args(args)
-    issues = sweep_core.validate_system_delta_queue(queue, registry_path=_registry_path(args))
+    issues = sweep_matrix.validate_system_delta_queue(queue, registry_path=_registry_path(args))
     if not issues:
         print("System delta queue validation passed.")
         return 0

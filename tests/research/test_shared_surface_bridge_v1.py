@@ -7,7 +7,8 @@ from typing import Any
 from omegaconf import OmegaConf
 
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
-from tab_foundry.research.sweep.core import load_system_delta_catalog, load_system_delta_queue
+from tab_foundry.research.sweep.catalog import load_system_delta_catalog
+from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

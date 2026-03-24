@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Mapping
 
 from .artifacts import ExecutionPaths, read_yaml, write_yaml
-from . import core as sweep_core
+from .catalog import load_system_delta_sweep
+from .paths_io import sweep_queue_path
 from .promote import promote_anchor
 from . import row_dependencies as _row_dependencies
 from . import row_sync as _row_sync
@@ -34,13 +35,13 @@ def execute_sweep(
 ) -> list[str]:
     resolved_paths = ExecutionPaths.default() if paths is None else paths
 
-    sweep_meta = sweep_core.load_system_delta_sweep(
+    sweep_meta = load_system_delta_sweep(
         sweep_id,
         index_path=resolved_paths.index_path,
         sweeps_root=resolved_paths.sweeps_root,
     )
     resolved_sweep_id = str(sweep_meta["sweep_id"])
-    queue_path = sweep_core.sweep_queue_path(resolved_sweep_id, sweeps_root=resolved_paths.sweeps_root)
+    queue_path = sweep_queue_path(resolved_sweep_id, sweeps_root=resolved_paths.sweeps_root)
     queue = read_yaml(queue_path)
     queue_rows = sorted_rows(queue)
     materialized_rows = _row_sync.materialized_row_map(
@@ -112,7 +113,7 @@ def execute_sweep(
                 paths=resolved_paths.promotion_paths(),
             )
             active_anchor = run_id
-            sweep_meta = sweep_core.load_system_delta_sweep(
+            sweep_meta = load_system_delta_sweep(
                 resolved_sweep_id,
                 index_path=resolved_paths.index_path,
                 sweeps_root=resolved_paths.sweeps_root,

@@ -85,7 +85,7 @@ def _render_path(path: Path) -> str:
         return str(resolved)
 
 
-def _load_yaml_mapping(path: Path, *, context: str) -> dict[str, Any]:
+def load_yaml_mapping(path: Path, *, context: str) -> dict[str, Any]:
     payload = OmegaConf.to_container(
         OmegaConf.load(path.expanduser().resolve()),
         resolve=True,
@@ -95,7 +95,7 @@ def _load_yaml_mapping(path: Path, *, context: str) -> dict[str, Any]:
     return cast(dict[str, Any], payload)
 
 
-def _write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
+def write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
     resolved = path.expanduser().resolve()
     resolved.parent.mkdir(parents=True, exist_ok=True)
     text = yaml.dump(
@@ -107,7 +107,7 @@ def _write_yaml(path: Path, payload: Mapping[str, Any]) -> None:
     resolved.write_text(text, encoding="utf-8")
 
 
-def _write_text(path: Path, contents: str) -> None:
+def write_text(path: Path, contents: str) -> None:
     resolved = path.expanduser().resolve()
     resolved.parent.mkdir(parents=True, exist_ok=True)
     resolved.write_text(contents, encoding="utf-8")

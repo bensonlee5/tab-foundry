@@ -32,12 +32,12 @@ from .materialize import (
     ordered_rows,
 )
 from .paths_io import (
-    _write_text,
     default_catalog_path,
     default_registry_path,
     default_sweep_index_path,
     default_sweeps_root,
     repo_root,
+    write_text,
 )
 from .configuration import compose_cfg
 from .validation import ensure_mapping, ensure_non_empty_string
@@ -562,7 +562,7 @@ def render_sweep_graphs(
     resolved_out_dir.mkdir(parents=True, exist_ok=True)
     graph_paths = [render_graph_target(target, out_dir=resolved_out_dir) for target in targets]
     index_path = resolved_out_dir / "index.md"
-    _write_text(
+    write_text(
         index_path,
         _index_contents(
             sweep_id=resolved_sweep_id,

@@ -73,7 +73,7 @@ def test_promote_anchor_updates_sweep_and_index_without_touching_program_for_ina
 
     monkeypatch.setattr(promote_module, '_render_sweep_matrix', lambda **kwargs: rendered.append(kwargs['sweep_id']))
     monkeypatch.setattr(
-        promote_module.sweep_core,
+        promote_module,
         'sync_active_sweep_aliases',
         lambda **kwargs: synced.append(kwargs['sweep_id']) or {},
     )
@@ -107,7 +107,7 @@ def test_promote_anchor_updates_program_for_active_sweep(
 
     monkeypatch.setattr(promote_module, '_render_sweep_matrix', lambda **kwargs: rendered.append(kwargs['sweep_id']))
     monkeypatch.setattr(
-        promote_module.sweep_core,
+        promote_module,
         'sync_active_sweep_aliases',
         lambda **kwargs: synced.append(kwargs['sweep_id']) or {},
     )

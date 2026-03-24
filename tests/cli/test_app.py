@@ -37,11 +37,14 @@ import tab_foundry.cli.research_promote as research_promote_cli_module
 import tab_foundry.cli.research_summarize as research_summarize_cli_module
 import tab_foundry.cli.research_sweep_core as research_sweep_core_cli_module
 import tab_foundry.cli.train_prior as train_prior_cli_module
-import tab_foundry.research.sweep.core as sweep_core_module
+import tab_foundry.research.sweep.catalog as sweep_catalog_module
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.execute as sweep_execute_library_module
 import tab_foundry.research.sweep.graph as graph_module
 import tab_foundry.research.sweep.inspect as inspect_module
+import tab_foundry.research.sweep.manage as sweep_manage_module
+import tab_foundry.research.sweep.materialize as sweep_materialize_module
+import tab_foundry.research.sweep.matrix as sweep_matrix_module
 import tab_foundry.research.sweep.promote as sweep_promote_library_module
 import tab_foundry.research.sweep.summarize as summarize_module
 import tab_foundry.training.prior_train as prior_train_library_module
@@ -547,7 +550,10 @@ def test_cli_groups_use_cli_only_execute_promote_and_bench_modules() -> None:
         run_registration_library_module,
         control_baseline_freeze_library_module,
         prior_train_library_module,
-        sweep_core_module,
+        sweep_catalog_module,
+        sweep_manage_module,
+        sweep_materialize_module,
+        sweep_matrix_module,
         sweep_execute_library_module,
         graph_module,
         inspect_module,
