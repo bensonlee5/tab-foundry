@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.9.3] - 2026-03-23
+## [0.10.0] - 2026-03-23
 
 ### Changed
 
@@ -18,8 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Contributor-facing note: the packaged CLI now registers `tab-foundry dev ...`
   and `tab-foundry research sweep ...` commands directly from the nested CLI
-  groups instead of routing them through delegate-only wrapper layers; command
-  names and flags are unchanged.
+  groups instead of routing them through delegate-only wrapper layers. This is
+  a user-facing CLI break: `tab-foundry research sweep create` is now
+  `tab-foundry research sweep create-sweep`, and sweep-management commands now
+  expose explicit `list-sweeps` and `show-active` verbs.
 
 - Internal architecture note: the packaged CLI now also registers
   `tab-foundry data manifest-inspect ...` and `tab-foundry train prior ...`

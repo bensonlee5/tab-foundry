@@ -188,6 +188,43 @@ def test_python_runtime_and_tooling_contracts_are_aligned() -> None:
     assert 'python-version: "3.13"' not in ci_workflow
 
 
+def test_readme_front_door_contract_matches_current_repo_shape() -> None:
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+
+    required_statements = [
+        "bensonlee5.github.io/tab-foundry",
+        "`tab-foundry` is the canonical packaged CLI",
+        "`./scripts/dev`",
+        "`scripts/bench/`",
+        "`scripts/materialize_tf_rd_013_support.py`",
+        "Use `--help` in this order:",
+        "tab-foundry --help",
+        "tab-foundry <group> --help",
+        "tab-foundry <group> <command> --help",
+        "CLI tree:",
+        "`build-manifest`: build a manifest from one or more data roots",
+        "`run`: train from Hydra config overrides",
+        "`bundle`: export one checkpoint as an inference bundle",
+        "`sweep execute`: execute selected sweep rows",
+        "docs/workflows.md",
+        "docs/research-contributors.md",
+        "docs/ml-engineering.md",
+    ]
+    for statement in required_statements:
+        assert statement in readme
+
+    forbidden_statements = [
+        "## Quickstart",
+        "Build a manifest:",
+        "Train a smoke profile:",
+        "Evaluate a checkpoint:",
+        "Export and validate an inference bundle:",
+        "## Docs",
+    ]
+    for statement in forbidden_statements:
+        assert statement not in readme
+
+
 def test_editable_lockfile_version_matches_pyproject() -> None:
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     uv_lock = tomllib.loads((REPO_ROOT / "uv.lock").read_text(encoding="utf-8"))

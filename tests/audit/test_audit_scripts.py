@@ -153,6 +153,20 @@ def test_docs_consistency_reports_stale_python_module_entrypoint(tmp_path: Path)
     assert errors[0][2].startswith("stale direct module entrypoint")
 
 
+def test_docs_consistency_reports_unsupported_python_script_entrypoint(tmp_path: Path) -> None:
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "custom_helper.py").write_text("print('ok')\n", encoding="utf-8")
+    (tmp_path / "README.md").write_text(
+        "Run `.venv/bin/python scripts/custom_helper.py --demo`.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert errors[0][2] == "unsupported Python script entrypoint in docs: `scripts/custom_helper.py`"
+
+
 def test_docs_consistency_reports_nonexistent_tab_foundry_command(tmp_path: Path) -> None:
     (tmp_path / "README.md").write_text(
         "Use `tab-foundry research sweep create --sweep-id demo`.\n",
@@ -176,6 +190,18 @@ def test_docs_consistency_reports_removed_module_reference(tmp_path: Path) -> No
 
     assert len(errors) == 1
     assert "removed research compatibility wrapper reference" == errors[0][2]
+
+
+def test_docs_consistency_reports_missing_repo_script_entrypoint(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text(
+        "Run `./scripts/not_real.sh` before opening a PR.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert errors[0][2] == "documented repo-local script entrypoint is missing: `scripts/not_real.sh`"
 
 
 def test_docs_consistency_reports_codebase_navigation_inventory_mismatch(tmp_path: Path) -> None:

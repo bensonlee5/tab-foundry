@@ -191,7 +191,7 @@ def _validate_tab_foundry_command(tokens: list[str], cli_tree: dict[str, dict]) 
     return None if consumed else "missing command after tab-foundry"
 
 
-def _validate_bench_helper_command(tokens: list[str], *, repo_root: Path) -> str | None:
+def _validate_python_script_command(tokens: list[str], *, repo_root: Path) -> str | None:
     if not tokens:
         return None
     match = PYTHON_SCRIPT_CMD_RE.match(" ".join(tokens))
@@ -206,6 +206,21 @@ def _validate_bench_helper_command(tokens: list[str], *, repo_root: Path) -> str
             return f"documented standalone Python entrypoint is missing: `{script_path}`"
         return None
     return f"unsupported Python script entrypoint in docs: `{script_path}`"
+
+
+def _validate_repo_script_command(tokens: list[str], *, repo_root: Path) -> str | None:
+    if not tokens:
+        return None
+    script_token = tokens[0]
+    if script_token.startswith("./"):
+        script_path = script_token[2:]
+    else:
+        script_path = script_token
+    if not script_path.startswith("scripts/"):
+        return None
+    if not (repo_root / script_path).exists():
+        return f"documented repo-local script entrypoint is missing: `{script_path}`"
+    return None
 
 
 def _extract_codebase_navigation_inventory(path: Path) -> set[str]:
@@ -249,7 +264,7 @@ def scan_docs_consistency(
                         (
                             path,
                             lineno,
-                            "stale direct module entrypoint; use the packaged CLI or `.venv/bin/python scripts/bench/...`",
+                            "stale direct module entrypoint; use the packaged CLI or a documented repo-local script entrypoint",
                         )
                     )
                 for pattern, message in STALE_REFERENCE_PATTERNS:
@@ -264,10 +279,13 @@ def scan_docs_consistency(
                     if message is not None:
                         errors.append((path, lineno, message))
                     continue
-                if tokens[0] == "./scripts/dev":
-                    continue
                 if tokens[0].startswith("python") or tokens[0] == ".venv/bin/python":
-                    message = _validate_bench_helper_command(tokens, repo_root=repo_root)
+                    message = _validate_python_script_command(tokens, repo_root=repo_root)
+                    if message is not None:
+                        errors.append((path, lineno, message))
+                    continue
+                if tokens[0].startswith("./scripts/") or tokens[0].startswith("scripts/"):
+                    message = _validate_repo_script_command(tokens, repo_root=repo_root)
                     if message is not None:
                         errors.append((path, lineno, message))
 
