@@ -30,7 +30,7 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     run_parser.add_argument("overrides", nargs="*", help="Hydra override strings")
     run_parser.set_defaults(func=_run_training_command)
 
-    prior_parser = nested.add_parser("prior", help="Exact-prior training workflows")
+    prior_parser = nested.add_parser("legacy-prior", help="Legacy exact-prior training workflows")
     prior_nested = prior_parser.add_subparsers(dest="prior_command", required=True)
     prior_simple_parser = prior_nested.add_parser(
         "simple",

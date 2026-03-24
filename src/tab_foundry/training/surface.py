@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from tab_foundry.data.inspection import manifest_characteristics
-from tab_foundry.data.surface import resolve_data_surface
+from tab_foundry.data.surface import DataSurfaceConfig, resolve_data_surface
 from tab_foundry.hashing import sha256_path
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import (
@@ -20,10 +20,15 @@ from tab_foundry.timestamps import utc_now as _shared_utc_now
 
 TRAINING_SURFACE_SCHEMA = "tab-foundry-training-surface-v1"
 TRAINING_BACKEND_MANIFEST = "manifest"
-TRAINING_BACKEND_PRIOR_DUMP = "prior_dump"
+TRAINING_BACKEND_LEGACY_PRIOR = "legacy_prior"
+_TRAINING_BACKEND_ALIASES = {
+    TRAINING_BACKEND_MANIFEST: TRAINING_BACKEND_MANIFEST,
+    TRAINING_BACKEND_LEGACY_PRIOR: TRAINING_BACKEND_LEGACY_PRIOR,
+    "prior_dump": TRAINING_BACKEND_LEGACY_PRIOR,
+}
 _VALID_TRAINING_BACKENDS = {
     TRAINING_BACKEND_MANIFEST,
-    TRAINING_BACKEND_PRIOR_DUMP,
+    TRAINING_BACKEND_LEGACY_PRIOR,
 }
 
 
@@ -31,30 +36,85 @@ def _utc_now() -> str:
     return _shared_utc_now()
 
 
-def _normalize_training_backend(value: Any) -> str | None:
+def normalize_training_backend(value: Any) -> str | None:
     if value is None:
         return None
     backend = str(value).strip().lower()
     if not backend:
         return None
-    if backend not in _VALID_TRAINING_BACKENDS:
+    normalized = _TRAINING_BACKEND_ALIASES.get(backend)
+    if normalized is None:
         raise ValueError(
-            f"training backend must be one of {sorted(_VALID_TRAINING_BACKENDS)}, got {value!r}"
+            "training backend must be one of "
+            f"{sorted(_VALID_TRAINING_BACKENDS | {'prior_dump'})}, got {value!r}"
         )
-    return backend
+    return normalized
 
 
-def resolve_training_backend_from_data_cfg(data_cfg: Mapping[str, Any] | None) -> str:
-    """Resolve the training backend from one data surface mapping."""
-
-    if data_cfg is None:
-        return TRAINING_BACKEND_PRIOR_DUMP
-    source = str(resolve_data_surface(data_cfg).source).strip().lower()
-    if source not in _VALID_TRAINING_BACKENDS:
+def resolve_training_backend_from_data_surface(data_surface: DataSurfaceConfig) -> str:
+    source = str(data_surface.source).strip().lower()
+    try:
+        normalized = normalize_training_backend(source)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"unsupported training backend source {source!r}; expected one of {sorted(_VALID_TRAINING_BACKENDS)}"
+        ) from exc
+    if normalized is None:
         raise RuntimeError(
             f"unsupported training backend source {source!r}; expected one of {sorted(_VALID_TRAINING_BACKENDS)}"
         )
-    return source
+    return normalized
+
+
+def resolve_training_backend_from_data_cfg(
+    data_cfg: Mapping[str, Any] | None,
+    *,
+    allow_unresolved_corpus_ref: bool = False,
+) -> str:
+    """Resolve the training backend from one data surface mapping."""
+
+    if data_cfg is None:
+        return TRAINING_BACKEND_LEGACY_PRIOR
+    data_surface = resolve_data_surface(
+        data_cfg,
+        allow_unresolved_corpus_ref=allow_unresolved_corpus_ref,
+    )
+    return resolve_training_backend_from_data_surface(data_surface)
+
+
+def _legacy_prior_payload(
+    *,
+    training_cfg: Mapping[str, Any] | None,
+    legacy_prior_cfg: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    def _raw_value(top_level_key: str, legacy_training_key: str) -> Any:
+        if training_cfg is not None and training_cfg.get(legacy_training_key) is not None:
+            return training_cfg[legacy_training_key]
+        if legacy_prior_cfg is not None and legacy_prior_cfg.get(top_level_key) is not None:
+            return legacy_prior_cfg[top_level_key]
+        return None
+
+    non_finite_policy = _raw_value("non_finite_policy", "prior_dump_non_finite_policy")
+    batch_size = _raw_value("batch_size", "prior_dump_batch_size")
+    lr_scale_rule = _raw_value("lr_scale_rule", "prior_dump_lr_scale_rule")
+    batch_reference_size = _raw_value("batch_reference_size", "prior_dump_batch_reference_size")
+    effective_lr_scale_factor = _raw_value(
+        "effective_lr_scale_factor",
+        "effective_lr_scale_factor",
+    )
+    return {
+        "non_finite_policy": "error" if non_finite_policy is None else str(non_finite_policy),
+        "batch_size": None if batch_size is None else int(batch_size),
+        "lr_scale_rule": None if lr_scale_rule is None else str(lr_scale_rule),
+        "batch_reference_size": (
+            None if batch_reference_size is None else int(batch_reference_size)
+        ),
+        "effective_lr_scale_factor": (
+            None
+            if effective_lr_scale_factor is None
+            else float(effective_lr_scale_factor)
+        ),
+    }
 
 
 def build_training_surface_record(
@@ -73,6 +133,7 @@ def build_training_surface_record(
     raw_data_cfg = raw_cfg.get("data")
     raw_preprocessing_cfg = raw_cfg.get("preprocessing")
     raw_training_cfg = raw_cfg.get("training")
+    raw_legacy_prior_cfg = raw_cfg.get("legacy_prior")
     raw_optimizer_cfg = raw_cfg.get("optimizer")
     raw_schedule_cfg = raw_cfg.get("schedule")
     if not isinstance(raw_model_cfg, Mapping):
@@ -102,6 +163,11 @@ def build_training_surface_record(
         if not isinstance(raw_optimizer_cfg, Mapping)
         else {str(key): value for key, value in raw_optimizer_cfg.items()}
     )
+    legacy_prior_cfg = (
+        None
+        if not isinstance(raw_legacy_prior_cfg, Mapping)
+        else {str(key): value for key, value in raw_legacy_prior_cfg.items()}
+    )
     schedule_cfg = (
         None
         if not isinstance(raw_schedule_cfg, Mapping)
@@ -120,14 +186,9 @@ def build_training_surface_record(
         allow_unresolved_corpus_ref=allow_unresolved_corpus_ref,
     )
     preprocessing_surface = resolve_preprocessing_surface(preprocessing_cfg)
-    resolved_backend = _normalize_training_backend(backend)
+    resolved_backend = normalize_training_backend(backend)
     if resolved_backend is None:
-        resolved_backend = str(data_surface.source).strip().lower()
-        if resolved_backend not in _VALID_TRAINING_BACKENDS:
-            raise RuntimeError(
-                "unsupported training backend source "
-                f"{resolved_backend!r}; expected one of {sorted(_VALID_TRAINING_BACKENDS)}"
-            )
+        resolved_backend = resolve_training_backend_from_data_surface(data_surface)
     manifest_payload: dict[str, Any] | None = None
     if data_surface.manifest_path is not None:
         manifest_payload = {
@@ -211,21 +272,6 @@ def build_training_surface_record(
                 "surface_label": training_label,
                 "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
                 "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
-                "prior_dump_non_finite_policy": str(
-                    training_cfg.get("prior_dump_non_finite_policy", "error")
-                ),
-                "prior_dump_batch_size": None
-                if training_cfg.get("prior_dump_batch_size") is None
-                else int(training_cfg["prior_dump_batch_size"]),
-                "prior_dump_lr_scale_rule": None
-                if training_cfg.get("prior_dump_lr_scale_rule") is None
-                else str(training_cfg["prior_dump_lr_scale_rule"]),
-                "prior_dump_batch_reference_size": None
-                if training_cfg.get("prior_dump_batch_reference_size") is None
-                else int(training_cfg["prior_dump_batch_reference_size"]),
-                "effective_lr_scale_factor": None
-                if training_cfg.get("effective_lr_scale_factor") is None
-                else float(training_cfg["effective_lr_scale_factor"]),
                 "optimizer_name": None
                 if optimizer_cfg is None or optimizer_cfg.get("name") is None
                 else str(optimizer_cfg["name"]),
@@ -241,6 +287,11 @@ def build_training_surface_record(
             training_payload = {
                 "task_batch_size": 1,
             }
+        if resolved_backend == TRAINING_BACKEND_LEGACY_PRIOR:
+            training_payload["legacy_prior"] = _legacy_prior_payload(
+                training_cfg=training_cfg,
+                legacy_prior_cfg=legacy_prior_cfg,
+            )
         if resolved_backend is not None:
             training_payload["backend"] = resolved_backend
         payload["training"] = training_payload

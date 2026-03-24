@@ -71,7 +71,7 @@ def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: Promot
     replacements = {
         "- active sweep id: ": f"- active sweep id: `{sweep_id}`",
         "- anchor run id: ": f"- anchor run id: `{anchor_run_id}`",
-        "- anchor prior run: ": f"- anchor prior run: `{artifacts['run_dir']}`",
+        "- anchor train run: ": f"- anchor train run: `{artifacts['run_dir']}`",
         "- anchor benchmark: ": f"- anchor benchmark: `{artifacts['benchmark_dir']}`",
         "- canonical benchmark bundle: ": f"- canonical benchmark bundle: `{sweep['benchmark_bundle_path']}`",
         "- canonical control baseline id: ": f"- canonical control baseline id: `{sweep['control_baseline_id']}`",
@@ -83,7 +83,22 @@ def _update_program_contract(*, sweep_id: str, anchor_run_id: str, paths: Promot
         "- active queue alias: ": "- active queue alias: `reference/system_delta_queue.yaml`",
         "- active matrix alias: ": "- active matrix alias: `reference/system_delta_matrix.md`",
     }
+    anchor_train_prefixes = ("- anchor train run: ", "- anchor prior run: ")
     for prefix, replacement in replacements.items():
+        if prefix == "- anchor train run: ":
+            for candidate_prefix in anchor_train_prefixes:
+                try:
+                    program_text = _replace_prefixed_line(
+                        program_text,
+                        prefix=candidate_prefix,
+                        replacement=replacement,
+                    )
+                    break
+                except RuntimeError:
+                    continue
+            else:
+                raise RuntimeError("missing program line with anchor train run prefix")
+            continue
         program_text = _replace_prefixed_line(program_text, prefix=prefix, replacement=replacement)
 
     write_text(paths.program_path, program_text)

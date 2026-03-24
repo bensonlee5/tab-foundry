@@ -24,6 +24,7 @@ INLINE_CODE_RE = re.compile(r"`([^`\n]+)`")
 COMMAND_INVENTORY_RE = re.compile(r"- `(?P<command>tab-foundry [^`]+)`$")
 PYTHON_MODULE_CMD_RE = re.compile(r"\bpython(?:3)?\s+-m\s+tab_foundry\.[^\s`]+")
 PYTHON_SCRIPT_CMD_RE = re.compile(r"^(?P<python>(?:\.venv/bin/)?python(?:3)?)\s+(?P<script>scripts/[^\s`]+\.py)\b")
+README_CLI_TREE_SUMMARY_RE = re.compile(r"<summary>\s*Full CLI tree\s*</summary>")
 STALE_REFERENCE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(r"\b(?:src/)?tab_foundry/research/sweep/core\.py\b|\bresearch/sweep/core\.py\b"),
@@ -84,6 +85,10 @@ ALLOWED_STANDALONE_PYTHON_SCRIPTS = frozenset(
     }
 )
 TAB_FOUNDRY_EXECUTABLES = {"tab-foundry", ".venv/bin/tab-foundry"}
+README_CLI_TREE_ERROR = (
+    "README must not duplicate a hand-maintained CLI tree; use "
+    "`docs/development/codebase-navigation.md` for the canonical command inventory"
+)
 
 
 def _iter_markdown_files(root: Path) -> Iterable[Path]:
@@ -232,6 +237,31 @@ def _extract_codebase_navigation_inventory(path: Path) -> set[str]:
     return commands
 
 
+def _find_disallowed_readme_cli_tree(path: Path, lines: list[str]) -> tuple[int, str] | None:
+    if path.name != "README.md":
+        return None
+
+    in_fence = False
+    saw_tab_foundry_root = False
+    for lineno, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if README_CLI_TREE_SUMMARY_RE.search(stripped):
+            return lineno, README_CLI_TREE_ERROR
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            if not in_fence:
+                saw_tab_foundry_root = False
+            continue
+        if not in_fence:
+            continue
+        if stripped == "tab-foundry":
+            saw_tab_foundry_root = True
+            continue
+        if saw_tab_foundry_root and ("├──" in stripped or "└──" in stripped):
+            return lineno, README_CLI_TREE_ERROR
+    return None
+
+
 def compare_codebase_navigation_inventory(
     repo_root: Path = REPO_ROOT,
 ) -> tuple[set[str], set[str]]:
@@ -258,6 +288,9 @@ def scan_docs_consistency(
             continue
         for path in _iter_markdown_files(root):
             lines = path.read_text(encoding="utf-8").splitlines()
+            readme_cli_tree_error = _find_disallowed_readme_cli_tree(path, lines)
+            if readme_cli_tree_error is not None:
+                errors.append((path, *readme_cli_tree_error))
             for lineno, line in enumerate(lines, start=1):
                 if PYTHON_MODULE_CMD_RE.search(line):
                     errors.append(

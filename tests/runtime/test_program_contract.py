@@ -147,7 +147,7 @@ def test_workflows_runbook_reflects_system_delta_surface() -> None:
         "`cls_benchmark_linear_v2`",
         "`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`",
         "`training_surface_record.json`",
-        "`tab-foundry train prior staged`",
+        "`tab-foundry train legacy-prior staged`",
         "`outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`",
         "`outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json`",
         "`tab-foundry research sweep graph --anchor`",
@@ -204,12 +204,7 @@ def test_readme_front_door_contract_matches_current_repo_shape() -> None:
         "tab-foundry <group> --help",
         "tab-foundry <group> <command> --help",
         "| Namespace | Purpose | Read next |",
-        "<details>",
-        "<summary>Full CLI tree</summary>",
-        "├── data",
-        "├── train",
-        "├── bench",
-        "└── research",
+        "For the canonical leaf-command inventory, use",
         "docs/workflows.md",
         "docs/research-contributors.md",
         "docs/ml-engineering.md",
@@ -224,6 +219,7 @@ def test_readme_front_door_contract_matches_current_repo_shape() -> None:
         "Evaluate a checkpoint:",
         "Export and validate an inference bundle:",
         "## Docs",
+        "<summary>Full CLI tree</summary>",
     ]
     for statement in forbidden_statements:
         assert statement not in readme

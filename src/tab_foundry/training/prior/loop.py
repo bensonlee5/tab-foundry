@@ -12,7 +12,7 @@ from typing import Any, cast
 from omegaconf import DictConfig, OmegaConf
 import torch
 
-from tab_foundry.training.surface import TRAINING_BACKEND_PRIOR_DUMP
+from tab_foundry.training.surface import TRAINING_BACKEND_LEGACY_PRIOR
 from tab_foundry.training.instability import grad_norm_summary_from_running_totals
 from tab_foundry.types import TrainResult
 
@@ -236,14 +236,14 @@ def run_prior_training(
     model.train()
 
     raw_cfg = cast(dict[str, object], OmegaConf.to_container(cfg, resolve=True))
-    raw_training_cfg = raw_cfg.get("training")
-    if not isinstance(raw_training_cfg, dict):
-        raw_training_cfg = {}
-        raw_cfg["training"] = raw_training_cfg
-    raw_training_cfg["prior_dump_batch_size"] = int(prior_batch_config.batch_size)
-    raw_training_cfg["prior_dump_lr_scale_rule"] = str(prior_batch_config.lr_scale_rule)
-    raw_training_cfg["prior_dump_batch_reference_size"] = int(prior_batch_config.reference_batch_size)
-    raw_training_cfg["effective_lr_scale_factor"] = float(prior_batch_config.effective_lr_scale_factor)
+    raw_legacy_prior_cfg = raw_cfg.get("legacy_prior")
+    if not isinstance(raw_legacy_prior_cfg, dict):
+        raw_legacy_prior_cfg = {}
+        raw_cfg["legacy_prior"] = raw_legacy_prior_cfg
+    raw_legacy_prior_cfg["batch_size"] = int(prior_batch_config.batch_size)
+    raw_legacy_prior_cfg["lr_scale_rule"] = str(prior_batch_config.lr_scale_rule)
+    raw_legacy_prior_cfg["batch_reference_size"] = int(prior_batch_config.reference_batch_size)
+    raw_legacy_prior_cfg["effective_lr_scale_factor"] = float(prior_batch_config.effective_lr_scale_factor)
     raw_optimizer_cfg = raw_cfg.get("optimizer")
     if isinstance(raw_optimizer_cfg, dict) and raw_optimizer_cfg.get("min_lr") is not None:
         raw_optimizer_cfg["min_lr"] = float(lr_min)
@@ -315,7 +315,7 @@ def run_prior_training(
             training_surface_path,
             raw_cfg=raw_cfg,
             run_dir=output_dir,
-            backend=TRAINING_BACKEND_PRIOR_DUMP,
+            backend=TRAINING_BACKEND_LEGACY_PRIOR,
         )
         run = deps.init_wandb_run(
             cfg,

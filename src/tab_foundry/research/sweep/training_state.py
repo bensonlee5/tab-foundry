@@ -9,15 +9,8 @@ from typing import Any, Mapping, cast
 
 from tab_foundry.training.artifacts import resolve_latest_checkpoint_path
 from tab_foundry.training.surface import (
-    TRAINING_BACKEND_MANIFEST,
-    TRAINING_BACKEND_PRIOR_DUMP,
+    normalize_training_backend,
 )
-
-
-_ALLOWED_TRAINING_BACKENDS = {
-    TRAINING_BACKEND_MANIFEST,
-    TRAINING_BACKEND_PRIOR_DUMP,
-}
 
 
 def _read_json_mapping(path: Path) -> dict[str, Any]:
@@ -40,8 +33,10 @@ def training_surface_record_backend(record_path: Path) -> str | None:
     raw_backend = training.get("backend")
     if not isinstance(raw_backend, str) or not raw_backend.strip():
         return None
-    backend = str(raw_backend).strip().lower()
-    return backend if backend in _ALLOWED_TRAINING_BACKENDS else None
+    try:
+        return normalize_training_backend(raw_backend)
+    except ValueError:
+        return None
 
 
 def _training_telemetry_succeeded(telemetry_path: Path) -> bool:

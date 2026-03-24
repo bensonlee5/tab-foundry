@@ -52,7 +52,11 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         action="store_true",
         help="Promote the first executed row to the sweep anchor after it completes",
     )
-    parser.add_argument("--prior-dump", default=str(DEFAULT_PRIOR_DUMP), help="Path to the nanoTabPFN prior dump")
+    parser.add_argument(
+        "--nanotabpfn-prior-dump",
+        default=str(DEFAULT_PRIOR_DUMP),
+        help="Path to the nanoTabPFN prior dump",
+    )
     parser.add_argument(
         "--nanotabpfn-root",
         default=str(DEFAULT_NANOTABPFN_ROOT),
@@ -90,7 +94,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run_from_args(args: argparse.Namespace) -> int:
-    prior_dump = Path(str(args.prior_dump)).expanduser().resolve()
+    prior_dump = Path(str(args.nanotabpfn_prior_dump)).expanduser().resolve()
     nanotabpfn_root = Path(str(args.nanotabpfn_root)).expanduser().resolve()
     fallback_python = absolute_path_without_resolving_symlinks(Path(str(args.tab_foundry_python)))
     if not prior_dump.exists():

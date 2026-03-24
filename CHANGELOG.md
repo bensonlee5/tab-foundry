@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-03-24
+
+### Changed
+
+- User-facing break: generic training now treats manifest-backed corpus
+  workflows as the default public path, with
+  `cls_benchmark_staged_corpus` promoted as the active/default
+  architecture-screen research surface and the active system-delta aliases
+  updated to the corpus-first `row_first_training_adequacy_v1` sweep.
+
+- User-facing break: exact-prior-only training controls no longer live on the
+  shared `training.*` surface. Manifest-backed runs keep
+  `training.task_batch_size` as the public batching knob, while legacy
+  exact-prior settings now resolve through the dedicated `legacy_prior.*`
+  config group and persist under `training.legacy_prior` with backend
+  `legacy_prior` in training-surface records.
+
+- User-facing break: the packaged CLI now exposes legacy exact-prior workflows
+  as `tab-foundry train legacy-prior ...` instead of
+  `tab-foundry train prior ...`, and nanoTabPFN comparator flows now use the explicit
+  `--nanotabpfn-prior-dump` flag name in benchmark and research execution
+  surfaces.
+
+### Fixed
+
+- Historical legacy-prior training artifacts now continue to reuse correctly
+  when older `training_surface_record.json` files still persist
+  `training.backend: prior_dump`; sweep reuse normalizes that legacy marker to
+  the current `legacy_prior` backend instead of forcing retraining.
+
+- User-facing break: manifest-backed config inspection and persisted
+  training-surface records no longer emit irrelevant `training.legacy_prior`
+  payloads when the resolved backend is `manifest`, which restores stable
+  provenance diffs for `cls_benchmark_staged_corpus` and related corpus-first
+  workflows.
+
+- TF-RD-013/TF-RD-018 system-delta sweep anchors now record the benchmark
+  registry's actual anchor experiment/config-profile/training provenance again,
+  and the generated queue/matrix aliases have been refreshed to match the
+  corrected source sweep metadata.
+
 ## [0.10.2] - 2026-03-24
 
 ### Fixed

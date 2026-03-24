@@ -323,7 +323,7 @@ def test_nested_cli_train_prior_simple_dispatches_to_handler(
     exit_code = cli_module.main(
         [
             "train",
-            "prior",
+            "legacy-prior",
             "simple",
             "--prior-dump",
             "/tmp/prior.h5",
@@ -353,7 +353,7 @@ def test_nested_cli_train_prior_staged_injects_default_experiment(
     exit_code = cli_module.main(
         [
             "train",
-            "prior",
+            "legacy-prior",
             "staged",
             "--prior-dump",
             "/tmp/prior.h5",
@@ -716,7 +716,7 @@ def test_nested_cli_dev_run_inspect_dispatches_to_handler(
     assert captured["run_dir"] == "/tmp/run"
 
 
-def test_nested_cli_data_dagzoo_generate_manifest_dispatches_to_data_handler(
+def test_nested_cli_dev_data_generate_manifest_dispatches_to_data_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
@@ -733,8 +733,8 @@ def test_nested_cli_data_dagzoo_generate_manifest_dispatches_to_data_handler(
 
     exit_code = cli_module.main(
         [
+            "dev",
             "data",
-            "dagzoo",
             "generate-manifest",
             "--dagzoo-root",
             "/tmp/dagzoo",
@@ -818,7 +818,7 @@ def test_nested_cli_data_corpus_inspect_dispatches_to_data_handler(
     assert captured["corpus_ref"] == "tf_rd_013_current_corpus_default_v1/current_recipe__123456789abc"
 
 
-def test_nested_cli_data_build_manifest_rejects_invalid_split_ratios(
+def test_nested_cli_dev_data_build_manifest_rejects_invalid_split_ratios(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     called = False
@@ -833,6 +833,7 @@ def test_nested_cli_data_build_manifest_rejects_invalid_split_ratios(
     with pytest.raises(SystemExit, match="invalid split ratios"):
         _ = cli_module.main(
             [
+                "dev",
                 "data",
                 "build-manifest",
                 "--data-root",
@@ -884,7 +885,7 @@ def test_nested_cli_data_manifest_inspect_dispatches_to_handler(
     }
 
 
-def test_nested_cli_data_dagzoo_generate_manifest_rejects_invalid_split_ratios(
+def test_nested_cli_dev_data_generate_manifest_rejects_invalid_split_ratios(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     called = False
@@ -899,8 +900,8 @@ def test_nested_cli_data_dagzoo_generate_manifest_rejects_invalid_split_ratios(
     with pytest.raises(SystemExit, match="invalid split ratios"):
         _ = cli_module.main(
             [
+                "dev",
                 "data",
-                "dagzoo",
                 "generate-manifest",
                 "--dagzoo-root",
                 "/tmp/dagzoo",
@@ -924,6 +925,7 @@ def test_nested_cli_data_dagzoo_generate_manifest_rejects_invalid_split_ratios(
     "argv",
     [
         [
+            "dev",
             "data",
             "build-manifest",
             "--data-root",
@@ -934,8 +936,8 @@ def test_nested_cli_data_dagzoo_generate_manifest_rejects_invalid_split_ratios(
             "nan",
         ],
         [
+            "dev",
             "data",
-            "dagzoo",
             "generate-manifest",
             "--dagzoo-root",
             "/tmp/dagzoo",
@@ -950,7 +952,7 @@ def test_nested_cli_data_dagzoo_generate_manifest_rejects_invalid_split_ratios(
         ],
     ],
 )
-def test_nested_cli_data_commands_reject_non_finite_split_ratios(argv: list[str]) -> None:
+def test_nested_cli_dev_data_commands_reject_non_finite_split_ratios(argv: list[str]) -> None:
     with pytest.raises(SystemExit):
         _ = cli_module.build_parser().parse_args(argv)
 
@@ -970,7 +972,7 @@ def test_nested_cli_rejects_unexpected_extra_arguments(capsys: pytest.CaptureFix
     assert "unrecognized arguments: --unexpected" in capsys.readouterr().err
 
 
-def test_nested_cli_data_dagzoo_generate_manifest_returns_subprocess_exit_code(
+def test_nested_cli_dev_data_generate_manifest_returns_subprocess_exit_code(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def _fake_workflow(_config):
@@ -980,8 +982,8 @@ def test_nested_cli_data_dagzoo_generate_manifest_returns_subprocess_exit_code(
 
     exit_code = cli_module.main(
         [
+            "dev",
             "data",
-            "dagzoo",
             "generate-manifest",
             "--dagzoo-root",
             "/tmp/dagzoo",

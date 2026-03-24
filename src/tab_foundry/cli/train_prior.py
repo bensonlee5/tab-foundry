@@ -1,4 +1,4 @@
-"""CLI wiring for `tab-foundry train prior` commands."""
+"""CLI wiring for `tab-foundry train legacy-prior` commands."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Train an exact-parity tabfoundry classifier on the nanoTabPFN prior dump"
+        description="Train a legacy exact-prior tabfoundry classifier on the nanoTabPFN prior dump"
     )
     configure_parser(parser)
     return parser

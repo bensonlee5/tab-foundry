@@ -283,8 +283,8 @@ Staged benchmark family from the exact repro starting point:
 
 ```bash
 tab-foundry train run \
-  experiment=cls_benchmark_staged \
-  data.manifest_path=<binary_manifest.parquet>
+  experiment=cls_benchmark_staged_corpus \
+  data.corpus_ref=tf_rd_013_current_corpus_default_v1
 ```
 
 Queue-driven isolated staged delta surface:

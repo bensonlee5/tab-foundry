@@ -4,7 +4,9 @@ from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from omegaconf import OmegaConf
 
+from tab_foundry.config import compose_config
 from tab_foundry.data import corpus as corpus_module
 from tab_foundry.training.surface import build_training_surface_record
 
@@ -468,10 +470,7 @@ def test_build_training_surface_record_includes_optional_training_surface(
     assert record["training"]["optimizer_name"] == "schedulefree_adamw"
     assert record["training"]["optimizer_min_lr"] == 4.0e-4
     assert record["training"]["schedule_stages"][0]["warmup_ratio"] == 0.05
-    assert record["training"]["prior_dump_batch_size"] is None
-    assert record["training"]["prior_dump_lr_scale_rule"] is None
-    assert record["training"]["prior_dump_batch_reference_size"] is None
-    assert record["training"]["effective_lr_scale_factor"] is None
+    assert "legacy_prior" not in record["training"]
 
 
 def test_build_training_surface_record_infers_manifest_backend_from_data_surface(
@@ -494,7 +493,44 @@ def test_build_training_surface_record_infers_manifest_backend_from_data_surface
     assert record["training"]["backend"] == "manifest"
 
 
-def test_build_training_surface_record_infers_prior_dump_backend_without_data_cfg(
+def test_build_training_surface_record_omits_legacy_prior_block_for_manifest_experiment(
+    tmp_path: Path,
+) -> None:
+    cfg = compose_config(["experiment=cls_benchmark_staged_corpus"])
+
+    record = build_training_surface_record(
+        raw_cfg=OmegaConf.to_container(cfg, resolve=True),
+        run_dir=tmp_path / "run_manifest_experiment",
+    )
+
+    assert record["training"]["backend"] == "manifest"
+    assert "legacy_prior" not in record["training"]
+
+
+def test_build_training_surface_record_allows_unresolved_corpus_refs_for_manifest_backend(
+    tmp_path: Path,
+) -> None:
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "data": {
+                "surface_label": "fresh_current_corpus",
+                "corpus_ref": "tf_rd_013_current_corpus_default_v1",
+            },
+        },
+        run_dir=tmp_path / "run_unresolved_corpus_ref",
+        allow_unresolved_corpus_ref=True,
+    )
+
+    assert record["training"]["backend"] == "manifest"
+    assert record["data"]["source"] == "manifest"
+    assert record["data"]["corpus_ref"] == "tf_rd_013_current_corpus_default_v1"
+    assert record["data"]["recipe_id"] == "tf_rd_013_current_corpus_default_v1"
+    assert record["data"]["corpus_id"] is None
+
+
+def test_build_training_surface_record_infers_legacy_prior_backend_without_data_cfg(
     tmp_path: Path,
 ) -> None:
     record = build_training_surface_record(
@@ -505,10 +541,10 @@ def test_build_training_surface_record_infers_prior_dump_backend_without_data_cf
         run_dir=tmp_path / "run_prior_dump_backend",
     )
 
-    assert record["training"]["backend"] == "prior_dump"
+    assert record["training"]["backend"] == "legacy_prior"
 
 
-def test_build_training_surface_record_captures_prior_dump_batch_scaling_metadata(
+def test_build_training_surface_record_captures_legacy_prior_batch_scaling_metadata(
     tmp_path: Path,
 ) -> None:
     record = build_training_surface_record(
@@ -518,10 +554,12 @@ def test_build_training_surface_record_captures_prior_dump_batch_scaling_metadat
             "training": {
                 "surface_label": "prior_linear_warmup_decay",
                 "apply_schedule": True,
-                "prior_dump_non_finite_policy": "skip",
-                "prior_dump_batch_size": 64,
-                "prior_dump_lr_scale_rule": "sqrt",
-                "prior_dump_batch_reference_size": 32,
+            },
+            "legacy_prior": {
+                "non_finite_policy": "skip",
+                "batch_size": 64,
+                "lr_scale_rule": "sqrt",
+                "batch_reference_size": 32,
                 "effective_lr_scale_factor": 2 ** 0.5,
             },
             "optimizer": {
@@ -543,9 +581,49 @@ def test_build_training_surface_record_captures_prior_dump_batch_scaling_metadat
         run_dir=tmp_path / "run_prior_scaling",
     )
 
-    assert record["training"]["prior_dump_batch_size"] == 64
-    assert record["training"]["prior_dump_lr_scale_rule"] == "sqrt"
-    assert record["training"]["prior_dump_batch_reference_size"] == 32
-    assert record["training"]["effective_lr_scale_factor"] == 2 ** 0.5
+    assert record["training"]["backend"] == "legacy_prior"
+    assert record["training"]["legacy_prior"] == {
+        "non_finite_policy": "skip",
+        "batch_size": 64,
+        "lr_scale_rule": "sqrt",
+        "batch_reference_size": 32,
+        "effective_lr_scale_factor": 2 ** 0.5,
+    }
     assert record["training"]["optimizer_min_lr"] == 5.656854249492381e-4
     assert record["training"]["schedule_stages"][0]["lr_max"] == 5.656854249492381e-3
+
+
+def test_build_training_surface_record_preserves_flat_legacy_prior_overrides(
+    tmp_path: Path,
+) -> None:
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "training": {
+                "surface_label": "prior_linear_warmup_decay",
+                "apply_schedule": True,
+                "prior_dump_non_finite_policy": "skip",
+                "prior_dump_batch_size": 64,
+                "prior_dump_lr_scale_rule": "sqrt",
+                "prior_dump_batch_reference_size": 32,
+                "effective_lr_scale_factor": 2 ** 0.5,
+            },
+            "legacy_prior": {
+                "non_finite_policy": "error",
+                "batch_size": 32,
+                "lr_scale_rule": "none",
+                "batch_reference_size": 32,
+            },
+        },
+        run_dir=tmp_path / "run_flat_legacy_prior_overrides",
+    )
+
+    assert record["training"]["backend"] == "legacy_prior"
+    assert record["training"]["legacy_prior"] == {
+        "non_finite_policy": "skip",
+        "batch_size": 64,
+        "lr_scale_rule": "sqrt",
+        "batch_reference_size": 32,
+        "effective_lr_scale_factor": 2 ** 0.5,
+    }

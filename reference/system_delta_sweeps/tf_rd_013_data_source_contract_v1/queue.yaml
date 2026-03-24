@@ -29,7 +29,7 @@ rows:
       - cd "$DAGZOO_ROOT" && uv run dagzoo generate --config configs/default.yaml
         --handoff-root "$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source"
         --num-datasets 8192 --seed 1 --device cpu --hardware-policy none
-      - cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry data build-manifest --data-root
+      - cd "$TAB_FOUNDRY_ROOT" && ./.venv/bin/tab-foundry dev data build-manifest --data-root
         outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest
         outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet
       config_refs:
@@ -39,8 +39,7 @@ rows:
   preprocessing:
     surface_label: runtime_default
   training:
-    surface_label: prior_linear_warmup_decay
-    prior_dump_non_finite_policy: skip
+    surface_label: linear_warmup_decay
     overrides:
       apply_schedule: true
       runtime:
@@ -148,8 +147,7 @@ rows:
   preprocessing:
     surface_label: runtime_default
   training:
-    surface_label: prior_linear_warmup_decay
-    prior_dump_non_finite_policy: skip
+    surface_label: linear_warmup_decay
     overrides:
       apply_schedule: true
       runtime:

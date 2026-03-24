@@ -111,18 +111,18 @@ def _resolve_prior_missingness_config(cfg: DictConfig) -> dict[str, Any] | None:
 
 
 def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> PriorDumpNonFinitePolicy:
-    training_cfg = getattr(cfg, "training", None)
+    legacy_prior_cfg = getattr(cfg, "legacy_prior", None)
     raw_value = (
         "error"
-        if training_cfg is None
-        else getattr(training_cfg, "prior_dump_non_finite_policy", "error")
+        if legacy_prior_cfg is None
+        else getattr(legacy_prior_cfg, "non_finite_policy", "error")
     )
     normalized = str(raw_value).strip().lower()
     if normalized not in {"error", "skip"}:
         raise ValueError(
-            "training.prior_dump_non_finite_policy must be one of {'error', 'skip'}, "
+            "legacy_prior.non_finite_policy must be one of {'error', 'skip'}, "
             f"got {raw_value!r}"
-    )
+        )
     return cast(PriorDumpNonFinitePolicy, normalized)
 
 
@@ -182,39 +182,39 @@ def _resolve_prior_dump_batch_size(
 ) -> int:
     if override is not None:
         return _resolve_positive_int(override, name="batch_size")
-    training_cfg = getattr(cfg, "training", None)
+    legacy_prior_cfg = getattr(cfg, "legacy_prior", None)
     raw_value = (
         DEFAULT_BATCH_SIZE
-        if training_cfg is None
-        else getattr(training_cfg, "prior_dump_batch_size", DEFAULT_BATCH_SIZE)
+        if legacy_prior_cfg is None
+        else getattr(legacy_prior_cfg, "batch_size", DEFAULT_BATCH_SIZE)
     )
-    return _resolve_positive_int(raw_value, name="training.prior_dump_batch_size")
+    return _resolve_positive_int(raw_value, name="legacy_prior.batch_size")
 
 
 def _resolve_prior_dump_lr_scale_rule(cfg: DictConfig) -> str:
-    training_cfg = getattr(cfg, "training", None)
+    legacy_prior_cfg = getattr(cfg, "legacy_prior", None)
     raw_value = (
         "none"
-        if training_cfg is None
-        else getattr(training_cfg, "prior_dump_lr_scale_rule", "none")
+        if legacy_prior_cfg is None
+        else getattr(legacy_prior_cfg, "lr_scale_rule", "none")
     )
     normalized = str(raw_value).strip().lower()
     if normalized not in _SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES:
         raise ValueError(
-            "training.prior_dump_lr_scale_rule must be one of "
+            "legacy_prior.lr_scale_rule must be one of "
             f"{_SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES}, got {raw_value!r}"
         )
     return normalized
 
 
 def _resolve_prior_dump_batch_reference_size(cfg: DictConfig) -> int:
-    training_cfg = getattr(cfg, "training", None)
+    legacy_prior_cfg = getattr(cfg, "legacy_prior", None)
     raw_value = (
         DEFAULT_BATCH_SIZE
-        if training_cfg is None
-        else getattr(training_cfg, "prior_dump_batch_reference_size", DEFAULT_BATCH_SIZE)
+        if legacy_prior_cfg is None
+        else getattr(legacy_prior_cfg, "batch_reference_size", DEFAULT_BATCH_SIZE)
     )
-    return _resolve_positive_int(raw_value, name="training.prior_dump_batch_reference_size")
+    return _resolve_positive_int(raw_value, name="legacy_prior.batch_reference_size")
 
 
 def _resolve_prior_dump_batch_config(

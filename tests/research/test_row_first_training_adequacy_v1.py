@@ -58,6 +58,8 @@ def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() 
     assert sweep["parent_sweep_id"] == "tf_rd_013_dagzoo_size_ladder_v1"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
+    assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged"
+    assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged"
     assert sweep["benchmark_bundle_path"] == "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
     assert sweep["anchor_context"]["surface_labels"] == {
         "data": "tf_rd_013_dagzoo_shape_aware_size_medium",
@@ -95,7 +97,7 @@ def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() 
             "train_row_cap": 512,
             "test_row_cap": 256,
         }
-        assert row["training"]["surface_label"] == "prior_linear_warmup_decay"
+        assert row["training"]["surface_label"] == "linear_warmup_decay"
         assert row["training"]["task_batch_size"] == task_batch_size
         assert row["training"]["overrides"]["runtime"] == {
             "grad_accum_steps": 1,

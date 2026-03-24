@@ -7,8 +7,8 @@ anchor_run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 comparison_policy: anchor_only
-training_experiment: cls_benchmark_staged
-training_config_profile: cls_benchmark_staged
+training_experiment: cls_benchmark_staged_corpus
+training_config_profile: cls_benchmark_staged_corpus
 surface_role: architecture_screen
 upstream_reference:
   name: TabICLv2
@@ -40,7 +40,7 @@ anchor_surface:
     interpretation: TF-RD-013 should keep benchmark/control context stable while it reads corpus-size effects.
   - dimension: training stop contract
     upstream: TabICLv2 does not define this repo-local manifest trainer stop rule.
-    anchor: Training surface label `prior_linear_warmup_decay` with `max_steps=2500`.
+    anchor: Registered anchor training surface label `prior_linear_warmup_decay` with `max_steps=2500`.
     interpretation: The fresh current-corpus control clears `runtime.target_train_seconds` so later rows isolate corpus size rather than backend stop semantics.
 anchor_context:
   run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1

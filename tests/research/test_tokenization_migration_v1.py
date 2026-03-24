@@ -49,7 +49,7 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
 def test_tokenization_migration_v1_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "cuda_stack_scale_followup"
+    assert index["active_sweep_id"] == "row_first_training_adequacy_v1"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
@@ -200,7 +200,7 @@ def test_tokenization_migration_v1_compose_cfg_resolves_architecture_screen_warm
     assert str(cfg.model.stage_label) == "delta_architecture_screen_grouped_tokens"
     assert OmegaConf.to_container(cfg.model.module_overrides, resolve=True) == EXPECTED_MODULE_OVERRIDES
     assert str(cfg.training.surface_label) == "prior_linear_warmup_decay"
-    assert str(cfg.training.prior_dump_non_finite_policy) == "skip"
+    assert str(cfg.legacy_prior.non_finite_policy) == "skip"
     assert bool(cfg.training.apply_schedule) is True
     assert str(cfg.optimizer.name) == "schedulefree_adamw"
     assert float(cfg.optimizer.min_lr) == 0.0004

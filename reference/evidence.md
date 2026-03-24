@@ -105,7 +105,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the exact-prior path already emits module gradients, activation traces, and
     additive telemetry summaries
   - the regular architecture-screen trainer still lacks that parity, so the
-    most decision-critical gap is coverage on `cls_benchmark_staged`
+    most decision-critical gap is coverage on `cls_benchmark_staged_corpus`
 - Success signal:
   - row-first rows can be judged on stage-local stability and quality directly
     from the regular architecture-screen lane

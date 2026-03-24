@@ -65,7 +65,7 @@ training_config_profile: cls_benchmark_staged_prior
 surface_role: hybrid_diagnostic
 control_lane: tabfoundry_simple plus tabfoundry_staged stage=nano_exact
 hybrid_diagnostic_lane: tabfoundry_staged hybrid diagnostic surfaces built from nano_exact plus bounded overrides
-canonical_architecture_screen_surface: cls_benchmark_staged
+canonical_architecture_screen_surface: cls_benchmark_staged_corpus
 preserved_settings:
   model.arch: tabfoundry_staged
   model.input_normalization: train_zscore_clip

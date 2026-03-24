@@ -262,44 +262,157 @@ def _run_corpus_results(args: argparse.Namespace) -> int:
     return 0
 
 
-def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    parser = subparsers.add_parser("data", help="Data workflows")
-    nested = parser.add_subparsers(dest="data_command", required=True)
-
-    build_parser = nested.add_parser(
-        "build-manifest",
-        help="Build manifest parquet from dagzoo packed shard outputs",
-    )
-    build_parser.add_argument(
+def configure_build_manifest_parser(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
         "--data-root",
         action="append",
         required=True,
         help="Input dagzoo data root",
     )
-    build_parser.add_argument("--out-manifest", required=True, help="Output manifest parquet path")
-    build_parser.add_argument(
+    parser.add_argument("--out-manifest", required=True, help="Output manifest parquet path")
+    parser.add_argument(
         "--train-ratio",
         type=lambda raw: _finite_float(raw, flag="--train-ratio"),
         default=0.90,
     )
-    build_parser.add_argument(
+    parser.add_argument(
         "--val-ratio",
         type=lambda raw: _finite_float(raw, flag="--val-ratio"),
         default=0.05,
     )
-    build_parser.add_argument(
+    parser.add_argument(
         "--filter-policy",
         choices=("include_all", "accepted_only"),
         default="include_all",
         help="Dataset selection policy based on dagzoo filter metadata",
     )
-    build_parser.add_argument(
+    parser.add_argument(
         "--missing-value-policy",
         choices=("allow_any", "forbid_any"),
         default="allow_any",
         help="Dataset selection policy for NaN/Inf-containing inputs",
     )
-    build_parser.set_defaults(func=_run_build_manifest)
+    parser.set_defaults(func=_run_build_manifest)
+
+
+def configure_generate_manifest_parser(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--dagzoo-root",
+        required=True,
+        help="Local dagzoo checkout root",
+    )
+    parser.add_argument(
+        "--dagzoo-config",
+        required=True,
+        help="dagzoo config path (absolute or relative to --dagzoo-root)",
+    )
+    parser.add_argument(
+        "--handoff-root",
+        required=True,
+        help="dagzoo handoff root written by `dagzoo generate --handoff-root`",
+    )
+    parser.add_argument(
+        "--out-manifest",
+        required=True,
+        help="Output manifest parquet path",
+    )
+    parser.add_argument(
+        "--num-datasets",
+        type=_positive_int,
+        default=10,
+        help="Number of dagzoo datasets to generate",
+    )
+    parser.add_argument(
+        "--seed",
+        type=_seed_32bit_int,
+        default=None,
+        help="Optional 32-bit run seed override",
+    )
+    parser.add_argument(
+        "--rows",
+        default=None,
+        help="Optional dagzoo rows override",
+    )
+    parser.add_argument(
+        "--device",
+        choices=_DEVICE_CHOICES,
+        default=None,
+        help="Optional dagzoo device override",
+    )
+    parser.add_argument(
+        "--hardware-policy",
+        choices=_HARDWARE_POLICY_CHOICES,
+        default="none",
+        help="Explicit dagzoo hardware policy",
+    )
+    parser.add_argument(
+        "--diagnostics",
+        action="store_true",
+        help="Enable dagzoo diagnostics coverage artifacts",
+    )
+    parser.add_argument(
+        "--diagnostics-out-dir",
+        default=None,
+        help="Optional dagzoo diagnostics artifact directory",
+    )
+    parser.add_argument(
+        "--missing-rate",
+        type=_missing_rate,
+        default=None,
+        help="Optional dagzoo missing-rate override in [0, 1]",
+    )
+    parser.add_argument(
+        "--missing-mechanism",
+        choices=_MISSINGNESS_MECHANISM_CHOICES,
+        default=None,
+        help="Optional dagzoo missingness mechanism override",
+    )
+    parser.add_argument(
+        "--missing-mar-observed-fraction",
+        type=_missing_fraction,
+        default=None,
+        help="Optional dagzoo MAR observed-feature fraction override",
+    )
+    parser.add_argument(
+        "--missing-mar-logit-scale",
+        type=lambda raw: _positive_float(raw, flag="--missing-mar-logit-scale"),
+        default=None,
+        help="Optional dagzoo MAR logit scale override",
+    )
+    parser.add_argument(
+        "--missing-mnar-logit-scale",
+        type=lambda raw: _positive_float(raw, flag="--missing-mnar-logit-scale"),
+        default=None,
+        help="Optional dagzoo MNAR logit scale override",
+    )
+    parser.add_argument(
+        "--train-ratio",
+        type=lambda raw: _finite_float(raw, flag="--train-ratio"),
+        default=0.90,
+    )
+    parser.add_argument(
+        "--val-ratio",
+        type=lambda raw: _finite_float(raw, flag="--val-ratio"),
+        default=0.05,
+    )
+    parser.add_argument(
+        "--filter-policy",
+        choices=("include_all", "accepted_only"),
+        default="include_all",
+        help="Dataset selection policy based on dagzoo filter metadata",
+    )
+    parser.add_argument(
+        "--missing-value-policy",
+        choices=("allow_any", "forbid_any"),
+        default="allow_any",
+        help="Dataset selection policy for NaN/Inf-containing inputs",
+    )
+    parser.set_defaults(func=_run_dagzoo_generate_manifest)
+
+
+def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    parser = subparsers.add_parser("data", help="Data workflows")
+    nested = parser.add_subparsers(dest="data_command", required=True)
 
     manifest_inspect_parser = nested.add_parser(
         "manifest-inspect",
@@ -307,9 +420,6 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     data_inspect_module.configure_parser(manifest_inspect_parser)
     manifest_inspect_parser.set_defaults(func=data_inspect_module.run_from_args)
-
-    dagzoo_parser = nested.add_parser("dagzoo", help="dagzoo-backed data workflows")
-    dagzoo_nested = dagzoo_parser.add_subparsers(dest="dagzoo_command", required=True)
 
     corpus_parser = nested.add_parser("corpus", help="First-class synthetic corpus workflows")
     corpus_nested = corpus_parser.add_subparsers(dest="corpus_command", required=True)
@@ -360,120 +470,3 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     results_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     results_parser.set_defaults(func=_run_corpus_results)
-
-    generate_manifest_parser = dagzoo_nested.add_parser(
-        "generate-manifest",
-        help="Generate a dagzoo corpus and build a tab-foundry manifest",
-    )
-    generate_manifest_parser.add_argument(
-        "--dagzoo-root",
-        required=True,
-        help="Local dagzoo checkout root",
-    )
-    generate_manifest_parser.add_argument(
-        "--dagzoo-config",
-        required=True,
-        help="dagzoo config path (absolute or relative to --dagzoo-root)",
-    )
-    generate_manifest_parser.add_argument(
-        "--handoff-root",
-        required=True,
-        help="dagzoo handoff root written by `dagzoo generate --handoff-root`",
-    )
-    generate_manifest_parser.add_argument(
-        "--out-manifest",
-        required=True,
-        help="Output manifest parquet path",
-    )
-    generate_manifest_parser.add_argument(
-        "--num-datasets",
-        type=_positive_int,
-        default=10,
-        help="Number of dagzoo datasets to generate",
-    )
-    generate_manifest_parser.add_argument(
-        "--seed",
-        type=_seed_32bit_int,
-        default=None,
-        help="Optional 32-bit run seed override",
-    )
-    generate_manifest_parser.add_argument(
-        "--rows",
-        default=None,
-        help="Optional dagzoo rows override",
-    )
-    generate_manifest_parser.add_argument(
-        "--device",
-        choices=_DEVICE_CHOICES,
-        default=None,
-        help="Optional dagzoo device override",
-    )
-    generate_manifest_parser.add_argument(
-        "--hardware-policy",
-        choices=_HARDWARE_POLICY_CHOICES,
-        default="none",
-        help="Explicit dagzoo hardware policy",
-    )
-    generate_manifest_parser.add_argument(
-        "--diagnostics",
-        action="store_true",
-        help="Enable dagzoo diagnostics coverage artifacts",
-    )
-    generate_manifest_parser.add_argument(
-        "--diagnostics-out-dir",
-        default=None,
-        help="Optional dagzoo diagnostics artifact directory",
-    )
-    generate_manifest_parser.add_argument(
-        "--missing-rate",
-        type=_missing_rate,
-        default=None,
-        help="Optional dagzoo missing-rate override in [0, 1]",
-    )
-    generate_manifest_parser.add_argument(
-        "--missing-mechanism",
-        choices=_MISSINGNESS_MECHANISM_CHOICES,
-        default=None,
-        help="Optional dagzoo missingness mechanism override",
-    )
-    generate_manifest_parser.add_argument(
-        "--missing-mar-observed-fraction",
-        type=_missing_fraction,
-        default=None,
-        help="Optional dagzoo MAR observed-feature fraction override",
-    )
-    generate_manifest_parser.add_argument(
-        "--missing-mar-logit-scale",
-        type=lambda raw: _positive_float(raw, flag="--missing-mar-logit-scale"),
-        default=None,
-        help="Optional dagzoo MAR logit scale override",
-    )
-    generate_manifest_parser.add_argument(
-        "--missing-mnar-logit-scale",
-        type=lambda raw: _positive_float(raw, flag="--missing-mnar-logit-scale"),
-        default=None,
-        help="Optional dagzoo MNAR logit scale override",
-    )
-    generate_manifest_parser.add_argument(
-        "--train-ratio",
-        type=lambda raw: _finite_float(raw, flag="--train-ratio"),
-        default=0.90,
-    )
-    generate_manifest_parser.add_argument(
-        "--val-ratio",
-        type=lambda raw: _finite_float(raw, flag="--val-ratio"),
-        default=0.05,
-    )
-    generate_manifest_parser.add_argument(
-        "--filter-policy",
-        choices=("include_all", "accepted_only"),
-        default="include_all",
-        help="Dataset selection policy based on dagzoo filter metadata",
-    )
-    generate_manifest_parser.add_argument(
-        "--missing-value-policy",
-        choices=("allow_any", "forbid_any"),
-        default="allow_any",
-        help="Dataset selection policy for NaN/Inf-containing inputs",
-    )
-    generate_manifest_parser.set_defaults(func=_run_dagzoo_generate_manifest)

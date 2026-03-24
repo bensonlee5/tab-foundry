@@ -20,11 +20,21 @@ PFN_CONTROL_SURFACES = frozenset(
         "cls_benchmark_linear_simple_prior",
     }
 )
-ARCHITECTURE_SCREEN_SURFACE = "cls_benchmark_staged"
+CORPUS_SCREEN_SURFACE = "cls_benchmark_staged_corpus"
 HYBRID_DIAGNOSTIC_SURFACE = "cls_benchmark_staged_prior"
+LEGACY_ARCHITECTURE_SCREEN_SURFACE = "cls_benchmark_staged"
+ARCHITECTURE_SCREEN_SURFACE = CORPUS_SCREEN_SURFACE
+ARCHITECTURE_SCREEN_SURFACES = frozenset(
+    {
+        LEGACY_ARCHITECTURE_SCREEN_SURFACE,
+        ARCHITECTURE_SCREEN_SURFACE,
+    }
+)
 
-DEFAULT_TRAINING_EXPERIMENT = HYBRID_DIAGNOSTIC_SURFACE
-DEFAULT_TRAINING_CONFIG_PROFILE = HYBRID_DIAGNOSTIC_SURFACE
+DEFAULT_TRAINING_EXPERIMENT = CORPUS_SCREEN_SURFACE
+DEFAULT_TRAINING_CONFIG_PROFILE = CORPUS_SCREEN_SURFACE
+LEGACY_FALLBACK_TRAINING_EXPERIMENT = HYBRID_DIAGNOSTIC_SURFACE
+LEGACY_FALLBACK_TRAINING_CONFIG_PROFILE = HYBRID_DIAGNOSTIC_SURFACE
 
 
 def _non_empty_string(value: Any) -> str | None:
@@ -38,14 +48,17 @@ def resolve_training_experiment(sweep_meta: Mapping[str, Any]) -> str:
     explicit = _non_empty_string(sweep_meta.get("training_experiment"))
     if explicit is not None:
         return explicit
-    return DEFAULT_TRAINING_EXPERIMENT
+    return LEGACY_FALLBACK_TRAINING_EXPERIMENT
 
 
 def resolve_training_config_profile(sweep_meta: Mapping[str, Any]) -> str:
     explicit = _non_empty_string(sweep_meta.get("training_config_profile"))
     if explicit is not None:
         return explicit
-    return resolve_training_experiment(sweep_meta)
+    explicit_training_experiment = _non_empty_string(sweep_meta.get("training_experiment"))
+    if explicit_training_experiment is not None:
+        return explicit_training_experiment
+    return LEGACY_FALLBACK_TRAINING_CONFIG_PROFILE
 
 
 def resolve_surface_role(sweep_meta: Mapping[str, Any]) -> str:
@@ -57,6 +70,6 @@ def resolve_surface_role(sweep_meta: Mapping[str, Any]) -> str:
         return PFN_CONTROL_LANE
     if training_experiment == HYBRID_DIAGNOSTIC_SURFACE:
         return HYBRID_DIAGNOSTIC_LANE
-    if training_experiment == ARCHITECTURE_SCREEN_SURFACE:
+    if training_experiment in ARCHITECTURE_SCREEN_SURFACES:
         return ARCHITECTURE_SCREEN_LANE
     return CUSTOM_LANE

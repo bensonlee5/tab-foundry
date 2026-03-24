@@ -84,7 +84,7 @@ def _assert_row_execution_state(
 def test_qass_tfcol_large_missing_validation_v1_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "cuda_stack_scale_followup"
+    assert index["active_sweep_id"] == "row_first_training_adequacy_v1"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)

@@ -67,7 +67,7 @@ tab-foundry <group> <command> --help
 | --- | --- | --- |
 | `data` | Manifests, corpora, and dataset inspection | [docs/workflows.md](docs/workflows.md) |
 | `dev` | Config resolution, forward checks, export checks, and run inspection | [docs/workflows.md](docs/workflows.md) |
-| `train` | Training entrypoints, including prior workflows | [docs/workflows.md](docs/workflows.md) |
+| `train` | Training entrypoints, with `train run` as the default surface and `train legacy-prior` as the exact-prior legacy lane | [docs/workflows.md](docs/workflows.md) |
 | `eval` | Checkpoint evaluation | [docs/workflows.md](docs/workflows.md) |
 | `export` | Inference bundle export and validation | [docs/workflows.md](docs/workflows.md) and [docs/inference.md](docs/inference.md) |
 | `bench` | Smoke, benchmarking, tuning, and registry flows | [docs/workflows.md](docs/workflows.md) |
@@ -79,73 +79,5 @@ Repo-local sanity check:
 ./scripts/dev doctor
 ```
 
-<details>
-<summary>Full CLI tree</summary>
-
-```text
-tab-foundry
-├── data                          data workflows
-│   ├── build-manifest              build manifest parquet from dagzoo shard outputs
-│   ├── manifest-inspect            inspect a manifest and preflight compatibility
-│   ├── dagzoo
-│   │   └── generate-manifest       generate dagzoo corpus and emit a manifest
-│   └── corpus
-│       ├── list-recipes            list tracked corpus recipes
-│       ├── materialize             materialize a corpus recipe under outputs/corpora/
-│       ├── inspect                 inspect a materialized corpus record
-│       ├── compare                 diff two materialized corpus records
-│       └── results                 list benchmark runs linked to a corpus
-├── dev                           developer inspection and diagnostics
-│   ├── resolve-config              compose and print the resolved config surface
-│   ├── forward-check               build a model and run a synthetic forward smoke
-│   ├── diff-config                 compare two resolved config surfaces
-│   ├── export-check                export a checkpoint, validate, and run a smoke
-│   ├── health-check                summarize run telemetry and instability signals
-│   └── run-inspect                 inspect a run directory and its artifacts
-├── train                         training workflows
-│   ├── run                         train from Hydra config overrides
-│   └── prior
-│       ├── simple                  train the exact-prior simple benchmark family
-│       └── staged                  train the exact-prior staged benchmark family
-├── eval                          evaluation workflows
-│   └── checkpoint                  evaluate a checkpoint on a selected split
-├── export                        export workflows
-│   ├── bundle                      export a checkpoint as an inference bundle
-│   └── validate                    validate an exported inference bundle
-├── bench                         benchmark workflows
-│   ├── smoke
-│   │   ├── iris                    run the Iris smoke harness
-│   │   └── dagzoo                  run the dagzoo smoke harness
-│   ├── tune                        run the internal benchmark tuning sweep
-│   ├── compare                     compare a run against external baselines
-│   ├── env
-│   │   └── bootstrap               bootstrap sibling benchmark environments
-│   ├── bundle
-│   │   └── build-openml            build an OpenML benchmark bundle
-│   ├── registry
-│   │   ├── register-run            register a benchmark run
-│   │   └── freeze-baseline         freeze a control baseline
-│   └── diagnose
-│       └── bounce                  run the benchmark bounce diagnosis flow
-└── research                      research workflows
-    └── sweep
-        ├── list-sweeps             list known sweeps
-        ├── show-active             print the active sweep id
-        ├── set-active              set the active sweep and regenerate aliases
-        ├── create-sweep            bootstrap a new sweep from the delta catalog
-        ├── list                    list queue rows in order
-        ├── next                    print the next ready row
-        ├── render                  render the sweep matrix as Markdown
-        ├── validate                validate completed rows for a sweep
-        ├── execute                 execute selected sweep rows
-        ├── graph                   render architecture graphs for sweep targets
-        ├── promote                 promote a completed run to the sweep anchor
-        ├── summarize               summarize local sweep results into one table
-        ├── inspect                 inspect a materialized sweep row
-        └── diff                    diff a sweep row against the anchor or another row
-```
-
-</details>
-
-For the full namespace inventory, use
+For the canonical leaf-command inventory, use
 [docs/development/codebase-navigation.md](docs/development/codebase-navigation.md).

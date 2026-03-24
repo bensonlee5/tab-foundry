@@ -1,128 +1,168 @@
 schema: tab-foundry-system-delta-queue-v1
-generated_from_sweep_id: cuda_stack_scale_followup
+generated_from_sweep_id: row_first_training_adequacy_v1
 catalog_path: reference/system_delta_catalog.yaml
-canonical_sweep_path: reference/system_delta_sweeps/cuda_stack_scale_followup/sweep.yaml
-canonical_queue_path: reference/system_delta_sweeps/cuda_stack_scale_followup/queue.yaml
-canonical_matrix_path: reference/system_delta_sweeps/cuda_stack_scale_followup/matrix.md
-sweep_id: cuda_stack_scale_followup
-parent_sweep_id: cuda_stability_followup
-sweep_status: completed
+canonical_sweep_path: reference/system_delta_sweeps/row_first_training_adequacy_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/row_first_training_adequacy_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/row_first_training_adequacy_v1/matrix.md
+sweep_id: row_first_training_adequacy_v1
+parent_sweep_id: tf_rd_013_dagzoo_size_ladder_v1
+sweep_status: draft
 complexity_level: binary_md
-anchor_run_id: sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1
+anchor_run_id: sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 external_benchmarks:
 - nanotabpfn
-training_experiment: cls_benchmark_staged_prior
-training_config_profile: cls_benchmark_staged_prior
-surface_role: hybrid_diagnostic
+training_experiment: cls_benchmark_staged_corpus
+training_config_profile: cls_benchmark_staged_corpus
+surface_role: architecture_screen
 comparison_policy: anchor_only
 upstream_reference:
   name: nanoTabPFN
   model_source: https://github.com/automl/nanoTabPFN/blob/main/model.py
 anchor_surface:
   notes:
-  - The locked anchor is the completed batch32 replay row from `cuda_stability_followup`,
-    not the older batch64 hybrid-diagnostic anchor.
-  - 'This follow-up is stability-first: rows 1-4 are train-only screens on the same
-    batch32 replay surface and intentionally skip benchmark registration.'
-  - The active question is whether a post-stack norm alone is enough, whether depth-scaled
-    prenorm residuals are enough, or whether the combined row is required.
-  - The row-5 norm winner is chosen from rows 2-3 by lower upper-block final-window
-    mean first, then lower post-warmup slope, then lower clip rate, then lower final
-    train-loss EMA, with RMSNorm winning any remaining tie.
-  - Keep width, depth, optimizer family, batch size, and preprocessing fixed; this
-    sweep targets stack-scale stabilization, not a new capacity shape.
+  - This sweep reuses the promoted TF-RD-013 medium corpus rung as the canonical TF-RD-018
+    data surface for the settled `row_cls + qass + no tfcol` anchor.
+  - The benchmark-facing control bundle for this ladder is `nanotabpfn_openml_binary_medium`,
+    so no queue metadata should keep the old large-bundle framing.
+  - The first ladder is manifest-backed dataset batching, not optimizer-family-first.
+    Keep the model, preprocessing, optimizer family, and warmup-decay family fixed
+    while testing `training.task_batch_size`.
+  - Run `task_batch_size=4` and `task_batch_size=8` unconditionally. Treat `task_batch_size=16`
+    and `task_batch_size=32` as gated follow-ups that stay blocked unless the previous
+    rung finishes in `<=900s`, avoids OOM, and keeps singleton fallback at `<=10%`
+    of updates.
+  - Stop the ladder once a rung exceeds `1800s`, hits OOM, or falls back to singleton
+    for more than `10%` of updates.
+  - Later optimizer, LR/schedule, clipping, and budget reads belong to the follow-on
+    TF-RD-018 tickets after one preferred batch rung is chosen.
+  - The queue must remain training-dimension-only; do not backfill architecture, preprocessing,
+    or data-provenance deltas into this sweep.
   dimension_table:
-  - dimension: bridge architecture
-    upstream: The inherited large-anchor bridge remains the repo-local prenorm plus
-      row-cls staged surface from the parent sweep.
-    anchor: Keep `nano_exact`, `table_block_style=prenorm`, `row_pool=row_cls`, `d_col=128`,
-      `d_icl=512`, `tficl_n_heads=8`, `tficl_n_layers=12`, and `head_hidden_dim=1024`
-      fixed.
-    interpretation: Any movement in rows 1-4 should be attributed to stack-scale interventions
-      or the short-screen policy, not to a new capacity shape.
-  - dimension: screening budget
-    upstream: The anchor run is a full 2500-step benchmarked batch32 replay.
-    anchor: Rows 1-4 use a 1000-step train-only screen with the same batch32 replay
-      LR surface; row 5 returns to the full 2500-step budget.
-    interpretation: Short-screen rows are diagnostic evidence only and must not be
-      read as benchmark-facing replacements for the anchor.
-  - dimension: post-stack normalization
-    upstream: Upstream nanoTabPFN does not expose a staged post-stack norm on this
-      large-anchor bridge path.
-    anchor: Compare `post_stack_norm=rmsnorm` and `post_stack_norm=layernorm` only
-      on the short-screen surface.
-    interpretation: This tests whether final stack export normalization can tame the
-      downstream interface even if prenorm blocks still grow internally.
-  - dimension: prenorm residual scaling
-    upstream: Upstream nanoTabPFN does not expose a depth-scaled residual branch on
-      this staged prenorm path.
-    anchor: Compare `table_block_residual_scale=depth_scaled` on the same short-screen
-      surface, then combine it with the winning post-stack norm at full budget.
-    interpretation: Residual scaling is the more direct root-cause intervention because
-      it changes the in-stack accumulation itself.
-  - dimension: execution policy
-    upstream: Ordinary sweep rows benchmark and register immediately.
-    anchor: Rows 1-4 are `screen_only`; row 5 is `benchmark_full`.
-    interpretation: The queue itself records which rows are diagnostic screens versus
-      benchmark-facing runs so the workflow stays reproducible.
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Shared feature encoder path with benchmark-external normalization.
+    interpretation: Feature encoder swaps change both the representation path and
+      where normalization lives.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Label-token target conditioning.
+    interpretation: Target-conditioning swaps change how labels enter the model and
+      need their own attribution.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Pre-norm cell transformer block with test-self attention enabled.
+    interpretation: Block-style changes alter attention flow and should not be conflated
+      with tokenizer or readout deltas.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Shifted grouped tokenizer.
+    interpretation: Tokenizer changes reshape the effective table sequence and need
+      their own adequacy commentary.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: No column-set encoder on the anchor path.
+    interpretation: Column-set modeling remains absent and should not explain anchor
+      behavior.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row-CLS pooling path.
+    interpretation: Row-pool changes alter how the table summary is extracted and
+      should be isolated from context changes.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: QASS context encoder.
+    interpretation: QASS changes both compute-graph depth and label-context semantics
+      and need explicit adequacy notes.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Small-class direct head.
+    interpretation: Head changes alter the task contract and should be interpreted
+      separately from shared trunk changes.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark bundle `nanotabpfn_openml_binary_medium` with data surface label
+      `tf_rd_013_dagzoo_shape_aware_size_medium` and corpus ref `tf_rd_013_dagzoo_shape_aware_size_medium_v1`.
+    interpretation: Bundle and training-data changes are first-class sweep rows and
+      should not be inherited from parent-sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: task batching
+    upstream: No repo-local manifest task batching contract.
+    anchor: Manifest-backed singleton task updates with `training.task_batch_size=1`.
+    interpretation: Manifest task batching is a first-class training-surface delta
+      and must be read before optimizer or schedule follow-ons.
+  - dimension: training recipe
+    upstream: No repo-local manifest training-surface contract.
+    anchor: Registered anchor training surface label `prior_linear_warmup_decay` with
+      `schedulefree_adamw`, `max_steps=2500`, and `runtime.grad_accum_steps=1`.
+    interpretation: Optimizer and schedule changes are later training-surface rows,
+      not background recipe assumptions in this first ladder.
 anchor_context:
-  run_id: sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1
-  experiment: cls_benchmark_staged_prior
-  config_profile: cls_benchmark_staged_prior
+  run_id: sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1
+  experiment: cls_benchmark_staged
+  config_profile: cls_benchmark_staged
   model:
     arch: tabfoundry_staged
-    benchmark_profile: dpnb_cuda_large_anchor_batch32_replay
-    stage: nano_exact
-    stage_label: dpnb_cuda_large_anchor_batch32_replay
+    benchmark_profile: delta_qass_no_column_v3
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
     module_selection:
-      allow_test_self_attention: false
+      allow_test_self_attention: true
       column_encoder: none
-      context_encoder: none
-      feature_encoder: nano
-      head: binary_direct
+      context_encoder: qass
+      feature_encoder: shared
+      head: small_class
       post_encoder_norm: none
+      post_stack_norm: none
       row_pool: row_cls
+      table_block_residual_scale: none
       table_block_style: prenorm
-      target_conditioner: mean_padded_linear
-      tokenizer: scalar_per_feature
+      target_conditioner: label_token
+      tokenizer: shifted_grouped
   surface_labels:
-    data: anchor_manifest_default
-    model: dpnb_cuda_large_anchor_batch32_replay
+    data: tf_rd_013_dagzoo_shape_aware_size_medium
+    model: delta_qass_no_column_v3
     preprocessing: runtime_default
     training: prior_linear_warmup_decay
 rows:
 - order: 1
-  delta_id: dpnb_cuda_stack_scale_control
-  status: screened
+  delta_id: delta_training_task_batch4
+  status: ready
   dimension_family: training
-  family: screening
+  family: batch_size
   binary_applicable: true
-  description: Re-screen the large-anchor batch32 replay surface with a short activation-first
-    diagnostic run.
-  rationale: Reconfirm the inherited batch32 replay activation-drift profile on a
-    short diagnostic budget before reading any new stabilization change.
-  hypothesis: The batch32 replay control will still show steadily rising upper-block
-    activation norms over 1000 steps, reproducing the parent-sweep failure mode on
-    a cheaper screen.
-  upstream_delta: Not applicable; this is a repo-local control screen for the stack-scale
-    follow-up.
-  anchor_delta: Keep the large-anchor batch32 replay surface fixed, but replace the
-    full benchmarked run with a short 1000-step train-only screen.
+  description: Keep the settled row-first model, preprocessing, and warmup-decay family
+    fixed, but batch exact-shape manifest tasks up to four at a time on the TF-RD-013
+    medium corpus surface.
+  rationale: Start TF-RD-018 with the lowest-risk manifest task-batch rung on the
+    settled TF-RD-013 medium corpus surface.
+  hypothesis: Exact-shape task batching at four tasks should improve wall-clock efficiency
+    without reopening architecture, preprocessing, or optimizer-family questions.
+  upstream_delta: Not applicable; this is a repo-local manifest task-batching adequacy
+    rung on the settled row-first anchor.
+  anchor_delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing,
+    and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=4`.
   entangled_legacy_stage: none
-  expected_effect: Reconfirm the control upper-block activation drift on the short
-    screen budget before reading any new stabilization change.
+  expected_effect: A four-task manifest batch should improve dataset-throughput efficiency
+    with lower packing and memory risk than the larger rungs.
   adequacy_knobs:
-  - training.overrides.runtime.max_steps
-  - training.overrides.schedule.stages[0].steps
-  - training.overrides.schedule.stages[0].warmup_ratio
+  - training.task_batch_size
+  - task_batch_singleton_fallback_fraction
+  - batched_update_count
+  - train_elapsed_seconds
   parameter_adequacy_policy:
     default_plan:
-    - Treat this row as the short-screen control, not as a benchmark-facing replacement
-      for the registered anchor.
-    - Compare the same upper-block screen diagnostics against rows 2-4 before choosing
-      any combined full-budget row.
+    - Keep the model, data surface, preprocessing, optimizer family, schedule shape,
+      and step budget fixed so this row isolates manifest task batching only.
+    - Compare wall-clock, singleton-fallback fraction, and the primary final metrics
+      jointly before preferring a larger rung.
     default_negative_decision: defer
     reject_requires:
     - isolated_change
@@ -130,569 +170,358 @@ rows:
     - clearly_worse_without_offsetting_benefit
   applicability_guards: []
   model:
-    stage: nano_exact
-    stage_label: dpnb_cuda_stack_scale_control
-    d_col: 128
-    d_icl: 512
-    input_normalization: train_zscore_clip
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
     module_overrides:
-      table_block_style: prenorm
-      allow_test_self_attention: false
-      row_pool: row_cls
-    tfrow_n_heads: 8
-    tfrow_n_layers: 3
-    tfrow_cls_tokens: 2
-    tfrow_norm: layernorm
-    tficl_n_heads: 8
-    tficl_n_layers: 12
-    head_hidden_dim: 1024
+      column_encoder: none
   dynamic_model_overrides: null
   data:
-    surface_label: anchor_manifest_default
+    surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
+    source: manifest
+    corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
+    train_row_cap: 512
+    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
-    surface_label: prior_linear_warmup_decay
-    prior_dump_non_finite_policy: skip
-    prior_dump_batch_size: 32
-    prior_dump_lr_scale_rule: none
-    prior_dump_batch_reference_size: 32
+    surface_label: linear_warmup_decay
+    task_batch_size: 4
     overrides:
       apply_schedule: true
       optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
         min_lr: 0.0004
+        muon_per_parameter_lr: false
       runtime:
-        grad_clip: 1.0
-        max_steps: 1000
-        trace_activations: true
-      schedule:
-        stages:
-        - name: prior_dump
-          steps: 1000
-          lr_max: 0.004
-          lr_schedule: linear
-          warmup_ratio: 0.05
-  parameter_adequacy_plan:
-  - Treat this row as the short-screen control, not as a benchmark-facing replacement
-    for the registered anchor.
-  - Compare the same upper-block screen diagnostics against rows 2-4 before choosing
-    any combined full-budget row.
-  execution_policy: screen_only
-  run_id: sd_cuda_stack_scale_followup_01_dpnb_cuda_stack_scale_control_v1
-  followup_run_ids: []
-  decision: defer
-  interpretation_status: interpreted
-  confounders: []
-  next_action: Keep this row as the reproduced drift control; do not spend benchmark
-    budget on the unchanged short-screen surface.
-  notes:
-  - If upper-block means remain clearly upward after warmup, treat the control as
-    reproduced even if train loss looks superficially acceptable.
-  - Train-only screen recorded as `sd_cuda_stack_scale_followup_01_dpnb_cuda_stack_scale_control_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
-  screen_metrics:
-    upper_block_names:
-    - post_transformer_block_8
-    - post_transformer_block_9
-    - post_transformer_block_10
-    - post_transformer_block_11
-    upper_block_final_window_mean: 240.46404994964598
-    upper_block_post_warmup_mean_slope: 0.12565366989064783
-    clipped_step_fraction: 0.032
-    final_train_loss_ema: 0.6933284903267384
-    upper_blocks:
-      post_transformer_block_10:
-        final_window_mean: 244.74366317749025
-        post_warmup_slope: 0.12509827017819886
-      post_transformer_block_11:
-        final_window_mean: 253.9668894958496
-        post_warmup_slope: 0.12337037010089864
-      post_transformer_block_8:
-        final_window_mean: 226.47746688842773
-        post_warmup_slope: 0.1271027539050368
-      post_transformer_block_9:
-        final_window_mean: 236.6681802368164
-        post_warmup_slope: 0.12704328537845697
-  benchmark_metrics: null
-- order: 2
-  delta_id: dpnb_cuda_stack_scale_poststack_rms
-  status: screened
-  dimension_family: model
-  family: normalization
-  binary_applicable: true
-  description: Add post-stack RMSNorm after the prenorm table-block stack on the batch32
-    replay control screen.
-  rationale: Test the cheapest downstream stabilization path first by adding only
-    a post-stack RMSNorm on the same short-screen control surface.
-  hypothesis: RMSNorm after the full block stack may reduce the exported residual
-    scale enough to beat the control on upper-block final-window mean, even if it
-    does not fully address in-stack growth.
-  upstream_delta: Upstream nanoTabPFN does not expose this staged post-stack normalization
-    probe on the large-anchor bridge surface.
-  anchor_delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.post_stack_norm=rmsnorm`
-    after the full prenorm table-block stack.
-  entangled_legacy_stage: none
-  expected_effect: A post-stack RMSNorm may bound the exported residual stream even
-    if internal prenorm blocks still grow.
-  adequacy_knobs:
-  - model.module_overrides.post_stack_norm
-  - training.overrides.runtime.max_steps
-  - training.overrides.schedule.stages[0].steps
-  parameter_adequacy_policy:
-    default_plan:
-    - Compare directly against the matching LayerNorm row on the same short-screen
-      surface.
-    - Use the short-screen upper-block diagnostics to decide whether post-stack normalization
-      is enough on its own.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
-  model:
-    stage: nano_exact
-    stage_label: dpnb_cuda_stack_scale_poststack_rms
-    d_col: 128
-    d_icl: 512
-    input_normalization: train_zscore_clip
-    module_overrides:
-      table_block_style: prenorm
-      allow_test_self_attention: false
-      row_pool: row_cls
-      post_stack_norm: rmsnorm
-    tfrow_n_heads: 8
-    tfrow_n_layers: 3
-    tfrow_cls_tokens: 2
-    tfrow_norm: layernorm
-    tficl_n_heads: 8
-    tficl_n_layers: 12
-    head_hidden_dim: 1024
-  dynamic_model_overrides: null
-  data:
-    surface_label: anchor_manifest_default
-  preprocessing:
-    surface_label: runtime_default
-  training:
-    surface_label: prior_linear_warmup_decay
-    prior_dump_non_finite_policy: skip
-    prior_dump_batch_size: 32
-    prior_dump_lr_scale_rule: none
-    prior_dump_batch_reference_size: 32
-    overrides:
-      apply_schedule: true
-      optimizer:
-        min_lr: 0.0004
-      runtime:
-        grad_clip: 1.0
-        max_steps: 1000
-        trace_activations: true
-      schedule:
-        stages:
-        - name: prior_dump
-          steps: 1000
-          lr_max: 0.004
-          lr_schedule: linear
-          warmup_ratio: 0.05
-  parameter_adequacy_plan:
-  - Compare directly against the matching LayerNorm row on the same short-screen surface.
-  - Use upper-block final-window mean as the first discriminator and keep train loss
-    secondary.
-  execution_policy: screen_only
-  run_id: sd_cuda_stack_scale_followup_02_dpnb_cuda_stack_scale_poststack_rms_v1
-  followup_run_ids: []
-  decision: defer
-  interpretation_status: interpreted
-  confounders: []
-  next_action: Carry RMSNorm forward only as the winning norm-family comparator; it
-    beat LayerNorm on upper-block scale but still trailed depth scaling overall.
-  notes:
-  - Train-only screen recorded as `sd_cuda_stack_scale_followup_02_dpnb_cuda_stack_scale_poststack_rms_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
-  screen_metrics:
-    upper_block_names:
-    - post_transformer_block_8
-    - post_transformer_block_9
-    - post_transformer_block_10
-    - post_transformer_block_11
-    upper_block_final_window_mean: 176.073586807251
-    upper_block_post_warmup_mean_slope: 0.022245198218199428
-    clipped_step_fraction: 0.019
-    final_train_loss_ema: 0.6932266288255998
-    upper_blocks:
-      post_transformer_block_10:
-        final_window_mean: 178.18615966796875
-        post_warmup_slope: 0.021900453647621537
-      post_transformer_block_11:
-        final_window_mean: 181.24376953125
-        post_warmup_slope: 0.020984049452842622
-      post_transformer_block_8:
-        final_window_mean: 170.40656799316406
-        post_warmup_slope: 0.023430166018463417
-      post_transformer_block_9:
-        final_window_mean: 174.4578500366211
-        post_warmup_slope: 0.022666123753870136
-  benchmark_metrics: null
-- order: 3
-  delta_id: dpnb_cuda_stack_scale_poststack_ln
-  status: screened
-  dimension_family: model
-  family: normalization
-  binary_applicable: true
-  description: Add post-stack LayerNorm after the prenorm table-block stack on the
-    batch32 replay control screen.
-  rationale: Complete the norm-family comparison on the same short-screen surface
-    so the combined row can choose a downstream norm mechanically instead of by inspection.
-  hypothesis: LayerNorm may outperform RMSNorm on upper-block boundedness and clip
-    rate on this large-anchor bridge surface, even though both act only after the
-    block stack.
-  upstream_delta: Upstream nanoTabPFN does not expose this staged post-stack normalization
-    probe on the large-anchor bridge surface.
-  anchor_delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.post_stack_norm=layernorm`
-    after the full prenorm table-block stack.
-  entangled_legacy_stage: none
-  expected_effect: A post-stack LayerNorm is the direct norm-family comparator to
-    the RMSNorm probe on the same short-screen surface.
-  adequacy_knobs:
-  - model.module_overrides.post_stack_norm
-  - training.overrides.runtime.max_steps
-  - training.overrides.schedule.stages[0].steps
-  parameter_adequacy_policy:
-    default_plan:
-    - Compare directly against the matching RMSNorm row on the same short-screen surface.
-    - Prefer the lower upper-block scale winner and only use training loss as a late
-      tie-breaker.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
-  model:
-    stage: nano_exact
-    stage_label: dpnb_cuda_stack_scale_poststack_ln
-    d_col: 128
-    d_icl: 512
-    input_normalization: train_zscore_clip
-    module_overrides:
-      table_block_style: prenorm
-      allow_test_self_attention: false
-      row_pool: row_cls
-      post_stack_norm: layernorm
-    tfrow_n_heads: 8
-    tfrow_n_layers: 3
-    tfrow_cls_tokens: 2
-    tfrow_norm: layernorm
-    tficl_n_heads: 8
-    tficl_n_layers: 12
-    head_hidden_dim: 1024
-  dynamic_model_overrides: null
-  data:
-    surface_label: anchor_manifest_default
-  preprocessing:
-    surface_label: runtime_default
-  training:
-    surface_label: prior_linear_warmup_decay
-    prior_dump_non_finite_policy: skip
-    prior_dump_batch_size: 32
-    prior_dump_lr_scale_rule: none
-    prior_dump_batch_reference_size: 32
-    overrides:
-      apply_schedule: true
-      optimizer:
-        min_lr: 0.0004
-      runtime:
-        grad_clip: 1.0
-        max_steps: 1000
-        trace_activations: true
-      schedule:
-        stages:
-        - name: prior_dump
-          steps: 1000
-          lr_max: 0.004
-          lr_schedule: linear
-          warmup_ratio: 0.05
-  parameter_adequacy_plan:
-  - Compare directly against the matching RMSNorm row on the same short-screen surface.
-  - Use the same upper-block-first winner rule so the combined row remains reproducible.
-  execution_policy: screen_only
-  run_id: sd_cuda_stack_scale_followup_03_dpnb_cuda_stack_scale_poststack_ln_v1
-  followup_run_ids: []
-  decision: defer
-  interpretation_status: interpreted
-  confounders: []
-  next_action: Do not carry LayerNorm forward; despite the lower loss trace, it lost
-    the norm-family comparison on upper-block scale and clip rate.
-  notes:
-  - Train-only screen recorded as `sd_cuda_stack_scale_followup_03_dpnb_cuda_stack_scale_poststack_ln_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
-  screen_metrics:
-    upper_block_names:
-    - post_transformer_block_8
-    - post_transformer_block_9
-    - post_transformer_block_10
-    - post_transformer_block_11
-    upper_block_final_window_mean: 604.592961883545
-    upper_block_post_warmup_mean_slope: -0.003930782465615718
-    clipped_step_fraction: 0.44
-    final_train_loss_ema: 0.5141133480012727
-    upper_blocks:
-      post_transformer_block_10:
-        final_window_mean: 614.2869708251953
-        post_warmup_slope: -0.004704136042991201
-      post_transformer_block_11:
-        final_window_mean: 642.7586364746094
-        post_warmup_slope: -0.006055017543418465
-      post_transformer_block_8:
-        final_window_mean: 569.5431329345703
-        post_warmup_slope: -0.0016911822741646112
-      post_transformer_block_9:
-        final_window_mean: 591.7831072998047
-        post_warmup_slope: -0.003272794001888592
-  benchmark_metrics: null
-- order: 4
-  delta_id: dpnb_cuda_stack_scale_depth_scaled
-  status: screened
-  dimension_family: model
-  family: residual_scaling
-  binary_applicable: true
-  description: Keep the batch32 replay control screen fixed and depth-scale each prenorm
-    residual branch by stack depth.
-  rationale: Test the root-cause intervention separately by reducing every prenorm
-    residual branch before it is added back into the stack.
-  hypothesis: Depth-scaled residual branches should lower the upper-block growth rate
-    more effectively than a post-stack norm alone because they change the in-stack
-    accumulation itself.
-  upstream_delta: Upstream nanoTabPFN does not expose this staged depth-scaled prenorm
-    residual probe on the large-anchor bridge surface.
-  anchor_delta: Keep the large-anchor batch32 replay screen fixed and add `model.module_overrides.table_block_residual_scale=depth_scaled`.
-  entangled_legacy_stage: none
-  expected_effect: Depth-scaled residual branches should target the source of the
-    in-stack activation ratchet more directly than a final normalization alone.
-  adequacy_knobs:
-  - model.module_overrides.table_block_residual_scale
-  - training.overrides.runtime.max_steps
-  - training.overrides.schedule.stages[0].steps
-  parameter_adequacy_policy:
-    default_plan:
-    - Compare directly against the control and post-stack norm rows on the same short-screen
-      surface.
-    - Use this row to test root-cause stabilization before spending a full benchmark
-      row on a combined intervention.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
-  model:
-    stage: nano_exact
-    stage_label: dpnb_cuda_stack_scale_depth_scaled
-    d_col: 128
-    d_icl: 512
-    input_normalization: train_zscore_clip
-    module_overrides:
-      table_block_style: prenorm
-      table_block_residual_scale: depth_scaled
-      post_stack_norm: rmsnorm
-      allow_test_self_attention: false
-      row_pool: row_cls
-    tfrow_n_heads: 8
-    tfrow_n_layers: 3
-    tfrow_cls_tokens: 2
-    tfrow_norm: layernorm
-    tficl_n_heads: 8
-    tficl_n_layers: 12
-    head_hidden_dim: 1024
-  dynamic_model_overrides: null
-  data:
-    surface_label: anchor_manifest_default
-  preprocessing:
-    surface_label: runtime_default
-  training:
-    surface_label: prior_linear_warmup_decay
-    prior_dump_non_finite_policy: skip
-    prior_dump_batch_size: 32
-    prior_dump_lr_scale_rule: none
-    prior_dump_batch_reference_size: 32
-    overrides:
-      apply_schedule: true
-      optimizer:
-        min_lr: 0.0004
-      runtime:
-        grad_clip: 1.0
-        max_steps: 1000
-        trace_activations: true
-      schedule:
-        stages:
-        - name: prior_dump
-          steps: 1000
-          lr_max: 0.004
-          lr_schedule: linear
-          warmup_ratio: 0.05
-  parameter_adequacy_plan:
-  - Compare directly against the control and post-stack norm rows on the same short-screen
-    surface.
-  - Use this row to decide whether the root-cause residual intervention deserves the
-    one full-budget benchmark row.
-  execution_policy: screen_only
-  run_id: sd_cuda_stack_scale_followup_04_dpnb_cuda_stack_scale_depth_scaled_v1
-  followup_run_ids: []
-  decision: defer
-  interpretation_status: interpreted
-  confounders: []
-  next_action: Keep depth scaling as the preferred stack-scale intervention if this
-    sweep is revisited; it produced the strongest short-screen stability signal.
-  notes:
-  - Train-only screen recorded as `sd_cuda_stack_scale_followup_04_dpnb_cuda_stack_scale_depth_scaled_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
-  screen_metrics:
-    upper_block_names:
-    - post_transformer_block_8
-    - post_transformer_block_9
-    - post_transformer_block_10
-    - post_transformer_block_11
-    upper_block_final_window_mean: 77.8338779258728
-    upper_block_post_warmup_mean_slope: 0.006561147310588584
-    clipped_step_fraction: 0.433
-    final_train_loss_ema: 0.5121660022585572
-    upper_blocks:
-      post_transformer_block_10:
-        final_window_mean: 78.53663200378418
-        post_warmup_slope: 0.005943047496029968
-      post_transformer_block_11:
-        final_window_mean: 82.13937690734863
-        post_warmup_slope: 0.0044013715527131325
-      post_transformer_block_8:
-        final_window_mean: 74.03247116088868
-        post_warmup_slope: 0.008466101608367929
-      post_transformer_block_9:
-        final_window_mean: 76.62703163146972
-        post_warmup_slope: 0.0074340685852433055
-  benchmark_metrics: null
-- order: 5
-  delta_id: dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner
-  status: blocked
-  dimension_family: model
-  family: normalization
-  binary_applicable: true
-  description: Run the full batch32 replay benchmark with depth-scaled prenorm residuals
-    plus whichever post-stack norm wins the short-screen comparison.
-  rationale: Spend the full benchmark budget only once, after the short screens identify
-    the better downstream norm to pair with depth-scaled residuals.
-  hypothesis: Depth-scaled prenorm residuals plus the winning post-stack norm will
-    produce the strongest stability evidence and the best chance of a benchmarkable
-    large-anchor candidate.
-  upstream_delta: Not applicable; this is the combined full-budget follow-up row derived
-    from the repo-local stack-scale screens.
-  anchor_delta: Keep the large-anchor batch32 replay benchmark surface fixed, add
-    `table_block_residual_scale=depth_scaled`, and resolve `post_stack_norm` dynamically
-    from rows 2-3 with RMSNorm winning any unresolved tie.
-  entangled_legacy_stage: none
-  expected_effect: The combined row should test whether root-cause residual scaling
-    plus the better downstream stack export norm is enough to produce a benchmarkable
-    large-anchor candidate.
-  adequacy_knobs:
-  - model.module_overrides.table_block_residual_scale
-  - model.module_overrides.post_stack_norm
-  - training.overrides.runtime.max_steps
-  - training.overrides.schedule.stages[0].steps
-  parameter_adequacy_policy:
-    default_plan:
-    - Resolve the winning post-stack norm from rows 2-3 using upper-block final-window
-      scale first, then post-warmup slope, then clip rate, then loss EMA, with RMSNorm
-      as the final tie-breaker.
-    - Benchmark only this combined row at full budget after the short-screen control
-      and component rows complete.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
-  model:
-    stage: nano_exact
-    stage_label: dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner
-    d_col: 128
-    d_icl: 512
-    input_normalization: train_zscore_clip
-    module_overrides:
-      table_block_style: prenorm
-      table_block_residual_scale: depth_scaled
-      post_stack_norm: rmsnorm
-      allow_test_self_attention: false
-      row_pool: row_cls
-    tfrow_n_heads: 8
-    tfrow_n_layers: 3
-    tfrow_cls_tokens: 2
-    tfrow_norm: layernorm
-    tficl_n_heads: 8
-    tficl_n_layers: 12
-    head_hidden_dim: 1024
-  dynamic_model_overrides:
-    post_stack_norm:
-      kind: screen_winner
-      compare_orders:
-      - order: 2
-        value: rmsnorm
-      - order: 3
-        value: layernorm
-      tie_break_preference: rmsnorm
-      resolved_value: rmsnorm
-      resolved_from_order: 2
-      resolution_reason: lower upper-block final-window mean
-  data:
-    surface_label: anchor_manifest_default
-  preprocessing:
-    surface_label: runtime_default
-  training:
-    surface_label: prior_linear_warmup_decay
-    prior_dump_non_finite_policy: skip
-    prior_dump_batch_size: 32
-    prior_dump_lr_scale_rule: none
-    prior_dump_batch_reference_size: 32
-    overrides:
-      apply_schedule: true
-      optimizer:
-        min_lr: 0.0004
-      runtime:
-        grad_clip: 1.0
+        grad_accum_steps: 1
         max_steps: 2500
-        trace_activations: true
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
       schedule:
         stages:
-        - name: prior_dump
+        - name: stage1
           steps: 2500
           lr_max: 0.004
           lr_schedule: linear
           warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Resolve the winning post-stack norm from rows 2-3 using upper-block final-window
-    scale first, then post-warmup slope, then clip rate, then loss EMA, with RMSNorm
-    as the final tie-breaker.
-  - Benchmark only this combined row at full budget after the short-screen control
-    and component rows complete.
+  - Keep the model, data surface, preprocessing, optimizer family, and schedule shape
+    fixed so this row isolates manifest task batching only.
+  - Read final log loss, final ROC AUC, train elapsed seconds, and singleton-fallback
+    fraction together before preferring a larger rung.
+  execution_policy: benchmark_full
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run first as the opening manifest task-batch rung on the settled TF-RD-013
+    medium surface.
+  notes: []
+  screen_metrics: null
+  benchmark_metrics: null
+- order: 2
+  delta_id: delta_training_task_batch8
+  status: ready
+  dimension_family: training
+  family: batch_size
+  binary_applicable: true
+  description: Keep the settled row-first model, preprocessing, and warmup-decay family
+    fixed, but batch exact-shape manifest tasks up to eight at a time on the TF-RD-013
+    medium corpus surface.
+  rationale: Probe the highest unconditional manifest task-batch rung before TF-RD-018
+    opens optimizer or schedule-family follow-ups.
+  hypothesis: Exact-shape task batching at eight tasks may further improve throughput
+    while keeping singleton fallback and memory use low enough for iterative reads.
+  upstream_delta: Not applicable; this is a repo-local manifest task-batching adequacy
+    rung on the settled row-first anchor.
+  anchor_delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing,
+    and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=8`.
+  entangled_legacy_stage: none
+  expected_effect: An eight-task manifest batch may improve wall-clock efficiency
+    further if the medium corpus still spends too much time on singleton task dispatch.
+  adequacy_knobs:
+  - training.task_batch_size
+  - task_batch_singleton_fallback_fraction
+  - batched_update_count
+  - train_elapsed_seconds
+  parameter_adequacy_policy:
+    default_plan:
+    - Keep the model, data surface, preprocessing, optimizer family, schedule shape,
+      and step budget fixed so this row isolates manifest task batching only.
+    - Compare wall-clock, singleton-fallback fraction, and the primary final metrics
+      jointly before unblocking larger rungs.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  dynamic_model_overrides: null
+  data:
+    surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
+    source: manifest
+    corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 8
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Keep the model, data surface, preprocessing, optimizer family, and schedule shape
+    fixed so this row isolates manifest task batching only.
+  - Use this row as the gatekeeper for larger task-batch rungs before reopening optimizer,
+    LR, clipping, or budget questions.
+  execution_policy: benchmark_full
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run second as the highest unconditional manifest task-batch rung on
+    the settled TF-RD-013 medium surface.
+  notes: []
+  screen_metrics: null
+  benchmark_metrics: null
+- order: 3
+  delta_id: delta_training_task_batch16
+  status: blocked
+  dimension_family: training
+  family: batch_size
+  binary_applicable: true
+  description: Keep the settled row-first model, preprocessing, and warmup-decay family
+    fixed, but batch exact-shape manifest tasks up to sixteen at a time on the TF-RD-013
+    medium corpus surface.
+  rationale: Keep the larger manifest task-batch ladder explicit, but do not spend
+    the extra runtime or memory budget until the eight-task rung proves it is still
+    on the clean batched path.
+  hypothesis: Exact-shape task batching at sixteen tasks may still improve throughput,
+    but only if the eight-task rung stays fast, avoids OOM, and rarely falls back
+    to singleton dispatch.
+  upstream_delta: Not applicable; this is a repo-local manifest task-batching adequacy
+    rung on the settled row-first anchor.
+  anchor_delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing,
+    and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=16`.
+  entangled_legacy_stage: none
+  expected_effect: A sixteen-task manifest batch may improve throughput further, but
+    it carries materially higher singleton-fallback and memory-pressure risk than
+    the opening rungs.
+  adequacy_knobs:
+  - training.task_batch_size
+  - task_batch_singleton_fallback_fraction
+  - batched_update_count
+  - train_elapsed_seconds
+  parameter_adequacy_policy:
+    default_plan:
+    - Keep the model, data surface, preprocessing, optimizer family, schedule shape,
+      and step budget fixed so this row isolates manifest task batching only.
+    - Unblock this rung only if the `task_batch_size=8` row finishes in <=900s, avoids
+      OOM, and keeps singleton fallback at <=10 percent of updates.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  dynamic_model_overrides: null
+  data:
+    surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
+    source: manifest
+    corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 16
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Leave blocked until the `task_batch_size=8` row finishes in `<=900s`, avoids OOM,
+    and keeps singleton fallback at `<=10%` of updates.
+  - If unblocked, compare against the eight-task rung first and stop the ladder if
+    runtime exceeds `1800s` or singleton fallback rises above `10%`.
   execution_policy: benchmark_full
   run_id: null
   followup_run_ids: []
   decision: null
   interpretation_status: blocked
   confounders: []
-  next_action: Leave the combined benchmark row blocked until there is a materially
-    stronger reason to spend full-budget benchmark time on the depth-scaled plus RMSNorm
-    surface.
+  next_action: Wait for the `task_batch_size=8` rung to clear the runtime, OOM, and
+    singleton-fallback gate before running this row.
   notes:
-  - The runner resolves `model.module_overrides.post_stack_norm` at execution time
-    from the recorded screen metrics in rows 2-3.
-  - Resolved `post_stack_norm` to `rmsnorm` from screen row `2` (lower upper-block
-    final-window mean).
-  - A stopped diagnostic archive exists at `sd_cuda_stack_scale_followup_05_dpnb_cuda_stack_scale_depth_scaled_plus_norm_winner_v1_stopped_user_interrupt_20260319T161805Z`.
-  - The first full-budget attempt was stopped manually at step `475` before benchmark
-    registration after the partial trace still looked mediocre relative to the screen
-    evidence.
+  - This row is intentionally blocked pending the row-2 gate.
   screen_metrics: null
   benchmark_metrics: null
+  parent_delta_ref: delta_training_task_batch8
+- order: 4
+  delta_id: delta_training_task_batch32
+  status: blocked
+  dimension_family: training
+  family: batch_size
+  binary_applicable: true
+  description: Keep the settled row-first model, preprocessing, and warmup-decay family
+    fixed, but batch exact-shape manifest tasks up to thirty-two at a time on the
+    TF-RD-013 medium corpus surface.
+  rationale: Keep the highest manifest task-batch rung visible in the queue, but leave
+    it dormant unless the sixteen-task rung remains fast and mostly batched.
+  hypothesis: Exact-shape task batching at thirty-two tasks will only be useful if
+    the sixteen-task rung still avoids OOM and singleton fallback on the settled medium
+    corpus.
+  upstream_delta: Not applicable; this is a repo-local manifest task-batching adequacy
+    rung on the settled row-first anchor.
+  anchor_delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing,
+    and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=32`.
+  entangled_legacy_stage: none
+  expected_effect: A thirty-two-task manifest batch would maximize batching pressure
+    on this medium corpus, but it is most likely to trip OOM or singleton-fallback
+    gates before quality can be read cleanly.
+  adequacy_knobs:
+  - training.task_batch_size
+  - task_batch_singleton_fallback_fraction
+  - batched_update_count
+  - train_elapsed_seconds
+  parameter_adequacy_policy:
+    default_plan:
+    - Keep the model, data surface, preprocessing, optimizer family, schedule shape,
+      and step budget fixed so this row isolates manifest task batching only.
+    - Unblock this rung only if the `task_batch_size=16` row finishes in <=900s, avoids
+      OOM, and keeps singleton fallback at <=10 percent of updates.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  dynamic_model_overrides: null
+  data:
+    surface_label: tf_rd_013_dagzoo_shape_aware_size_medium
+    source: manifest
+    corpus_ref: tf_rd_013_dagzoo_shape_aware_size_medium_v1
+    train_row_cap: 512
+    test_row_cap: 256
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 1
+        max_steps: 2500
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Leave blocked until the `task_batch_size=16` row finishes in `<=900s`, avoids
+    OOM, and keeps singleton fallback at `<=10%` of updates.
+  - If unblocked, compare against the sixteen-task rung first and stop the ladder
+    if runtime exceeds `1800s` or singleton fallback rises above `10%`.
+  execution_policy: benchmark_full
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Wait for the `task_batch_size=16` rung to clear the runtime, OOM, and
+    singleton-fallback gate before running this row.
+  notes:
+  - This row is intentionally blocked pending the row-3 gate.
+  screen_metrics: null
+  benchmark_metrics: null
+  parent_delta_ref: delta_training_task_batch16

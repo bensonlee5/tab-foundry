@@ -11,8 +11,8 @@ unless the queue row explicitly declares a different preserved surface.
 ## Architecture-Screen Surface
 
 The canonical benchmark-facing staged surface used for future architecture work.
-In current docs this is the regular `cls_benchmark_staged` lane, distinct from
-hybrid diagnostic rows.
+In current docs this is `cls_benchmark_staged_corpus`, distinct from hybrid
+diagnostic rows.
 
 ## Benchmark Bundle
 
@@ -37,6 +37,12 @@ The frozen PFN-style comparison lane:
 
 Use it for trust and comparison, not as the default landing zone for new
 architecture work.
+
+## Corpus Ref
+
+A stable identifier for a materialized corpus record. Public training docs
+prefer `data.corpus_ref` over a raw manifest path for recurring dagzoo-shaped
+corpora.
 
 ## Dagzoo Synthetic-Data Lane
 
@@ -72,8 +78,9 @@ inspection flows.
 
 ## Manifest-Backed Data
 
-The canonical concrete data surface in the repo today. Training, evaluation,
-and inspection operate on manifests rather than on ad hoc loader paths.
+The concrete data surface the repo trains on. Public docs usually refer to it
+through `data.corpus_ref`; `data.manifest_path` remains the lower-level direct
+manifest override and inspection surface.
 
 ## Model
 
@@ -88,9 +95,9 @@ scaling-law breadth.
 
 ## Prior Training
 
-Training against a prior-data surface instead of only replaying benchmark tasks.
-In this repo it usually refers to the prior-dump or manifest-backed staged
-training surfaces used to compare architectures under a fixed recipe.
+Legacy exact-prior training against the nanoTabPFN prior dump. In current docs
+this is the `train legacy-prior` lane, distinct from the corpus-backed default
+training surface.
 
 ## Row
 

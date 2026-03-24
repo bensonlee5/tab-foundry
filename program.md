@@ -28,7 +28,7 @@ This is not the right page if you only want a general repo overview. Start with
 ## Objective
 
 Optimize for attributable evidence against the locked anchor
-`sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`, not for rapid base
+`sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1`, not for rapid base
 promotion.
 
 The primary score remains `final_log_loss` on the canonical binary benchmark
@@ -58,10 +58,10 @@ not the main score.
 Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
-- active sweep id: `cuda_stack_scale_followup`
-- anchor run id: `sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1`
-- anchor prior run: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_replay/sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1/train`
-- anchor benchmark: `outputs/staged_ladder/research/cuda_stability_followup/dpnb_cuda_large_anchor_batch32_replay/sd_cuda_stability_followup_01_dpnb_cuda_large_anchor_batch32_replay_v1/benchmark`
+- active sweep id: `row_first_training_adequacy_v1`
+- anchor run id: `sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1`
+- anchor train run: `outputs/staged_ladder/research/tf_rd_013_dagzoo_size_ladder_v1/delta_data_manifest_root_dagzoo_shape_aware_size_medium/sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1/train`
+- anchor benchmark: `outputs/staged_ladder/research/tf_rd_013_dagzoo_size_ladder_v1/delta_data_manifest_root_dagzoo_shape_aware_size_medium/sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1/benchmark`
 - canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - canonical control baseline id: `cls_benchmark_linear_v2`
 - canonical control source run: `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
@@ -69,8 +69,8 @@ dimension family:
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
-- canonical sweep queue: `reference/system_delta_sweeps/cuda_stack_scale_followup/queue.yaml`
-- canonical sweep matrix: `reference/system_delta_sweeps/cuda_stack_scale_followup/matrix.md`
+- canonical sweep queue: `reference/system_delta_sweeps/row_first_training_adequacy_v1/queue.yaml`
+- canonical sweep matrix: `reference/system_delta_sweeps/row_first_training_adequacy_v1/matrix.md`
 - active queue alias: `reference/system_delta_queue.yaml`
 - active matrix alias: `reference/system_delta_matrix.md`
 - research template: `reference/system_delta_campaign_template.md`
@@ -78,10 +78,10 @@ dimension family:
 
 Keep these invariant by default:
 
-- prior-trained experiment family: `cls_benchmark_staged_prior`
+- manifest-backed experiment family: `cls_benchmark_staged_corpus`
 - PFN control lane: `tabfoundry_simple` plus `tabfoundry_staged` with `stage=nano_exact`
-- hybrid diagnostic lane: `cls_benchmark_staged_prior`
-- canonical architecture-screen surface for future benchmark-facing architecture work: `cls_benchmark_staged`
+- legacy hybrid diagnostic lane: `cls_benchmark_staged_prior`
+- canonical architecture-screen surface for future benchmark-facing architecture work: `cls_benchmark_staged_corpus`
 - benchmark bundle path
 - control baseline id
 - history, checkpoint, benchmark, and `training_surface_record.json` artifact contracts

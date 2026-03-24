@@ -168,11 +168,15 @@ Key rule:
 Inspect-first commands:
 
 ```bash
+.venv/bin/tab-foundry data corpus inspect \
+  --corpus-ref tf_rd_013_current_corpus_default_v1
 .venv/bin/tab-foundry data manifest-inspect \
   --manifest data/manifests/default.parquet \
   --experiment cls_smoke \
   --override data.manifest_path=data/manifests/default.parquet
-.venv/bin/tab-foundry dev resolve-config experiment=cls_benchmark_staged
+.venv/bin/tab-foundry dev resolve-config \
+  experiment=cls_benchmark_staged_corpus \
+  data.corpus_ref=tf_rd_013_current_corpus_default_v1
 .venv/bin/tab-foundry research sweep inspect \
   --sweep-id tf_rd_013_shape_aware_dagzoo_v1 \
   --order 1
@@ -181,8 +185,8 @@ Inspect-first commands:
 Common mistakes:
 
 - treating `dagzoo` as interchangeable with curated real-data benchmark ladders
-- adding a new data loader path when the manifest-backed surface already solves
-  the workflow
+- adding a new data loader path when the `data.corpus_ref` plus manifest-backed
+  surface already solves the workflow
 - discussing TF-RD-013 without naming which corpus provenance or manifest
   surface is under review
 

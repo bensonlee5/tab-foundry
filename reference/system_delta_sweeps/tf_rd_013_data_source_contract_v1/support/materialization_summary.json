@@ -100,7 +100,7 @@
       "step_id": "dagzoo_generate"
     },
     {
-      "command": "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
+      "command": "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry dev data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet",
       "cwd": "$TAB_FOUNDRY_ROOT",
       "returncode": 0,
       "status": "completed",
@@ -114,7 +114,7 @@
       "step_id": "prepare_openml_baseline_shards"
     },
     {
-      "command": "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards --out-manifest outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet",
+      "command": "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry dev data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards --out-manifest outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet",
       "cwd": "$TAB_FOUNDRY_ROOT",
       "returncode": 0,
       "status": "completed",
@@ -157,7 +157,7 @@
         },
         "commands": [
           "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/python scripts/materialize_tf_rd_013_support.py --force",
-          "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards --out-manifest outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet"
+          "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry dev data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/packed_shards --out-manifest outputs/staged_ladder_support/tf_rd_013/curated_realdata/openml_baseline/manifest.parquet"
         ],
         "comparator_role": "evidence_only_openml_baseline",
         "dataset_names": [
@@ -340,7 +340,7 @@
       "dagzoo_provenance": {
         "commands": [
           "cd \"$DAGZOO_ROOT\" && uv run dagzoo generate --config configs/default.yaml --handoff-root \"$TAB_FOUNDRY_ROOT/outputs/staged_ladder_support/tf_rd_013/generated_source\" --num-datasets 8192 --seed 1 --device cpu --hardware-policy none",
-          "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet"
+          "cd \"$TAB_FOUNDRY_ROOT\" && ./.venv/bin/tab-foundry dev data build-manifest --data-root outputs/staged_ladder_support/tf_rd_013/generated_source/generated --out-manifest outputs/staged_ladder_support/tf_rd_013/generated_source/manifest.parquet"
         ],
         "comparator_role": "promoted_anchor_candidate",
         "config_refs": [

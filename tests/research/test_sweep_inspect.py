@@ -339,6 +339,41 @@ def _patch_registry(
     monkeypatch.setattr(graph_module, "resolve_registry_path_value", lambda value: Path(value))
 
 
+def _rewrite_mini_sweep_for_legacy_prior_rows(sweeps_root: Path) -> None:
+    sweep_path = sweeps_root / "mini_sweep" / "sweep.yaml"
+    sweep_payload = OmegaConf.to_container(OmegaConf.load(sweep_path), resolve=True)
+    assert isinstance(sweep_payload, dict)
+    sweep_payload["training_experiment"] = "cls_benchmark_staged_prior"
+    sweep_payload["training_config_profile"] = "cls_benchmark_staged_prior"
+    sweep_payload["surface_role"] = "hybrid_diagnostic"
+    _write_yaml(sweep_path, sweep_payload)
+
+    queue_path = sweeps_root / "mini_sweep" / "queue.yaml"
+    queue_payload = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(queue_payload, dict)
+    rows = queue_payload.get("rows")
+    assert isinstance(rows, list)
+    rows[0]["training"] = {
+        "surface_label": "prior_linear_warmup_decay",
+        "prior_dump_non_finite_policy": "skip",
+        "prior_dump_batch_size": 32,
+        "prior_dump_lr_scale_rule": "none",
+        "prior_dump_batch_reference_size": 32,
+        "overrides": {"apply_schedule": True},
+    }
+    rows[1]["training"] = {
+        "surface_label": "prior_linear_warmup_decay",
+        "prior_dump_non_finite_policy": "skip",
+        "prior_dump_batch_size": 64,
+        "prior_dump_lr_scale_rule": "sqrt",
+        "prior_dump_batch_reference_size": 32,
+        "overrides": {"apply_schedule": True},
+    }
+    rows[0]["run_id"] = None
+    rows[1]["run_id"] = None
+    _write_yaml(queue_path, queue_payload)
+
+
 def test_inspect_sweep_row_reports_resolved_surfaces(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -458,6 +493,34 @@ def test_inspect_sweep_row_allows_ready_rows_without_run_artifacts(
     assert payload["target"]["resolved"]["training"]["surface_label"] == "training_default"
 
 
+def test_inspect_sweep_row_preserves_flat_legacy_prior_overrides_without_artifacts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+    _rewrite_mini_sweep_for_legacy_prior_rows(sweeps_root)
+
+    payload = inspect_module.inspect_sweep_row(
+        order=2,
+        sweep_id="mini_sweep",
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
+    )
+
+    resolved_training = payload["target"]["resolved"]["training"]
+    assert resolved_training["backend"] == "legacy_prior"
+    assert resolved_training["legacy_prior"] == {
+        "non_finite_policy": "skip",
+        "batch_size": 64,
+        "lr_scale_rule": "sqrt",
+        "batch_reference_size": 32,
+        "effective_lr_scale_factor": None,
+    }
+
+
 def test_inspect_sweep_row_reports_unmaterialized_corpus_refs_for_ready_rows(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -502,3 +565,31 @@ def test_diff_sweep_row_uses_anchor_context_when_anchor_run_is_unavailable() -> 
     assert payload["against"]["run_id"] is None
     assert payload["against"]["source"] == "anchor_context"
     assert payload["difference_count"] > 0
+
+
+def test_diff_sweep_row_reports_legacy_prior_override_differences_without_artifacts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+    _rewrite_mini_sweep_for_legacy_prior_rows(sweeps_root)
+
+    payload = diff_module.diff_sweep_row(
+        order=2,
+        sweep_id="mini_sweep",
+        against_order=1,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
+    )
+
+    assert payload["differences"]["resolved.training.legacy_prior.batch_size"] == {
+        "target": 64,
+        "against": 32,
+    }
+    assert payload["differences"]["resolved.training.legacy_prior.lr_scale_rule"] == {
+        "target": "sqrt",
+        "against": "none",
+    }

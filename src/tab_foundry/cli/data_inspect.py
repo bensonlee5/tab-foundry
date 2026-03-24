@@ -14,7 +14,12 @@ from tab_foundry.model.inspection import model_surface_payload
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import resolve_preprocessing_surface
 
-from .dev import _mapping_from_node, _resolved_experiment_name, _training_surface_payload
+from .dev import (
+    _inspection_training_backend,
+    _mapping_from_node,
+    _resolved_experiment_name,
+    _training_surface_payload,
+)
 
 
 def _format_jsonable(value: Any) -> str:
@@ -38,19 +43,25 @@ def _resolved_compatibility_config(overrides: Sequence[str]) -> dict[str, Any]:
     task = str(getattr(cfg, "task", "classification")).strip().lower()
     model_cfg = _mapping_from_node(getattr(cfg, "model", None), context="cfg.model")
     spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
+    data_cfg = _mapping_from_node(getattr(cfg, "data", None), context="cfg.data")
+    data_payload = resolve_data_surface(
+        data_cfg,
+        allow_unresolved_corpus_ref=True,
+    ).to_dict()
+    legacy_prior_cfg = _mapping_from_node(getattr(cfg, "legacy_prior", None), context="cfg.legacy_prior")
+    backend = _inspection_training_backend(data_cfg)
     return {
         "experiment": _resolved_experiment_name(overrides),
         "task": task,
         "model": model_surface_payload(spec),
-        "data": resolve_data_surface(
-            _mapping_from_node(getattr(cfg, "data", None), context="cfg.data"),
-            allow_unresolved_corpus_ref=True,
-        ).to_dict(),
+        "data": data_payload,
         "preprocessing": resolve_preprocessing_surface(
             _mapping_from_node(getattr(cfg, "preprocessing", None), context="cfg.preprocessing")
         ).to_dict(),
         "training": _training_surface_payload(
             _mapping_from_node(getattr(cfg, "training", None), context="cfg.training"),
+            legacy_prior_cfg=legacy_prior_cfg,
+            backend=backend,
             optimizer_cfg=_mapping_from_node(getattr(cfg, "optimizer", None), context="cfg.optimizer"),
             schedule_cfg=_mapping_from_node(getattr(cfg, "schedule", None), context="cfg.schedule"),
         ),
