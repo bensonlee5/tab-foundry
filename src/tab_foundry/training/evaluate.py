@@ -20,6 +20,7 @@ from tab_foundry.task_batching import (
 from tab_foundry.types import EvalResult
 
 from .runtime import build_accelerator_from_runtime
+from .task_batching_validation import validate_task_batching_support
 from .trainer_metrics import _compute_loss_and_metrics, _evaluate_loader
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
@@ -186,6 +187,13 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         task=task,
         seed=dataset_seed,
         preprocessing_cfg=preprocessing_cfg,
+    )
+    validate_task_batching_support(
+        ds,
+        task_batch_size=task_batch_size,
+        model_spec=model_spec,
+        shuffle=False,
+        context=f"evaluation split={split!r}",
     )
     loader = build_task_loader(
         ds,

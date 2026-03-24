@@ -28,6 +28,7 @@ from tests.data.manifest_and_dataset_cases import (
     _classification_metadata,
     _write_packed_shard,
 )
+from tests.training.task_batching_cases import write_task_batch_manifest_from_specs
 
 
 class _FakeAccelerator:
@@ -72,6 +73,15 @@ class _FakeAccelerator:
 
     def wait_for_everyone(self) -> None:
         return None
+
+
+class _GradAccumFakeAccelerator(_FakeAccelerator):
+    def __init__(self, *, gradient_accumulation_steps: int) -> None:
+        super().__init__()
+        self.gradient_accumulation_steps = int(gradient_accumulation_steps)
+
+    def backward(self, loss: torch.Tensor) -> None:
+        (loss / float(self.gradient_accumulation_steps)).backward()
 
 
 class _FakeMultiProcessActivationAccelerator(_FakeAccelerator):
@@ -265,6 +275,80 @@ def _weighted_metric_batch(
             "task_batch_size_actual": task_batch_size_actual,
             "task_batch_signature": "6x3x4x3",
             "task_batch_mode": mode,
+        },
+        num_classes=3,
+    )
+
+
+def _gradient_weighting_batch(
+    *,
+    task_batch_size_actual: int,
+    task_batch_size_requested: int,
+    seed: int,
+) -> TaskBatch:
+    generator = torch.Generator().manual_seed(int(seed))
+    if task_batch_size_actual > 1:
+        y_test = torch.stack(
+            [
+                torch.tensor(
+                    [(seed + offset + index) % 3 for index in range(3)],
+                    dtype=torch.int64,
+                )
+                for offset in range(task_batch_size_actual)
+            ]
+        )
+        return TaskBatch(
+            x_train=torch.randn((task_batch_size_actual, 6, 4), generator=generator, dtype=torch.float32),
+            y_train=torch.randint(0, 3, (task_batch_size_actual, 6), generator=generator, dtype=torch.int64),
+            x_test=torch.randn((task_batch_size_actual, 3, 4), generator=generator, dtype=torch.float32),
+            y_test=y_test,
+            metadata={
+                "task_members": [{} for _ in range(task_batch_size_actual)],
+                "task_batch_size_requested": task_batch_size_requested,
+                "task_batch_size_actual": task_batch_size_actual,
+                "task_batch_signature": "6x3x4x3",
+                "task_batch_mode": "batched",
+            },
+            num_classes=3,
+        )
+    return TaskBatch(
+        x_train=torch.randn((6, 4), generator=generator, dtype=torch.float32),
+        y_train=torch.randint(0, 3, (6,), generator=generator, dtype=torch.int64),
+        x_test=torch.randn((3, 4), generator=generator, dtype=torch.float32),
+        y_test=torch.tensor([(seed + index) % 3 for index in range(3)], dtype=torch.int64),
+        metadata={
+            "task_members": [{}],
+            "task_batch_size_requested": task_batch_size_requested,
+            "task_batch_size_actual": task_batch_size_actual,
+            "task_batch_signature": "6x3x4x3",
+            "task_batch_mode": "singleton_fallback",
+        },
+        num_classes=3,
+    )
+
+
+def _combine_task_batches(*batches: TaskBatch) -> TaskBatch:
+    x_train_parts: list[torch.Tensor] = []
+    y_train_parts: list[torch.Tensor] = []
+    x_test_parts: list[torch.Tensor] = []
+    y_test_parts: list[torch.Tensor] = []
+    for batch in batches:
+        x_train_parts.append(batch.x_train.unsqueeze(0) if batch.x_train.ndim == 2 else batch.x_train)
+        y_train_parts.append(batch.y_train.unsqueeze(0) if batch.y_train.ndim == 1 else batch.y_train)
+        x_test_parts.append(batch.x_test.unsqueeze(0) if batch.x_test.ndim == 2 else batch.x_test)
+        y_test_parts.append(batch.y_test.unsqueeze(0) if batch.y_test.ndim == 1 else batch.y_test)
+    task_count = sum(int(part.shape[0]) for part in x_train_parts)
+    return TaskBatch(
+        x_train=torch.cat(x_train_parts, dim=0),
+        y_train=torch.cat(y_train_parts, dim=0),
+        x_test=torch.cat(x_test_parts, dim=0),
+        y_test=torch.cat(y_test_parts, dim=0),
+        metadata={
+            "task_members": [{} for _ in range(task_count)],
+            "task_batch_size_requested": 2,
+            "task_batch_size_actual": task_count,
+            "task_batch_signature": "6x3x4x3",
+            "task_batch_mode": "batched",
         },
         num_classes=3,
     )
@@ -1052,6 +1136,69 @@ def test_train_history_weights_microstep_metrics_by_actual_task_count(
     assert records[0]["train_acc"] == pytest.approx(0.4)
 
 
+def test_train_task_batch_grad_accum_matches_all_tasks_reference_update(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    train_batches = [
+        _gradient_weighting_batch(task_batch_size_actual=2, task_batch_size_requested=2, seed=11),
+        _gradient_weighting_batch(task_batch_size_actual=1, task_batch_size_requested=2, seed=23),
+    ]
+    torch.manual_seed(7)
+    trained_model = _TaskBatchAwareTinyClassifier()
+    reference_model = _TaskBatchAwareTinyClassifier()
+    reference_model.load_state_dict(trained_model.state_dict())
+
+    monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(trainer_module, "build_task_loader", lambda *_args, **_kwargs: train_batches)
+    monkeypatch.setattr(trainer_module, "build_model_from_spec", lambda _spec: trained_model)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **kwargs: _GradAccumFakeAccelerator(
+            gradient_accumulation_steps=int(kwargs.get("grad_accum_steps_override", 1) or 1),
+        ),
+    )
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_optimizer",
+        lambda model, **_kwargs: OptimizerSelection(
+            optimizers=[("sgd", torch.optim.SGD(model.parameters(), lr=0.1))],
+            requested_name="sgd",
+            resolved_name="sgd",
+        ),
+    )
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.training = {"task_batch_size": 2}
+    cfg.runtime.grad_accum_steps = 2
+    cfg.runtime.val_batches = 0
+
+    result = trainer_module.train(cfg)
+
+    assert result.global_step == 1
+
+    combined_batch = _combine_task_batches(*train_batches)
+    reference_optimizer = torch.optim.SGD(reference_model.parameters(), lr=0.1)
+    reference_optimizer.zero_grad(set_to_none=True)
+    reference_output = reference_model(combined_batch)
+    reference_loss, _ = trainer_metrics_module._compute_loss_and_metrics(
+        reference_output,
+        combined_batch,
+        task="classification",
+    )
+    reference_loss.backward()
+    reference_optimizer.step()
+
+    for trained_param, reference_param in zip(
+        trained_model.parameters(),
+        reference_model.parameters(),
+        strict=True,
+    ):
+        assert torch.allclose(trained_param, reference_param, atol=1.0e-6)
+
+
 def test_train_smoke_task_batching_manifest_loader_emits_batching_telemetry(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1207,6 +1354,43 @@ def test_train_rejects_task_batching_for_non_manifest_loader(
         _ = trainer_module.train(cfg)
 
 
+def test_train_rejects_tensor_batched_true_many_class_surface_before_loader(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    manifest_path = write_task_batch_manifest_from_specs(
+        tmp_path,
+        task_specs=[
+            {"dataset_index": 1, "split": "train", "n_classes": 6, "seed": 11},
+            {"dataset_index": 2, "split": "train", "n_classes": 6, "seed": 13},
+        ],
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "build_task_loader",
+        lambda *_args, **_kwargs: pytest.fail("preflight should reject before loader construction"),
+    )
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.data.manifest_path = str(manifest_path)
+    cfg.model = {
+        "arch": "tabfoundry_staged",
+        "stage": "many_class",
+        "many_class_base": 4,
+        "input_normalization": "none",
+    }
+    cfg.training = {"task_batch_size": 2}
+    cfg.runtime.val_batches = 0
+
+    with pytest.raises(RuntimeError, match="tensor-batched true-many-class execution is deferred"):
+        _ = trainer_module.train(cfg)
+
+
 def test_train_allows_task_batching_for_low_class_many_class_surface(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1242,6 +1426,43 @@ def test_train_allows_task_batching_for_low_class_many_class_surface(
     result = trainer_module.train(cfg)
 
     assert result.global_step == 1
+
+
+def test_train_allows_singleton_true_many_class_fallback_preflight(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    manifest_path = write_task_batch_manifest_from_specs(
+        tmp_path,
+        task_specs=[
+            {"dataset_index": 1, "split": "train", "n_classes": 6, "seed": 11},
+            {"dataset_index": 2, "split": "train", "n_classes": 3, "seed": 13},
+        ],
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+
+    def _stop_after_loader(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("stop_after_loader")
+
+    monkeypatch.setattr(trainer_module, "build_task_loader", _stop_after_loader)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.data.manifest_path = str(manifest_path)
+    cfg.model = {
+        "arch": "tabfoundry_staged",
+        "stage": "many_class",
+        "many_class_base": 4,
+        "input_normalization": "none",
+    }
+    cfg.training = {"task_batch_size": 2}
+    cfg.runtime.val_batches = 0
+
+    with pytest.raises(RuntimeError, match="stop_after_loader"):
+        _ = trainer_module.train(cfg)
 
 
 def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

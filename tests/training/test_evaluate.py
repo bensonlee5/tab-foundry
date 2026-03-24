@@ -7,6 +7,7 @@ import pytest
 import torch
 
 import tab_foundry.training.evaluate as evaluate_module
+from tests.training.task_batching_cases import write_task_batch_manifest_from_specs
 
 
 def test_evaluate_checkpoint_uses_explicit_weights_only_false(
@@ -647,6 +648,64 @@ def test_evaluate_checkpoint_allows_task_batching_for_low_class_many_class_surfa
     assert result.metrics == {"loss": 1.25, "acc": 0.75}
     assert captured["task"] == "classification"
     assert captured["max_batches"] == 1
+
+
+def test_evaluate_checkpoint_rejects_tensor_batched_true_many_class_preflight(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    manifest_path = write_task_batch_manifest_from_specs(
+        tmp_path,
+        task_specs=[
+            {"dataset_index": 1, "split": "val", "n_classes": 6, "seed": 11},
+            {"dataset_index": 2, "split": "val", "n_classes": 6, "seed": 13},
+        ],
+    )
+
+    class _DummyModel:
+        def load_state_dict(self, _state: object) -> None:
+            return None
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {
+                    "arch": "tabfoundry_staged",
+                    "stage": "many_class",
+                    "many_class_base": 4,
+                    "input_normalization": "none",
+                },
+                "training": {"task_batch_size": 2},
+            },
+        }
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+    monkeypatch.setattr(
+        evaluate_module,
+        "build_task_loader",
+        lambda *_args, **_kwargs: pytest.fail("preflight should reject before loader construction"),
+    )
+
+    cfg = OmegaConf.create(
+        {
+            "eval": {"checkpoint": str(tmp_path / "dummy.pt"), "split": "val", "max_batches": 1},
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_staged",
+                "stage": "many_class",
+                "many_class_base": 4,
+                "input_normalization": "none",
+            },
+            "data": {"manifest_path": str(manifest_path), "train_row_cap": None, "test_row_cap": None},
+            "runtime": {"seed": 1, "num_workers": 0, "device": "cpu", "mixed_precision": "no"},
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="tensor-batched true-many-class execution is deferred"):
+        _ = evaluate_module.evaluate_checkpoint(cfg)
 
 
 def test_checkpoint_model_settings_rejects_legacy_grouped_weights_without_override() -> None:

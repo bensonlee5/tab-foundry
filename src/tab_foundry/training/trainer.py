@@ -67,6 +67,7 @@ from .trainer_runtime_config import (
     _resolve_val_batches,
 )
 from .trainer_summary import _training_telemetry_summary_payload, _trainer_summary_payload
+from .task_batching_validation import validate_task_batching_support
 from .wandb import (
     finish_wandb_run,
     init_wandb_run,
@@ -196,6 +197,28 @@ def _accumulate_task_batch_step_payload(
         step_signature_counts[key] = step_signature_counts.get(key, 0) + int(count)
 
 
+def _scaled_microstep_loss(
+    loss: torch.Tensor,
+    *,
+    actual_task_count: int,
+    step_total_task_count: int,
+    accelerator: Any,
+) -> torch.Tensor:
+    if step_total_task_count <= 0:
+        raise RuntimeError(
+            "task-batch accumulation requires a positive step_total_task_count, "
+            f"got {step_total_task_count}"
+        )
+    accumulation_steps = getattr(accelerator, "gradient_accumulation_steps", 1)
+    if not isinstance(accumulation_steps, int) or accumulation_steps <= 0:
+        accumulation_steps = 1
+    return (
+        loss
+        * (float(actual_task_count) / float(step_total_task_count))
+        * float(accumulation_steps)
+    )
+
+
 def train(cfg: DictConfig) -> TrainResult:
     """Train from config."""
 
@@ -236,6 +259,13 @@ def train(cfg: DictConfig) -> TrainResult:
         seed=seed,
         preprocessing_cfg=cfg.get("preprocessing"),
     )
+    validate_task_batching_support(
+        train_ds,
+        task_batch_size=task_batch_size,
+        model_spec=model_spec,
+        shuffle=True,
+        context="training train split",
+    )
     train_loader = build_task_loader(
         train_ds,
         shuffle=True,
@@ -251,6 +281,13 @@ def train(cfg: DictConfig) -> TrainResult:
             task=task,
             seed=seed + 1,
             preprocessing_cfg=cfg.get("preprocessing"),
+        )
+        validate_task_batching_support(
+            val_ds,
+            task_batch_size=task_batch_size,
+            model_spec=model_spec,
+            shuffle=False,
+            context="training val split",
         )
         val_loader = build_task_loader(
             val_ds,
@@ -443,6 +480,8 @@ def train(cfg: DictConfig) -> TrainResult:
                 step_batch_payload = _empty_task_batch_step_payload(
                     requested_task_batch_size=task_batch_size,
                 )
+                step_batches: list[TaskBatch] = []
+                step_microstep_payloads: list[dict[str, Any]] = []
                 step_train_start = time.perf_counter()
                 for _micro_step in range(grad_accum_steps):
                     batch = move_batch(next(train_iter), accelerator.device)
@@ -451,12 +490,27 @@ def train(cfg: DictConfig) -> TrainResult:
                         step_batch_payload,
                         microstep_payload=microstep_batch_payload,
                     )
+                    step_batches.append(batch)
+                    step_microstep_payloads.append(microstep_batch_payload)
+                step_total_task_count = int(step_batch_payload["task_batch_size_actual"])
+                for batch, microstep_batch_payload in zip(
+                    step_batches,
+                    step_microstep_payloads,
+                    strict=True,
+                ):
                     actual_task_count = int(microstep_batch_payload["task_batch_size_actual"])
                     with accelerator.accumulate(model):
                         with accelerator.autocast():
                             output = model(batch)
                             loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-                        accelerator.backward(loss)
+                        accelerator.backward(
+                            _scaled_microstep_loss(
+                                loss,
+                                actual_task_count=actual_task_count,
+                                step_total_task_count=step_total_task_count,
+                                accelerator=accelerator,
+                            )
+                        )
                     train_loss_sum += float(loss.detach().item()) * float(actual_task_count)
                     train_loss_count += actual_task_count
                     for key, value in metrics.items():
