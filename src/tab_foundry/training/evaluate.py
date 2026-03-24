@@ -16,15 +16,12 @@ from tab_foundry.model.spec import (
     checkpoint_model_build_spec_from_mappings,
 )
 from tab_foundry.task_batching import (
-    move_batch,
     resolve_task_batch_size,
-    task_batch_diagnostics,
 )
 from tab_foundry.types import EvalResult
 
-from .distributed import _global_mean_from_local
 from .runtime import build_accelerator_from_runtime
-from .trainer import _compute_loss_and_metrics
+from .trainer_metrics import _compute_loss_and_metrics, _evaluate_loader
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
 
@@ -206,7 +203,6 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
 
     accelerator = build_accelerator_from_runtime(cfg.runtime)
     model, loader = accelerator.prepare(model, loader)
-    model.eval()
     logging_cfg = cfg.get("logging")
     use_wandb = bool(getattr(logging_cfg, "use_wandb", False)) if logging_cfg is not None else False
     run = init_wandb_run(
@@ -214,40 +210,20 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         enabled=bool(use_wandb and accelerator.is_main_process),
     )
 
-    loss_sum = 0.0
-    score_sum = 0.0
-    count = 0
-    tasks_seen = 0
-
     metric_name = "acc"
 
     try:
-        with torch.no_grad():
-            for batch in loader:
-                if tasks_seen >= max_batches:
-                    break
-                actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
-                if tasks_seen + actual_task_count > max_batches:
-                    break
-                batch = move_batch(batch, accelerator.device)
-                with accelerator.autocast():
-                    output = model(batch)
-                    loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-                loss_sum += float(loss.detach().item()) * float(actual_task_count)
-                score_sum += float(metrics.get(metric_name, 0.0)) * float(actual_task_count)
-                count += actual_task_count
-                tasks_seen += actual_task_count
-
-        dev = accelerator.device
-        loss_value = _global_mean_from_local(
-            accelerator, local_sum=loss_sum, local_count=count, device=dev, default=float("inf"),
-        )
-        metric_value = _global_mean_from_local(
-            accelerator, local_sum=score_sum, local_count=count, device=dev, default=0.0,
+        eval_metrics = _evaluate_loader(
+            model,
+            loader,
+            accelerator=accelerator,
+            task=task,
+            max_batches=max_batches,
+            compute_loss_and_metrics=_compute_loss_and_metrics,
         )
         result_metrics = {
-            "loss": loss_value,
-            metric_name: metric_value,
+            "loss": float(eval_metrics["val_loss"]),
+            metric_name: float(eval_metrics[metric_name]),
         }
         log_wandb_metrics(
             run,

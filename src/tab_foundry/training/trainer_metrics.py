@@ -103,6 +103,7 @@ def _evaluate_loader(
     accelerator: Accelerator,
     task: str,
     max_batches: int,
+    compute_loss_and_metrics=None,
 ) -> dict[str, float]:
     model.eval()
     loss_sum = 0.0
@@ -115,18 +116,22 @@ def _evaluate_loader(
             f"got task={task!r}."
         )
     metric_name = "acc"
+    if compute_loss_and_metrics is None:
+        compute_loss_and_metrics = _compute_loss_and_metrics
 
     with torch.no_grad():
         for batch in loader:
+            if max_batches <= 0:
+                break
             if tasks_seen >= max_batches:
                 break
             actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
-            if tasks_seen + actual_task_count > max_batches:
+            if tasks_seen > 0 and tasks_seen + actual_task_count > max_batches:
                 break
             batch = move_batch(batch, accelerator.device)
             with accelerator.autocast():
                 output = model(batch)
-                loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
+                loss, metrics = compute_loss_and_metrics(output, batch, task=task)
             loss_sum += float(loss.detach().item()) * float(actual_task_count)
             score_sum += float(metrics[metric_name]) * float(actual_task_count)
             count += actual_task_count
