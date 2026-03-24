@@ -107,11 +107,11 @@ def _nanotabpfn_prior_dump(root: Path, override: Path | None) -> Path:
 
 
 def _helper_script_path() -> Path:
-    return repo_root() / "src" / "tab_foundry" / "bench" / "nanotabpfn_helper.py"
+    return repo_root() / "scripts" / "bench" / "nanotabpfn_helper.py"
 
 
 def _tabiclv2_helper_script_path() -> Path:
-    return repo_root() / "src" / "tab_foundry" / "bench" / "tabiclv2_helper.py"
+    return repo_root() / "scripts" / "bench" / "tabiclv2_helper.py"
 
 
 def _src_root() -> Path:

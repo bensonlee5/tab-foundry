@@ -14,8 +14,8 @@ into the canonical library modules.
 - `src/tab_foundry/cli/`: nested CLI registration and dispatch for
   `data`, `dev`, `train`, `eval`, `export`, `bench`, and `research`
   workflows.
-- `scripts/`: shell convenience helpers plus audit tooling only. Python
-  workflow entrypoints have been retired in favor of the packaged CLI.
+- `scripts/`: shell convenience helpers, audit tooling, and a small set of
+  standalone internal benchmark helper entrypoints under `scripts/bench/`.
 - `scripts/dev`: repo-local bootstrap, doctor, ready, verification, and smoke
   wrapper that delegates to the audit tooling and packaged CLI. Hook and audit
   tooling now resolve interpreters with a worktree-first `.venv` policy and
@@ -74,7 +74,9 @@ into the canonical library modules.
   write APIs, and `bench/comparison_runtime.py` is the canonical programmatic
   benchmark-execution surface used by research. Packaged `bench` parser
   ownership now lives under `src/tab_foundry/cli/bench_*.py`; the packaged
-  bench library modules are parser-free.
+  bench library modules are parser-free. The remaining standalone internal
+  helper entrypoints now live under `scripts/bench/`; their corresponding
+  `src/tab_foundry/bench/` modules are parser-free library code.
 - `src/tab_foundry/research/`: system-delta sweep state, queue/matrix
   rendering, sweep-result summaries, and research-package path conventions.
   The canonical sweep ownership now lives under
@@ -98,7 +100,8 @@ The repo uses three stable workflow layers:
   data/build, training, evaluation, export, smoke, tuning, benchmarking,
   registry, and research-sweep flows.
 - Shell helpers under `scripts/*.sh` plus `scripts/audit/` as repo-local
-  convenience and verification surfaces only.
+  convenience and verification surfaces, plus `scripts/bench/` for the
+  small set of standalone internal benchmark helper entrypoints.
 - `scripts/dev` as the canonical repo-local entrypoint for bootstrap checks,
   branch review, affected-scope verification, explicit-path verification, full
   verification, and Iris smoke delegation.
@@ -173,6 +176,9 @@ not absorb new orchestration logic.
 - Packaged `bench` command parser ownership should stay under
   `src/tab_foundry/cli/`; the corresponding library modules under
   `src/tab_foundry/bench/` should stay parser-free.
+- Standalone benchmark helper entrypoints should live under `scripts/bench/`;
+  the corresponding `src/tab_foundry/bench/` modules should stay parser-free
+  and importable as libraries.
 - Packaged `train` command parser ownership should stay under
   `src/tab_foundry/cli/`; `training/prior_train.py` should stay parser-free.
 - Shared repo-root and read-only benchmark-registry helpers should continue to

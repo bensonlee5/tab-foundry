@@ -716,7 +716,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert captured["cwd"] == nanotab_root.resolve()
     assert captured["check"] is True
     assert Path(captured["cmd"][0]) == nanotab_python.resolve()
-    assert Path(captured["cmd"][1]) == REPO_ROOT / "src" / "tab_foundry" / "bench" / "nanotabpfn_helper.py"
+    assert Path(captured["cmd"][1]) == REPO_ROOT / "scripts" / "bench" / "nanotabpfn_helper.py"
     assert captured["cmd"][captured["cmd"].index("--tab-foundry-src") + 1] == str(REPO_ROOT / "src")
     assert policy_calls == {"load": [False], "datasets": [False], "evaluate": [False]}
     assert summary["dataset_count"] == 1

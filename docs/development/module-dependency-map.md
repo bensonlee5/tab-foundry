@@ -104,13 +104,18 @@ Observed cycle status:
 - Packaged `bench` CLI parser ownership should stay under
   `src/tab_foundry/cli/`; the packaged bench library modules should stay
   parser-free.
+- Standalone internal benchmark helper entrypoints should live under
+  `scripts/bench/`; their corresponding `src/tab_foundry/bench/` modules
+  should stay parser-free and should not regrow local `argparse` surfaces.
 - Sweep row execution should stay decomposed across dedicated helper modules
   such as `curve_reuse`, `training_state`, `row_dependencies`, and `row_sync`
   instead of regrowing helper logic inside `row_execution.py`.
-- Python workflow entrypoints should live under the packaged nested CLI rather
-  than being duplicated under `scripts/`.
-- `scripts/` should stay limited to shell convenience helpers and audit tooling
-  instead of reintroducing parallel Python workflow surfaces.
+- User-facing workflow entrypoints should live under the packaged nested CLI
+  rather than being duplicated under `scripts/`.
+- `scripts/` should stay limited to shell convenience helpers, audit tooling,
+  and the small set of standalone internal benchmark helper entrypoints under
+  `scripts/bench/`; it should not regrow parallel user-facing Python workflow
+  surfaces.
 
 ## Change-Impact Hotspots
 
