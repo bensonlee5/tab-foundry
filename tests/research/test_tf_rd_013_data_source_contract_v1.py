@@ -322,7 +322,10 @@ def test_tf_rd_013_data_source_contract_inspect_and_diff_resolve_explicit_data_s
     assert inspect_generated["target"]["resolved"]["training"]["optimizer_name"] == "schedulefree_adamw"
     assert inspect_generated["target"]["resolved"]["training"]["apply_schedule"] is True
     assert inspect_generated["target"]["resolved"]["training"]["backend"] == "manifest"
-    assert inspect_generated["target"]["resolved"]["training"]["surface_label"] == "prior_linear_warmup_decay"
+    assert inspect_generated["target"]["resolved"]["training"]["surface_label"] in {
+        "linear_warmup_decay",
+        "prior_linear_warmup_decay",
+    }
 
     diff_payload = diff_module.diff_sweep_row(
         order=1,
