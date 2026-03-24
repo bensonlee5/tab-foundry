@@ -10,6 +10,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from tab_foundry.hashing import SHA256_HEX_LENGTH
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.spec import SUPPORTED_MANY_CLASS_TRAIN_MODES
 
@@ -109,7 +110,7 @@ def _as_float(value: Any, *, context: str) -> float:
 
 def _validate_hex_digest(value: Any, *, context: str) -> str:
     digest = _as_str(value, context=context)
-    if len(digest) != 64:
+    if len(digest) != SHA256_HEX_LENGTH:
         raise ValueError(f"{context} must be a 64-char hex digest")
     return digest
 

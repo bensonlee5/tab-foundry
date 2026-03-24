@@ -81,6 +81,34 @@ addopts = "-n auto --maxprocesses 8"
 line-length = 100
 target-version = "py314"
 
+[tool.ruff.lint]
+extend-select = ["PLR2004"]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/**/*.py" = ["PLR2004"]
+"tests/**/*.py" = ["PLR2004"]
+"src/tab_foundry/bench/checkpoint.py" = ["PLR2004"]
+"src/tab_foundry/bench/nanotabpfn/bundle.py" = ["PLR2004"]
+"src/tab_foundry/bench/nanotabpfn/metrics.py" = ["PLR2004"]
+"src/tab_foundry/bench/registry/record_helpers.py" = ["PLR2004"]
+"src/tab_foundry/bench/tune_metrics.py" = ["PLR2004"]
+"src/tab_foundry/cli/dev.py" = ["PLR2004"]
+"src/tab_foundry/cli/groups/data.py" = ["PLR2004"]
+"src/tab_foundry/data/dataset.py" = ["PLR2004"]
+"src/tab_foundry/model/architectures/tabfoundry_staged/forward_common.py" = ["PLR2004"]
+"src/tab_foundry/model/architectures/tabfoundry_staged/many_class.py" = ["PLR2004"]
+"src/tab_foundry/model/components/many_class.py" = ["PLR2004"]
+"src/tab_foundry/model/inspection.py" = ["PLR2004"]
+"src/tab_foundry/preprocessing/tabular.py" = ["PLR2004"]
+"src/tab_foundry/research/sweep/curve_reuse.py" = ["PLR2004"]
+"src/tab_foundry/research/sweep/matrix.py" = ["PLR2004"]
+"src/tab_foundry/research/sweep/screening.py" = ["PLR2004"]
+"src/tab_foundry/task_batching.py" = ["PLR2004"]
+"src/tab_foundry/training/optimizer.py" = ["PLR2004"]
+"src/tab_foundry/training/prior/config.py" = ["PLR2004"]
+"src/tab_foundry/training/prior_dump.py" = ["PLR2004"]
+"src/tab_foundry/training/wandb.py" = ["PLR2004"]
+
 [tool.coverage.run]
 source = ["tab_foundry"]
 omit = [

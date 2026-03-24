@@ -29,6 +29,10 @@ from tab_foundry.data.validation import (
 
 
 MANIFEST_SUMMARY_METADATA_KEY = b"tab_foundry_manifest_summary"
+HEX_DIGEST_RADIX = 16
+SPLIT_BUCKET_COUNT = 10_000
+SHORT_DIGEST_HEX_CHARS = 12
+DATASET_INDEX_WIDTH = 6
 
 
 @dataclass(slots=True)
@@ -57,8 +61,8 @@ SUPPORTED_FILTER_POLICIES = ("include_all", "accepted_only")
 def _stable_split(key: str, train_ratio: float, val_ratio: float) -> str:
     """Split by deterministic hash."""
 
-    token = int(md5(key.encode("utf-8")).hexdigest(), 16) % 10_000
-    p = token / 10_000.0
+    token = int(md5(key.encode("utf-8")).hexdigest(), HEX_DIGEST_RADIX) % SPLIT_BUCKET_COUNT
+    p = token / float(SPLIT_BUCKET_COUNT)
     if p < train_ratio:
         return "train"
     if p < train_ratio + val_ratio:
@@ -68,7 +72,7 @@ def _stable_split(key: str, train_ratio: float, val_ratio: float) -> str:
 
 def _root_id(root: Path) -> str:
     token = root.expanduser().resolve().as_posix().encode("utf-8")
-    return sha1(token).hexdigest()[:12]
+    return sha1(token).hexdigest()[:SHORT_DIGEST_HEX_CHARS]
 
 
 def _dataset_id(
@@ -89,8 +93,11 @@ def _dataset_id(
         sort_keys=True,
         separators=(",", ":"),
     )
-    digest = md5(token.encode("utf-8")).hexdigest()[:12]
-    return f"root_{root_id}/{normalized_relpath}/dataset_{dataset_index:06d}_{digest}"
+    digest = md5(token.encode("utf-8")).hexdigest()[:SHORT_DIGEST_HEX_CHARS]
+    return (
+        f"root_{root_id}/{normalized_relpath}/"
+        f"dataset_{dataset_index:0{DATASET_INDEX_WIDTH}d}_{digest}"
+    )
 
 
 def _canonical_dagzoo_dataset_identity_key(

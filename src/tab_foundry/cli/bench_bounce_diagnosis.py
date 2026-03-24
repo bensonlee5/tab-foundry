@@ -8,7 +8,12 @@ import sys
 from typing import cast
 
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
-from tab_foundry.bench.bounce.config import RerunMode, default_out_root
+from tab_foundry.bench.bounce.config import (
+    DEFAULT_BOUNCE_BOOTSTRAP_CONFIDENCE,
+    DEFAULT_BOUNCE_BOOTSTRAP_SAMPLES,
+    RerunMode,
+    default_out_root,
+)
 from tab_foundry.bench.bounce.rerun import resolve_run_dir_from_registry
 from tab_foundry.bench.bounce_diagnosis import BenchmarkBounceDiagnosisConfig, run_benchmark_bounce_diagnosis
 
@@ -41,13 +46,13 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--bootstrap-samples",
         type=int,
-        default=2000,
+        default=DEFAULT_BOUNCE_BOOTSTRAP_SAMPLES,
         help="Task-bootstrap samples per checkpoint",
     )
     parser.add_argument(
         "--bootstrap-confidence",
         type=float,
-        default=0.95,
+        default=DEFAULT_BOUNCE_BOOTSTRAP_CONFIDENCE,
         help="Task-bootstrap confidence level",
     )
     parser.add_argument(

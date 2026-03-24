@@ -9,6 +9,9 @@ from .shared import (
     CLIP_VALUE,
     EPS,
     ROBUST_MODES,
+    ROBUST_QUANTILE_LOWER,
+    ROBUST_QUANTILE_MEDIAN,
+    ROBUST_QUANTILE_UPPER,
     WINSORIZE_HI,
     WINSORIZE_LO,
     ZSCORE_BASED_MODES,
@@ -76,9 +79,9 @@ def normalize_train_test_arrays(
         return train_out.astype(np.float32, copy=False), test_out.astype(np.float32, copy=False)
 
     if normalized_mode in ROBUST_MODES:
-        median = np.median(train_stats, axis=0)
-        q25 = np.percentile(train_stats, 25.0, axis=0)
-        q75 = np.percentile(train_stats, 75.0, axis=0)
+        median = np.quantile(train_stats, ROBUST_QUANTILE_MEDIAN, axis=0)
+        q25 = np.quantile(train_stats, ROBUST_QUANTILE_LOWER, axis=0)
+        q75 = np.quantile(train_stats, ROBUST_QUANTILE_UPPER, axis=0)
         iqr = q75 - q25
         iqr = np.where(iqr < EPS, 1.0, iqr)
         train_norm = (train_stats - median) / iqr

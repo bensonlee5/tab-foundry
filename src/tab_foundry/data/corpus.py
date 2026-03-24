@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
 import json
 from pathlib import Path
 import shutil
@@ -13,6 +12,7 @@ from typing import Any, Mapping, cast
 import tab_foundry.benchmark_registry as benchmark_registry
 import yaml
 
+from tab_foundry.hashing import sha256_path
 from tab_foundry.repo_paths import repo_root as shared_repo_root
 from tab_foundry.timestamps import utc_now
 
@@ -50,17 +50,6 @@ def corpus_recipe_index_path(*, repo_root: Path | None = None) -> Path:
 def corpus_outputs_root(*, repo_root: Path | None = None) -> Path:
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
     return resolved_repo_root / "outputs" / "corpora"
-
-
-def _sha256_path(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as handle:
-        while True:
-            chunk = handle.read(1024 * 1024)
-            if not chunk:
-                break
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _read_json_mapping(path: Path, *, context: str) -> dict[str, Any]:
@@ -658,7 +647,7 @@ def materialize_corpus_recipe(
             filter_policy=str(recipe.manifest_policy.filter_policy),
             missing_value_policy=str(recipe.manifest_policy.missing_value_policy),
         )
-        manifest_sha256 = _sha256_path(manifest_path)
+        manifest_sha256 = sha256_path(manifest_path)
         corpus_id = corpus_id_for_manifest(recipe_id=recipe.recipe_id, manifest_sha256=manifest_sha256)
         corpus_ref = f"{recipe.recipe_id}/{corpus_id}"
         final_root = recipe_root / corpus_id

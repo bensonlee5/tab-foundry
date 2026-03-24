@@ -7,9 +7,11 @@ from typing import Final
 
 import torch
 
+from tab_foundry.model.spec import DEFAULT_MODEL_HEAD_HIDDEN_DIM
 
-DEFAULT_HEAD_HIDDEN_DIM = 1024
+DEFAULT_HEAD_HIDDEN_DIM = DEFAULT_MODEL_HEAD_HIDDEN_DIM
 _CLASSIFICATION_TENSOR_DIMENSIONS: Final[int] = 2
+_TASK_BATCH_CLASSIFICATION_TENSOR_DIMENSIONS: Final[int] = 3
 
 
 @dataclass(slots=True)
@@ -28,9 +30,9 @@ class ClassificationOutput:
 def flatten_classification_output_rows(tensor: torch.Tensor) -> torch.Tensor:
     """Flatten singleton or task-batched classifier outputs to the 2D consumer contract."""
 
-    if tensor.ndim == 2:
+    if tensor.ndim == _CLASSIFICATION_TENSOR_DIMENSIONS:
         return tensor
-    if tensor.ndim != 3:
+    if tensor.ndim != _TASK_BATCH_CLASSIFICATION_TENSOR_DIMENSIONS:
         raise RuntimeError(
             "classification outputs must be rank 2 or 3, "
             f"got shape={tuple(int(dim) for dim in tensor.shape)}"

@@ -20,6 +20,10 @@ from tab_foundry.training.instability import history_loss_summary
 
 DEFAULT_SWEEP_ID = "binary_md_v1"
 DEFAULT_ANCHOR_RUN_ID = "01_nano_exact_md_prior_parity_fix_binary_medium_v1"
+_SEVERITY_EXTREME_GRAD_NORM = 1.0e3
+_SEVERITY_HIGH_GRAD_NORM = 1.0e2
+_SEVERITY_ELEVATED_GRAD_NORM = 10.0
+_LOSS_DELTA_SCORE_MULTIPLIER = 10.0
 
 _RUN_ID_PATTERN = re.compile(r"^- (?:primary )?run id: `([^`]+)`$", re.MULTILINE)
 _DECISION_PATTERN = re.compile(r"^- decision recommendation: `([^`]+)`$", re.MULTILINE)
@@ -73,11 +77,11 @@ def _finite_history_values(history: list[dict[str, Any]], key: str) -> list[tupl
 def _severity(max_grad_norm: float | None) -> str:
     if max_grad_norm is None:
         return "unknown"
-    if max_grad_norm >= 1.0e3:
+    if max_grad_norm >= _SEVERITY_EXTREME_GRAD_NORM:
         return "extreme"
-    if max_grad_norm >= 1.0e2:
+    if max_grad_norm >= _SEVERITY_HIGH_GRAD_NORM:
         return "high"
-    if max_grad_norm >= 10.0:
+    if max_grad_norm >= _SEVERITY_ELEVATED_GRAD_NORM:
         return "elevated"
     return "moderate"
 
@@ -117,7 +121,9 @@ def _run_entry(
     max_grad_norm = None if peak_grad is None else float(peak_grad[1])
     instability_score = 0.0 if max_grad_norm is None else float(max_grad_norm)
     if loss_summary["max_abs_train_loss_delta"] is not None:
-        instability_score += 10.0 * float(loss_summary["max_abs_train_loss_delta"])
+        instability_score += _LOSS_DELTA_SCORE_MULTIPLIER * float(
+            loss_summary["max_abs_train_loss_delta"]
+        )
 
     return {
         "run_id": run_id,

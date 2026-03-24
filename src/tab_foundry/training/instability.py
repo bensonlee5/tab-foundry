@@ -18,6 +18,10 @@ TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v3"
 _WINDOW_EARLY = "early_1_25"
 _WINDOW_POST_WARMUP = "post_warmup_100"
 _WINDOW_FINAL = "final_10pct"
+_EARLY_WINDOW_MAX_STEP = 25
+_MIN_LINEAR_SLOPE_POINTS = 2
+_POST_WARMUP_WINDOW_MAX_RECORDS = 100
+_FINAL_WINDOW_FRACTION = 0.1
 _TRACKED_ACTIVATIONS = (
     "post_feature_encoder",
     "pre_transformer",
@@ -285,7 +289,7 @@ def grad_norm_summary_from_running_totals(
 
 
 def _linear_slope_or_none(points: Sequence[tuple[float, float]]) -> float | None:
-    if len(points) < 2:
+    if len(points) < _MIN_LINEAR_SLOPE_POINTS:
         return None
     xs = [float(x_value) for x_value, _ in points]
     ys = [float(y_value) for _, y_value in points]
@@ -339,9 +343,19 @@ def _windowed_gradient_records(
     warmup_end_step: int,
 ) -> dict[str, list[Mapping[str, Any]]]:
     ordered = _sorted_records(records)
-    early = [record for record in ordered if 1 <= int(record.get("step", 0)) <= 25]
-    post_warmup = [record for record in ordered if int(record.get("step", 0)) > warmup_end_step][:100]
-    final_count = 0 if not ordered else max(1, int(math.ceil(float(len(ordered)) * 0.1)))
+    early = [
+        record
+        for record in ordered
+        if 1 <= int(record.get("step", 0)) <= _EARLY_WINDOW_MAX_STEP
+    ]
+    post_warmup = [
+        record for record in ordered if int(record.get("step", 0)) > warmup_end_step
+    ][:_POST_WARMUP_WINDOW_MAX_RECORDS]
+    final_count = (
+        0
+        if not ordered
+        else max(1, int(math.ceil(float(len(ordered)) * _FINAL_WINDOW_FRACTION)))
+    )
     final_window = [] if final_count <= 0 else ordered[-final_count:]
     return {
         _WINDOW_EARLY: early,

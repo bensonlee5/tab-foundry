@@ -10,6 +10,15 @@ import numpy as np
 from tab_foundry.bench.nanotabpfn import curve_summary
 
 
+_CI_OVERLAP_NOISE_THRESHOLD = 0.5
+_MIN_VARIANCE_SAMPLE_COUNT = 2
+_OPTIMIZATION_INSTABILITY_GRAD_NORM_THRESHOLD = 50.0
+_GRAD_SPIKE_RATIO_THRESHOLD = 10.0
+_ROC_AUC_DROP_INSTABILITY_THRESHOLD = -0.02
+_TOP_QUARTILE_ABS_DELTA_DIVISOR = 4.0
+_HETEROGENEOUS_TRADEOFF_TOP_SHARE_THRESHOLD = 0.5
+
+
 def shared_bundle_analysis(
     primary_records: list[dict[str, Any]],
     confirmation_records: list[dict[str, Any]] | None,
@@ -34,7 +43,7 @@ def shared_bundle_analysis(
     likely_benchmark_noise = bool(
         best_step_changed
         and primary_summary["adjacent_ci_overlap_fraction"] is not None
-        and float(primary_summary["adjacent_ci_overlap_fraction"]) >= 0.5
+        and float(primary_summary["adjacent_ci_overlap_fraction"]) >= _CI_OVERLAP_NOISE_THRESHOLD
         and confirmation_summary is not None
         and int(confirmation_summary["task_count"]) > int(primary_summary["task_count"])
     )
@@ -46,8 +55,10 @@ def shared_bundle_analysis(
         "confirmation": confirmation_summary,
         "likely_benchmark_noise": likely_benchmark_noise,
     }
+
+
 def history_variance(values: list[float]) -> float | None:
-    if len(values) < 2:
+    if len(values) < _MIN_VARIANCE_SAMPLE_COUNT:
         return None
     mean = sum(values) / float(len(values))
     return sum((value - mean) ** 2 for value in values) / float(len(values))
@@ -103,12 +114,16 @@ def training_signal(
                 "window_train_loss_var": history_variance(window_losses),
             }
     likely_optimization_instability = bool(
-        max_grad_norm >= 50.0
+        max_grad_norm >= _OPTIMIZATION_INSTABILITY_GRAD_NORM_THRESHOLD
         or (
             worst_drop is not None
             and worst_drop["window_max_grad_norm"] is not None
-            and float(worst_drop["window_max_grad_norm"]) >= max(50.0, 10.0 * median_grad_norm)
-            and float(worst_drop["roc_auc_delta"]) < -0.02
+            and float(worst_drop["window_max_grad_norm"])
+            >= max(
+                _OPTIMIZATION_INSTABILITY_GRAD_NORM_THRESHOLD,
+                _GRAD_SPIKE_RATIO_THRESHOLD * median_grad_norm,
+            )
+            and float(worst_drop["roc_auc_delta"]) < _ROC_AUC_DROP_INSTABILITY_THRESHOLD
         )
     )
     return {
@@ -144,13 +159,21 @@ def task_tradeoff_signal(records: list[dict[str, Any]]) -> dict[str, Any]:
     negative_count = sum(1 for value in deltas.values() if value < 0)
     abs_deltas = sorted((abs(value) for value in deltas.values()), reverse=True)
     total_abs_delta = float(sum(abs_deltas))
-    top_count = max(1, math.ceil(len(abs_deltas) / 4.0)) if abs_deltas else 0
+    top_count = (
+        max(1, math.ceil(len(abs_deltas) / _TOP_QUARTILE_ABS_DELTA_DIVISOR))
+        if abs_deltas
+        else 0
+    )
     top_share = (
         float(sum(abs_deltas[:top_count]) / total_abs_delta)
         if total_abs_delta > 0.0 and top_count > 0
         else 0.0
     )
-    likely_tradeoff = bool(positive_count > 0 and negative_count > 0 and top_share >= 0.5)
+    likely_tradeoff = bool(
+        positive_count > 0
+        and negative_count > 0
+        and top_share >= _HETEROGENEOUS_TRADEOFF_TOP_SHARE_THRESHOLD
+    )
     return {
         "positive_task_count": int(positive_count),
         "negative_task_count": int(negative_count),
