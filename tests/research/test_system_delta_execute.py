@@ -375,6 +375,70 @@ def test_main_preserves_tab_foundry_python_symlink_path(
     assert captured['fallback_python'] == fallback_python
 
 
+def test_main_allows_omitting_prior_dump(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    nanotabpfn_root = tmp_path / 'nanoTabPFN'
+    fallback_python = tmp_path / '.venv' / 'bin' / 'python'
+
+    nanotabpfn_root.mkdir(parents=True, exist_ok=True)
+    fallback_python.parent.mkdir(parents=True, exist_ok=True)
+    fallback_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    fallback_python.chmod(0o755)
+
+    captured: dict[str, Any] = {}
+
+    def fake_execute_sweep(**kwargs: Any) -> list[str]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(sweep_execute_cli_module, 'execute_sweep', fake_execute_sweep)
+
+    exit_code = sweep_execute_cli_module.main(
+        [
+            '--sweep-id',
+            'shared_surface_bridge_v1',
+            '--nanotabpfn-root',
+            str(nanotabpfn_root),
+            '--tab-foundry-python',
+            str(fallback_python),
+            '--device',
+            'cpu',
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured['prior_dump'] is None
+    assert captured['fallback_python'] == fallback_python
+
+
+def test_main_rejects_explicit_missing_prior_dump(tmp_path: Path) -> None:
+    nanotabpfn_root = tmp_path / 'nanoTabPFN'
+    fallback_python = tmp_path / '.venv' / 'bin' / 'python'
+
+    nanotabpfn_root.mkdir(parents=True, exist_ok=True)
+    fallback_python.parent.mkdir(parents=True, exist_ok=True)
+    fallback_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    fallback_python.chmod(0o755)
+
+    with pytest.raises(RuntimeError, match='prior dump does not exist'):
+        _ = sweep_execute_cli_module.main(
+            [
+                '--sweep-id',
+                'shared_surface_bridge_v1',
+                '--nanotabpfn-prior-dump',
+                str(tmp_path / 'missing_prior.h5'),
+                '--nanotabpfn-root',
+                str(nanotabpfn_root),
+                '--tab-foundry-python',
+                str(fallback_python),
+                '--device',
+                'cpu',
+            ]
+        )
+
+
 def test_select_queue_rows_requires_include_completed_for_explicit_screened_rows() -> None:
     queue = {
         'rows': [
@@ -401,7 +465,13 @@ def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pyte
     calls: list[dict[str, Any]] = []
 
     def fake_run_row(**kwargs: Any) -> str:
-        calls.append({'order': int(kwargs['queue_row']['order']), 'sweep_id': kwargs['sweep_id']})
+        calls.append(
+            {
+                'order': int(kwargs['queue_row']['order']),
+                'sweep_id': kwargs['sweep_id'],
+                'prior_dump': kwargs['prior_dump'],
+            }
+        )
         return f"run_{kwargs['queue_row']['order']}"
 
     monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
@@ -410,7 +480,7 @@ def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pyte
 
     executed = execute_sweep(
         sweep_id=None,
-        prior_dump=Path('/tmp/prior.h5'),
+        prior_dump=None,
         nanotabpfn_root=Path('/tmp/nanotabpfn'),
         device='cuda',
         fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
@@ -418,7 +488,7 @@ def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pyte
     )
 
     assert executed == ['run_1']
-    assert calls == [{'order': 1, 'sweep_id': sweep_id}]
+    assert calls == [{'order': 1, 'sweep_id': sweep_id, 'prior_dump': None}]
 
 
 def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -1328,7 +1398,7 @@ def test_run_row_uses_manifest_trainer_for_manifest_rows(
         anchor_run_id='anchor_v1',
         parent_run_id='anchor_v1',
         queue=queue,
-        prior_dump=Path('/tmp/prior.h5'),
+        prior_dump=None,
         nanotabpfn_root=Path('/tmp/nanotabpfn'),
         device='cuda',
         fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
@@ -1437,6 +1507,73 @@ def test_run_row_uses_prior_dump_trainer_for_prior_dump_rows(
     assert captured['prior_cfg'].data.source == 'prior_dump'
     assert captured['prior_dump_path'] == Path('/tmp/prior.h5')
     assert queue_row['status'] == 'screened'
+
+
+def test_run_row_requires_prior_dump_for_legacy_prior_rows(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    queue_row = {
+        'order': 1,
+        'delta_ref': 'delta_prior_backend_probe',
+        'model': {},
+        'data': {'source': 'prior_dump', 'surface_label': 'prior_dump'},
+        'training': {},
+        'execution_policy': 'screen_only',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': 'delta_prior_backend_probe',
+        'dimension_family': 'training',
+        'family': 'screening',
+        'description': 'Probe prior backend routing.',
+        'anchor_delta': 'Keep everything else fixed.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=REGISTRY_PATH,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+    )
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'train_tabfoundry_simple_prior',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('prior trainer should not run')),
+    )
+
+    with pytest.raises(RuntimeError, match='legacy-prior training requires --nanotabpfn-prior-dump'):
+        _ = runner_module.run_row(
+            sweep_id='backend_probe',
+            sweep_meta={
+                'control_baseline_id': 'cls_benchmark_linear_v2',
+                'benchmark_bundle_path': 'bundle.json',
+                'training_experiment': 'cls_benchmark_staged_prior',
+                'training_config_profile': 'cls_benchmark_staged_prior',
+                'surface_role': 'architecture_screen',
+            },
+            queue_row=queue_row,
+            materialized_row=materialized_row,
+            anchor_run_id='anchor_v1',
+            parent_run_id='anchor_v1',
+            queue=queue,
+            prior_dump=None,
+            nanotabpfn_root=Path('/tmp/nanotabpfn'),
+            device='cuda',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            decision='defer',
+            conclusion='Probe missing prior dump handling.',
+            paths=paths,
+        )
 
 
 def test_resolve_training_backend_rejects_unsupported_source() -> None:
@@ -1940,7 +2077,7 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
         anchor_run_id='anchor_v1',
         parent_run_id='anchor_v1',
         queue=queue,
-        prior_dump=prior_dump,
+        prior_dump=None,
         nanotabpfn_root=nanotab_root,
         device='cuda',
         fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
@@ -2165,7 +2302,7 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
         anchor_run_id='anchor_missing',
         parent_run_id=prior_run_id,
         queue=queue,
-        prior_dump=prior_dump,
+        prior_dump=None,
         nanotabpfn_root=nanotab_root,
         device='cuda',
         fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
@@ -2235,7 +2372,6 @@ def test_run_row_reuses_prior_completed_sweep_row_error_before_bootstrapping_hel
     bundle_path.write_text('{}\n', encoding='utf-8')
     nanotab_root = tmp_path / 'nano'
     nanotab_python = nanotab_root / '.venv' / 'bin' / 'python'
-    prior_dump = nanotab_root / '300k_150x5_2.h5'
     prior_error = {
         'kind': 'helper_failed_on_missing_bundle',
         'message': 'helper returned non-zero exit status 1',
@@ -2382,7 +2518,7 @@ def test_run_row_reuses_prior_completed_sweep_row_error_before_bootstrapping_hel
         anchor_run_id='anchor_missing',
         parent_run_id=prior_run_id,
         queue=queue,
-        prior_dump=prior_dump,
+        prior_dump=None,
         nanotabpfn_root=nanotab_root,
         device='cuda',
         fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
@@ -2401,13 +2537,120 @@ def test_run_row_reuses_prior_completed_sweep_row_error_before_bootstrapping_hel
         'device': 'cuda',
         'resolved_device': 'cuda',
         'benchmark_host_fingerprint': 'runner-host',
-        'prior_dump_path': str(prior_dump.resolve()),
+        'prior_dump_path': None,
         'num_seeds': runner_module.DEFAULT_NANOTABPFN_SEEDS,
         'steps': runner_module.DEFAULT_NANOTABPFN_STEPS,
         'eval_every': runner_module.DEFAULT_NANOTABPFN_EVAL_EVERY,
         'batch_size': runner_module.DEFAULT_NANOTABPFN_BATCH_SIZE,
         'lr': runner_module.DEFAULT_NANOTABPFN_LR,
     }
+
+
+def test_run_row_benchmark_full_without_reuse_fails_lazily_when_prior_dump_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'fresh_benchmark_missing_prior'
+    delta_ref = 'delta_manifest_backend_probe'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    benchmark_dir = train_dir.parent / 'benchmark'
+    (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='manifest')
+    (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+    benchmark_dir.mkdir(parents=True, exist_ok=True)
+
+    bundle_path = tmp_path / 'bundle.json'
+    bundle_path.write_text('{}\n', encoding='utf-8')
+    nanotab_root = tmp_path / 'nano'
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'training': {},
+        'execution_policy': 'benchmark_full',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'model',
+        'family': 'tokenization',
+        'description': 'Benchmark the manifest row without a reusable nanoTabPFN curve.',
+        'anchor_delta': 'Keep the queued model delta fixed.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=tmp_path / 'benchmark_run_registry.json',
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=tmp_path / 'control_baselines.json',
+    )
+    paths.registry_path.write_text(json.dumps({'runs': {}}, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+    paths.control_baseline_registry_path.write_text(
+        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+
+    captured: dict[str, Any] = {'bootstrap_called': False}
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+
+    def fake_bootstrap(**_kwargs: Any) -> Path:
+        captured['bootstrap_called'] = True
+        return nanotab_root / '.venv' / 'bin' / 'python'
+
+    def fake_benchmark(config: Any) -> dict[str, Any]:
+        assert config.nanotab_prior_dump is None
+        raise RuntimeError('nanoTabPFN prior dump does not exist: missing')
+
+    monkeypatch.setattr(runner_module, 'ensure_nanotabpfn_python', fake_bootstrap)
+    monkeypatch.setattr(runner_module, 'run_nanotabpfn_benchmark', fake_benchmark)
+
+    with pytest.raises(RuntimeError, match='nanoTabPFN prior dump does not exist'):
+        _ = runner_module.run_row(
+            sweep_id=sweep_id,
+            sweep_meta={
+                'control_baseline_id': 'cls_benchmark_linear_v2',
+                'benchmark_bundle_path': str(bundle_path.resolve()),
+                'training_experiment': 'cls_benchmark_staged',
+                'training_config_profile': 'cls_benchmark_staged',
+                'surface_role': 'architecture_screen',
+            },
+            queue_row=queue_row,
+            materialized_row=materialized_row,
+            anchor_run_id='anchor_missing',
+            parent_run_id='anchor_missing',
+            queue=queue,
+            prior_dump=None,
+            nanotabpfn_root=nanotab_root,
+            device='cuda',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            decision='defer',
+            conclusion='Allow lazy benchmark failure when no local dump exists.',
+            paths=paths,
+        )
+
+    assert captured['bootstrap_called'] is True
+
 
 def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_anchor_is_unavailable(
     tmp_path: Path,
@@ -2508,7 +2751,7 @@ def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_a
         },
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
-        prior_dump=prior_dump,
+        prior_dump=None,
         requested_device='cuda',
         paths=paths,
     )

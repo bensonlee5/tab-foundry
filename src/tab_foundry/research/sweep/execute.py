@@ -18,7 +18,7 @@ from .selection import select_queue_rows, sorted_rows
 def execute_sweep(
     *,
     sweep_id: str | None,
-    prior_dump: Path,
+    prior_dump: Path | None,
     nanotabpfn_root: Path,
     device: str,
     fallback_python: Path,

@@ -13,7 +13,6 @@ from tab_foundry.research.sweep.row_execution import (
     DEFAULT_DECISION,
     DEFAULT_DEVICE,
     DEFAULT_NANOTABPFN_ROOT,
-    DEFAULT_PRIOR_DUMP,
 )
 from tab_foundry.research.sweep.runtime_env import absolute_path_without_resolving_symlinks
 from tab_foundry.research.sweep.selection import parse_order_overrides
@@ -54,8 +53,8 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
     )
     parser.add_argument(
         "--nanotabpfn-prior-dump",
-        default=str(DEFAULT_PRIOR_DUMP),
-        help="Path to the nanoTabPFN prior dump",
+        default=None,
+        help="Optional path to the nanoTabPFN prior dump",
     )
     parser.add_argument(
         "--nanotabpfn-root",
@@ -94,10 +93,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run_from_args(args: argparse.Namespace) -> int:
-    prior_dump = Path(str(args.nanotabpfn_prior_dump)).expanduser().resolve()
+    prior_dump = None
+    if args.nanotabpfn_prior_dump is not None:
+        prior_dump = Path(str(args.nanotabpfn_prior_dump)).expanduser().resolve()
     nanotabpfn_root = Path(str(args.nanotabpfn_root)).expanduser().resolve()
     fallback_python = absolute_path_without_resolving_symlinks(Path(str(args.tab_foundry_python)))
-    if not prior_dump.exists():
+    if prior_dump is not None and not prior_dump.exists():
         raise RuntimeError(f"prior dump does not exist: {prior_dump}")
     if not fallback_python.exists():
         raise RuntimeError(f"tab-foundry interpreter does not exist: {fallback_python}")

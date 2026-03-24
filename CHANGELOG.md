@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-03-24
+
+### Fixed
+
+- User-facing note: `tab-foundry research sweep execute` no longer requires
+  `--nanotabpfn-prior-dump` at command startup. Manifest-backed rows and
+  nanoTabPFN reuse paths can now run without a local dump, while
+  legacy-prior training and fresh nanoTabPFN helper execution still fail
+  lazily when execution reaches a row that truly needs the dump.
+
 ## [0.11.0] - 2026-03-24
 
 ### Changed
