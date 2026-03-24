@@ -25,7 +25,7 @@ from tab_foundry.model.inspection import (
 from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import resolve_preprocessing_surface
-from tab_foundry.training.batching import move_batch
+from tab_foundry.task_batching import move_batch
 from tab_foundry.training.health import health_check, run_inspect
 
 
@@ -95,6 +95,7 @@ def _training_surface_payload(
     return {
         "surface_label": str(training_cfg.get("surface_label", "training_default")),
         "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
+        "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
         "prior_dump_non_finite_policy": training_cfg.get("prior_dump_non_finite_policy"),
         "prior_dump_batch_size": (
             None if training_cfg.get("prior_dump_batch_size") is None else int(training_cfg["prior_dump_batch_size"])

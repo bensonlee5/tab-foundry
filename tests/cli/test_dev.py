@@ -42,6 +42,7 @@ def test_resolve_config_payload_reports_resolved_surfaces() -> None:
     assert payload["model"]["stage_label"] == "row_cls_pool_dev_test"
     assert payload["model"]["module_selection"]["row_pool"] == "row_cls"
     assert payload["training"]["surface_label"] == "training_default"
+    assert payload["training"]["task_batch_size"] == 1
     assert payload["model"]["parameter_counts"]["total_params"] > 0
 
 

@@ -9,17 +9,19 @@ from omegaconf import DictConfig, OmegaConf
 import torch
 
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
+from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import (
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
 )
+from tab_foundry.task_batching import (
+    resolve_task_batch_size,
+)
 from tab_foundry.types import EvalResult
 
-from .batching import move_batch
-from .distributed import _global_mean_from_local
 from .runtime import build_accelerator_from_runtime
-from .trainer import _compute_loss_and_metrics
+from .trainer_metrics import _compute_loss_and_metrics, _evaluate_loader
 from .wandb import finish_wandb_run, init_wandb_run, log_wandb_metrics, update_wandb_summary
 
 
@@ -52,6 +54,13 @@ def _checkpoint_preprocessing_settings(
     cfg: DictConfig,
 ) -> DictConfig | None:
     return _checkpoint_config_section(payload, cfg, section="preprocessing")
+
+
+def _checkpoint_training_settings(
+    payload: dict[str, Any],
+    cfg: DictConfig,
+) -> DictConfig | None:
+    return _checkpoint_config_section(payload, cfg, section="training")
 
 
 def _checkpoint_data_settings(
@@ -162,9 +171,16 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
     model_spec = _checkpoint_model_settings(payload, cfg)
     data_cfg = _checkpoint_data_settings(payload, cfg)
     preprocessing_cfg = _checkpoint_preprocessing_settings(payload, cfg)
+    training_cfg = _checkpoint_training_settings(payload, cfg)
     dataset_seed = _checkpoint_dataset_seed(payload, cfg)
     task = model_spec.task
     eval_step = _resolved_checkpoint_step(payload)
+    task_batch_size = resolve_task_batch_size(training_cfg)
+    if task_batch_size > 1 and model_spec.arch == "tabfoundry_staged":
+        if resolve_staged_surface(model_spec).head == "many_class":
+            raise RuntimeError(
+                "training.task_batch_size > 1 is not supported for many_class staged surfaces"
+            )
     model = build_model_from_spec(model_spec)
     model.load_state_dict(payload["model"])
 
@@ -182,11 +198,14 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         shuffle=False,
         num_workers=int(cfg.runtime.num_workers),
         seed=dataset_seed,
+        task_batch_size=task_batch_size,
     )
 
-    accelerator = build_accelerator_from_runtime(cfg.runtime)
+    accelerator = build_accelerator_from_runtime(
+        cfg.runtime,
+        dataloader_even_batches_override=False if task_batch_size > 1 else None,
+    )
     model, loader = accelerator.prepare(model, loader)
-    model.eval()
     logging_cfg = cfg.get("logging")
     use_wandb = bool(getattr(logging_cfg, "use_wandb", False)) if logging_cfg is not None else False
     run = init_wandb_run(
@@ -194,35 +213,20 @@ def evaluate_checkpoint(cfg: DictConfig) -> EvalResult:
         enabled=bool(use_wandb and accelerator.is_main_process),
     )
 
-    loss_sum = 0.0
-    score_sum = 0.0
-    count = 0
-
     metric_name = "acc"
 
     try:
-        with torch.no_grad():
-            for i, batch in enumerate(loader):
-                if i >= max_batches:
-                    break
-                batch = move_batch(batch, accelerator.device)
-                with accelerator.autocast():
-                    output = model(batch)
-                    loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-                loss_sum += float(loss.item())
-                score_sum += metrics.get(metric_name, 0.0)
-                count += 1
-
-        dev = accelerator.device
-        loss_value = _global_mean_from_local(
-            accelerator, local_sum=loss_sum, local_count=count, device=dev, default=float("inf"),
-        )
-        metric_value = _global_mean_from_local(
-            accelerator, local_sum=score_sum, local_count=count, device=dev, default=0.0,
+        eval_metrics = _evaluate_loader(
+            model,
+            loader,
+            accelerator=accelerator,
+            task=task,
+            max_batches=max_batches,
+            compute_loss_and_metrics=_compute_loss_and_metrics,
         )
         result_metrics = {
-            "loss": loss_value,
-            metric_name: metric_value,
+            "loss": float(eval_metrics["val_loss"]),
+            metric_name: float(eval_metrics[metric_name]),
         }
         log_wandb_metrics(
             run,

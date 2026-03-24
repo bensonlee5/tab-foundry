@@ -142,6 +142,23 @@ Default filter for this section:
 | 1608.03983 | SGDR: Stochastic Gradient Descent with Warm Restarts | Cosine annealing with warm restarts; relevant to training-recipe work that supports the promoted anchor rather than replacing architecture migration (`TF-RD-009`). | https://arxiv.org/abs/1608.03983 |
 | 2412.19437 | DeepSeek-V3 Technical Report | Multi-token prediction and modern training recipe details for compact transformers. Informs architecture choices for cross-feature dependency modeling. | https://arxiv.org/abs/2412.19437 |
 
+## Training-Surface Adequacy And Batch/LR Scaling
+
+These references anchor the TF-RD-018 literature note and the later handoff
+from training-surface adequacy into scaling work on the promoted row-first
+anchor.
+
+| arXiv ID | Title | Why it matters for tab-foundry | Source |
+|----------|-------|-------------------------------|--------|
+| 1812.06162 | An Empirical Model of Large-Batch Training | Best-fit reference for critical-batch and diminishing-returns framing. Supports treating TF-RD-018 as a search for the largest useful manifest task batch on the settled medium surface rather than assuming larger is always better. | https://arxiv.org/abs/1812.06162 |
+| 1811.03600 | Measuring the Effects of Data Parallelism on Neural Network Training | Shows that large-batch payoff is workload-specific and should be judged under matched time and compute budgets. Relevant to TF-RD-018 runtime gates and later TF-RD-009 interpretation. | https://arxiv.org/abs/1811.03600 |
+| 1711.00489 | Don't Decay the Learning Rate, Increase the Batch Size | Useful reference for treating batch size and schedule as coupled knobs instead of independent sweeps. Relevant after TF-RD-018 chooses a preferred batch rung. | https://arxiv.org/abs/1711.00489 |
+| 1706.02677 | Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour | Canonical linear-LR-scaling plus warmup reference. Useful as a baseline heuristic, but not a universal rule for Adam-style TF-RD-018 follow-up. | https://arxiv.org/abs/1706.02677 |
+| 2405.14578 | Surge Phenomenon in Optimal Learning Rate and Batch Size Scaling | Important caution that Adam-style optimizers need not follow simple linear LR scaling with batch size. Directly relevant to LR retuning after TF-RD-018 settles the batch rung. | https://arxiv.org/abs/2405.14578 |
+| 2102.06356 | A Large Batch Optimizer Reality Check: A Case for Conservative Baselines | Supports exhausting strong Adam-family baselines before escalating to specialized large-batch optimizers. Relevant to TF-RD-018 optimizer-family follow-up. | https://arxiv.org/abs/2102.06356 |
+| 1609.04836 | On Large-Batch Training for Deep Learning: Generalization Gap and Sharp Minima | Classic cautionary reference for large-batch optimization and generalization risk. Useful as a failure-mode reminder, but should be interpreted alongside later matched-budget results. | https://arxiv.org/abs/1609.04836 |
+| 2603.21191 | On the Role of Batch Size in Stochastic Conditional Gradient Methods | Recent batch-size scaling paper that reinforces regime-dependent gains and diminishing returns under a fixed-budget lens. Conceptually relevant to TF-RD-018, but not a direct AdamW prescription because the optimizer family differs. | https://arxiv.org/abs/2603.21191 |
+
 ## Scaling Laws
 
 Dedicated section since scaling predictability is the repo's primary goal.

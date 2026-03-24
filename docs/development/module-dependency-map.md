@@ -26,14 +26,15 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.control_baseline_registry`, `tab_foundry.data`,
   `tab_foundry.device`, `tab_foundry.export`,
   `tab_foundry.external_benchmarks`, `tab_foundry.model`,
-  `tab_foundry.preprocessing`, `tab_foundry.research`, and
-  `tab_foundry.training`.
+  `tab_foundry.preprocessing`, `tab_foundry.research`,
+  `tab_foundry.task_batching`, and `tab_foundry.training`.
 - `tab_foundry.config` depends on `tab_foundry.repo_paths`.
 - `tab_foundry.control_baseline_registry` depends on
   `tab_foundry.repo_paths`.
 - `tab_foundry.data` depends on `tab_foundry.benchmark_registry`,
   `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
-  `tab_foundry.timestamps`, and `tab_foundry.types`.
+  `tab_foundry.task_batching`, `tab_foundry.timestamps`, and
+  `tab_foundry.types`.
 - `tab_foundry.export` depends on `tab_foundry.input_normalization`,
   `tab_foundry.model`, `tab_foundry.preprocessing`,
   `tab_foundry.repo_paths`, and `tab_foundry.types`.
@@ -44,10 +45,12 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.control_baseline_registry`,
   `tab_foundry.external_benchmarks`, `tab_foundry.model`,
   `tab_foundry.repo_paths`, and `tab_foundry.training`.
+- `tab_foundry.task_batching` depends on `tab_foundry.types`.
 - `tab_foundry.training` depends on `tab_foundry.data`,
   `tab_foundry.device`, `tab_foundry.model`,
   `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
-  `tab_foundry.timestamps`, and `tab_foundry.types`.
+  `tab_foundry.task_batching`, `tab_foundry.timestamps`, and
+  `tab_foundry.types`.
 
 <!-- module-graph:end -->
 
@@ -61,20 +64,22 @@ Observed cycle status:
   `tab_foundry.device`, `tab_foundry.benchmark_registry`,
   `tab_foundry.control_baseline_registry`,
   `tab_foundry.external_benchmarks`, `tab_foundry.types`,
-  `tab_foundry.input_normalization`, and `tab_foundry.timestamps`
-  should remain dependency-light helpers.
+  `tab_foundry.input_normalization`, `tab_foundry.task_batching`,
+  and `tab_foundry.timestamps` should remain dependency-light
+  helpers.
 - `tab_foundry.model` should stay independent of `bench`, `research`,
   `training`, and `export`.
 - `tab_foundry.preprocessing` should remain a leaf-style utility package that
   can be used by `data`, `training`, and `export` without growing orchestration
   logic of its own.
 - `tab_foundry.data` may depend on `preprocessing` helpers, timestamps, shared
-  types, `tab_foundry.repo_paths`, and `tab_foundry.benchmark_registry` when
-  corpus-result linkage needs it, but it should not depend on `bench`,
-  `training`, or `research`.
+  types, `tab_foundry.repo_paths`, `tab_foundry.benchmark_registry`, and
+  shared task-batching helpers when manifest packing needs them, but it should
+  not depend on `bench`, `training`, or `research`.
 - `tab_foundry.training` may depend on `data`, `model`, `preprocessing`, and
-  shared helpers such as `tab_foundry.config`, `tab_foundry.device`, and
-  `tab_foundry.repo_paths`, but it should not depend on `bench` or `research`.
+  shared helpers such as `tab_foundry.config`, `tab_foundry.device`,
+  `tab_foundry.repo_paths`, and `tab_foundry.task_batching`, but it should not
+  depend on `bench` or `research`.
 - Packaged `train` CLI parser ownership should stay under
   `src/tab_foundry/cli/`; `training/prior_train.py` should stay parser-free.
 - `tab_foundry.export` may depend on `model`, `preprocessing`, and shared

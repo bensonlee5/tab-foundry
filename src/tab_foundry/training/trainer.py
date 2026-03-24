@@ -5,15 +5,21 @@ from __future__ import annotations
 import math
 from pathlib import Path
 import time
-from typing import Any, cast
+from typing import Any, Mapping, cast
 
 import torch
 from omegaconf import DictConfig, OmegaConf
 
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
+from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
-from tab_foundry.types import TrainResult
+from tab_foundry.task_batching import (
+    move_batch,
+    resolve_task_batch_size,
+    task_batch_diagnostics,
+)
+from tab_foundry.types import TaskBatch, TrainResult
 
 from .artifacts import (
     append_history_record,
@@ -26,7 +32,6 @@ from .artifacts import (
     save_checkpoint,
     stage_latest_checkpoint_path,
 )
-from .batching import move_batch
 from .distributed import _reduce_any_flag, _reduction_float_dtype, _reduce_keyed_weighted_scalars
 from .instability import (
     build_training_telemetry,
@@ -126,6 +131,21 @@ def _reduce_global_grad_norm_kind(
     return "finite"
 
 
+def _task_batch_step_payload(batch: TaskBatch) -> dict[str, Any]:
+    diagnostics = task_batch_diagnostics(batch)
+    requested = int(diagnostics["task_batch_size_requested"])
+    actual = int(diagnostics["task_batch_size_actual"])
+    is_fallback = requested > 1 and actual == 1
+    return {
+        "task_batch_size_requested": requested,
+        "task_batch_size_actual": actual,
+        "task_batch_batched_count": 1 if actual > 1 else 0,
+        "task_batch_singleton_fallback_count": 1 if is_fallback else 0,
+        "task_batch_singleton_fallback_fraction": 1.0 if is_fallback else 0.0,
+        "task_batch_signature_counts": {str(diagnostics["task_batch_signature"]): 1},
+    }
+
+
 def train(cfg: DictConfig) -> TrainResult:
     """Train from config."""
 
@@ -145,11 +165,29 @@ def train(cfg: DictConfig) -> TrainResult:
     max_steps = _resolve_max_steps(cfg.runtime)
     target_train_seconds = _resolve_target_train_seconds(cfg.runtime)
     val_batches = _resolve_val_batches(cfg.runtime)
+    task_batch_size = resolve_task_batch_size(cfg.get("training"))
+    if task_batch_size > 1 and grad_accum_steps != 1:
+        raise RuntimeError(
+            "training.task_batch_size > 1 requires runtime.grad_accum_steps=1, "
+            f"got training.task_batch_size={task_batch_size}, runtime.grad_accum_steps={grad_accum_steps}"
+        )
 
     accelerator = build_accelerator_from_runtime(
         cfg.runtime,
         grad_accum_steps_override=grad_accum_steps,
+        dataloader_even_batches_override=False if task_batch_size > 1 else None,
     )
+
+    raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
+    model_cfg: dict[str, Any] = {}
+    if isinstance(raw_model_cfg, dict):
+        model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
+    model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
+    if task_batch_size > 1 and model_spec.arch == "tabfoundry_staged":
+        if resolve_staged_surface(model_spec).head == "many_class":
+            raise RuntimeError(
+                "training.task_batch_size > 1 is not supported for many_class staged surfaces"
+            )
 
     train_ds = build_task_dataset(
         cfg.data,
@@ -163,6 +201,7 @@ def train(cfg: DictConfig) -> TrainResult:
         shuffle=True,
         num_workers=int(cfg.runtime.num_workers),
         seed=seed,
+        task_batch_size=task_batch_size,
     )
     val_loader = None
     if val_batches > 0:
@@ -178,13 +217,8 @@ def train(cfg: DictConfig) -> TrainResult:
             shuffle=False,
             num_workers=int(cfg.runtime.num_workers),
             seed=seed + 1,
+            task_batch_size=task_batch_size,
         )
-
-    raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
-    model_cfg: dict[str, Any] = {}
-    if isinstance(raw_model_cfg, dict):
-        model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
-    model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
     model = build_model_from_spec(model_spec)
     if val_loader is None:
         model, train_loader = accelerator.prepare(model, train_loader)
@@ -366,19 +400,35 @@ def train(cfg: DictConfig) -> TrainResult:
                 train_metric_counts: dict[str, int] = {}
                 activation_sum_sqs: dict[str, float] = {}
                 activation_element_counts: dict[str, float] = {}
+                step_batch_payload: dict[str, Any] = {
+                    "task_batch_size_requested": int(task_batch_size),
+                    "task_batch_size_actual": 1,
+                    "task_batch_batched_count": 0,
+                    "task_batch_singleton_fallback_count": 0,
+                    "task_batch_singleton_fallback_fraction": 0.0,
+                    "task_batch_signature_counts": {},
+                }
                 step_train_start = time.perf_counter()
                 for _micro_step in range(grad_accum_steps):
                     batch = move_batch(next(train_iter), accelerator.device)
+                    step_batch_payload = _task_batch_step_payload(batch)
+                    actual_task_count = int(step_batch_payload["task_batch_size_actual"])
                     with accelerator.accumulate(model):
                         with accelerator.autocast():
                             output = model(batch)
                             loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
                         accelerator.backward(loss)
-                    train_loss_sum += float(loss.detach().item())
-                    train_loss_count += 1
+                    train_loss_sum += float(loss.detach().item()) * float(actual_task_count)
+                    train_loss_count += actual_task_count
                     for key, value in metrics.items():
-                        train_metric_sums[key] = train_metric_sums.get(key, 0.0) + float(value)
-                        train_metric_counts[key] = train_metric_counts.get(key, 0) + 1
+                        train_metric_sums[key] = (
+                            train_metric_sums.get(key, 0.0)
+                            + (float(value) * float(actual_task_count))
+                        )
+                        train_metric_counts[key] = (
+                            train_metric_counts.get(key, 0)
+                            + actual_task_count
+                        )
                     batch_activation_trace_stats = _flush_activation_trace_stats()
                     if batch_activation_trace_stats is not None:
                         for activation_name, (activation_sum_sq, activation_count) in batch_activation_trace_stats.items():
@@ -424,6 +474,15 @@ def train(cfg: DictConfig) -> TrainResult:
                             train_loss_ema=loss_ema,
                             grad_clip_threshold=float(cfg.runtime.grad_clip),
                             grad_clip_triggered=False,
+                            task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
+                            task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
+                            task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
+                            task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
+                            task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
+                            task_batch_signature_counts=cast(
+                                Mapping[str, int],
+                                step_batch_payload["task_batch_signature_counts"],
+                            ),
                         )
                         history_records.append(nan_history_payload)
                         if history_path is not None:
@@ -507,6 +566,15 @@ def train(cfg: DictConfig) -> TrainResult:
                             train_elapsed_seconds=train_elapsed_seconds,
                             grad_clip_threshold=float(cfg.runtime.grad_clip),
                             grad_clip_triggered=False,
+                            task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
+                            task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
+                            task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
+                            task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
+                            task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
+                            task_batch_signature_counts=cast(
+                                Mapping[str, int],
+                                step_batch_payload["task_batch_signature_counts"],
+                            ),
                         )
                         gradient_records.append(gradient_payload)
                         append_jsonl_record(gradient_path, gradient_payload)
@@ -597,6 +665,15 @@ def train(cfg: DictConfig) -> TrainResult:
                 train_log["train/train_elapsed_seconds"] = train_elapsed_seconds
                 train_log["train/grad_clip_threshold"] = grad_clip_threshold
                 train_log["train/grad_clip_triggered"] = grad_clip_triggered
+                train_log["train/task_batch_size_requested"] = int(step_batch_payload["task_batch_size_requested"])
+                train_log["train/task_batch_size_actual"] = int(step_batch_payload["task_batch_size_actual"])
+                train_log["train/task_batch_batched_count"] = int(step_batch_payload["task_batch_batched_count"])
+                train_log["train/task_batch_singleton_fallback_count"] = int(
+                    step_batch_payload["task_batch_singleton_fallback_count"]
+                )
+                train_log["train/task_batch_singleton_fallback_fraction"] = float(
+                    step_batch_payload["task_batch_singleton_fallback_fraction"]
+                )
                 if accelerator.is_main_process:
                     for module_name, module_value in pre_clip_module_grad_norms.items():
                         train_log[f"train/module_grad_norm/{module_name}"] = float(module_value)
@@ -688,6 +765,15 @@ def train(cfg: DictConfig) -> TrainResult:
                         train_loss_ema=loss_ema,
                         grad_clip_threshold=grad_clip_threshold,
                         grad_clip_triggered=grad_clip_triggered,
+                        task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
+                        task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
+                        task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
+                        task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
+                        task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
+                        task_batch_signature_counts=cast(
+                            Mapping[str, int],
+                            step_batch_payload["task_batch_signature_counts"],
+                        ),
                     )
                     history_records.append(history_payload)
                     if history_path is not None:
@@ -709,6 +795,15 @@ def train(cfg: DictConfig) -> TrainResult:
                         train_elapsed_seconds=train_elapsed_seconds,
                         grad_clip_threshold=grad_clip_threshold,
                         grad_clip_triggered=grad_clip_triggered,
+                        task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
+                        task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
+                        task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
+                        task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
+                        task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
+                        task_batch_signature_counts=cast(
+                            Mapping[str, int],
+                            step_batch_payload["task_batch_signature_counts"],
+                        ),
                     )
                     gradient_records.append(gradient_payload)
                     append_jsonl_record(gradient_path, gradient_payload)
@@ -773,6 +868,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 ),
             },
         )
+        task_batching_summary: Mapping[str, Any] | None = None
         if accelerator.is_main_process:
             telemetry_payload = build_training_telemetry(
                 run_dir=output_dir,
@@ -784,6 +880,11 @@ def train(cfg: DictConfig) -> TrainResult:
                 training_surface_record=training_surface_payload,
                 wandb=wandb_identity_payload(run, cfg=cfg),
             )
+            raw_diagnostics = telemetry_payload.get("diagnostics")
+            if isinstance(raw_diagnostics, Mapping):
+                raw_task_batching = raw_diagnostics.get("task_batching")
+                if isinstance(raw_task_batching, Mapping):
+                    task_batching_summary = raw_task_batching
             write_training_telemetry(telemetry_output_path, telemetry_payload)
             update_wandb_summary(
                 run,
@@ -812,10 +913,12 @@ def train(cfg: DictConfig) -> TrainResult:
                 train_elapsed_seconds=train_elapsed_seconds,
                 wall_elapsed_seconds=wall_elapsed_seconds,
                 nan_skip_count=nan_skip_count,
+                task_batching=task_batching_summary,
             ),
         )
         return result
     except Exception as exc:
+        task_batching_summary = None
         if accelerator.is_main_process:
             telemetry_payload = build_training_telemetry(
                 run_dir=output_dir,
@@ -828,6 +931,11 @@ def train(cfg: DictConfig) -> TrainResult:
                 wandb=wandb_identity_payload(run, cfg=cfg),
                 error=exc,
             )
+            raw_diagnostics = telemetry_payload.get("diagnostics")
+            if isinstance(raw_diagnostics, Mapping):
+                raw_task_batching = raw_diagnostics.get("task_batching")
+                if isinstance(raw_task_batching, Mapping):
+                    task_batching_summary = raw_task_batching
             write_training_telemetry(telemetry_output_path, telemetry_payload)
             update_wandb_summary(
                 run,
@@ -856,6 +964,7 @@ def train(cfg: DictConfig) -> TrainResult:
                 train_elapsed_seconds=train_elapsed_seconds,
                 wall_elapsed_seconds=time.perf_counter() - train_start,
                 nan_skip_count=nan_skip_count,
+                task_batching=task_batching_summary,
                 error=exc,
             ),
         )

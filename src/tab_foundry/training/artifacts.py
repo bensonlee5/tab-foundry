@@ -152,10 +152,16 @@ def history_record(
     train_loss_ema: float | None = None,
     grad_clip_threshold: float | None = None,
     grad_clip_triggered: bool | None = None,
-) -> dict[str, float | int | str | None]:
+    task_batch_size_requested: int | None = None,
+    task_batch_size_actual: int | None = None,
+    task_batch_batched_count: int | None = None,
+    task_batch_singleton_fallback_count: int | None = None,
+    task_batch_singleton_fallback_fraction: float | None = None,
+    task_batch_signature_counts: Mapping[str, int] | None = None,
+) -> dict[str, Any]:
     """Build one history JSONL record with the standard training schema."""
 
-    record: dict[str, float | int | str | None] = {
+    record: dict[str, Any] = {
         "step": int(global_step),
         "stage": stage_name,
         "train_loss": float(train_loss),
@@ -180,7 +186,28 @@ def history_record(
         "grad_clip_triggered": None
         if grad_clip_triggered is None
         else bool(grad_clip_triggered),
+        "task_batch_size_requested": None
+        if task_batch_size_requested is None
+        else int(task_batch_size_requested),
+        "task_batch_size_actual": None
+        if task_batch_size_actual is None
+        else int(task_batch_size_actual),
+        "task_batch_batched_count": None
+        if task_batch_batched_count is None
+        else int(task_batch_batched_count),
+        "task_batch_singleton_fallback_count": None
+        if task_batch_singleton_fallback_count is None
+        else int(task_batch_singleton_fallback_count),
+        "task_batch_singleton_fallback_fraction": None
+        if task_batch_singleton_fallback_fraction is None
+        or not math.isfinite(float(task_batch_singleton_fallback_fraction))
+        else float(task_batch_singleton_fallback_fraction),
     }
+    if task_batch_signature_counts is not None:
+        record["task_batch_signature_counts"] = {
+            str(name): int(count)
+            for name, count in sorted(task_batch_signature_counts.items())
+        }
     if val_metrics is not None:
         record["val_loss"] = _history_value(val_metrics, "val_loss")
         record["val_acc"] = _history_value(val_metrics, "acc")
@@ -202,6 +229,12 @@ def gradient_history_record(
     train_elapsed_seconds: float,
     grad_clip_threshold: float | None,
     grad_clip_triggered: bool | None,
+    task_batch_size_requested: int | None = None,
+    task_batch_size_actual: int | None = None,
+    task_batch_batched_count: int | None = None,
+    task_batch_singleton_fallback_count: int | None = None,
+    task_batch_singleton_fallback_fraction: float | None = None,
+    task_batch_signature_counts: Mapping[str, int] | None = None,
 ) -> dict[str, Any]:
     """Build one detailed module-gradient record for JSONL output."""
 
@@ -261,7 +294,28 @@ def gradient_history_record(
         "grad_clip_triggered": None
         if grad_clip_triggered is None
         else bool(grad_clip_triggered),
+        "task_batch_size_requested": None
+        if task_batch_size_requested is None
+        else int(task_batch_size_requested),
+        "task_batch_size_actual": None
+        if task_batch_size_actual is None
+        else int(task_batch_size_actual),
+        "task_batch_batched_count": None
+        if task_batch_batched_count is None
+        else int(task_batch_batched_count),
+        "task_batch_singleton_fallback_count": None
+        if task_batch_singleton_fallback_count is None
+        else int(task_batch_singleton_fallback_count),
+        "task_batch_singleton_fallback_fraction": None
+        if task_batch_singleton_fallback_fraction is None
+        or not math.isfinite(float(task_batch_singleton_fallback_fraction))
+        else float(task_batch_singleton_fallback_fraction),
     }
+    if task_batch_signature_counts is not None:
+        record["task_batch_signature_counts"] = {
+            str(name): int(count)
+            for name, count in sorted(task_batch_signature_counts.items())
+        }
     if activation_norms is not None:
         record["activation_norms"] = {
             str(name): float(value)
@@ -271,7 +325,7 @@ def gradient_history_record(
     return record
 
 
-def append_history_record(path: Path, payload: Mapping[str, float | int | str | None]) -> None:
+def append_history_record(path: Path, payload: Mapping[str, Any]) -> None:
     """Append one standard training history record to JSONL output."""
 
     append_jsonl_record(path, payload)

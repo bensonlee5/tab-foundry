@@ -7,6 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from omegaconf import OmegaConf
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 import torch
 from torch import nn
@@ -15,10 +17,17 @@ from torch.utils.data import Dataset
 import tab_foundry.training.evaluate as evaluate_module
 import tab_foundry.training.distributed as distributed_module
 import tab_foundry.training.trainer as trainer_module
+import tab_foundry.training.trainer_metrics as trainer_metrics_module
 from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.training.optimizer import OptimizerSelection
 from tab_foundry.training.schedule import build_stage_configs
 from tab_foundry.types import TaskBatch
+
+from tests.data.manifest_and_dataset_cases import (
+    _classification_arrays,
+    _classification_metadata,
+    _write_packed_shard,
+)
 
 
 class _FakeAccelerator:
@@ -194,6 +203,71 @@ class _TinyClassifier(nn.Module):
 
     def forward(self, batch: TaskBatch) -> ClassificationOutput:
         return ClassificationOutput(logits=self.linear(batch.x_test), num_classes=3)
+
+
+class _TaskBatchAwareTinyClassifier(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.linear = nn.Linear(4, 3)
+
+    def forward(self, batch: TaskBatch) -> ClassificationOutput:
+        logits = self.linear(batch.x_test.to(torch.float32))
+        if logits.ndim == 3:
+            logits = logits.reshape(int(logits.shape[0]) * int(logits.shape[1]), int(logits.shape[2]))
+        return ClassificationOutput(logits=logits, num_classes=3)
+
+
+class _MetricWeightingClassifier(nn.Module):
+    def load_state_dict(self, _state: object) -> None:
+        return None
+
+    def forward(self, batch: TaskBatch) -> ClassificationOutput:
+        n_rows = int(batch.y_test.reshape(-1).shape[0])
+        return ClassificationOutput(
+            logits=torch.zeros((n_rows, 3), dtype=torch.float32),
+            num_classes=3,
+        )
+
+
+def _weighted_metric_batch(
+    *,
+    task_batch_size_actual: int,
+    task_batch_size_requested: int,
+) -> TaskBatch:
+    mode = "singleton"
+    if task_batch_size_requested > 1 and task_batch_size_actual == 1:
+        mode = "singleton_fallback"
+    elif task_batch_size_actual > 1:
+        mode = "batched"
+    if task_batch_size_actual > 1:
+        return TaskBatch(
+            x_train=torch.zeros((task_batch_size_actual, 6, 4), dtype=torch.float32),
+            y_train=torch.zeros((task_batch_size_actual, 6), dtype=torch.int64),
+            x_test=torch.zeros((task_batch_size_actual, 3, 4), dtype=torch.float32),
+            y_test=torch.zeros((task_batch_size_actual, 3), dtype=torch.int64),
+            metadata={
+                "task_members": [{} for _ in range(task_batch_size_actual)],
+                "task_batch_size_requested": task_batch_size_requested,
+                "task_batch_size_actual": task_batch_size_actual,
+                "task_batch_signature": "6x3x4x3",
+                "task_batch_mode": mode,
+            },
+            num_classes=3,
+        )
+    return TaskBatch(
+        x_train=torch.zeros((6, 4), dtype=torch.float32),
+        y_train=torch.zeros((6,), dtype=torch.int64),
+        x_test=torch.zeros((3, 4), dtype=torch.float32),
+        y_test=torch.zeros((3,), dtype=torch.int64),
+        metadata={
+            "task_members": [{}],
+            "task_batch_size_requested": task_batch_size_requested,
+            "task_batch_size_actual": task_batch_size_actual,
+            "task_batch_signature": "6x3x4x3",
+            "task_batch_mode": mode,
+        },
+        num_classes=3,
+    )
 
 
 class _TraceableRowPool(nn.Module):
@@ -486,8 +560,68 @@ def _classification_cfg(tmp_path: Path) -> object:
     )
 
 
+def _write_task_batch_manifest(tmp_path: Path) -> Path:
+    manifest_data_root = tmp_path / "manifest_data"
+    shard_dir = manifest_data_root / "shard_00000"
+    datasets: list[dict[str, object]] = []
+    split_by_dataset_index = {1: "train", 2: "train", 3: "val"}
+    for dataset_index, seed in ((1, 11), (2, 13), (3, 17)):
+        x_train, y_train, x_test, y_test = _classification_arrays(
+            n_train=6,
+            n_test=3,
+            n_features=4,
+            n_classes=3,
+            seed=seed,
+        )
+        datasets.append(
+            {
+                "dataset_index": dataset_index,
+                "x_train": x_train,
+                "y_train": y_train,
+                "x_test": x_test,
+                "y_test": y_test,
+                "feature_types": ["num"] * 4,
+                "metadata": _classification_metadata(n_features=4, n_classes=3, seed=seed),
+            }
+        )
+    offsets = _write_packed_shard(shard_dir, datasets=datasets)
+    manifest_rows: list[dict[str, object]] = []
+    for dataset in datasets:
+        dataset_index = int(dataset["dataset_index"])
+        offset, size, digest = offsets[dataset_index]
+        manifest_rows.append(
+            {
+                "dataset_id": f"root_a/shard_00000/dataset_{dataset_index:06d}",
+                "source_root_id": "root_a",
+                "source_shard_relpath": "shard_00000",
+                "split": split_by_dataset_index[dataset_index],
+                "task": "classification",
+                "dataset_index": dataset_index,
+                "train_path": "manifest_data/shard_00000/train.parquet",
+                "test_path": "manifest_data/shard_00000/test.parquet",
+                "metadata_path": "manifest_data/shard_00000/metadata.ndjson",
+                "metadata_offset_bytes": offset,
+                "metadata_size_bytes": size,
+                "metadata_sha256": digest,
+                "n_train": int(dataset["x_train"].shape[0]),
+                "n_test": int(dataset["x_test"].shape[0]),
+                "n_features": int(dataset["x_train"].shape[1]),
+                "n_classes": 3,
+                "seed": 1,
+                "filter_mode": "deferred",
+                "filter_status": "not_run",
+                "filter_accepted": None,
+                "missing_value_policy": "allow_any",
+                "missing_value_status": "clean",
+            }
+        )
+    manifest_path = tmp_path / "manifest.parquet"
+    pq.write_table(pa.Table.from_pylist(manifest_rows), manifest_path)
+    return manifest_path
+
+
 def _install_classification_fakes(monkeypatch: pytest.MonkeyPatch) -> None:
-    fake_spec = SimpleNamespace(task="classification")
+    fake_spec = SimpleNamespace(task="classification", arch="tabfoundry_simple")
     monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: _FakeTaskDataset())
     monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: _FakeTaskDataset())
     monkeypatch.setattr(
@@ -628,6 +762,227 @@ def test_evaluate_checkpoint_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     assert "acc" in result.metrics
 
 
+def test_evaluate_loader_weights_metrics_by_actual_task_batch_size(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    batches = [
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=2),
+    ]
+
+    def _fake_compute(_output: object, batch: TaskBatch, *, task: str) -> tuple[torch.Tensor, dict[str, float]]:
+        assert task == "classification"
+        actual_task_count = int(batch.metadata["task_batch_size_actual"])
+        if actual_task_count == 2:
+            return torch.tensor(1.0), {"acc": 0.2}
+        return torch.tensor(3.0), {"acc": 0.8}
+
+    monkeypatch.setattr(trainer_metrics_module, "_compute_loss_and_metrics", _fake_compute)
+
+    metrics = trainer_metrics_module._evaluate_loader(
+        _MetricWeightingClassifier(),
+        batches,
+        accelerator=_FakeAccelerator(),
+        task="classification",
+        max_batches=8,
+    )
+
+    assert metrics["val_loss"] == pytest.approx(5.0 / 3.0)
+    assert metrics["acc"] == pytest.approx(0.4)
+
+
+def test_evaluate_loader_caps_by_task_count_without_overshooting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    batches = [
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=2),
+    ]
+    calls: list[int] = []
+
+    def _fake_compute(_output: object, batch: TaskBatch, *, task: str) -> tuple[torch.Tensor, dict[str, float]]:
+        assert task == "classification"
+        calls.append(int(batch.metadata["task_batch_size_actual"]))
+        return torch.tensor(1.0), {"acc": 0.25}
+
+    monkeypatch.setattr(trainer_metrics_module, "_compute_loss_and_metrics", _fake_compute)
+
+    metrics = trainer_metrics_module._evaluate_loader(
+        _MetricWeightingClassifier(),
+        batches,
+        accelerator=_FakeAccelerator(),
+        task="classification",
+        max_batches=3,
+    )
+
+    assert calls == [2]
+    assert metrics["val_loss"] == pytest.approx(1.0)
+    assert metrics["acc"] == pytest.approx(0.25)
+
+
+def test_evaluate_loader_processes_first_task_batch_even_when_it_exceeds_cap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    batches = [
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=2),
+    ]
+    calls: list[int] = []
+
+    def _fake_compute(_output: object, batch: TaskBatch, *, task: str) -> tuple[torch.Tensor, dict[str, float]]:
+        assert task == "classification"
+        calls.append(int(batch.metadata["task_batch_size_actual"]))
+        return torch.tensor(2.0), {"acc": 0.5}
+
+    monkeypatch.setattr(trainer_metrics_module, "_compute_loss_and_metrics", _fake_compute)
+
+    metrics = trainer_metrics_module._evaluate_loader(
+        _MetricWeightingClassifier(),
+        batches,
+        accelerator=_FakeAccelerator(),
+        task="classification",
+        max_batches=1,
+    )
+
+    assert calls == [2]
+    assert metrics["val_loss"] == pytest.approx(2.0)
+    assert metrics["acc"] == pytest.approx(0.5)
+
+
+def test_evaluate_checkpoint_weights_metrics_by_actual_task_batch_size(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    batches = [
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=2),
+    ]
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {},
+                "training": {"task_batch_size": 2},
+                "runtime": {"seed": 77},
+            },
+        }
+
+    def _fake_compute(_output: object, batch: TaskBatch, *, task: str) -> tuple[torch.Tensor, dict[str, float]]:
+        assert task == "classification"
+        actual_task_count = int(batch.metadata["task_batch_size_actual"])
+        if actual_task_count == 2:
+            return torch.tensor(1.0), {"acc": 0.2}
+        return torch.tensor(3.0), {"acc": 0.8}
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(evaluate_module, "build_task_loader", lambda *_args, **_kwargs: batches)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _MetricWeightingClassifier())
+    monkeypatch.setattr(evaluate_module, "_compute_loss_and_metrics", _fake_compute)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.eval.checkpoint = str(tmp_path / "weighted_eval.pt")
+    cfg.eval.max_batches = 8
+
+    result = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert result.metrics["loss"] == pytest.approx(5.0 / 3.0)
+    assert result.metrics["acc"] == pytest.approx(0.4)
+
+
+def test_evaluate_checkpoint_caps_by_task_count_without_overshooting(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    batches = [
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=2),
+    ]
+    calls: list[int] = []
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {},
+                "training": {"task_batch_size": 2},
+                "runtime": {"seed": 77},
+            },
+        }
+
+    def _fake_compute(_output: object, batch: TaskBatch, *, task: str) -> tuple[torch.Tensor, dict[str, float]]:
+        assert task == "classification"
+        calls.append(int(batch.metadata["task_batch_size_actual"]))
+        return torch.tensor(1.0), {"acc": 0.25}
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(evaluate_module, "build_task_loader", lambda *_args, **_kwargs: batches)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _MetricWeightingClassifier())
+    monkeypatch.setattr(evaluate_module, "_compute_loss_and_metrics", _fake_compute)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.eval.checkpoint = str(tmp_path / "capped_eval.pt")
+    cfg.eval.max_batches = 3
+
+    result = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert calls == [2]
+    assert result.metrics["loss"] == pytest.approx(1.0)
+    assert result.metrics["acc"] == pytest.approx(0.25)
+
+
+def test_evaluate_checkpoint_processes_first_task_batch_even_when_it_exceeds_cap(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    batches = [
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=2),
+    ]
+    calls: list[int] = []
+
+    def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
+        return {
+            "model": {},
+            "config": {
+                "task": "classification",
+                "model": {},
+                "training": {"task_batch_size": 2},
+                "runtime": {"seed": 77},
+            },
+        }
+
+    def _fake_compute(_output: object, batch: TaskBatch, *, task: str) -> tuple[torch.Tensor, dict[str, float]]:
+        assert task == "classification"
+        calls.append(int(batch.metadata["task_batch_size_actual"]))
+        return torch.tensor(2.0), {"acc": 0.5}
+
+    monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(evaluate_module, "build_task_loader", lambda *_args, **_kwargs: batches)
+    monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _MetricWeightingClassifier())
+    monkeypatch.setattr(evaluate_module, "_compute_loss_and_metrics", _fake_compute)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.eval.checkpoint = str(tmp_path / "first_batch_eval.pt")
+    cfg.eval.max_batches = 1
+
+    result = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert calls == [2]
+    assert result.metrics["loss"] == pytest.approx(2.0)
+    assert result.metrics["acc"] == pytest.approx(0.5)
+
+
 def test_train_smoke_writes_history_jsonl(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     _install_classification_fakes(monkeypatch)
     cfg = _classification_cfg(tmp_path)
@@ -656,6 +1011,151 @@ def test_train_smoke_writes_history_jsonl(monkeypatch: pytest.MonkeyPatch, tmp_p
     assert records[0]["train_loss_ema"] >= 0.0
     assert records[0]["grad_clip_threshold"] == pytest.approx(1.0)
     assert isinstance(records[0]["grad_clip_triggered"], bool)
+
+
+def test_train_history_weights_microstep_metrics_by_actual_task_count(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    batches = [
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=2),
+    ]
+
+    def _fake_compute(_output: object, batch: TaskBatch, *, task: str) -> tuple[torch.Tensor, dict[str, float]]:
+        assert task == "classification"
+        actual_task_count = int(batch.metadata["task_batch_size_actual"])
+        if actual_task_count == 2:
+            return torch.tensor(1.0, requires_grad=True), {"acc": 0.2}
+        return torch.tensor(3.0, requires_grad=True), {"acc": 0.8}
+
+    monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(trainer_module, "build_task_loader", lambda *_args, **_kwargs: batches)
+    monkeypatch.setattr(trainer_module, "_compute_loss_and_metrics", _fake_compute)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.grad_accum_steps = 2
+    cfg.runtime.val_batches = 0
+    history_path = tmp_path / "outputs" / "weighted_train_history.jsonl"
+    cfg.logging.history_jsonl_path = str(history_path)
+
+    _ = trainer_module.train(cfg)
+
+    records = [
+        json.loads(line)
+        for line in history_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    assert records[0]["train_loss"] == pytest.approx(5.0 / 3.0)
+    assert records[0]["train_acc"] == pytest.approx(0.4)
+
+
+def test_train_smoke_task_batching_manifest_loader_emits_batching_telemetry(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_task_batch_manifest(tmp_path)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_model_from_spec",
+        lambda _spec: _TaskBatchAwareTinyClassifier(),
+    )
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.model.arch = "tabfoundry_simple"
+    cfg.data.manifest_path = str(manifest_path)
+    cfg.training = {"task_batch_size": 2}
+    history_path = tmp_path / "outputs" / "task_batch_history.jsonl"
+    cfg.logging.history_jsonl_path = str(history_path)
+
+    result = trainer_module.train(cfg)
+
+    records = [
+        json.loads(line)
+        for line in history_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    telemetry = json.loads((result.output_dir / "telemetry.json").read_text(encoding="utf-8"))
+
+    assert result.global_step == 1
+    assert records[0]["task_batch_size_requested"] == 2
+    assert records[0]["task_batch_size_actual"] == 2
+    assert records[0]["task_batch_batched_count"] == 1
+    assert records[0]["task_batch_singleton_fallback_count"] == 0
+    assert records[0]["task_batch_singleton_fallback_fraction"] == 0.0
+    assert records[0]["task_batch_signature_counts"] == {"6x3x4x3": 1}
+    assert telemetry["diagnostics"]["task_batching"] == {
+        "record_count": 1,
+        "requested_task_batch_sizes": [2],
+        "actual_task_batch_size_counts": {"2": 1},
+        "batched_step_count": 1,
+        "singleton_fallback_count": 0,
+        "singleton_fallback_fraction": 0.0,
+        "signature_counts": {"6x3x4x3": 1},
+    }
+
+
+def test_train_disables_even_batch_padding_for_task_batching(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _capture_accelerator(_runtime: object, **kwargs: object) -> None:
+        captured["dataloader_even_batches_override"] = kwargs.get("dataloader_even_batches_override")
+        raise RuntimeError("stop_after_accelerator")
+
+    monkeypatch.setattr(trainer_module, "build_accelerator_from_runtime", _capture_accelerator)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.training = {"task_batch_size": 2}
+
+    with pytest.raises(RuntimeError, match="stop_after_accelerator"):
+        _ = trainer_module.train(cfg)
+
+    assert captured["dataloader_even_batches_override"] is False
+
+
+def test_train_rejects_task_batching_for_non_manifest_loader(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    cfg.training = {"task_batch_size": 2}
+
+    with pytest.raises(RuntimeError, match="requires a manifest-backed PackedParquetTaskDataset"):
+        _ = trainer_module.train(cfg)
+
+
+def test_train_rejects_task_batching_for_many_class_surface(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    cfg = _classification_cfg(tmp_path)
+    cfg.model = {
+        "arch": "tabfoundry_staged",
+        "stage": "many_class",
+        "many_class_base": 4,
+        "input_normalization": "none",
+    }
+    cfg.training = {"task_batch_size": 2}
+
+    with pytest.raises(RuntimeError, match="not supported for many_class staged surfaces"):
+        _ = trainer_module.train(cfg)
 
 
 def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

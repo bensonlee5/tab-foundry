@@ -130,6 +130,36 @@ def test_classification_metrics_raise_for_underwidth_class_probs() -> None:
         _ = _compute_loss_and_metrics(output, batch, task="classification")
 
 
+def test_classification_metrics_flatten_batched_targets() -> None:
+    output = ClassificationOutput(
+        logits=torch.tensor(
+            [
+                [[6.0, -1.0, -2.0], [-2.0, 5.0, -1.0]],
+                [[-3.0, -2.0, 4.0], [5.0, -1.0, -2.0]],
+            ],
+            dtype=torch.float32,
+        ).reshape(4, 3),
+        num_classes=3,
+    )
+    batch = TaskBatch(
+        x_train=torch.randn(2, 8, 4),
+        y_train=torch.randint(0, 3, (2, 8)),
+        x_test=torch.randn(2, 2, 4),
+        y_test=torch.tensor([[0, 1], [2, 0]], dtype=torch.int64),
+        metadata={
+            "task_batch_size_requested": 2,
+            "task_batch_size_actual": 2,
+            "task_batch_mode": "batched",
+        },
+        num_classes=3,
+    )
+
+    loss, metrics = _compute_loss_and_metrics(output, batch, task="classification")
+
+    assert torch.isfinite(loss)
+    assert metrics["acc"] == pytest.approx(1.0)
+
+
 def test_manyclass_path_metrics_raise_for_underfull_path_counts() -> None:
     output = ClassificationOutput(
         logits=None,

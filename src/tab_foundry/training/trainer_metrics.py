@@ -13,9 +13,9 @@ from tab_foundry.model.outputs import (
     validate_classification_output_contract,
     validate_classification_path_terms_contract,
 )
+from tab_foundry.task_batching import move_batch, task_batch_diagnostics
 from tab_foundry.types import TaskBatch
 
-from .batching import move_batch
 from .distributed import _global_mean_from_local
 from .losses import classification_loss, hierarchical_nll_loss
 
@@ -38,7 +38,8 @@ def _compute_loss_and_metrics(
         )
     if not isinstance(output, ClassificationOutput):
         raise TypeError("classification run expected ClassificationOutput")
-    n_test = int(batch.y_test.shape[0])
+    target = batch.y_test.to(torch.int64).reshape(-1)
+    n_test = int(target.shape[0])
     if n_test <= 0:
         raise RuntimeError("classification batch has zero test labels")
     expected_num_classes = None if batch.num_classes is None else int(batch.num_classes)
@@ -51,7 +52,6 @@ def _compute_loss_and_metrics(
 
     if output.logits is not None:
         logits = output.logits[:, :resolved_num_classes]
-        target = batch.y_test.to(torch.int64)
         loss = classification_loss(logits, target)
         acc = (logits.argmax(dim=-1) == target).float().mean().item()
         cls_metrics = {"acc": float(acc)}
@@ -61,7 +61,6 @@ def _compute_loss_and_metrics(
 
     if output.class_probs is not None:
         probs = output.class_probs
-        target = batch.y_test.to(torch.int64)
         loss = hierarchical_nll_loss(probs, target)
         acc = (probs.argmax(dim=-1) == target).float().mean().item()
         cls_metrics = {"acc": float(acc)}
@@ -104,29 +103,39 @@ def _evaluate_loader(
     accelerator: Accelerator,
     task: str,
     max_batches: int,
+    compute_loss_and_metrics=None,
 ) -> dict[str, float]:
     model.eval()
     loss_sum = 0.0
     score_sum = 0.0
     count = 0
+    tasks_seen = 0
     if task != "classification":
         raise RuntimeError(
             "Only classification evaluation is supported in this branch; "
             f"got task={task!r}."
         )
     metric_name = "acc"
+    if compute_loss_and_metrics is None:
+        compute_loss_and_metrics = _compute_loss_and_metrics
 
     with torch.no_grad():
-        for step, batch in enumerate(loader):
-            if step >= max_batches:
+        for batch in loader:
+            if max_batches <= 0:
+                break
+            if tasks_seen >= max_batches:
+                break
+            actual_task_count = int(task_batch_diagnostics(batch)["task_batch_size_actual"])
+            if tasks_seen > 0 and tasks_seen + actual_task_count > max_batches:
                 break
             batch = move_batch(batch, accelerator.device)
             with accelerator.autocast():
                 output = model(batch)
-                loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-            loss_sum += float(loss.detach().item())
-            score_sum += float(metrics[metric_name])
-            count += 1
+                loss, metrics = compute_loss_and_metrics(output, batch, task=task)
+            loss_sum += float(loss.detach().item()) * float(actual_task_count)
+            score_sum += float(metrics[metric_name]) * float(actual_task_count)
+            count += actual_task_count
+            tasks_seen += actual_task_count
 
     model.train()
     dev = accelerator.device

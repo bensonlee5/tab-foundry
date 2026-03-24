@@ -60,6 +60,7 @@ def compose_cfg(
     training_payload = cast(Mapping[str, Any], row.get("training", {}))
     for key in (
         "surface_label",
+        "task_batch_size",
         "prior_dump_non_finite_policy",
         "prior_dump_batch_size",
         "prior_dump_lr_scale_rule",

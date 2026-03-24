@@ -151,11 +151,26 @@ def train_loss_delta(train_loss: float, *, previous_train_loss: float | None) ->
 def history_loss_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, float | int | None]:
     """Summarize train-loss volatility from history-style records."""
 
-    losses = [
-        float(record["train_loss"])
-        for record in records
-        if record.get("train_loss") is not None and math.isfinite(float(record["train_loss"]))
-    ]
+    weighted_losses: list[tuple[float, float]] = []
+    losses: list[float] = []
+    for record in records:
+        raw_loss = record.get("train_loss")
+        if raw_loss is None:
+            continue
+        loss_value = float(raw_loss)
+        if not math.isfinite(loss_value):
+            continue
+        raw_weight = record.get("task_batch_size_actual")
+        weight = 1.0
+        if raw_weight is not None:
+            try:
+                resolved_weight = int(raw_weight)
+            except (TypeError, ValueError):
+                resolved_weight = 1
+            if resolved_weight > 0:
+                weight = float(resolved_weight)
+        losses.append(loss_value)
+        weighted_losses.append((loss_value, weight))
     deltas = [
         float(record["train_loss_delta"])
         for record in records
@@ -173,10 +188,16 @@ def history_loss_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, floa
             "train_loss_variance": None,
             "max_abs_train_loss_delta": None,
         }
-    mean_loss = sum(losses) / float(len(losses))
+    total_weight = sum(weight for _loss, weight in weighted_losses)
+    mean_loss = (
+        sum(loss_value * weight for loss_value, weight in weighted_losses) / float(total_weight)
+        if total_weight > 0.0
+        else sum(losses) / float(len(losses))
+    )
     variance = (
-        sum((loss_value - mean_loss) ** 2 for loss_value in losses) / float(len(losses))
-        if len(losses) > 1
+        sum(weight * ((loss_value - mean_loss) ** 2) for loss_value, weight in weighted_losses)
+        / float(total_weight)
+        if total_weight > 0.0 and len(losses) > 1
         else 0.0
     )
     return {
@@ -567,6 +588,7 @@ def diagnostics_summary(
                 window_name: int(len(window)) for window_name, window in window_records.items()
             },
         },
+        "task_batching": _task_batching_summary(ordered),
         "grad_clip": {
             "record_count": int(len(ordered)),
             "clipped_step_count": int(clipped_step_count),
@@ -588,6 +610,42 @@ def diagnostics_summary(
             ordered,
             warmup_end_step=warmup_end_step,
         ),
+    }
+
+
+def _task_batching_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    requested_sizes: set[int] = set()
+    actual_batch_sizes: dict[str, int] = {}
+    signature_counts: dict[str, int] = {}
+    batched_step_count = 0
+    singleton_fallback_count = 0
+    for record in records:
+        raw_requested = record.get("task_batch_size_requested")
+        if raw_requested is not None:
+            requested_sizes.add(int(raw_requested))
+        raw_actual = record.get("task_batch_size_actual")
+        if raw_actual is not None:
+            actual_batch_sizes[str(int(raw_actual))] = actual_batch_sizes.get(str(int(raw_actual)), 0) + 1
+            if int(raw_actual) > 1:
+                batched_step_count += 1
+        raw_fallback_count = record.get("task_batch_singleton_fallback_count")
+        if raw_fallback_count is not None:
+            singleton_fallback_count += int(raw_fallback_count)
+        raw_signature_counts = record.get("task_batch_signature_counts")
+        if isinstance(raw_signature_counts, Mapping):
+            for signature, count in raw_signature_counts.items():
+                signature_counts[str(signature)] = signature_counts.get(str(signature), 0) + int(count)
+    record_count = int(len(records))
+    return {
+        "record_count": record_count,
+        "requested_task_batch_sizes": sorted(requested_sizes),
+        "actual_task_batch_size_counts": actual_batch_sizes,
+        "batched_step_count": int(batched_step_count),
+        "singleton_fallback_count": int(singleton_fallback_count),
+        "singleton_fallback_fraction": 0.0
+        if record_count <= 0
+        else float(singleton_fallback_count / float(record_count)),
+        "signature_counts": signature_counts,
     }
 
 

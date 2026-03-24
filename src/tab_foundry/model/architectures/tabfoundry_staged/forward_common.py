@@ -14,12 +14,34 @@ from .states import CellTableState, HeadOutputState, RawInputState, RowState
 
 
 def prepare_task_inputs(batch: TaskBatch) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
-    train_test_split_index = int(batch.x_train.shape[0])
+    if batch.x_train.ndim == 2:
+        train_test_split_index = int(batch.x_train.shape[0])
+        if train_test_split_index <= 0:
+            raise RuntimeError("tabfoundry_staged requires at least one training row")
+        x_all = torch.cat([batch.x_train, batch.x_test], dim=0).to(torch.float32).unsqueeze(0)
+        y_train = batch.y_train.to(torch.int64).unsqueeze(0)
+        y_test = batch.y_test.to(torch.int64).unsqueeze(0)
+        return x_all, y_train, y_test, train_test_split_index
+    if batch.x_train.ndim != 3 or batch.x_test.ndim != 3:
+        raise RuntimeError(
+            "tabfoundry_staged task batching requires x_train/x_test rank 2 or 3, "
+            f"got x_train={tuple(int(dim) for dim in batch.x_train.shape)}, "
+            f"x_test={tuple(int(dim) for dim in batch.x_test.shape)}"
+        )
+    if batch.y_train.ndim != 2 or batch.y_test.ndim != 2:
+        raise RuntimeError(
+            "tabfoundry_staged task batching requires y_train/y_test rank 2 when batching, "
+            f"got y_train={tuple(int(dim) for dim in batch.y_train.shape)}, "
+            f"y_test={tuple(int(dim) for dim in batch.y_test.shape)}"
+        )
+    if int(batch.x_train.shape[0]) != int(batch.x_test.shape[0]):
+        raise RuntimeError("tabfoundry_staged batched train/test tensors must share a batch dimension")
+    train_test_split_index = int(batch.x_train.shape[1])
     if train_test_split_index <= 0:
         raise RuntimeError("tabfoundry_staged requires at least one training row")
-    x_all = torch.cat([batch.x_train, batch.x_test], dim=0).to(torch.float32).unsqueeze(0)
-    y_train = batch.y_train.to(torch.int64).unsqueeze(0)
-    y_test = batch.y_test.to(torch.int64).unsqueeze(0)
+    x_all = torch.cat([batch.x_train, batch.x_test], dim=1).to(torch.float32)
+    y_train = batch.y_train.to(torch.int64)
+    y_test = batch.y_test.to(torch.int64)
     return x_all, y_train, y_test, train_test_split_index
 
 
