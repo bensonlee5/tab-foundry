@@ -44,17 +44,17 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_training_task_batch4` | batch_size | yes | ready | none | Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to four at a time on the TF-RD-013 medium corpus surface. | Run first as the opening manifest task-batch rung on the settled TF-RD-013 medium surface. |
-| 2 | `delta_training_task_batch8` | batch_size | yes | ready | none | Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to eight at a time on the TF-RD-013 medium corpus surface. | Run second as the highest unconditional manifest task-batch rung on the settled TF-RD-013 medium surface. |
-| 3 | `delta_training_task_batch16` | batch_size | yes | blocked | none | Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to sixteen at a time on the TF-RD-013 medium corpus surface. | Wait for the `task_batch_size=8` rung to clear the runtime, OOM, and singleton-fallback gate before running this row. |
-| 4 | `delta_training_task_batch32` | batch_size | yes | blocked | none | Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to thirty-two at a time on the TF-RD-013 medium corpus surface. | Wait for the `task_batch_size=16` rung to clear the runtime, OOM, and singleton-fallback gate before running this row. |
+| 1 | `delta_training_task_batch4` | batch_size | yes | completed | none | Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to four at a time on the TF-RD-013 medium corpus surface. | Lock `task_batch_size=4` as the preferred TF-RD-018 batch rung and rebase issues `#137`, `#138`, and `#139` onto this manifest-batched surface instead of reopening singleton updates. |
+| 2 | `delta_training_task_batch8` | batch_size | yes | completed | none | Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to eight at a time on the TF-RD-013 medium corpus surface. | Stop the ladder here because this row kept singleton fallback at `0.0%` but finished in `1109.3s`, so `task_batch_size=16` and `32` stay blocked and issues `#137`, `#138`, and `#139` should rebase onto the kept four-task rung. |
+| 3 | `delta_training_task_batch16` | batch_size | yes | blocked | none | Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to sixteen at a time on the TF-RD-013 medium corpus surface. | Do not run this row in the current ladder; row 2 finished in `1109.3s` and failed the `<=900s` promotion gate, so issues `#137`, `#138`, and `#139` should continue from the kept `task_batch_size=4` surface instead. |
+| 4 | `delta_training_task_batch32` | batch_size | yes | blocked | none | Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to thirty-two at a time on the TF-RD-013 medium corpus surface. | Keep this rung blocked because the current ladder stopped when row 2 missed the row-3 promotion gate; only reopen larger task batches if later runtime work changes the economics. |
 
 ## Detailed Rows
 
 ### 1. `delta_training_task_batch4`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to four at a time on the TF-RD-013 medium corpus surface.
@@ -64,6 +64,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing, and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=4`.
 - Expected effect: A four-task manifest batch should improve dataset-throughput efficiency with lower packing and memory risk than the larger rungs.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.2624`); context (grad `0.1001`)
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'name': 'schedulefree_adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'runtime': {'grad_accum_steps': 1, 'max_steps': 2500, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
   - Keep the model, data surface, preprocessing, optimizer family, and schedule shape fixed so this row isolates manifest task batching only.
@@ -74,16 +75,20 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - batched_update_count
   - train_elapsed_seconds
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `keep`
+- Notes:
+  - Canonical rerun registered as `sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Locked as the preferred rung because it finished in `699.4s`, avoided recorded OOM mitigation, and kept singleton fallback at `0.0%` while the eight-task rung missed the `<=900s` gate.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_first_training_adequacy_v1/delta_training_task_batch4/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1` with final log loss `4.4473`, delta final log loss `+2.1869`, final Brier score `0.6465`, delta final Brier score `+0.1553`, best ROC AUC `0.5958`, final ROC AUC `0.5746`, final-minus-best `-0.0213`, delta final ROC AUC `+0.0120`, delta drift `-0.0127`, delta final training time `+472.7s`
 
 ### 2. `delta_training_task_batch8`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Keep the settled row-first model, preprocessing, and warmup-decay family fixed, but batch exact-shape manifest tasks up to eight at a time on the TF-RD-013 medium corpus surface.
@@ -93,6 +98,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Anchor delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing, and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=8`.
 - Expected effect: An eight-task manifest batch may improve wall-clock efficiency further if the medium corpus still spends too much time on singleton task dispatch.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0082`); context (grad `0.0041`)
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'name': 'schedulefree_adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'runtime': {'grad_accum_steps': 1, 'max_steps': 2500, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
   - Keep the model, data surface, preprocessing, optimizer family, and schedule shape fixed so this row isolates manifest task batching only.
@@ -103,11 +109,16 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
   - batched_update_count
   - train_elapsed_seconds
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_row_first_training_adequacy_v1_02_delta_training_task_batch8_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - Reused the saved nanoTabPFN curve from row 1 rather than running a fresh external helper benchmark.
+  - This row missed the `<=900s` promotion gate at `1109.3s` even though singleton fallback stayed at `0.0%` and no recorded OOM mitigation was needed.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_first_training_adequacy_v1/delta_training_task_batch8/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_row_first_training_adequacy_v1_02_delta_training_task_batch8_v1` with final log loss `5.0365`, delta final log loss `+2.7761`, final Brier score `0.6119`, delta final Brier score `+0.1207`, best ROC AUC `0.6246`, final ROC AUC `0.5508`, final-minus-best `-0.0738`, delta final ROC AUC `-0.0117`, delta drift `-0.0653`, delta final training time `+882.6s`
 
 ### 3. `delta_training_task_batch16`
 
@@ -136,6 +147,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Decision: `None`
 - Notes:
   - This row is intentionally blocked pending the row-2 gate.
+  - Row 2 completed in `1109.3s` with `0.0%` singleton fallback and no recorded OOM mitigation, so the ladder stops before this rung.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_first_training_adequacy_v1/delta_training_task_batch16/result_card.md`
 - Benchmark metrics: pending
@@ -167,6 +179,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Decision: `None`
 - Notes:
   - This row is intentionally blocked pending the row-3 gate.
+  - Row 3 never unblocked because the eight-task rung already failed the runtime promotion gate.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/row_first_training_adequacy_v1/delta_training_task_batch32/result_card.md`
 - Benchmark metrics: pending
