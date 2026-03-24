@@ -80,8 +80,23 @@ def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready", "blocked", "blocked"]
-    assert [row["interpretation_status"] for row in rows] == ["pending", "pending", "blocked", "blocked"]
+    assert [row["status"] for row in rows] == ["completed", "completed", "blocked", "blocked"]
+    assert [row["interpretation_status"] for row in rows] == ["completed", "completed", "blocked", "blocked"]
+    assert [row["decision"] for row in rows] == ["keep", "defer", None, None]
+
+    row1 = _row_by_ref(queue, "delta_training_task_batch4")
+    assert "#137" in row1["next_action"]
+    assert "#138" in row1["next_action"]
+    assert "#139" in row1["next_action"]
+    assert any("699.4s" in note for note in row1["notes"])
+
+    row2 = _row_by_ref(queue, "delta_training_task_batch8")
+    assert any("Reused the saved nanoTabPFN curve" in note for note in row2["notes"])
+    assert any("1109.3s" in note for note in row2["notes"])
+
+    row3 = _row_by_ref(queue, "delta_training_task_batch16")
+    assert "#137" in row3["next_action"]
+    assert any("1109.3s" in note for note in row3["notes"])
 
     for delta_ref, task_batch_size in (
         ("delta_training_task_batch4", 4),
@@ -170,7 +185,8 @@ def test_row_first_training_adequacy_v1_materialized_queue_preserves_task_batch_
 
     rows = queue["rows"]
     assert [row["delta_id"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready", "blocked", "blocked"]
+    assert [row["status"] for row in rows] == ["completed", "completed", "blocked", "blocked"]
+    assert [row["decision"] for row in rows] == ["keep", "defer", None, None]
 
     for delta_id, task_batch_size in (
         ("delta_training_task_batch4", 4),
@@ -201,6 +217,10 @@ def test_row_first_training_adequacy_v1_matrix_records_the_task_batch_rebase() -
     assert "delta_training_task_batch8" in matrix
     assert "delta_training_task_batch16" in matrix
     assert "delta_training_task_batch32" in matrix
+    assert "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1" in matrix
+    assert "sd_row_first_training_adequacy_v1_02_delta_training_task_batch8_v1" in matrix
+    assert "#137" in matrix
+    assert "1109.3s" in matrix
     assert "tf_rd_013_dagzoo_shape_aware_size_medium_v1" in matrix
     assert "nanotabpfn_openml_binary_medium_v1.json" in matrix
     assert "delta_training_linear_decay" not in matrix

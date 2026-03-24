@@ -134,7 +134,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_training_task_batch4
-  status: ready
+  status: completed
   dimension_family: training
   family: batch_size
   binary_applicable: true
@@ -218,19 +218,63 @@ rows:
   - Read final log loss, final ROC AUC, train elapsed seconds, and singleton-fallback
     fraction together before preferring a larger rung.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
-  next_action: Run first as the opening manifest task-batch rung on the settled TF-RD-013
-    medium surface.
-  notes: []
+  next_action: Lock `task_batch_size=4` as the preferred TF-RD-018 batch rung and
+    rebase issues `#137`, `#138`, and `#139` onto this manifest-batched surface instead
+    of reopening singleton updates.
+  notes:
+  - Canonical rerun registered as `sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Locked as the preferred rung because it finished in `699.4s`, avoided recorded
+    OOM mitigation, and kept singleton fallback at `0.0%` while the eight-task rung
+    missed the `<=900s` gate.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 125
+    max_grad_norm: 11.365192413330078
+    clipped_step_fraction: 0.366
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5552691711984782
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 4.447267230712592
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.37513787610088556
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.646497149322779
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.595822713367738
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5745704860521681
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 3.891998059514114
+    final_minus_best_brier_score: 0.27135927322189346
+    final_minus_best_roc_auc: -0.02125222731556986
+    drift: -0.02125222731556986
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 2.1868905579368514
+    delta_final_brier_score: 0.15531107291991325
+    delta_final_roc_auc: 0.012020828139464812
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.26239560062446776
+    context_encoder_final_window_mean_grad_norm: 0.10012740276681316
 - order: 2
   delta_id: delta_training_task_batch8
-  status: ready
+  status: completed
   dimension_family: training
   family: batch_size
   binary_applicable: true
@@ -314,16 +358,61 @@ rows:
   - Use this row as the gatekeeper for larger task-batch rungs before reopening optimizer,
     LR, clipping, or budget questions.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_row_first_training_adequacy_v1_02_delta_training_task_batch8_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run second as the highest unconditional manifest task-batch rung on
-    the settled TF-RD-013 medium surface.
-  notes: []
+  next_action: Stop the ladder here because this row kept singleton fallback at `0.0%`
+    but finished in `1109.3s`, so `task_batch_size=16` and `32` stay blocked and issues
+    `#137`, `#138`, and `#139` should rebase onto the kept four-task rung.
+  notes:
+  - Canonical rerun registered as `sd_row_first_training_adequacy_v1_02_delta_training_task_batch8_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Reused the saved nanoTabPFN curve from row 1 rather than running a fresh external
+    helper benchmark.
+  - This row missed the `<=900s` promotion gate at `1109.3s` even though singleton
+    fallback stayed at `0.0%` and no recorded OOM mitigation was needed.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 50
+    max_grad_norm: 4.467634201049805
+    clipped_step_fraction: 0.1944
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5590177645879071
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 5.036488042435719
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.37726591278755156
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.6119107587117542
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.6246323098943156
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5508072490756942
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 4.477470277847813
+    final_minus_best_brier_score: 0.2346448459242026
+    final_minus_best_roc_auc: -0.07382506081862139
+    drift: -0.07382506081862139
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: 2.7761113696599784
+    delta_final_brier_score: 0.12072468230888839
+    delta_final_roc_auc: -0.011742408837009055
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.008151133608001574
+    context_encoder_final_window_mean_grad_norm: 0.004102957921600735
 - order: 3
   delta_id: delta_training_task_batch16
   status: blocked
@@ -418,10 +507,13 @@ rows:
   decision: null
   interpretation_status: blocked
   confounders: []
-  next_action: Wait for the `task_batch_size=8` rung to clear the runtime, OOM, and
-    singleton-fallback gate before running this row.
+  next_action: Do not run this row in the current ladder; row 2 finished in `1109.3s`
+    and failed the `<=900s` promotion gate, so issues `#137`, `#138`, and `#139` should
+    continue from the kept `task_batch_size=4` surface instead.
   notes:
   - This row is intentionally blocked pending the row-2 gate.
+  - Row 2 completed in `1109.3s` with `0.0%` singleton fallback and no recorded OOM
+    mitigation, so the ladder stops before this rung.
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: delta_training_task_batch8
@@ -518,10 +610,13 @@ rows:
   decision: null
   interpretation_status: blocked
   confounders: []
-  next_action: Wait for the `task_batch_size=16` rung to clear the runtime, OOM, and
-    singleton-fallback gate before running this row.
+  next_action: Keep this rung blocked because the current ladder stopped when row
+    2 missed the row-3 promotion gate; only reopen larger task batches if later runtime
+    work changes the economics.
   notes:
   - This row is intentionally blocked pending the row-3 gate.
+  - Row 3 never unblocked because the eight-task rung already failed the runtime promotion
+    gate.
   screen_metrics: null
   benchmark_metrics: null
   parent_delta_ref: delta_training_task_batch16
