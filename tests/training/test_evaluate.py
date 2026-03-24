@@ -560,13 +560,30 @@ def test_evaluate_checkpoint_disables_even_batch_padding_for_task_batching(
     assert captured["dataloader_even_batches_override"] is False
 
 
-def test_evaluate_checkpoint_rejects_task_batching_for_many_class_surface(
+def test_evaluate_checkpoint_allows_task_batching_for_low_class_many_class_surface(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    captured: dict[str, object] = {}
+
     class _DummyModel:
         def load_state_dict(self, _state: object) -> None:
             return None
+
+    class _FakeAccelerator:
+        def __init__(self) -> None:
+            self.device = torch.device("cpu")
+            self.is_main_process = True
+
+        def prepare(self, *items: object) -> object:
+            if len(items) == 1:
+                return items[0]
+            return items
+
+        def autocast(self):
+            from contextlib import nullcontext
+
+            return nullcontext()
 
     def _fake_load(_path: Path, **_kwargs: object) -> dict[str, object]:
         return {
@@ -585,6 +602,30 @@ def test_evaluate_checkpoint_rejects_task_batching_for_many_class_surface(
 
     monkeypatch.setattr(evaluate_module.torch, "load", _fake_load)
     monkeypatch.setattr(evaluate_module, "build_model_from_spec", lambda _spec: _DummyModel())
+    monkeypatch.setattr(evaluate_module, "build_task_dataset", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(evaluate_module, "build_task_loader", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(
+        evaluate_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+
+    def _fake_evaluate_loader(
+        _model: object,
+        _loader: object,
+        *,
+        accelerator: object,
+        task: str,
+        max_batches: int,
+        compute_loss_and_metrics: object = None,
+    ) -> dict[str, float]:
+        captured["accelerator"] = accelerator
+        captured["task"] = task
+        captured["max_batches"] = max_batches
+        captured["compute_loss_and_metrics"] = compute_loss_and_metrics
+        return {"val_loss": 1.25, "acc": 0.75}
+
+    monkeypatch.setattr(evaluate_module, "_evaluate_loader", _fake_evaluate_loader)
 
     cfg = OmegaConf.create(
         {
@@ -601,8 +642,11 @@ def test_evaluate_checkpoint_rejects_task_batching_for_many_class_surface(
         }
     )
 
-    with pytest.raises(RuntimeError, match="not supported for many_class staged surfaces"):
-        _ = evaluate_module.evaluate_checkpoint(cfg)
+    result = evaluate_module.evaluate_checkpoint(cfg)
+
+    assert result.metrics == {"loss": 1.25, "acc": 0.75}
+    assert captured["task"] == "classification"
+    assert captured["max_batches"] == 1
 
 
 def test_checkpoint_model_settings_rejects_legacy_grouped_weights_without_override() -> None:

@@ -1103,6 +1103,77 @@ def test_train_smoke_task_batching_manifest_loader_emits_batching_telemetry(
     }
 
 
+def test_train_aggregates_task_batching_telemetry_across_grad_accum_steps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    batches = [
+        _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        _weighted_metric_batch(task_batch_size_actual=1, task_batch_size_requested=2),
+    ]
+
+    def _fake_compute(
+        _output: object,
+        batch: TaskBatch,
+        *,
+        task: str,
+    ) -> tuple[torch.Tensor, dict[str, float]]:
+        assert task == "classification"
+        actual_task_count = int(batch.metadata["task_batch_size_actual"])
+        return torch.tensor(float(actual_task_count), requires_grad=True), {"acc": 0.5}
+
+    monkeypatch.setattr(trainer_module, "build_task_loader", lambda *_args, **_kwargs: batches)
+    monkeypatch.setattr(
+        trainer_module,
+        "build_model_from_spec",
+        lambda _spec: _TaskBatchAwareTinyClassifier(),
+    )
+    monkeypatch.setattr(trainer_module, "_compute_loss_and_metrics", _fake_compute)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.training = {"task_batch_size": 2}
+    cfg.runtime.grad_accum_steps = 2
+    cfg.runtime.val_batches = 0
+    history_path = tmp_path / "outputs" / "accumulated_task_batch_history.jsonl"
+    cfg.logging.history_jsonl_path = str(history_path)
+
+    result = trainer_module.train(cfg)
+
+    history_records = [
+        json.loads(line)
+        for line in history_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    gradient_records = [
+        json.loads(line)
+        for line in (result.output_dir / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    telemetry = json.loads((result.output_dir / "telemetry.json").read_text(encoding="utf-8"))
+
+    assert history_records[0]["task_batch_size_requested"] == 2
+    assert history_records[0]["task_batch_size_actual"] == 3
+    assert history_records[0]["task_batch_batched_count"] == 1
+    assert history_records[0]["task_batch_singleton_fallback_count"] == 1
+    assert history_records[0]["task_batch_singleton_fallback_fraction"] == pytest.approx(0.5)
+    assert history_records[0]["task_batch_signature_counts"] == {"6x3x4x3": 2}
+    assert gradient_records[0]["task_batch_size_actual"] == 3
+    assert gradient_records[0]["task_batch_batched_count"] == 1
+    assert gradient_records[0]["task_batch_singleton_fallback_count"] == 1
+    assert gradient_records[0]["task_batch_singleton_fallback_fraction"] == pytest.approx(0.5)
+    assert gradient_records[0]["task_batch_signature_counts"] == {"6x3x4x3": 2}
+    assert telemetry["diagnostics"]["task_batching"] == {
+        "record_count": 1,
+        "requested_task_batch_sizes": [2],
+        "actual_task_batch_size_counts": {"3": 1},
+        "batched_step_count": 1,
+        "singleton_fallback_count": 1,
+        "singleton_fallback_fraction": 0.5,
+        "signature_counts": {"6x3x4x3": 2},
+    }
+
+
 def test_train_disables_even_batch_padding_for_task_batching(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1136,14 +1207,27 @@ def test_train_rejects_task_batching_for_non_manifest_loader(
         _ = trainer_module.train(cfg)
 
 
-def test_train_rejects_task_batching_for_many_class_surface(
+def test_train_allows_task_batching_for_low_class_many_class_surface(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    _install_classification_fakes(monkeypatch)
     monkeypatch.setattr(
         trainer_module,
-        "build_accelerator_from_runtime",
-        lambda *_args, **_kwargs: _FakeAccelerator(),
+        "model_build_spec_from_mappings",
+        lambda **_kwargs: SimpleNamespace(task="classification", arch="tabfoundry_staged"),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "build_model_from_spec",
+        lambda _spec: _TaskBatchAwareTinyClassifier(),
+    )
+    monkeypatch.setattr(
+        trainer_module,
+        "build_task_loader",
+        lambda *_args, **_kwargs: [
+            _weighted_metric_batch(task_batch_size_actual=2, task_batch_size_requested=2),
+        ],
     )
     cfg = _classification_cfg(tmp_path)
     cfg.model = {
@@ -1153,9 +1237,11 @@ def test_train_rejects_task_batching_for_many_class_surface(
         "input_normalization": "none",
     }
     cfg.training = {"task_batch_size": 2}
+    cfg.runtime.val_batches = 0
 
-    with pytest.raises(RuntimeError, match="not supported for many_class staged surfaces"):
-        _ = trainer_module.train(cfg)
+    result = trainer_module.train(cfg)
+
+    assert result.global_step == 1
 
 
 def test_train_rejects_non_empty_history_jsonl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

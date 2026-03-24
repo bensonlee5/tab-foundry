@@ -11,7 +11,6 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
-from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.task_batching import (
@@ -131,7 +130,18 @@ def _reduce_global_grad_norm_kind(
     return "finite"
 
 
-def _task_batch_step_payload(batch: TaskBatch) -> dict[str, Any]:
+def _empty_task_batch_step_payload(*, requested_task_batch_size: int) -> dict[str, Any]:
+    return {
+        "task_batch_size_requested": int(requested_task_batch_size),
+        "task_batch_size_actual": 0,
+        "task_batch_batched_count": 0,
+        "task_batch_singleton_fallback_count": 0,
+        "task_batch_singleton_fallback_fraction": 0.0,
+        "task_batch_signature_counts": {},
+    }
+
+
+def _task_batch_microstep_payload(batch: TaskBatch) -> dict[str, Any]:
     diagnostics = task_batch_diagnostics(batch)
     requested = int(diagnostics["task_batch_size_requested"])
     actual = int(diagnostics["task_batch_size_actual"])
@@ -144,6 +154,46 @@ def _task_batch_step_payload(batch: TaskBatch) -> dict[str, Any]:
         "task_batch_singleton_fallback_fraction": 1.0 if is_fallback else 0.0,
         "task_batch_signature_counts": {str(diagnostics["task_batch_signature"]): 1},
     }
+
+
+def _accumulate_task_batch_step_payload(
+    step_payload: dict[str, Any],
+    *,
+    microstep_payload: Mapping[str, Any],
+) -> None:
+    requested = int(microstep_payload["task_batch_size_requested"])
+    expected_requested = int(step_payload["task_batch_size_requested"])
+    if int(step_payload["task_batch_size_actual"]) == 0:
+        step_payload["task_batch_size_requested"] = requested
+    elif requested != expected_requested:
+        raise RuntimeError(
+            "task-batch diagnostics changed requested task batch size within one optimizer step: "
+            f"expected {expected_requested}, got {requested}"
+        )
+
+    actual = int(microstep_payload["task_batch_size_actual"])
+    batched_count = (
+        int(step_payload["task_batch_batched_count"])
+        + int(microstep_payload["task_batch_batched_count"])
+    )
+    fallback_count = (
+        int(step_payload["task_batch_singleton_fallback_count"])
+        + int(microstep_payload["task_batch_singleton_fallback_count"])
+    )
+    step_payload["task_batch_size_actual"] = int(step_payload["task_batch_size_actual"]) + actual
+    step_payload["task_batch_batched_count"] = batched_count
+    step_payload["task_batch_singleton_fallback_count"] = fallback_count
+    task_batch_microsteps = batched_count + fallback_count
+    step_payload["task_batch_singleton_fallback_fraction"] = (
+        0.0
+        if task_batch_microsteps <= 0
+        else float(fallback_count / float(task_batch_microsteps))
+    )
+
+    step_signature_counts = cast(dict[str, int], step_payload["task_batch_signature_counts"])
+    for signature, count in cast(Mapping[str, int], microstep_payload["task_batch_signature_counts"]).items():
+        key = str(signature)
+        step_signature_counts[key] = step_signature_counts.get(key, 0) + int(count)
 
 
 def train(cfg: DictConfig) -> TrainResult:
@@ -166,11 +216,6 @@ def train(cfg: DictConfig) -> TrainResult:
     target_train_seconds = _resolve_target_train_seconds(cfg.runtime)
     val_batches = _resolve_val_batches(cfg.runtime)
     task_batch_size = resolve_task_batch_size(cfg.get("training"))
-    if task_batch_size > 1 and grad_accum_steps != 1:
-        raise RuntimeError(
-            "training.task_batch_size > 1 requires runtime.grad_accum_steps=1, "
-            f"got training.task_batch_size={task_batch_size}, runtime.grad_accum_steps={grad_accum_steps}"
-        )
 
     accelerator = build_accelerator_from_runtime(
         cfg.runtime,
@@ -183,11 +228,6 @@ def train(cfg: DictConfig) -> TrainResult:
     if isinstance(raw_model_cfg, dict):
         model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
     model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
-    if task_batch_size > 1 and model_spec.arch == "tabfoundry_staged":
-        if resolve_staged_surface(model_spec).head == "many_class":
-            raise RuntimeError(
-                "training.task_batch_size > 1 is not supported for many_class staged surfaces"
-            )
 
     train_ds = build_task_dataset(
         cfg.data,
@@ -400,19 +440,18 @@ def train(cfg: DictConfig) -> TrainResult:
                 train_metric_counts: dict[str, int] = {}
                 activation_sum_sqs: dict[str, float] = {}
                 activation_element_counts: dict[str, float] = {}
-                step_batch_payload: dict[str, Any] = {
-                    "task_batch_size_requested": int(task_batch_size),
-                    "task_batch_size_actual": 1,
-                    "task_batch_batched_count": 0,
-                    "task_batch_singleton_fallback_count": 0,
-                    "task_batch_singleton_fallback_fraction": 0.0,
-                    "task_batch_signature_counts": {},
-                }
+                step_batch_payload = _empty_task_batch_step_payload(
+                    requested_task_batch_size=task_batch_size,
+                )
                 step_train_start = time.perf_counter()
                 for _micro_step in range(grad_accum_steps):
                     batch = move_batch(next(train_iter), accelerator.device)
-                    step_batch_payload = _task_batch_step_payload(batch)
-                    actual_task_count = int(step_batch_payload["task_batch_size_actual"])
+                    microstep_batch_payload = _task_batch_microstep_payload(batch)
+                    _accumulate_task_batch_step_payload(
+                        step_batch_payload,
+                        microstep_payload=microstep_batch_payload,
+                    )
+                    actual_task_count = int(microstep_batch_payload["task_batch_size_actual"])
                     with accelerator.accumulate(model):
                         with accelerator.autocast():
                             output = model(batch)
@@ -548,6 +587,15 @@ def train(cfg: DictConfig) -> TrainResult:
                             train_loss_ema=loss_ema,
                             grad_clip_threshold=float(cfg.runtime.grad_clip),
                             grad_clip_triggered=False,
+                            task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
+                            task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
+                            task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
+                            task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
+                            task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
+                            task_batch_signature_counts=cast(
+                                Mapping[str, int],
+                                step_batch_payload["task_batch_signature_counts"],
+                            ),
                         )
                         history_records.append(history_payload)
                         if history_path is not None:

@@ -362,6 +362,22 @@ def test_many_class_stage_accepts_full_probs_in_train_mode() -> None:
     assert out.path_sample_counts is None
 
 
+def test_many_class_stage_uses_direct_head_for_low_class_task_batches() -> None:
+    model = _staged("many_class", many_class_base=4, input_normalization="none")
+    batch = _batched_batch(num_classes=2)
+
+    out = model(batch)
+
+    assert out.logits is not None
+    assert int(out.logits.shape[0]) == 4
+    assert int(out.logits.shape[1]) >= 2
+    assert out.num_classes == 2
+    assert out.class_probs is None
+    assert out.path_logits is None
+    assert out.path_targets is None
+    assert out.path_sample_counts is None
+
+
 def test_many_class_stage_rejects_tensor_batched_internal_path() -> None:
     model = _staged("many_class", many_class_base=4, input_normalization="none")
     x_all = torch.randn(2, 8, 12)
