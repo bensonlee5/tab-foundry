@@ -3,24 +3,23 @@
 Training, benchmarking, and exporting tabular ML models, with research and
 workflow guidance documented in the repo docs and published docs site.
 
-The primary reader path is the docs site:
-[bensonlee5.github.io/tab-foundry](https://bensonlee5.github.io/tab-foundry/).
+> Docs-first: start with the published docs at
+> [bensonlee5.github.io/tab-foundry](https://bensonlee5.github.io/tab-foundry/)
+> for the fastest route to the current workflows, architecture, and research
+> context.
 
 ## Start Here
 
 Use the docs site first, then fall back to the local Markdown docs when you
-are working in the repo:
+are working in the repo.
 
-- [docs/what-is-tab-foundry.md](docs/what-is-tab-foundry.md): short repo
-  overview
-- [docs/getting-started.md](docs/getting-started.md): orientation and reader
-  paths
-- [docs/research-contributors.md](docs/research-contributors.md): research and
-  sweep workflow
-- [docs/ml-engineering.md](docs/ml-engineering.md): artifact and infra-facing
-  workflow
-- [docs/workflows.md](docs/workflows.md): canonical commands and operational
-  runbooks
+| If you want to... | Start here | Then go deeper |
+| --- | --- | --- |
+| Understand what this repo does | [docs/what-is-tab-foundry.md](docs/what-is-tab-foundry.md) | [docs/getting-started.md](docs/getting-started.md) |
+| Get oriented quickly | [docs/getting-started.md](docs/getting-started.md) | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Work on research or sweeps | [docs/research-contributors.md](docs/research-contributors.md) | [program.md](program.md) and [docs/workflows.md](docs/workflows.md) |
+| Work on artifacts or infra | [docs/ml-engineering.md](docs/ml-engineering.md) | [docs/inference.md](docs/inference.md) and [docs/workflows.md](docs/workflows.md) |
+| Find exact command syntax | [docs/workflows.md](docs/workflows.md) | [docs/development/codebase-navigation.md](docs/development/codebase-navigation.md) |
 
 ## Environment
 
@@ -33,27 +32,9 @@ are working in the repo:
 ./scripts/dev bootstrap
 ```
 
-`./scripts/dev bootstrap` wraps the canonical repo-local setup:
-
-```bash
-uv sync
-pre-commit install
-```
-
-After setup, activate the virtual environment so you can run commands directly
-without the `uv run` prefix:
-
-```bash
-source .venv/bin/activate
-```
-
-Repo-local `uv sync` includes the benchmark helper dependencies plus Muon
-through the dev environment. For a minimal non-dev install, opt into the extra
-surfaces explicitly:
-
-```bash
-uv sync --no-dev --extra benchmark --extra muon
-```
+`./scripts/dev bootstrap` wraps the canonical repo-local setup (`uv sync` plus
+`pre-commit install`). For deeper setup and workflow details, use
+[docs/workflows.md](docs/workflows.md).
 
 ## Finding Commands
 
@@ -62,12 +43,14 @@ export, bench, and research workflows. Treat `./scripts/dev` as a repo-local
 convenience wrapper only for bootstrap, doctor, ready, verification, and Iris
 smoke.
 
-The remaining repo-local entrypoints outside the packaged CLI are
-`./scripts/dev`, a small set of shell helpers under `scripts/`, the standalone
-internal benchmark helpers under `scripts/bench/`, and the TF-RD-013 support
-materializer at `scripts/materialize_tf_rd_013_support.py`. Use those only
-when a runbook such as `program.md` or a checked-in support README calls for
-them explicitly.
+### Entry Points
+
+| Surface | Use it for |
+| --- | --- |
+| `tab-foundry` | Packaged CLI for data, dev, train, eval, export, bench, and research workflows |
+| `./scripts/dev` | Repo-local bootstrap, doctor, ready, verification, and Iris smoke |
+| `scripts/bench/` | Standalone internal benchmark helpers when a runbook calls for them explicitly |
+| `scripts/materialize_tf_rd_013_support.py` | TF-RD-013 support materialization for committed support bundles |
 
 After installation, use `tab-foundry ...` for command discovery and execution.
 Use `--help` in this order:
@@ -78,65 +61,91 @@ tab-foundry <group> --help
 tab-foundry <group> <command> --help
 ```
 
-CLI tree:
+### Top-Level Namespaces
 
-- `tab-foundry`
-  - `data`: manifests, corpora, and dataset inspection
-    - `build-manifest`: build a manifest from one or more data roots
-    - `manifest-inspect`: inspect one manifest against an experiment surface
-    - `dagzoo generate-manifest`: generate dagzoo data and emit a manifest
-    - `corpus list-recipes`: list available corpus recipes
-    - `corpus materialize`: materialize one named corpus recipe
-    - `corpus inspect`: inspect one materialized corpus
-    - `corpus compare`: compare two corpus records
-    - `corpus results`: summarize benchmark results tied to one corpus
-  - `dev`: developer inspection and verification helpers
-    - `resolve-config`: render the resolved Hydra config
-    - `forward-check`: build the model and run a forward-only smoke check
-    - `diff-config`: diff two resolved config surfaces
-    - `export-check`: validate exportability from one checkpoint
-    - `health-check`: summarize training telemetry health for one run
-    - `run-inspect`: inspect one run directory and its artifacts
-  - `train`: training entrypoints
-    - `run`: train from Hydra config overrides
-    - `prior simple`: train the exact-prior simple benchmark family
-    - `prior staged`: train the exact-prior staged benchmark family
-  - `eval`: checkpoint evaluation
-    - `checkpoint`: evaluate one checkpoint on a selected split
-  - `export`: inference bundle workflows
-    - `bundle`: export one checkpoint as an inference bundle
-    - `validate`: validate an exported inference bundle
-  - `bench`: smoke, benchmark, tuning, and registry workflows
-    - `smoke iris`: run the Iris smoke harness
-    - `smoke dagzoo`: run the dagzoo smoke harness
-    - `tune`: run the internal benchmark tuning sweep
-    - `compare`: compare one run against external baselines
-    - `env bootstrap`: bootstrap sibling benchmark environments
-    - `bundle build-openml`: build an OpenML benchmark bundle
-    - `registry register-run`: register a benchmark-facing run
-    - `registry freeze-baseline`: freeze a control baseline
-    - `diagnose bounce`: run the benchmark bounce diagnosis flow
-  - `research`: system-delta sweep workflows
-    - `sweep list-sweeps`: list committed sweeps
-    - `sweep show-active`: show the active sweep alias target
-    - `sweep set-active`: set the active sweep alias target
-    - `sweep list`: list rows in one sweep
-    - `sweep next`: show the next runnable row
-    - `sweep render`: render the sweep matrix Markdown
-    - `sweep validate`: validate one sweep's queue and artifacts
-    - `sweep create-sweep`: create a new sweep from anchor metadata
-    - `sweep execute`: execute selected sweep rows
-    - `sweep graph`: render architecture graphs for sweep targets
-    - `sweep promote`: promote a completed row to the sweep anchor
-    - `sweep summarize`: summarize local sweep results
-    - `sweep inspect`: inspect one materialized sweep row
-    - `sweep diff`: diff one sweep row against another row or the anchor
+| Namespace | Purpose | Read next |
+| --- | --- | --- |
+| `data` | Manifests, corpora, and dataset inspection | [docs/workflows.md](docs/workflows.md) |
+| `dev` | Config resolution, forward checks, export checks, and run inspection | [docs/workflows.md](docs/workflows.md) |
+| `train` | Training entrypoints, including prior workflows | [docs/workflows.md](docs/workflows.md) |
+| `eval` | Checkpoint evaluation | [docs/workflows.md](docs/workflows.md) |
+| `export` | Inference bundle export and validation | [docs/workflows.md](docs/workflows.md) and [docs/inference.md](docs/inference.md) |
+| `bench` | Smoke, benchmarking, tuning, and registry flows | [docs/workflows.md](docs/workflows.md) |
+| `research` | System-delta sweep management and execution | [docs/research-contributors.md](docs/research-contributors.md), [program.md](program.md), and [docs/workflows.md](docs/workflows.md) |
 
 Repo-local sanity check:
 
 ```bash
 ./scripts/dev doctor
 ```
+
+<details>
+<summary>Full CLI tree</summary>
+
+```text
+tab-foundry
+├── data                          data workflows
+│   ├── build-manifest              build manifest parquet from dagzoo shard outputs
+│   ├── manifest-inspect            inspect a manifest and preflight compatibility
+│   ├── dagzoo
+│   │   └── generate-manifest       generate dagzoo corpus and emit a manifest
+│   └── corpus
+│       ├── list-recipes            list tracked corpus recipes
+│       ├── materialize             materialize a corpus recipe under outputs/corpora/
+│       ├── inspect                 inspect a materialized corpus record
+│       ├── compare                 diff two materialized corpus records
+│       └── results                 list benchmark runs linked to a corpus
+├── dev                           developer inspection and diagnostics
+│   ├── resolve-config              compose and print the resolved config surface
+│   ├── forward-check               build a model and run a synthetic forward smoke
+│   ├── diff-config                 compare two resolved config surfaces
+│   ├── export-check                export a checkpoint, validate, and run a smoke
+│   ├── health-check                summarize run telemetry and instability signals
+│   └── run-inspect                 inspect a run directory and its artifacts
+├── train                         training workflows
+│   ├── run                         train from Hydra config overrides
+│   └── prior
+│       ├── simple                  train the exact-prior simple benchmark family
+│       └── staged                  train the exact-prior staged benchmark family
+├── eval                          evaluation workflows
+│   └── checkpoint                  evaluate a checkpoint on a selected split
+├── export                        export workflows
+│   ├── bundle                      export a checkpoint as an inference bundle
+│   └── validate                    validate an exported inference bundle
+├── bench                         benchmark workflows
+│   ├── smoke
+│   │   ├── iris                    run the Iris smoke harness
+│   │   └── dagzoo                  run the dagzoo smoke harness
+│   ├── tune                        run the internal benchmark tuning sweep
+│   ├── compare                     compare a run against external baselines
+│   ├── env
+│   │   └── bootstrap               bootstrap sibling benchmark environments
+│   ├── bundle
+│   │   └── build-openml            build an OpenML benchmark bundle
+│   ├── registry
+│   │   ├── register-run            register a benchmark run
+│   │   └── freeze-baseline         freeze a control baseline
+│   └── diagnose
+│       └── bounce                  run the benchmark bounce diagnosis flow
+└── research                      research workflows
+    └── sweep
+        ├── list-sweeps             list known sweeps
+        ├── show-active             print the active sweep id
+        ├── set-active              set the active sweep and regenerate aliases
+        ├── create-sweep            bootstrap a new sweep from the delta catalog
+        ├── list                    list queue rows in order
+        ├── next                    print the next ready row
+        ├── render                  render the sweep matrix as Markdown
+        ├── validate                validate completed rows for a sweep
+        ├── execute                 execute selected sweep rows
+        ├── graph                   render architecture graphs for sweep targets
+        ├── promote                 promote a completed run to the sweep anchor
+        ├── summarize               summarize local sweep results into one table
+        ├── inspect                 inspect a materialized sweep row
+        └── diff                    diff a sweep row against the anchor or another row
+```
+
+</details>
 
 For the full namespace inventory, use
 [docs/development/codebase-navigation.md](docs/development/codebase-navigation.md).
