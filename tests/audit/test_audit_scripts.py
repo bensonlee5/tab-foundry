@@ -28,6 +28,10 @@ check_markdown_links = _load_script_module(
     REPO_ROOT / "scripts" / "audit" / "check_markdown_links.py",
     "check_markdown_links_script",
 )
+check_docs_consistency = _load_script_module(
+    REPO_ROOT / "scripts" / "audit" / "check_docs_consistency.py",
+    "check_docs_consistency_script",
+)
 module_graph = _load_script_module(
     REPO_ROOT / "scripts" / "audit" / "module_graph.py",
     "module_graph_script",
@@ -126,6 +130,75 @@ def test_markdown_link_audit_passes_on_repo_docs() -> None:
     )
 
     assert errors == []
+
+
+def test_docs_consistency_audit_passes_on_repo_docs() -> None:
+    errors = check_docs_consistency.scan_docs_consistency(
+        REPO_ROOT,
+        check_docs_consistency.DEFAULT_ROOTS,
+    )
+
+    assert errors == []
+
+
+def test_docs_consistency_reports_stale_python_module_entrypoint(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text(
+        "Run `python -m tab_foundry.bench.instability_audit --staged-ladder-root outputs/staged_ladder`.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert errors[0][2].startswith("stale direct module entrypoint")
+
+
+def test_docs_consistency_reports_nonexistent_tab_foundry_command(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text(
+        "Use `tab-foundry research sweep create --sweep-id demo`.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert "unknown tab-foundry command token" in errors[0][2]
+    assert "create" in errors[0][2]
+
+
+def test_docs_consistency_reports_removed_module_reference(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text(
+        "Import `tab_foundry.research.system_delta_execute` for sweep execution.\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert "removed research compatibility wrapper reference" == errors[0][2]
+
+
+def test_docs_consistency_reports_codebase_navigation_inventory_mismatch(tmp_path: Path) -> None:
+    docs_dir = tmp_path / "docs" / "development"
+    docs_dir.mkdir(parents=True)
+    (docs_dir / "codebase-navigation.md").write_text(
+        "\n".join(
+            [
+                "# Codebase Navigation",
+                "",
+                "Current canonical CLI namespaces:",
+                "",
+                "- `tab-foundry train run`",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["docs"])
+
+    assert any("missing canonical CLI inventory entry" in error[2] for error in errors)
+    assert any("tab-foundry research sweep list" in error[2] for error in errors)
 
 
 def test_module_dependency_doc_matches_observed_graph() -> None:

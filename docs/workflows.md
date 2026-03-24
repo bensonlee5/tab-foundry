@@ -101,6 +101,7 @@ tab-foundry dev health-check --run-dir outputs/cls_smoke
 tab-foundry dev run-inspect --run-dir outputs/cls_smoke
 tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
 tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
+tab-foundry research sweep list --sweep-id binary_md_v1
 tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
 tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1
 ```
@@ -718,6 +719,7 @@ Recommended loop:
 
    ```bash
    tab-foundry research sweep list-sweeps
+   tab-foundry research sweep list --sweep-id <sweep_id>
    tab-foundry research sweep next
    tab-foundry research sweep summarize --include-screened
    ```

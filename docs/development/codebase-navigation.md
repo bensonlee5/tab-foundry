@@ -15,7 +15,8 @@ into the canonical library modules.
   `data`, `dev`, `train`, `eval`, `export`, `bench`, and `research`
   workflows.
 - `scripts/`: shell convenience helpers, audit tooling, and a small set of
-  standalone internal benchmark helper entrypoints under `scripts/bench/`.
+  standalone internal Python entrypoints: benchmark helpers under
+  `scripts/bench/` plus the TF-RD-013 support materializer.
 - `scripts/dev`: repo-local bootstrap, doctor, ready, verification, and smoke
   wrapper that delegates to the audit tooling and packaged CLI. Hook and audit
   tooling now resolve interpreters with a worktree-first `.venv` policy and
@@ -100,8 +101,9 @@ The repo uses three stable workflow layers:
   data/build, training, evaluation, export, smoke, tuning, benchmarking,
   registry, and research-sweep flows.
 - Shell helpers under `scripts/*.sh` plus `scripts/audit/` as repo-local
-  convenience and verification surfaces, plus `scripts/bench/` for the
-  small set of standalone internal benchmark helper entrypoints.
+  convenience and verification surfaces, plus the small set of standalone
+  internal Python entrypoints under `scripts/bench/` and
+  `scripts/materialize_tf_rd_013_support.py`.
 - `scripts/dev` as the canonical repo-local entrypoint for bootstrap checks,
   branch review, affected-scope verification, explicit-path verification, full
   verification, and Iris smoke delegation.
@@ -110,6 +112,12 @@ The repo uses three stable workflow layers:
 Current canonical CLI namespaces:
 
 - `tab-foundry data build-manifest`
+- `tab-foundry data corpus compare`
+- `tab-foundry data corpus inspect`
+- `tab-foundry data corpus list-recipes`
+- `tab-foundry data corpus materialize`
+- `tab-foundry data corpus results`
+- `tab-foundry data dagzoo generate-manifest`
 - `tab-foundry data manifest-inspect`
 - `tab-foundry dev resolve-config`
 - `tab-foundry dev forward-check`
@@ -133,6 +141,7 @@ Current canonical CLI namespaces:
 - `tab-foundry bench registry freeze-baseline`
 - `tab-foundry bench diagnose bounce`
 - `tab-foundry research sweep create-sweep`
+- `tab-foundry research sweep list`
 - `tab-foundry research sweep list-sweeps`
 - `tab-foundry research sweep show-active`
 - `tab-foundry research sweep next`

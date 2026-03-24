@@ -62,6 +62,10 @@ export, bench, and research workflows. Treat `./scripts/dev` as a repo-local
 convenience wrapper only for bootstrap, doctor, ready, verification, and Iris
 smoke.
 
+The only remaining non-packaged Python entrypoints are the standalone internal
+benchmark helpers under `scripts/bench/`; use them only when a runbook such as
+`program.md` calls for them explicitly.
+
 For command discovery and execution, prefer `.venv/bin/tab-foundry ...` or an
 activated `.venv`. Use help in this order:
 
@@ -113,6 +117,7 @@ tab-foundry dev run-inspect --run-dir outputs/cls_smoke
 tab-foundry dev export-check --checkpoint outputs/cls_smoke/checkpoints/best.pt
 tab-foundry data manifest-inspect --manifest data/manifests/default.parquet --experiment cls_smoke --override data.manifest_path=data/manifests/default.parquet
 tab-foundry research sweep summarize --include-screened
+tab-foundry research sweep list --sweep-id binary_md_v1
 tab-foundry research sweep inspect --order 6 --sweep-id binary_md_v1
 tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md_v1
 ```
