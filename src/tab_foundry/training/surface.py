@@ -82,6 +82,41 @@ def resolve_training_backend_from_data_cfg(
     return resolve_training_backend_from_data_surface(data_surface)
 
 
+def _legacy_prior_payload(
+    *,
+    training_cfg: Mapping[str, Any] | None,
+    legacy_prior_cfg: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    def _raw_value(top_level_key: str, legacy_training_key: str) -> Any:
+        if training_cfg is not None and training_cfg.get(legacy_training_key) is not None:
+            return training_cfg[legacy_training_key]
+        if legacy_prior_cfg is not None and legacy_prior_cfg.get(top_level_key) is not None:
+            return legacy_prior_cfg[top_level_key]
+        return None
+
+    non_finite_policy = _raw_value("non_finite_policy", "prior_dump_non_finite_policy")
+    batch_size = _raw_value("batch_size", "prior_dump_batch_size")
+    lr_scale_rule = _raw_value("lr_scale_rule", "prior_dump_lr_scale_rule")
+    batch_reference_size = _raw_value("batch_reference_size", "prior_dump_batch_reference_size")
+    effective_lr_scale_factor = _raw_value(
+        "effective_lr_scale_factor",
+        "effective_lr_scale_factor",
+    )
+    return {
+        "non_finite_policy": "error" if non_finite_policy is None else str(non_finite_policy),
+        "batch_size": None if batch_size is None else int(batch_size),
+        "lr_scale_rule": None if lr_scale_rule is None else str(lr_scale_rule),
+        "batch_reference_size": (
+            None if batch_reference_size is None else int(batch_reference_size)
+        ),
+        "effective_lr_scale_factor": (
+            None
+            if effective_lr_scale_factor is None
+            else float(effective_lr_scale_factor)
+        ),
+    }
+
+
 def build_training_surface_record(
     *,
     raw_cfg: Mapping[str, Any],
@@ -253,23 +288,10 @@ def build_training_surface_record(
                 "task_batch_size": 1,
             }
         if resolved_backend == TRAINING_BACKEND_LEGACY_PRIOR:
-            training_payload["legacy_prior"] = {
-                "non_finite_policy": "error"
-                if legacy_prior_cfg is None or legacy_prior_cfg.get("non_finite_policy") is None
-                else str(legacy_prior_cfg["non_finite_policy"]),
-                "batch_size": None
-                if legacy_prior_cfg is None or legacy_prior_cfg.get("batch_size") is None
-                else int(legacy_prior_cfg["batch_size"]),
-                "lr_scale_rule": None
-                if legacy_prior_cfg is None or legacy_prior_cfg.get("lr_scale_rule") is None
-                else str(legacy_prior_cfg["lr_scale_rule"]),
-                "batch_reference_size": None
-                if legacy_prior_cfg is None or legacy_prior_cfg.get("batch_reference_size") is None
-                else int(legacy_prior_cfg["batch_reference_size"]),
-                "effective_lr_scale_factor": None
-                if legacy_prior_cfg is None or legacy_prior_cfg.get("effective_lr_scale_factor") is None
-                else float(legacy_prior_cfg["effective_lr_scale_factor"]),
-            }
+            training_payload["legacy_prior"] = _legacy_prior_payload(
+                training_cfg=training_cfg,
+                legacy_prior_cfg=legacy_prior_cfg,
+            )
         if resolved_backend is not None:
             training_payload["backend"] = resolved_backend
         payload["training"] = training_payload

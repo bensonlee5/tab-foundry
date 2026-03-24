@@ -53,6 +53,14 @@ def test_resolve_config_payload_omits_legacy_prior_for_manifest_experiment() -> 
     assert "legacy_prior" not in payload["training"]
 
 
+def test_resolve_config_payload_omits_backend_for_unsupported_data_source() -> None:
+    payload = resolve_config_payload(["data.source=dagzoo"])
+
+    assert payload["data"]["source"] == "dagzoo"
+    assert "backend" not in payload["training"]
+    assert "legacy_prior" not in payload["training"]
+
+
 def test_resolve_config_payload_keeps_unmaterialized_corpus_ref_for_inspection() -> None:
     payload = resolve_config_payload(
         [

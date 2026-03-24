@@ -237,6 +237,9 @@ def test_manifest_inspect_compatibility_is_not_applicable_for_non_manifest_sourc
     compatibility = payload["compatibility"]
     assert compatibility["verdict"] == "not_applicable"
     assert compatibility["data_source"] == "dagzoo"
+    resolved_training = payload["resolved_config"]["training"]
+    assert "backend" not in resolved_training
+    assert "legacy_prior" not in resolved_training
 
 
 def test_manifest_inspect_compatibility_reports_unmaterialized_corpus_ref(

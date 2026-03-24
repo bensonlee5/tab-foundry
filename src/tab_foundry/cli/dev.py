@@ -28,6 +28,7 @@ from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import resolve_preprocessing_surface
 from tab_foundry.task_batching import move_batch
 from tab_foundry.training.health import health_check, run_inspect
+from tab_foundry.training.surface import resolve_training_backend_from_data_cfg
 
 
 _DEVICE_CHOICES = ("auto", "cpu", "cuda", "mps")
@@ -74,7 +75,7 @@ def _training_surface_payload(
     training_cfg: Mapping[str, Any],
     *,
     legacy_prior_cfg: Mapping[str, Any],
-    backend: str,
+    backend: str | None,
     optimizer_cfg: Mapping[str, Any],
     schedule_cfg: Mapping[str, Any],
 ) -> dict[str, Any]:
@@ -100,13 +101,14 @@ def _training_surface_payload(
         "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
         "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
         "overrides": dict(cast(dict[str, Any], training_cfg.get("overrides", {}))),
-        "backend": backend,
         "optimizer_name": None if optimizer_cfg.get("name") is None else str(optimizer_cfg["name"]),
         "optimizer_min_lr": None
         if optimizer_cfg.get("min_lr") is None
         else float(optimizer_cfg["min_lr"]),
         "schedule_stages": rendered_stages,
     }
+    if backend is not None:
+        payload["backend"] = backend
     if backend == "legacy_prior":
         payload["legacy_prior"] = {
             "non_finite_policy": legacy_prior_cfg.get("non_finite_policy"),
@@ -130,20 +132,31 @@ def _training_surface_payload(
     return payload
 
 
+def _inspection_training_backend(data_cfg: Mapping[str, Any]) -> str | None:
+    try:
+        return resolve_training_backend_from_data_cfg(
+            data_cfg,
+            allow_unresolved_corpus_ref=True,
+        )
+    except RuntimeError:
+        return None
+
+
 def resolve_config_payload(overrides: Sequence[str]) -> dict[str, Any]:
     cfg = compose_config(list(overrides))
     task = str(getattr(cfg, "task", "classification")).strip().lower()
     model_cfg = _mapping_from_node(getattr(cfg, "model", None), context="cfg.model")
     spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
+    data_cfg = _mapping_from_node(getattr(cfg, "data", None), context="cfg.data")
     data_surface = resolve_data_surface(
-        _mapping_from_node(getattr(cfg, "data", None), context="cfg.data"),
+        data_cfg,
         allow_unresolved_corpus_ref=True,
     )
     preprocessing_surface = resolve_preprocessing_surface(
         _mapping_from_node(getattr(cfg, "preprocessing", None), context="cfg.preprocessing")
     )
     legacy_prior_cfg = _mapping_from_node(getattr(cfg, "legacy_prior", None), context="cfg.legacy_prior")
-    backend = "manifest" if str(data_surface.source).strip().lower() == "manifest" else "legacy_prior"
+    backend = _inspection_training_backend(data_cfg)
     training_payload = _training_surface_payload(
         _mapping_from_node(getattr(cfg, "training", None), context="cfg.training"),
         legacy_prior_cfg=legacy_prior_cfg,

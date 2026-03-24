@@ -591,3 +591,39 @@ def test_build_training_surface_record_captures_legacy_prior_batch_scaling_metad
     }
     assert record["training"]["optimizer_min_lr"] == 5.656854249492381e-4
     assert record["training"]["schedule_stages"][0]["lr_max"] == 5.656854249492381e-3
+
+
+def test_build_training_surface_record_preserves_flat_legacy_prior_overrides(
+    tmp_path: Path,
+) -> None:
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "training": {
+                "surface_label": "prior_linear_warmup_decay",
+                "apply_schedule": True,
+                "prior_dump_non_finite_policy": "skip",
+                "prior_dump_batch_size": 64,
+                "prior_dump_lr_scale_rule": "sqrt",
+                "prior_dump_batch_reference_size": 32,
+                "effective_lr_scale_factor": 2 ** 0.5,
+            },
+            "legacy_prior": {
+                "non_finite_policy": "error",
+                "batch_size": 32,
+                "lr_scale_rule": "none",
+                "batch_reference_size": 32,
+            },
+        },
+        run_dir=tmp_path / "run_flat_legacy_prior_overrides",
+    )
+
+    assert record["training"]["backend"] == "legacy_prior"
+    assert record["training"]["legacy_prior"] == {
+        "non_finite_policy": "skip",
+        "batch_size": 64,
+        "lr_scale_rule": "sqrt",
+        "batch_reference_size": 32,
+        "effective_lr_scale_factor": 2 ** 0.5,
+    }
