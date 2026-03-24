@@ -18,6 +18,10 @@ TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v3"
 _WINDOW_EARLY = "early_1_25"
 _WINDOW_POST_WARMUP = "post_warmup_100"
 _WINDOW_FINAL = "final_10pct"
+_EARLY_WINDOW_MAX_STEP = 25
+_MIN_LINEAR_SLOPE_POINTS = 2
+_POST_WARMUP_WINDOW_MAX_RECORDS = 100
+_FINAL_WINDOW_FRACTION = 0.1
 _TRACKED_ACTIVATIONS = (
     "post_feature_encoder",
     "pre_transformer",
@@ -285,7 +289,7 @@ def grad_norm_summary_from_running_totals(
 
 
 def _linear_slope_or_none(points: Sequence[tuple[float, float]]) -> float | None:
-    if len(points) < 2:
+    if len(points) < _MIN_LINEAR_SLOPE_POINTS:
         return None
     xs = [float(x_value) for x_value, _ in points]
     ys = [float(y_value) for _, y_value in points]
@@ -339,9 +343,19 @@ def _windowed_gradient_records(
     warmup_end_step: int,
 ) -> dict[str, list[Mapping[str, Any]]]:
     ordered = _sorted_records(records)
-    early = [record for record in ordered if 1 <= int(record.get("step", 0)) <= 25]
-    post_warmup = [record for record in ordered if int(record.get("step", 0)) > warmup_end_step][:100]
-    final_count = 0 if not ordered else max(1, int(math.ceil(float(len(ordered)) * 0.1)))
+    early = [
+        record
+        for record in ordered
+        if 1 <= int(record.get("step", 0)) <= _EARLY_WINDOW_MAX_STEP
+    ]
+    post_warmup = [
+        record for record in ordered if int(record.get("step", 0)) > warmup_end_step
+    ][:_POST_WARMUP_WINDOW_MAX_RECORDS]
+    final_count = (
+        0
+        if not ordered
+        else max(1, int(math.ceil(float(len(ordered)) * _FINAL_WINDOW_FRACTION)))
+    )
     final_window = [] if final_count <= 0 else ordered[-final_count:]
     return {
         _WINDOW_EARLY: early,
@@ -619,6 +633,7 @@ def _task_batching_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, An
     signature_counts: dict[str, int] = {}
     batched_step_count = 0
     singleton_fallback_count = 0
+    task_batch_microstep_count = 0
     for record in records:
         raw_requested = record.get("task_batch_size_requested")
         if raw_requested is not None:
@@ -626,16 +641,26 @@ def _task_batching_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, An
         raw_actual = record.get("task_batch_size_actual")
         if raw_actual is not None:
             actual_batch_sizes[str(int(raw_actual))] = actual_batch_sizes.get(str(int(raw_actual)), 0) + 1
-            if int(raw_actual) > 1:
-                batched_step_count += 1
+        raw_batched_count = record.get("task_batch_batched_count")
+        batched_count = (
+            int(raw_batched_count)
+            if raw_batched_count is not None
+            else (1 if raw_actual is not None and int(raw_actual) > 1 else 0)
+        )
+        if batched_count > 0:
+            batched_step_count += 1
+        task_batch_microstep_count += max(batched_count, 0)
         raw_fallback_count = record.get("task_batch_singleton_fallback_count")
         if raw_fallback_count is not None:
-            singleton_fallback_count += int(raw_fallback_count)
+            fallback_count = int(raw_fallback_count)
+            singleton_fallback_count += fallback_count
+            task_batch_microstep_count += max(fallback_count, 0)
         raw_signature_counts = record.get("task_batch_signature_counts")
         if isinstance(raw_signature_counts, Mapping):
             for signature, count in raw_signature_counts.items():
                 signature_counts[str(signature)] = signature_counts.get(str(signature), 0) + int(count)
     record_count = int(len(records))
+    fraction_denominator = task_batch_microstep_count if task_batch_microstep_count > 0 else record_count
     return {
         "record_count": record_count,
         "requested_task_batch_sizes": sorted(requested_sizes),
@@ -643,8 +668,8 @@ def _task_batching_summary(records: Sequence[Mapping[str, Any]]) -> dict[str, An
         "batched_step_count": int(batched_step_count),
         "singleton_fallback_count": int(singleton_fallback_count),
         "singleton_fallback_fraction": 0.0
-        if record_count <= 0
-        else float(singleton_fallback_count / float(record_count)),
+        if fraction_denominator <= 0
+        else float(singleton_fallback_count / float(fraction_denominator)),
         "signature_counts": signature_counts,
     }
 

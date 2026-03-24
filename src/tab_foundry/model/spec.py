@@ -16,6 +16,35 @@ SUPPORTED_MODEL_ARCHES = ("tabfoundry_simple", STAGED_MODEL_ARCH)
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
+DEFAULT_MODEL_ARCH = STAGED_MODEL_ARCH
+DEFAULT_MODEL_STAGE: str | None = None
+DEFAULT_MODEL_STAGE_LABEL: str | None = None
+DEFAULT_MODEL_MODULE_OVERRIDES: dict[str, Any] | None = None
+DEFAULT_MODEL_D_COL = 128
+DEFAULT_MODEL_D_ICL = 512
+DEFAULT_MODEL_INPUT_NORMALIZATION = "none"
+DEFAULT_MODEL_FEATURE_GROUP_SIZE = 1
+DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE = "path_nll"
+DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS = 64
+DEFAULT_MODEL_NORM_TYPE = "layernorm"
+DEFAULT_MODEL_TFCOL_N_HEADS = 8
+DEFAULT_MODEL_TFCOL_N_LAYERS = 3
+DEFAULT_MODEL_TFCOL_N_INDUCING = 128
+DEFAULT_MODEL_TFROW_N_HEADS = 8
+DEFAULT_MODEL_TFROW_N_LAYERS = 3
+DEFAULT_MODEL_TFROW_CLS_TOKENS = 4
+DEFAULT_MODEL_TFROW_NORM = "layernorm"
+DEFAULT_MODEL_TFICL_N_HEADS = 8
+DEFAULT_MODEL_TFICL_N_LAYERS = 12
+DEFAULT_MODEL_TFICL_FF_EXPANSION = 2
+DEFAULT_MODEL_MANY_CLASS_BASE = 10
+DEFAULT_MODEL_HEAD_HIDDEN_DIM = 1024
+DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED = True
+DEFAULT_MODEL_STAGED_DROPOUT = 0.0
+DEFAULT_MODEL_PRE_ENCODER_CLIP: float | None = None
+MAX_MODEL_STAGED_DROPOUT = 0.5
+MIN_MODEL_MANY_CLASS_BASE = 2
+_LINEAR_WEIGHT_TENSOR_RANK = 2
 
 
 class ModelStage(StrEnum):
@@ -121,32 +150,32 @@ class ModelBuildSpec:
     """Canonical model-construction settings shared across train/eval/export/load."""
 
     task: str
-    arch: str = STAGED_MODEL_ARCH
-    stage: str | None = None
-    stage_label: str | None = None
-    module_overrides: dict[str, Any] | None = None
-    d_col: int = 128
-    d_icl: int = 512
-    input_normalization: str = "none"
-    feature_group_size: int = 1
-    many_class_train_mode: str = "path_nll"
-    max_mixed_radix_digits: int = 64
-    norm_type: str = "layernorm"
-    tfcol_n_heads: int = 8
-    tfcol_n_layers: int = 3
-    tfcol_n_inducing: int = 128
-    tfrow_n_heads: int = 8
-    tfrow_n_layers: int = 3
-    tfrow_cls_tokens: int = 4
-    tfrow_norm: str = "layernorm"
-    tficl_n_heads: int = 8
-    tficl_n_layers: int = 12
-    tficl_ff_expansion: int = 2
-    many_class_base: int = 10
-    head_hidden_dim: int = 1024
-    use_digit_position_embed: bool = True
-    staged_dropout: float = 0.0
-    pre_encoder_clip: float | None = None
+    arch: str = DEFAULT_MODEL_ARCH
+    stage: str | None = DEFAULT_MODEL_STAGE
+    stage_label: str | None = DEFAULT_MODEL_STAGE_LABEL
+    module_overrides: dict[str, Any] | None = DEFAULT_MODEL_MODULE_OVERRIDES
+    d_col: int = DEFAULT_MODEL_D_COL
+    d_icl: int = DEFAULT_MODEL_D_ICL
+    input_normalization: str = DEFAULT_MODEL_INPUT_NORMALIZATION
+    feature_group_size: int = DEFAULT_MODEL_FEATURE_GROUP_SIZE
+    many_class_train_mode: str = DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE
+    max_mixed_radix_digits: int = DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS
+    norm_type: str = DEFAULT_MODEL_NORM_TYPE
+    tfcol_n_heads: int = DEFAULT_MODEL_TFCOL_N_HEADS
+    tfcol_n_layers: int = DEFAULT_MODEL_TFCOL_N_LAYERS
+    tfcol_n_inducing: int = DEFAULT_MODEL_TFCOL_N_INDUCING
+    tfrow_n_heads: int = DEFAULT_MODEL_TFROW_N_HEADS
+    tfrow_n_layers: int = DEFAULT_MODEL_TFROW_N_LAYERS
+    tfrow_cls_tokens: int = DEFAULT_MODEL_TFROW_CLS_TOKENS
+    tfrow_norm: str = DEFAULT_MODEL_TFROW_NORM
+    tficl_n_heads: int = DEFAULT_MODEL_TFICL_N_HEADS
+    tficl_n_layers: int = DEFAULT_MODEL_TFICL_N_LAYERS
+    tficl_ff_expansion: int = DEFAULT_MODEL_TFICL_FF_EXPANSION
+    many_class_base: int = DEFAULT_MODEL_MANY_CLASS_BASE
+    head_hidden_dim: int = DEFAULT_MODEL_HEAD_HIDDEN_DIM
+    use_digit_position_embed: bool = DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED
+    staged_dropout: float = DEFAULT_MODEL_STAGED_DROPOUT
+    pre_encoder_clip: float | None = DEFAULT_MODEL_PRE_ENCODER_CLIP
 
     def __post_init__(self) -> None:
         task = str(self.task).strip().lower()
@@ -235,8 +264,10 @@ class ModelBuildSpec:
             object.__setattr__(self, field_name, value)
             if value <= 0:
                 raise ValueError(f"{field_name} must be positive, got {value}")
-        if self.many_class_base <= 1:
-            raise ValueError(f"many_class_base must be >= 2, got {self.many_class_base}")
+        if self.many_class_base < MIN_MODEL_MANY_CLASS_BASE:
+            raise ValueError(
+                f"many_class_base must be >= {MIN_MODEL_MANY_CLASS_BASE}, got {self.many_class_base}"
+            )
 
         use_digit_position_embed = _coerce_bool(
             self.use_digit_position_embed,
@@ -245,8 +276,11 @@ class ModelBuildSpec:
         object.__setattr__(self, "use_digit_position_embed", use_digit_position_embed)
 
         staged_dropout = float(self.staged_dropout)
-        if not 0.0 <= staged_dropout <= 0.5:
-            raise ValueError(f"staged_dropout must be in [0.0, 0.5], got {staged_dropout}")
+        if not 0.0 <= staged_dropout <= MAX_MODEL_STAGED_DROPOUT:
+            raise ValueError(
+                f"staged_dropout must be in [0.0, {MAX_MODEL_STAGED_DROPOUT}], "
+                f"got {staged_dropout}"
+            )
         object.__setattr__(self, "staged_dropout", staged_dropout)
 
         pre_encoder_clip = self.pre_encoder_clip
@@ -280,35 +314,41 @@ def model_build_spec_from_mappings(
 
     return ModelBuildSpec(
         task=str(task).strip().lower(),
-        arch=str(_pick("arch", STAGED_MODEL_ARCH)),
-        stage=_pick("stage", None),
-        stage_label=_pick("stage_label", None),
-        module_overrides=_pick("module_overrides", None),
-        d_col=int(_pick("d_col", 128)),
-        d_icl=int(_pick("d_icl", 512)),
-        input_normalization=str(_pick("input_normalization", "none")),
-        feature_group_size=int(_pick("feature_group_size", 1)),
-        many_class_train_mode=str(_pick("many_class_train_mode", "path_nll")),
-        max_mixed_radix_digits=int(_pick("max_mixed_radix_digits", 64)),
-        norm_type=str(_pick("norm_type", "layernorm")),
-        tfcol_n_heads=int(_pick("tfcol_n_heads", 8)),
-        tfcol_n_layers=int(_pick("tfcol_n_layers", 3)),
-        tfcol_n_inducing=int(_pick("tfcol_n_inducing", 128)),
-        tfrow_n_heads=int(_pick("tfrow_n_heads", 8)),
-        tfrow_n_layers=int(_pick("tfrow_n_layers", 3)),
-        tfrow_cls_tokens=int(_pick("tfrow_cls_tokens", 4)),
-        tfrow_norm=str(_pick("tfrow_norm", "layernorm")),
-        tficl_n_heads=int(_pick("tficl_n_heads", 8)),
-        tficl_n_layers=int(_pick("tficl_n_layers", 12)),
-        tficl_ff_expansion=int(_pick("tficl_ff_expansion", 2)),
-        many_class_base=int(_pick("many_class_base", 10)),
-        head_hidden_dim=int(_pick("head_hidden_dim", 1024)),
+        arch=str(_pick("arch", DEFAULT_MODEL_ARCH)),
+        stage=_pick("stage", DEFAULT_MODEL_STAGE),
+        stage_label=_pick("stage_label", DEFAULT_MODEL_STAGE_LABEL),
+        module_overrides=_pick("module_overrides", DEFAULT_MODEL_MODULE_OVERRIDES),
+        d_col=int(_pick("d_col", DEFAULT_MODEL_D_COL)),
+        d_icl=int(_pick("d_icl", DEFAULT_MODEL_D_ICL)),
+        input_normalization=str(_pick("input_normalization", DEFAULT_MODEL_INPUT_NORMALIZATION)),
+        feature_group_size=int(_pick("feature_group_size", DEFAULT_MODEL_FEATURE_GROUP_SIZE)),
+        many_class_train_mode=str(
+            _pick("many_class_train_mode", DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE)
+        ),
+        max_mixed_radix_digits=int(
+            _pick("max_mixed_radix_digits", DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS)
+        ),
+        norm_type=str(_pick("norm_type", DEFAULT_MODEL_NORM_TYPE)),
+        tfcol_n_heads=int(_pick("tfcol_n_heads", DEFAULT_MODEL_TFCOL_N_HEADS)),
+        tfcol_n_layers=int(_pick("tfcol_n_layers", DEFAULT_MODEL_TFCOL_N_LAYERS)),
+        tfcol_n_inducing=int(_pick("tfcol_n_inducing", DEFAULT_MODEL_TFCOL_N_INDUCING)),
+        tfrow_n_heads=int(_pick("tfrow_n_heads", DEFAULT_MODEL_TFROW_N_HEADS)),
+        tfrow_n_layers=int(_pick("tfrow_n_layers", DEFAULT_MODEL_TFROW_N_LAYERS)),
+        tfrow_cls_tokens=int(_pick("tfrow_cls_tokens", DEFAULT_MODEL_TFROW_CLS_TOKENS)),
+        tfrow_norm=str(_pick("tfrow_norm", DEFAULT_MODEL_TFROW_NORM)),
+        tficl_n_heads=int(_pick("tficl_n_heads", DEFAULT_MODEL_TFICL_N_HEADS)),
+        tficl_n_layers=int(_pick("tficl_n_layers", DEFAULT_MODEL_TFICL_N_LAYERS)),
+        tficl_ff_expansion=int(
+            _pick("tficl_ff_expansion", DEFAULT_MODEL_TFICL_FF_EXPANSION)
+        ),
+        many_class_base=int(_pick("many_class_base", DEFAULT_MODEL_MANY_CLASS_BASE)),
+        head_hidden_dim=int(_pick("head_hidden_dim", DEFAULT_MODEL_HEAD_HIDDEN_DIM)),
         use_digit_position_embed=_coerce_bool(
-            _pick("use_digit_position_embed", True),
+            _pick("use_digit_position_embed", DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED),
             context="use_digit_position_embed",
         ),
-        staged_dropout=float(_pick("staged_dropout", 0.0)),
-        pre_encoder_clip=_pick("pre_encoder_clip", None),
+        staged_dropout=float(_pick("staged_dropout", DEFAULT_MODEL_STAGED_DROPOUT)),
+        pre_encoder_clip=_pick("pre_encoder_clip", DEFAULT_MODEL_PRE_ENCODER_CLIP),
     )
 
 
@@ -319,7 +359,7 @@ def _feature_group_size_from_state_dict(
         return None
     raw_weight = state_dict.get(_GROUP_LINEAR_WEIGHT_KEY)
     shape = getattr(raw_weight, "shape", None)
-    if shape is None or len(shape) != 2:
+    if shape is None or len(shape) != _LINEAR_WEIGHT_TENSOR_RANK:
         return None
     try:
         in_features = int(shape[1])

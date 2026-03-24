@@ -11,6 +11,9 @@ from .shared import (
     CLIP_VALUE,
     EPS,
     ROBUST_MODES,
+    ROBUST_QUANTILE_LOWER,
+    ROBUST_QUANTILE_MEDIAN,
+    ROBUST_QUANTILE_UPPER,
     WINSORIZE_HI,
     WINSORIZE_LO,
     ZSCORE_BASED_MODES,
@@ -19,6 +22,9 @@ from .shared import (
     smooth_tanh_torch,
     tensor_stats_dtype,
 )
+
+_MATRIX_TENSOR_DIMENSIONS = 2
+_TASK_BATCH_TENSOR_DIMENSIONS = 3
 
 
 @overload
@@ -136,9 +142,9 @@ def _normalize_train_test_tensors_2d(
                 continue
 
             if normalized_mode in ROBUST_MODES:
-                median = torch.quantile(finite_train, 0.5)
-                q25 = torch.quantile(finite_train, 0.25)
-                q75 = torch.quantile(finite_train, 0.75)
+                median = torch.quantile(finite_train, ROBUST_QUANTILE_MEDIAN)
+                q25 = torch.quantile(finite_train, ROBUST_QUANTILE_LOWER)
+                q75 = torch.quantile(finite_train, ROBUST_QUANTILE_UPPER)
                 iqr = q75 - q25
                 if float(iqr) < EPS:
                     iqr = torch.ones_like(iqr)
@@ -192,9 +198,9 @@ def _normalize_train_test_tensors_2d(
         return train_out.to(torch.float32), test_out.to(torch.float32)
 
     if normalized_mode in ROBUST_MODES:
-        median = torch.quantile(train_stats, 0.5, dim=0)
-        q25 = torch.quantile(train_stats, 0.25, dim=0)
-        q75 = torch.quantile(train_stats, 0.75, dim=0)
+        median = torch.quantile(train_stats, ROBUST_QUANTILE_MEDIAN, dim=0)
+        q25 = torch.quantile(train_stats, ROBUST_QUANTILE_LOWER, dim=0)
+        q75 = torch.quantile(train_stats, ROBUST_QUANTILE_UPPER, dim=0)
         iqr = q75 - q25
         iqr = torch.where(iqr < EPS, torch.ones_like(iqr), iqr)
         train_norm = ((train_stats - median) / iqr).to(torch.float32)
@@ -321,14 +327,14 @@ def normalize_train_test_tensors(
             "x_train and x_test must have matching ranks, got "
             f"{tuple(x_train.shape)} and {tuple(x_test.shape)}"
         )
-    if x_train.ndim == 2:
+    if x_train.ndim == _MATRIX_TENSOR_DIMENSIONS:
         return _normalize_train_test_tensors_2d(
             x_train,
             x_test,
             mode=mode,
             preserve_non_finite=preserve_non_finite,
         )
-    if x_train.ndim != 3:
+    if x_train.ndim != _TASK_BATCH_TENSOR_DIMENSIONS:
         raise ValueError(
             "normalize_train_test_tensors expects 2D or 3D inputs, got "
             f"{tuple(x_train.shape)} and {tuple(x_test.shape)}"

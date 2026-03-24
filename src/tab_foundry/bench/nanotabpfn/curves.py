@@ -17,8 +17,8 @@ def task_bootstrap_roc_auc_interval(
     dataset_roc_auc: Mapping[str, float],
     *,
     bootstrap_samples: int,
-    confidence: float = 0.95,
-    seed: int = 0,
+    confidence: float = DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
+    seed: int = DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
 ) -> dict[str, float | int] | None:
     """Estimate a task-bootstrap confidence interval for mean ROC AUC."""
 
@@ -47,8 +47,8 @@ def annotate_curve_records_with_task_statistics(
     records: list[dict[str, Any]],
     *,
     bootstrap_samples: int = 0,
-    bootstrap_confidence: float = 0.95,
-    bootstrap_seed: int = 0,
+    bootstrap_confidence: float = DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
+    bootstrap_seed: int = DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
 ) -> list[dict[str, Any]]:
     """Add per-checkpoint task-count and optional bootstrap diagnostics."""
 
@@ -199,8 +199,8 @@ def summarize_checkpoint_curve(
     records: list[dict[str, Any]],
     *,
     bootstrap_samples: int = 0,
-    bootstrap_confidence: float = 0.95,
-    bootstrap_seed: int = 0,
+    bootstrap_confidence: float = DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
+    bootstrap_seed: int = DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
 ) -> dict[str, Any]:
     """Build one checkpoint-trace summary with failure and CI metadata."""
 

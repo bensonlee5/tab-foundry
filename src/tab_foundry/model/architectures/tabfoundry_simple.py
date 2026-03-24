@@ -8,16 +8,34 @@ from torch import nn
 from torch.nn.modules.transformer import Linear, MultiheadAttention
 
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES, build_norm
-from tab_foundry.model.outputs import (
-    ClassificationOutput,
-    DEFAULT_HEAD_HIDDEN_DIM,
-    flatten_classification_output_rows,
+from tab_foundry.model.outputs import ClassificationOutput, flatten_classification_output_rows
+from tab_foundry.model.spec import (
+    DEFAULT_MODEL_D_COL,
+    DEFAULT_MODEL_D_ICL,
+    DEFAULT_MODEL_FEATURE_GROUP_SIZE,
+    DEFAULT_MODEL_HEAD_HIDDEN_DIM,
+    DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE,
+    DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS,
+    DEFAULT_MODEL_NORM_TYPE,
+    DEFAULT_MODEL_TFCOL_N_HEADS,
+    DEFAULT_MODEL_TFCOL_N_INDUCING,
+    DEFAULT_MODEL_TFCOL_N_LAYERS,
+    DEFAULT_MODEL_TFICL_FF_EXPANSION,
+    DEFAULT_MODEL_TFICL_N_HEADS,
+    DEFAULT_MODEL_TFICL_N_LAYERS,
+    DEFAULT_MODEL_TFROW_CLS_TOKENS,
+    DEFAULT_MODEL_TFROW_N_HEADS,
+    DEFAULT_MODEL_TFROW_N_LAYERS,
+    DEFAULT_MODEL_TFROW_NORM,
+    DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
 )
 from tab_foundry.types import TaskBatch
 
 
 _REQUIRED_INPUT_NORMALIZATION = "train_zscore_clip"
 _REQUIRED_MANY_CLASS_BASE = 2
+_SINGLE_TASK_TENSOR_DIMENSIONS = 2
+_BATCHED_TASK_TENSOR_DIMENSIONS = 3
 
 
 class _FeatureEncoder(nn.Module):
@@ -44,7 +62,7 @@ class _TargetEncoder(nn.Module):
         self.linear_layer = nn.Linear(1, embedding_size)
 
     def forward(self, y_train: torch.Tensor, num_rows: int) -> torch.Tensor:
-        if y_train.ndim == 2:
+        if y_train.ndim == _SINGLE_TASK_TENSOR_DIMENSIONS:
             y_train = y_train.unsqueeze(-1)
         mean = torch.mean(y_train, dim=1, keepdim=True)
         padding = mean.repeat(1, num_rows - y_train.shape[1], 1)
@@ -133,45 +151,65 @@ class TabFoundrySimpleClassifier(nn.Module):
     def __init__(
         self,
         *,
-        d_col: int = 128,
-        d_icl: int = 512,
+        d_col: int = DEFAULT_MODEL_D_COL,
+        d_icl: int = DEFAULT_MODEL_D_ICL,
         input_normalization: str = _REQUIRED_INPUT_NORMALIZATION,
-        feature_group_size: int = 1,
-        many_class_train_mode: str = "path_nll",
-        max_mixed_radix_digits: int = 64,
-        norm_type: str = "layernorm",
-        tfcol_n_heads: int = 8,
-        tfcol_n_layers: int = 3,
-        tfcol_n_inducing: int = 128,
-        tfrow_n_heads: int = 8,
-        tfrow_n_layers: int = 3,
-        tfrow_cls_tokens: int = 4,
-        tfrow_norm: str = "layernorm",
-        tficl_n_heads: int = 8,
-        tficl_n_layers: int = 12,
-        tficl_ff_expansion: int = 2,
+        feature_group_size: int = DEFAULT_MODEL_FEATURE_GROUP_SIZE,
+        many_class_train_mode: str = DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE,
+        max_mixed_radix_digits: int = DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS,
+        norm_type: str = DEFAULT_MODEL_NORM_TYPE,
+        tfcol_n_heads: int = DEFAULT_MODEL_TFCOL_N_HEADS,
+        tfcol_n_layers: int = DEFAULT_MODEL_TFCOL_N_LAYERS,
+        tfcol_n_inducing: int = DEFAULT_MODEL_TFCOL_N_INDUCING,
+        tfrow_n_heads: int = DEFAULT_MODEL_TFROW_N_HEADS,
+        tfrow_n_layers: int = DEFAULT_MODEL_TFROW_N_LAYERS,
+        tfrow_cls_tokens: int = DEFAULT_MODEL_TFROW_CLS_TOKENS,
+        tfrow_norm: str = DEFAULT_MODEL_TFROW_NORM,
+        tficl_n_heads: int = DEFAULT_MODEL_TFICL_N_HEADS,
+        tficl_n_layers: int = DEFAULT_MODEL_TFICL_N_LAYERS,
+        tficl_ff_expansion: int = DEFAULT_MODEL_TFICL_FF_EXPANSION,
         many_class_base: int = _REQUIRED_MANY_CLASS_BASE,
-        head_hidden_dim: int = DEFAULT_HEAD_HIDDEN_DIM,
-        use_digit_position_embed: bool = True,
+        head_hidden_dim: int = DEFAULT_MODEL_HEAD_HIDDEN_DIM,
+        use_digit_position_embed: bool = DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
     ) -> None:
         super().__init__()
-        self._require_default("d_col", int(d_col), 128)
-        self._require_default("feature_group_size", int(feature_group_size), 1)
+        self._require_default("d_col", int(d_col), DEFAULT_MODEL_D_COL)
         self._require_default(
-            "many_class_train_mode", str(many_class_train_mode), "path_nll"
-        )
-        self._require_default("max_mixed_radix_digits", int(max_mixed_radix_digits), 64)
-        self._require_default("tfcol_n_heads", int(tfcol_n_heads), 8)
-        self._require_default("tfcol_n_layers", int(tfcol_n_layers), 3)
-        self._require_default("tfcol_n_inducing", int(tfcol_n_inducing), 128)
-        self._require_default("tfrow_n_heads", int(tfrow_n_heads), 8)
-        self._require_default("tfrow_n_layers", int(tfrow_n_layers), 3)
-        self._require_default("tfrow_cls_tokens", int(tfrow_cls_tokens), 4)
-        self._require_default(
-            "tfrow_norm", str(tfrow_norm).strip().lower(), "layernorm"
+            "feature_group_size",
+            int(feature_group_size),
+            DEFAULT_MODEL_FEATURE_GROUP_SIZE,
         )
         self._require_default(
-            "use_digit_position_embed", bool(use_digit_position_embed), True
+            "many_class_train_mode",
+            str(many_class_train_mode),
+            DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE,
+        )
+        self._require_default(
+            "max_mixed_radix_digits",
+            int(max_mixed_radix_digits),
+            DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS,
+        )
+        self._require_default("tfcol_n_heads", int(tfcol_n_heads), DEFAULT_MODEL_TFCOL_N_HEADS)
+        self._require_default("tfcol_n_layers", int(tfcol_n_layers), DEFAULT_MODEL_TFCOL_N_LAYERS)
+        self._require_default(
+            "tfcol_n_inducing",
+            int(tfcol_n_inducing),
+            DEFAULT_MODEL_TFCOL_N_INDUCING,
+        )
+        self._require_default("tfrow_n_heads", int(tfrow_n_heads), DEFAULT_MODEL_TFROW_N_HEADS)
+        self._require_default("tfrow_n_layers", int(tfrow_n_layers), DEFAULT_MODEL_TFROW_N_LAYERS)
+        self._require_default(
+            "tfrow_cls_tokens",
+            int(tfrow_cls_tokens),
+            DEFAULT_MODEL_TFROW_CLS_TOKENS,
+        )
+        self._require_default(
+            "tfrow_norm", str(tfrow_norm).strip().lower(), DEFAULT_MODEL_TFROW_NORM
+        )
+        self._require_default(
+            "use_digit_position_embed",
+            bool(use_digit_position_embed),
+            DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
         )
 
         self.d_icl = int(d_icl)
@@ -246,7 +284,7 @@ class TabFoundrySimpleClassifier(nn.Module):
     def _prepare_task_inputs(
         batch: TaskBatch,
     ) -> tuple[torch.Tensor, torch.Tensor, int]:
-        if batch.x_train.ndim == 2:
+        if batch.x_train.ndim == _SINGLE_TASK_TENSOR_DIMENSIONS:
             train_test_split_index = int(batch.x_train.shape[0])
             if train_test_split_index <= 0:
                 raise RuntimeError("tabfoundry_simple requires at least one training row")
@@ -257,7 +295,10 @@ class TabFoundrySimpleClassifier(nn.Module):
             )
             y_train = batch.y_train.to(torch.float32).unsqueeze(0)
             return x_all, y_train, train_test_split_index
-        if batch.x_train.ndim != 3 or batch.x_test.ndim != 3:
+        if (
+            batch.x_train.ndim != _BATCHED_TASK_TENSOR_DIMENSIONS
+            or batch.x_test.ndim != _BATCHED_TASK_TENSOR_DIMENSIONS
+        ):
             raise RuntimeError(
                 "tabfoundry_simple task batching requires x_train/x_test rank 2 or 3, "
                 f"got x_train={tuple(int(dim) for dim in batch.x_train.shape)}, "
@@ -281,7 +322,7 @@ class TabFoundrySimpleClassifier(nn.Module):
         y_train: torch.Tensor,
         train_test_split_index: int,
     ) -> None:
-        if x_all.ndim != 3:
+        if x_all.ndim != _BATCHED_TASK_TENSOR_DIMENSIONS:
             raise ValueError(
                 f"x_all must have shape [B, R, C], got {tuple(x_all.shape)}"
             )

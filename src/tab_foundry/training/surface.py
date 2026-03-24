@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from hashlib import sha256
 import json
 from pathlib import Path
 from typing import Any, Mapping
 
 from tab_foundry.data.inspection import manifest_characteristics
 from tab_foundry.data.surface import resolve_data_surface
+from tab_foundry.hashing import sha256_path
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import (
     checkpoint_model_build_spec_from_mappings,
@@ -55,17 +55,6 @@ def resolve_training_backend_from_data_cfg(data_cfg: Mapping[str, Any] | None) -
             f"unsupported training backend source {source!r}; expected one of {sorted(_VALID_TRAINING_BACKENDS)}"
         )
     return source
-
-
-def _sha256_path(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as handle:
-        while True:
-            chunk = handle.read(1024 * 1024)
-            if not chunk:
-                break
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def build_training_surface_record(
@@ -145,7 +134,7 @@ def build_training_surface_record(
             "manifest_path": str(data_surface.manifest_path),
         }
         if data_surface.manifest_path.exists():
-            manifest_payload["manifest_sha256"] = _sha256_path(data_surface.manifest_path)
+            manifest_payload["manifest_sha256"] = sha256_path(data_surface.manifest_path)
             if include_manifest_characteristics:
                 try:
                     manifest_payload["characteristics"] = manifest_characteristics(data_surface.manifest_path)

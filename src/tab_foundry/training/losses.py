@@ -6,6 +6,9 @@ import torch
 import torch.nn.functional as F
 
 
+MIN_CLASS_PROB = 1.0e-12
+
+
 def classification_loss(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
     """Cross-entropy classification loss."""
 
@@ -15,7 +18,7 @@ def classification_loss(logits: torch.Tensor, targets: torch.Tensor) -> torch.Te
 def hierarchical_nll_loss(class_probs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
     """NLL on class probabilities for many-class hierarchical outputs."""
 
-    probs = class_probs.clamp_min(1e-12)
+    probs = class_probs.clamp_min(MIN_CLASS_PROB)
     selected = probs[torch.arange(targets.shape[0], device=targets.device), targets]
     return -torch.log(selected).mean()
 

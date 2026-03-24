@@ -7,11 +7,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
+from tab_foundry.bench.nanotabpfn.curves import (
+    DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
+    DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES,
+)
 from tab_foundry.timestamps import utc_now as utc_now
 
 DIAGNOSIS_SCHEMA = "benchmark_bounce_diagnosis_v1"
 
 RerunMode = Literal["auto", "prior", "train", "none"]
+DEFAULT_BOUNCE_BOOTSTRAP_SAMPLES = DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES
+DEFAULT_BOUNCE_BOOTSTRAP_CONFIDENCE = DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE
 
 
 @dataclass(slots=True)
@@ -23,8 +29,8 @@ class BenchmarkBounceDiagnosisConfig:
     device: str = "auto"
     benchmark_bundle_path: Path | None = None
     confirmation_benchmark_bundle_path: Path | None = None
-    bootstrap_samples: int = 2000
-    bootstrap_confidence: float = 0.95
+    bootstrap_samples: int = DEFAULT_BOUNCE_BOOTSTRAP_SAMPLES
+    bootstrap_confidence: float = DEFAULT_BOUNCE_BOOTSTRAP_CONFIDENCE
     dense_checkpoint_every: int | None = None
     dense_run_dir: Path | None = None
     rerun_mode: RerunMode = "none"

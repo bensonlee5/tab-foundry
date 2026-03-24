@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from hashlib import blake2s, sha256
+from hashlib import blake2s
 import json
 from pathlib import Path
 from typing import Any, Mapping, cast
+
+from tab_foundry.hashing import sha256_path
 
 
 DAGZOO_HANDOFF_SCHEMA_NAME = "dagzoo_generate_handoff_manifest"
 DAGZOO_HANDOFF_SCHEMA_VERSION = 1
 _DAGZOO_ID_HEX_LENGTH = 32
+_GENERATED_CORPUS_ID_DIGEST_BYTES = 16
 
 
 @dataclass(slots=True, frozen=True)
@@ -165,17 +168,6 @@ def _require_relative_path(
     return raw
 
 
-def _sha256_path(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as handle:
-        while True:
-            chunk = handle.read(1024 * 1024)
-            if not chunk:
-                break
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def stable_dagzoo_generated_corpus_id(*, generate_run_id: str, dataset_ids: list[str]) -> str:
     payload = {
         "generate_run_id": str(generate_run_id),
@@ -187,7 +179,7 @@ def stable_dagzoo_generated_corpus_id(*, generate_run_id: str, dataset_ids: list
         separators=(",", ":"),
         allow_nan=False,
     ).encode("utf-8")
-    return blake2s(encoded, digest_size=16).hexdigest()
+    return blake2s(encoded, digest_size=_GENERATED_CORPUS_ID_DIGEST_BYTES).hexdigest()
 
 
 def verify_dagzoo_handoff_matches_generated_corpus(
@@ -272,7 +264,7 @@ def load_dagzoo_handoff_info(handoff_manifest_path: Path) -> DagzooHandoffInfo:
 
     return DagzooHandoffInfo(
         handoff_manifest_path=path,
-        handoff_manifest_sha256=_sha256_path(path),
+        handoff_manifest_sha256=sha256_path(path),
         source_family=source_family,
         generate_run_id=generate_run_id,
         generated_corpus_id=generated_corpus_id,
