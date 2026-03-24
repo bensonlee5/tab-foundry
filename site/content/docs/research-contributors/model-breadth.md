@@ -20,7 +20,7 @@ support, regression, scaling, or later inference-related surfaces. These
 changes are roadmap-governed, not ad hoc feature work.
 
 If you need the contributor framing first, start with
-\[Research Contributors\]({{< relref "/docs/research-contributors/\_index.md" >}}).
+\[Research Contributors\]({{< relref "/docs/research-contributors/_index.md" >}}).
 
 ## Where To Start
 

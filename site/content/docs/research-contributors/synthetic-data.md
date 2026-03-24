@@ -25,7 +25,7 @@ Use this page when you need to answer:
 
 Read these pages together:
 
-- \[Research Contributors\]({{< relref "/docs/research-contributors/\_index.md" >}}):
+- \[Research Contributors\]({{< relref "/docs/research-contributors/_index.md" >}}):
   synthetic-data path and inspect-first commands.
 - \[Dataset Curation\]({{< relref "/docs/development/dataset-curation.md" >}}):
   boundary between synthetic and curated real-data surfaces.

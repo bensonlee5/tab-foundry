@@ -18,7 +18,7 @@ or the next allowed change.
 
 A sweep is the repo's way of testing one research change at a time without
 losing attribution. If you need the full research workflow, pair this page with
-\[Research Contributors\]({{< relref "/docs/research-contributors/\_index.md" >}}).
+\[Research Contributors\]({{< relref "/docs/research-contributors/_index.md" >}}).
 
 ## Where To Start
 
@@ -30,7 +30,7 @@ Primary docs:
   execute, promote, render, and validate.
 - \[Roadmap\]({{< relref "/docs/development/roadmap.md" >}}): which questions are
   actually next.
-- \[Reference Index\]({{< relref "/docs/reference/\_index.md" >}}): evidence and
+- \[Reference Index\]({{< relref "/docs/reference/_index.md" >}}): evidence and
   literature context.
 
 Inspect-first commands:

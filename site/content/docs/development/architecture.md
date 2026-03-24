@@ -24,13 +24,13 @@ The quick mental model is:
 
 If you want a broader repo overview first, start with
 \[What Is tab-foundry?\]({{< relref "/docs/getting-started/what-is-tab-foundry.md" >}}) or
-\[Getting Started\]({{< relref "/docs/getting-started/\_index.md" >}}) first.
+\[Getting Started\]({{< relref "/docs/getting-started/_index.md" >}}) first.
 
 ## Where To Start
 
 Start with these pages:
 
-- \[Research Contributors\]({{< relref "/docs/research-contributors/\_index.md" >}}):
+- \[Research Contributors\]({{< relref "/docs/research-contributors/_index.md" >}}):
   research-first route through the active architecture and sweep surfaces.
 - \[Model Architecture\]({{< relref "/docs/development/model-architecture.md" >}}):
   the current staged/simple architecture reference.
