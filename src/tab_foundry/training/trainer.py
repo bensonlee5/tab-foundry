@@ -175,6 +175,7 @@ def train(cfg: DictConfig) -> TrainResult:
     accelerator = build_accelerator_from_runtime(
         cfg.runtime,
         grad_accum_steps_override=grad_accum_steps,
+        dataloader_even_batches_override=False if task_batch_size > 1 else None,
     )
 
     raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)

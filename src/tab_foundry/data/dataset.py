@@ -145,11 +145,77 @@ def _subsample_rows(
     cap: int | None,
     seed: int,
 ) -> tuple[np.ndarray, np.ndarray]:
-    if cap is None or cap <= 0 or x.shape[0] <= cap:
+    idx = _subsample_indices(x.shape[0], cap=cap, seed=seed)
+    if idx is None:
         return x, y
-    rng = np.random.default_rng(seed)
-    idx = np.sort(rng.choice(x.shape[0], size=cap, replace=False))
     return x[idx], y[idx]
+
+
+def _subsample_indices(
+    row_count: int,
+    *,
+    cap: int | None,
+    seed: int,
+) -> np.ndarray | None:
+    if cap is None or cap <= 0 or row_count <= cap:
+        return None
+    rng = np.random.default_rng(seed)
+    return np.sort(rng.choice(row_count, size=cap, replace=False))
+
+
+def _subsample_values(
+    values: np.ndarray,
+    *,
+    cap: int | None,
+    seed: int,
+) -> np.ndarray:
+    idx = _subsample_indices(int(values.shape[0]), cap=cap, seed=seed)
+    if idx is None:
+        return values
+    return values[idx]
+
+
+def _read_packed_split_targets(
+    split_path: Path,
+    *,
+    dataset_index: int,
+) -> np.ndarray:
+    try:
+        table = pq.read_table(
+            split_path,
+            filters=[("dataset_index", "=", int(dataset_index))],
+            columns=["row_index", "y"],
+        )
+    except Exception as exc:  # pragma: no cover - pyarrow error typing is backend-specific
+        raise RuntimeError(
+            f"failed to read packed split parquet path={split_path}, dataset_index={dataset_index}"
+        ) from exc
+
+    if table.num_rows <= 0:
+        raise RuntimeError(
+            f"packed split has zero rows for dataset_index={dataset_index}: path={split_path}"
+        )
+
+    row_index = table["row_index"].to_numpy(zero_copy_only=False).astype(np.int64, copy=False)
+    y = table["y"].to_numpy(zero_copy_only=False)
+    if row_index.shape[0] != y.shape[0]:
+        raise RuntimeError(
+            "packed split row count mismatch: "
+            f"path={split_path}, dataset_index={dataset_index}, "
+            f"row_index={row_index.shape[0]}, y={y.shape[0]}"
+        )
+
+    order = np.argsort(row_index, kind="stable")
+    if not np.array_equal(order, np.arange(order.shape[0])):
+        row_index = row_index[order]
+        y = y[order]
+
+    unique = np.unique(row_index)
+    if unique.shape[0] != row_index.shape[0]:
+        raise RuntimeError(
+            f"packed split row_index values must be unique: path={split_path}, dataset_index={dataset_index}"
+        )
+    return np.asarray(y)
 
 
 @dataclass(slots=True)
@@ -395,10 +461,108 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
     def __getitem__(self, index: int) -> TaskBatch:
         return self._materialize_task_batch(int(index))
 
+    def _record_n_features(self, record: dict[str, Any]) -> int | None:
+        raw_n_features = record.get("n_features")
+        if raw_n_features is None:
+            return None
+        try:
+            n_features = int(raw_n_features)
+        except (TypeError, ValueError):
+            return None
+        if n_features <= 0:
+            return None
+        return n_features
+
+    def _fast_task_signature(self, index: int) -> TaskSignature | None:
+        record = self.records[index]
+        if (
+            not self.allow_missing_values
+            and str(record.get("missing_value_status", "")).strip() == "contains_nan_or_inf"
+        ):
+            raise RuntimeError(
+                "manifest record contains NaN or Inf while allow_missing_values=False: "
+                f"{_record_identity_text(record)}, manifest_path={self.manifest_path}"
+            )
+        n_features = self._record_n_features(record)
+        if n_features is None:
+            return None
+        required_keys = {"dataset_index", "train_path", "test_path"}
+        missing = sorted(required_keys - set(record))
+        if missing:
+            raise RuntimeError(
+                "manifest record is missing required packed-contract fields: "
+                f"missing={missing}, split={self.split}, task={self.task}"
+            )
+        dataset_index = int(record["dataset_index"])
+        train_path = _resolve_record_path(self.manifest_path, str(record["train_path"]))
+        test_path = _resolve_record_path(self.manifest_path, str(record["test_path"]))
+        train_labels_raw = _read_packed_split_targets(train_path, dataset_index=dataset_index)
+        test_labels_raw = _read_packed_split_targets(test_path, dataset_index=dataset_index)
+
+        expected_n_train = int(record.get("n_train", -1))
+        expected_n_test = int(record.get("n_test", -1))
+        if expected_n_train >= 0 and int(train_labels_raw.shape[0]) != expected_n_train:
+            raise RuntimeError(
+                "train row count mismatch for packed split: "
+                f"dataset_index={dataset_index}, expected={expected_n_train}, got={train_labels_raw.shape[0]}"
+            )
+        if expected_n_test >= 0 and int(test_labels_raw.shape[0]) != expected_n_test:
+            raise RuntimeError(
+                "test row count mismatch for packed split: "
+                f"dataset_index={dataset_index}, expected={expected_n_test}, got={test_labels_raw.shape[0]}"
+            )
+
+        train_labels = _subsample_values(
+            np.asarray(train_labels_raw),
+            cap=self.train_row_cap,
+            seed=self.seed + index * 2 + 1,
+        )
+        test_labels = _subsample_values(
+            np.asarray(test_labels_raw),
+            cap=self.test_row_cap,
+            seed=self.seed + index * 2 + 2,
+        )
+        if self.task != "classification":
+            return (
+                int(train_labels.shape[0]),
+                int(test_labels.shape[0]),
+                int(n_features),
+                None,
+            )
+        if self.label_mapping != "train_only_remap" or self.unseen_test_label_policy != "filter":
+            return None
+
+        train_targets = np.asarray(train_labels, dtype=np.int64)
+        label_values = np.unique(train_targets)
+        if label_values.size <= 0:
+            raise RuntimeError("classification train split has no labels")
+        test_targets = np.asarray(test_labels, dtype=np.int64)
+        test_pos = np.searchsorted(label_values, test_targets)
+        test_in_bounds = test_pos < label_values.shape[0]
+        test_clamped = np.clip(test_pos, 0, label_values.shape[0] - 1)
+        valid_test = test_in_bounds & (label_values[test_clamped] == test_targets)
+        n_test_after = int(valid_test.sum())
+        if n_test_after <= 0:
+            raise RuntimeError(
+                "classification test split has zero rows after filtering unseen labels; "
+                f"{_record_identity_text(record)}, split={self.split}, "
+                f"n_test_after={n_test_after}"
+            )
+        return (
+            int(train_targets.shape[0]),
+            n_test_after,
+            int(n_features),
+            int(label_values.shape[0]),
+        )
+
     def task_signature(self, index: int) -> TaskSignature:
         resolved_index = int(index)
         cached = self._task_signature_cache.get(resolved_index)
         if cached is not None:
             return cached
-        batch = self._materialize_task_batch(resolved_index)
-        return self._task_signature(batch)
+        signature = self._fast_task_signature(resolved_index)
+        if signature is None:
+            batch = self._materialize_task_batch(resolved_index)
+            return self._task_signature(batch)
+        self._task_signature_cache[resolved_index] = signature
+        return signature
