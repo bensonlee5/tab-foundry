@@ -204,6 +204,34 @@ def test_docs_consistency_reports_missing_repo_script_entrypoint(tmp_path: Path)
     assert errors[0][2] == "documented repo-local script entrypoint is missing: `scripts/not_real.sh`"
 
 
+def test_docs_consistency_reports_disallowed_readme_cli_tree(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text(
+        "\n".join(
+            [
+                "<details>",
+                "<summary>Full CLI tree</summary>",
+                "",
+                "```text",
+                "tab-foundry",
+                "├── train",
+                "│   └── prior",
+                "│       └── staged",
+                "```",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    errors = check_docs_consistency.scan_docs_consistency(tmp_path, ["README.md"])
+
+    assert len(errors) == 1
+    assert errors[0][2] == (
+        "README must not duplicate a hand-maintained CLI tree; use "
+        "`docs/development/codebase-navigation.md` for the canonical command inventory"
+    )
+
+
 def test_docs_consistency_reports_codebase_navigation_inventory_mismatch(tmp_path: Path) -> None:
     docs_dir = tmp_path / "docs" / "development"
     docs_dir.mkdir(parents=True)

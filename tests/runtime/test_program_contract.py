@@ -204,12 +204,7 @@ def test_readme_front_door_contract_matches_current_repo_shape() -> None:
         "tab-foundry <group> --help",
         "tab-foundry <group> <command> --help",
         "| Namespace | Purpose | Read next |",
-        "<details>",
-        "<summary>Full CLI tree</summary>",
-        "├── data",
-        "├── train",
-        "├── bench",
-        "└── research",
+        "For the canonical leaf-command inventory, use",
         "docs/workflows.md",
         "docs/research-contributors.md",
         "docs/ml-engineering.md",
@@ -224,6 +219,7 @@ def test_readme_front_door_contract_matches_current_repo_shape() -> None:
         "Evaluate a checkpoint:",
         "Export and validate an inference bundle:",
         "## Docs",
+        "<summary>Full CLI tree</summary>",
     ]
     for statement in forbidden_statements:
         assert statement not in readme

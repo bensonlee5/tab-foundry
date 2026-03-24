@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from tab_foundry.data.inspection import manifest_characteristics
-from tab_foundry.data.surface import resolve_data_surface
+from tab_foundry.data.surface import DataSurfaceConfig, resolve_data_surface
 from tab_foundry.hashing import sha256_path
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import (
@@ -51,12 +51,8 @@ def normalize_training_backend(value: Any) -> str | None:
     return normalized
 
 
-def resolve_training_backend_from_data_cfg(data_cfg: Mapping[str, Any] | None) -> str:
-    """Resolve the training backend from one data surface mapping."""
-
-    if data_cfg is None:
-        return TRAINING_BACKEND_LEGACY_PRIOR
-    source = str(resolve_data_surface(data_cfg).source).strip().lower()
+def resolve_training_backend_from_data_surface(data_surface: DataSurfaceConfig) -> str:
+    source = str(data_surface.source).strip().lower()
     try:
         normalized = normalize_training_backend(source)
     except ValueError as exc:
@@ -68,6 +64,22 @@ def resolve_training_backend_from_data_cfg(data_cfg: Mapping[str, Any] | None) -
             f"unsupported training backend source {source!r}; expected one of {sorted(_VALID_TRAINING_BACKENDS)}"
         )
     return normalized
+
+
+def resolve_training_backend_from_data_cfg(
+    data_cfg: Mapping[str, Any] | None,
+    *,
+    allow_unresolved_corpus_ref: bool = False,
+) -> str:
+    """Resolve the training backend from one data surface mapping."""
+
+    if data_cfg is None:
+        return TRAINING_BACKEND_LEGACY_PRIOR
+    data_surface = resolve_data_surface(
+        data_cfg,
+        allow_unresolved_corpus_ref=allow_unresolved_corpus_ref,
+    )
+    return resolve_training_backend_from_data_surface(data_surface)
 
 
 def build_training_surface_record(
@@ -141,7 +153,7 @@ def build_training_surface_record(
     preprocessing_surface = resolve_preprocessing_surface(preprocessing_cfg)
     resolved_backend = normalize_training_backend(backend)
     if resolved_backend is None:
-        resolved_backend = resolve_training_backend_from_data_cfg(data_cfg)
+        resolved_backend = resolve_training_backend_from_data_surface(data_surface)
     manifest_payload: dict[str, Any] | None = None
     if data_surface.manifest_path is not None:
         manifest_payload = {

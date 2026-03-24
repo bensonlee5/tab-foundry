@@ -156,7 +156,7 @@ rule is simple: do not add a dataset to a curated bundle or manifest until the
 ledger contains an `approved` review record for it, and do not add a new
 loader path for external real-data ingestion.
 
-## Manifest Build
+## Corpus Materialization
 
 For recurring synthetic corpora, use the first-class corpus recipe workflow
 instead of sweep-local manifest bootstraps:
@@ -178,16 +178,18 @@ This writes local corpus artifacts under
 `corpus_record.json`. When configs use `data.corpus_ref`, the realized run
 records the fully resolved corpus identity in `training_surface_record.json`.
 
-The lower-level `tab-foundry dev data generate-manifest` and
-`tab-foundry dev data build-manifest` commands still exist for one-off
-workflows, but `tab-foundry data corpus materialize` is the canonical path for
-recurring synthetic corpora such as TF-RD-013.
-
 Set `DAGZOO_DATA_ROOT` once if you want a stable sibling data path:
 
 ```bash
 export DAGZOO_DATA_ROOT="$HOME/dev/dagzoo/data"
 ```
+
+### Internal / One-Off Manifest Tools
+
+The lower-level `tab-foundry dev data generate-manifest` and
+`tab-foundry dev data build-manifest` commands still exist for one-off
+workflows, but `tab-foundry data corpus materialize` is the canonical public
+path for recurring synthetic corpora such as TF-RD-013.
 
 Build the default manifest:
 
@@ -230,8 +232,8 @@ tab-foundry train run \
   experiment=cls_benchmark_linear_simple \
   data.manifest_path=<binary_manifest.parquet>
 tab-foundry train run \
-  experiment=cls_benchmark_staged \
-  data.manifest_path=<binary_manifest.parquet>
+  experiment=cls_benchmark_staged_corpus \
+  data.corpus_ref=tf_rd_013_current_corpus_default_v1
 ```
 
 `cls_benchmark_linear_simple` now targets the exact nanoTabPFN-style binary
@@ -239,9 +241,10 @@ debug model. It is benchmark-focused rather than a general small-class
 classifier, so it requires binary tasks, internal train-split z-score clipping,
 and `many_class_base=2`.
 
-`cls_benchmark_staged` is the staged research counterpart. It defaults to
-`model.arch=tabfoundry_staged` and `model.stage=nano_exact`. Treat that as the
-base recipe only. The intended architecture path is the public staged ladder in
+`cls_benchmark_staged_corpus` is the canonical staged architecture-screen
+surface. It inherits the staged `nano_exact` starting point but expects the
+public data handle, `data.corpus_ref`, rather than teaching a raw manifest path
+as the default. The intended architecture path is the public staged ladder in
 `docs/development/roadmap.md` and
 `docs/development/model-architecture.md`. The system-delta sweep records
 isolated evidence for that ladder using `model.stage_label` and
@@ -264,8 +267,10 @@ tab-foundry train legacy-prior staged
 `~/dev/nanoTabPFN/300k_150x5_2.h5` is an input to
 `tab-foundry train legacy-prior ...` and to `tab-foundry bench compare` when
 you opt into the nanoTabPFN comparator with
-`--nanotabpfn-prior-dump`. Plain `tab-foundry train run ...` commands still
-consume a packed parquet manifest instead.
+`--nanotabpfn-prior-dump`. The flag names differ intentionally: `train legacy-prior` takes `--prior-dump` because the file is the trainer's direct
+input, while `bench compare` uses `--nanotabpfn-prior-dump` because that flag
+only matters when the nanoTabPFN comparator is selected. Plain `tab-foundry train run ...` commands use the manifest-backed surface, typically via
+`data.corpus_ref` and optionally via a direct `data.manifest_path` override.
 
 Use the queue row plus `reference/system_delta_campaign_template.md` to decide
 the staged labels, any bounded module overrides, and the research-package paths
@@ -656,8 +661,8 @@ tab-foundry bench registry register-run \
   --track binary_ladder \
   --run-dir outputs/staged_ladder/01_nano_exact/train \
   --comparison-summary outputs/staged_ladder/01_nano_exact/benchmark/comparison_summary.json \
-  --experiment cls_benchmark_staged \
-  --config-profile cls_benchmark_staged \
+  --experiment cls_benchmark_staged_corpus \
+  --config-profile cls_benchmark_staged_corpus \
   --decision keep \
   --conclusion "Exact staged repro matches the frozen anchor contract."
 ```
@@ -804,7 +809,7 @@ Current lane contract:
 
 - PFN control lane: `tabfoundry_simple` plus `tabfoundry_staged` with `stage=nano_exact`
 - Hybrid diagnostic lane: `cls_benchmark_staged_prior`
-- Canonical architecture-screen surface for future benchmark-facing sweeps: `cls_benchmark_staged`
+- Canonical architecture-screen surface for future benchmark-facing sweeps: `cls_benchmark_staged_corpus`
 
 Every completed benchmark-facing row should leave behind:
 

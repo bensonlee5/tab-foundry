@@ -25,7 +25,7 @@ Use these alongside this guide:
 
 This repo owns:
 
-- manifest-backed data selection and inspection
+- corpus-backed data selection, manifest inspection, and dataset provenance
 - model training and evaluation
 - benchmark comparison and sweep evidence
 - export-bundle production and validation
@@ -63,9 +63,23 @@ This repo does not own:
 
 ## Common Operational Flows
 
-### Inspect One Manifest Or Run
+### Materialize And Train A Corpus-Backed Surface
 
 ```bash
+.venv/bin/tab-foundry data corpus materialize \
+  --recipe tf_rd_013_current_corpus_default_v1 \
+  --dagzoo-root ../dagzoo \
+  --force
+.venv/bin/tab-foundry train run \
+  experiment=cls_benchmark_staged_corpus \
+  data.corpus_ref=tf_rd_013_current_corpus_default_v1
+```
+
+### Inspect One Corpus, Manifest, Or Run
+
+```bash
+.venv/bin/tab-foundry data corpus inspect \
+  --corpus-ref tf_rd_013_current_corpus_default_v1
 .venv/bin/tab-foundry data manifest-inspect \
   --manifest data/manifests/default.parquet \
   --experiment cls_smoke \
@@ -100,7 +114,7 @@ This repo does not own:
 
 If you need the minimal mental model:
 
-- data enters through manifests
+- data enters through corpus refs or explicit manifest overrides
 - training produces run directories and checkpoints
 - benchmarking compares selected runs against pinned bundles
 - export turns checkpoints into handoff artifacts

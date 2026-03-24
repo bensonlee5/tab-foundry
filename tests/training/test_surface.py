@@ -507,6 +507,29 @@ def test_build_training_surface_record_omits_legacy_prior_block_for_manifest_exp
     assert "legacy_prior" not in record["training"]
 
 
+def test_build_training_surface_record_allows_unresolved_corpus_refs_for_manifest_backend(
+    tmp_path: Path,
+) -> None:
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {"arch": "tabfoundry_staged"},
+            "data": {
+                "surface_label": "fresh_current_corpus",
+                "corpus_ref": "tf_rd_013_current_corpus_default_v1",
+            },
+        },
+        run_dir=tmp_path / "run_unresolved_corpus_ref",
+        allow_unresolved_corpus_ref=True,
+    )
+
+    assert record["training"]["backend"] == "manifest"
+    assert record["data"]["source"] == "manifest"
+    assert record["data"]["corpus_ref"] == "tf_rd_013_current_corpus_default_v1"
+    assert record["data"]["recipe_id"] == "tf_rd_013_current_corpus_default_v1"
+    assert record["data"]["corpus_id"] is None
+
+
 def test_build_training_surface_record_infers_legacy_prior_backend_without_data_cfg(
     tmp_path: Path,
 ) -> None:
