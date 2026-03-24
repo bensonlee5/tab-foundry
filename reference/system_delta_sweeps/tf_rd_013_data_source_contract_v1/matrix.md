@@ -15,8 +15,8 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_013_data_source_
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
-- Training experiment: `cls_benchmark_staged`
-- Training config profile: `cls_benchmark_staged`
+- Training experiment: `cls_benchmark_staged_corpus`
+- Training config profile: `cls_benchmark_staged_corpus`
 - Surface role: `architecture_screen`
 - Comparison policy: `anchor_only`
 - Anchor metrics: final log loss `0.4215`, final Brier score `0.2644`, best ROC AUC `0.6702`, final ROC AUC `0.6702`, final training time `2550.1s`
@@ -31,7 +31,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 | training data surface | TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract. | Current manifest-backed prior-training corpus with data surface label `anchor_manifest_default`. | The current corpus is the baseline comparator; TF-RD-013 starts with one explicit unfiltered dagzoo alternative plus a later curated real-data comparator lane. |
 | dagzoo provenance contract | Not applicable. | No dagzoo provenance is attached to the current-corpus anchor surface. | Dagzoo candidate rows must carry one explicit `dagzoo_provenance` payload with fixed keys before the sweep becomes runnable. |
 | benchmark and control context | TabICLv2 is the architectural reference, while nanoTabPFN remains the current benchmark/control bundle family used by this repo. | Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface. | TF-RD-013 should keep benchmark/control context stable while it reads the training-data surface change. |
-| training recipe | TabICLv2 informs the row-first staged recipe direction, but there is no repo-local shared prior-dump training-surface contract to copy literally. | Training surface label `prior_linear_warmup_decay`. | TF-RD-013 contract work should not mix optimizer or schedule changes into the data-source decision. |
+| training recipe | TabICLv2 informs the row-first staged recipe direction, but there is no repo-local shared prior-dump training-surface contract to copy literally. | Registered anchor training surface label `prior_linear_warmup_decay`. | TF-RD-013 contract work should not mix optimizer or schedule changes into the data-source decision. |
 
 ## Queue Summary
 
@@ -54,7 +54,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Upstream delta: Not applicable; this is a repo-local synthetic-data generation axis.
 - Anchor delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but replace the current corpus with a TF-RD-013 unfiltered dagzoo generated-source manifest that carries the canonical dagzoo provenance payload.
 - Expected effect: Higher-throughput synthetic training data with no post-generation filtering and explicit provenance.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_generated_source`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_generated_source`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Stage-local stability: column (grad `0.0000`); row (grad `0.0083`); context (grad `0.0398`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
@@ -94,7 +94,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Upstream delta: Not applicable; this is a repo-local comparator contract layered on top of the benchmark-native OpenML baseline.
 - Anchor delta: Keep the promoted anchor model, preprocessing, and training recipe fixed, but define the curated real-data comparator manifest family as a separate contract surface from both the current corpus and the unfiltered dagzoo candidate.
 - Expected effect: A real-data comparator lane that is explicit enough to compare against current-corpus and dagzoo candidates without reopening loader boundaries.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_curated_realdata_comparator`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_curated_realdata_comparator`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Stage-local stability: column (grad `0.0000`); row (grad `3.5372`); context (grad `0.9408`)
 - Data overrides: `{}`
 - Parameter adequacy plan:

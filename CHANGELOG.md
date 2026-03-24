@@ -30,6 +30,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--nanotabpfn-prior-dump` flag name in benchmark and research execution
   surfaces.
 
+### Fixed
+
+- Historical legacy-prior training artifacts now continue to reuse correctly
+  when older `training_surface_record.json` files still persist
+  `training.backend: prior_dump`; sweep reuse normalizes that legacy marker to
+  the current `legacy_prior` backend instead of forcing retraining.
+
+- User-facing break: manifest-backed config inspection and persisted
+  training-surface records no longer emit irrelevant `training.legacy_prior`
+  payloads when the resolved backend is `manifest`, which restores stable
+  provenance diffs for `cls_benchmark_staged_corpus` and related corpus-first
+  workflows.
+
+- TF-RD-013/TF-RD-018 system-delta sweep anchors now record the benchmark
+  registry's actual anchor experiment/config-profile/training provenance again,
+  and the generated queue/matrix aliases have been refreshed to match the
+  corrected source sweep metadata.
+
 ## [0.10.2] - 2026-03-24
 
 ### Fixed

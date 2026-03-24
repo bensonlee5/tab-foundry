@@ -69,12 +69,12 @@ anchor_surface:
       interpretation: Manifest task batching is a first-class training-surface delta and must be read before optimizer or schedule follow-ons.
     - dimension: training recipe
       upstream: No repo-local manifest training-surface contract.
-      anchor: Training surface label `linear_warmup_decay` with `schedulefree_adamw`, `max_steps=2500`, and `runtime.grad_accum_steps=1`.
+      anchor: Registered anchor training surface label `prior_linear_warmup_decay` with `schedulefree_adamw`, `max_steps=2500`, and `runtime.grad_accum_steps=1`.
       interpretation: Optimizer and schedule changes are later training-surface rows, not background recipe assumptions in this first ladder.
 anchor_context:
   run_id: sd_tf_rd_013_dagzoo_size_ladder_v1_03_delta_data_manifest_root_dagzoo_shape_aware_size_medium_v1
-  experiment: cls_benchmark_staged_corpus
-  config_profile: cls_benchmark_staged_corpus
+  experiment: cls_benchmark_staged
+  config_profile: cls_benchmark_staged
   model:
     arch: tabfoundry_staged
     benchmark_profile: delta_qass_no_column_v3
@@ -97,4 +97,4 @@ anchor_context:
     data: tf_rd_013_dagzoo_shape_aware_size_medium
     model: delta_qass_no_column_v3
     preprocessing: runtime_default
-    training: linear_warmup_decay
+    training: prior_linear_warmup_decay

@@ -41,12 +41,12 @@ anchor_surface:
     interpretation: TF-RD-013 should keep benchmark/control context stable while it reads the training-data surface change.
   - dimension: training recipe
     upstream: TabICLv2 informs the row-first staged recipe direction, but there is no repo-local shared prior-dump training-surface contract to copy literally.
-    anchor: Training surface label `linear_warmup_decay`.
+    anchor: Registered anchor training surface label `prior_linear_warmup_decay`.
     interpretation: TF-RD-013 contract work should not mix optimizer or schedule changes into the data-source decision.
 anchor_context:
   run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
-  experiment: cls_benchmark_staged_corpus
-  config_profile: cls_benchmark_staged_corpus
+  experiment: cls_benchmark_staged
+  config_profile: cls_benchmark_staged
   model:
     arch: tabfoundry_staged
     benchmark_profile: delta_qass_no_column_v3
@@ -69,4 +69,4 @@ anchor_context:
     data: anchor_manifest_default
     model: delta_qass_no_column_v3
     preprocessing: runtime_default
-    training: linear_warmup_decay
+    training: prior_linear_warmup_decay

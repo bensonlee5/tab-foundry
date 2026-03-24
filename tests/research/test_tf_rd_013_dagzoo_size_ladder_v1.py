@@ -30,6 +30,9 @@ def test_tf_rd_013_size_ladder_queue_uses_corpus_refs() -> None:
     queue = _load_yaml(sweep_root / "queue.yaml")
     catalog = _load_yaml(REPO_ROOT / "reference" / "system_delta_catalog.yaml")
 
+    assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged"
+    assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged"
+    assert sweep["anchor_context"]["surface_labels"]["training"] == "prior_linear_warmup_decay"
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert any("corpus recipes" in note for note in notes)

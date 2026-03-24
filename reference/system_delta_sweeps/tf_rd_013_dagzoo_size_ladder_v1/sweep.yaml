@@ -40,12 +40,12 @@ anchor_surface:
     interpretation: TF-RD-013 should keep benchmark/control context stable while it reads corpus-size effects.
   - dimension: training stop contract
     upstream: TabICLv2 does not define this repo-local manifest trainer stop rule.
-    anchor: Training surface label `linear_warmup_decay` with `max_steps=2500`.
+    anchor: Registered anchor training surface label `prior_linear_warmup_decay` with `max_steps=2500`.
     interpretation: The fresh current-corpus control clears `runtime.target_train_seconds` so later rows isolate corpus size rather than backend stop semantics.
 anchor_context:
   run_id: sd_qass_tfcol_large_missing_validation_v1_01_delta_qass_no_column_v3_v1
-  experiment: cls_benchmark_staged_corpus
-  config_profile: cls_benchmark_staged_corpus
+  experiment: cls_benchmark_staged
+  config_profile: cls_benchmark_staged
   model:
     arch: tabfoundry_staged
     benchmark_profile: delta_qass_no_column_v3
@@ -68,4 +68,4 @@ anchor_context:
     data: anchor_manifest_default
     model: delta_qass_no_column_v3
     preprocessing: runtime_default
-    training: linear_warmup_decay
+    training: prior_linear_warmup_decay

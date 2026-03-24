@@ -38,7 +38,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `nanotabpfn_openml_binary_medium` with data surface label `tf_rd_013_dagzoo_shape_aware_size_medium` and corpus ref `tf_rd_013_dagzoo_shape_aware_size_medium_v1`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent-sweep prose. |
 | preprocessing | Notebook preprocessing inside the benchmark helper. | Benchmark preprocessing surface label `runtime_default`. | Preprocessing changes can alter the effective task definition and must be tracked explicitly. |
 | task batching | No repo-local manifest task batching contract. | Manifest-backed singleton task updates with `training.task_batch_size=1`. | Manifest task batching is a first-class training-surface delta and must be read before optimizer or schedule follow-ons. |
-| training recipe | No repo-local manifest training-surface contract. | Training surface label `linear_warmup_decay` with `schedulefree_adamw`, `max_steps=2500`, and `runtime.grad_accum_steps=1`. | Optimizer and schedule changes are later training-surface rows, not background recipe assumptions in this first ladder. |
+| training recipe | No repo-local manifest training-surface contract. | Registered anchor training surface label `prior_linear_warmup_decay` with `schedulefree_adamw`, `max_steps=2500`, and `runtime.grad_accum_steps=1`. | Optimizer and schedule changes are later training-surface rows, not background recipe assumptions in this first ladder. |
 
 ## Queue Summary
 

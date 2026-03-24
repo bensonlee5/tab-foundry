@@ -21,6 +21,11 @@ from tab_foundry.timestamps import utc_now as _shared_utc_now
 TRAINING_SURFACE_SCHEMA = "tab-foundry-training-surface-v1"
 TRAINING_BACKEND_MANIFEST = "manifest"
 TRAINING_BACKEND_LEGACY_PRIOR = "legacy_prior"
+_TRAINING_BACKEND_ALIASES = {
+    TRAINING_BACKEND_MANIFEST: TRAINING_BACKEND_MANIFEST,
+    TRAINING_BACKEND_LEGACY_PRIOR: TRAINING_BACKEND_LEGACY_PRIOR,
+    "prior_dump": TRAINING_BACKEND_LEGACY_PRIOR,
+}
 _VALID_TRAINING_BACKENDS = {
     TRAINING_BACKEND_MANIFEST,
     TRAINING_BACKEND_LEGACY_PRIOR,
@@ -31,17 +36,19 @@ def _utc_now() -> str:
     return _shared_utc_now()
 
 
-def _normalize_training_backend(value: Any) -> str | None:
+def normalize_training_backend(value: Any) -> str | None:
     if value is None:
         return None
     backend = str(value).strip().lower()
     if not backend:
         return None
-    if backend not in _VALID_TRAINING_BACKENDS:
+    normalized = _TRAINING_BACKEND_ALIASES.get(backend)
+    if normalized is None:
         raise ValueError(
-            f"training backend must be one of {sorted(_VALID_TRAINING_BACKENDS)}, got {value!r}"
+            "training backend must be one of "
+            f"{sorted(_VALID_TRAINING_BACKENDS | {'prior_dump'})}, got {value!r}"
         )
-    return backend
+    return normalized
 
 
 def resolve_training_backend_from_data_cfg(data_cfg: Mapping[str, Any] | None) -> str:
@@ -50,15 +57,17 @@ def resolve_training_backend_from_data_cfg(data_cfg: Mapping[str, Any] | None) -
     if data_cfg is None:
         return TRAINING_BACKEND_LEGACY_PRIOR
     source = str(resolve_data_surface(data_cfg).source).strip().lower()
-    if source == "manifest":
-        return TRAINING_BACKEND_MANIFEST
-    if source in {"prior_dump", TRAINING_BACKEND_LEGACY_PRIOR}:
-        return TRAINING_BACKEND_LEGACY_PRIOR
-    if source not in _VALID_TRAINING_BACKENDS:
+    try:
+        normalized = normalize_training_backend(source)
+    except ValueError as exc:
+        raise RuntimeError(
+            f"unsupported training backend source {source!r}; expected one of {sorted(_VALID_TRAINING_BACKENDS)}"
+        ) from exc
+    if normalized is None:
         raise RuntimeError(
             f"unsupported training backend source {source!r}; expected one of {sorted(_VALID_TRAINING_BACKENDS)}"
         )
-    return source
+    return normalized
 
 
 def build_training_surface_record(
@@ -130,7 +139,7 @@ def build_training_surface_record(
         allow_unresolved_corpus_ref=allow_unresolved_corpus_ref,
     )
     preprocessing_surface = resolve_preprocessing_surface(preprocessing_cfg)
-    resolved_backend = _normalize_training_backend(backend)
+    resolved_backend = normalize_training_backend(backend)
     if resolved_backend is None:
         resolved_backend = resolve_training_backend_from_data_cfg(data_cfg)
     manifest_payload: dict[str, Any] | None = None
@@ -231,7 +240,7 @@ def build_training_surface_record(
             training_payload = {
                 "task_batch_size": 1,
             }
-        if legacy_prior_cfg is not None or resolved_backend == TRAINING_BACKEND_LEGACY_PRIOR:
+        if resolved_backend == TRAINING_BACKEND_LEGACY_PRIOR:
             training_payload["legacy_prior"] = {
                 "non_finite_policy": "error"
                 if legacy_prior_cfg is None or legacy_prior_cfg.get("non_finite_policy") is None

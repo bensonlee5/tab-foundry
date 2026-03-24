@@ -15,8 +15,8 @@ This file is rendered from `reference/system_delta_sweeps/row_first_training_ade
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
-- Training experiment: `cls_benchmark_staged`
-- Training config profile: `cls_benchmark_staged`
+- Training experiment: `cls_benchmark_staged_corpus`
+- Training config profile: `cls_benchmark_staged_corpus`
 - Surface role: `architecture_screen`
 - Comparison policy: `anchor_only`
 - Anchor metrics: final log loss `2.2604`, final Brier score `0.4912`, best ROC AUC `0.5711`, final ROC AUC `0.5625`, final training time `226.7s`
@@ -38,7 +38,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 | training data surface | OpenML notebook tasks only for benchmarking; no repo-local prior-training manifest contract. | Benchmark bundle `nanotabpfn_openml_binary_medium` with data surface label `tf_rd_013_dagzoo_shape_aware_size_medium` and corpus ref `tf_rd_013_dagzoo_shape_aware_size_medium_v1`. | Bundle and training-data changes are first-class sweep rows and should not be inherited from parent-sweep prose. |
 | preprocessing | Notebook preprocessing inside the benchmark helper. | Benchmark preprocessing surface label `runtime_default`. | Preprocessing changes can alter the effective task definition and must be tracked explicitly. |
 | task batching | No repo-local manifest task batching contract. | Manifest-backed singleton task updates with `training.task_batch_size=1`. | Manifest task batching is a first-class training-surface delta and must be read before optimizer or schedule follow-ons. |
-| training recipe | No repo-local prior-dump training-surface contract. | Training surface label `prior_linear_warmup_decay` with `schedulefree_adamw`, `max_steps=2500`, and `runtime.grad_accum_steps=1`. | Optimizer and schedule changes are later training-surface rows, not background recipe assumptions in this first ladder. |
+| training recipe | No repo-local manifest training-surface contract. | Registered anchor training surface label `prior_linear_warmup_decay` with `schedulefree_adamw`, `max_steps=2500`, and `runtime.grad_accum_steps=1`. | Optimizer and schedule changes are later training-surface rows, not background recipe assumptions in this first ladder. |
 
 ## Queue Summary
 
@@ -63,7 +63,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Upstream delta: Not applicable; this is a repo-local manifest task-batching adequacy rung on the settled row-first anchor.
 - Anchor delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing, and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=4`.
 - Expected effect: A four-task manifest batch should improve dataset-throughput efficiency with lower packing and memory risk than the larger rungs.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'name': 'schedulefree_adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'runtime': {'grad_accum_steps': 1, 'max_steps': 2500, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
   - Keep the model, data surface, preprocessing, optimizer family, and schedule shape fixed so this row isolates manifest task batching only.
@@ -92,7 +92,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Upstream delta: Not applicable; this is a repo-local manifest task-batching adequacy rung on the settled row-first anchor.
 - Anchor delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing, and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=8`.
 - Expected effect: An eight-task manifest batch may improve wall-clock efficiency further if the medium corpus still spends too much time on singleton task dispatch.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'name': 'schedulefree_adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'runtime': {'grad_accum_steps': 1, 'max_steps': 2500, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
   - Keep the model, data surface, preprocessing, optimizer family, and schedule shape fixed so this row isolates manifest task batching only.
@@ -121,7 +121,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Upstream delta: Not applicable; this is a repo-local manifest task-batching adequacy rung on the settled row-first anchor.
 - Anchor delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing, and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=16`.
 - Expected effect: A sixteen-task manifest batch may improve throughput further, but it carries materially higher singleton-fallback and memory-pressure risk than the opening rungs.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'name': 'schedulefree_adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'runtime': {'grad_accum_steps': 1, 'max_steps': 2500, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
   - Leave blocked until the `task_batch_size=8` row finishes in `<=900s`, avoids OOM, and keeps singleton fallback at `<=10%` of updates.
@@ -152,7 +152,7 @@ Upstream reference: `nanoTabPFN` from `https://github.com/automl/nanoTabPFN/blob
 - Upstream delta: Not applicable; this is a repo-local manifest task-batching adequacy rung on the settled row-first anchor.
 - Anchor delta: Keep the settled `row_cls + qass + no tfcol` anchor, preprocessing, and warmup-decay family fixed, but replace singleton manifest updates with `training.task_batch_size=32`.
 - Expected effect: A thirty-two-task manifest batch would maximize batching pressure on this medium corpus, but it is most likely to trip OOM or singleton-fallback gates before quality can be read cleanly.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'name': 'schedulefree_adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'runtime': {'grad_accum_steps': 1, 'max_steps': 2500, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
   - Leave blocked until the `task_batch_size=16` row finishes in `<=900s`, avoids OOM, and keeps singleton fallback at `<=10%` of updates.

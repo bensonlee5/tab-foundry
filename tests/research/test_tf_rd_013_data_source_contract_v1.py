@@ -165,9 +165,11 @@ def test_tf_rd_013_data_source_contract_metadata_and_rows_match_unfiltered_suppo
         "model_source": "https://arxiv.org/abs/2602.11139",
     }
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
+    assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged"
+    assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged"
     assert sweep["anchor_context"]["model"]["stage"] == "qass_context"
     assert sweep["anchor_context"]["surface_labels"]["data"] == "anchor_manifest_default"
-    assert sweep["anchor_context"]["surface_labels"]["training"] == "linear_warmup_decay"
+    assert sweep["anchor_context"]["surface_labels"]["training"] == "prior_linear_warmup_decay"
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert any("TabICLv2" in note for note in notes)

@@ -135,6 +135,9 @@ def test_tf_rd_013_shape_aware_metadata_rows_and_support_bundle_match() -> None:
         "name": "TabICLv2",
         "model_source": "https://arxiv.org/abs/2602.11139",
     }
+    assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged"
+    assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged"
+    assert sweep["anchor_context"]["surface_labels"]["training"] == "prior_linear_warmup_decay"
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert any("issue 127" in note for note in notes)

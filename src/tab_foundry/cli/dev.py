@@ -107,7 +107,7 @@ def _training_surface_payload(
         else float(optimizer_cfg["min_lr"]),
         "schedule_stages": rendered_stages,
     }
-    if backend == "legacy_prior" or legacy_prior_cfg:
+    if backend == "legacy_prior":
         payload["legacy_prior"] = {
             "non_finite_policy": legacy_prior_cfg.get("non_finite_policy"),
             "batch_size": (

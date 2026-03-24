@@ -15,8 +15,8 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_013_dagzoo_size_
 - Benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`
 - Control baseline id: `cls_benchmark_linear_v2`
 - External benchmarks: `nanotabpfn`
-- Training experiment: `cls_benchmark_staged`
-- Training config profile: `cls_benchmark_staged`
+- Training experiment: `cls_benchmark_staged_corpus`
+- Training config profile: `cls_benchmark_staged_corpus`
 - Surface role: `architecture_screen`
 - Comparison policy: `anchor_only`
 - Anchor metrics: final log loss `0.4215`, final Brier score `0.2644`, best ROC AUC `0.6702`, final ROC AUC `0.6702`, final training time `2550.1s`
@@ -31,7 +31,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 | training data surface | TabICLv2 motivates synthetic pretraining at scale but does not define this repo-local manifest contract. | TF-RD-008-scale fresh current-corpus recipe `tf_rd_013_current_corpus_default_v1` with data surface label `anchor_manifest_default`. | The fresh current corpus now mirrors the TF-RD-008 promotion-run manifest scale while the sweep compares three modestly broader shape-aware dagzoo alternatives under the same row caps through first-class `data.corpus_ref` resolution. |
 | dagzoo size ladder | Not applicable. | Row 1 uses a 10-dataset default dagzoo recipe as the current-corpus control rather than carrying over a historical local snapshot. | Rows 2-4 now form 20-, 40-, and 80-dataset support rungs through tracked corpus recipes so the realized corpus identity is queryable from local corpus records and training-surface artifacts rather than from inline sweep-local provenance blobs. |
 | benchmark and control context | TabICLv2 is the architectural reference, while nanoTabPFN remains the benchmark/control bundle family used by this repo for this decision. | Benchmark bundle `nanotabpfn_openml_binary_large` remains the benchmark-facing evaluation surface. | TF-RD-013 should keep benchmark/control context stable while it reads corpus-size effects. |
-| training stop contract | TabICLv2 does not define this repo-local manifest trainer stop rule. | Training surface label `prior_linear_warmup_decay` with `max_steps=2500`. | The fresh current-corpus control clears `runtime.target_train_seconds` so later rows isolate corpus size rather than backend stop semantics. |
+| training stop contract | TabICLv2 does not define this repo-local manifest trainer stop rule. | Registered anchor training surface label `prior_linear_warmup_decay` with `max_steps=2500`. | The fresh current-corpus control clears `runtime.target_train_seconds` so later rows isolate corpus size rather than backend stop semantics. |
 
 ## Queue Summary
 
@@ -56,7 +56,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Upstream delta: Not applicable; this is a repo-local TF-RD-008-scale fresh current-corpus control row for TF-RD-013.
 - Anchor delta: Keep the settled row-first model and preprocessing surfaces fixed, point data at the TF-RD-008-scale fresh current-corpus corpus recipe generated from the current dagzoo default config, and clear the inherited time cap so the manifest trainer stops only at `max_steps=2500`.
 - Expected effect: Establish the canonical TF-RD-008-scale fresh current-corpus control before reading any dagzoo size-rung comparison.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`anchor_manifest_default`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Stage-local stability: column (grad `0.0000`); row (grad `0.6605`); context (grad `0.2134`)
 - Training overrides: `{'apply_schedule': True, 'runtime': {'max_steps': 2500, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'optimizer': {'name': 'schedulefree_adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
@@ -90,7 +90,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Upstream delta: Not applicable; this is a repo-local synthetic-data corpus-size axis.
 - Anchor delta: Starting from row 1's TF-RD-008-scale fresh current-corpus control, replace the default current corpus with the `small` 20-dataset shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
 - Expected effect: A 20-dataset synthetic support corpus should let the uncapped 2500-step manifest run revisit each sampled regime many times while staying close to the TF-RD-008-scale control.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_small`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_small`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Stage-local stability: column (grad `0.0000`); row (grad `0.6814`); context (grad `0.1596`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
@@ -124,7 +124,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Upstream delta: Not applicable; this is a repo-local synthetic-data corpus-size axis.
 - Anchor delta: Starting from row 1's TF-RD-008-scale fresh current-corpus control, replace the default current corpus with the `medium` 40-dataset shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
 - Expected effect: A 40-dataset support corpus should preserve broader regime diversity than the smallest rung while still giving the uncapped 2500-step run substantial reuse relative to the prior oversized surface.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_medium`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Stage-local stability: column (grad `0.0000`); row (grad `0.4947`); context (grad `0.2903`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
@@ -159,7 +159,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Upstream delta: Not applicable; this is a repo-local synthetic-data corpus-size axis.
 - Anchor delta: Starting from row 1's TF-RD-008-scale fresh current-corpus control, replace the default current corpus with the `large` 80-dataset shape-aware dagzoo manifest while keeping the model, optimizer family, and stop contract fixed.
 - Expected effect: The 80-dataset rung should retain the broadest synthetic coverage in this ladder while still staying close enough to the TF-RD-008-scale control for repeated exposure.
-- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_large`, preprocessing=`runtime_default`, training=`prior_linear_warmup_decay`
+- Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_013_dagzoo_shape_aware_size_large`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
 - Stage-local stability: column (grad `0.0000`); row (grad `0.1008`); context (grad `0.1378`)
 - Data overrides: `{}`
 - Parameter adequacy plan:

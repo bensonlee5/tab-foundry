@@ -4,7 +4,9 @@ from pathlib import Path
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from omegaconf import OmegaConf
 
+from tab_foundry.config import compose_config
 from tab_foundry.data import corpus as corpus_module
 from tab_foundry.training.surface import build_training_surface_record
 
@@ -489,6 +491,20 @@ def test_build_training_surface_record_infers_manifest_backend_from_data_surface
     )
 
     assert record["training"]["backend"] == "manifest"
+
+
+def test_build_training_surface_record_omits_legacy_prior_block_for_manifest_experiment(
+    tmp_path: Path,
+) -> None:
+    cfg = compose_config(["experiment=cls_benchmark_staged_corpus"])
+
+    record = build_training_surface_record(
+        raw_cfg=OmegaConf.to_container(cfg, resolve=True),
+        run_dir=tmp_path / "run_manifest_experiment",
+    )
+
+    assert record["training"]["backend"] == "manifest"
+    assert "legacy_prior" not in record["training"]
 
 
 def test_build_training_surface_record_infers_legacy_prior_backend_without_data_cfg(

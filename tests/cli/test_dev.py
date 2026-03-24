@@ -46,6 +46,13 @@ def test_resolve_config_payload_reports_resolved_surfaces() -> None:
     assert payload["model"]["parameter_counts"]["total_params"] > 0
 
 
+def test_resolve_config_payload_omits_legacy_prior_for_manifest_experiment() -> None:
+    payload = resolve_config_payload(["experiment=cls_benchmark_staged_corpus"])
+
+    assert payload["training"]["backend"] == "manifest"
+    assert "legacy_prior" not in payload["training"]
+
+
 def test_resolve_config_payload_keeps_unmaterialized_corpus_ref_for_inspection() -> None:
     payload = resolve_config_payload(
         [

@@ -1201,6 +1201,21 @@ def test_completed_train_artifacts_exist_rejects_missing_backend_marker(tmp_path
     ) is False
 
 
+def test_completed_train_artifacts_exist_accepts_prior_dump_alias_for_legacy_prior(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'completed_train_run_prior_dump_alias'
+    (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (run_dir / 'train_history.jsonl').write_text('{}\n', encoding='utf-8')
+    (run_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(run_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(run_dir / 'training_surface_record.json', backend='prior_dump')
+    (run_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+
+    assert training_state_module.completed_train_artifacts_exist(
+        run_dir,
+        expected_backend='legacy_prior',
+    ) is True
+
+
 def test_completed_train_artifacts_exist_rejects_backend_mismatch(tmp_path: Path) -> None:
     run_dir = tmp_path / 'completed_train_run_backend_mismatch'
     (run_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
