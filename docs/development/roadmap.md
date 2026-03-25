@@ -885,16 +885,26 @@ This roadmap assumes the following repo truths:
   - `tf_rd_020_noise_mixture_v1` remains the named fallback harder surface if
     the first optimizer-family read on `tf_rd_020_shift_noise_drift_v1` is too
     close or unstable to collapse cleanly
-  - later architecture reads remain confounded until the repo has one explicit
-    adequacy decision surface on the settled row-first base
+  - issue [#137](https://github.com/bensonlee5/tab-foundry/issues/137) now
+    opens as active sweep
+    [`tf_rd_018_optimizer_family_v1`](../../reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md),
+    whose first row replays the settled schedulefree `task_batch_size=4`
+    recipe on `tf_rd_020_shift_noise_drift_v1` rather than reusing the original
+    TF-RD-020 harmonized `400`-step noise-drift run as the optimizer anchor
+- later architecture reads remain confounded until the repo has one explicit
+  adequacy decision surface on the settled row-first base
 - Required work:
-  - keep `task_batch_size=4` as the settled batch rung and use
-    `tf_rd_020_shift_noise_drift_v1` as the default harder carry-forward
-    surface for the remaining optimizer-family, LR/schedule/warmup shape,
-    step-budget, and clipping comparisons
-  - retain `tf_rd_020_noise_mixture_v1` as the named fallback harder surface if
-    the first optimizer-family read on noise drift is too confounded to collapse
-    to a single carry-forward front
+- keep `task_batch_size=4` as the settled batch rung and use
+  `tf_rd_020_shift_noise_drift_v1` as the default harder carry-forward
+  surface for the remaining optimizer-family, LR/schedule/warmup shape,
+  step-budget, and clipping comparisons
+- use `tf_rd_018_optimizer_family_v1` as the active execution sweep for issue
+  [#137](https://github.com/bensonlee5/tab-foundry/issues/137): run row `01`,
+  promote that replay to the sweep anchor, then compare `adamw` and `muon`
+  against it
+- retain `tf_rd_020_noise_mixture_v1` as the named fallback harder surface if
+  the first optimizer-family read on noise drift is too confounded to collapse
+  to a single carry-forward front
   - include `schedulefree_adamw`, `adamw`, and `muon` in the bounded optimizer
     family comparison on top of the selected harder carry-forward surface
   - keep architecture changes out of this epic and treat device/runtime
@@ -931,13 +941,18 @@ This roadmap assumes the following repo truths:
     [#107](https://github.com/bensonlee5/tab-foundry/issues/107) and the
     uncapped harder-front lane has now closed on
     `tf_rd_020_harder_dagzoo_ladder_v1`
-  - the repo already has explicit dagzoo surfaces for missingness, shift or
-    drift, mechanism diversity, and noise, and the pre-filter TF-RD-020
-    ladder now fixes their initial ordering and nomination rubric
-  - dagzoo now ships a small-shot ease filter contract rather than the removed
-    threshold-era filter contract, but TF-RD-020 stayed pre-filter and left
-    broader filtering policy to TF-RD-019 rather than reopening filtering in
-    this ladder
+- the repo already has explicit dagzoo surfaces for missingness, shift or
+  drift, mechanism diversity, and noise, and the pre-filter TF-RD-020
+  ladder now fixes their initial ordering and nomination rubric
+- TF-RD-020 now hands TF-RD-018 a default harder carry-forward surface only:
+  the original noise-drift winner remains a `400`-step harmonized ladder read,
+  while issue `#137` replays the settled schedulefree `task_batch_size=4`
+  adequacy recipe on that surface under
+  [`tf_rd_018_optimizer_family_v1`](../../reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md)
+- dagzoo now ships a small-shot ease filter contract rather than the removed
+  threshold-era filter contract, but TF-RD-020 stayed pre-filter and left
+  broader filtering policy to TF-RD-019 rather than reopening filtering in
+  this ladder
   - this epic is synthetic-data work only and does not replace the
     benchmark-front missingness and class-imbalance epics under issues
     [#97](https://github.com/bensonlee5/tab-foundry/issues/97) and

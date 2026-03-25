@@ -57,6 +57,14 @@ This is the canonical long-form evidence note for
 - `tf_rd_020_noise_mixture_v1` remains the named fallback harder surface if the
   first optimizer-family read on `tf_rd_020_shift_noise_drift_v1` is too close
   or unstable to collapse cleanly
+- [#137](https://github.com/bensonlee5/tab-foundry/issues/137) now executes as
+  active sweep
+  [tf_rd_018_optimizer_family_v1](../system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md)
+  with a replayed schedulefree row on `tf_rd_020_shift_noise_drift_v1`
+  followed by `adamw` and `muon`
+- the TF-RD-020 noise-drift winner is therefore a data-surface handoff only:
+  the optimizer anchor for issue `#137` is the replayed schedulefree carry on
+  the harder surface, not the original harmonized `400`-step TF-RD-020 run
 
 ## Current Interpretation
 
@@ -75,6 +83,9 @@ This is the canonical long-form evidence note for
   reopening harder-front design inside TF-RD-018
 - use `tf_rd_020_shift_noise_drift_v1` as the default harder carry-forward
   surface for issues `#137`, `#138`, and `#139`
+- use `tf_rd_018_optimizer_family_v1` as the active execution sweep for issue
+  `#137`: row `01` replays schedulefree on `tf_rd_020_shift_noise_drift_v1`,
+  then rows `02` and `03` compare `adamw` and `muon` against that promoted replay
 - retain `tf_rd_020_noise_mixture_v1` as the named fallback harder surface only
   if the first optimizer-family read on noise drift is too confounded to
   collapse to a single carry-forward front

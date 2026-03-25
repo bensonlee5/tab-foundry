@@ -1,5 +1,5 @@
 schema: tab-foundry-system-delta-sweep-index-v1
-active_sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
+active_sweep_id: tf_rd_018_optimizer_family_v1
 sweeps:
   binary_md_v1:
     parent_sweep_id: null
@@ -178,8 +178,17 @@ sweeps:
     control_baseline_id: cls_benchmark_linear_v2
   tf_rd_020_harder_dagzoo_ladder_v1:
     parent_sweep_id: row_first_training_adequacy_v1
+    status: completed
+    anchor_run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+  tf_rd_018_optimizer_family_v1:
+    parent_sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
     status: draft
     anchor_run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks:
+    - nanotabpfn
