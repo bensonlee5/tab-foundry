@@ -1216,6 +1216,9 @@ def test_resolve_data_surface_uses_sweep_lookup_hint_for_shadowed_corpus_ref(
             "corpus_ref": "current_recipe",
             "surface_overrides": {
                 "corpus_lookup_sweep_id": sweep_id,
+                "corpus_lookup_sweeps_root": str(
+                    (repo_tmp_path / "reference" / "system_delta_sweeps").resolve()
+                ),
             },
         }
     )
@@ -1223,6 +1226,7 @@ def test_resolve_data_surface_uses_sweep_lookup_hint_for_shadowed_corpus_ref(
     assert resolved_global.corpus_ref == global_record["corpus_ref"]
     assert resolved_local.corpus_ref == local_record["corpus_ref"]
     assert "corpus_lookup_sweep_id" not in resolved_local.overrides
+    assert "corpus_lookup_sweeps_root" not in resolved_local.overrides
 
 
 def test_resolve_data_surface_raises_for_broken_sweep_lookup_hint(

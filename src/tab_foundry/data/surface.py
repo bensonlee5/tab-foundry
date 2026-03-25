@@ -6,6 +6,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from tab_foundry.repo_paths import repo_root_from_sweeps_root
+
 from .corpus import load_corpus_record
 
 
@@ -60,12 +62,17 @@ def resolve_data_surface(
     cfg = {} if data_cfg is None else {str(key): value for key, value in data_cfg.items()}
     overrides = _mapping_from_any(cfg.get("surface_overrides"), context="data.surface_overrides")
     hinted_sweep_id = _optional_string(overrides.get("corpus_lookup_sweep_id"))
+    hinted_sweeps_root = _optional_string(overrides.get("corpus_lookup_sweeps_root"))
     resolved_overrides = {
         key: value
         for key, value in overrides.items()
-        if key != "corpus_lookup_sweep_id"
+        if key not in {"corpus_lookup_sweep_id", "corpus_lookup_sweeps_root"}
     }
     resolved_sweep_id = sweep_id if sweep_id is not None else hinted_sweep_id
+    resolved_sweeps_root = sweeps_root
+    if resolved_sweeps_root is None and hinted_sweeps_root is not None:
+        resolved_sweeps_root = Path(hinted_sweeps_root).expanduser().resolve()
+    resolved_repo_root = repo_root_from_sweeps_root(resolved_sweeps_root)
     raw_source = resolved_overrides.get("source")
     if raw_source is None:
         raw_source = cfg.get("source")
@@ -86,8 +93,9 @@ def resolve_data_surface(
         try:
             corpus_record = load_corpus_record(
                 requested_corpus_ref,
+                repo_root=resolved_repo_root,
                 sweep_id=resolved_sweep_id,
-                sweeps_root=sweeps_root,
+                sweeps_root=resolved_sweeps_root,
             )
         except RuntimeError:
             if not allow_unresolved_corpus_ref:

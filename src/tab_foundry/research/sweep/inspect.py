@@ -19,6 +19,7 @@ from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.training.surface import build_training_surface_record
 
 from .anchor import anchor_training_surface_label
+from .configuration import _corpus_lookup_context
 from .graph import (
     _training_surface_record_model_spec,
     resolve_anchor_originating_queue_row,
@@ -30,6 +31,8 @@ from .paths_io import (
     default_registry_path,
     repo_root,
 )
+
+
 def _load_json_mapping(path: Path, *, context: str) -> dict[str, Any]:
     payload = json.loads(path.expanduser().resolve().read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -325,6 +328,7 @@ def _inspection_raw_cfg(
     row: Mapping[str, Any],
     training_experiment: str,
     sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     cfg = compose_config([f"experiment={training_experiment}"])
     raw_cfg = _cfg_mapping(cfg)
@@ -342,7 +346,12 @@ def _inspection_raw_cfg(
             if not isinstance(surface_overrides, dict):
                 surface_overrides = {}
                 data_cfg["surface_overrides"] = surface_overrides
-            surface_overrides["corpus_lookup_sweep_id"] = str(sweep_id)
+            surface_overrides.update(
+                _corpus_lookup_context(
+                    sweep_id=sweep_id,
+                    sweeps_root=sweeps_root,
+                )
+            )
     _merge_plain_mapping(
         raw_cfg,
         prefix="preprocessing",
@@ -371,11 +380,13 @@ def _inspection_spec_and_record(
     run_dir: Path,
     training_experiment: str,
     sweep_id: str,
+    sweeps_root: Path | None = None,
 ) -> tuple[Any, dict[str, Any]]:
     raw_cfg = _inspection_raw_cfg(
         row=row,
         training_experiment=training_experiment,
         sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
     )
     task = str(raw_cfg.get("task", "classification")).strip().lower()
     raw_model_cfg = raw_cfg.get("model")
@@ -412,6 +423,7 @@ def resolve_row_target(
     queue: Mapping[str, Any],
     row: Mapping[str, Any],
     registry_path: Path,
+    sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     artifacts = _row_artifacts(queue=queue, row=row, registry_path=registry_path)
     training_surface_entry = artifacts.get("training_surface_record_json")
@@ -438,6 +450,7 @@ def resolve_row_target(
             run_dir=run_dir,
             training_experiment=str(queue["training_experiment"]),
             sweep_id=str(queue["sweep_id"]),
+            sweeps_root=sweeps_root,
         )
     metrics = row.get("benchmark_metrics")
     if not isinstance(metrics, Mapping):
@@ -647,6 +660,7 @@ def resolve_anchor_target(
                     run_dir=run_dir,
                     training_experiment=source_training_experiment,
                     sweep_id=str(queue["sweep_id"]),
+                    sweeps_root=sweeps_root,
                 )
     except RuntimeError:
         run_dir = _inspection_run_dir(
@@ -659,6 +673,7 @@ def resolve_anchor_target(
             run_dir=run_dir,
             training_experiment=str(queue["training_experiment"]),
             sweep_id=str(queue["sweep_id"]),
+            sweeps_root=sweeps_root,
         )
         metadata = {"source": "anchor_context"}
     return {
@@ -690,7 +705,12 @@ def inspect_sweep_row(
     )
     row = _find_row(queue, order=int(order))
     resolved_registry_path = registry_path or default_registry_path()
-    target = resolve_row_target(queue=queue, row=row, registry_path=resolved_registry_path)
+    target = resolve_row_target(
+        queue=queue,
+        row=row,
+        registry_path=resolved_registry_path,
+        sweeps_root=sweeps_root,
+    )
     return {
         "queue": _queue_metadata_payload(queue),
         "row": dict(cast(dict[str, Any], _copy_jsonable(row))),
