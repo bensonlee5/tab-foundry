@@ -94,7 +94,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_data_manifest_root_tf_rd_020_missingness_mcar
-  status: ready
+  status: completed
   dimension_family: data
   family: missingness
   binary_applicable: true
@@ -158,7 +158,7 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
+        grad_accum_steps: 4
         max_steps: 2500
         target_train_seconds: null
         eval_every: 25
@@ -181,21 +181,63 @@ rows:
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#148` winner.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v4
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run first under issue `#148`, then compare directly against the MAR
     and MNAR rows before nominating one missingness winner.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v5`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 750
+    max_grad_norm: 6.863990783691406
+    clipped_step_fraction: 0.2324
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5680835607635213
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 1.7250112471446546
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.38692000951851374
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.6194195978853342
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5588864825369017
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.6046555370807282
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 1.1569276863811333
+    final_minus_best_brier_score: 0.23249958836682044
+    final_minus_best_roc_auc: 0.045769054543826515
+    drift: 0.045769054543826515
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -2.722255983567938
+    delta_final_brier_score: -0.027077551437444836
+    delta_final_roc_auc: 0.030085051028560073
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.3600894775996846
+    context_encoder_final_window_mean_grad_norm: 0.18871310968297966
 - order: 2
   delta_id: delta_data_manifest_root_tf_rd_020_missingness_mar
-  status: ready
+  status: completed
   dimension_family: data
   family: missingness
   binary_applicable: true
@@ -259,8 +301,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -282,21 +324,63 @@ rows:
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#148` winner.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run second under issue `#148`, then compare directly against the MCAR
     and MNAR rows before nominating one missingness winner.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 4.0691962242126465
+    clipped_step_fraction: 0.1275
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5977899267384836
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5977899267384836
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.4121811336270918
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.4121811336270918
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5298311495482986
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5298311495482986
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.8494773039741084
+    delta_final_brier_score: -0.23431601569568722
+    delta_final_roc_auc: -0.04473933650386952
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.024847248727433213
+    context_encoder_final_window_mean_grad_norm: 0.040686723609057604
 - order: 3
   delta_id: delta_data_manifest_root_tf_rd_020_missingness_mnar
-  status: ready
+  status: completed
   dimension_family: data
   family: missingness
   binary_applicable: true
@@ -361,8 +445,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -384,21 +468,63 @@ rows:
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#148` winner.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run third under issue `#148`, then select exactly one missingness nominee
     for cross-front comparison.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 4.2577290534973145
+    clipped_step_fraction: 0.1475
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5958296894587327
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5958296894587327
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.41017717567085227
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.41017717567085227
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5550513231720597
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5550513231720597
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.8514375412538593
+    delta_final_brier_score: -0.23631997365192675
+    delta_final_roc_auc: -0.019519162880108354
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.02016881118839253
+    context_encoder_final_window_mean_grad_norm: 0.023354579008251164
 - order: 4
   delta_id: delta_data_manifest_root_tf_rd_020_shift_graph_drift
-  status: ready
+  status: completed
   dimension_family: data
   family: shift
   binary_applicable: true
@@ -463,8 +589,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -487,21 +613,63 @@ rows:
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#149` winner.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run first under issue `#149`, then compare directly against the mechanism-drift,
     noise-drift, and mixed rows before nominating one shift winner.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 2.65151309967041
+    clipped_step_fraction: 0.1425
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5551380627326593
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5551380627326593
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.37511611036503734
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.37511611036503734
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.6028590182218918
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.6028590182218918
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.892129167979933
+    delta_final_brier_score: -0.2713810389577417
+    delta_final_roc_auc: 0.028288532169723712
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.04380429586412218
+    context_encoder_final_window_mean_grad_norm: 0.07291161299647017
 - order: 5
   delta_id: delta_data_manifest_root_tf_rd_020_shift_mechanism_drift
-  status: ready
+  status: completed
   dimension_family: data
   family: shift
   binary_applicable: true
@@ -566,8 +734,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -590,21 +758,63 @@ rows:
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#149` winner.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run second under issue `#149`, then compare directly against the graph-drift,
     noise-drift, and mixed rows before nominating one shift winner.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 250
+    max_grad_norm: 3.741863489151001
+    clipped_step_fraction: 0.0825
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5576948179071773
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.6386823538521846
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.378439534390614
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.4214391616636517
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.6241074056654365
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5997087246788727
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0809875359450073
+    final_minus_best_brier_score: 0.04299962727303769
+    final_minus_best_roc_auc: -0.024398680986563837
+    drift: -0.024398680986563837
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.8085848768604076
+    delta_final_brier_score: -0.22505798765912732
+    delta_final_roc_auc: 0.025138238626704612
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.088527246288988
+    context_encoder_final_window_mean_grad_norm: 0.13284098362203361
 - order: 6
   delta_id: delta_data_manifest_root_tf_rd_020_shift_noise_drift
-  status: ready
+  status: completed
   dimension_family: data
   family: shift
   binary_applicable: true
@@ -669,8 +879,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -693,21 +903,63 @@ rows:
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#149` winner.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run third under issue `#149`, then compare directly against the graph-drift,
     mechanism-drift, and mixed rows before nominating one shift winner.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 375
+    max_grad_norm: 2.7898130416870117
+    clipped_step_fraction: 0.165
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5469057523340293
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5501050688992111
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.37033812315954123
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.3740493195326578
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5945143739407067
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.588002654427939
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.003199316565181798
+    final_minus_best_brier_score: 0.0037111963731165654
+    final_minus_best_roc_auc: -0.006511719512767744
+    drift: -0.006511719512767744
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.897162161813381
+    delta_final_brier_score: -0.2724478297901212
+    delta_final_roc_auc: 0.013432168375770881
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.06851509300923592
+    context_encoder_final_window_mean_grad_norm: 0.1264763923272498
 - order: 7
   delta_id: delta_data_manifest_root_tf_rd_020_shift_mixed
-  status: ready
+  status: completed
   dimension_family: data
   family: shift
   binary_applicable: true
@@ -773,8 +1025,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -797,18 +1049,60 @@ rows:
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#149` winner.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run fourth under issue `#149`, then select exactly one shift or drift
     nominee for cross-front comparison.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 200
+    max_grad_norm: 3.873849391937256
+    clipped_step_fraction: 0.075
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5506841171153994
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.6795285603400613
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.37208312399127524
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.43707146040316947
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.6151950315078075
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5349648011453981
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.12884444322466182
+    final_minus_best_brier_score: 0.06498833641189422
+    final_minus_best_roc_auc: -0.0802302303624094
+    drift: -0.0802302303624094
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.767738670372531
+    delta_final_brier_score: -0.20942568891960955
+    delta_final_roc_auc: -0.03960568490676997
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.07512402183568354
+    context_encoder_final_window_mean_grad_norm: 0.10436744535640814
 - order: 8
   delta_id: delta_data_manifest_root_tf_rd_020_mechanism_piecewise
   status: ready
@@ -876,8 +1170,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -979,8 +1273,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -1080,8 +1374,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -1181,8 +1475,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25

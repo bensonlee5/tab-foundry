@@ -36,13 +36,13 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_data_manifest_root_tf_rd_020_missingness_mcar` | missingness | yes | ready | none | Point training at the TF-RD-020 MCAR harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run first under issue `#148`, then compare directly against the MAR and MNAR rows before nominating one missingness winner. |
-| 2 | `delta_data_manifest_root_tf_rd_020_missingness_mar` | missingness | yes | ready | none | Point training at the TF-RD-020 MAR harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run second under issue `#148`, then compare directly against the MCAR and MNAR rows before nominating one missingness winner. |
-| 3 | `delta_data_manifest_root_tf_rd_020_missingness_mnar` | missingness | yes | ready | none | Point training at the TF-RD-020 MNAR harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run third under issue `#148`, then select exactly one missingness nominee for cross-front comparison. |
-| 4 | `delta_data_manifest_root_tf_rd_020_shift_graph_drift` | shift | yes | ready | none | Point training at the TF-RD-020 graph-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run first under issue `#149`, then compare directly against the mechanism-drift, noise-drift, and mixed rows before nominating one shift winner. |
-| 5 | `delta_data_manifest_root_tf_rd_020_shift_mechanism_drift` | shift | yes | ready | none | Point training at the TF-RD-020 mechanism-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run second under issue `#149`, then compare directly against the graph-drift, noise-drift, and mixed rows before nominating one shift winner. |
-| 6 | `delta_data_manifest_root_tf_rd_020_shift_noise_drift` | shift | yes | ready | none | Point training at the TF-RD-020 noise-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run third under issue `#149`, then compare directly against the graph-drift, mechanism-drift, and mixed rows before nominating one shift winner. |
-| 7 | `delta_data_manifest_root_tf_rd_020_shift_mixed` | shift | yes | ready | none | Point training at the TF-RD-020 mixed-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run fourth under issue `#149`, then select exactly one shift or drift nominee for cross-front comparison. |
+| 1 | `delta_data_manifest_root_tf_rd_020_missingness_mcar` | missingness | yes | completed | none | Point training at the TF-RD-020 MCAR harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run first under issue `#148`, then compare directly against the MAR and MNAR rows before nominating one missingness winner. |
+| 2 | `delta_data_manifest_root_tf_rd_020_missingness_mar` | missingness | yes | completed | none | Point training at the TF-RD-020 MAR harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run second under issue `#148`, then compare directly against the MCAR and MNAR rows before nominating one missingness winner. |
+| 3 | `delta_data_manifest_root_tf_rd_020_missingness_mnar` | missingness | yes | completed | none | Point training at the TF-RD-020 MNAR harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run third under issue `#148`, then select exactly one missingness nominee for cross-front comparison. |
+| 4 | `delta_data_manifest_root_tf_rd_020_shift_graph_drift` | shift | yes | completed | none | Point training at the TF-RD-020 graph-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run first under issue `#149`, then compare directly against the mechanism-drift, noise-drift, and mixed rows before nominating one shift winner. |
+| 5 | `delta_data_manifest_root_tf_rd_020_shift_mechanism_drift` | shift | yes | completed | none | Point training at the TF-RD-020 mechanism-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run second under issue `#149`, then compare directly against the graph-drift, noise-drift, and mixed rows before nominating one shift winner. |
+| 6 | `delta_data_manifest_root_tf_rd_020_shift_noise_drift` | shift | yes | completed | none | Point training at the TF-RD-020 noise-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run third under issue `#149`, then compare directly against the graph-drift, mechanism-drift, and mixed rows before nominating one shift winner. |
+| 7 | `delta_data_manifest_root_tf_rd_020_shift_mixed` | shift | yes | completed | none | Point training at the TF-RD-020 mixed-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run fourth under issue `#149`, then select exactly one shift or drift nominee for cross-front comparison. |
 | 8 | `delta_data_manifest_root_tf_rd_020_mechanism_piecewise` | mechanism_diversity | yes | ready | none | Point training at the TF-RD-020 piecewise-mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run first under issue `#150`, then compare directly against the GP-only and heavier-tail noise rows before nominating one mechanism or noise winner. |
 | 9 | `delta_data_manifest_root_tf_rd_020_mechanism_gp` | mechanism_diversity | yes | ready | none | Point training at the TF-RD-020 GP-only mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run second under issue `#150`, then compare directly against the piecewise and heavier-tail noise rows before nominating one mechanism or noise winner. |
 | 10 | `delta_data_manifest_root_tf_rd_020_noise_laplace` | noise | yes | ready | none | Point training at the TF-RD-020 Laplace-noise harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run third under issue `#150`, then compare directly against the mechanism rows and mixture noise row before nominating one mechanism or noise winner. |
@@ -53,7 +53,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 ### 1. `delta_data_manifest_root_tf_rd_020_missingness_mcar`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 MCAR harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -63,6 +63,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_missingness_mcar_v1`.
 - Expected effect: Moderate MCAR may make the synthetic training surface harder without introducing mechanism-linked missingness structure.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_missingness_mcar`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.3601`); context (grad `0.1887`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix before reading benchmark output.
@@ -73,18 +74,21 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v5`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6` with final log loss `1.7250`, delta final log loss `-2.7223`, final Brier score `0.6194`, delta final Brier score `-0.0271`, best ROC AUC `0.5589`, final ROC AUC `0.6047`, final-minus-best `+0.0458`, delta final ROC AUC `+0.0301`, delta drift `+0.0670`, delta final training time `+9643.9s`
 
 ### 2. `delta_data_manifest_root_tf_rd_020_missingness_mar`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 MAR harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -94,6 +98,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_missingness_mar_v1`.
 - Expected effect: Structured MAR missingness may create a clearer harder front than MCAR without the stronger self-masking bias of MNAR.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_missingness_mar`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0248`); context (grad `0.0407`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MAR override fields in the per-invocation provenance.
@@ -104,18 +109,21 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2` with final log loss `0.5978`, delta final log loss `-3.8495`, final Brier score `0.4122`, delta final Brier score `-0.2343`, best ROC AUC `0.5298`, final ROC AUC `0.5298`, final-minus-best `+0.0000`, delta final ROC AUC `-0.0447`, delta drift `+0.0213`, delta final training time `+277.2s`
 
 ### 3. `delta_data_manifest_root_tf_rd_020_missingness_mnar`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 MNAR harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -125,6 +133,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_missingness_mnar_v1`.
 - Expected effect: Structured MNAR missingness may be the strongest missingness harder front, but it risks a less interpretable synthetic lane than MCAR or MAR.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_missingness_mnar`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0202`); context (grad `0.0234`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MNAR override fields in the per-invocation provenance.
@@ -135,18 +144,21 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2` with final log loss `0.5958`, delta final log loss `-3.8514`, final Brier score `0.4102`, delta final Brier score `-0.2363`, best ROC AUC `0.5551`, final ROC AUC `0.5551`, final-minus-best `+0.0000`, delta final ROC AUC `-0.0195`, delta drift `+0.0213`, delta final training time `+641.4s`
 
 ### 4. `delta_data_manifest_root_tf_rd_020_shift_graph_drift`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 graph-drift harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -156,6 +168,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_shift_graph_drift_v1`.
 - Expected effect: Moderate graph drift may create a harder synthetic front without simultaneously changing mechanism or noise structure.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_shift_graph_drift`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0438`); context (grad `0.0729`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=graph_drift` with `graph_scale=0.5` in effective config artifacts.
@@ -166,18 +179,21 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2` with final log loss `0.5551`, delta final log loss `-3.8921`, final Brier score `0.3751`, delta final Brier score `-0.2714`, best ROC AUC `0.6029`, final ROC AUC `0.6029`, final-minus-best `+0.0000`, delta final ROC AUC `+0.0283`, delta drift `+0.0213`, delta final training time `+873.1s`
 
 ### 5. `delta_data_manifest_root_tf_rd_020_shift_mechanism_drift`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 mechanism-drift harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -187,6 +203,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_shift_mechanism_drift_v1`.
 - Expected effect: Moderate mechanism drift may create a clearer harder front than pure graph drift by changing function-family mass between train and test.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_shift_mechanism_drift`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0885`); context (grad `0.1328`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=mechanism_drift` with `mechanism_scale=0.5` in effective config artifacts.
@@ -197,18 +214,21 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2` with final log loss `0.6387`, delta final log loss `-3.8086`, final Brier score `0.4214`, delta final Brier score `-0.2251`, best ROC AUC `0.6241`, final ROC AUC `0.5997`, final-minus-best `-0.0244`, delta final ROC AUC `+0.0251`, delta drift `-0.0031`, delta final training time `+1087.7s`
 
 ### 6. `delta_data_manifest_root_tf_rd_020_shift_noise_drift`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 noise-drift harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -218,6 +238,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_shift_noise_drift_v1`.
 - Expected effect: Moderate variance drift may create a harder front if the current overfitting problem is partly a mismatch in stochasticity rather than structure.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_shift_noise_drift`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0685`); context (grad `0.1265`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=noise_drift` with `variance_scale=0.5` in effective config artifacts.
@@ -228,18 +249,21 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2` with final log loss `0.5501`, delta final log loss `-3.8972`, final Brier score `0.3740`, delta final Brier score `-0.2724`, best ROC AUC `0.5945`, final ROC AUC `0.5880`, final-minus-best `-0.0065`, delta final ROC AUC `+0.0134`, delta drift `+0.0147`, delta final training time `+528.7s`
 
 ### 7. `delta_data_manifest_root_tf_rd_020_shift_mixed`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 mixed-drift harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -249,6 +273,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_shift_mixed_v1`.
 - Expected effect: Mixed drift may be the strongest shift candidate, but it also risks becoming less interpretable than the single-axis rows.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_shift_mixed`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0751`); context (grad `0.1044`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=mixed` with all three `0.5` drift scales in effective config artifacts.
@@ -259,13 +284,16 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2` with final log loss `0.6795`, delta final log loss `-3.7677`, final Brier score `0.4371`, delta final Brier score `-0.2094`, best ROC AUC `0.6152`, final ROC AUC `0.5350`, final-minus-best `-0.0802`, delta final ROC AUC `-0.0396`, delta drift `-0.0590`, delta final training time `+996.7s`
 
 ### 8. `delta_data_manifest_root_tf_rd_020_mechanism_piecewise`
 

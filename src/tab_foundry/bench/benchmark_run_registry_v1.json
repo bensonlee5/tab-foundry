@@ -14194,6 +14194,1329 @@
         "wall_elapsed_seconds": 369.99855345801916
       }
     },
+    "sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mcar/sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.0369362308308363,
+          "best_training_time_delta": 3063.0781062622555,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.027077551437444836,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -2.722255983567938,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.030085051028560073,
+          "final_training_time_delta": 9643.885619721375,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.0369362308308363,
+          "best_training_time_delta": 3063.0781062622555,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.027077551437444836,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -2.722255983567938,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.030085051028560073,
+          "final_training_time_delta": 9643.885619721375,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged_corpus",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_corpus",
+      "lineage": {
+        "anchor_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_020_missingness_mcar_v1/tf_rd_020_missingness_mcar_v1__368f1f3962f1/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_no_column_v3",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_no_column_v3",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 868706,
+        "trainable_params": 868706
+      },
+      "registered_at_utc": "2026-03-25T08:51:05Z",
+      "run_id": "sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_020_missingness_mcar",
+        "model": "delta_qass_no_column_v3",
+        "preprocessing": "runtime_default",
+        "training": "linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_020_missingness_mcar",
+        "parent_sweep_id": "row_first_training_adequacy_v1",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.38692000951851374,
+        "best_crps": null,
+        "best_log_loss": 0.5680835607635213,
+        "best_picp_90": null,
+        "best_roc_auc": 0.5588864825369017,
+        "best_step": 750.0,
+        "best_training_time": 3101.620987063274,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.6194195978853342,
+        "final_crps": null,
+        "final_log_loss": 1.7250112471446546,
+        "final_picp_90": null,
+        "final_roc_auc": 0.6046555370807282,
+        "final_step": 2500.0,
+        "final_training_time": 10343.252365914639
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 2.046876907348633,
+        "final_val_loss": null,
+        "max_grad_norm": 6.863990783691406,
+        "mean_grad_norm": 0.6608746128218248,
+        "post_warmup_train_loss_var": 0.019260717523897557,
+        "train_elapsed_seconds": 10343.252365914639,
+        "wall_elapsed_seconds": 10351.224435971119
+      }
+    },
+    "sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mar/sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.06599156381943938,
+          "best_training_time_delta": 937.975431799423,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.23431601569568722,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.8494773039741084,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.04473933650386952,
+          "final_training_time_delta": 277.1515664071776,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.06599156381943938,
+          "best_training_time_delta": 937.975431799423,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.23431601569568722,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.8494773039741084,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.04473933650386952,
+          "final_training_time_delta": 277.1515664071776,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged_corpus",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_corpus",
+      "lineage": {
+        "anchor_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_020_missingness_mar_v1/tf_rd_020_missingness_mar_v1__91080de81d2f/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_no_column_v3",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_no_column_v3",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 868706,
+        "trainable_params": 868706
+      },
+      "registered_at_utc": "2026-03-25T14:52:35Z",
+      "run_id": "sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_020_missingness_mar",
+        "model": "delta_qass_no_column_v3",
+        "preprocessing": "runtime_default",
+        "training": "linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_020_missingness_mar",
+        "parent_sweep_id": "row_first_training_adequacy_v1",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.4121811336270918,
+        "best_crps": null,
+        "best_log_loss": 0.5977899267384836,
+        "best_picp_90": null,
+        "best_roc_auc": 0.5298311495482986,
+        "best_step": 400.0,
+        "best_training_time": 976.5183126004413,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.4121811336270918,
+        "final_crps": null,
+        "final_log_loss": 0.5977899267384836,
+        "final_picp_90": null,
+        "final_roc_auc": 0.5298311495482986,
+        "final_step": 400.0,
+        "final_training_time": 976.5183126004413
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.17268303036689758,
+        "final_val_loss": null,
+        "max_grad_norm": 4.0691962242126465,
+        "mean_grad_norm": 0.500683504070621,
+        "post_warmup_train_loss_var": 0.0020544828613759916,
+        "train_elapsed_seconds": 976.5183126004413,
+        "wall_elapsed_seconds": 979.7097773221321
+      }
+    },
+    "sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_missingness_mnar/sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.040771390195678214,
+          "best_training_time_delta": 1302.2628840724938,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.23631997365192675,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.8514375412538593,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.019519162880108354,
+          "final_training_time_delta": 641.4390186802484,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.040771390195678214,
+          "best_training_time_delta": 1302.2628840724938,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.23631997365192675,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.8514375412538593,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.019519162880108354,
+          "final_training_time_delta": 641.4390186802484,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged_corpus",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_corpus",
+      "lineage": {
+        "anchor_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_020_missingness_mnar_v1/tf_rd_020_missingness_mnar_v1__74e83bf3f01a/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_no_column_v3",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_no_column_v3",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 868706,
+        "trainable_params": 868706
+      },
+      "registered_at_utc": "2026-03-25T15:15:13Z",
+      "run_id": "sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_020_missingness_mnar",
+        "model": "delta_qass_no_column_v3",
+        "preprocessing": "runtime_default",
+        "training": "linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_020_missingness_mnar",
+        "parent_sweep_id": "row_first_training_adequacy_v1",
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.41017717567085227,
+        "best_crps": null,
+        "best_log_loss": 0.5958296894587327,
+        "best_picp_90": null,
+        "best_roc_auc": 0.5550513231720597,
+        "best_step": 400.0,
+        "best_training_time": 1340.805764873512,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.41017717567085227,
+        "final_crps": null,
+        "final_log_loss": 0.5958296894587327,
+        "final_picp_90": null,
+        "final_roc_auc": 0.5550513231720597,
+        "final_step": 400.0,
+        "final_training_time": 1340.805764873512
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.07169931381940842,
+        "final_val_loss": null,
+        "max_grad_norm": 4.2577290534973145,
+        "mean_grad_norm": 0.4587673542299308,
+        "post_warmup_train_loss_var": 0.003063305329133451,
+        "train_elapsed_seconds": 1340.805764873512,
+        "wall_elapsed_seconds": 1343.036051997915
+      }
+    },
+    "sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_graph_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.007036304854153852,
+          "best_training_time_delta": 1533.8780922978185,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.2713810389577417,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.892129167979933,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.028288532169723712,
+          "final_training_time_delta": 873.0542269055732,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.007036304854153852,
+          "best_training_time_delta": 1533.8780922978185,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.2713810389577417,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.892129167979933,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.028288532169723712,
+          "final_training_time_delta": 873.0542269055732,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged_corpus",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_corpus",
+      "lineage": {
+        "anchor_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_020_shift_graph_drift_v1/tf_rd_020_shift_graph_drift_v1__847d6708b75c/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_no_column_v3",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_no_column_v3",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 868706,
+        "trainable_params": 868706
+      },
+      "registered_at_utc": "2026-03-25T15:42:05Z",
+      "run_id": "sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_020_shift_graph_drift",
+        "model": "delta_qass_no_column_v3",
+        "preprocessing": "runtime_default",
+        "training": "linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_020_shift_graph_drift",
+        "parent_sweep_id": "row_first_training_adequacy_v1",
+        "queue_order": 4,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.37511611036503734,
+        "best_crps": null,
+        "best_log_loss": 0.5551380627326593,
+        "best_picp_90": null,
+        "best_roc_auc": 0.6028590182218918,
+        "best_step": 400.0,
+        "best_training_time": 1572.4209730988368,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.37511611036503734,
+        "final_crps": null,
+        "final_log_loss": 0.5551380627326593,
+        "final_picp_90": null,
+        "final_roc_auc": 0.6028590182218918,
+        "final_step": 400.0,
+        "final_training_time": 1572.4209730988368
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.16836795210838318,
+        "final_val_loss": null,
+        "max_grad_norm": 2.65151309967041,
+        "mean_grad_norm": 0.48456084439065306,
+        "post_warmup_train_loss_var": 0.0018441064238870737,
+        "train_elapsed_seconds": 1572.4209730988368,
+        "wall_elapsed_seconds": 1575.0475497469306
+      }
+    },
+    "sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mechanism_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.028284692297698588,
+          "best_training_time_delta": 1083.043613421265,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.22505798765912732,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.8085848768604076,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.025138238626704612,
+          "final_training_time_delta": 1087.7440430042334,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.028284692297698588,
+          "best_training_time_delta": 1083.043613421265,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.22505798765912732,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.8085848768604076,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.025138238626704612,
+          "final_training_time_delta": 1087.7440430042334,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged_corpus",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_corpus",
+      "lineage": {
+        "anchor_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_020_shift_mechanism_drift_v1/tf_rd_020_shift_mechanism_drift_v1__e39323e541d9/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_no_column_v3",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_no_column_v3",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 868706,
+        "trainable_params": 868706
+      },
+      "registered_at_utc": "2026-03-25T16:12:05Z",
+      "run_id": "sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_020_shift_mechanism_drift",
+        "model": "delta_qass_no_column_v3",
+        "preprocessing": "runtime_default",
+        "training": "linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_020_shift_mechanism_drift",
+        "parent_sweep_id": "row_first_training_adequacy_v1",
+        "queue_order": 5,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.378439534390614,
+        "best_crps": null,
+        "best_log_loss": 0.5576948179071773,
+        "best_picp_90": null,
+        "best_roc_auc": 0.6241074056654365,
+        "best_step": 250.0,
+        "best_training_time": 1121.5864942222834,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.4214391616636517,
+        "final_crps": null,
+        "final_log_loss": 0.6386823538521846,
+        "final_picp_90": null,
+        "final_roc_auc": 0.5997087246788727,
+        "final_step": 400.0,
+        "final_training_time": 1787.110789197497
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.34568408131599426,
+        "final_val_loss": null,
+        "max_grad_norm": 3.741863489151001,
+        "mean_grad_norm": 0.44352675223723054,
+        "post_warmup_train_loss_var": 0.004141044800845639,
+        "train_elapsed_seconds": 1787.110789197497,
+        "wall_elapsed_seconds": 1789.6553536015563
+      }
+    },
+    "sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.0013083394270312354,
+          "best_training_time_delta": 1102.835890502669,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.2724478297901212,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.897162161813381,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.013432168375770881,
+          "final_training_time_delta": 528.7343069924973,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.0013083394270312354,
+          "best_training_time_delta": 1102.835890502669,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.2724478297901212,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.897162161813381,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": 0.013432168375770881,
+          "final_training_time_delta": 528.7343069924973,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged_corpus",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_corpus",
+      "lineage": {
+        "anchor_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_020_shift_noise_drift_v1/tf_rd_020_shift_noise_drift_v1__dbeb02a05699/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_no_column_v3",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_no_column_v3",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 868706,
+        "trainable_params": 868706
+      },
+      "registered_at_utc": "2026-03-25T16:32:46Z",
+      "run_id": "sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_020_shift_noise_drift",
+        "model": "delta_qass_no_column_v3",
+        "preprocessing": "runtime_default",
+        "training": "linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_020_shift_noise_drift",
+        "parent_sweep_id": "row_first_training_adequacy_v1",
+        "queue_order": 6,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.37033812315954123,
+        "best_crps": null,
+        "best_log_loss": 0.5469057523340293,
+        "best_picp_90": null,
+        "best_roc_auc": 0.5945143739407067,
+        "best_step": 375.0,
+        "best_training_time": 1141.3787713036872,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.3740493195326578,
+        "final_crps": null,
+        "final_log_loss": 0.5501050688992111,
+        "final_picp_90": null,
+        "final_roc_auc": 0.588002654427939,
+        "final_step": 400.0,
+        "final_training_time": 1228.101053185761
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.2619774341583252,
+        "final_val_loss": null,
+        "max_grad_norm": 2.7898130416870117,
+        "mean_grad_norm": 0.5270433371933178,
+        "post_warmup_train_loss_var": 0.0027513976893521067,
+        "train_elapsed_seconds": 1228.101053185761,
+        "wall_elapsed_seconds": 1230.3348271199502
+      }
+    },
+    "sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_mixed/sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": 0.019372318140069567,
+          "best_training_time_delta": 809.1197527498007,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.20942568891960955,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.767738670372531,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.03960568490676997,
+          "final_training_time_delta": 996.6775068622082,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": 0.019372318140069567,
+          "best_training_time_delta": 809.1197527498007,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": -0.20942568891960955,
+          "final_crps_delta": null,
+          "final_log_loss_delta": -3.767738670372531,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.03960568490676997,
+          "final_training_time_delta": 996.6775068622082,
+          "reference_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_staged_corpus",
+      "decision": "defer",
+      "experiment": "cls_benchmark_staged_corpus",
+      "lineage": {
+        "anchor_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_020_shift_mixed_v1/tf_rd_020_shift_mixed_v1__3a135ee180c2/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_staged",
+        "benchmark_profile": "delta_qass_no_column_v3",
+        "d_icl": 96,
+        "head_hidden_dim": 192,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "module_hyperparameters": {
+          "column_encoder": {
+            "n_heads": null,
+            "n_inducing": null,
+            "n_layers": null,
+            "name": "none",
+            "norm_type": null
+          },
+          "context_encoder": {
+            "allow_test_self_attention": true,
+            "ff_expansion": 2,
+            "n_heads": 4,
+            "n_layers": 3,
+            "name": "qass",
+            "norm_type": "layernorm",
+            "use_qass": true
+          },
+          "post_encoder_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "post_stack_norm": {
+            "name": "none",
+            "norm_type": null
+          },
+          "row_pool": {
+            "cls_tokens": 4,
+            "n_heads": 8,
+            "n_layers": 3,
+            "name": "row_cls",
+            "norm_type": "layernorm"
+          },
+          "staged_dropout": 0.0,
+          "table_block": {
+            "allow_test_self_attention": true,
+            "mlp_hidden_dim": 192,
+            "n_heads": 4,
+            "norm_type": "layernorm",
+            "residual_branch_gain": 1.0,
+            "residual_scale": "none",
+            "style": "prenorm"
+          }
+        },
+        "module_selection": {
+          "allow_test_self_attention": true,
+          "column_encoder": "none",
+          "context_encoder": "qass",
+          "feature_encoder": "shared",
+          "head": "small_class",
+          "post_encoder_norm": "none",
+          "post_stack_norm": "none",
+          "row_pool": "row_cls",
+          "table_block_residual_scale": "none",
+          "table_block_style": "prenorm",
+          "target_conditioner": "label_token",
+          "tokenizer": "shifted_grouped"
+        },
+        "stage": "qass_context",
+        "stage_label": "delta_qass_no_column_v3",
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 868706,
+        "trainable_params": 868706
+      },
+      "registered_at_utc": "2026-03-25T17:01:14Z",
+      "run_id": "sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_020_shift_mixed",
+        "model": "delta_qass_no_column_v3",
+        "preprocessing": "runtime_default",
+        "training": "linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_020_shift_mixed",
+        "parent_sweep_id": "row_first_training_adequacy_v1",
+        "queue_order": 7,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.37208312399127524,
+        "best_crps": null,
+        "best_log_loss": 0.5506841171153994,
+        "best_picp_90": null,
+        "best_roc_auc": 0.6151950315078075,
+        "best_step": 200.0,
+        "best_training_time": 847.662633550819,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.43707146040316947,
+        "final_crps": null,
+        "final_log_loss": 0.6795285603400613,
+        "final_picp_90": null,
+        "final_roc_auc": 0.5349648011453981,
+        "final_step": 400.0,
+        "final_training_time": 1696.044253055472
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.13758915662765503,
+        "final_val_loss": null,
+        "max_grad_norm": 3.873849391937256,
+        "mean_grad_norm": 0.40470628700219097,
+        "post_warmup_train_loss_var": 0.0046576888034344805,
+        "train_elapsed_seconds": 1696.044253055472,
+        "wall_elapsed_seconds": 1697.965259035118
+      }
+    },
     "sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v1": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/research/tokenization_migration_v1/delta_architecture_screen_grouped_tokens/sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v1/benchmark",
