@@ -927,15 +927,14 @@ This roadmap assumes the following repo truths:
     new sibling epic to issue
     [#107](https://github.com/bensonlee5/tab-foundry/issues/107) and now blocks
     the remaining TF-RD-018 optimizer, LR/warmup, and clipping follow-up until
-    the full harder-front lane closes, including the final filter-regime
-    decision
+    the current uncapped harder-front lane closes on `tf_rd_020_harder_dagzoo_ladder_v1`
   - the repo already has explicit dagzoo surfaces for missingness, shift or
     drift, mechanism diversity, and noise, and the pre-filter TF-RD-020
     ladder now fixes their initial ordering and nomination rubric
   - dagzoo now ships a small-shot ease filter contract rather than the removed
-    threshold-era filter contract, but TF-RD-020 should apply that only after a
-    harder front is selected rather than reopening filtering earlier in the
-    ladder
+    threshold-era filter contract, but TF-RD-020 stays pre-filter and leaves
+    broader filtering policy to TF-RD-019 rather than reopening filtering in
+    this ladder
   - this epic is synthetic-data work only and does not replace the
     benchmark-front missingness and class-imbalance epics under issues
     [#97](https://github.com/bensonlee5/tab-foundry/issues/97) and
@@ -950,26 +949,28 @@ This roadmap assumes the following repo truths:
     issue [#149](https://github.com/bensonlee5/tab-foundry/issues/149)
   - execute the mechanism-diversity and noise ladder defined under issue
     [#150](https://github.com/bensonlee5/tab-foundry/issues/150)
-  - record which harder dagzoo front becomes the canonical synthetic
-    carry-forward surface for later architecture or scaling interpretation
-  - after the harder front is selected, set the dagzoo small-shot ease filter
-    regime on that selected front under issue
-    [#151](https://github.com/bensonlee5/tab-foundry/issues/151)
-  - hand that selected harder surface and final keep/defer filter regime back to
-    TF-RD-018 so optimizer, LR, clipping, and budget continuation no longer run
-    only on the medium dagzoo surface
+  - rerun all 11 rows of
+    [`tf_rd_020_harder_dagzoo_ladder_v1`](../../reference/system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md)
+    uncapped, keeping `task_batch_size=4` fixed and using the log-loss-first
+    nomination rubric
+  - record exactly one kept row in each family, then hand that uncapped
+    harder-front evidence set back to TF-RD-018 so optimizer, LR, clipping, and
+    budget continuation no longer run only on the medium dagzoo surface
+  - treat the larger-corpus and winner-mix follow-up ideas from closed issues
+    [#154](https://github.com/bensonlee5/tab-foundry/issues/154),
+    [#155](https://github.com/bensonlee5/tab-foundry/issues/155), and
+    [#156](https://github.com/bensonlee5/tab-foundry/issues/156) as deferred
+    until this uncapped v1 sweep resolves
 - Exit criteria:
-  - the repo has one explicit keep or defer decision on the harder dagzoo
-    corpus fronts that should carry forward as the next synthetic harder post-008
-    surface
+  - the repo has explicit keep, defer, or reject decisions across the harder
+    dagzoo corpus fronts, including exactly one kept row in each TF-RD-020
+    family
   - issue [#147](https://github.com/bensonlee5/tab-foundry/issues/147) is closed
     because the canonical pre-filter ladder and handoff are recorded in
     [`tf_rd_020_harder_dagzoo_ladder_v1`](../../reference/system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md)
-  - the repo has one explicit carried small-shot ease filter regime or explicit
-    `filter.enabled=false` decision on that selected harder front
-  - TF-RD-018 can resume from a documented default recipe plus one settled
-    harder dagzoo surface and final filter-regime decision rather than
-    continuing optimizer, LR, or clipping work on the medium surface alone
+  - TF-RD-018 can resume from a documented default recipe plus the selected
+    uncapped harder-front evidence set rather than continuing optimizer, LR, or
+    clipping work on the medium surface alone
   - the relationship between TF-RD-020 and the benchmark-front epics TF-RD-014
     and TF-RD-017 plus the later filtering-policy lane TF-RD-019 is explicit
     and non-overlapping
@@ -989,10 +990,9 @@ This roadmap assumes the following repo truths:
     `ease_k_small`, `easy_skill_threshold`, `easy_gain_threshold`,
     `hard_skill_threshold`, `stump_skill_threshold`, and `use_lineage_veto`
     rather than the removed threshold-era filter contract
-  - issue [#146](https://github.com/bensonlee5/tab-foundry/issues/146) now owns
-    the narrower harder-front filter-regime decision under issue
-    [#151](https://github.com/bensonlee5/tab-foundry/issues/151), so TF-RD-019
-    remains the broader later policy lane
+  - issue [#146](https://github.com/bensonlee5/tab-foundry/issues/146) now ends
+    with the uncapped no-filter harder-front ladder, so TF-RD-019 remains the
+    broader later policy lane for any future filtering recommendation
   - `filter-calibration` is currently unsupported for the small-shot ease
     filter, so TF-RD-019 should not assume calibration is the active decision
     path

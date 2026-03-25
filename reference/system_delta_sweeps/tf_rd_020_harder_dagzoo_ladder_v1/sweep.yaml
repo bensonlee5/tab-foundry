@@ -19,8 +19,8 @@ anchor_surface:
   - Keep the settled row-first model, preprocessing surface, benchmark bundle, and warmup-decay training recipe fixed; only the synthetic dagzoo corpus front changes across rows.
   - The carried control surface remains `tf_rd_013_dagzoo_shape_aware_size_medium_v1`, now trained with `training.task_batch_size=4`.
   - Missingness rows use existing tab-foundry dagzoo CLI overrides; shift, mechanism-diversity, and noise rows resolve through dedicated dagzoo config refs derived from `benchmark_cpu.yaml`, `default.yaml`, and `benchmark_cuda_h100_large_shape.yaml`.
-  - Every row stays pre-filter with `filter.enabled=false`; the final small-shot ease filter decision belongs only to TF-RD-020 issue `#151` after one cross-front winner is chosen.
-  - Issues `#148`, `#149`, and `#150` each nominate exactly one pre-filter winner, and issue `#151` runs only on the single cross-front winner that survives the sweep-level rubric.
+  - Every row stays pre-filter with `filter.enabled=false`; TF-RD-020 closes on this uncapped v1 ladder rather than handing a selected winner to a separate filter follow-up.
+  - Issues `#148`, `#149`, and `#150` each nominate exactly one uncapped family winner, and the completed ladder records those kept rows directly in TF-RD-020 evidence.
   dimension_table:
   - dimension: promoted anchor
     upstream: TabICLv2 motivates synthetic pretraining but does not define this repo-local row-first promoted-anchor contract.
@@ -33,11 +33,11 @@ anchor_surface:
   - dimension: filtering sequence
     upstream: Not applicable.
     anchor: The carried medium control remains unfiltered.
-    interpretation: Keep all issue `#147` rows pre-filter and defer the final small-shot ease filter decision to issue `#151`.
+    interpretation: Keep all issue `#147` rows pre-filter; later dagzoo filtering policy remains outside this sweep.
   - dimension: nomination rubric
     upstream: Not applicable.
     anchor: No harder-front nomination rubric existed before this sweep.
-    interpretation: Rank rows by final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third while treating runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails.
+    interpretation: Rank rows by final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth while treating runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails.
 anchor_context:
   run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
   experiment: cls_benchmark_staged_corpus

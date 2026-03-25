@@ -16,13 +16,11 @@ rows:
     surface_label: tf_rd_020_missingness_mcar
     source: manifest
     corpus_ref: tf_rd_020_missingness_mcar_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -51,9 +49,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix before reading benchmark output.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other missingness rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other missingness rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#148` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v4
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -76,13 +74,11 @@ rows:
     surface_label: tf_rd_020_missingness_mar
     source: manifest
     corpus_ref: tf_rd_020_missingness_mar_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -111,9 +107,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MAR override fields in the per-invocation provenance.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other missingness rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other missingness rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#148` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -136,13 +132,11 @@ rows:
     surface_label: tf_rd_020_missingness_mnar
     source: manifest
     corpus_ref: tf_rd_020_missingness_mnar_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -171,9 +165,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MNAR override fields in the per-invocation provenance.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other missingness rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other missingness rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#148` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -196,13 +190,11 @@ rows:
     surface_label: tf_rd_020_shift_graph_drift
     source: manifest
     corpus_ref: tf_rd_020_shift_graph_drift_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -231,9 +223,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=graph_drift` with `graph_scale=0.5` in effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -256,13 +248,11 @@ rows:
     surface_label: tf_rd_020_shift_mechanism_drift
     source: manifest
     corpus_ref: tf_rd_020_shift_mechanism_drift_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -291,9 +281,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=mechanism_drift` with `mechanism_scale=0.5` in effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -316,13 +306,11 @@ rows:
     surface_label: tf_rd_020_shift_noise_drift
     source: manifest
     corpus_ref: tf_rd_020_shift_noise_drift_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -351,9 +339,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=noise_drift` with `variance_scale=0.5` in effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -376,13 +364,11 @@ rows:
     surface_label: tf_rd_020_shift_mixed
     source: manifest
     corpus_ref: tf_rd_020_shift_mixed_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -411,9 +397,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=mixed` with all three `0.5` drift scales in effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -436,13 +422,11 @@ rows:
     surface_label: tf_rd_020_mechanism_piecewise
     source: manifest
     corpus_ref: tf_rd_020_mechanism_piecewise_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -471,9 +455,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the piecewise-plus-linear family mix in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -496,13 +480,11 @@ rows:
     surface_label: tf_rd_020_mechanism_gp
     source: manifest
     corpus_ref: tf_rd_020_mechanism_gp_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -531,9 +513,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the GP-only family mix in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -556,13 +538,11 @@ rows:
     surface_label: tf_rd_020_noise_laplace
     source: manifest
     corpus_ref: tf_rd_020_noise_laplace_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -591,9 +571,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the Laplace noise family in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending
@@ -616,13 +596,11 @@ rows:
     surface_label: tf_rd_020_noise_mixture
     source: manifest
     corpus_ref: tf_rd_020_noise_mixture_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -651,9 +629,9 @@ rows:
           warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mixture-noise family plus mixture weights in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v1
   followup_run_ids: []
   decision: null
   interpretation_status: pending

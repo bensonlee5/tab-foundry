@@ -17,6 +17,45 @@ def _mapping_from_any(value: Any, *, context: str) -> dict[str, Any]:
     return {str(key): item for key, item in value.items()}
 
 
+def _corpus_record_missing_value_policy(corpus_record: Mapping[str, Any]) -> str | None:
+    manifest = _mapping_from_any(corpus_record.get("manifest"), context="corpus_record.manifest")
+    for nested_context, candidate in (
+        (
+            "corpus_record.manifest.characteristics.persisted_summary",
+            _mapping_from_any(
+                _mapping_from_any(
+                    manifest.get("characteristics"),
+                    context="corpus_record.manifest.characteristics",
+                ).get("persisted_summary"),
+                context="corpus_record.manifest.characteristics.persisted_summary",
+            ).get("missing_value_policy"),
+        ),
+        (
+            "corpus_record.manifest.inspection.persisted_summary",
+            _mapping_from_any(
+                _mapping_from_any(
+                    manifest.get("inspection"),
+                    context="corpus_record.manifest.inspection",
+                ).get("persisted_summary"),
+                context="corpus_record.manifest.inspection.persisted_summary",
+            ).get("missing_value_policy"),
+        ),
+        (
+            "corpus_record.manifest.characteristics",
+            _mapping_from_any(
+                manifest.get("characteristics"),
+                context="corpus_record.manifest.characteristics",
+            ).get("missing_value_policy"),
+        ),
+    ):
+        if candidate is None:
+            continue
+        if not isinstance(candidate, str) or not candidate.strip():
+            raise ValueError(f"{nested_context}.missing_value_policy must be a non-empty string when present")
+        return candidate.strip().lower()
+    return None
+
+
 @dataclass(slots=True, frozen=True)
 class DataSurfaceConfig:
     surface_label: str
@@ -117,6 +156,10 @@ def resolve_data_surface(
     allow_missing_values_raw = overrides.get("allow_missing_values")
     if allow_missing_values_raw is None:
         allow_missing_values_raw = cfg.get("allow_missing_values")
+    if allow_missing_values_raw is None and corpus_record is not None:
+        missing_value_policy = _corpus_record_missing_value_policy(corpus_record)
+        if missing_value_policy is not None:
+            allow_missing_values_raw = missing_value_policy == "allow_any"
     allow_missing_values = bool(allow_missing_values_raw) if allow_missing_values_raw is not None else False
     dagzoo_provenance_raw = overrides.get("dagzoo_provenance")
     if dagzoo_provenance_raw is None:

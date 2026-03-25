@@ -63,11 +63,11 @@ This is the canonical long-form evidence note for
 - carry that settled batch rung onto TF-RD-020 before reopening optimizer or
   schedule-family follow-up
 - use the recorded `tf_rd_020_harder_dagzoo_ladder_v1` ladder as the fixed
-  pre-filter handoff for issues `#148`, `#149`, `#150`, and `#151` rather than
+  pre-filter handoff for issues `#148`, `#149`, and `#150` rather than
   reopening harder-front design inside TF-RD-018
-- after the full harder dagzoo blocker closes, including the final filter-regime
-  decision, retune LR and schedule on the settled rung rather than jointly
-  searching batch and LR across the whole ladder
+- after the full uncapped harder dagzoo blocker closes, retune LR and schedule
+  on the settled rung rather than jointly searching batch and LR across the
+  whole ladder
 - issues `#137`, `#138`, and `#139` should now rebase onto
   `task_batch_size=4` after TF-RD-020 closes instead of reopening singleton
   updates
@@ -80,8 +80,7 @@ This is the canonical long-form evidence note for
 
 - optimizer-family, LR-shape, clipping, and step-budget evidence are still
   open, but they should now be read on top of `task_batch_size=4` and remain
-  contingent on the harder dagzoo handoff through TF-RD-020, including the
-  final filter-regime decision on the selected harder front
+  contingent on the harder dagzoo handoff through TF-RD-020
 - the repo still needs an explicit handoff rule for how much of the TF-RD-018
   recipe should stay fixed when TF-RD-020 closes and
   [TF-RD-009](tf_rd_009_scaling_law_measurement.md) starts

@@ -34,9 +34,8 @@ This is the canonical long-form evidence note for
   `easy_skill_threshold`, `easy_gain_threshold`, `hard_skill_threshold`,
   `stump_skill_threshold`, and `use_lineage_veto` as the public filter knobs
 - `filter-calibration` is currently unsupported for the small-shot ease filter
-- TF-RD-020 now owns the narrower selected-front filter-regime decision under
-  [#151](https://github.com/bensonlee5/tab-foundry/issues/151), while TF-RD-019
-  remains the broader later default-pipeline policy lane
+- TF-RD-020 now closes on the uncapped no-filter harder-front ladder, while
+  TF-RD-019 remains the broader later default-pipeline policy lane
 
 ## Current Interpretation
 
@@ -45,8 +44,8 @@ This is the canonical long-form evidence note for
   candidate implementations
 - evaluate the shipped small-shot ease filter, lighter heuristics, and
   no-filter baselines under an explicit throughput budget
-- do not use TF-RD-019 to own the current harder-front threshold-setting work;
-  that stays in TF-RD-020
+- do not use TF-RD-019 to own the current harder-front execution work; TF-RD-020
+  stays pre-filter and only resolves the uncapped v1 harder fronts
 
 ## Open Evidence Gaps
 

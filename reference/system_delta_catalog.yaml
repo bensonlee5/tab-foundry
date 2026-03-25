@@ -2714,7 +2714,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix before reading benchmark output.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other missingness rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other missingness rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -2732,8 +2732,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_missingness_mcar_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run first under issue `#148`, then compare directly against the MAR and MNAR rows before nominating one missingness winner.
@@ -2753,7 +2751,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MAR override fields in provenance.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other missingness rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other missingness rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -2771,8 +2769,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_missingness_mar_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run second under issue `#148`, then compare directly against the MCAR and MNAR rows before nominating one missingness winner.
@@ -2792,7 +2788,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MNAR override fields in provenance.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other missingness rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other missingness rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -2810,8 +2806,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_missingness_mnar_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run third under issue `#148`, then select exactly one missingness nominee for cross-front comparison.
@@ -2831,7 +2825,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the graph-drift effective config artifacts.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other shift rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other shift rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -2849,8 +2843,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_shift_graph_drift_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run first under issue `#149`, then compare directly against the mechanism-drift, noise-drift, and mixed rows before nominating one shift winner.
@@ -2870,7 +2862,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mechanism-drift effective config artifacts.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other shift rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other shift rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -2888,8 +2880,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_shift_mechanism_drift_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run second under issue `#149`, then compare directly against the graph-drift, noise-drift, and mixed rows before nominating one shift winner.
@@ -2909,7 +2899,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the noise-drift effective config artifacts.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other shift rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other shift rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -2927,8 +2917,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_shift_noise_drift_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run third under issue `#149`, then compare directly against the graph-drift, mechanism-drift, and mixed rows before nominating one shift winner.
@@ -2948,7 +2936,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mixed-drift effective config artifacts.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other shift rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other shift rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -2966,8 +2954,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_shift_mixed_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run fourth under issue `#149`, then select exactly one shift or drift nominee for cross-front comparison.
@@ -2987,7 +2973,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the piecewise effective config artifacts.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other mechanism or noise rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other mechanism or noise rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -3005,8 +2991,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_mechanism_piecewise_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run first under issue `#150`, then compare directly against the GP-only and heavier-tail noise rows before nominating one mechanism or noise winner.
@@ -3026,7 +3010,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the GP-only effective config artifacts.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other mechanism or noise rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other mechanism or noise rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -3044,8 +3028,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_mechanism_gp_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run second under issue `#150`, then compare directly against the piecewise and heavier-tail noise rows before nominating one mechanism or noise winner.
@@ -3065,7 +3047,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the Laplace effective config artifacts.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other mechanism or noise rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other mechanism or noise rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -3083,8 +3065,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_noise_laplace_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run third under issue `#150`, then compare directly against the mechanism rows and mixture noise row before nominating one mechanism or noise winner.
@@ -3104,7 +3084,7 @@ deltas:
     parameter_adequacy_policy:
       default_plan:
         - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mixture-noise effective config artifacts.
-        - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the medium control and the other mechanism or noise rows.
+        - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the medium control and the other mechanism or noise rows.
         - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails rather than primary selection metrics.
       default_negative_decision: defer
       reject_requires:
@@ -3122,8 +3102,6 @@ deltas:
         surface_overrides:
           source: manifest
           corpus_ref: tf_rd_020_noise_mixture_v1
-          train_row_cap: 512
-          test_row_cap: 256
       preprocessing:
         surface_label: runtime_default
     default_next_action: Run fourth under issue `#150`, then select exactly one mechanism-diversity or noise nominee for cross-front comparison.

@@ -840,7 +840,27 @@ def test_compose_cfg_routes_data_corpus_ref_into_surface_overrides(tmp_path: Pat
 
     assert str(cfg.data.surface_label) == 'anchor_manifest_default'
     assert str(cfg.data.surface_overrides.corpus_ref) == 'tf_rd_013_current_corpus_default_v1'
+    assert cfg.data.allow_missing_values is None
     assert cfg.data.train_row_cap == 512
+
+
+def test_compose_cfg_keeps_explicit_allow_missing_values_with_corpus_ref(tmp_path: Path) -> None:
+    run_dir = tmp_path / 'outputs' / 'staged_ladder' / 'research' / 'tf_rd_020' / 'train'
+
+    cfg = _compose_cfg(
+        row={
+            'data': {
+                'surface_label': 'tf_rd_020_missingness_mcar',
+                'corpus_ref': 'tf_rd_020_missingness_mcar_v1',
+                'allow_missing_values': False,
+            }
+        },
+        run_dir=run_dir,
+        device='cuda',
+    )
+
+    assert str(cfg.data.surface_overrides.corpus_ref) == 'tf_rd_020_missingness_mcar_v1'
+    assert cfg.data.allow_missing_values is False
 
 
 def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> None:

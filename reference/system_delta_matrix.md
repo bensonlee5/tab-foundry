@@ -29,8 +29,8 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 | --- | --- | --- | --- |
 | promoted anchor | TabICLv2 motivates synthetic pretraining but does not define this repo-local row-first promoted-anchor contract. | The kept `row_cls + qass + no tfcol` anchor trained on the settled `task_batch_size=4` manifest-batched surface from TF-RD-018 issue `#109`. | TF-RD-020 should change only the synthetic corpus front while keeping the promoted row-first training recipe fixed. |
 | harder dagzoo corpus front | No dedicated upstream reference defines this exact dagzoo harder-front ladder. | `tf_rd_013_dagzoo_shape_aware_size_medium_v1` is the carried medium control surface. | Rows nominate missingness, shift/drift, and mechanism-diversity or noise candidates that can become the next synthetic harder carry-forward front. |
-| filtering sequence | Not applicable. | The carried medium control remains unfiltered. | Keep all issue `#147` rows pre-filter and defer the final small-shot ease filter decision to issue `#151`. |
-| nomination rubric | Not applicable. | No harder-front nomination rubric existed before this sweep. | Rank rows by final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third while treating runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails. |
+| filtering sequence | Not applicable. | The carried medium control remains unfiltered. | Keep all issue `#147` rows pre-filter; later dagzoo filtering policy remains outside this sweep. |
+| nomination rubric | Not applicable. | No harder-front nomination rubric existed before this sweep. | Rank rows by final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth while treating runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior as guardrails. |
 
 ## Queue Summary
 
@@ -66,7 +66,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix before reading benchmark output.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other missingness rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other missingness rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#148` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit `missing_rate` and `missing_mechanism` resolution across the carried `8/28/4` invocation mix
@@ -97,7 +97,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MAR override fields in the per-invocation provenance.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other missingness rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other missingness rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#148` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit MAR override resolution across the carried `8/28/4` invocation mix
@@ -128,7 +128,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the MNAR override fields in the per-invocation provenance.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other missingness rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other missingness rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#148` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit MNAR override resolution across the carried `8/28/4` invocation mix
@@ -159,7 +159,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=graph_drift` with `graph_scale=0.5` in effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit `shift.mode=graph_drift` resolution with `graph_scale=0.5` across the carried `8/28/4` invocation mix
@@ -190,7 +190,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=mechanism_drift` with `mechanism_scale=0.5` in effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit `shift.mode=mechanism_drift` resolution with `mechanism_scale=0.5` across the carried `8/28/4` invocation mix
@@ -221,7 +221,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=noise_drift` with `variance_scale=0.5` in effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit `shift.mode=noise_drift` resolution with `variance_scale=0.5` across the carried `8/28/4` invocation mix
@@ -252,7 +252,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves `shift.mode=mixed` with all three `0.5` drift scales in effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#149` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit `shift.mode=mixed` resolution with all three `0.5` scales across the carried `8/28/4` invocation mix
@@ -283,7 +283,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the piecewise-plus-linear family mix in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit mechanism family-mix resolution across the carried `8/28/4` invocation mix
@@ -314,7 +314,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the GP-only family mix in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit GP-only family-mix resolution across the carried `8/28/4` invocation mix
@@ -345,7 +345,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the Laplace noise family in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit Laplace-noise resolution across the carried `8/28/4` invocation mix
@@ -376,7 +376,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mixture-noise family plus mixture weights in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final ROC delta third against the carried medium control and the other mechanism or noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and best-to-final ROC delta fourth against the carried medium control and the other mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior only as guardrails when nominating the issue `#150` winner.
 - Adequacy knobs to dimension explicitly:
   - explicit mixture-noise resolution across the carried `8/28/4` invocation mix
