@@ -90,7 +90,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_training_adamw
-  status: ready
+  status: completed
   dimension_family: training
   family: optimizer
   binary_applicable: true
@@ -175,19 +175,41 @@ rows:
   - Use NaNs, OOM, clipped-step fraction, and obvious LR-transfer artifacts as guardrails
     before making a reject call.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run directly against the locked TF-RD-020 noise-drift anchor, then
     compare against row `02`.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 375
+    max_grad_norm: 3.076207160949707
+    clipped_step_fraction: 0.085
+    best_log_loss: 0.5962619779392131
+    final_log_loss: 0.5971377714420258
+    best_brier_score: 0.41071540645974924
+    final_brier_score: 0.41142143225208005
+    best_roc_auc: 0.5515201949195326
+    final_roc_auc: 0.5614259544613724
+    final_minus_best_log_loss: 0.0008757935028127495
+    final_minus_best_brier_score: 0.0007060257923308111
+    final_minus_best_roc_auc: 0.00990575954183981
+    drift: 0.00990575954183981
+    delta_final_log_loss: 0.047032702542814775
+    delta_final_brier_score: 0.03737211271942226
+    delta_final_roc_auc: -0.02657669996656653
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.016934863011069324
+    context_encoder_final_window_mean_grad_norm: 0.028639515760509403
 - order: 2
   delta_id: delta_training_muon
-  status: ready
+  status: completed
   dimension_family: training
   family: optimizer
   binary_applicable: true
@@ -276,13 +298,35 @@ rows:
     offsetting stability or runtime benefit and does not look like pure LR-transfer
     misspecification.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run directly against the locked TF-RD-020 noise-drift anchor; if the
     result is close, retain at most one fallback optimizer family for issue `#138`.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 125
+    max_grad_norm: 3.7085604667663574
+    clipped_step_fraction: 0.2775
+    best_log_loss: 0.5713489949959529
+    final_log_loss: 1.0767658908850677
+    best_brier_score: 0.38501635996509037
+    final_brier_score: 0.4742361773507387
+    best_roc_auc: 0.6596032000340473
+    final_roc_auc: 0.6725241717217486
+    final_minus_best_log_loss: 0.5054168958891148
+    final_minus_best_brier_score: 0.08921981738564833
+    final_minus_best_roc_auc: 0.012920971687701344
+    drift: 0.012920971687701344
+    delta_final_log_loss: 0.5266608219858566
+    delta_final_brier_score: 0.1001868578180809
+    delta_final_roc_auc: 0.08452151729380963
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.16238504500758294
+    context_encoder_final_window_mean_grad_norm: 0.18583062269523193

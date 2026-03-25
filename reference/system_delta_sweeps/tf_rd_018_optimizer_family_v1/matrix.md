@@ -36,15 +36,15 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_training_adamw` | optimizer | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with plain AdamW on the same linear-warmup-decay schedule. | Run directly against the locked TF-RD-020 noise-drift anchor, then compare against row `02`. |
-| 2 | `delta_training_muon` | optimizer | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with Muon on the same linear-warmup-decay schedule. | Run directly against the locked TF-RD-020 noise-drift anchor; if the result is close, retain at most one fallback optimizer family for issue `#138`. |
+| 1 | `delta_training_adamw` | optimizer | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with plain AdamW on the same linear-warmup-decay schedule. | Run directly against the locked TF-RD-020 noise-drift anchor, then compare against row `02`. |
+| 2 | `delta_training_muon` | optimizer | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with Muon on the same linear-warmup-decay schedule. | Run directly against the locked TF-RD-020 noise-drift anchor; if the result is close, retain at most one fallback optimizer family for issue `#138`. |
 
 ## Detailed Rows
 
 ### 1. `delta_training_adamw`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with plain AdamW on the same linear-warmup-decay schedule.
@@ -54,6 +54,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface, preprocessing surface, benchmark bundle, and harmonized `task_batch_size=1` with `grad_accum_steps=4` `400`-step runtime fixed, but replace `schedulefree_adamw` with plain `adamw`.
 - Expected effect: AdamW may provide a cleaner or more stable optimization path if schedulefree dynamics are masking the anchor's real quality ceiling.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_shift_noise_drift`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0169`); context (grad `0.0286`)
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'name': 'adamw', 'require_requested': True, 'weight_decay': 0.0, 'betas': [0.9, 0.999], 'min_lr': 0.0004, 'muon_per_parameter_lr': False}, 'runtime': {'grad_accum_steps': 4, 'max_steps': 400, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
   - Treat this as a bounded optimizer-family comparison on the locked TF-RD-020 harder-surface anchor.
@@ -65,16 +66,19 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - optimizer.betas
   - optimizer.min_lr
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_018_optimizer_family_v1/delta_training_adamw/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1` with final log loss `0.5971`, delta final log loss `+0.0470`, final Brier score `0.4114`, delta final Brier score `+0.0374`, best ROC AUC `0.5515`, final ROC AUC `0.5614`, final-minus-best `+0.0099`, delta final ROC AUC `-0.0266`, delta drift `+0.0164`, delta final training time `+25.7s`
 
 ### 2. `delta_training_muon`
 
 - Dimension family: `training`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with Muon on the same linear-warmup-decay schedule.
@@ -84,6 +88,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface, preprocessing surface, benchmark bundle, and harmonized `task_batch_size=1` with `grad_accum_steps=4` `400`-step runtime fixed, but replace `schedulefree_adamw` with `muon`.
 - Expected effect: Muon may improve convergence or late retention on the settled row-first surface, but any read must stay separate from model-surface expansion.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_shift_noise_drift`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.1624`); context (grad `0.1858`)
 - Training overrides: `{'apply_schedule': True, 'optimizer': {'name': 'muon', 'require_requested': True, 'weight_decay': 0.01, 'betas': [0.9, 0.95], 'min_lr': 1e-06, 'muon_per_parameter_lr': True, 'muon_lr_scale_base': 0.2, 'muon_partition_non2d': True}, 'runtime': {'grad_accum_steps': 4, 'max_steps': 400, 'target_train_seconds': None, 'eval_every': 25, 'checkpoint_every': 25, 'trace_activations': False, 'val_batches': 0}, 'schedule': {'stages': [{'name': 'stage1', 'steps': 2500, 'lr_max': 0.004, 'lr_schedule': 'linear', 'warmup_ratio': 0.05}]}}`
 - Parameter adequacy plan:
   - Treat this as a bounded optimizer-family comparison only on the locked TF-RD-020 harder-surface anchor.
@@ -96,8 +101,11 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - optimizer.min_lr
   - optimizer.muon_per_parameter_lr
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_018_optimizer_family_v1/delta_training_muon/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1` with final log loss `1.0768`, delta final log loss `+0.5267`, final Brier score `0.4742`, delta final Brier score `+0.1002`, best ROC AUC `0.6596`, final ROC AUC `0.6725`, final-minus-best `+0.0129`, delta final ROC AUC `+0.0845`, delta drift `+0.0194`, delta final training time `+37.3s`

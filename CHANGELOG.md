@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and otherwise record a synthetic reuse-missing nanoTabPFN outcome instead of
   launching a fresh helper run.
 
+### Fixed
+
+- User-facing note: single-device `optimizer.name=muon` runs now instantiate
+  the package's `SingleDeviceMuon` variant when no distributed process group is
+  initialized, so manifest-backed sweeps and smoke runs no longer fail during
+  Muon setup or first-step execution on the common one-GPU path.
+
 ## [0.11.4] - 2026-03-25
 
 ### Changed

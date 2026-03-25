@@ -29,6 +29,22 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     return next(row for row in rows if row["delta_ref"] == delta_ref)
 
 
+def _assert_row_state(row: dict[str, Any], *, delta_ref: str) -> None:
+    status = row["status"]
+    assert status in {"ready", "completed"}
+    if status == "ready":
+        assert row.get("run_id") is None
+        return
+    assert row["interpretation_status"] == "completed"
+    run_id = row.get("run_id")
+    assert isinstance(run_id, str)
+    assert run_id.startswith(f"sd_{SWEEP_ID}_")
+    assert delta_ref in run_id
+    benchmark_metrics = row.get("benchmark_metrics")
+    assert isinstance(benchmark_metrics, dict)
+    assert benchmark_metrics["final_log_loss"] is not None
+
+
 def test_tf_rd_018_optimizer_family_v1_is_registered_and_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
@@ -77,7 +93,8 @@ def test_tf_rd_018_optimizer_family_v1_inherits_noise_drift_anchor_for_optimizer
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready"]
+    for row in rows:
+        _assert_row_state(row, delta_ref=str(row["delta_ref"]))
 
     row1 = _row_by_ref(queue, "delta_training_adamw")
     assert "issue `#137`" in row1["rationale"]
@@ -145,7 +162,10 @@ def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_activ
 
     rows = queue["rows"]
     assert [row["delta_id"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready"]
+    assert [row["status"] for row in rows] == [
+        _row_by_ref(_load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "queue.yaml"), delta_ref)["status"]
+        for delta_ref in EXPECTED_ROWS
+    ]
 
     row1 = next(row for row in rows if row["delta_id"] == "delta_training_adamw")
     assert row1["data"]["corpus_ref"] == "tf_rd_020_shift_noise_drift_v1"
@@ -160,6 +180,12 @@ def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_activ
     assert row2["training"]["overrides"]["runtime"]["grad_accum_steps"] == 4
     assert row2["training"]["overrides"]["runtime"]["max_steps"] == 400
     assert row2["training"]["overrides"]["optimizer"]["name"] == "muon"
+    if row1["status"] == "completed":
+        assert row1["run_id"] is not None
+        assert row1["benchmark_metrics"]["final_log_loss"] is not None
+    if row2["status"] == "completed":
+        assert row2["run_id"] is not None
+        assert row2["benchmark_metrics"]["final_log_loss"] is not None
 
     matrix = (
         REPO_ROOT
