@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.4] - 2026-03-25
+
+### Changed
+
+- User-facing note: staged `tabfoundry_staged` training now supports opt-in
+  activation checkpointing via `runtime.activation_checkpointing=true`. When
+  enabled during training, the staged table blocks, row pooling path, and
+  context encoder recompute activations on backward to reduce peak memory on
+  large uncapped runs.
+
+### Fixed
+
+- User-facing note: `runtime.activation_checkpointing=true` now fails fast with
+  a clear runtime error on unsupported model families instead of silently doing
+  nothing.
+
 ## [0.11.3] - 2026-03-24
 
 ### Changed
