@@ -8,6 +8,11 @@ $info:      #5b7f95;   // dusty blue — informational alerts, inline links
 $success:   #38a169;   // green — status badges, success states
 $body-color: #3d3d3d;  // warm dark gray for readable body text
 
+// Derived tones
+$primary-light: #5a7a50; // darker than #6b8f5e — meets WCAG AA on white (4.5:1+)
+$code-bg:       #f7fafc;
+$code-border:   #e2e8f0;
+
 // -- Typography -----------------------------------------------------------
 // Nunito for headings (rounded, friendly, highly legible).
 // Source Sans 3 for body text (clean, neutral, open).

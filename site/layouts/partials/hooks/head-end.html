@@ -5,8 +5,8 @@
 
 {{ with .Page }}
 {{ if .Params.katex }}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
 <script>
   function renderKatexNodes() {
     var root = document.querySelector(".td-content") || document.body;
@@ -44,7 +44,7 @@
 </script>
 {{ end }}
 {{ if .Params.mermaid }}
-<script defer src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.13.0/dist/mermaid.min.js" integrity="sha384-tI0sDqjGJcqrQ8e/XKiQGS+ee11v5knTNWx2goxMBxe4DO9U0uKlfxJtYB9ILZ4j" crossorigin="anonymous"></script>
 <script>
   window.addEventListener("load", function () {
     var mermaidBlocks = Array.prototype.slice.call(
@@ -67,7 +67,7 @@
       window.mermaid.initialize({
         startOnLoad: false,
         theme: "neutral",
-        securityLevel: "loose"
+        securityLevel: "strict"
       });
       window.mermaid.run({ querySelector: ".mermaid" });
     }

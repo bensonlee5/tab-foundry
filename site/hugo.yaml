@@ -43,7 +43,7 @@ markup:
 copyright: tab-foundry contributors
 
 params:
-  description: "tab-foundry - row-first tabular foundation model research and sweep-driven architecture work"
+  description: "tab-foundry - row-first tabular foundation model exploration framework"
   github_repo: https://github.com/bensonlee5/tab-foundry
   github_project_repo: https://github.com/bensonlee5/tab-foundry
   ui:
