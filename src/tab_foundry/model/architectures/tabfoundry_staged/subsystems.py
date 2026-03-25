@@ -12,6 +12,7 @@ from tab_foundry.model.architectures.tabfoundry_simple import (
     _FeatureEncoder as NanoFeatureEncoder,
     _TargetEncoder as NanoTargetEncoder,
 )
+from tab_foundry.model.components.attention import multihead_attention_sdpa
 from tab_foundry.model.components.normalization import build_norm
 from tab_foundry.model.components.non_finite import encode_non_finite_token_features
 from tab_foundry.model.components.blocks import TFColEncoder, TFRowEncoder
@@ -176,8 +177,9 @@ class PreNormCellBlock(nn.Module):
         n_total: int,
         n_train: int,
         device: torch.device,
+        dtype: torch.dtype,
     ) -> torch.Tensor:
-        mask = torch.zeros((n_total, n_total), device=device, dtype=torch.float32)
+        mask = torch.zeros((n_total, n_total), device=device, dtype=dtype)
         if n_train >= n_total:
             return mask
         test_slice = slice(n_train, n_total)
@@ -193,9 +195,12 @@ class PreNormCellBlock(nn.Module):
         batch_size, rows_size, col_size, embedding_size = cells.shape
         feat_in = cells.reshape(batch_size * rows_size, col_size, embedding_size)
         feat_norm = self.feature_norm(feat_in)
-        feat_out = self.self_attention_between_features(
-            feat_norm, feat_norm, feat_norm
-        )[0]
+        feat_out = multihead_attention_sdpa(
+            self.self_attention_between_features,
+            feat_norm,
+            feat_norm,
+            feat_norm,
+        )
         feat_out = self.attn_dropout(feat_out) * self.residual_branch_gain
         cells = (feat_in + feat_out).reshape(
             batch_size, rows_size, col_size, embedding_size
@@ -209,13 +214,15 @@ class PreNormCellBlock(nn.Module):
             n_total=rows_size,
             n_train=train_test_split_index,
             device=cells.device,
+            dtype=row_norm.dtype,
         )
-        row_out = self.self_attention_between_datapoints(
+        row_out = multihead_attention_sdpa(
+            self.self_attention_between_datapoints,
             row_norm,
             row_norm,
             row_norm,
-            attn_mask=row_mask,
-        )[0]
+            attn_bias=row_mask,
+        )
         row_out = self.attn_dropout(row_out) * self.residual_branch_gain
         row_residual = row_in + row_out
         cells = row_residual.reshape(
