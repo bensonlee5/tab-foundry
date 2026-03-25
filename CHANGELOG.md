@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-03-24
+
+### Changed
+
+- User-facing note: dagzoo accepted-only workflow guidance now matches
+  `dagzoo` 0.12.0. Workflow docs and manifest warnings point accepted-only
+  manifest builds at `dagzoo filter --in ... --out ... --curated-out ...`
+  outputs while keeping raw generated shards as the default public corpus lane
+  pending the later TF-RD-020 / TF-RD-019 policy decisions.
+
 ## [0.11.0] - 2026-03-24
 
 ### Changed

@@ -270,7 +270,10 @@ def test_manifest_include_all_tracks_missing_filter_metadata(tmp_path: Path) -> 
 
     assert summary.total_records == 2
     assert summary.filter_status_counts == {"accepted": 1, "missing": 1}
-    assert any("accepted-only training" in warning for warning in summary.warnings)
+    assert any(
+        "--curated-out <curated_dir>" in warning and "curated accepted-only shards" in warning
+        for warning in summary.warnings
+    )
 
 
 def test_manifest_accepted_only_excludes_unaccepted_records(tmp_path: Path) -> None:

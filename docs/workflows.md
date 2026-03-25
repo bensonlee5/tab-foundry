@@ -199,13 +199,34 @@ tab-foundry dev data build-manifest \
   --out-manifest data/manifests/default.parquet
 ```
 
-By default this includes raw `dagzoo` outputs and warns if the manifest contains datasets with `filter.status=not_run`, `rejected`, or missing filter metadata.
+By default this includes raw `dagzoo` outputs and warns if the manifest
+contains datasets with `filter.status=not_run`, `rejected`, or missing filter
+metadata.
 
 Accepted-only flow:
 
-- Currently unavailable. Deferred `dagzoo filter` support is disabled, so the
-  repo only treats raw `dagzoo generate` outputs as supported corpus artifacts
-  for now.
+- Supported as an optional manual path when you want accepted-only shards from
+  the current `dagzoo` deferred filter stage:
+
+```bash
+dagzoo filter \
+  --in /path/to/generated \
+  --out /tmp/dagzoo_filter/default \
+  --curated-out /tmp/dagzoo_filter/default_curated
+
+tab-foundry dev data build-manifest \
+  --data-root /tmp/dagzoo_filter/default_curated \
+  --out-manifest data/manifests/default_accepted.parquet \
+  --filter-policy accepted_only
+```
+
+- `dagzoo filter` writes replay artifacts under `--out` and curated
+  accepted-only shards under `--curated-out`. Point
+  `tab-foundry dev data build-manifest` at the curated shard root rather than
+  the raw `dagzoo generate` output.
+- Raw `dagzoo generate` outputs remain the default public corpus lane until
+  TF-RD-020 settles the harder-front filter-regime decision and TF-RD-019
+  settles the broader training-data policy.
 - TF-RD-013 issue `#120` records the initial unfiltered generated-source support
   artifacts for the first current-versus-dagzoo comparison.
 - Issue `#124` tracks the later decision about whether tab-foundry should
