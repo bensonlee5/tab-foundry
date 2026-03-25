@@ -246,6 +246,7 @@ class CorpusRecipe:
 @dataclass(slots=True, frozen=True)
 class CorpusRecipeStorageContext:
     recipe_identity: str
+    recipe_relative_path: str | None
     uses_scoped_identity: bool
 
 
@@ -484,7 +485,7 @@ def _global_recipe_paths(*, repo_root: Path | None = None) -> dict[str, Path]:
         index_path=corpus_recipe_index_path(repo_root=resolved_repo_root),
         root=corpus_recipes_root(repo_root=resolved_repo_root),
         context="corpus recipe index",
-        allow_missing=False,
+        allow_missing=True,
     )
 
 
@@ -514,8 +515,18 @@ def _sweep_recipe_paths(
     )
 
 
-def _recipe_identity_for_path(recipe_path: Path) -> str:
-    return sha256_text(str(recipe_path.expanduser().resolve()))[:12]
+def _stable_recipe_locator(
+    recipe_path: Path,
+    *,
+    repo_root: Path | None = None,
+) -> tuple[str | None, str]:
+    resolved_recipe_path = recipe_path.expanduser().resolve()
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    try:
+        relative_path = resolved_recipe_path.relative_to(resolved_repo_root).as_posix()
+    except ValueError:
+        return None, str(resolved_recipe_path)
+    return relative_path, relative_path
 
 
 def _recipe_storage_context(
@@ -525,12 +536,17 @@ def _recipe_storage_context(
 ) -> CorpusRecipeStorageContext:
     resolved_recipe_path = recipe.recipe_path.expanduser().resolve()
     global_recipe_path = _global_recipe_paths(repo_root=repo_root).get(recipe.recipe_id)
+    recipe_relative_path, identity_source = _stable_recipe_locator(
+        resolved_recipe_path,
+        repo_root=repo_root,
+    )
     uses_scoped_identity = (
         global_recipe_path is None
         or global_recipe_path.expanduser().resolve() != resolved_recipe_path
     )
     return CorpusRecipeStorageContext(
-        recipe_identity=_recipe_identity_for_path(resolved_recipe_path),
+        recipe_identity=sha256_text(identity_source)[:12],
+        recipe_relative_path=recipe_relative_path,
         uses_scoped_identity=uses_scoped_identity,
     )
 
@@ -587,6 +603,9 @@ def _write_latest_pointer(
         "recipe_path": str(recipe_path.expanduser().resolve()),
         "recipe_identity": str(recipe_identity),
     }
+    recipe_relative_path, _identity_source = _stable_recipe_locator(recipe_path, repo_root=repo_root)
+    if recipe_relative_path is not None:
+        payload["recipe_relative_path"] = recipe_relative_path
     latest_path = _latest_pointer_path(
         recipe_id=recipe_id,
         repo_root=repo_root,
@@ -1001,15 +1020,77 @@ def _record_matches_recipe(
     *,
     storage: CorpusRecipeStorageContext,
 ) -> bool:
+    recorded_recipe_relative_path = _optional_string(record.get("recipe_relative_path"))
+    if recorded_recipe_relative_path is not None and storage.recipe_relative_path is not None:
+        return recorded_recipe_relative_path == storage.recipe_relative_path
+    if recorded_recipe_relative_path is not None and storage.recipe_relative_path is None:
+        return False
+
+    recorded_recipe_identity = _optional_string(record.get("recipe_identity"))
     recorded_recipe_path = record.get("recipe_path")
     if not isinstance(recorded_recipe_path, str) or not recorded_recipe_path.strip():
         return False
-    if Path(recorded_recipe_path).expanduser().resolve() != recipe.recipe_path.expanduser().resolve():
-        return False
-    recorded_recipe_identity = _optional_string(record.get("recipe_identity"))
+    recipe_path_matches = (
+        Path(recorded_recipe_path).expanduser().resolve() == recipe.recipe_path.expanduser().resolve()
+    )
     if recorded_recipe_identity is not None:
-        return recorded_recipe_identity == storage.recipe_identity
+        if recorded_recipe_identity == storage.recipe_identity:
+            return True
+        return recipe_path_matches
+    if not recipe_path_matches:
+        return False
     return not storage.uses_scoped_identity
+
+
+def materialize_corpus_ref(
+    *,
+    corpus_ref: str,
+    dagzoo_root: Path,
+    force: bool = False,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    normalized_corpus_ref = _ensure_non_empty_string(corpus_ref, context="corpus_ref")
+    recipe_id, corpus_id = _parse_corpus_ref(normalized_corpus_ref)
+    if corpus_id is None:
+        return materialize_corpus_recipe(
+            recipe_id=recipe_id,
+            dagzoo_root=dagzoo_root,
+            force=force,
+            repo_root=repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+
+    if not force:
+        existing_record = _load_reusable_corpus_record(
+            normalized_corpus_ref,
+            repo_root=repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+        if existing_record is not None:
+            return existing_record
+
+    record = materialize_corpus_recipe(
+        recipe_id=recipe_id,
+        dagzoo_root=dagzoo_root,
+        force=force,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    materialized_corpus_ref = _ensure_non_empty_string(
+        record.get("corpus_ref"),
+        context="materialized corpus record corpus_ref",
+    )
+    if materialized_corpus_ref != normalized_corpus_ref:
+        raise RuntimeError(
+            f"requested corpus_ref {normalized_corpus_ref!r} is pinned to an exact corpus id, "
+            f"but materializing recipe {recipe_id!r} produced {materialized_corpus_ref!r}"
+        )
+    return record
 
 
 def _materialize_invocation(
@@ -1202,6 +1283,7 @@ def materialize_corpus_recipe(
             "corpus_ref": corpus_ref,
             "recipe_path": str(recipe.recipe_path),
             "recipe_identity": storage.recipe_identity,
+            "recipe_relative_path": storage.recipe_relative_path,
             "surface_label": recipe.surface_label,
             "surface_label_recommendation": recipe.surface_label,
             "recipe": recipe.to_dict(),

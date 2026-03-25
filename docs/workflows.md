@@ -201,10 +201,13 @@ Use the sweep-aware surfaces when you need those sweep-local recipes:
   --dagzoo-root ../dagzoo
 ```
 
-`research sweep materialize-corpora` walks the selected queue, collects unique
-`data.corpus_ref` values, resolves sweep-local recipes first for that sweep,
-falls back to the global corpus catalog, and materializes each corpus through
-the same public `tab-foundry data corpus materialize` pathway.
+`research sweep materialize-corpora` walks the selected queue, preserves exact
+`data.corpus_ref` values in queue order, resolves sweep-local recipes first for
+that sweep, falls back to the global corpus catalog, and materializes each
+corpus through the same public `tab-foundry data corpus materialize` pathway.
+Pinned refs such as `recipe_id/corpus_id` are treated as exact requests rather
+than recipe-level aliases, so the command raises if the current recipe cannot
+reproduce the requested corpus id.
 
 Set `DAGZOO_DATA_ROOT` once if you want a stable sibling data path:
 

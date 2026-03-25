@@ -135,9 +135,9 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
     )
     captured: list[dict[str, object]] = []
 
-    def _fake_materialize_corpus_recipe(
+    def _fake_materialize_corpus_ref(
         *,
-        recipe_id: str,
+        corpus_ref: str,
         dagzoo_root: Path,
         force: bool = False,
         repo_root: Path | None = None,
@@ -145,9 +145,10 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
         sweeps_root: Path | None = None,
     ) -> dict[str, object]:
         del repo_root, sweeps_root
+        recipe_id = str(corpus_ref).split("/", 1)[0]
         captured.append(
             {
-                "recipe_id": recipe_id,
+                "corpus_ref": corpus_ref,
                 "dagzoo_root": str(dagzoo_root),
                 "force": force,
                 "sweep_id": sweep_id,
@@ -155,11 +156,15 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
         )
         return {
             "recipe_id": recipe_id,
-            "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
+            "corpus_ref": (
+                str(corpus_ref)
+                if "/" in str(corpus_ref)
+                else f"{recipe_id}/{recipe_id}__123456789abc"
+            ),
             "manifest": {"manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())},
         }
 
-    monkeypatch.setattr(materialize_module, "materialize_corpus_recipe", _fake_materialize_corpus_recipe)
+    monkeypatch.setattr(materialize_module, "materialize_corpus_ref", _fake_materialize_corpus_ref)
 
     payload = materialize_sweep_corpora(
         dagzoo_root=tmp_path / "dagzoo",
@@ -171,24 +176,73 @@ def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
 
     assert captured == [
         {
-            "recipe_id": "local_recipe",
+            "corpus_ref": "local_recipe",
             "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
             "force": True,
             "sweep_id": "tf_rd_local",
         },
         {
-            "recipe_id": "global_recipe",
+            "corpus_ref": "global_recipe",
+            "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
+            "force": True,
+            "sweep_id": "tf_rd_local",
+        },
+        {
+            "corpus_ref": "local_recipe/local_recipe__cached",
             "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
             "force": True,
             "sweep_id": "tf_rd_local",
         },
     ]
     assert payload["sweep_id"] == "tf_rd_local"
-    assert payload["requested_recipe_ids"] == ["local_recipe", "global_recipe"]
+    assert payload["requested_corpus_refs"] == [
+        "local_recipe",
+        "global_recipe",
+        "local_recipe/local_recipe__cached",
+    ]
+    assert payload["requested_recipe_ids"] == ["local_recipe", "global_recipe", "local_recipe"]
     assert payload["corpus_refs"] == [
         "local_recipe/local_recipe__123456789abc",
         "global_recipe/global_recipe__123456789abc",
+        "local_recipe/local_recipe__cached",
     ]
+
+
+def test_materialize_sweep_corpora_raises_for_unreproducible_explicit_corpus_ref(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        materialize_module,
+        "load_system_delta_queue",
+        lambda **_kwargs: {
+            "sweep_id": "tf_rd_local",
+            "rows": [
+                {
+                    "order": 1,
+                    "delta_id": "delta_a",
+                    "data": {"corpus_ref": "local_recipe/local_recipe__cached"},
+                }
+            ],
+        },
+    )
+
+    def _failing_materialize_corpus_ref(**_kwargs) -> dict[str, object]:
+        raise RuntimeError(
+            "requested corpus_ref 'local_recipe/local_recipe__cached' is pinned to an exact corpus id, "
+            "but materializing recipe 'local_recipe' produced 'local_recipe/local_recipe__123456789abc'"
+        )
+
+    monkeypatch.setattr(materialize_module, "materialize_corpus_ref", _failing_materialize_corpus_ref)
+
+    with pytest.raises(RuntimeError, match="pinned to an exact corpus id"):
+        _ = materialize_sweep_corpora(
+            dagzoo_root=tmp_path / "dagzoo",
+            sweep_id="tf_rd_local",
+            force=False,
+            index_path=tmp_path / "index.yaml",
+            catalog_path=tmp_path / "catalog.yaml",
+        )
 
 
 def test_resolve_surface_role_classifies_named_sweep_surfaces() -> None:

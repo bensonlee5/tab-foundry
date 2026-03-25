@@ -16,8 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   writing ad hoc configs into the sibling `dagzoo` repo. Corpus invocations now
   support `base_config_ref + config_overrides`, materialization renders the
   resolved `dagzoo_config.yaml` snapshot into the corpus artifact itself, and
-  sweep operators can batch materialize queue-owned `data.corpus_ref` surfaces
-  through `tab-foundry research sweep materialize-corpora`.
+  sweep operators can batch materialize exact queue-owned `data.corpus_ref`
+  surfaces, including fully pinned `recipe_id/corpus_id` refs, through
+  `tab-foundry research sweep materialize-corpora`.
 
 ### Fixed
 
@@ -26,7 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Global `data.corpus_ref=<recipe_id>` lookups stay pinned to the canonical
   global corpus, while sweep execution resolves shadowed sweep-local corpora
   through an internal sweep-aware lookup hint without changing the public ref
-  syntax.
+  syntax. Scoped corpus identity is now path-independent across clones that
+  preserve the same repo-relative recipe path; artifacts created by the earlier
+  absolute-path identity build may still need re-materialization after moving a
+  checkout.
 
 ## [0.11.2] - 2026-03-24
 

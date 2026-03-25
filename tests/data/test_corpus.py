@@ -17,6 +17,7 @@ from tab_foundry.data.corpus import (
     list_corpus_recipes,
     load_corpus_record,
     load_corpus_recipe,
+    materialize_corpus_ref,
     materialize_corpus_recipe,
 )
 from tab_foundry.data.dagzoo_handoff import (
@@ -345,6 +346,32 @@ def _counting_fake_run_dagzoo_generate(call_counter: list[int]):
     return _run
 
 
+def _initialize_repo_workspace(repo_root: Path) -> None:
+    _write_recipe_registry(repo_root)
+    dagzoo_root = repo_root / ".." / "dagzoo"
+    (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
+    (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
+    (dagzoo_root / "configs" / "benchmark_cpu.yaml").write_text("seed: 1\n", encoding="utf-8")
+    (dagzoo_root / "configs" / "benchmark_cuda_h100_large_shape.yaml").write_text(
+        "seed: 1\n",
+        encoding="utf-8",
+    )
+    (dagzoo_root / "configs" / "base_override.yaml").write_text(
+        "\n".join(
+            [
+                "seed: 1",
+                "dataset:",
+                "  rows: 128",
+                "  shape: anchor",
+                "generator:",
+                "  mode: baseline",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def _write_legacy_unscoped_corpus_record(
     repo_root: Path,
     *,
@@ -503,29 +530,7 @@ def test_load_corpus_record_raises_for_broken_sweep_local_recipe(
 def repo_tmp_path(tmp_path: Path) -> Path:
     repo_root = tmp_path / "repo"
     repo_root.mkdir(parents=True, exist_ok=True)
-    _write_recipe_registry(repo_root)
-    dagzoo_root = repo_root / ".." / "dagzoo"
-    (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
-    (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
-    (dagzoo_root / "configs" / "benchmark_cpu.yaml").write_text("seed: 1\n", encoding="utf-8")
-    (dagzoo_root / "configs" / "benchmark_cuda_h100_large_shape.yaml").write_text(
-        "seed: 1\n",
-        encoding="utf-8",
-    )
-    (dagzoo_root / "configs" / "base_override.yaml").write_text(
-        "\n".join(
-            [
-                "seed: 1",
-                "dataset:",
-                "  rows: 128",
-                "  shape: anchor",
-                "generator:",
-                "  mode: baseline",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    _initialize_repo_workspace(repo_root)
     return repo_root
 
 
@@ -644,6 +649,9 @@ def test_materialize_corpus_recipe_prefers_sweep_local_override_and_persists_ren
     assert invocation["resolved_config_path"] == str(rendered_config_path.resolve())
     assert invocation["rendered_config_sha256"] == corpus_module.sha256_path(rendered_config_path)
     assert local_record["dagzoo_provenance"]["config_refs"] == ["configs/base_override.yaml"]
+    assert local_record["recipe_relative_path"] == (
+        f"reference/system_delta_sweeps/{sweep_id}/corpus_recipes/current_recipe.yaml"
+    )
     assert str(local_record["corpus_id"]).endswith(f"__{local_record['recipe_identity']}")
     global_latest_pointer_path = repo_tmp_path / "outputs" / "corpora" / "current_recipe" / "latest.json"
     global_latest_payload = json.loads(global_latest_pointer_path.read_text(encoding="utf-8"))
@@ -839,6 +847,62 @@ def test_materialize_sweep_only_recipe_rebuilds_legacy_unscoped_record(
     )
     loaded = load_corpus_record("sweep_recipe", repo_root=repo_tmp_path, sweep_id=sweep_id)
     assert loaded["corpus_ref"] == rebuilt["corpus_ref"]
+
+
+def test_materialize_corpus_ref_rejects_mismatched_explicit_corpus_id(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(corpus_module, "run_dagzoo_generate", _fake_run_dagzoo_generate)
+
+    with pytest.raises(RuntimeError, match="pinned to an exact corpus id"):
+        materialize_corpus_ref(
+            corpus_ref="current_recipe/current_recipe__deadbeefdead",
+            dagzoo_root=repo_tmp_path.parent / "dagzoo",
+            force=False,
+            repo_root=repo_tmp_path,
+        )
+
+
+def test_scoped_recipe_identity_is_path_independent_across_repo_roots(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root_a = tmp_path / "repo_a"
+    repo_root_b = tmp_path / "repo_b"
+    repo_root_a.mkdir(parents=True, exist_ok=True)
+    repo_root_b.mkdir(parents=True, exist_ok=True)
+    _initialize_repo_workspace(repo_root_a)
+    _initialize_repo_workspace(repo_root_b)
+    _write_sweep_recipe_registry(repo_root_a, sweep_id="tf_rd_local")
+    _write_sweep_recipe_registry(repo_root_b, sweep_id="tf_rd_local")
+    monkeypatch.setattr(corpus_module, "run_dagzoo_generate", _fake_run_dagzoo_generate)
+
+    record_a = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_root_a.parent / "dagzoo",
+        force=False,
+        repo_root=repo_root_a,
+        sweep_id="tf_rd_local",
+    )
+    record_b = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_root_b.parent / "dagzoo",
+        force=False,
+        repo_root=repo_root_b,
+        sweep_id="tf_rd_local",
+    )
+
+    assert record_a["recipe_relative_path"] == record_b["recipe_relative_path"]
+    assert record_a["recipe_relative_path"] == (
+        "reference/system_delta_sweeps/tf_rd_local/corpus_recipes/current_recipe.yaml"
+    )
+    assert record_a["recipe_identity"] == record_b["recipe_identity"]
+    assert str(record_a["corpus_id"]).endswith(f"__{record_a['recipe_identity']}")
+    assert str(record_b["corpus_id"]).endswith(f"__{record_b['recipe_identity']}")
+    assert Path(str(record_a["artifacts"]["latest_pointer_path"])).name == (
+        Path(str(record_b["artifacts"]["latest_pointer_path"])).name
+    )
 
 
 def test_materialize_corpus_recipe_reuses_complete_cached_corpus(
