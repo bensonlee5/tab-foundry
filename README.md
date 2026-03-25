@@ -20,11 +20,16 @@ training runs, and what gets exported.
 
 ## How It Works
 
-```
-dagzoo           manifest         staged model       benchmark        export
-(generate)  -->  (prepare)   -->  (train)       -->  (evaluate)  -->  (bundle)
-   |                                                      |
-   +------------- curriculum feedback (planned) ----------+
+```mermaid
+graph LR
+    A[dagzoo<br><i>generate</i>] --> B[manifest<br><i>prepare</i>]
+    B --> C[staged model<br><i>train</i>]
+    C --> D[benchmark<br><i>evaluate</i>]
+    D --> E[export<br><i>bundle</i>]
+    D -.->|curriculum feedback<br>planned| A
+
+    classDef default fill:#f8f9fa,stroke:#495057,stroke-width:1.5px,color:#212529
+    classDef planned fill:#f8f9fa,stroke:#adb5bd,stroke-width:1px,stroke-dasharray:5 5
 ```
 
 1. **Generate** synthetic tabular datasets with dagzoo, or bring your own
@@ -101,14 +106,19 @@ For full setup details, see [docs/getting-started.md](docs/getting-started.md).
 The active model family (`tabfoundry_staged`) decomposes a tabular foundation
 model into explicit subsystems:
 
-```
-input table --> shared normalization + shifted-grouped tokenizer
-            --> label-token target conditioning
-            --> prenorm cell blocks (test-self attention)
-            --> (optional) column encoder (TFCol)
-            --> row-CLS pooling
-            --> QASS context encoder
-            --> class head
+```mermaid
+graph TD
+    A[input table] --> B[shared normalization +<br>shifted-grouped tokenizer]
+    B --> C[label-token<br>target conditioning]
+    C --> D[prenorm cell blocks<br>test-self attention]
+    D --> E[column encoder — TFCol<br><i>optional</i>]
+    E --> F[row-CLS pooling]
+    F --> G[QASS context encoder]
+    G --> H[class head]
+
+    classDef default fill:#f8f9fa,stroke:#495057,stroke-width:1.5px,color:#212529
+    classDef optional fill:#f8f9fa,stroke:#adb5bd,stroke-width:1px,stroke-dasharray:5 5
+    class E optional
 ```
 
 A frozen nanoTabPFN control lane (`tabfoundry_simple`) preserves benchmark
