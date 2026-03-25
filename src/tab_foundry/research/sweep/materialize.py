@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.data.corpus import materialize_corpus_ref
+from tab_foundry.repo_paths import repo_root_from_catalog_path, repo_root_from_sweeps_root
 from tab_foundry.research.lane_contract import (
     resolve_surface_role,
     resolve_training_config_profile,
@@ -523,3 +525,75 @@ def next_ready_row(queue: Mapping[str, Any]) -> dict[str, Any] | None:
         if str(row.get("status", "")).strip().lower() == "ready":
             return row
     return None
+
+
+def _effective_queue_corpus_ref(data_payload: Mapping[str, Any]) -> str | None:
+    surface_overrides = data_payload.get("surface_overrides")
+    if isinstance(surface_overrides, Mapping):
+        nested_corpus_ref = surface_overrides.get("corpus_ref")
+        if isinstance(nested_corpus_ref, str) and nested_corpus_ref.strip():
+            return nested_corpus_ref.strip()
+    corpus_ref = data_payload.get("corpus_ref")
+    if isinstance(corpus_ref, str) and corpus_ref.strip():
+        return corpus_ref.strip()
+    return None
+
+
+def materialize_sweep_corpora(
+    *,
+    dagzoo_root: Path,
+    sweep_id: str | None = None,
+    force: bool = False,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    queue = load_system_delta_queue(
+        sweep_id=sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    resolved_repo_root = (
+        repo_root_from_sweeps_root(sweeps_root)
+        or repo_root_from_catalog_path(catalog_path)
+    )
+    resolved_sweep_id = ensure_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
+    requested_corpus_refs: list[str] = []
+    seen_corpus_refs: set[str] = set()
+    for row in ordered_rows(queue):
+        data_payload = row.get("data")
+        if not isinstance(data_payload, Mapping):
+            continue
+        normalized_corpus_ref = _effective_queue_corpus_ref(data_payload)
+        if normalized_corpus_ref is None:
+            continue
+        if normalized_corpus_ref in seen_corpus_refs:
+            continue
+        seen_corpus_refs.add(normalized_corpus_ref)
+        requested_corpus_refs.append(normalized_corpus_ref)
+    records = [
+        materialize_corpus_ref(
+            corpus_ref=corpus_ref,
+            dagzoo_root=dagzoo_root,
+            force=force,
+            repo_root=resolved_repo_root,
+            sweep_id=resolved_sweep_id,
+            sweeps_root=sweeps_root,
+        )
+        for corpus_ref in requested_corpus_refs
+    ]
+    return {
+        "sweep_id": resolved_sweep_id,
+        "recipe_count": len(records),
+        "requested_corpus_refs": requested_corpus_refs,
+        "requested_recipe_ids": [
+            ensure_non_empty_string(
+                corpus_ref.split("/", 1)[0],
+                context="requested corpus_ref recipe_id",
+            )
+            for corpus_ref in requested_corpus_refs
+        ],
+        "corpus_refs": [str(record["corpus_ref"]) for record in records],
+        "records": records,
+    }

@@ -58,11 +58,21 @@ def diff_sweep_row(
         sweeps_root=sweeps_root,
     )
     row = _find_row(queue, order=int(order))
-    target = resolve_row_target(queue=queue, row=row, registry_path=resolved_registry_path)
+    target = resolve_row_target(
+        queue=queue,
+        row=row,
+        registry_path=resolved_registry_path,
+        sweeps_root=sweeps_root,
+    )
 
     if against_order is not None:
         baseline_row = _find_row(queue, order=int(against_order))
-        baseline = resolve_row_target(queue=queue, row=baseline_row, registry_path=resolved_registry_path)
+        baseline = resolve_row_target(
+            queue=queue,
+            row=baseline_row,
+            registry_path=resolved_registry_path,
+            sweeps_root=sweeps_root,
+        )
     else:
         if str(against).strip().lower() != "anchor":
             raise RuntimeError("only --against anchor or --against-order <N> are supported")

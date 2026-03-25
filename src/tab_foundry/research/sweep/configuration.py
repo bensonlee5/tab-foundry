@@ -39,6 +39,45 @@ def _queue_aware_run_name(*, run_dir: Path) -> str:
     return str(run_dir.parent.name if run_dir.name == "train" else run_dir.name)
 
 
+def _corpus_lookup_context(
+    *,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+) -> dict[str, str]:
+    if sweep_id is None:
+        return {}
+    payload = {
+        "corpus_lookup_sweep_id": str(sweep_id),
+    }
+    if sweeps_root is not None:
+        payload["corpus_lookup_sweeps_root"] = str(sweeps_root.expanduser().resolve())
+    return payload
+
+
+def _apply_corpus_lookup_context(
+    cfg: DictConfig,
+    *,
+    sweep_id: str | None,
+    sweeps_root: Path | None,
+) -> None:
+    if sweep_id is None:
+        return
+    raw_corpus_ref = OmegaConf.select(cfg, "data.surface_overrides.corpus_ref")
+    if raw_corpus_ref is None:
+        return
+    for key, value in _corpus_lookup_context(
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    ).items():
+        OmegaConf.update(
+            cfg,
+            f"data.surface_overrides.{key}",
+            value,
+            merge=True,
+            force_add=True,
+        )
+
+
 def compose_cfg(
     *,
     row: Mapping[str, Any],
@@ -46,6 +85,7 @@ def compose_cfg(
     device: str,
     training_experiment: str = "cls_benchmark_staged_corpus",
     sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
 ) -> DictConfig:
     cfg = compose_config([f"experiment={training_experiment}"])
     cfg.runtime.output_dir = str(run_dir.resolve())
@@ -55,6 +95,7 @@ def compose_cfg(
         cfg.logging.group = str(sweep_id)
     apply_mapping(cfg, "model", cast(Mapping[str, Any], row.get("model", {})))
     apply_mapping(cfg, "data", cast(Mapping[str, Any], row.get("data", {})))
+    _apply_corpus_lookup_context(cfg, sweep_id=sweep_id, sweeps_root=sweeps_root)
     apply_mapping(cfg, "preprocessing", cast(Mapping[str, Any], row.get("preprocessing", {})))
 
     training_payload = cast(Mapping[str, Any], row.get("training", {}))

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any
@@ -7,11 +8,18 @@ from omegaconf import OmegaConf
 import pytest
 import torch
 
+import tab_foundry.data.corpus as corpus_module
+from tab_foundry.data.corpus import materialize_corpus_recipe
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.graph as graph_module
 import tab_foundry.research.sweep.inspect as inspect_module
 from tab_foundry.config import compose_config
 from tab_foundry.model.spec import model_build_spec_from_mappings
+from tests.data.test_corpus import (
+    _fake_run_dagzoo_generate,
+    _initialize_repo_workspace,
+    _write_sweep_recipe_registry,
+)
 
 
 def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
@@ -554,6 +562,80 @@ def test_inspect_sweep_row_reports_unmaterialized_corpus_refs_for_ready_rows(
     assert resolved_data["corpus_ref"] == "tf_rd_013_current_corpus_default_v1"
     assert resolved_data["recipe_id"] == "tf_rd_013_current_corpus_default_v1"
     assert resolved_data["corpus_id"] is None
+
+
+def test_inspection_raw_cfg_adds_corpus_lookup_context_for_sweep_rows(tmp_path: Path) -> None:
+    sweeps_root = tmp_path / "reference" / "system_delta_sweeps"
+    raw_cfg = inspect_module._inspection_raw_cfg(
+        row={
+            "data": {
+                "surface_label": "fresh_current_corpus",
+                "corpus_ref": "tf_rd_013_current_corpus_default_v1",
+            }
+        },
+        training_experiment="cls_benchmark_staged_corpus",
+        sweep_id="mini_sweep",
+        sweeps_root=sweeps_root,
+    )
+
+    data_payload = raw_cfg["data"]
+    assert isinstance(data_payload, dict)
+    surface_overrides = data_payload["surface_overrides"]
+    assert isinstance(surface_overrides, dict)
+    assert surface_overrides["corpus_lookup_sweep_id"] == "mini_sweep"
+    assert surface_overrides["corpus_lookup_sweeps_root"] == str(sweeps_root.resolve())
+
+
+def test_inspect_and_diff_fallback_resolve_sweep_local_corpus_for_nondefault_sweeps_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _initialize_repo_workspace(tmp_path)
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+    _write_sweep_recipe_registry(tmp_path, sweep_id="mini_sweep")
+    monkeypatch.setattr(corpus_module, "run_dagzoo_generate", _fake_run_dagzoo_generate)
+    local_record = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=tmp_path.parent / "dagzoo",
+        force=False,
+        repo_root=tmp_path,
+        sweep_id="mini_sweep",
+    )
+
+    queue_path = sweeps_root / "mini_sweep" / "queue.yaml"
+    queue_payload = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(queue_payload, dict)
+    rows = queue_payload.get("rows")
+    assert isinstance(rows, list)
+    rows[2]["data"] = {
+        "surface_label": "fresh_current_corpus",
+        "corpus_ref": "current_recipe",
+    }
+    _write_yaml(queue_path, queue_payload)
+
+    inspect_payload = inspect_module.inspect_sweep_row(
+        order=3,
+        sweep_id="mini_sweep",
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
+    )
+    diff_payload = diff_module.diff_sweep_row(
+        order=3,
+        sweep_id="mini_sweep",
+        against_order=1,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
+    )
+
+    resolved_data = inspect_payload["target"]["resolved"]["data"]
+    assert resolved_data["corpus_ref"] == local_record["corpus_ref"]
+    assert resolved_data["recipe_id"] == "current_recipe"
+    assert diff_payload["differences"]["resolved.data.corpus_ref"]["target"] == local_record["corpus_ref"]
 
 
 def test_diff_sweep_row_uses_anchor_context_when_anchor_run_is_unavailable() -> None:

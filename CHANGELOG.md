@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-03-24
+
+### Changed
+
+- User-facing note: sweep-scoped `dagzoo` corpus definitions can now stay in
+  `reference/system_delta_sweeps/<sweep_id>/corpus_recipes/` instead of
+  writing ad hoc configs into the sibling `dagzoo` repo. Corpus invocations now
+  support `base_config_ref + config_overrides`, materialization renders the
+  resolved `dagzoo_config.yaml` snapshot into the corpus artifact itself, and
+  sweep operators can batch materialize exact queue-owned `data.corpus_ref`
+  surfaces, including fully pinned `recipe_id/corpus_id` refs, through
+  `tab-foundry research sweep materialize-corpora`.
+
+### Fixed
+
+- User-facing note: sweep-local corpus recipes that shadow a global
+  `recipe_id` now keep distinct corpus identities and scoped latest pointers.
+  Global `data.corpus_ref=<recipe_id>` lookups stay pinned to the canonical
+  global corpus, while sweep execution resolves shadowed sweep-local corpora
+  through an internal sweep-aware lookup hint without changing the public ref
+  syntax. Scoped corpus identity is now path-independent across clones that
+  preserve the same repo-relative recipe path; artifacts created by the earlier
+  absolute-path identity build may still need re-materialization after moving a
+  checkout.
+
 ## [0.11.2] - 2026-03-24
 
 ### Changed
@@ -17,6 +42,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   targeted equivalence coverage for the new SDPA path.
 
 ## [0.11.1] - 2026-03-24
+
+### Changed
+
+- User-facing note: dagzoo accepted-only workflow guidance now matches
+  `dagzoo` 0.12.0. Workflow docs and manifest warnings point accepted-only
+  manifest builds at `dagzoo filter --in ... --out ... --curated-out ...`
+  outputs while keeping raw generated shards as the default public corpus lane
+  pending the later TF-RD-020 / TF-RD-019 policy decisions.
 
 ### Fixed
 

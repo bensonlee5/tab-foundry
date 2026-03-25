@@ -43,7 +43,7 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.types`.
 - `tab_foundry.research` depends on `tab_foundry.bench`,
   `tab_foundry.benchmark_registry`, `tab_foundry.config`,
-  `tab_foundry.control_baseline_registry`,
+  `tab_foundry.control_baseline_registry`, `tab_foundry.data`,
   `tab_foundry.external_benchmarks`, `tab_foundry.model`,
   `tab_foundry.repo_paths`, and `tab_foundry.training`.
 - `tab_foundry.task_batching` depends on `tab_foundry.types`.
@@ -92,7 +92,7 @@ Observed cycle status:
   `tab_foundry.control_baseline_registry`, but lower layers should not depend
   on it.
 - `tab_foundry.research` is the sweep-management layer. It may depend on
-  `bench`, `config`, `model`, dependency-light helper contracts such as
+  `bench`, `config`, `data`, `model`, dependency-light helper contracts such as
   `tab_foundry.external_benchmarks`,
   `tab_foundry.control_baseline_registry`, `tab_foundry.repo_paths`, and
   read-only `training` inspection helpers, but lower layers should not depend

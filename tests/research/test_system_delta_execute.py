@@ -10,6 +10,9 @@ from typing import Any, Mapping, cast
 from omegaconf import OmegaConf
 import pytest
 
+import tab_foundry.data.corpus as corpus_module
+from tab_foundry.data.corpus import materialize_corpus_recipe
+from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.control_baseline_registry import (
     REGISTRY_SCHEMA,
@@ -33,6 +36,11 @@ import tab_foundry.research.sweep.execute as sweep_execute_module
 import tab_foundry.research.sweep.training_state as training_state_module
 from tab_foundry.research.sweep.artifacts import read_yaml as read_artifact_yaml, write_research_package
 from tab_foundry.research.sweep.screening import pick_screen_winner, screen_metrics as load_screen_metrics
+from tests.data.test_corpus import (
+    _fake_run_dagzoo_generate,
+    _initialize_repo_workspace,
+    _write_sweep_recipe_registry,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -825,6 +833,7 @@ def test_compose_cfg_uses_requested_training_experiment(
 
 def test_compose_cfg_routes_data_corpus_ref_into_surface_overrides(tmp_path: Path) -> None:
     run_dir = tmp_path / 'outputs' / 'staged_ladder' / 'research' / 'tf_rd_013' / 'train'
+    sweeps_root = tmp_path / 'reference' / 'system_delta_sweeps'
 
     cfg = _compose_cfg(
         row={
@@ -836,11 +845,54 @@ def test_compose_cfg_routes_data_corpus_ref_into_surface_overrides(tmp_path: Pat
         },
         run_dir=run_dir,
         device='cuda',
+        sweep_id='tf_rd_013',
+        sweeps_root=sweeps_root,
     )
 
     assert str(cfg.data.surface_label) == 'anchor_manifest_default'
     assert str(cfg.data.surface_overrides.corpus_ref) == 'tf_rd_013_current_corpus_default_v1'
+    assert str(cfg.data.surface_overrides.corpus_lookup_sweep_id) == 'tf_rd_013'
+    assert str(cfg.data.surface_overrides.corpus_lookup_sweeps_root) == str(sweeps_root.resolve())
     assert cfg.data.train_row_cap == 512
+
+
+def test_compose_cfg_resolves_sweep_local_corpus_from_nondefault_sweeps_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _initialize_repo_workspace(tmp_path)
+    _reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+    sweep_id = 'tf_rd_local'
+    _write_sweep_recipe_registry(tmp_path, sweep_id=sweep_id)
+    monkeypatch.setattr(corpus_module, 'run_dagzoo_generate', _fake_run_dagzoo_generate)
+    local_record = materialize_corpus_recipe(
+        recipe_id='current_recipe',
+        dagzoo_root=tmp_path.parent / 'dagzoo',
+        force=False,
+        repo_root=tmp_path,
+        sweep_id=sweep_id,
+    )
+
+    cfg = _compose_cfg(
+        row={
+            'data': {
+                'surface_label': 'fresh_current_corpus',
+                'corpus_ref': 'current_recipe',
+            }
+        },
+        run_dir=tmp_path / 'outputs' / 'staged_ladder' / 'research' / sweep_id / 'train',
+        device='cuda',
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+
+    raw_data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
+    assert isinstance(raw_data_cfg, dict)
+    resolved = resolve_data_surface(raw_data_cfg)
+
+    assert resolved.corpus_ref == local_record['corpus_ref']
+    assert resolved.recipe_id == 'current_recipe'
+    assert resolved.manifest_path is not None and resolved.manifest_path.exists()
 
 
 def test_queue_metrics_capture_log_loss_and_anchor_deltas(tmp_path: Path) -> None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from omegaconf import OmegaConf
@@ -170,6 +171,29 @@ def _run_sweep_validate(args: argparse.Namespace) -> int:
     return 1
 
 
+def _run_sweep_materialize_corpora(args: argparse.Namespace) -> int:
+    payload = sweep_materialize.materialize_sweep_corpora(
+        dagzoo_root=Path(str(args.dagzoo_root)),
+        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
+        force=bool(args.force),
+        index_path=_index_path(args),
+        catalog_path=_catalog_path(args),
+    )
+    if bool(args.json):
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+    print(
+        f"Sweep corpora materialized: sweep_id={payload['sweep_id']} "
+        f"count={payload['recipe_count']}"
+    )
+    for record in payload["records"]:
+        print(
+            f"{record['recipe_id']}: corpus_ref={record['corpus_ref']} "
+            f"manifest={record['manifest']['manifest_path']}"
+        )
+    return 0
+
+
 def register_core_subparsers(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
     *,
@@ -222,6 +246,33 @@ def register_core_subparsers(
                 "validate": _run_sweep_validate,
             }[command_name]
         )
+
+    materialize_corpora_parser = subparsers.add_parser(
+        "materialize-corpora",
+        help="Materialize all unique data.corpus_ref surfaces for the selected sweep",
+    )
+    _configure_paths(materialize_corpora_parser)
+    materialize_corpora_parser.add_argument(
+        "--sweep-id",
+        default=None,
+        help="Optional sweep id; defaults to the active sweep",
+    )
+    materialize_corpora_parser.add_argument(
+        "--dagzoo-root",
+        required=True,
+        help="Local dagzoo checkout root",
+    )
+    materialize_corpora_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Replace existing local materializations instead of reusing them",
+    )
+    materialize_corpora_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON",
+    )
+    materialize_corpora_parser.set_defaults(func=_run_sweep_materialize_corpora)
 
     create_parser = subparsers.add_parser(
         "create-sweep",
