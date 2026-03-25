@@ -6,10 +6,10 @@ This is the canonical long-form evidence note for
 - Status: `research`
 - Milestone: `Next`
 - Dependency position: follows TF-RD-013, now carries the settled batch-ladder
-  recipe into [TF-RD-020](tf_rd_020_harder_dagzoo_corpus_fronts.md), including
-  the final small-shot ease filter-regime decision on the selected harder
-  front, before the remaining optimizer or LR or clipping continuation, and
-  then sets the default training surface for
+  recipe into [TF-RD-020](tf_rd_020_harder_dagzoo_corpus_fronts.md), which now
+  records three synthetic harder-front family winners before the remaining
+  optimizer or LR or clipping continuation, and then sets the default training
+  surface for
   [TF-RD-014](tf_rd_014_missingness_robustness.md),
   [TF-RD-017](tf_rd_017_class_imbalance_robustness.md), and the scaling handoff
   into [TF-RD-009](tf_rd_009_scaling_law_measurement.md)
@@ -42,10 +42,11 @@ This is the canonical long-form evidence note for
 - `task_batch_size=4` is now the preferred TF-RD-018 batch rung on the settled
   medium surface, and `task_batch_size=16` plus `32` remain blocked by the row-2
   runtime miss
-- [#146](https://github.com/bensonlee5/tab-foundry/issues/146) now carries the
-  harder dagzoo synthetic front and final small-shot ease filter-regime
-  decision before TF-RD-018 resumes optimizer-family, LR-shape, clipping, or
-  step-budget follow-up
+- [#146](https://github.com/bensonlee5/tab-foundry/issues/146) carried the
+  harder dagzoo synthetic front to closure, and TF-RD-020 now records kept
+  winners for missingness, shift or drift, and mechanism or noise before
+  TF-RD-018 resumes optimizer-family, LR-shape, clipping, or step-budget
+  follow-up
 - [#147](https://github.com/bensonlee5/tab-foundry/issues/147) now records the
   canonical pre-filter harder-front ladder under
   [tf_rd_020_harder_dagzoo_ladder_v1](../system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md)
@@ -65,7 +66,7 @@ This is the canonical long-form evidence note for
 - use the recorded `tf_rd_020_harder_dagzoo_ladder_v1` ladder as the fixed
   pre-filter handoff for issues `#148`, `#149`, and `#150` rather than
   reopening harder-front design inside TF-RD-018
-- after the full uncapped harder dagzoo blocker closes, retune LR and schedule
+- after the full uncapped harder dagzoo blocker closed, retune LR and schedule
   on the settled rung rather than jointly searching batch and LR across the
   whole ladder
 - issues `#137`, `#138`, and `#139` should now rebase onto
@@ -80,7 +81,7 @@ This is the canonical long-form evidence note for
 
 - optimizer-family, LR-shape, clipping, and step-budget evidence are still
   open, but they should now be read on top of `task_batch_size=4` and remain
-  contingent on the harder dagzoo handoff through TF-RD-020
+  contingent on a documented carry-forward choice from TF-RD-020
 - the repo still needs an explicit handoff rule for how much of the TF-RD-018
   recipe should stay fixed when TF-RD-020 closes and
   [TF-RD-009](tf_rd_009_scaling_law_measurement.md) starts
@@ -91,7 +92,6 @@ This is the canonical long-form evidence note for
 
 - one explicit default training surface exists for the promoted row-first
   anchor, starting from the completed dataset-batch ladder on the TF-RD-013
-  medium surface and the carried harder dagzoo front plus final filter-regime
-  decision from TF-RD-020
+  medium surface and the carried harder dagzoo winners from TF-RD-020
 - the repo has a clear rule for when optimizer or schedule adequacy must be
   resolved before interpreting harder-surface or scaling outcomes

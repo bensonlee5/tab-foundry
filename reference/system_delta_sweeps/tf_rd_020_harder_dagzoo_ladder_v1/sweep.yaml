@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
 parent_sweep_id: row_first_training_adequacy_v1
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -21,6 +21,7 @@ anchor_surface:
   - Missingness rows use existing tab-foundry dagzoo CLI overrides; shift, mechanism-diversity, and noise rows resolve through dedicated dagzoo config refs derived from `benchmark_cpu.yaml`, `default.yaml`, and `benchmark_cuda_h100_large_shape.yaml`.
   - Every row stays pre-filter with `filter.enabled=false`; TF-RD-020 closes on this uncapped v1 ladder rather than handing a selected winner to a separate filter follow-up.
   - Issues `#148`, `#149`, and `#150` each nominate exactly one uncapped family winner, and the completed ladder records those kept rows directly in TF-RD-020 evidence.
+  - The completed family winners are order `01` MCAR for missingness, order `06` noise drift for shift or drift, and order `11` noise mixture for mechanism or noise.
   dimension_table:
   - dimension: promoted anchor
     upstream: TabICLv2 motivates synthetic pretraining but does not define this repo-local row-first promoted-anchor contract.

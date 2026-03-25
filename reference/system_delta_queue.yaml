@@ -6,7 +6,7 @@ canonical_queue_path: reference/system_delta_sweeps/tf_rd_020_harder_dagzoo_ladd
 canonical_matrix_path: reference/system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md
 sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
 parent_sweep_id: row_first_training_adequacy_v1
-sweep_status: draft
+sweep_status: completed
 complexity_level: binary_md
 anchor_run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -37,6 +37,8 @@ anchor_surface:
     follow-up.
   - Issues `#148`, `#149`, and `#150` each nominate exactly one uncapped family winner,
     and the completed ladder records those kept rows directly in TF-RD-020 evidence.
+  - The completed family winners are order `01` MCAR for missingness, order `06` noise
+    drift for shift or drift, and order `11` noise mixture for mechanism or noise.
   dimension_table:
   - dimension: promoted anchor
     upstream: TabICLv2 motivates synthetic pretraining but does not define this repo-local
@@ -159,7 +161,7 @@ rows:
         muon_per_parameter_lr: false
       runtime:
         grad_accum_steps: 4
-        max_steps: 2500
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -181,60 +183,65 @@ rows:
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#148` winner.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v7
   followup_run_ids: []
-  decision: defer
+  decision: keep
   interpretation_status: completed
   confounders: []
-  next_action: Run first under issue `#148`, then compare directly against the MAR
-    and MNAR rows before nominating one missingness winner.
+  next_action: Keep as the TF-RD-020 missingness winner for issue `#148`; carry this
+    synthetic-only harder-front evidence back into TF-RD-018 continuation once the
+    other family winners are recorded.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
   - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v5`;
     that registry entry is retained as history only.
-  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6`.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6`;
+    that registry entry is retained as history only.
+  - Canonical harmonized `400`-step rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v7`.
+  - This row keeps issue `#148` on final log loss, final Brier score, and final ROC
+    AUC against the MAR and MNAR alternatives.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
   screen_metrics: null
   benchmark_metrics:
-    best_step: 750
-    max_grad_norm: 6.863990783691406
-    clipped_step_fraction: 0.2324
+    best_step: 400
+    max_grad_norm: 5.0888519287109375
+    clipped_step_fraction: 0.1325
     primary_external_benchmark: nanotabpfn
     primary_external_label: nanoTabPFN
-    best_log_loss: 0.5680835607635213
+    best_log_loss: 0.5865277755194411
     primary_external_best_log_loss: 0.4510985126422435
     nanotabpfn_best_log_loss: 0.4510985126422435
-    final_log_loss: 1.7250112471446546
+    final_log_loss: 0.5865277755194411
     primary_external_final_log_loss: 0.453973433403279
     nanotabpfn_final_log_loss: 0.453973433403279
-    best_brier_score: 0.38692000951851374
+    best_brier_score: 0.4026932760526714
     primary_external_best_brier_score: 0.2928541132979815
     nanotabpfn_best_brier_score: 0.2928541132979815
-    final_brier_score: 0.6194195978853342
+    final_brier_score: 0.4026932760526714
     primary_external_final_brier_score: 0.29490909093072887
     nanotabpfn_final_brier_score: 0.29490909093072887
-    best_roc_auc: 0.5588864825369017
+    best_roc_auc: 0.5642074886866162
     primary_external_best_roc_auc: 0.7482958403555632
     nanotabpfn_best_roc_auc: 0.7482958403555632
-    final_roc_auc: 0.6046555370807282
+    final_roc_auc: 0.5642074886866162
     primary_external_final_roc_auc: 0.7446752311186746
     nanotabpfn_final_roc_auc: 0.7446752311186746
-    final_minus_best_log_loss: 1.1569276863811333
-    final_minus_best_brier_score: 0.23249958836682044
-    final_minus_best_roc_auc: 0.045769054543826515
-    drift: 0.045769054543826515
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
     primary_external_best: 0.7482958403555632
     primary_external_final: 0.7446752311186746
     nanotabpfn_best: 0.7482958403555632
     nanotabpfn_final: 0.7446752311186746
-    delta_final_log_loss: -2.722255983567938
-    delta_final_brier_score: -0.027077551437444836
-    delta_final_roc_auc: 0.030085051028560073
+    delta_final_log_loss: -3.8607394551931513
+    delta_final_brier_score: -0.2438038732701076
+    delta_final_roc_auc: -0.010362997365551907
     column_encoder_final_window_mean_grad_norm: 0.0
-    row_pool_final_window_mean_grad_norm: 0.3600894775996846
-    context_encoder_final_window_mean_grad_norm: 0.18871310968297966
+    row_pool_final_window_mean_grad_norm: 0.016775785187881406
+    context_encoder_final_window_mean_grad_norm: 0.021310427254303023
 - order: 2
   delta_id: delta_data_manifest_root_tf_rd_020_missingness_mar
   status: completed
@@ -329,8 +336,8 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run second under issue `#148`, then compare directly against the MCAR
-    and MNAR rows before nominating one missingness winner.
+  next_action: Defer behind the kept MCAR row; retain as the structured-missingness
+    near miss for any later larger-corpus follow-up.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
@@ -473,8 +480,8 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run third under issue `#148`, then select exactly one missingness nominee
-    for cross-front comparison.
+  next_action: Defer behind the kept MCAR row; it remained the closest missingness
+    runner-up but still lost on final log loss and final Brier score.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
@@ -618,8 +625,9 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run first under issue `#149`, then compare directly against the mechanism-drift,
-    noise-drift, and mixed rows before nominating one shift winner.
+  next_action: Defer behind the kept noise-drift row; retain as the closest shift
+    near miss because it lost the family decision on final log loss and final Brier
+    score.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
@@ -763,8 +771,8 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run second under issue `#149`, then compare directly against the graph-drift,
-    noise-drift, and mixed rows before nominating one shift winner.
+  next_action: Defer behind the kept noise-drift row; this row regressed after its
+    best checkpoint and is not the preferred shift carry-forward front.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
@@ -905,11 +913,11 @@ rows:
   execution_policy: benchmark_full
   run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2
   followup_run_ids: []
-  decision: defer
+  decision: keep
   interpretation_status: completed
   confounders: []
-  next_action: Run third under issue `#149`, then compare directly against the graph-drift,
-    mechanism-drift, and mixed rows before nominating one shift winner.
+  next_action: Keep as the TF-RD-020 shift or drift winner for issue `#149`; carry
+    this synthetic-only harder-front evidence back into TF-RD-018 continuation.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
@@ -1054,8 +1062,8 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run fourth under issue `#149`, then select exactly one shift or drift
-    nominee for cross-front comparison.
+  next_action: Defer behind the kept single-axis shift rows; the mixed drift surface
+    lost on final log loss, final Brier score, and best-to-final ROC stability.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
@@ -1199,8 +1207,8 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run first under issue `#150`, then compare directly against the GP-only
-    and heavier-tail noise rows before nominating one mechanism or noise winner.
+  next_action: Defer behind the kept noise-mixture row; the piecewise control degraded
+    sharply after its early best checkpoint.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
@@ -1343,8 +1351,8 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run second under issue `#150`, then compare directly against the piecewise
-    and heavier-tail noise rows before nominating one mechanism or noise winner.
+  next_action: Defer behind the kept noise-mixture row; the GP-only mechanism mix
+    did not recover enough final log loss or Brier score to stay competitive.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
@@ -1486,8 +1494,9 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run third under issue `#150`, then compare directly against the mechanism
-    rows and mixture noise row before nominating one mechanism or noise winner.
+  next_action: Defer behind the kept noise-mixture row; this is the closest mechanism
+    or noise runner-up, but it still loses the family decision on final log loss and
+    final Brier score.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
@@ -1627,11 +1636,11 @@ rows:
   execution_policy: benchmark_full
   run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v2
   followup_run_ids: []
-  decision: defer
+  decision: keep
   interpretation_status: completed
   confounders: []
-  next_action: Run fourth under issue `#150`, then select exactly one mechanism-diversity
-    or noise nominee for cross-front comparison.
+  next_action: Keep as the TF-RD-020 mechanism or noise winner for issue `#150`; carry
+    this synthetic-only harder-front evidence back into TF-RD-018 continuation.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
