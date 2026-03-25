@@ -6,10 +6,10 @@
 }
 
 // -- Content measure -------------------------------------------------------
-// Cap line length at ~66 chars for comfortable reading.
+// Cap line length for comfortable reading while using available space.
 
 .td-content {
-  max-width: 42rem;
+  max-width: 60rem;
 }
 
 // -- Code blocks ----------------------------------------------------------
