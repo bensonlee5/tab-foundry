@@ -785,7 +785,7 @@ rows:
     context_encoder_final_window_mean_grad_norm: 0.10436744535640814
 - order: 8
   delta_ref: delta_data_manifest_root_tf_rd_020_mechanism_piecewise
-  status: ready
+  status: completed
   rationale: Open issue `#150` with the shipped piecewise control so TF-RD-020 can
     test whether broader mechanism family structure is a cleaner harder front than
     explicit train/test drift.
@@ -842,19 +842,62 @@ rows:
     mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#150` winner.
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run first under issue `#150`, then compare directly against the GP-only
     and heavier-tail noise rows before nominating one mechanism or noise winner.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 100
+    max_grad_norm: 3.662299394607544
+    clipped_step_fraction: 0.045
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5939022146795082
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.6272106757191078
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.40828404552114367
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.42518884649441696
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5584285503081026
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.4704636591928281
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.03330846103959961
+    final_minus_best_brier_score: 0.016904800973273293
+    final_minus_best_roc_auc: -0.08796489111527445
+    drift: -0.08796489111527445
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.820056554993484
+    delta_final_brier_score: -0.22130830282836206
+    delta_final_roc_auc: -0.10410682685933997
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.06292136146571768
+    context_encoder_final_window_mean_grad_norm: 0.06209353440727394
 - order: 9
   delta_ref: delta_data_manifest_root_tf_rd_020_mechanism_gp
-  status: ready
+  status: completed
   rationale: Add the GP-only mechanism row so the mechanism lane can distinguish the
     shipped piecewise control from the widened GP family path.
   hypothesis: '`gp=1.0` may create a more sample-hungry but still interpretable harder
@@ -910,19 +953,62 @@ rows:
     mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#150` winner.
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run second under issue `#150`, then compare directly against the piecewise
     and heavier-tail noise rows before nominating one mechanism or noise winner.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 275
+    max_grad_norm: 2.50616717338562
+    clipped_step_fraction: 0.0725
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.6063411092382006
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.6272103763378627
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.41779110662445973
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.4301558703389481
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.45112550617451197
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.4565788031502323
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.02086926709966208
+    final_minus_best_brier_score: 0.012364763714488358
+    final_minus_best_roc_auc: 0.005453296975720334
+    drift: 0.005453296975720334
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.8200568543747293
+    delta_final_brier_score: -0.21634127898383093
+    delta_final_roc_auc: -0.11799168290193579
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.02262849838313023
+    context_encoder_final_window_mean_grad_norm: 0.0346487437828105
 - order: 10
   delta_ref: delta_data_manifest_root_tf_rd_020_noise_laplace
-  status: ready
+  status: completed
   rationale: Add the simplest non-Gaussian noise row so the mechanism or noise lane
     can test whether heavier tails alone create a clearer harder front than function-family
     changes.
@@ -978,19 +1064,62 @@ rows:
     mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#150` winner.
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run third under issue `#150`, then compare directly against the mechanism
     rows and mixture noise row before nominating one mechanism or noise winner.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 350
+    max_grad_norm: 3.403346300125122
+    clipped_step_fraction: 0.08
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5946856973087659
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5958642177454183
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.4102910967735288
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.4113370260431905
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5599252697674553
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5618389106349854
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0011785204366524527
+    final_minus_best_brier_score: 0.0010459292696616829
+    final_minus_best_roc_auc: 0.0019136408675300975
+    drift: 0.0019136408675300975
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.851403012967174
+    delta_final_brier_score: -0.23516012327958852
+    delta_final_roc_auc: -0.012731575417182728
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.023249792326090108
+    context_encoder_final_window_mean_grad_norm: 0.04352663213879104
 - order: 11
   delta_ref: delta_data_manifest_root_tf_rd_020_noise_mixture
-  status: ready
+  status: completed
   rationale: Close issue `#150` with the heaviest-tailed candidate so TF-RD-020 can
     test whether one mixed noise surface is the clearest non-mechanism harder front.
   hypothesis: Mixture noise with `gaussian=0.5`, `laplace=0.3`, `student_t=0.2`, and
@@ -1047,13 +1176,56 @@ rows:
     mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#150` winner.
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v1
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run fourth under issue `#150`, then select exactly one mechanism-diversity
     or noise nominee for cross-front comparison.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 250
+    max_grad_norm: 4.732564926147461
+    clipped_step_fraction: 0.115
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5637500344052219
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5736628681409239
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.38330247292860264
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.3916780516167152
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.593442012756499
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5904424971151112
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.009912833735702065
+    final_minus_best_brier_score: 0.008375578688112562
+    final_minus_best_roc_auc: -0.0029995156413877844
+    drift: -0.0029995156413877844
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.873604362571668
+    delta_final_brier_score: -0.2548190977060638
+    delta_final_roc_auc: 0.015872011062943114
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.17732613782202206
+    context_encoder_final_window_mean_grad_norm: 0.3327443265307052

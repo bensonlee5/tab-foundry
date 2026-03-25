@@ -43,10 +43,10 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 | 5 | `delta_data_manifest_root_tf_rd_020_shift_mechanism_drift` | shift | yes | completed | none | Point training at the TF-RD-020 mechanism-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run second under issue `#149`, then compare directly against the graph-drift, noise-drift, and mixed rows before nominating one shift winner. |
 | 6 | `delta_data_manifest_root_tf_rd_020_shift_noise_drift` | shift | yes | completed | none | Point training at the TF-RD-020 noise-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run third under issue `#149`, then compare directly against the graph-drift, mechanism-drift, and mixed rows before nominating one shift winner. |
 | 7 | `delta_data_manifest_root_tf_rd_020_shift_mixed` | shift | yes | completed | none | Point training at the TF-RD-020 mixed-drift harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run fourth under issue `#149`, then select exactly one shift or drift nominee for cross-front comparison. |
-| 8 | `delta_data_manifest_root_tf_rd_020_mechanism_piecewise` | mechanism_diversity | yes | ready | none | Point training at the TF-RD-020 piecewise-mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run first under issue `#150`, then compare directly against the GP-only and heavier-tail noise rows before nominating one mechanism or noise winner. |
-| 9 | `delta_data_manifest_root_tf_rd_020_mechanism_gp` | mechanism_diversity | yes | ready | none | Point training at the TF-RD-020 GP-only mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run second under issue `#150`, then compare directly against the piecewise and heavier-tail noise rows before nominating one mechanism or noise winner. |
-| 10 | `delta_data_manifest_root_tf_rd_020_noise_laplace` | noise | yes | ready | none | Point training at the TF-RD-020 Laplace-noise harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run third under issue `#150`, then compare directly against the mechanism rows and mixture noise row before nominating one mechanism or noise winner. |
-| 11 | `delta_data_manifest_root_tf_rd_020_noise_mixture` | noise | yes | ready | none | Point training at the TF-RD-020 mixture-noise harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run fourth under issue `#150`, then select exactly one mechanism-diversity or noise nominee for cross-front comparison. |
+| 8 | `delta_data_manifest_root_tf_rd_020_mechanism_piecewise` | mechanism_diversity | yes | completed | none | Point training at the TF-RD-020 piecewise-mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run first under issue `#150`, then compare directly against the GP-only and heavier-tail noise rows before nominating one mechanism or noise winner. |
+| 9 | `delta_data_manifest_root_tf_rd_020_mechanism_gp` | mechanism_diversity | yes | completed | none | Point training at the TF-RD-020 GP-only mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run second under issue `#150`, then compare directly against the piecewise and heavier-tail noise rows before nominating one mechanism or noise winner. |
+| 10 | `delta_data_manifest_root_tf_rd_020_noise_laplace` | noise | yes | completed | none | Point training at the TF-RD-020 Laplace-noise harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run third under issue `#150`, then compare directly against the mechanism rows and mixture noise row before nominating one mechanism or noise winner. |
+| 11 | `delta_data_manifest_root_tf_rd_020_noise_mixture` | noise | yes | completed | none | Point training at the TF-RD-020 mixture-noise harder-front manifest while keeping the settled four-task row-first recipe fixed. | Run fourth under issue `#150`, then select exactly one mechanism-diversity or noise nominee for cross-front comparison. |
 
 ## Detailed Rows
 
@@ -298,7 +298,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 ### 8. `delta_data_manifest_root_tf_rd_020_mechanism_piecewise`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 piecewise-mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -308,6 +308,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_mechanism_piecewise_v1`.
 - Expected effect: The shipped piecewise-plus-linear family mix may create a more data-hungry synthetic front without introducing explicit train-test shift.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_mechanism_piecewise`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0629`); context (grad `0.0621`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the piecewise-plus-linear family mix in the per-invocation effective config artifacts.
@@ -318,18 +319,21 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_mechanism_piecewise/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v2` with final log loss `0.6272`, delta final log loss `-3.8201`, final Brier score `0.4252`, delta final Brier score `-0.2213`, best ROC AUC `0.5584`, final ROC AUC `0.4705`, final-minus-best `-0.0880`, delta final ROC AUC `-0.1041`, delta drift `-0.0667`, delta final training time `+1085.5s`
 
 ### 9. `delta_data_manifest_root_tf_rd_020_mechanism_gp`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 GP-only mechanism harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -339,6 +343,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_mechanism_gp_v1`.
 - Expected effect: The widened GP family may create a more sample-hungry but still interpretable harder front if the current corpus is too easy.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_mechanism_gp`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0226`); context (grad `0.0346`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the GP-only family mix in the per-invocation effective config artifacts.
@@ -349,18 +354,21 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_mechanism_gp/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v2` with final log loss `0.6272`, delta final log loss `-3.8201`, final Brier score `0.4302`, delta final Brier score `-0.2163`, best ROC AUC `0.4511`, final ROC AUC `0.4566`, final-minus-best `+0.0055`, delta final ROC AUC `-0.1180`, delta drift `+0.0267`, delta final training time `+944.7s`
 
 ### 10. `delta_data_manifest_root_tf_rd_020_noise_laplace`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 Laplace-noise harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -370,6 +378,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_noise_laplace_v1`.
 - Expected effect: Laplace noise may create a harder front through heavier tails without the broader ambiguity of the mixture-noise row.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_noise_laplace`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.0232`); context (grad `0.0435`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the Laplace noise family in the per-invocation effective config artifacts.
@@ -380,18 +389,21 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_noise_laplace/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v2` with final log loss `0.5959`, delta final log loss `-3.8514`, final Brier score `0.4113`, delta final Brier score `-0.2352`, best ROC AUC `0.5599`, final ROC AUC `0.5618`, final-minus-best `+0.0019`, delta final ROC AUC `-0.0127`, delta drift `+0.0232`, delta final training time `+944.4s`
 
 ### 11. `delta_data_manifest_root_tf_rd_020_noise_mixture`
 
 - Dimension family: `data`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Point training at the TF-RD-020 mixture-noise harder-front manifest while keeping the settled four-task row-first recipe fixed.
@@ -401,6 +413,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Anchor delta: Keep the settled row-first model, preprocessing surface, and four-task warmup-decay recipe fixed, but replace the carried medium corpus with `tf_rd_020_noise_mixture_v1`.
 - Expected effect: Mixture noise may be the strongest heavier-tail noise candidate, but it also risks becoming noisier and less interpretable than the mechanism rows.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_noise_mixture`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
+- Stage-local stability: column (grad `0.0000`); row (grad `0.1773`); context (grad `0.3327`)
 - Data overrides: `{}`
 - Parameter adequacy plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix and resolves the mixture-noise family plus mixture weights in the per-invocation effective config artifacts.
@@ -411,10 +424,13 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - manifest-contract deltas versus the kept TF-RD-013 medium control
   - benchmark-facing generalization under the settled four-task row-first recipe
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
 - Notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v1`; that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_noise_mixture/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v2` with final log loss `0.5737`, delta final log loss `-3.8736`, final Brier score `0.3917`, delta final Brier score `-0.2548`, best ROC AUC `0.5934`, final ROC AUC `0.5904`, final-minus-best `-0.0030`, delta final ROC AUC `+0.0159`, delta drift `+0.0183`, delta final training time `+700.4s`
