@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-03-24
+
+### Changed
+
+- Internal architecture note: prenorm staged table-block attention and QASS
+  attention now route through shared scaled-dot-product attention helpers,
+  preserving the existing projection and masking semantics while adding
+  targeted equivalence coverage for the new SDPA path.
+
 ## [0.11.1] - 2026-03-24
 
 ### Fixed
