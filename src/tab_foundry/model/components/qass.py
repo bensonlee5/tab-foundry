@@ -8,6 +8,7 @@ from typing import cast
 import torch
 from torch import nn
 
+from .attention import attention_bias_from_allowed_mask, scaled_dot_product_attention
 from .normalization import build_norm
 
 
@@ -91,14 +92,21 @@ class QASSMultiheadAttention(nn.Module):
         if apply_qass and n_context is not None:
             q = self.scaler(q, n_context=n_context)
 
-        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.d_head)
+        attn_bias = None
         if allowed_mask is not None:
             # allowed_mask: [B, 1, Nq, Nk] bool
-            scores = scores.masked_fill(~allowed_mask, float("-inf"))
-
-        attn = torch.softmax(scores, dim=-1)
-        attn = self.dropout(attn)
-        out = torch.matmul(attn, v)
+            attn_bias = attention_bias_from_allowed_mask(
+                allowed_mask,
+                dtype=q.dtype,
+            )
+        out = scaled_dot_product_attention(
+            q,
+            k,
+            v,
+            attn_bias=attn_bias,
+            dropout_p=self.dropout.p,
+            training=self.training,
+        )
         out = (
             out.permute(0, 2, 1, 3)
             .contiguous()
