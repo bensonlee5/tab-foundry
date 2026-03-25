@@ -55,6 +55,13 @@ This is the canonical long-form evidence note for
   [#149](https://github.com/bensonlee5/tab-foundry/issues/149), and order `11`
   noise mixture for issue
   [#150](https://github.com/bensonlee5/tab-foundry/issues/150)
+- `tf_rd_020_shift_noise_drift_v1` is now the documented TF-RD-018 default
+  carry-forward surface because it leads the kept winner set on final log loss
+  and final Brier while preserving a positive final ROC delta and the shortest
+  runtime among the kept rows
+- `tf_rd_020_noise_mixture_v1` remains the named TF-RD-018 fallback harder
+  surface if the first optimizer-family read on the noise-drift winner is too
+  close or unstable to collapse cleanly
 - The larger-corpus and winner-mix follow-up directions under closed issues
   [#154](https://github.com/bensonlee5/tab-foundry/issues/154),
   [#155](https://github.com/bensonlee5/tab-foundry/issues/155), and
@@ -67,6 +74,8 @@ This is the canonical long-form evidence note for
   choice inside this epic
 - use `tf_rd_020_harder_dagzoo_ladder_v1` as the canonical pre-filter ladder
   that hands three explicit harder-front family winners back into TF-RD-018
+- hand TF-RD-018 a documented default harder carry-forward surface rather than
+  leaving all three kept family winners equally active for optimizer follow-up
 - treat missingness, shift or drift, and mechanism-diversity or noise as the
   bounded first candidate fronts rather than opening a broad new corpus program
 - keep those first harder-front comparisons pre-filter and close TF-RD-020 on
@@ -81,9 +90,6 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- TF-RD-020 is closed, but TF-RD-018 still needs to decide which kept harder
-  front becomes the default follow-on adequacy surface for optimizer, LR,
-  clipping, and budget continuation
 - the deferred larger-corpus and winner-mix ideas from issues `#154-#156` still
   need a fresh scope if future work wants to reopen them
 - the repo still lacks a benchmark-facing validation pass that checks whether
@@ -95,8 +101,8 @@ This is the canonical long-form evidence note for
   dagzoo corpus fronts, including exactly one kept row in each TF-RD-020 family
 - issue [#147](https://github.com/bensonlee5/tab-foundry/issues/147) is closed
   because the canonical pre-filter ladder and handoff are now recorded
-- TF-RD-018 continuation resumes only after the uncapped v1 ladder records the
-  family winners and the carry-forward interpretation
+- TF-RD-018 continuation resumes from the uncapped v1 family winners plus the
+  documented `tf_rd_020_shift_noise_drift_v1` carry-forward interpretation
 - the relationship between TF-RD-020 and the benchmark-front epics TF-RD-014
   and TF-RD-017 plus the later filtering-policy lane TF-RD-019 remains
   explicit and non-overlapping

@@ -50,6 +50,13 @@ This is the canonical long-form evidence note for
 - [#147](https://github.com/bensonlee5/tab-foundry/issues/147) now records the
   canonical pre-filter harder-front ladder under
   [tf_rd_020_harder_dagzoo_ladder_v1](../system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md)
+- `tf_rd_020_shift_noise_drift_v1` is now the default TF-RD-018 harder
+  carry-forward surface because it leads the kept TF-RD-020 winners on final
+  log loss and final Brier while preserving a positive final ROC delta and the
+  shortest runtime among the kept set
+- `tf_rd_020_noise_mixture_v1` remains the named fallback harder surface if the
+  first optimizer-family read on `tf_rd_020_shift_noise_drift_v1` is too close
+  or unstable to collapse cleanly
 
 ## Current Interpretation
 
@@ -66,12 +73,17 @@ This is the canonical long-form evidence note for
 - use the recorded `tf_rd_020_harder_dagzoo_ladder_v1` ladder as the fixed
   pre-filter handoff for issues `#148`, `#149`, and `#150` rather than
   reopening harder-front design inside TF-RD-018
+- use `tf_rd_020_shift_noise_drift_v1` as the default harder carry-forward
+  surface for issues `#137`, `#138`, and `#139`
+- retain `tf_rd_020_noise_mixture_v1` as the named fallback harder surface only
+  if the first optimizer-family read on noise drift is too confounded to
+  collapse to a single carry-forward front
 - after the full uncapped harder dagzoo blocker closed, retune LR and schedule
   on the settled rung rather than jointly searching batch and LR across the
   whole ladder
 - issues `#137`, `#138`, and `#139` should now rebase onto
-  `task_batch_size=4` after TF-RD-020 closes instead of reopening singleton
-  updates
+  `task_batch_size=4` plus `tf_rd_020_shift_noise_drift_v1` instead of
+  reopening singleton updates or leaving the harder surface implicit
 - compare strong Adam-family baselines before treating `muon` or other
   specialized optimizers as necessary
 - keep architecture changes out of TF-RD-018; they belong later under
@@ -80,11 +92,14 @@ This is the canonical long-form evidence note for
 ## Open Evidence Gaps
 
 - optimizer-family, LR-shape, clipping, and step-budget evidence are still
-  open, but they should now be read on top of `task_batch_size=4` and remain
-  contingent on a documented carry-forward choice from TF-RD-020
+  open, but they should now be read on top of `task_batch_size=4` and the
+  documented `tf_rd_020_shift_noise_drift_v1` carry-forward surface
 - the repo still needs an explicit handoff rule for how much of the TF-RD-018
   recipe should stay fixed when TF-RD-020 closes and
   [TF-RD-009](tf_rd_009_scaling_law_measurement.md) starts
+- the repo still needs an explicit stop rule for when TF-RD-020 should fall
+  back from `tf_rd_020_shift_noise_drift_v1` to `tf_rd_020_noise_mixture_v1`
+  during the first optimizer-family read
 - the current medium-surface record still lacks evidence that larger manifest
   task batches are worth reopening without separate runtime work
 
