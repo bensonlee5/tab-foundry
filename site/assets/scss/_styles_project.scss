@@ -51,9 +51,35 @@
   }
 }
 
-// -- Audience path cards --------------------------------------------------
-.card.card--audience {
-  border-top: 2px solid $primary;
+// -- Path list (Choose Your Path) -----------------------------------------
+// Description list for the audience paths — breaks the card-grid pattern.
+
+.path-list {
+  max-width: 42rem;
+
+  dt {
+    font-size: 1.15rem;
+    margin-top: 1.25rem;
+
+    &:first-child {
+      margin-top: 0;
+    }
+
+    a {
+      color: $primary;
+      text-decoration: none;
+      font-weight: 600;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  dd {
+    margin-bottom: 0;
+    color: rgba($body-color, 0.75);
+  }
 }
 
 // -- Topic cards ----------------------------------------------------------
