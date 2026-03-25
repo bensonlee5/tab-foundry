@@ -2,7 +2,7 @@
 // Warm Earth sage-green gradient.
 
 .td-cover-block {
-  background: linear-gradient(135deg, #4a6741 0%, #6b8f5e 100%) !important;
+  background: linear-gradient(135deg, $primary 0%, $primary-light 100%) !important;
 }
 
 // -- Content measure -------------------------------------------------------
@@ -16,11 +16,16 @@
 // Tighter, more polished code blocks that match the color palette.
 
 .td-content pre {
-  background-color: #f7fafc;
-  border: 1px solid #e2e8f0;
+  background-color: $code-bg;
+  border: 1px solid $code-border;
   border-radius: 6px;
   padding: 1rem;
   overflow-x: auto;
+
+  [data-bs-theme="dark"] & {
+    background-color: #1e2228;
+    border-color: #343a40;
+  }
 }
 
 // -- Display math ---------------------------------------------------------
