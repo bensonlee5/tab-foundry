@@ -5,6 +5,13 @@
   background: linear-gradient(135deg, #4a6741 0%, #6b8f5e 100%) !important;
 }
 
+// -- Content measure -------------------------------------------------------
+// Cap line length at ~66 chars for comfortable reading.
+
+.td-content {
+  max-width: 42rem;
+}
+
 // -- Code blocks ----------------------------------------------------------
 // Tighter, more polished code blocks that match the color palette.
 
@@ -13,6 +20,7 @@
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   padding: 1rem;
+  overflow-x: auto;
 }
 
 // -- Display math ---------------------------------------------------------
@@ -85,6 +93,27 @@
 // -- Topic cards ----------------------------------------------------------
 .card.card--topic {
   border-top: 2px solid $secondary;
+}
+
+// -- Typography polish ----------------------------------------------------
+// Balanced heading wraps and stronger hero weight.
+
+h1, h2, h3, h4 {
+  text-wrap: balance;
+}
+
+.td-cover-block h1 {
+  font-weight: 700;
+}
+
+// -- Accessibility --------------------------------------------------------
+// Visible focus ring for keyboard navigation (WCAG 2.1 AA).
+
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid $primary;
+  outline-offset: 2px;
 }
 
 // -- Landing page spacing -------------------------------------------------
