@@ -141,7 +141,7 @@ def run_row(
     anchor_run_id: str | None,
     parent_run_id: str | None,
     queue: Mapping[str, Any],
-    prior_dump: Path,
+    prior_dump: Path | None,
     nanotabpfn_root: Path,
     device: str,
     fallback_python: Path,
@@ -240,6 +240,11 @@ def run_row(
         if training_backend == TRAINING_BACKEND_MANIFEST:
             train_result = train_from_manifest_cfg(cfg)
         elif training_backend == TRAINING_BACKEND_LEGACY_PRIOR:
+            if prior_dump is None:
+                raise RuntimeError(
+                    f"[row {int(queue_row['order']):02d}] "
+                    "legacy-prior training requires --nanotabpfn-prior-dump"
+                )
             train_result = train_tabfoundry_simple_prior(cfg, prior_dump_path=prior_dump)
         else:  # pragma: no cover - guarded by resolve_training_backend
             raise RuntimeError(f"unsupported training backend {training_backend!r}")
