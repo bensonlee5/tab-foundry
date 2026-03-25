@@ -5,7 +5,7 @@ linkTitle: "Home"
 
 {{< blocks/cover title="tab-foundry" image_anchor="top" height="med" color="dark" >}}
 
-<p class="lead mt-3">Docs, workflows, and research paths for training, comparing, and exporting tabular ML models.</p>
+<p class="lead mt-3">A tabular foundation model that generates its own training data, trains on it, and predicts on new tasks. Full pipeline control from data generation to export.</p>
 <a class="btn btn-lg btn-outline-light me-3 mb-4" href="{{< relref "/docs" >}}">
   Read the Docs
 </a>
