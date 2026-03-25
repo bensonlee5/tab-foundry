@@ -6,7 +6,7 @@ canonical_queue_path: reference/system_delta_sweeps/tf_rd_020_harder_dagzoo_ladd
 canonical_matrix_path: reference/system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md
 sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
 parent_sweep_id: row_first_training_adequacy_v1
-sweep_status: draft
+sweep_status: completed
 complexity_level: binary_md
 anchor_run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -32,12 +32,13 @@ anchor_surface:
   - Missingness rows use existing tab-foundry dagzoo CLI overrides; shift, mechanism-diversity,
     and noise rows resolve through dedicated dagzoo config refs derived from `benchmark_cpu.yaml`,
     `default.yaml`, and `benchmark_cuda_h100_large_shape.yaml`.
-  - Every row stays pre-filter with `filter.enabled=false`; the final small-shot ease
-    filter decision belongs only to TF-RD-020 issue `#151` after one cross-front winner
-    is chosen.
-  - Issues `#148`, `#149`, and `#150` each nominate exactly one pre-filter winner,
-    and issue `#151` runs only on the single cross-front winner that survives the
-    sweep-level rubric.
+  - Every row stays pre-filter with `filter.enabled=false`; TF-RD-020 closes on this
+    uncapped v1 ladder rather than handing a selected winner to a separate filter
+    follow-up.
+  - Issues `#148`, `#149`, and `#150` each nominate exactly one uncapped family winner,
+    and the completed ladder records those kept rows directly in TF-RD-020 evidence.
+  - The completed family winners are order `01` MCAR for missingness, order `06` noise
+    drift for shift or drift, and order `11` noise mixture for mechanism or noise.
   dimension_table:
   - dimension: promoted anchor
     upstream: TabICLv2 motivates synthetic pretraining but does not define this repo-local
@@ -57,14 +58,14 @@ anchor_surface:
   - dimension: filtering sequence
     upstream: Not applicable.
     anchor: The carried medium control remains unfiltered.
-    interpretation: Keep all issue `#147` rows pre-filter and defer the final small-shot
-      ease filter decision to issue `#151`.
+    interpretation: Keep all issue `#147` rows pre-filter; later dagzoo filtering
+      policy remains outside this sweep.
   - dimension: nomination rubric
     upstream: Not applicable.
     anchor: No harder-front nomination rubric existed before this sweep.
-    interpretation: Rank rows by final ROC AUC first, final log loss and Brier second,
-      and best-to-final ROC delta third while treating runtime, clipped-step fraction,
-      fallback, NaNs, and OOM or retry behavior as guardrails.
+    interpretation: Rank rows by final log loss first, final Brier score second, final
+      ROC AUC third, and best-to-final ROC delta fourth while treating runtime, clipped-step
+      fraction, fallback, NaNs, and OOM or retry behavior as guardrails.
 anchor_context:
   run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
   experiment: cls_benchmark_staged_corpus
@@ -95,7 +96,7 @@ anchor_context:
 rows:
 - order: 1
   delta_id: delta_data_manifest_root_tf_rd_020_missingness_mcar
-  status: ready
+  status: completed
   dimension_family: data
   family: missingness
   binary_applicable: true
@@ -121,8 +122,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       before reading benchmark output.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other missingness rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      missingness rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -141,13 +143,11 @@ rows:
     surface_label: tf_rd_020_missingness_mcar
     source: manifest
     corpus_ref: tf_rd_020_missingness_mcar_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -160,8 +160,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -177,26 +177,74 @@ rows:
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     before reading benchmark output.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other missingness rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    missingness rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#148` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v7
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
-  next_action: Run first under issue `#148`, then compare directly against the MAR
-    and MNAR rows before nominating one missingness winner.
+  next_action: Keep as the TF-RD-020 missingness winner for issue `#148`; carry this
+    synthetic-only harder-front evidence back into TF-RD-018 continuation alongside
+    the kept shift or drift and mechanism or noise winners.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v5`;
+    that registry entry is retained as history only.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v6`;
+    that registry entry is retained as history only.
+  - Canonical harmonized `400`-step rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_01_delta_data_manifest_root_tf_rd_020_missingness_mcar_v7`.
+  - This row keeps issue `#148` on final log loss, final Brier score, and final ROC
+    AUC against the MAR and MNAR alternatives.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 5.0888519287109375
+    clipped_step_fraction: 0.1325
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5865277755194411
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5865277755194411
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.4026932760526714
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.4026932760526714
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5642074886866162
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5642074886866162
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.8607394551931513
+    delta_final_brier_score: -0.2438038732701076
+    delta_final_roc_auc: -0.010362997365551907
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.016775785187881406
+    context_encoder_final_window_mean_grad_norm: 0.021310427254303023
 - order: 2
   delta_id: delta_data_manifest_root_tf_rd_020_missingness_mar
-  status: ready
+  status: completed
   dimension_family: data
   family: missingness
   binary_applicable: true
@@ -222,8 +270,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the MAR override fields in provenance.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other missingness rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      missingness rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -242,13 +291,11 @@ rows:
     surface_label: tf_rd_020_missingness_mar
     source: manifest
     corpus_ref: tf_rd_020_missingness_mar_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -261,8 +308,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -278,26 +325,69 @@ rows:
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves the MAR override fields in the per-invocation provenance.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other missingness rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    missingness rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#148` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run second under issue `#148`, then compare directly against the MCAR
-    and MNAR rows before nominating one missingness winner.
+  next_action: Defer behind the kept MCAR row; retain as the structured-missingness
+    near miss for any later larger-corpus follow-up.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_02_delta_data_manifest_root_tf_rd_020_missingness_mar_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 4.0691962242126465
+    clipped_step_fraction: 0.1275
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5977899267384836
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5977899267384836
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.4121811336270918
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.4121811336270918
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5298311495482986
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5298311495482986
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.8494773039741084
+    delta_final_brier_score: -0.23431601569568722
+    delta_final_roc_auc: -0.04473933650386952
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.024847248727433213
+    context_encoder_final_window_mean_grad_norm: 0.040686723609057604
 - order: 3
   delta_id: delta_data_manifest_root_tf_rd_020_missingness_mnar
-  status: ready
+  status: completed
   dimension_family: data
   family: missingness
   binary_applicable: true
@@ -324,8 +414,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the MNAR override fields in provenance.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other missingness rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      missingness rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -344,13 +435,11 @@ rows:
     surface_label: tf_rd_020_missingness_mnar
     source: manifest
     corpus_ref: tf_rd_020_missingness_mnar_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -363,8 +452,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -380,26 +469,69 @@ rows:
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves the MNAR override fields in the per-invocation provenance.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other missingness rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    missingness rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#148` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run third under issue `#148`, then select exactly one missingness nominee
-    for cross-front comparison.
+  next_action: Defer behind the kept MCAR row; it remained the closest missingness
+    runner-up but still lost on final log loss and final Brier score.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_03_delta_data_manifest_root_tf_rd_020_missingness_mnar_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 4.2577290534973145
+    clipped_step_fraction: 0.1475
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5958296894587327
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5958296894587327
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.41017717567085227
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.41017717567085227
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5550513231720597
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5550513231720597
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.8514375412538593
+    delta_final_brier_score: -0.23631997365192675
+    delta_final_roc_auc: -0.019519162880108354
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.02016881118839253
+    context_encoder_final_window_mean_grad_norm: 0.023354579008251164
 - order: 4
   delta_id: delta_data_manifest_root_tf_rd_020_shift_graph_drift
-  status: ready
+  status: completed
   dimension_family: data
   family: shift
   binary_applicable: true
@@ -426,8 +558,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the graph-drift effective config artifacts.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other shift rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      shift rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -446,13 +579,11 @@ rows:
     surface_label: tf_rd_020_shift_graph_drift
     source: manifest
     corpus_ref: tf_rd_020_shift_graph_drift_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -465,8 +596,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -483,26 +614,70 @@ rows:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves `shift.mode=graph_drift` with `graph_scale=0.5` in effective config
     artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#149` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run first under issue `#149`, then compare directly against the mechanism-drift,
-    noise-drift, and mixed rows before nominating one shift winner.
+  next_action: Defer behind the kept noise-drift row; retain as the closest shift
+    near miss because it lost the family decision on final log loss and final Brier
+    score.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_04_delta_data_manifest_root_tf_rd_020_shift_graph_drift_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 2.65151309967041
+    clipped_step_fraction: 0.1425
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5551380627326593
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5551380627326593
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.37511611036503734
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.37511611036503734
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.6028590182218918
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.6028590182218918
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.892129167979933
+    delta_final_brier_score: -0.2713810389577417
+    delta_final_roc_auc: 0.028288532169723712
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.04380429586412218
+    context_encoder_final_window_mean_grad_norm: 0.07291161299647017
 - order: 5
   delta_id: delta_data_manifest_root_tf_rd_020_shift_mechanism_drift
-  status: ready
+  status: completed
   dimension_family: data
   family: shift
   binary_applicable: true
@@ -529,8 +704,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the mechanism-drift effective config artifacts.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other shift rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      shift rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -549,13 +725,11 @@ rows:
     surface_label: tf_rd_020_shift_mechanism_drift
     source: manifest
     corpus_ref: tf_rd_020_shift_mechanism_drift_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -568,8 +742,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -586,26 +760,69 @@ rows:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves `shift.mode=mechanism_drift` with `mechanism_scale=0.5` in effective
     config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#149` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run second under issue `#149`, then compare directly against the graph-drift,
-    noise-drift, and mixed rows before nominating one shift winner.
+  next_action: Defer behind the kept noise-drift row; this row regressed after its
+    best checkpoint and is not the preferred shift carry-forward front.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_05_delta_data_manifest_root_tf_rd_020_shift_mechanism_drift_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 250
+    max_grad_norm: 3.741863489151001
+    clipped_step_fraction: 0.0825
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5576948179071773
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.6386823538521846
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.378439534390614
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.4214391616636517
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.6241074056654365
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5997087246788727
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0809875359450073
+    final_minus_best_brier_score: 0.04299962727303769
+    final_minus_best_roc_auc: -0.024398680986563837
+    drift: -0.024398680986563837
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.8085848768604076
+    delta_final_brier_score: -0.22505798765912732
+    delta_final_roc_auc: 0.025138238626704612
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.088527246288988
+    context_encoder_final_window_mean_grad_norm: 0.13284098362203361
 - order: 6
   delta_id: delta_data_manifest_root_tf_rd_020_shift_noise_drift
-  status: ready
+  status: completed
   dimension_family: data
   family: shift
   binary_applicable: true
@@ -632,8 +849,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the noise-drift effective config artifacts.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other shift rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      shift rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -652,13 +870,11 @@ rows:
     surface_label: tf_rd_020_shift_noise_drift
     source: manifest
     corpus_ref: tf_rd_020_shift_noise_drift_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -671,8 +887,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -689,26 +905,69 @@ rows:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves `shift.mode=noise_drift` with `variance_scale=0.5` in effective config
     artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#149` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
-  next_action: Run third under issue `#149`, then compare directly against the graph-drift,
-    mechanism-drift, and mixed rows before nominating one shift winner.
+  next_action: Keep as the TF-RD-020 shift or drift winner for issue `#149`; carry
+    this synthetic-only harder-front evidence back into TF-RD-018 continuation.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 375
+    max_grad_norm: 2.7898130416870117
+    clipped_step_fraction: 0.165
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5469057523340293
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5501050688992111
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.37033812315954123
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.3740493195326578
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5945143739407067
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.588002654427939
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.003199316565181798
+    final_minus_best_brier_score: 0.0037111963731165654
+    final_minus_best_roc_auc: -0.006511719512767744
+    drift: -0.006511719512767744
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.897162161813381
+    delta_final_brier_score: -0.2724478297901212
+    delta_final_roc_auc: 0.013432168375770881
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.06851509300923592
+    context_encoder_final_window_mean_grad_norm: 0.1264763923272498
 - order: 7
   delta_id: delta_data_manifest_root_tf_rd_020_shift_mixed
-  status: ready
+  status: completed
   dimension_family: data
   family: shift
   binary_applicable: true
@@ -736,8 +995,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the mixed-drift effective config artifacts.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other shift rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      shift rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -756,13 +1016,11 @@ rows:
     surface_label: tf_rd_020_shift_mixed
     source: manifest
     corpus_ref: tf_rd_020_shift_mixed_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -775,8 +1033,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -793,26 +1051,69 @@ rows:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves `shift.mode=mixed` with all three `0.5` drift scales in effective
     config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other shift rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    shift rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#149` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run fourth under issue `#149`, then select exactly one shift or drift
-    nominee for cross-front comparison.
+  next_action: Defer behind the kept single-axis shift rows; the mixed drift surface
+    lost on final log loss, final Brier score, and best-to-final ROC stability.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_07_delta_data_manifest_root_tf_rd_020_shift_mixed_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 200
+    max_grad_norm: 3.873849391937256
+    clipped_step_fraction: 0.075
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5506841171153994
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.6795285603400613
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.37208312399127524
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.43707146040316947
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.6151950315078075
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5349648011453981
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.12884444322466182
+    final_minus_best_brier_score: 0.06498833641189422
+    final_minus_best_roc_auc: -0.0802302303624094
+    drift: -0.0802302303624094
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.767738670372531
+    delta_final_brier_score: -0.20942568891960955
+    delta_final_roc_auc: -0.03960568490676997
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.07512402183568354
+    context_encoder_final_window_mean_grad_norm: 0.10436744535640814
 - order: 8
   delta_id: delta_data_manifest_root_tf_rd_020_mechanism_piecewise
-  status: ready
+  status: completed
   dimension_family: data
   family: mechanism_diversity
   binary_applicable: true
@@ -839,9 +1140,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the piecewise effective config artifacts.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other mechanism or noise
-      rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      mechanism or noise rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -860,13 +1161,11 @@ rows:
     surface_label: tf_rd_020_mechanism_piecewise
     source: manifest
     corpus_ref: tf_rd_020_mechanism_piecewise_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -879,8 +1178,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -897,27 +1196,69 @@ rows:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves the piecewise-plus-linear family mix in the per-invocation effective
     config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other mechanism or
-    noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#150` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run first under issue `#150`, then compare directly against the GP-only
-    and heavier-tail noise rows before nominating one mechanism or noise winner.
+  next_action: Defer behind the kept noise-mixture row; the piecewise control degraded
+    sharply after its early best checkpoint.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_08_delta_data_manifest_root_tf_rd_020_mechanism_piecewise_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 100
+    max_grad_norm: 3.662299394607544
+    clipped_step_fraction: 0.045
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5939022146795082
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.6272106757191078
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.40828404552114367
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.42518884649441696
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5584285503081026
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.4704636591928281
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.03330846103959961
+    final_minus_best_brier_score: 0.016904800973273293
+    final_minus_best_roc_auc: -0.08796489111527445
+    drift: -0.08796489111527445
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.820056554993484
+    delta_final_brier_score: -0.22130830282836206
+    delta_final_roc_auc: -0.10410682685933997
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.06292136146571768
+    context_encoder_final_window_mean_grad_norm: 0.06209353440727394
 - order: 9
   delta_id: delta_data_manifest_root_tf_rd_020_mechanism_gp
-  status: ready
+  status: completed
   dimension_family: data
   family: mechanism_diversity
   binary_applicable: true
@@ -944,9 +1285,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the GP-only effective config artifacts.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other mechanism or noise
-      rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      mechanism or noise rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -965,13 +1306,11 @@ rows:
     surface_label: tf_rd_020_mechanism_gp
     source: manifest
     corpus_ref: tf_rd_020_mechanism_gp_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -984,8 +1323,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -1001,27 +1340,69 @@ rows:
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves the GP-only family mix in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other mechanism or
-    noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#150` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run second under issue `#150`, then compare directly against the piecewise
-    and heavier-tail noise rows before nominating one mechanism or noise winner.
+  next_action: Defer behind the kept noise-mixture row; the GP-only mechanism mix
+    did not recover enough final log loss or Brier score to stay competitive.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_09_delta_data_manifest_root_tf_rd_020_mechanism_gp_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 275
+    max_grad_norm: 2.50616717338562
+    clipped_step_fraction: 0.0725
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.6063411092382006
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.6272103763378627
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.41779110662445973
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.4301558703389481
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.45112550617451197
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.4565788031502323
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.02086926709966208
+    final_minus_best_brier_score: 0.012364763714488358
+    final_minus_best_roc_auc: 0.005453296975720334
+    drift: 0.005453296975720334
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.8200568543747293
+    delta_final_brier_score: -0.21634127898383093
+    delta_final_roc_auc: -0.11799168290193579
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.02262849838313023
+    context_encoder_final_window_mean_grad_norm: 0.0346487437828105
 - order: 10
   delta_id: delta_data_manifest_root_tf_rd_020_noise_laplace
-  status: ready
+  status: completed
   dimension_family: data
   family: noise
   binary_applicable: true
@@ -1047,9 +1428,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the Laplace effective config artifacts.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other mechanism or noise
-      rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      mechanism or noise rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -1068,13 +1449,11 @@ rows:
     surface_label: tf_rd_020_noise_laplace
     source: manifest
     corpus_ref: tf_rd_020_noise_laplace_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -1087,8 +1466,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -1104,27 +1483,70 @@ rows:
   parameter_adequacy_plan:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves the Laplace noise family in the per-invocation effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other mechanism or
-    noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#150` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Run third under issue `#150`, then compare directly against the mechanism
-    rows and mixture noise row before nominating one mechanism or noise winner.
+  next_action: Defer behind the kept noise-mixture row; this is the closest mechanism
+    or noise runner-up, but it still loses the family decision on final log loss and
+    final Brier score.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_10_delta_data_manifest_root_tf_rd_020_noise_laplace_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 350
+    max_grad_norm: 3.403346300125122
+    clipped_step_fraction: 0.08
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5946856973087659
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5958642177454183
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.4102910967735288
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.4113370260431905
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.5599252697674553
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5618389106349854
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.0011785204366524527
+    final_minus_best_brier_score: 0.0010459292696616829
+    final_minus_best_roc_auc: 0.0019136408675300975
+    drift: 0.0019136408675300975
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.851403012967174
+    delta_final_brier_score: -0.23516012327958852
+    delta_final_roc_auc: -0.012731575417182728
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.023249792326090108
+    context_encoder_final_window_mean_grad_norm: 0.04352663213879104
 - order: 11
   delta_id: delta_data_manifest_root_tf_rd_020_noise_mixture
-  status: ready
+  status: completed
   dimension_family: data
   family: noise
   binary_applicable: true
@@ -1150,9 +1572,9 @@ rows:
     default_plan:
     - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
       and resolves the mixture-noise effective config artifacts.
-    - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-      ROC delta third against the medium control and the other mechanism or noise
-      rows.
+    - Compare final log loss first, final Brier score second, final ROC AUC third,
+      and best-to-final ROC delta fourth against the medium control and the other
+      mechanism or noise rows.
     - Treat runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
       as guardrails rather than primary selection metrics.
     default_negative_decision: defer
@@ -1171,13 +1593,11 @@ rows:
     surface_label: tf_rd_020_noise_mixture
     source: manifest
     corpus_ref: tf_rd_020_noise_mixture_v1
-    train_row_cap: 512
-    test_row_cap: 256
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -1190,8 +1610,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -1208,21 +1628,63 @@ rows:
   - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
     and resolves the mixture-noise family plus mixture weights in the per-invocation
     effective config artifacts.
-  - Compare final ROC AUC first, final log loss and Brier second, and best-to-final
-    ROC delta third against the carried medium control and the other mechanism or
-    noise rows.
+  - Compare final log loss first, final Brier score second, final ROC AUC third, and
+    best-to-final ROC delta fourth against the carried medium control and the other
+    mechanism or noise rows.
   - Use runtime, clipped-step fraction, fallback, NaNs, and OOM or retry behavior
     only as guardrails when nominating the issue `#150` winner.
   execution_policy: benchmark_full
-  run_id: null
+  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v2
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: keep
+  interpretation_status: completed
   confounders: []
-  next_action: Run fourth under issue `#150`, then select exactly one mechanism-diversity
-    or noise nominee for cross-front comparison.
+  next_action: Keep as the TF-RD-020 mechanism or noise winner for issue `#150`; carry
+    this synthetic-only harder-front evidence back into TF-RD-018 continuation.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.
+  - Supersedes historical queue run `sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v1`;
+    that registry entry is retained as history only.
+  - Canonical rerun registered as `sd_tf_rd_020_harder_dagzoo_ladder_v1_11_delta_data_manifest_root_tf_rd_020_noise_mixture_v2`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
   screen_metrics: null
-  benchmark_metrics: null
+  benchmark_metrics:
+    best_step: 250
+    max_grad_norm: 4.732564926147461
+    clipped_step_fraction: 0.115
+    primary_external_benchmark: nanotabpfn
+    primary_external_label: nanoTabPFN
+    best_log_loss: 0.5637500344052219
+    primary_external_best_log_loss: 0.4510985126422435
+    nanotabpfn_best_log_loss: 0.4510985126422435
+    final_log_loss: 0.5736628681409239
+    primary_external_final_log_loss: 0.453973433403279
+    nanotabpfn_final_log_loss: 0.453973433403279
+    best_brier_score: 0.38330247292860264
+    primary_external_best_brier_score: 0.2928541132979815
+    nanotabpfn_best_brier_score: 0.2928541132979815
+    final_brier_score: 0.3916780516167152
+    primary_external_final_brier_score: 0.29490909093072887
+    nanotabpfn_final_brier_score: 0.29490909093072887
+    best_roc_auc: 0.593442012756499
+    primary_external_best_roc_auc: 0.7482958403555632
+    nanotabpfn_best_roc_auc: 0.7482958403555632
+    final_roc_auc: 0.5904424971151112
+    primary_external_final_roc_auc: 0.7446752311186746
+    nanotabpfn_final_roc_auc: 0.7446752311186746
+    final_minus_best_log_loss: 0.009912833735702065
+    final_minus_best_brier_score: 0.008375578688112562
+    final_minus_best_roc_auc: -0.0029995156413877844
+    drift: -0.0029995156413877844
+    primary_external_best: 0.7482958403555632
+    primary_external_final: 0.7446752311186746
+    nanotabpfn_best: 0.7482958403555632
+    nanotabpfn_final: 0.7446752311186746
+    delta_final_log_loss: -3.873604362571668
+    delta_final_brier_score: -0.2548190977060638
+    delta_final_roc_auc: 0.015872011062943114
+    column_encoder_final_window_mean_grad_norm: 0.0
+    row_pool_final_window_mean_grad_norm: 0.17732613782202206
+    context_encoder_final_window_mean_grad_norm: 0.3327443265307052

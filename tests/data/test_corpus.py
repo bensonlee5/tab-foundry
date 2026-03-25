@@ -1179,6 +1179,7 @@ def test_resolve_data_surface_hydrates_corpus_ref(
     assert resolved.corpus_ref is not None
     assert resolved.recipe_id == "current_recipe"
     assert resolved.manifest_path is not None and resolved.manifest_path.exists()
+    assert resolved.allow_missing_values is True
     assert resolved.train_row_cap == 32
 
 
@@ -1254,3 +1255,27 @@ def test_resolve_data_surface_raises_for_broken_sweep_lookup_hint(
                 },
             }
         )
+
+
+def test_resolve_data_surface_explicit_allow_missing_values_override_beats_corpus_policy(
+    monkeypatch: pytest.MonkeyPatch,
+    repo_tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(corpus_module, "run_dagzoo_generate", _fake_run_dagzoo_generate)
+    _ = materialize_corpus_recipe(
+        recipe_id="current_recipe",
+        dagzoo_root=repo_tmp_path.parent / "dagzoo",
+        force=True,
+        repo_root=repo_tmp_path,
+    )
+    monkeypatch.setattr(corpus_module, "_repo_root", lambda: repo_tmp_path)
+
+    resolved = resolve_data_surface(
+        {
+            "source": "manifest",
+            "corpus_ref": "current_recipe",
+            "allow_missing_values": False,
+        }
+    )
+
+    assert resolved.allow_missing_values is False

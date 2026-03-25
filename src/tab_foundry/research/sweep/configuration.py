@@ -94,7 +94,10 @@ def compose_cfg(
     if sweep_id is not None:
         cfg.logging.group = str(sweep_id)
     apply_mapping(cfg, "model", cast(Mapping[str, Any], row.get("model", {})))
-    apply_mapping(cfg, "data", cast(Mapping[str, Any], row.get("data", {})))
+    data_payload = cast(Mapping[str, Any], row.get("data", {}))
+    apply_mapping(cfg, "data", data_payload)
+    if "corpus_ref" in data_payload and "allow_missing_values" not in data_payload:
+        OmegaConf.update(cfg, "data.allow_missing_values", None, merge=False)
     _apply_corpus_lookup_context(cfg, sweep_id=sweep_id, sweeps_root=sweeps_root)
     apply_mapping(cfg, "preprocessing", cast(Mapping[str, Any], row.get("preprocessing", {})))
 
