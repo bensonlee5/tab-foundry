@@ -77,7 +77,7 @@ def _resolved_nanotabpfn_signature(
     benchmark_bundle_path: Path,
     control_baseline_id: str,
     nanotabpfn_root: Path,
-    prior_dump: Path,
+    prior_dump: Path | None,
     requested_device: str,
 ) -> dict[str, Any]:
     normalized_requested_device = str(requested_device).strip()
@@ -86,7 +86,7 @@ def _resolved_nanotabpfn_signature(
         "control_baseline_id": str(control_baseline_id).strip(),
         "nanotabpfn_root": nanotabpfn_root.expanduser().resolve(),
         "nanotabpfn_python": planned_nanotabpfn_python_path(nanotabpfn_root),
-        "prior_dump_path": prior_dump.expanduser().resolve(),
+        "prior_dump_path": None if prior_dump is None else prior_dump.expanduser().resolve(),
         "device": normalized_requested_device,
         "resolved_device": resolve_device(normalized_requested_device),
         "benchmark_host_fingerprint": benchmark_host_fingerprint(),
@@ -246,10 +246,15 @@ def _signatures_match(
     for key in comparable_keys:
         if candidate_signature[key] != current_signature[key]:
             return False
-    for key in ("nanotabpfn_root", "nanotabpfn_python", "prior_dump_path"):
+    for key in ("nanotabpfn_root", "nanotabpfn_python"):
         candidate_value = candidate_signature[key]
         current_value = current_signature[key]
         if candidate_value is not None and candidate_value != current_value:
+            return False
+    candidate_prior_dump = candidate_signature["prior_dump_path"]
+    current_prior_dump = current_signature["prior_dump_path"]
+    if current_prior_dump is not None and candidate_prior_dump is not None:
+        if candidate_prior_dump != current_prior_dump:
             return False
     if not _float_matches(float(candidate_signature["lr"]), float(current_signature["lr"])):
         return False
@@ -381,7 +386,7 @@ def resolve_reusable_nanotabpfn_curve(
     sweep_meta: Mapping[str, Any],
     anchor_run_id: str | None,
     nanotabpfn_root: Path,
-    prior_dump: Path,
+    prior_dump: Path | None,
     requested_device: str,
     paths: ExecutionPaths,
     extra_candidates: Sequence[NanoTabPFNCurveCandidate] | None = None,

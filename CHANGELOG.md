@@ -29,6 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   outputs while keeping raw generated shards as the default public corpus lane
   pending the later TF-RD-020 / TF-RD-019 policy decisions.
 
+### Fixed
+
+- User-facing note: `tab-foundry research sweep execute` no longer requires
+  `--nanotabpfn-prior-dump` at command startup. Manifest-backed rows and
+  nanoTabPFN reuse paths can now run without a local dump, while
+  legacy-prior training and fresh nanoTabPFN helper execution still fail
+  lazily when execution reaches a row that truly needs the dump.
+
 ## [0.11.0] - 2026-03-24
 
 ### Changed
