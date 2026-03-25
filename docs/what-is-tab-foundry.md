@@ -5,37 +5,43 @@ Start here when you want the shortest useful explanation of what
 
 ## Overview
 
-`tab-foundry` is a repository for training, comparing, and studying tabular
-machine learning models.
+`tab-foundry` is a tabular foundation model that generates its own training
+data, trains on it, and predicts on new tasks.
 
-It is not a general-purpose serving system. Instead, it is the place where the
-team:
+It uses [dagzoo](https://github.com/bensonlee5/dagzoo) to generate synthetic
+tabular datasets with controlled shape, complexity, and regime coverage. A
+modular staged model trains on those datasets, benchmarks against real-world
+evaluation bundles, and exports inference bundles for deployment. You control
+the full pipeline: what data gets generated, which architecture stages are
+active, how training runs, and what gets exported.
 
-- prepares and inspects the training/evaluation data surface
-- trains and compares model variants
-- records research evidence about what changed and why
-- exports inference artifacts that downstream runtime code can consume
+This is not a general-purpose serving system. It owns:
 
-If you think of the ML lifecycle in stages, this repo owns the training and
-research side of the process, plus the packaging of inference artifacts.
+- synthetic data generation and manifest preparation
+- model training with swappable architecture components
+- systematic benchmarking with tracked baselines and research evidence
+- inference artifact export for downstream runtime code
 
 ## What Goes In
 
 The main inputs are:
 
-- [manifests](glossary.md#manifest) describing the data/tasks to train on
-- configuration values that define the model and training recipe
-- pinned benchmark bundles used for comparison
+- [dagzoo](https://github.com/bensonlee5/dagzoo) corpus recipes or
+  real-data [manifests](glossary.md#manifest) describing the data/tasks to
+  train on
+- configuration values that define the model architecture and training recipe
+- pinned benchmark bundles used for evaluation
 - sweep metadata that defines which research change is being tested
 
 ## What Comes Out
 
 The main outputs are:
 
+- synthetic training datasets materialized from dagzoo corpus recipes
 - [run directories](glossary.md#run-directory) with logs, histories, and
   summaries
 - [checkpoints](glossary.md#checkpoint) that store trained model state
-- benchmark comparisons against pinned baselines
+- benchmark comparisons against pinned real-world baselines
 - [export bundles](glossary.md#export-bundle) for downstream inference handoff
 - research artifacts explaining what changed and what evidence was collected
 

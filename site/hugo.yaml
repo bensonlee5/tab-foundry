@@ -43,7 +43,7 @@ markup:
 copyright: tab-foundry contributors
 
 params:
-  description: "tab-foundry - row-first tabular foundation model exploration framework"
+  description: "tab-foundry - tabular foundation model that generates its own training data and predicts on new tasks"
   github_repo: https://github.com/bensonlee5/tab-foundry
   github_project_repo: https://github.com/bensonlee5/tab-foundry
   ui:
