@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_foundry.data.corpus import materialize_corpus_recipe
 from tab_foundry.research.lane_contract import (
     resolve_surface_role,
     resolve_training_config_profile,
@@ -523,3 +524,52 @@ def next_ready_row(queue: Mapping[str, Any]) -> dict[str, Any] | None:
         if str(row.get("status", "")).strip().lower() == "ready":
             return row
     return None
+
+
+def materialize_sweep_corpora(
+    *,
+    dagzoo_root: Path,
+    sweep_id: str | None = None,
+    force: bool = False,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    queue = load_system_delta_queue(
+        sweep_id=sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    resolved_sweep_id = ensure_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
+    requested_recipe_ids: list[str] = []
+    seen_recipe_ids: set[str] = set()
+    for row in ordered_rows(queue):
+        data_payload = row.get("data")
+        if not isinstance(data_payload, Mapping):
+            continue
+        corpus_ref = data_payload.get("corpus_ref")
+        if not isinstance(corpus_ref, str) or not corpus_ref.strip():
+            continue
+        recipe_id = corpus_ref.strip().split("/", 1)[0]
+        if recipe_id in seen_recipe_ids:
+            continue
+        seen_recipe_ids.add(recipe_id)
+        requested_recipe_ids.append(recipe_id)
+    records = [
+        materialize_corpus_recipe(
+            recipe_id=recipe_id,
+            dagzoo_root=dagzoo_root,
+            force=force,
+            sweep_id=resolved_sweep_id,
+            sweeps_root=sweeps_root,
+        )
+        for recipe_id in requested_recipe_ids
+    ]
+    return {
+        "sweep_id": resolved_sweep_id,
+        "recipe_count": len(records),
+        "requested_recipe_ids": requested_recipe_ids,
+        "corpus_refs": [str(record["corpus_ref"]) for record in records],
+        "records": records,
+    }

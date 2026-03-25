@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 import pytest
 
 import tab_foundry.research.sweep.matrix as matrix_module
+import tab_foundry.research.sweep.materialize as materialize_module
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.research.lane_contract import (
     ARCHITECTURE_SCREEN_LANE,
@@ -25,7 +26,11 @@ from tab_foundry.research.sweep.catalog import (
     load_system_delta_sweep,
 )
 from tab_foundry.research.sweep.manage import create_sweep
-from tab_foundry.research.sweep.materialize import load_system_delta_queue, next_ready_row
+from tab_foundry.research.sweep.materialize import (
+    load_system_delta_queue,
+    materialize_sweep_corpora,
+    next_ready_row,
+)
 from tab_foundry.research.sweep.matrix import render_system_delta_matrix, validate_system_delta_queue
 
 
@@ -105,6 +110,85 @@ def test_active_sweep_materializes_current_active_sweep() -> None:
     assert sweep["anchor_run_id"] == queue["anchor_run_id"]
     expected_next_ready = next((row for row in queue["rows"] if row["status"] == "ready"), None)
     assert next_ready_row(queue) == expected_next_ready
+
+
+def test_materialize_sweep_corpora_materializes_unique_queue_corpus_refs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        materialize_module,
+        "load_system_delta_queue",
+        lambda **_kwargs: {
+            "sweep_id": "tf_rd_local",
+            "rows": [
+                {"order": 2, "delta_id": "delta_b", "data": {"corpus_ref": "global_recipe"}},
+                {"order": 1, "delta_id": "delta_a", "data": {"corpus_ref": "local_recipe"}},
+                {
+                    "order": 3,
+                    "delta_id": "delta_c",
+                    "data": {"corpus_ref": "local_recipe/local_recipe__cached"},
+                },
+                {"order": 4, "delta_id": "delta_d", "data": {}},
+            ],
+        },
+    )
+    captured: list[dict[str, object]] = []
+
+    def _fake_materialize_corpus_recipe(
+        *,
+        recipe_id: str,
+        dagzoo_root: Path,
+        force: bool = False,
+        repo_root: Path | None = None,
+        sweep_id: str | None = None,
+        sweeps_root: Path | None = None,
+    ) -> dict[str, object]:
+        del repo_root, sweeps_root
+        captured.append(
+            {
+                "recipe_id": recipe_id,
+                "dagzoo_root": str(dagzoo_root),
+                "force": force,
+                "sweep_id": sweep_id,
+            }
+        )
+        return {
+            "recipe_id": recipe_id,
+            "corpus_ref": f"{recipe_id}/{recipe_id}__123456789abc",
+            "manifest": {"manifest_path": str((tmp_path / f"{recipe_id}.parquet").resolve())},
+        }
+
+    monkeypatch.setattr(materialize_module, "materialize_corpus_recipe", _fake_materialize_corpus_recipe)
+
+    payload = materialize_sweep_corpora(
+        dagzoo_root=tmp_path / "dagzoo",
+        sweep_id="tf_rd_local",
+        force=True,
+        index_path=tmp_path / "index.yaml",
+        catalog_path=tmp_path / "catalog.yaml",
+    )
+
+    assert captured == [
+        {
+            "recipe_id": "local_recipe",
+            "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
+            "force": True,
+            "sweep_id": "tf_rd_local",
+        },
+        {
+            "recipe_id": "global_recipe",
+            "dagzoo_root": str((tmp_path / "dagzoo").resolve()),
+            "force": True,
+            "sweep_id": "tf_rd_local",
+        },
+    ]
+    assert payload["sweep_id"] == "tf_rd_local"
+    assert payload["requested_recipe_ids"] == ["local_recipe", "global_recipe"]
+    assert payload["corpus_refs"] == [
+        "local_recipe/local_recipe__123456789abc",
+        "global_recipe/global_recipe__123456789abc",
+    ]
 
 
 def test_resolve_surface_role_classifies_named_sweep_surfaces() -> None:

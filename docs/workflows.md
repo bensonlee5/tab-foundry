@@ -178,6 +178,34 @@ This writes local corpus artifacts under
 `corpus_record.json`. When configs use `data.corpus_ref`, the realized run
 records the fully resolved corpus identity in `training_surface_record.json`.
 
+For low-reuse sweep fronts, keep corpus definitions beside the sweep instead of
+adding generated config snapshots under `../dagzoo/configs/`. Put the recipe
+under `reference/system_delta_sweeps/<sweep_id>/corpus_recipes/`, define the
+invocation with `base_config_ref` plus `config_overrides`, and let corpus
+materialization render the exact `dagzoo_config.yaml` snapshot under the
+materialized corpus artifact root.
+
+Use the sweep-aware surfaces when you need those sweep-local recipes:
+
+```bash
+.venv/bin/tab-foundry data corpus list-recipes \
+  --sweep-id tf_rd_020_harder_dagzoo_ladder_v1
+
+.venv/bin/tab-foundry research sweep materialize-corpora \
+  --sweep-id tf_rd_020_harder_dagzoo_ladder_v1 \
+  --dagzoo-root ../dagzoo
+
+.venv/bin/tab-foundry data corpus materialize \
+  --recipe tf_rd_020_local_probe_v1 \
+  --sweep-id tf_rd_020_harder_dagzoo_ladder_v1 \
+  --dagzoo-root ../dagzoo
+```
+
+`research sweep materialize-corpora` walks the selected queue, collects unique
+`data.corpus_ref` values, resolves sweep-local recipes first for that sweep,
+falls back to the global corpus catalog, and materializes each corpus through
+the same public `tab-foundry data corpus materialize` pathway.
+
 Set `DAGZOO_DATA_ROOT` once if you want a stable sibling data path:
 
 ```bash

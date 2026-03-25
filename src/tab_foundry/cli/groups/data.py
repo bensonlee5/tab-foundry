@@ -180,7 +180,12 @@ def _print_json_payload(payload: object) -> None:
 
 
 def _run_corpus_list_recipes(args: argparse.Namespace) -> int:
-    recipes = [recipe.to_dict() for recipe in list_corpus_recipes()]
+    recipes = [
+        recipe.to_dict()
+        for recipe in list_corpus_recipes(
+            sweep_id=None if args.sweep_id is None else str(args.sweep_id),
+        )
+    ]
     if bool(args.json):
         _print_json_payload({"recipes": recipes})
         return 0
@@ -199,6 +204,7 @@ def _run_corpus_materialize(args: argparse.Namespace) -> int:
         recipe_id=str(args.recipe),
         dagzoo_root=Path(str(args.dagzoo_root)),
         force=bool(args.force),
+        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
     )
     if bool(args.json):
         _print_json_payload(record)
@@ -428,6 +434,11 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         "list-recipes",
         help="List tracked corpus recipes",
     )
+    list_recipes_parser.add_argument(
+        "--sweep-id",
+        default=None,
+        help="Optional sweep id to include sweep-local corpus recipes",
+    )
     list_recipes_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     list_recipes_parser.set_defaults(func=_run_corpus_list_recipes)
 
@@ -436,6 +447,11 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
         help="Materialize one tracked corpus recipe under outputs/corpora/",
     )
     materialize_parser.add_argument("--recipe", required=True, help="Tracked corpus recipe id")
+    materialize_parser.add_argument(
+        "--sweep-id",
+        default=None,
+        help="Optional sweep id to resolve sweep-local corpus recipes first",
+    )
     materialize_parser.add_argument("--dagzoo-root", required=True, help="Local dagzoo checkout root")
     materialize_parser.add_argument("--force", action="store_true", help="Replace an existing local materialization")
     materialize_parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")

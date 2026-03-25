@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-03-24
+
+### Changed
+
+- User-facing note: sweep-scoped `dagzoo` corpus definitions can now stay in
+  `reference/system_delta_sweeps/<sweep_id>/corpus_recipes/` instead of
+  writing ad hoc configs into the sibling `dagzoo` repo. Corpus invocations now
+  support `base_config_ref + config_overrides`, materialization renders the
+  resolved `dagzoo_config.yaml` snapshot into the corpus artifact itself, and
+  sweep operators can batch materialize queue-owned `data.corpus_ref` surfaces
+  through `tab-foundry research sweep materialize-corpora`.
+
 ## [0.11.1] - 2026-03-24
 
 ### Changed
