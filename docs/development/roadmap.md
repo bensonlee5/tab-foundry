@@ -106,8 +106,8 @@ Important non-goals for this roadmap:
   its post-008 training surface should move closer to intended use before
   optimizing it; TF-RD-018 training adequacy next on that representative data
   base; TF-RD-020 harder dagzoo corpus fronts next as the adjacent synthetic
-  harder-surface lane, ending with one final small-shot ease filter-regime
-  decision on the selected harder front; TF-RD-014 missingness and TF-RD-017
+  harder-surface lane, closing on one kept uncapped winner per family on the
+  canonical pre-filter ladder; TF-RD-014 missingness and TF-RD-017
   class-imbalance as the preferred next benchmark-backed harder-surface
   ladders; then TF-RD-016 architecture-surface adequacy and bounded low-level
   micro-decisions.
@@ -141,7 +141,7 @@ retained for traceability.
 | 9 | TF-RD-008 | Coherent classification anchor promotion | implemented | Implemented |
 | 10 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | completed | Completed |
 | 11 | TF-RD-018 | Training-surface adequacy on the promoted anchor | planned | Next |
-| 12 | TF-RD-020 | Harder dagzoo corpus fronts on the promoted anchor | planned | Next |
+| 12 | TF-RD-020 | Harder dagzoo corpus fronts on the promoted anchor | completed | Completed |
 | 13 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
 | 14 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
 | 15 | TF-RD-016 | Architecture surface adequacy and selective expansion | planned | Next |
@@ -211,7 +211,7 @@ flowchart TD
     classDef gate fill:#fff1d6,stroke:#c67a00,color:#3d2a00;
     classDef later fill:#f3e8ff,stroke:#7c3aed,color:#3b1f6e;
 
-    class RD000,RD001,RD002,RD003,RD004,RD005,RD006,RD007,RD008,RD011,RD013 done;
+    class RD000,RD001,RD002,RD003,RD004,RD005,RD006,RD007,RD008,RD011,RD013,RD020 done;
     class RD009,RD018,RD020,RD014,RD017,RD010,RD015 readyNow;
     class RD016 gate;
     class RD012,RD019 later;
@@ -223,9 +223,9 @@ and 008 is now implemented as an explicit split with `row_cls + qass + no tfcol`
 representative post-008 training-data surface now settled, the deliberate
 post-008 execution order is TF-RD-018 next to define the default training
 surface on that representative data base, TF-RD-020 next to settle the
-adjacent harder dagzoo synthetic front plus one final small-shot ease
-filter-regime decision on the selected harder front, then TF-RD-014 and
-TF-RD-017 as the preferred benchmark-backed harder-surface ladders. TF-RD-016
+adjacent harder dagzoo synthetic front through one kept uncapped family winner
+per front, then TF-RD-014 and TF-RD-017 as the preferred benchmark-backed
+harder-surface ladders. TF-RD-016
 now follows as the bounded architecture-surface and low-level micro-decision
 track before TF-RD-010, TF-RD-015, TF-RD-012, or TF-RD-009 absorb the main
 roadmap attention. TF-RD-019 remains a separate later filtering-policy lane off

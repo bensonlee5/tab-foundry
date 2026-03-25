@@ -6,6 +6,7 @@ num_workers: 0
 grad_clip: 10.0
 grad_accum_steps: 64
 trace_activations: false
+activation_checkpointing: false
 eval_every: 200
 checkpoint_every: null
 val_batches: 32

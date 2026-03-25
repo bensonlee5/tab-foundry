@@ -1,12 +1,11 @@
-______________________________________________________________________
-
+---
 title: "Model Breadth"
 linkTitle: "Model Breadth"
 description: "Entry point for many-class, regression, scaling, and later capability-expansion questions."
 weight: 40
 aliases:
-
-- /docs/model-breadth/
+  - /docs/model-breadth/
+---
 
 ______________________________________________________________________
 
@@ -20,7 +19,7 @@ support, regression, scaling, or later inference-related surfaces. These
 changes are roadmap-governed, not ad hoc feature work.
 
 If you need the contributor framing first, start with
-\[Research Contributors\]({{< relref "/docs/research-contributors/_index.md" >}}).
+[Research Contributors]({{< relref "/docs/research-contributors/_index.md" >}}).
 
 ## Where To Start
 
@@ -33,10 +32,10 @@ Primary roadmap lanes:
 
 Start with:
 
-- \[Roadmap\]({{< relref "/docs/development/roadmap.md" >}})
-- \[Model Architecture\]({{< relref "/docs/development/model-architecture.md" >}})
-- \[Evidence Mapping\]({{< relref "/docs/reference/evidence.md" >}})
-- \[Papers And References\]({{< relref "/docs/reference/papers.md" >}})
+- [Roadmap]({{< relref "/docs/development/roadmap.md" >}})
+- [Model Architecture]({{< relref "/docs/development/model-architecture.md" >}})
+- [Evidence Mapping]({{< relref "/docs/reference/evidence.md" >}})
+- [Papers And References]({{< relref "/docs/reference/papers.md" >}})
 
 Default rule: breadth proposals should extend the active `tabfoundry_staged`
 surface and should not create a second live model family.

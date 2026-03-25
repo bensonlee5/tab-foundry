@@ -189,8 +189,8 @@ rows:
   interpretation_status: completed
   confounders: []
   next_action: Keep as the TF-RD-020 missingness winner for issue `#148`; carry this
-    synthetic-only harder-front evidence back into TF-RD-018 continuation once the
-    other family winners are recorded.
+    synthetic-only harder-front evidence back into TF-RD-018 continuation alongside
+    the kept shift or drift and mechanism or noise winners.
   notes:
   - This row remains pre-filter by design; do not reopen small-shot ease filter tuning
     here.

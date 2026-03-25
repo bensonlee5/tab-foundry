@@ -21,3 +21,9 @@ def sha256_path(path: Path) -> str:
                 break
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def sha256_text(value: str, *, encoding: str = "utf-8") -> str:
+    """Return the SHA256 hex digest for one text payload."""
+
+    return sha256(value.encode(encoding)).hexdigest()

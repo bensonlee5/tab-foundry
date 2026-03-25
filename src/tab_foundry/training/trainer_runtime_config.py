@@ -5,6 +5,26 @@ from __future__ import annotations
 from omegaconf import DictConfig
 
 
+def _resolve_activation_checkpointing(runtime_cfg: DictConfig) -> bool:
+    raw_value = getattr(runtime_cfg, "activation_checkpointing", False)
+    if raw_value is None:
+        return False
+    if isinstance(raw_value, bool):
+        return raw_value
+    if isinstance(raw_value, int) and raw_value in {0, 1}:
+        return bool(raw_value)
+    if isinstance(raw_value, str):
+        normalized = raw_value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off", ""}:
+            return False
+    raise ValueError(
+        "runtime.activation_checkpointing must be boolean-compatible, "
+        f"got {raw_value!r}"
+    )
+
+
 def _resolve_grad_accum_steps(cfg: DictConfig) -> int:
     value = int(getattr(cfg, "grad_accum_steps", 1))
     if value <= 0:

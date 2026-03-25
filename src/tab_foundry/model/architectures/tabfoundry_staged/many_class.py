@@ -35,10 +35,21 @@ def encode_rows_with_targets(
 ) -> torch.Tensor:
     if model.context_encoder is None:
         raise RuntimeError("context_encoder must be initialized for many-class conditioning")
-    conditioned = model.context_encoder(
-        rows.unsqueeze(0),
-        train_target_embeddings=train_targets.unsqueeze(0),
-        train_test_split_index=train_test_split_index,
+
+    def _encode_context(
+        current_rows: torch.Tensor,
+        current_train_targets: torch.Tensor,
+    ) -> torch.Tensor:
+        return model.context_encoder(
+            current_rows.unsqueeze(0),
+            train_target_embeddings=current_train_targets.unsqueeze(0),
+            train_test_split_index=train_test_split_index,
+        )
+
+    conditioned = model._apply_activation_checkpoint(
+        _encode_context,
+        rows,
+        train_targets,
     )
     model.trace_activation("post_context_encoder", conditioned)
     return conditioned[0]

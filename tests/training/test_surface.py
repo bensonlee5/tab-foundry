@@ -131,7 +131,7 @@ def test_build_training_surface_record_captures_model_data_and_preprocessing_sur
             "surface_overrides": {
                 "filter_policy": "accepted_only",
                 "dagzoo_provenance": {
-                    "commands": ["dagzoo filter --curated-out ..."],
+                    "commands": ["dagzoo filter --in ... --out ... --curated-out ..."],
                     "config_refs": ["configs/dagzoo/binary.yaml"],
                 },
             },
@@ -160,7 +160,9 @@ def test_build_training_surface_record_captures_model_data_and_preprocessing_sur
     assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is True
     assert record["data"]["allow_missing_values"] is False
     assert record["data"]["filter_policy"] == "accepted_only"
-    assert record["data"]["dagzoo_provenance"]["commands"] == ["dagzoo filter --curated-out ..."]
+    assert record["data"]["dagzoo_provenance"]["commands"] == [
+        "dagzoo filter --in ... --out ... --curated-out ..."
+    ]
     assert record["preprocessing"]["impute_missing"] is False
     assert record["preprocessing"]["all_nan_fill"] == 1.0
     assert record["training"]["task_batch_size"] == 1

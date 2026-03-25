@@ -60,6 +60,7 @@ from .trainer_optimizer import (
     _set_optimizer_training_mode,
 )
 from .trainer_runtime_config import (
+    _resolve_activation_checkpointing,
     _checkpoint_every,
     _resolve_grad_accum_steps,
     _resolve_max_steps,
@@ -310,6 +311,16 @@ def train(cfg: DictConfig) -> TrainResult:
             task_batch_size=task_batch_size,
         )
     model = build_model_from_spec(model_spec)
+    activation_checkpointing = _resolve_activation_checkpointing(cfg.runtime)
+    if activation_checkpointing:
+        enable_activation_checkpointing = getattr(model, "enable_activation_checkpointing", None)
+        if not callable(enable_activation_checkpointing):
+            raise RuntimeError(
+                "runtime.activation_checkpointing=true requires a model with "
+                "enable_activation_checkpointing(); only tabfoundry_staged currently "
+                "supports activation checkpointing"
+            )
+        enable_activation_checkpointing()
     if val_loader is None:
         model, train_loader = accelerator.prepare(model, train_loader)
     else:

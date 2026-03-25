@@ -463,6 +463,47 @@ def test_nested_cli_research_sweep_render_dispatches_to_handler(
     assert captured["sweep_id"] == "binary_md_v1"
 
 
+def test_nested_cli_research_sweep_materialize_corpora_dispatches_to_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run_sweep_materialize_corpora(args):
+        captured["sweep_id"] = None if args.sweep_id is None else str(args.sweep_id)
+        captured["dagzoo_root"] = str(args.dagzoo_root)
+        captured["force"] = bool(args.force)
+        captured["json"] = bool(args.json)
+        return 0
+
+    monkeypatch.setattr(
+        research_sweep_core_cli_module,
+        "_run_sweep_materialize_corpora",
+        _fake_run_sweep_materialize_corpora,
+    )
+
+    exit_code = cli_module.main(
+        [
+            "research",
+            "sweep",
+            "materialize-corpora",
+            "--sweep-id",
+            "binary_md_v1",
+            "--dagzoo-root",
+            "/tmp/dagzoo",
+            "--force",
+            "--json",
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured == {
+        "sweep_id": "binary_md_v1",
+        "dagzoo_root": "/tmp/dagzoo",
+        "force": True,
+        "json": True,
+    }
+
+
 def test_nested_cli_research_sweep_graph_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -766,6 +807,7 @@ def test_nested_cli_data_corpus_materialize_dispatches_to_data_handler(
 
     def _fake_handler(args):
         captured["recipe"] = str(args.recipe)
+        captured["sweep_id"] = None if args.sweep_id is None else str(args.sweep_id)
         captured["dagzoo_root"] = str(args.dagzoo_root)
         captured["force"] = bool(args.force)
         return 0
@@ -779,6 +821,8 @@ def test_nested_cli_data_corpus_materialize_dispatches_to_data_handler(
             "materialize",
             "--recipe",
             "tf_rd_013_current_corpus_default_v1",
+            "--sweep-id",
+            "tf_rd_020_harder_dagzoo_ladder_v1",
             "--dagzoo-root",
             "/tmp/dagzoo",
             "--force",
@@ -788,6 +832,7 @@ def test_nested_cli_data_corpus_materialize_dispatches_to_data_handler(
     assert exit_code == 0
     assert captured == {
         "recipe": "tf_rd_013_current_corpus_default_v1",
+        "sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1",
         "dagzoo_root": "/tmp/dagzoo",
         "force": True,
     }

@@ -196,6 +196,7 @@ def run_row(
         device=device,
         training_experiment=training_experiment,
         sweep_id=sweep_id,
+        sweeps_root=paths.sweeps_root,
     )
     training_backend = resolve_training_backend(cfg)
     if _training_state.completed_train_artifacts_exist(

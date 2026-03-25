@@ -144,6 +144,7 @@ Current canonical CLI namespaces:
 - `tab-foundry research sweep create-sweep`
 - `tab-foundry research sweep list`
 - `tab-foundry research sweep list-sweeps`
+- `tab-foundry research sweep materialize-corpora`
 - `tab-foundry research sweep show-active`
 - `tab-foundry research sweep next`
 - `tab-foundry research sweep render`

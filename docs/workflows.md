@@ -178,6 +178,37 @@ This writes local corpus artifacts under
 `corpus_record.json`. When configs use `data.corpus_ref`, the realized run
 records the fully resolved corpus identity in `training_surface_record.json`.
 
+For low-reuse sweep fronts, keep corpus definitions beside the sweep instead of
+adding generated config snapshots under `../dagzoo/configs/`. Put the recipe
+under `reference/system_delta_sweeps/<sweep_id>/corpus_recipes/`, define the
+invocation with `base_config_ref` plus `config_overrides`, and let corpus
+materialization render the exact `dagzoo_config.yaml` snapshot under the
+materialized corpus artifact root.
+
+Use the sweep-aware surfaces when you need those sweep-local recipes:
+
+```bash
+.venv/bin/tab-foundry data corpus list-recipes \
+  --sweep-id tf_rd_020_harder_dagzoo_ladder_v1
+
+.venv/bin/tab-foundry research sweep materialize-corpora \
+  --sweep-id tf_rd_020_harder_dagzoo_ladder_v1 \
+  --dagzoo-root ../dagzoo
+
+.venv/bin/tab-foundry data corpus materialize \
+  --recipe tf_rd_020_local_probe_v1 \
+  --sweep-id tf_rd_020_harder_dagzoo_ladder_v1 \
+  --dagzoo-root ../dagzoo
+```
+
+`research sweep materialize-corpora` walks the selected queue, preserves exact
+`data.corpus_ref` values in queue order, resolves sweep-local recipes first for
+that sweep, falls back to the global corpus catalog, and materializes each
+corpus through the same public `tab-foundry data corpus materialize` pathway.
+Pinned refs such as `recipe_id/corpus_id` are treated as exact requests rather
+than recipe-level aliases, so the command raises if the current recipe cannot
+reproduce the requested corpus id.
+
 Set `DAGZOO_DATA_ROOT` once if you want a stable sibling data path:
 
 ```bash
@@ -199,13 +230,34 @@ tab-foundry dev data build-manifest \
   --out-manifest data/manifests/default.parquet
 ```
 
-By default this includes raw `dagzoo` outputs and warns if the manifest contains datasets with `filter.status=not_run`, `rejected`, or missing filter metadata.
+By default this includes raw `dagzoo` outputs and warns if the manifest
+contains datasets with `filter.status=not_run`, `rejected`, or missing filter
+metadata.
 
 Accepted-only flow:
 
-- Currently unavailable. Deferred `dagzoo filter` support is disabled, so the
-  repo only treats raw `dagzoo generate` outputs as supported corpus artifacts
-  for now.
+- Supported as an optional manual path when you want accepted-only shards from
+  the current `dagzoo` deferred filter stage:
+
+```bash
+dagzoo filter \
+  --in /path/to/generated \
+  --out /tmp/dagzoo_filter/default \
+  --curated-out /tmp/dagzoo_filter/default_curated
+
+tab-foundry dev data build-manifest \
+  --data-root /tmp/dagzoo_filter/default_curated \
+  --out-manifest data/manifests/default_accepted.parquet \
+  --filter-policy accepted_only
+```
+
+- `dagzoo filter` writes replay artifacts under `--out` and curated
+  accepted-only shards under `--curated-out`. Point
+  `tab-foundry dev data build-manifest` at the curated shard root rather than
+  the raw `dagzoo generate` output.
+- Raw `dagzoo generate` outputs remain the default public corpus lane until
+  TF-RD-020 settles the harder-front filter-regime decision and TF-RD-019
+  settles the broader training-data policy.
 - TF-RD-013 issue `#120` records the initial unfiltered generated-source support
   artifacts for the first current-versus-dagzoo comparison.
 - Issue `#124` tracks the later decision about whether tab-foundry should

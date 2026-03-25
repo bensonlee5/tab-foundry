@@ -394,7 +394,14 @@ class _TraceableStageLocalClassifier(nn.Module):
         self.context_label_embed = nn.Embedding(8, 4) if use_context else None
         self.context_encoder = _TraceableContextEncoder() if use_context else None
         self.direct_head = nn.Linear(4, 3)
+        self.activation_checkpointing_enabled = False
         self._activation_trace: dict[str, tuple[float, int]] | None = None
+
+    def enable_activation_checkpointing(self) -> None:
+        self.activation_checkpointing_enabled = True
+
+    def disable_activation_checkpointing(self) -> None:
+        self.activation_checkpointing_enabled = False
 
     def enable_activation_trace(self) -> None:
         self._activation_trace = {}
@@ -623,6 +630,7 @@ def _classification_cfg(tmp_path: Path) -> object:
                 "mixed_precision": "no",
                 "grad_clip": 1.0,
                 "grad_accum_steps": 1,
+                "activation_checkpointing": False,
                 "eval_every": 1,
                 "checkpoint_every": None,
                 "val_batches": 1,
@@ -792,6 +800,38 @@ def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     best_payload = torch.load(result.best_checkpoint, map_location="cpu", weights_only=False)
     assert "preprocessor_state" not in best_payload
     assert training_surface_record['training']['backend'] == 'manifest'
+
+
+def test_train_activation_checkpointing_enables_supported_model(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    fake_spec = SimpleNamespace(task="classification", arch="tabfoundry_staged")
+    model = _TraceableStageLocalClassifier()
+    monkeypatch.setattr(trainer_module, "model_build_spec_from_mappings", lambda **_kwargs: fake_spec)
+    monkeypatch.setattr(trainer_module, "build_model_from_spec", lambda _spec: model)
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.activation_checkpointing = True
+
+    result = trainer_module.train(cfg)
+
+    assert model.activation_checkpointing_enabled is True
+    assert (result.output_dir / "training_surface_record.json").exists()
+    assert result.best_checkpoint is not None
+    assert result.best_checkpoint.exists()
+
+
+def test_train_activation_checkpointing_requires_supported_model(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    cfg = _classification_cfg(tmp_path)
+    cfg.runtime.activation_checkpointing = True
+
+    with pytest.raises(RuntimeError, match="enable_activation_checkpointing"):
+        _ = trainer_module.train(cfg)
 
 
 def test_train_smoke_skips_validation_loader_when_val_batches_is_zero(

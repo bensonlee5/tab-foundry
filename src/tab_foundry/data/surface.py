@@ -6,6 +6,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from tab_foundry.repo_paths import repo_root_from_sweeps_root
+
 from .corpus import load_corpus_record
 
 
@@ -56,6 +58,12 @@ def _corpus_record_missing_value_policy(corpus_record: Mapping[str, Any]) -> str
     return None
 
 
+def _optional_string(value: Any) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return str(value)
+
+
 @dataclass(slots=True, frozen=True)
 class DataSurfaceConfig:
     surface_label: str
@@ -85,18 +93,32 @@ def resolve_data_surface(
     data_cfg: Mapping[str, Any] | None,
     *,
     allow_unresolved_corpus_ref: bool = False,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
 ) -> DataSurfaceConfig:
     """Resolve one data surface with additive overrides."""
 
     cfg = {} if data_cfg is None else {str(key): value for key, value in data_cfg.items()}
     overrides = _mapping_from_any(cfg.get("surface_overrides"), context="data.surface_overrides")
-    raw_source = overrides.get("source")
+    hinted_sweep_id = _optional_string(overrides.get("corpus_lookup_sweep_id"))
+    hinted_sweeps_root = _optional_string(overrides.get("corpus_lookup_sweeps_root"))
+    resolved_overrides = {
+        key: value
+        for key, value in overrides.items()
+        if key not in {"corpus_lookup_sweep_id", "corpus_lookup_sweeps_root"}
+    }
+    resolved_sweep_id = sweep_id if sweep_id is not None else hinted_sweep_id
+    resolved_sweeps_root = sweeps_root
+    if resolved_sweeps_root is None and hinted_sweeps_root is not None:
+        resolved_sweeps_root = Path(hinted_sweeps_root).expanduser().resolve()
+    resolved_repo_root = repo_root_from_sweeps_root(resolved_sweeps_root)
+    raw_source = resolved_overrides.get("source")
     if raw_source is None:
         raw_source = cfg.get("source")
     if raw_source is None:
         raw_source = "manifest"
     source = str(raw_source).strip().lower()
-    raw_corpus_ref = overrides.get("corpus_ref")
+    raw_corpus_ref = resolved_overrides.get("corpus_ref")
     if raw_corpus_ref is None:
         raw_corpus_ref = cfg.get("corpus_ref")
     corpus_record: dict[str, Any] | None = None
@@ -108,7 +130,12 @@ def resolve_data_surface(
     if raw_corpus_ref is not None:
         requested_corpus_ref = str(raw_corpus_ref).strip()
         try:
-            corpus_record = load_corpus_record(requested_corpus_ref)
+            corpus_record = load_corpus_record(
+                requested_corpus_ref,
+                repo_root=resolved_repo_root,
+                sweep_id=resolved_sweep_id,
+                sweeps_root=resolved_sweeps_root,
+            )
         except RuntimeError:
             if not allow_unresolved_corpus_ref:
                 raise
@@ -137,7 +164,7 @@ def resolve_data_surface(
             corpus_id = str(raw_corpus_id)
             corpus_record_path = Path(raw_corpus_record_path).expanduser().resolve()
         source = "manifest"
-    raw_manifest_path = overrides.get("manifest_path")
+    raw_manifest_path = resolved_overrides.get("manifest_path")
     if raw_manifest_path is None:
         raw_manifest_path = cfg.get("manifest_path")
     if corpus_record is not None:
@@ -149,11 +176,11 @@ def resolve_data_surface(
     manifest_path = None
     if raw_manifest_path is not None:
         manifest_path = Path(str(raw_manifest_path)).expanduser().resolve()
-    filter_policy_raw = overrides.get("filter_policy")
+    filter_policy_raw = resolved_overrides.get("filter_policy")
     if filter_policy_raw is None:
         filter_policy_raw = cfg.get("filter_policy")
     filter_policy = None if filter_policy_raw is None else str(filter_policy_raw).strip()
-    allow_missing_values_raw = overrides.get("allow_missing_values")
+    allow_missing_values_raw = resolved_overrides.get("allow_missing_values")
     if allow_missing_values_raw is None:
         allow_missing_values_raw = cfg.get("allow_missing_values")
     if allow_missing_values_raw is None and corpus_record is not None:
@@ -161,7 +188,7 @@ def resolve_data_surface(
         if missing_value_policy is not None:
             allow_missing_values_raw = missing_value_policy == "allow_any"
     allow_missing_values = bool(allow_missing_values_raw) if allow_missing_values_raw is not None else False
-    dagzoo_provenance_raw = overrides.get("dagzoo_provenance")
+    dagzoo_provenance_raw = resolved_overrides.get("dagzoo_provenance")
     if dagzoo_provenance_raw is None:
         dagzoo_provenance_raw = cfg.get("dagzoo_provenance")
     if corpus_record is not None:
@@ -174,15 +201,15 @@ def resolve_data_surface(
             context="data.surface_overrides.dagzoo_provenance",
         )
     )
-    train_row_cap_raw = overrides.get("train_row_cap")
+    train_row_cap_raw = resolved_overrides.get("train_row_cap")
     if train_row_cap_raw is None:
         train_row_cap_raw = cfg.get("train_row_cap")
-    test_row_cap_raw = overrides.get("test_row_cap")
+    test_row_cap_raw = resolved_overrides.get("test_row_cap")
     if test_row_cap_raw is None:
         test_row_cap_raw = cfg.get("test_row_cap")
     surface_label_raw = cfg.get("surface_label")
     if surface_label_raw is None:
-        surface_label_raw = overrides.get("surface_label")
+        surface_label_raw = resolved_overrides.get("surface_label")
     if surface_label_raw is None and corpus_record is not None:
         surface_label_raw = corpus_record.get("surface_label")
     if surface_label_raw is None:
@@ -200,5 +227,5 @@ def resolve_data_surface(
         recipe_id=recipe_id,
         corpus_id=corpus_id,
         corpus_record_path=corpus_record_path,
-        overrides=overrides,
+        overrides=resolved_overrides,
     )

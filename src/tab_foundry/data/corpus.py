@@ -12,7 +12,7 @@ from typing import Any, Mapping, cast
 import tab_foundry.benchmark_registry as benchmark_registry
 import yaml
 
-from tab_foundry.hashing import sha256_path
+from tab_foundry.hashing import sha256_path, sha256_text
 from tab_foundry.repo_paths import repo_root as shared_repo_root
 from tab_foundry.timestamps import utc_now
 
@@ -47,6 +47,34 @@ def corpus_recipe_index_path(*, repo_root: Path | None = None) -> Path:
     return corpus_recipes_root(repo_root=repo_root) / "index.yaml"
 
 
+def sweep_corpus_recipes_root(
+    sweep_id: str,
+    *,
+    repo_root: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> Path:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    resolved_sweeps_root = (
+        sweeps_root.expanduser().resolve()
+        if sweeps_root is not None
+        else resolved_repo_root / "reference" / "system_delta_sweeps"
+    )
+    return resolved_sweeps_root / str(sweep_id) / "corpus_recipes"
+
+
+def sweep_corpus_recipe_index_path(
+    sweep_id: str,
+    *,
+    repo_root: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> Path:
+    return sweep_corpus_recipes_root(
+        sweep_id,
+        repo_root=repo_root,
+        sweeps_root=sweeps_root,
+    ) / "index.yaml"
+
+
 def corpus_outputs_root(*, repo_root: Path | None = None) -> Path:
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
     return resolved_repo_root / "outputs" / "corpora"
@@ -64,6 +92,15 @@ def _load_yaml_mapping(path: Path, *, context: str) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise RuntimeError(f"{context} must decode to a mapping: {path.expanduser().resolve()}")
     return cast(dict[str, Any], payload)
+
+
+def _copy_jsonable(value: Any) -> Any:
+    return json.loads(json.dumps(value))
+
+
+def _resolve_from_root(root: Path, raw_path: Path) -> Path:
+    expanded = raw_path.expanduser()
+    return expanded.resolve() if expanded.is_absolute() else (root / expanded).resolve()
 
 
 def _ensure_non_empty_string(value: Any, *, context: str) -> str:
@@ -93,6 +130,22 @@ def _coerce_int(value: Any, *, context: str) -> int:
         return int(value)
     except (TypeError, ValueError) as exc:
         raise RuntimeError(f"{context} must be an integer-compatible value") from exc
+
+
+def _deep_merge_payload(base: Any, overrides: Any) -> Any:
+    if isinstance(base, Mapping) and isinstance(overrides, Mapping):
+        merged = {
+            str(key): _copy_jsonable(value)
+            for key, value in base.items()
+        }
+        for key, value in overrides.items():
+            key_str = str(key)
+            if key_str in merged:
+                merged[key_str] = _deep_merge_payload(merged[key_str], value)
+            else:
+                merged[key_str] = _copy_jsonable(value)
+        return merged
+    return _copy_jsonable(overrides)
 
 
 def _recipe_path_from_index_entry(
@@ -125,7 +178,9 @@ class CorpusManifestPolicy:
 @dataclass(slots=True, frozen=True)
 class DagzooInvocationRecipe:
     invocation_id: str
-    config_ref: str
+    config_ref: str | None
+    base_config_ref: str | None
+    config_overrides: dict[str, Any]
     num_datasets: int
     seed: int | None
     rows: str | None
@@ -140,9 +195,8 @@ class DagzooInvocationRecipe:
     missing_mnar_logit_scale: float | None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "invocation_id": str(self.invocation_id),
-            "config_ref": str(self.config_ref),
             "num_datasets": int(self.num_datasets),
             "seed": None if self.seed is None else int(self.seed),
             "rows": self.rows,
@@ -156,6 +210,12 @@ class DagzooInvocationRecipe:
             "missing_mar_logit_scale": self.missing_mar_logit_scale,
             "missing_mnar_logit_scale": self.missing_mnar_logit_scale,
         }
+        if self.config_ref is not None:
+            payload["config_ref"] = str(self.config_ref)
+        if self.base_config_ref is not None:
+            payload["base_config_ref"] = str(self.base_config_ref)
+            payload["config_overrides"] = _copy_jsonable(self.config_overrides)
+        return payload
 
 
 @dataclass(slots=True, frozen=True)
@@ -183,6 +243,13 @@ class CorpusRecipe:
         }
 
 
+@dataclass(slots=True, frozen=True)
+class CorpusRecipeStorageContext:
+    recipe_identity: str
+    recipe_relative_path: str | None
+    uses_scoped_identity: bool
+
+
 def _manifest_policy_from_payload(payload: Mapping[str, Any]) -> CorpusManifestPolicy:
     manifest = _ensure_mapping(payload.get("manifest"), context="recipe.manifest")
     return CorpusManifestPolicy(
@@ -200,9 +267,35 @@ def _invocation_from_payload(
 ) -> DagzooInvocationRecipe:
     raw_num_datasets = payload.get("num_datasets")
     raw_seed = payload.get("seed")
+    config_ref = _optional_string(payload.get("config_ref"))
+    base_config_ref = _optional_string(payload.get("base_config_ref"))
+    has_config_overrides = "config_overrides" in payload
+    if config_ref is not None:
+        if base_config_ref is not None or has_config_overrides:
+            raise RuntimeError(
+                "recipe invocation must define either config_ref or "
+                "base_config_ref + config_overrides"
+            )
+        config_overrides: dict[str, Any] = {}
+    else:
+        if base_config_ref is None:
+            raise RuntimeError(
+                "recipe invocation must define either config_ref or "
+                "base_config_ref + config_overrides"
+            )
+        if not has_config_overrides:
+            raise RuntimeError(
+                "recipe invocation config_overrides must be provided when base_config_ref is set"
+            )
+        config_overrides = _ensure_mapping(
+            payload.get("config_overrides"),
+            context="recipe invocation config_overrides",
+        )
     return DagzooInvocationRecipe(
         invocation_id=_optional_string(payload.get("invocation_id")) or default_invocation_id,
-        config_ref=_ensure_non_empty_string(payload.get("config_ref"), context="recipe invocation config_ref"),
+        config_ref=config_ref,
+        base_config_ref=base_config_ref,
+        config_overrides=config_overrides,
         num_datasets=_coerce_int(raw_num_datasets, context="recipe invocation num_datasets"),
         seed=None if raw_seed is None else _coerce_int(raw_seed, context="recipe invocation seed"),
         rows=None if payload.get("rows") is None else str(payload["rows"]),
@@ -284,43 +377,190 @@ def _recipe_from_payload(payload: Mapping[str, Any], *, recipe_path: Path) -> Co
     )
 
 
+def _recipe_paths_from_index(
+    *,
+    index_path: Path,
+    root: Path,
+    context: str,
+    allow_missing: bool,
+) -> dict[str, Path]:
+    resolved_index_path = index_path.expanduser().resolve()
+    if allow_missing and not resolved_index_path.exists():
+        return {}
+    index = _load_yaml_mapping(resolved_index_path, context=context)
+    if index.get("schema") != CORPUS_RECIPE_INDEX_SCHEMA:
+        raise RuntimeError(
+            f"corpus recipe index schema must be {CORPUS_RECIPE_INDEX_SCHEMA!r}, "
+            f"got {index.get('schema')!r}: {resolved_index_path}"
+        )
+    recipes = _ensure_mapping(index.get("recipes"), context=f"{context} recipes")
+    recipe_paths: dict[str, Path] = {}
+    for recipe_id, raw_entry in recipes.items():
+        if not isinstance(raw_entry, Mapping):
+            raise RuntimeError(f"{context} entry {recipe_id!r} must be a mapping")
+        recipe_paths[str(recipe_id)] = _recipe_path_from_index_entry(recipe_id, raw_entry, root=root)
+    return recipe_paths
+
+
+def _resolved_recipe_paths(
+    *,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Path]:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    recipe_paths = _recipe_paths_from_index(
+        index_path=corpus_recipe_index_path(repo_root=resolved_repo_root),
+        root=corpus_recipes_root(repo_root=resolved_repo_root),
+        context="corpus recipe index",
+        allow_missing=False,
+    )
+    if sweep_id is None:
+        return recipe_paths
+    recipe_paths.update(
+        _recipe_paths_from_index(
+            index_path=sweep_corpus_recipe_index_path(
+                sweep_id,
+                repo_root=resolved_repo_root,
+                sweeps_root=sweeps_root,
+            ),
+            root=sweep_corpus_recipes_root(
+                sweep_id,
+                repo_root=resolved_repo_root,
+                sweeps_root=sweeps_root,
+            ),
+            context=f"sweep-local corpus recipe index for {sweep_id!r}",
+            allow_missing=True,
+        )
+    )
+    return recipe_paths
+
+
+def _load_recipe_from_path(recipe_id: str, recipe_path: Path) -> CorpusRecipe:
+    try:
+        payload = _load_yaml_mapping(recipe_path, context=f"corpus recipe {recipe_id!r}")
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"corpus recipe {recipe_id!r} does not exist: {recipe_path}") from exc
+    return _recipe_from_payload(payload, recipe_path=recipe_path)
+
+
 def load_corpus_recipe(
     recipe_id: str,
     *,
     repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
 ) -> CorpusRecipe:
-    root = corpus_recipes_root(repo_root=repo_root)
-    index = _load_yaml_mapping(corpus_recipe_index_path(repo_root=repo_root), context="corpus recipe index")
-    if index.get("schema") != CORPUS_RECIPE_INDEX_SCHEMA:
-        raise RuntimeError(
-            f"corpus recipe index schema must be {CORPUS_RECIPE_INDEX_SCHEMA!r}, got {index.get('schema')!r}"
-        )
-    recipes = _ensure_mapping(index.get("recipes"), context="corpus recipe index recipes")
-    entry = recipes.get(recipe_id)
-    if not isinstance(entry, Mapping):
-        raise RuntimeError(f"unknown corpus recipe: {recipe_id!r}")
-    recipe_path = _recipe_path_from_index_entry(recipe_id, entry, root=root)
-    return _recipe_from_payload(
-        _load_yaml_mapping(recipe_path, context=f"corpus recipe {recipe_id!r}"),
-        recipe_path=recipe_path,
+    recipe_paths = _resolved_recipe_paths(
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
     )
+    recipe_path = recipe_paths.get(recipe_id)
+    if recipe_path is None:
+        raise RuntimeError(f"unknown corpus recipe: {recipe_id!r}")
+    return _load_recipe_from_path(recipe_id, recipe_path)
 
 
-def list_corpus_recipes(*, repo_root: Path | None = None) -> list[CorpusRecipe]:
-    index = _load_yaml_mapping(corpus_recipe_index_path(repo_root=repo_root), context="corpus recipe index")
-    if index.get("schema") != CORPUS_RECIPE_INDEX_SCHEMA:
-        raise RuntimeError(
-            f"corpus recipe index schema must be {CORPUS_RECIPE_INDEX_SCHEMA!r}, got {index.get('schema')!r}"
-        )
-    recipes = _ensure_mapping(index.get("recipes"), context="corpus recipe index recipes")
+def list_corpus_recipes(
+    *,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> list[CorpusRecipe]:
+    recipe_paths = _resolved_recipe_paths(
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
     return [
-        load_corpus_recipe(recipe_id, repo_root=repo_root)
-        for recipe_id in sorted(recipes)
+        _load_recipe_from_path(recipe_id, recipe_paths[recipe_id])
+        for recipe_id in sorted(recipe_paths)
     ]
 
 
-def corpus_id_for_manifest(*, recipe_id: str, manifest_sha256: str) -> str:
-    return f"{recipe_id}__{manifest_sha256[:12]}"
+def _global_recipe_paths(*, repo_root: Path | None = None) -> dict[str, Path]:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    return _recipe_paths_from_index(
+        index_path=corpus_recipe_index_path(repo_root=resolved_repo_root),
+        root=corpus_recipes_root(repo_root=resolved_repo_root),
+        context="corpus recipe index",
+        allow_missing=True,
+    )
+
+
+def _sweep_recipe_paths(
+    sweep_id: str,
+    *,
+    repo_root: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Path] | None:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    index_path = sweep_corpus_recipe_index_path(
+        sweep_id,
+        repo_root=resolved_repo_root,
+        sweeps_root=sweeps_root,
+    )
+    if not index_path.expanduser().resolve().exists():
+        return None
+    return _recipe_paths_from_index(
+        index_path=index_path,
+        root=sweep_corpus_recipes_root(
+            sweep_id,
+            repo_root=resolved_repo_root,
+            sweeps_root=sweeps_root,
+        ),
+        context=f"sweep-local corpus recipe index for {sweep_id!r}",
+        allow_missing=False,
+    )
+
+
+def _stable_recipe_locator(
+    recipe_path: Path,
+    *,
+    repo_root: Path | None = None,
+) -> tuple[str | None, str]:
+    resolved_recipe_path = recipe_path.expanduser().resolve()
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    try:
+        relative_path = resolved_recipe_path.relative_to(resolved_repo_root).as_posix()
+    except ValueError:
+        return None, str(resolved_recipe_path)
+    return relative_path, relative_path
+
+
+def _recipe_storage_context(
+    recipe: CorpusRecipe,
+    *,
+    repo_root: Path | None = None,
+) -> CorpusRecipeStorageContext:
+    resolved_recipe_path = recipe.recipe_path.expanduser().resolve()
+    global_recipe_path = _global_recipe_paths(repo_root=repo_root).get(recipe.recipe_id)
+    recipe_relative_path, identity_source = _stable_recipe_locator(
+        resolved_recipe_path,
+        repo_root=repo_root,
+    )
+    uses_scoped_identity = (
+        global_recipe_path is None
+        or global_recipe_path.expanduser().resolve() != resolved_recipe_path
+    )
+    return CorpusRecipeStorageContext(
+        recipe_identity=sha256_text(identity_source)[:12],
+        recipe_relative_path=recipe_relative_path,
+        uses_scoped_identity=uses_scoped_identity,
+    )
+
+
+def corpus_id_for_manifest(
+    *,
+    recipe_id: str,
+    manifest_sha256: str,
+    recipe_identity: str | None = None,
+) -> str:
+    corpus_id = f"{recipe_id}__{manifest_sha256[:12]}"
+    if recipe_identity is None:
+        return corpus_id
+    return f"{corpus_id}__{recipe_identity[:12]}"
 
 
 def corpus_record_path(
@@ -332,8 +572,14 @@ def corpus_record_path(
     return corpus_outputs_root(repo_root=repo_root) / recipe_id / corpus_id / "corpus_record.json"
 
 
-def _latest_pointer_path(*, recipe_id: str, repo_root: Path | None = None) -> Path:
-    return corpus_outputs_root(repo_root=repo_root) / recipe_id / "latest.json"
+def _latest_pointer_path(
+    *,
+    recipe_id: str,
+    repo_root: Path | None = None,
+    recipe_identity: str | None = None,
+) -> Path:
+    latest_name = "latest.json" if recipe_identity is None else f"latest__{recipe_identity}.json"
+    return corpus_outputs_root(repo_root=repo_root) / recipe_id / latest_name
 
 
 def _write_latest_pointer(
@@ -342,7 +588,10 @@ def _write_latest_pointer(
     corpus_id: str,
     corpus_ref: str,
     record_path: Path,
+    recipe_path: Path,
+    recipe_identity: str,
     repo_root: Path | None = None,
+    scoped_recipe_identity: str | None = None,
 ) -> Path:
     payload = {
         "schema": CORPUS_LATEST_SCHEMA,
@@ -351,21 +600,50 @@ def _write_latest_pointer(
         "corpus_id": str(corpus_id),
         "corpus_ref": str(corpus_ref),
         "corpus_record_path": str(record_path.expanduser().resolve()),
+        "recipe_path": str(recipe_path.expanduser().resolve()),
+        "recipe_identity": str(recipe_identity),
     }
-    latest_path = _latest_pointer_path(recipe_id=recipe_id, repo_root=repo_root)
+    recipe_relative_path, _identity_source = _stable_recipe_locator(recipe_path, repo_root=repo_root)
+    if recipe_relative_path is not None:
+        payload["recipe_relative_path"] = recipe_relative_path
+    latest_path = _latest_pointer_path(
+        recipe_id=recipe_id,
+        repo_root=repo_root,
+        recipe_identity=scoped_recipe_identity,
+    )
     latest_path.parent.mkdir(parents=True, exist_ok=True)
     latest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return latest_path
 
 
-def _load_latest_pointer(recipe_id: str, *, repo_root: Path | None = None) -> dict[str, Any] | None:
-    latest_path = _latest_pointer_path(recipe_id=recipe_id, repo_root=repo_root)
+def _load_latest_pointer(
+    recipe_id: str,
+    *,
+    repo_root: Path | None = None,
+    recipe_identity: str | None = None,
+) -> dict[str, Any] | None:
+    latest_path = _latest_pointer_path(
+        recipe_id=recipe_id,
+        repo_root=repo_root,
+        recipe_identity=recipe_identity,
+    )
     if not latest_path.exists():
         return None
     payload = _read_json_mapping(latest_path, context=f"corpus latest pointer for {recipe_id!r}")
     if payload.get("schema") != CORPUS_LATEST_SCHEMA:
         raise RuntimeError(
             f"corpus latest pointer schema must be {CORPUS_LATEST_SCHEMA!r}, got {payload.get('schema')!r}: {latest_path}"
+        )
+    return payload
+
+
+def _load_corpus_record_payload(record_path: Path, *, context: str) -> dict[str, Any]:
+    if not record_path.exists():
+        raise RuntimeError(f"corpus record does not exist: {record_path}")
+    payload = _read_json_mapping(record_path, context=context)
+    if payload.get("schema") != CORPUS_RECORD_SCHEMA:
+        raise RuntimeError(
+            f"corpus record schema must be {CORPUS_RECORD_SCHEMA!r}, got {payload.get('schema')!r}: {record_path}"
         )
     return payload
 
@@ -381,45 +659,163 @@ def _parse_corpus_ref(corpus_ref: str) -> tuple[str, str | None]:
     )
 
 
+def _selected_recipe_for_lookup(
+    recipe_id: str,
+    *,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> tuple[CorpusRecipe, CorpusRecipeStorageContext] | None:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    if sweep_id is not None:
+        sweep_recipe_paths = _sweep_recipe_paths(
+            sweep_id,
+            repo_root=resolved_repo_root,
+            sweeps_root=sweeps_root,
+        )
+        if sweep_recipe_paths is not None and recipe_id in sweep_recipe_paths:
+            recipe = _load_recipe_from_path(recipe_id, sweep_recipe_paths[recipe_id])
+            return recipe, _recipe_storage_context(recipe, repo_root=resolved_repo_root)
+
+    try:
+        global_recipe_path = _global_recipe_paths(repo_root=resolved_repo_root).get(recipe_id)
+        if global_recipe_path is None:
+            return None
+        recipe = _load_recipe_from_path(recipe_id, global_recipe_path)
+    except RuntimeError:
+        return None
+    return recipe, _recipe_storage_context(recipe, repo_root=resolved_repo_root)
+
+
+def _candidate_corpus_record_paths(
+    recipe_id: str,
+    *,
+    repo_root: Path | None = None,
+) -> list[Path]:
+    recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
+    if not recipe_root.exists():
+        return []
+    return [
+        path / "corpus_record.json"
+        for path in sorted(recipe_root.iterdir())
+        if path.is_dir() and not path.name.startswith(".")
+    ]
+
+
+def _load_record_from_latest_pointer(
+    recipe: CorpusRecipe,
+    storage: CorpusRecipeStorageContext,
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, Any] | None:
+    latest = _load_latest_pointer(
+        recipe.recipe_id,
+        repo_root=repo_root,
+        recipe_identity=(
+            storage.recipe_identity if storage.uses_scoped_identity else None
+        ),
+    )
+    if latest is None:
+        return None
+    latest_record_path = latest.get("corpus_record_path")
+    if not isinstance(latest_record_path, str) or not latest_record_path.strip():
+        return None
+    try:
+        record = _load_corpus_record_payload(
+            Path(latest_record_path).expanduser().resolve(),
+            context=f"corpus latest pointer record for {recipe.recipe_id!r}",
+        )
+    except RuntimeError:
+        return None
+    return record if _record_matches_recipe(record, recipe, storage=storage) else None
+
+
+def _matching_corpus_records_for_recipe(
+    recipe: CorpusRecipe,
+    storage: CorpusRecipeStorageContext,
+    *,
+    repo_root: Path | None = None,
+) -> list[dict[str, Any]]:
+    matches: list[dict[str, Any]] = []
+    for record_path in _candidate_corpus_record_paths(recipe.recipe_id, repo_root=repo_root):
+        if not record_path.exists():
+            continue
+        record = _load_corpus_record_payload(
+            record_path,
+            context=f"corpus record candidate for {recipe.recipe_id!r}",
+        )
+        if _record_matches_recipe(record, recipe, storage=storage):
+            matches.append(record)
+    return matches
+
+
 def load_corpus_record(
     corpus_ref: str,
     *,
     repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     recipe_id, corpus_id = _parse_corpus_ref(corpus_ref)
-    if corpus_id is None:
-        latest = _load_latest_pointer(recipe_id, repo_root=repo_root)
-        if latest is not None:
-            corpus_id = _ensure_non_empty_string(
-                latest.get("corpus_id"),
-                context=f"latest corpus_id for recipe {recipe_id!r}",
-            )
-        else:
-            recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
-            candidates = sorted(
-                path.name
-                for path in recipe_root.iterdir()
-                if path.is_dir() and not path.name.startswith(".")
-            ) if recipe_root.exists() else []
-            if len(candidates) == 1:
-                corpus_id = candidates[0]
-            elif not candidates:
-                raise RuntimeError(
-                    f"no local corpus materialization found for recipe {recipe_id!r} under {recipe_root}"
-                )
-            else:
-                raise RuntimeError(
-                    f"multiple corpora exist for recipe {recipe_id!r} but no latest.json pointer is present: {recipe_root}"
-                )
-    record_path = corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root)
-    if not record_path.exists():
-        raise RuntimeError(f"corpus record does not exist: {record_path}")
-    payload = _read_json_mapping(record_path, context=f"corpus record {recipe_id}/{corpus_id}")
-    if payload.get("schema") != CORPUS_RECORD_SCHEMA:
-        raise RuntimeError(
-            f"corpus record schema must be {CORPUS_RECORD_SCHEMA!r}, got {payload.get('schema')!r}: {record_path}"
+    if corpus_id is not None:
+        return _load_corpus_record_payload(
+            corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
+            context=f"corpus record {recipe_id}/{corpus_id}",
         )
-    return payload
+
+    selected_recipe = _selected_recipe_for_lookup(
+        recipe_id,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    if selected_recipe is not None:
+        recipe, storage = selected_recipe
+        latest_record = _load_record_from_latest_pointer(recipe, storage, repo_root=repo_root)
+        if latest_record is not None:
+            return latest_record
+        matches = _matching_corpus_records_for_recipe(recipe, storage, repo_root=repo_root)
+        recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
+        if len(matches) == 1:
+            return matches[0]
+        if not matches:
+            raise RuntimeError(
+                f"no local corpus materialization found for recipe {recipe_id!r} under {recipe_root}"
+            )
+        raise RuntimeError(
+            f"multiple corpora exist for recipe {recipe_id!r} but no matching latest pointer is present: {recipe_root}"
+        )
+
+    latest = _load_latest_pointer(recipe_id, repo_root=repo_root)
+    if latest is not None:
+        corpus_id = _ensure_non_empty_string(
+            latest.get("corpus_id"),
+            context=f"latest corpus_id for recipe {recipe_id!r}",
+        )
+        return _load_corpus_record_payload(
+            corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
+            context=f"corpus record {recipe_id}/{corpus_id}",
+        )
+
+    recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
+    candidates = sorted(
+        path.name
+        for path in recipe_root.iterdir()
+        if path.is_dir() and not path.name.startswith(".")
+    ) if recipe_root.exists() else []
+    if len(candidates) == 1:
+        corpus_id = candidates[0]
+        return _load_corpus_record_payload(
+            corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
+            context=f"corpus record {recipe_id}/{corpus_id}",
+        )
+    if not candidates:
+        raise RuntimeError(
+            f"no local corpus materialization found for recipe {recipe_id!r} under {recipe_root}"
+        )
+    raise RuntimeError(
+        f"multiple corpora exist for recipe {recipe_id!r} but no latest.json pointer is present: {recipe_root}"
+    )
 
 
 def _existing_path(value: Any, *, require_dir: bool) -> Path | None:
@@ -460,6 +856,9 @@ def _corpus_record_is_complete_for_reuse(record: Mapping[str, Any]) -> bool:
             return False
         if _existing_path(invocation.get("invocation_root"), require_dir=True) is None:
             return False
+        rendered_config_path = invocation.get("rendered_config_path")
+        if rendered_config_path is not None and _existing_path(rendered_config_path, require_dir=False) is None:
+            return False
         handoff = invocation.get("handoff")
         if not isinstance(handoff, Mapping):
             return False
@@ -474,9 +873,16 @@ def _load_reusable_corpus_record(
     corpus_ref: str,
     *,
     repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
 ) -> dict[str, Any] | None:
     try:
-        record = load_corpus_record(corpus_ref, repo_root=repo_root)
+        record = load_corpus_record(
+            corpus_ref,
+            repo_root=repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
     except RuntimeError:
         return None
     return record if _corpus_record_is_complete_for_reuse(record) else None
@@ -524,6 +930,169 @@ def _invocation_paths(*, corpus_root: Path, invocation_id: str) -> tuple[Path, P
     return invocation_root, invocation_root / "handoff_manifest.json"
 
 
+def _invocation_rendered_config_path(*, corpus_root: Path, invocation_id: str) -> Path:
+    invocation_root, _handoff_manifest_path = _invocation_paths(
+        corpus_root=corpus_root,
+        invocation_id=invocation_id,
+    )
+    return invocation_root / "dagzoo_config.yaml"
+
+
+def _invocation_requested_config_ref(spec: DagzooInvocationRecipe) -> str:
+    config_ref = spec.config_ref if spec.config_ref is not None else spec.base_config_ref
+    if config_ref is None:
+        raise RuntimeError(f"invocation {spec.invocation_id!r} does not define a dagzoo config")
+    return str(config_ref)
+
+
+def _invocation_dagzoo_config_path(
+    *,
+    dagzoo_root: Path,
+    corpus_root: Path,
+    spec: DagzooInvocationRecipe,
+    write_rendered_config: bool,
+) -> Path:
+    if spec.config_ref is not None:
+        return Path(str(spec.config_ref))
+    if spec.base_config_ref is None:
+        raise RuntimeError(f"invocation {spec.invocation_id!r} does not define a dagzoo config")
+    rendered_config_path = _invocation_rendered_config_path(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    if write_rendered_config:
+        base_config_path = _resolve_from_root(dagzoo_root, Path(spec.base_config_ref))
+        merged_payload = _deep_merge_payload(
+            _load_yaml_mapping(
+                base_config_path,
+                context=f"dagzoo base config for invocation {spec.invocation_id!r}",
+            ),
+            spec.config_overrides,
+        )
+        rendered_config_path.parent.mkdir(parents=True, exist_ok=True)
+        rendered_config_path.write_text(
+            yaml.safe_dump(merged_payload, sort_keys=False, allow_unicode=False),
+            encoding="utf-8",
+        )
+    return rendered_config_path.resolve()
+
+
+def _dagzoo_generate_config(
+    *,
+    dagzoo_root: Path,
+    corpus_root: Path,
+    spec: DagzooInvocationRecipe,
+    write_rendered_config: bool,
+) -> DagzooGenerateConfig:
+    invocation_root, _handoff_manifest_path = _invocation_paths(
+        corpus_root=corpus_root,
+        invocation_id=spec.invocation_id,
+    )
+    return DagzooGenerateConfig(
+        dagzoo_root=dagzoo_root,
+        dagzoo_config=_invocation_dagzoo_config_path(
+            dagzoo_root=dagzoo_root,
+            corpus_root=corpus_root,
+            spec=spec,
+            write_rendered_config=write_rendered_config,
+        ),
+        handoff_root=invocation_root,
+        num_datasets=int(spec.num_datasets),
+        seed=spec.seed,
+        rows=spec.rows,
+        device=spec.device,
+        hardware_policy=str(spec.hardware_policy),
+        diagnostics=bool(spec.diagnostics),
+        diagnostics_out_dir=(
+            None if spec.diagnostics_out_dir is None else Path(str(spec.diagnostics_out_dir))
+        ),
+        missing_rate=spec.missing_rate,
+        missing_mechanism=spec.missing_mechanism,
+        missing_mar_observed_fraction=spec.missing_mar_observed_fraction,
+        missing_mar_logit_scale=spec.missing_mar_logit_scale,
+        missing_mnar_logit_scale=spec.missing_mnar_logit_scale,
+    )
+
+
+def _record_matches_recipe(
+    record: Mapping[str, Any],
+    recipe: CorpusRecipe,
+    *,
+    storage: CorpusRecipeStorageContext,
+) -> bool:
+    recorded_recipe_relative_path = _optional_string(record.get("recipe_relative_path"))
+    if recorded_recipe_relative_path is not None and storage.recipe_relative_path is not None:
+        return recorded_recipe_relative_path == storage.recipe_relative_path
+    if recorded_recipe_relative_path is not None and storage.recipe_relative_path is None:
+        return False
+
+    recorded_recipe_identity = _optional_string(record.get("recipe_identity"))
+    recorded_recipe_path = record.get("recipe_path")
+    if not isinstance(recorded_recipe_path, str) or not recorded_recipe_path.strip():
+        return False
+    recipe_path_matches = (
+        Path(recorded_recipe_path).expanduser().resolve() == recipe.recipe_path.expanduser().resolve()
+    )
+    if recorded_recipe_identity is not None:
+        if recorded_recipe_identity == storage.recipe_identity:
+            return True
+        return recipe_path_matches
+    if not recipe_path_matches:
+        return False
+    return not storage.uses_scoped_identity
+
+
+def materialize_corpus_ref(
+    *,
+    corpus_ref: str,
+    dagzoo_root: Path,
+    force: bool = False,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    normalized_corpus_ref = _ensure_non_empty_string(corpus_ref, context="corpus_ref")
+    recipe_id, corpus_id = _parse_corpus_ref(normalized_corpus_ref)
+    if corpus_id is None:
+        return materialize_corpus_recipe(
+            recipe_id=recipe_id,
+            dagzoo_root=dagzoo_root,
+            force=force,
+            repo_root=repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+
+    if not force:
+        existing_record = _load_reusable_corpus_record(
+            normalized_corpus_ref,
+            repo_root=repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+        if existing_record is not None:
+            return existing_record
+
+    record = materialize_corpus_recipe(
+        recipe_id=recipe_id,
+        dagzoo_root=dagzoo_root,
+        force=force,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    materialized_corpus_ref = _ensure_non_empty_string(
+        record.get("corpus_ref"),
+        context="materialized corpus record corpus_ref",
+    )
+    if materialized_corpus_ref != normalized_corpus_ref:
+        raise RuntimeError(
+            f"requested corpus_ref {normalized_corpus_ref!r} is pinned to an exact corpus id, "
+            f"but materializing recipe {recipe_id!r} produced {materialized_corpus_ref!r}"
+        )
+    return record
+
+
 def _materialize_invocation(
     *,
     dagzoo_root: Path,
@@ -534,26 +1103,13 @@ def _materialize_invocation(
         corpus_root=corpus_root,
         invocation_id=spec.invocation_id,
     )
-    invocation_root.parent.mkdir(parents=True, exist_ok=True)
+    invocation_root.mkdir(parents=True, exist_ok=True)
     run_dagzoo_generate(
-        DagzooGenerateConfig(
+        _dagzoo_generate_config(
             dagzoo_root=dagzoo_root,
-            dagzoo_config=Path(str(spec.config_ref)),
-            handoff_root=invocation_root,
-            num_datasets=int(spec.num_datasets),
-            seed=spec.seed,
-            rows=spec.rows,
-            device=spec.device,
-            hardware_policy=str(spec.hardware_policy),
-            diagnostics=bool(spec.diagnostics),
-            diagnostics_out_dir=(
-                None if spec.diagnostics_out_dir is None else Path(str(spec.diagnostics_out_dir))
-            ),
-            missing_rate=spec.missing_rate,
-            missing_mechanism=spec.missing_mechanism,
-            missing_mar_observed_fraction=spec.missing_mar_observed_fraction,
-            missing_mar_logit_scale=spec.missing_mar_logit_scale,
-            missing_mnar_logit_scale=spec.missing_mnar_logit_scale,
+            corpus_root=corpus_root,
+            spec=spec,
+            write_rendered_config=True,
         )
     )
 
@@ -569,39 +1125,38 @@ def _invocation_record_payload(
         invocation_id=spec.invocation_id,
     )
     handoff = load_dagzoo_handoff_info(handoff_manifest_path)
-    command = build_dagzoo_generate_argv(
-        DagzooGenerateConfig(
-            dagzoo_root=dagzoo_root,
-            dagzoo_config=Path(str(spec.config_ref)),
-            handoff_root=invocation_root,
-            num_datasets=int(spec.num_datasets),
-            seed=spec.seed,
-            rows=spec.rows,
-            device=spec.device,
-            hardware_policy=str(spec.hardware_policy),
-            diagnostics=bool(spec.diagnostics),
-            diagnostics_out_dir=(
-                None if spec.diagnostics_out_dir is None else Path(str(spec.diagnostics_out_dir))
-            ),
-            missing_rate=spec.missing_rate,
-            missing_mechanism=spec.missing_mechanism,
-            missing_mar_observed_fraction=spec.missing_mar_observed_fraction,
-            missing_mar_logit_scale=spec.missing_mar_logit_scale,
-            missing_mnar_logit_scale=spec.missing_mnar_logit_scale,
-        )
+    generate_config = _dagzoo_generate_config(
+        dagzoo_root=dagzoo_root,
+        corpus_root=corpus_root,
+        spec=spec,
+        write_rendered_config=False,
     )
-    return {
+    resolved_config_path = _resolve_from_root(dagzoo_root, generate_config.dagzoo_config)
+    payload = {
         "invocation_id": str(spec.invocation_id),
-        "config_ref": str(spec.config_ref),
+        "requested_config_ref": _invocation_requested_config_ref(spec),
         "num_datasets": int(spec.num_datasets),
         "seed": None if spec.seed is None else int(spec.seed),
         "rows": spec.rows,
         "device": spec.device,
         "hardware_policy": str(spec.hardware_policy),
-        "command": " ".join(command),
+        "command": " ".join(build_dagzoo_generate_argv(generate_config)),
+        "resolved_config_path": str(resolved_config_path),
         "invocation_root": str(invocation_root.resolve()),
         "handoff": handoff.to_summary_dict(),
     }
+    if spec.config_ref is not None:
+        payload["config_ref"] = str(spec.config_ref)
+    if spec.base_config_ref is not None:
+        rendered_config_path = _invocation_rendered_config_path(
+            corpus_root=corpus_root,
+            invocation_id=spec.invocation_id,
+        )
+        payload["base_config_ref"] = str(spec.base_config_ref)
+        payload["config_overrides"] = _copy_jsonable(spec.config_overrides)
+        payload["rendered_config_path"] = str(rendered_config_path.resolve())
+        payload["rendered_config_sha256"] = sha256_path(rendered_config_path)
+    return payload
 
 
 def materialize_corpus_recipe(
@@ -610,15 +1165,32 @@ def materialize_corpus_recipe(
     dagzoo_root: Path,
     force: bool = False,
     repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
     resolved_dagzoo_root = dagzoo_root.expanduser().resolve()
+    recipe = load_corpus_recipe(
+        recipe_id,
+        repo_root=resolved_repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    storage = _recipe_storage_context(recipe, repo_root=resolved_repo_root)
     if not force:
-        existing_record = _load_reusable_corpus_record(recipe_id, repo_root=resolved_repo_root)
-        if existing_record is not None:
+        existing_record = _load_reusable_corpus_record(
+            recipe.recipe_id,
+            repo_root=resolved_repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+        if existing_record is not None and _record_matches_recipe(
+            existing_record,
+            recipe,
+            storage=storage,
+        ):
             return existing_record
 
-    recipe = load_corpus_recipe(recipe_id, repo_root=resolved_repo_root)
     recipe_root = corpus_outputs_root(repo_root=resolved_repo_root) / recipe.recipe_id
     stage_root = recipe_root / ".staging"
     if stage_root.exists():
@@ -648,15 +1220,30 @@ def materialize_corpus_recipe(
             missing_value_policy=str(recipe.manifest_policy.missing_value_policy),
         )
         manifest_sha256 = sha256_path(manifest_path)
-        corpus_id = corpus_id_for_manifest(recipe_id=recipe.recipe_id, manifest_sha256=manifest_sha256)
+        corpus_id = corpus_id_for_manifest(
+            recipe_id=recipe.recipe_id,
+            manifest_sha256=manifest_sha256,
+            recipe_identity=(
+                storage.recipe_identity if storage.uses_scoped_identity else None
+            ),
+        )
         corpus_ref = f"{recipe.recipe_id}/{corpus_id}"
         final_root = recipe_root / corpus_id
         if final_root.exists():
             if force:
                 shutil.rmtree(final_root)
             else:
-                existing_record = _load_reusable_corpus_record(corpus_ref, repo_root=resolved_repo_root)
-                if existing_record is not None:
+                existing_record = _load_reusable_corpus_record(
+                    corpus_ref,
+                    repo_root=resolved_repo_root,
+                    sweep_id=sweep_id,
+                    sweeps_root=sweeps_root,
+                )
+                if existing_record is not None and _record_matches_recipe(
+                    existing_record,
+                    recipe,
+                    storage=storage,
+                ):
                     shutil.rmtree(stage_root)
                     return existing_record
                 shutil.rmtree(final_root)
@@ -678,7 +1265,9 @@ def materialize_corpus_recipe(
                 "recipe_kind": recipe.kind,
                 "corpus_variant": recipe.provenance_labels.get("corpus_variant", recipe.surface_label),
                 "comparator_role": recipe.provenance_labels.get("comparator_role"),
-                "config_refs": sorted({invocation.config_ref for invocation in recipe.invocations}),
+                "config_refs": sorted(
+                    {_invocation_requested_config_ref(invocation) for invocation in recipe.invocations}
+                ),
                 "commands": [payload["command"] for payload in invocation_payloads],
                 "curated_root_lineage": [],
                 "invocations": invocation_payloads,
@@ -693,13 +1282,23 @@ def materialize_corpus_recipe(
             "corpus_id": corpus_id,
             "corpus_ref": corpus_ref,
             "recipe_path": str(recipe.recipe_path),
+            "recipe_identity": storage.recipe_identity,
+            "recipe_relative_path": storage.recipe_relative_path,
             "surface_label": recipe.surface_label,
             "surface_label_recommendation": recipe.surface_label,
             "recipe": recipe.to_dict(),
             "artifacts": {
                 "corpus_root": str(final_root.resolve()),
                 "manifest_path": str(resolved_manifest_path.resolve()),
-                "latest_pointer_path": str(_latest_pointer_path(recipe_id=recipe.recipe_id, repo_root=resolved_repo_root)),
+                "latest_pointer_path": str(
+                    _latest_pointer_path(
+                        recipe_id=recipe.recipe_id,
+                        repo_root=resolved_repo_root,
+                        recipe_identity=(
+                            storage.recipe_identity if storage.uses_scoped_identity else None
+                        ),
+                    )
+                ),
             },
             "manifest": {
                 "manifest_path": str(resolved_manifest_path.resolve()),
@@ -717,7 +1316,12 @@ def materialize_corpus_recipe(
             corpus_id=corpus_id,
             corpus_ref=corpus_ref,
             record_path=record_path,
+            recipe_path=recipe.recipe_path,
+            recipe_identity=storage.recipe_identity,
             repo_root=resolved_repo_root,
+            scoped_recipe_identity=(
+                storage.recipe_identity if storage.uses_scoped_identity else None
+            ),
         )
         return record
     finally:

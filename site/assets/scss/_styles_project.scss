@@ -2,17 +2,30 @@
 // Warm Earth sage-green gradient.
 
 .td-cover-block {
-  background: linear-gradient(135deg, #4a6741 0%, #6b8f5e 100%) !important;
+  background: linear-gradient(135deg, $primary 0%, $primary-light 100%) !important;
+}
+
+// -- Content measure -------------------------------------------------------
+// Cap line length for comfortable reading while using available space.
+
+.td-content {
+  max-width: 60rem;
 }
 
 // -- Code blocks ----------------------------------------------------------
 // Tighter, more polished code blocks that match the color palette.
 
 .td-content pre {
-  background-color: #f7fafc;
-  border: 1px solid #e2e8f0;
+  background-color: $code-bg;
+  border: 1px solid $code-border;
   border-radius: 6px;
   padding: 1rem;
+  overflow-x: auto;
+
+  [data-bs-theme="dark"] & {
+    background-color: #1e2228;
+    border-color: #343a40;
+  }
 }
 
 // -- Display math ---------------------------------------------------------
@@ -51,14 +64,61 @@
   }
 }
 
-// -- Audience path cards (primary-colored left border) --------------------
-.card.card--audience {
-  border-left: 4px solid $primary !important;
+// -- Path list (Choose Your Path) -----------------------------------------
+// Description list for the audience paths — breaks the card-grid pattern.
+
+.path-list {
+  max-width: 42rem;
+
+  dt {
+    font-size: 1.15rem;
+    margin-top: 1.25rem;
+
+    &:first-child {
+      margin-top: 0;
+    }
+
+    a {
+      color: $primary;
+      text-decoration: none;
+      font-weight: 600;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  dd {
+    margin-bottom: 0;
+    color: rgba($body-color, 0.75);
+  }
 }
 
-// -- Topic cards (secondary-colored left border) --------------------------
+// -- Topic cards ----------------------------------------------------------
 .card.card--topic {
-  border-left: 4px solid $secondary !important;
+  border-top: 2px solid $secondary;
+}
+
+// -- Typography polish ----------------------------------------------------
+// Balanced heading wraps and stronger hero weight.
+
+h1, h2, h3, h4 {
+  text-wrap: balance;
+}
+
+.td-cover-block h1 {
+  font-weight: 700;
+}
+
+// -- Accessibility --------------------------------------------------------
+// Visible focus ring for keyboard navigation (WCAG 2.1 AA).
+
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid $primary;
+  outline-offset: 2px;
 }
 
 // -- Landing page spacing -------------------------------------------------
