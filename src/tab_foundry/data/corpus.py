@@ -12,7 +12,7 @@ from typing import Any, Mapping, cast
 import tab_foundry.benchmark_registry as benchmark_registry
 import yaml
 
-from tab_foundry.hashing import sha256_path
+from tab_foundry.hashing import sha256_path, sha256_text
 from tab_foundry.repo_paths import repo_root as shared_repo_root
 from tab_foundry.timestamps import utc_now
 
@@ -243,6 +243,12 @@ class CorpusRecipe:
         }
 
 
+@dataclass(slots=True, frozen=True)
+class CorpusRecipeStorageContext:
+    recipe_identity: str
+    uses_scoped_identity: bool
+
+
 def _manifest_policy_from_payload(payload: Mapping[str, Any]) -> CorpusManifestPolicy:
     manifest = _ensure_mapping(payload.get("manifest"), context="recipe.manifest")
     return CorpusManifestPolicy(
@@ -470,8 +476,47 @@ def list_corpus_recipes(
     ]
 
 
-def corpus_id_for_manifest(*, recipe_id: str, manifest_sha256: str) -> str:
-    return f"{recipe_id}__{manifest_sha256[:12]}"
+def _global_recipe_paths(*, repo_root: Path | None = None) -> dict[str, Path]:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    return _recipe_paths_from_index(
+        index_path=corpus_recipe_index_path(repo_root=resolved_repo_root),
+        root=corpus_recipes_root(repo_root=resolved_repo_root),
+        context="corpus recipe index",
+        allow_missing=False,
+    )
+
+
+def _recipe_identity_for_path(recipe_path: Path) -> str:
+    return sha256_text(str(recipe_path.expanduser().resolve()))[:12]
+
+
+def _recipe_storage_context(
+    recipe: CorpusRecipe,
+    *,
+    repo_root: Path | None = None,
+) -> CorpusRecipeStorageContext:
+    resolved_recipe_path = recipe.recipe_path.expanduser().resolve()
+    global_recipe_path = _global_recipe_paths(repo_root=repo_root).get(recipe.recipe_id)
+    uses_scoped_identity = (
+        global_recipe_path is not None
+        and global_recipe_path.expanduser().resolve() != resolved_recipe_path
+    )
+    return CorpusRecipeStorageContext(
+        recipe_identity=_recipe_identity_for_path(resolved_recipe_path),
+        uses_scoped_identity=uses_scoped_identity,
+    )
+
+
+def corpus_id_for_manifest(
+    *,
+    recipe_id: str,
+    manifest_sha256: str,
+    recipe_identity: str | None = None,
+) -> str:
+    corpus_id = f"{recipe_id}__{manifest_sha256[:12]}"
+    if recipe_identity is None:
+        return corpus_id
+    return f"{corpus_id}__{recipe_identity[:12]}"
 
 
 def corpus_record_path(
@@ -483,8 +528,14 @@ def corpus_record_path(
     return corpus_outputs_root(repo_root=repo_root) / recipe_id / corpus_id / "corpus_record.json"
 
 
-def _latest_pointer_path(*, recipe_id: str, repo_root: Path | None = None) -> Path:
-    return corpus_outputs_root(repo_root=repo_root) / recipe_id / "latest.json"
+def _latest_pointer_path(
+    *,
+    recipe_id: str,
+    repo_root: Path | None = None,
+    recipe_identity: str | None = None,
+) -> Path:
+    latest_name = "latest.json" if recipe_identity is None else f"latest__{recipe_identity}.json"
+    return corpus_outputs_root(repo_root=repo_root) / recipe_id / latest_name
 
 
 def _write_latest_pointer(
@@ -493,7 +544,10 @@ def _write_latest_pointer(
     corpus_id: str,
     corpus_ref: str,
     record_path: Path,
+    recipe_path: Path,
+    recipe_identity: str,
     repo_root: Path | None = None,
+    scoped_recipe_identity: str | None = None,
 ) -> Path:
     payload = {
         "schema": CORPUS_LATEST_SCHEMA,
@@ -502,21 +556,47 @@ def _write_latest_pointer(
         "corpus_id": str(corpus_id),
         "corpus_ref": str(corpus_ref),
         "corpus_record_path": str(record_path.expanduser().resolve()),
+        "recipe_path": str(recipe_path.expanduser().resolve()),
+        "recipe_identity": str(recipe_identity),
     }
-    latest_path = _latest_pointer_path(recipe_id=recipe_id, repo_root=repo_root)
+    latest_path = _latest_pointer_path(
+        recipe_id=recipe_id,
+        repo_root=repo_root,
+        recipe_identity=scoped_recipe_identity,
+    )
     latest_path.parent.mkdir(parents=True, exist_ok=True)
     latest_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return latest_path
 
 
-def _load_latest_pointer(recipe_id: str, *, repo_root: Path | None = None) -> dict[str, Any] | None:
-    latest_path = _latest_pointer_path(recipe_id=recipe_id, repo_root=repo_root)
+def _load_latest_pointer(
+    recipe_id: str,
+    *,
+    repo_root: Path | None = None,
+    recipe_identity: str | None = None,
+) -> dict[str, Any] | None:
+    latest_path = _latest_pointer_path(
+        recipe_id=recipe_id,
+        repo_root=repo_root,
+        recipe_identity=recipe_identity,
+    )
     if not latest_path.exists():
         return None
     payload = _read_json_mapping(latest_path, context=f"corpus latest pointer for {recipe_id!r}")
     if payload.get("schema") != CORPUS_LATEST_SCHEMA:
         raise RuntimeError(
             f"corpus latest pointer schema must be {CORPUS_LATEST_SCHEMA!r}, got {payload.get('schema')!r}: {latest_path}"
+        )
+    return payload
+
+
+def _load_corpus_record_payload(record_path: Path, *, context: str) -> dict[str, Any]:
+    if not record_path.exists():
+        raise RuntimeError(f"corpus record does not exist: {record_path}")
+    payload = _read_json_mapping(record_path, context=context)
+    if payload.get("schema") != CORPUS_RECORD_SCHEMA:
+        raise RuntimeError(
+            f"corpus record schema must be {CORPUS_RECORD_SCHEMA!r}, got {payload.get('schema')!r}: {record_path}"
         )
     return payload
 
@@ -532,45 +612,154 @@ def _parse_corpus_ref(corpus_ref: str) -> tuple[str, str | None]:
     )
 
 
+def _selected_recipe_for_lookup(
+    recipe_id: str,
+    *,
+    repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> tuple[CorpusRecipe, CorpusRecipeStorageContext] | None:
+    try:
+        recipe = load_corpus_recipe(
+            recipe_id,
+            repo_root=repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+    except (FileNotFoundError, RuntimeError):
+        return None
+    return recipe, _recipe_storage_context(recipe, repo_root=repo_root)
+
+
+def _candidate_corpus_record_paths(
+    recipe_id: str,
+    *,
+    repo_root: Path | None = None,
+) -> list[Path]:
+    recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
+    if not recipe_root.exists():
+        return []
+    return [
+        path / "corpus_record.json"
+        for path in sorted(recipe_root.iterdir())
+        if path.is_dir() and not path.name.startswith(".")
+    ]
+
+
+def _load_record_from_latest_pointer(
+    recipe: CorpusRecipe,
+    storage: CorpusRecipeStorageContext,
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, Any] | None:
+    latest = _load_latest_pointer(
+        recipe.recipe_id,
+        repo_root=repo_root,
+        recipe_identity=(
+            storage.recipe_identity if storage.uses_scoped_identity else None
+        ),
+    )
+    if latest is None:
+        return None
+    latest_record_path = latest.get("corpus_record_path")
+    if not isinstance(latest_record_path, str) or not latest_record_path.strip():
+        return None
+    try:
+        record = _load_corpus_record_payload(
+            Path(latest_record_path).expanduser().resolve(),
+            context=f"corpus latest pointer record for {recipe.recipe_id!r}",
+        )
+    except RuntimeError:
+        return None
+    return record if _record_matches_recipe(record, recipe, storage=storage) else None
+
+
+def _matching_corpus_records_for_recipe(
+    recipe: CorpusRecipe,
+    storage: CorpusRecipeStorageContext,
+    *,
+    repo_root: Path | None = None,
+) -> list[dict[str, Any]]:
+    matches: list[dict[str, Any]] = []
+    for record_path in _candidate_corpus_record_paths(recipe.recipe_id, repo_root=repo_root):
+        if not record_path.exists():
+            continue
+        record = _load_corpus_record_payload(
+            record_path,
+            context=f"corpus record candidate for {recipe.recipe_id!r}",
+        )
+        if _record_matches_recipe(record, recipe, storage=storage):
+            matches.append(record)
+    return matches
+
+
 def load_corpus_record(
     corpus_ref: str,
     *,
     repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     recipe_id, corpus_id = _parse_corpus_ref(corpus_ref)
-    if corpus_id is None:
-        latest = _load_latest_pointer(recipe_id, repo_root=repo_root)
-        if latest is not None:
-            corpus_id = _ensure_non_empty_string(
-                latest.get("corpus_id"),
-                context=f"latest corpus_id for recipe {recipe_id!r}",
-            )
-        else:
-            recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
-            candidates = sorted(
-                path.name
-                for path in recipe_root.iterdir()
-                if path.is_dir() and not path.name.startswith(".")
-            ) if recipe_root.exists() else []
-            if len(candidates) == 1:
-                corpus_id = candidates[0]
-            elif not candidates:
-                raise RuntimeError(
-                    f"no local corpus materialization found for recipe {recipe_id!r} under {recipe_root}"
-                )
-            else:
-                raise RuntimeError(
-                    f"multiple corpora exist for recipe {recipe_id!r} but no latest.json pointer is present: {recipe_root}"
-                )
-    record_path = corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root)
-    if not record_path.exists():
-        raise RuntimeError(f"corpus record does not exist: {record_path}")
-    payload = _read_json_mapping(record_path, context=f"corpus record {recipe_id}/{corpus_id}")
-    if payload.get("schema") != CORPUS_RECORD_SCHEMA:
-        raise RuntimeError(
-            f"corpus record schema must be {CORPUS_RECORD_SCHEMA!r}, got {payload.get('schema')!r}: {record_path}"
+    if corpus_id is not None:
+        return _load_corpus_record_payload(
+            corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
+            context=f"corpus record {recipe_id}/{corpus_id}",
         )
-    return payload
+
+    selected_recipe = _selected_recipe_for_lookup(
+        recipe_id,
+        repo_root=repo_root,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+    if selected_recipe is not None:
+        recipe, storage = selected_recipe
+        latest_record = _load_record_from_latest_pointer(recipe, storage, repo_root=repo_root)
+        if latest_record is not None:
+            return latest_record
+        matches = _matching_corpus_records_for_recipe(recipe, storage, repo_root=repo_root)
+        recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
+        if len(matches) == 1:
+            return matches[0]
+        if not matches:
+            raise RuntimeError(
+                f"no local corpus materialization found for recipe {recipe_id!r} under {recipe_root}"
+            )
+        raise RuntimeError(
+            f"multiple corpora exist for recipe {recipe_id!r} but no matching latest pointer is present: {recipe_root}"
+        )
+
+    latest = _load_latest_pointer(recipe_id, repo_root=repo_root)
+    if latest is not None:
+        corpus_id = _ensure_non_empty_string(
+            latest.get("corpus_id"),
+            context=f"latest corpus_id for recipe {recipe_id!r}",
+        )
+        return _load_corpus_record_payload(
+            corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
+            context=f"corpus record {recipe_id}/{corpus_id}",
+        )
+
+    recipe_root = corpus_outputs_root(repo_root=repo_root) / recipe_id
+    candidates = sorted(
+        path.name
+        for path in recipe_root.iterdir()
+        if path.is_dir() and not path.name.startswith(".")
+    ) if recipe_root.exists() else []
+    if len(candidates) == 1:
+        corpus_id = candidates[0]
+        return _load_corpus_record_payload(
+            corpus_record_path(recipe_id=recipe_id, corpus_id=corpus_id, repo_root=repo_root),
+            context=f"corpus record {recipe_id}/{corpus_id}",
+        )
+    if not candidates:
+        raise RuntimeError(
+            f"no local corpus materialization found for recipe {recipe_id!r} under {recipe_root}"
+        )
+    raise RuntimeError(
+        f"multiple corpora exist for recipe {recipe_id!r} but no latest.json pointer is present: {recipe_root}"
+    )
 
 
 def _existing_path(value: Any, *, require_dir: bool) -> Path | None:
@@ -628,9 +817,16 @@ def _load_reusable_corpus_record(
     corpus_ref: str,
     *,
     repo_root: Path | None = None,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
 ) -> dict[str, Any] | None:
     try:
-        record = load_corpus_record(corpus_ref, repo_root=repo_root)
+        record = load_corpus_record(
+            corpus_ref,
+            repo_root=repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
     except RuntimeError:
         return None
     return record if _corpus_record_is_complete_for_reuse(record) else None
@@ -762,11 +958,21 @@ def _dagzoo_generate_config(
     )
 
 
-def _record_matches_recipe(record: Mapping[str, Any], recipe: CorpusRecipe) -> bool:
+def _record_matches_recipe(
+    record: Mapping[str, Any],
+    recipe: CorpusRecipe,
+    *,
+    storage: CorpusRecipeStorageContext,
+) -> bool:
     recorded_recipe_path = record.get("recipe_path")
     if not isinstance(recorded_recipe_path, str) or not recorded_recipe_path.strip():
         return False
-    return Path(recorded_recipe_path).expanduser().resolve() == recipe.recipe_path.expanduser().resolve()
+    if Path(recorded_recipe_path).expanduser().resolve() != recipe.recipe_path.expanduser().resolve():
+        return False
+    recorded_recipe_identity = _optional_string(record.get("recipe_identity"))
+    if recorded_recipe_identity is not None:
+        return recorded_recipe_identity == storage.recipe_identity
+    return not storage.uses_scoped_identity
 
 
 def _materialize_invocation(
@@ -852,9 +1058,19 @@ def materialize_corpus_recipe(
         sweep_id=sweep_id,
         sweeps_root=sweeps_root,
     )
+    storage = _recipe_storage_context(recipe, repo_root=resolved_repo_root)
     if not force:
-        existing_record = _load_reusable_corpus_record(recipe.recipe_id, repo_root=resolved_repo_root)
-        if existing_record is not None and _record_matches_recipe(existing_record, recipe):
+        existing_record = _load_reusable_corpus_record(
+            recipe.recipe_id,
+            repo_root=resolved_repo_root,
+            sweep_id=sweep_id,
+            sweeps_root=sweeps_root,
+        )
+        if existing_record is not None and _record_matches_recipe(
+            existing_record,
+            recipe,
+            storage=storage,
+        ):
             return existing_record
 
     recipe_root = corpus_outputs_root(repo_root=resolved_repo_root) / recipe.recipe_id
@@ -886,15 +1102,30 @@ def materialize_corpus_recipe(
             missing_value_policy=str(recipe.manifest_policy.missing_value_policy),
         )
         manifest_sha256 = sha256_path(manifest_path)
-        corpus_id = corpus_id_for_manifest(recipe_id=recipe.recipe_id, manifest_sha256=manifest_sha256)
+        corpus_id = corpus_id_for_manifest(
+            recipe_id=recipe.recipe_id,
+            manifest_sha256=manifest_sha256,
+            recipe_identity=(
+                storage.recipe_identity if storage.uses_scoped_identity else None
+            ),
+        )
         corpus_ref = f"{recipe.recipe_id}/{corpus_id}"
         final_root = recipe_root / corpus_id
         if final_root.exists():
             if force:
                 shutil.rmtree(final_root)
             else:
-                existing_record = _load_reusable_corpus_record(corpus_ref, repo_root=resolved_repo_root)
-                if existing_record is not None and _record_matches_recipe(existing_record, recipe):
+                existing_record = _load_reusable_corpus_record(
+                    corpus_ref,
+                    repo_root=resolved_repo_root,
+                    sweep_id=sweep_id,
+                    sweeps_root=sweeps_root,
+                )
+                if existing_record is not None and _record_matches_recipe(
+                    existing_record,
+                    recipe,
+                    storage=storage,
+                ):
                     shutil.rmtree(stage_root)
                     return existing_record
                 shutil.rmtree(final_root)
@@ -933,13 +1164,22 @@ def materialize_corpus_recipe(
             "corpus_id": corpus_id,
             "corpus_ref": corpus_ref,
             "recipe_path": str(recipe.recipe_path),
+            "recipe_identity": storage.recipe_identity,
             "surface_label": recipe.surface_label,
             "surface_label_recommendation": recipe.surface_label,
             "recipe": recipe.to_dict(),
             "artifacts": {
                 "corpus_root": str(final_root.resolve()),
                 "manifest_path": str(resolved_manifest_path.resolve()),
-                "latest_pointer_path": str(_latest_pointer_path(recipe_id=recipe.recipe_id, repo_root=resolved_repo_root)),
+                "latest_pointer_path": str(
+                    _latest_pointer_path(
+                        recipe_id=recipe.recipe_id,
+                        repo_root=resolved_repo_root,
+                        recipe_identity=(
+                            storage.recipe_identity if storage.uses_scoped_identity else None
+                        ),
+                    )
+                ),
             },
             "manifest": {
                 "manifest_path": str(resolved_manifest_path.resolve()),
@@ -957,7 +1197,12 @@ def materialize_corpus_recipe(
             corpus_id=corpus_id,
             corpus_ref=corpus_ref,
             record_path=record_path,
+            recipe_path=recipe.recipe_path,
+            recipe_identity=storage.recipe_identity,
             repo_root=resolved_repo_root,
+            scoped_recipe_identity=(
+                storage.recipe_identity if storage.uses_scoped_identity else None
+            ),
         )
         return record
     finally:

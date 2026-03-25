@@ -556,6 +556,25 @@ def test_inspect_sweep_row_reports_unmaterialized_corpus_refs_for_ready_rows(
     assert resolved_data["corpus_id"] is None
 
 
+def test_inspection_raw_cfg_adds_corpus_lookup_sweep_id_for_sweep_rows() -> None:
+    raw_cfg = inspect_module._inspection_raw_cfg(
+        row={
+            "data": {
+                "surface_label": "fresh_current_corpus",
+                "corpus_ref": "tf_rd_013_current_corpus_default_v1",
+            }
+        },
+        training_experiment="cls_benchmark_staged_corpus",
+        sweep_id="mini_sweep",
+    )
+
+    data_payload = raw_cfg["data"]
+    assert isinstance(data_payload, dict)
+    surface_overrides = data_payload["surface_overrides"]
+    assert isinstance(surface_overrides, dict)
+    assert surface_overrides["corpus_lookup_sweep_id"] == "mini_sweep"
+
+
 def test_diff_sweep_row_uses_anchor_context_when_anchor_run_is_unavailable() -> None:
     payload = diff_module.diff_sweep_row(
         order=1,

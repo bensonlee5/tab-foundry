@@ -836,10 +836,12 @@ def test_compose_cfg_routes_data_corpus_ref_into_surface_overrides(tmp_path: Pat
         },
         run_dir=run_dir,
         device='cuda',
+        sweep_id='tf_rd_013',
     )
 
     assert str(cfg.data.surface_label) == 'anchor_manifest_default'
     assert str(cfg.data.surface_overrides.corpus_ref) == 'tf_rd_013_current_corpus_default_v1'
+    assert str(cfg.data.surface_overrides.corpus_lookup_sweep_id) == 'tf_rd_013'
     assert cfg.data.train_row_cap == 512
 
 

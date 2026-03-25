@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sweep operators can batch materialize queue-owned `data.corpus_ref` surfaces
   through `tab-foundry research sweep materialize-corpora`.
 
+### Fixed
+
+- User-facing note: sweep-local corpus recipes that shadow a global
+  `recipe_id` now keep distinct corpus identities and scoped latest pointers.
+  Global `data.corpus_ref=<recipe_id>` lookups stay pinned to the canonical
+  global corpus, while sweep execution resolves shadowed sweep-local corpora
+  through an internal sweep-aware lookup hint without changing the public ref
+  syntax.
+
 ## [0.11.1] - 2026-03-24
 
 ### Changed

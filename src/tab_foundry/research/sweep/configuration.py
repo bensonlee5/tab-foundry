@@ -39,6 +39,21 @@ def _queue_aware_run_name(*, run_dir: Path) -> str:
     return str(run_dir.parent.name if run_dir.name == "train" else run_dir.name)
 
 
+def _apply_corpus_lookup_sweep_id(cfg: DictConfig, *, sweep_id: str | None) -> None:
+    if sweep_id is None:
+        return
+    raw_corpus_ref = OmegaConf.select(cfg, "data.surface_overrides.corpus_ref")
+    if raw_corpus_ref is None:
+        return
+    OmegaConf.update(
+        cfg,
+        "data.surface_overrides.corpus_lookup_sweep_id",
+        str(sweep_id),
+        merge=True,
+        force_add=True,
+    )
+
+
 def compose_cfg(
     *,
     row: Mapping[str, Any],
@@ -55,6 +70,7 @@ def compose_cfg(
         cfg.logging.group = str(sweep_id)
     apply_mapping(cfg, "model", cast(Mapping[str, Any], row.get("model", {})))
     apply_mapping(cfg, "data", cast(Mapping[str, Any], row.get("data", {})))
+    _apply_corpus_lookup_sweep_id(cfg, sweep_id=sweep_id)
     apply_mapping(cfg, "preprocessing", cast(Mapping[str, Any], row.get("preprocessing", {})))
 
     training_payload = cast(Mapping[str, Any], row.get("training", {}))

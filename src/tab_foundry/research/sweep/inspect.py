@@ -324,11 +324,25 @@ def _inspection_raw_cfg(
     *,
     row: Mapping[str, Any],
     training_experiment: str,
+    sweep_id: str | None = None,
 ) -> dict[str, Any]:
     cfg = compose_config([f"experiment={training_experiment}"])
     raw_cfg = _cfg_mapping(cfg)
     _merge_plain_mapping(raw_cfg, prefix="model", payload=cast(Mapping[str, Any], row.get("model", {})))
     _merge_plain_mapping(raw_cfg, prefix="data", payload=cast(Mapping[str, Any], row.get("data", {})))
+    data_cfg = raw_cfg.get("data")
+    if sweep_id is not None and isinstance(data_cfg, dict):
+        raw_corpus_ref = None
+        surface_overrides = data_cfg.get("surface_overrides")
+        if isinstance(surface_overrides, dict):
+            raw_corpus_ref = surface_overrides.get("corpus_ref")
+        if raw_corpus_ref is None:
+            raw_corpus_ref = data_cfg.get("corpus_ref")
+        if raw_corpus_ref is not None:
+            if not isinstance(surface_overrides, dict):
+                surface_overrides = {}
+                data_cfg["surface_overrides"] = surface_overrides
+            surface_overrides["corpus_lookup_sweep_id"] = str(sweep_id)
     _merge_plain_mapping(
         raw_cfg,
         prefix="preprocessing",
@@ -356,8 +370,13 @@ def _inspection_spec_and_record(
     row: Mapping[str, Any],
     run_dir: Path,
     training_experiment: str,
+    sweep_id: str,
 ) -> tuple[Any, dict[str, Any]]:
-    raw_cfg = _inspection_raw_cfg(row=row, training_experiment=training_experiment)
+    raw_cfg = _inspection_raw_cfg(
+        row=row,
+        training_experiment=training_experiment,
+        sweep_id=sweep_id,
+    )
     task = str(raw_cfg.get("task", "classification")).strip().lower()
     raw_model_cfg = raw_cfg.get("model")
     if not isinstance(raw_model_cfg, Mapping):
@@ -418,6 +437,7 @@ def resolve_row_target(
             row=row,
             run_dir=run_dir,
             training_experiment=str(queue["training_experiment"]),
+            sweep_id=str(queue["sweep_id"]),
         )
     metrics = row.get("benchmark_metrics")
     if not isinstance(metrics, Mapping):
@@ -626,6 +646,7 @@ def resolve_anchor_target(
                     row=source_row,
                     run_dir=run_dir,
                     training_experiment=source_training_experiment,
+                    sweep_id=str(queue["sweep_id"]),
                 )
     except RuntimeError:
         run_dir = _inspection_run_dir(
@@ -637,6 +658,7 @@ def resolve_anchor_target(
             row=anchor_row,
             run_dir=run_dir,
             training_experiment=str(queue["training_experiment"]),
+            sweep_id=str(queue["sweep_id"]),
         )
         metadata = {"source": "anchor_context"}
     return {
