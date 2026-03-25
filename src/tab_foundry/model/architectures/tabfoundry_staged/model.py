@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import math
 
 import torch
 from torch import nn
+from torch.utils.checkpoint import checkpoint as activation_checkpoint
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.outputs import (
@@ -209,7 +211,25 @@ class TabFoundryStagedClassifier(nn.Module):
             head_hidden_dim=self.head_hidden_dim,
             many_class_base=self.many_class_base,
         )
+        self._activation_checkpointing_enabled = False
         self._activation_trace: dict[str, tuple[float, int]] | None = None
+
+    def enable_activation_checkpointing(self) -> None:
+        self._activation_checkpointing_enabled = True
+
+    def disable_activation_checkpointing(self) -> None:
+        self._activation_checkpointing_enabled = False
+
+    def _apply_activation_checkpoint(
+        self,
+        function: Callable[..., torch.Tensor],
+        *args: torch.Tensor,
+    ) -> torch.Tensor:
+        if not self._activation_checkpointing_enabled or not self.training:
+            return function(*args)
+        if not any(isinstance(arg, torch.Tensor) and arg.requires_grad for arg in args):
+            return function(*args)
+        return activation_checkpoint(function, *args, use_reentrant=False)
 
     def enable_activation_trace(self) -> None:
         self._activation_trace = {}

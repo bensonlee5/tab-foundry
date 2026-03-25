@@ -164,7 +164,17 @@ def encode_table_batched(
         cells = model.post_encoder_norm(cells)
     model.trace_activation("pre_transformer", cells)
     for index, block in enumerate(model.transformer_blocks):
-        cells = block(cells, train_test_split_index=train_test_split_index)
+        def _apply_table_block(
+            current_cells: torch.Tensor,
+            *,
+            _block=block,
+        ) -> torch.Tensor:
+            return _block(
+                current_cells,
+                train_test_split_index=train_test_split_index,
+            )
+
+        cells = model._apply_activation_checkpoint(_apply_table_block, cells)
         model.trace_activation(f"post_transformer_block_{index}", cells)
     if model.post_stack_norm is not None:
         cells = model.post_stack_norm(cells)
@@ -199,7 +209,17 @@ def encode_to_cell_state(model: Any, raw_state: RawInputState) -> CellTableState
         cells = model.post_encoder_norm(cells)
     model.trace_activation("pre_transformer", cells)
     for index, block in enumerate(model.transformer_blocks):
-        cells = block(cells, train_test_split_index=raw_state.train_test_split_index)
+        def _apply_table_block(
+            current_cells: torch.Tensor,
+            *,
+            _block=block,
+        ) -> torch.Tensor:
+            return _block(
+                current_cells,
+                train_test_split_index=raw_state.train_test_split_index,
+            )
+
+        cells = model._apply_activation_checkpoint(_apply_table_block, cells)
         model.trace_activation(f"post_transformer_block_{index}", cells)
     if model.post_stack_norm is not None:
         cells = model.post_stack_norm(cells)
@@ -213,7 +233,10 @@ def encode_to_cell_state(model: Any, raw_state: RawInputState) -> CellTableState
 def pool_rows(model: Any, cell_state: CellTableState) -> RowState:
     encoded_cells = model.column_encoder(cell_state.cells)
     model.trace_activation("post_column_encoder", encoded_cells)
-    rows = model.row_pool(encoded_cells, token_padding_mask=None)
+    def _pool_rows(encoded: torch.Tensor) -> torch.Tensor:
+        return model.row_pool(encoded, token_padding_mask=None)
+
+    rows = model._apply_activation_checkpoint(_pool_rows, encoded_cells)
     model.trace_activation("post_row_pool", rows)
     return RowState(
         rows=rows,
@@ -232,10 +255,20 @@ def condition_rows(
     if model.context_encoder is not None:
         if train_target_embeddings is None:
             raise RuntimeError("train_target_embeddings must be provided for context encoding")
-        rows = model.context_encoder(
+        def _encode_context(
+            current_rows: torch.Tensor,
+            current_train_target_embeddings: torch.Tensor,
+        ) -> torch.Tensor:
+            return model.context_encoder(
+                current_rows,
+                train_target_embeddings=current_train_target_embeddings,
+                train_test_split_index=row_state.train_test_split_index,
+            )
+
+        rows = model._apply_activation_checkpoint(
+            _encode_context,
             rows,
-            train_target_embeddings=train_target_embeddings,
-            train_test_split_index=row_state.train_test_split_index,
+            train_target_embeddings,
         )
         model.trace_activation("post_context_encoder", rows)
     return HeadOutputState(

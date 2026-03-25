@@ -231,6 +231,60 @@ def test_nano_exact_stage_forward_flattens_batched_task_outputs() -> None:
     assert out.num_classes == 2
 
 
+def test_qass_context_activation_checkpointing_preserves_logits_and_gradients() -> None:
+    torch.manual_seed(7)
+    reference = _staged("qass_context", staged_dropout=0.0)
+    checkpointed = _staged("qass_context", staged_dropout=0.0)
+    checkpointed.load_state_dict(reference.state_dict(), strict=True)
+    checkpointed.enable_activation_checkpointing()
+
+    batch = _batch()
+    reference.train()
+    checkpointed.train()
+
+    reference_out = reference(batch)
+    checkpointed_out = checkpointed(batch)
+
+    assert reference_out.logits is not None
+    assert checkpointed_out.logits is not None
+    assert torch.allclose(
+        reference_out.logits,
+        checkpointed_out.logits,
+        atol=1.0e-6,
+        rtol=1.0e-6,
+    )
+
+    reference_out.logits.square().sum().backward()
+    checkpointed_out.logits.square().sum().backward()
+
+    reference_grads = {
+        "feature_encoder": reference.feature_encoder.linear.weight.grad,
+        "target_conditioner": reference.target_conditioner.embedding.weight.grad,
+        "table_block": reference.transformer_blocks[0].self_attention_between_features.in_proj_weight.grad,
+        "row_pool": reference.row_pool.encoder.out.weight.grad,
+        "context_encoder": reference.context_encoder.encoder.layers[0].attn.q_proj.weight.grad,
+        "direct_head": reference.direct_head.net[0].weight.grad,
+    }
+    checkpointed_grads = {
+        "feature_encoder": checkpointed.feature_encoder.linear.weight.grad,
+        "target_conditioner": checkpointed.target_conditioner.embedding.weight.grad,
+        "table_block": checkpointed.transformer_blocks[0].self_attention_between_features.in_proj_weight.grad,
+        "row_pool": checkpointed.row_pool.encoder.out.weight.grad,
+        "context_encoder": checkpointed.context_encoder.encoder.layers[0].attn.q_proj.weight.grad,
+        "direct_head": checkpointed.direct_head.net[0].weight.grad,
+    }
+
+    for name, grad in reference_grads.items():
+        assert grad is not None, name
+        assert checkpointed_grads[name] is not None, name
+        assert torch.allclose(
+            grad,
+            checkpointed_grads[name],
+            atol=1.0e-6,
+            rtol=1.0e-6,
+        ), name
+
+
 def test_row_cls_pool_stage_supports_rmsnorm() -> None:
     model = _staged(
         "row_cls_pool",

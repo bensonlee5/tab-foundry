@@ -21,6 +21,7 @@ def test_cls_workstation_task_resolution() -> None:
     assert float(cfg.preprocessing.all_nan_fill) == 0.0
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
+    assert bool(cfg.runtime.activation_checkpointing) is False
 
 def test_cls_smoke_optimizer_resolution() -> None:
     cfg = _compose("experiment=cls_smoke")
@@ -36,6 +37,7 @@ def test_runtime_smoke_override_resolution() -> None:
     cfg = _compose("runtime=smoke")
     assert str(cfg.runtime.mixed_precision) == "no"
     assert cfg.runtime.checkpoint_every is None
+    assert bool(cfg.runtime.activation_checkpointing) is False
 
 
 def test_cls_smoke_adamw_override_resolution() -> None:
@@ -110,6 +112,7 @@ def test_cls_benchmark_staged_resolution() -> None:
     assert int(cfg.model.tficl_n_layers) == 3
     assert int(cfg.model.head_hidden_dim) == 192
     assert bool(cfg.runtime.trace_activations) is True
+    assert bool(cfg.runtime.activation_checkpointing) is False
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_staged/train_history.jsonl"
 
 
@@ -121,6 +124,7 @@ def test_cls_benchmark_staged_corpus_resolution() -> None:
     assert str(cfg.training.surface_label) == "linear_warmup_decay"
     assert bool(cfg.training.apply_schedule) is False
     assert int(cfg.training.task_batch_size) == 1
+    assert bool(cfg.runtime.activation_checkpointing) is False
     assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_staged_corpus"
     assert str(cfg.logging.run_name) == "cls-benchmark-staged-corpus"
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_staged_corpus/train_history.jsonl"
