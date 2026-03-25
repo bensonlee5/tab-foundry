@@ -51,14 +51,14 @@
   }
 }
 
-// -- Audience path cards (primary-colored left border) --------------------
+// -- Audience path cards --------------------------------------------------
 .card.card--audience {
-  border-left: 4px solid $primary !important;
+  border-top: 2px solid $primary;
 }
 
-// -- Topic cards (secondary-colored left border) --------------------------
+// -- Topic cards ----------------------------------------------------------
 .card.card--topic {
-  border-left: 4px solid $secondary !important;
+  border-top: 2px solid $secondary;
 }
 
 // -- Landing page spacing -------------------------------------------------
