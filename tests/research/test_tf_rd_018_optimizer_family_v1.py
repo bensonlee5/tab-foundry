@@ -10,9 +10,8 @@ from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SWEEP_ID = "tf_rd_018_optimizer_family_v1"
-ANCHOR_RUN_ID = "sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1"
+ANCHOR_RUN_ID = "sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2"
 EXPECTED_ROWS = [
-    "delta_data_manifest_root_tf_rd_020_shift_noise_drift",
     "delta_training_adamw",
     "delta_training_muon",
 ]
@@ -49,7 +48,7 @@ def test_tf_rd_018_optimizer_family_v1_is_registered_and_active() -> None:
     }
 
 
-def test_tf_rd_018_optimizer_family_v1_replays_noise_drift_before_optimizer_comparison() -> None:
+def test_tf_rd_018_optimizer_family_v1_inherits_noise_drift_anchor_for_optimizer_comparison() -> None:
     sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID
     sweep = _load_yaml(sweep_root / "sweep.yaml")
     queue = _load_yaml(sweep_root / "queue.yaml")
@@ -61,7 +60,7 @@ def test_tf_rd_018_optimizer_family_v1_replays_noise_drift_before_optimizer_comp
     assert sweep["surface_role"] == "architecture_screen"
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["surface_labels"] == {
-        "data": "tf_rd_013_dagzoo_shape_aware_size_medium",
+        "data": "tf_rd_020_shift_noise_drift",
         "model": "delta_qass_no_column_v3",
         "preprocessing": "runtime_default",
         "training": "linear_warmup_decay",
@@ -71,18 +70,18 @@ def test_tf_rd_018_optimizer_family_v1_replays_noise_drift_before_optimizer_comp
     assert isinstance(notes, list)
     assert any("issue `#137`" in note for note in notes)
     assert any("tf_rd_020_shift_noise_drift_v1" in note for note in notes)
-    assert any("not the original TF-RD-020 `400`-step executed row" in note for note in notes)
+    assert any("sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2" in note for note in notes)
+    assert any("does not replay or promote a separate schedulefree row" in note for note in notes)
     assert any("tf_rd_020_noise_mixture_v1" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready", "ready"]
-    assert not any("noise_mixture" in row["delta_ref"] for row in rows)
+    assert [row["status"] for row in rows] == ["ready", "ready"]
 
-    row1 = _row_by_ref(queue, "delta_data_manifest_root_tf_rd_020_shift_noise_drift")
+    row1 = _row_by_ref(queue, "delta_training_adamw")
     assert "issue `#137`" in row1["rationale"]
-    assert "harmonized `400`-step recipe" in row1["hypothesis"]
+    assert "locked TF-RD-020 noise-drift winner" in row1["rationale"]
     assert row1["model"] == {
         "stage": "qass_context",
         "stage_label": "delta_qass_no_column_v3",
@@ -94,9 +93,9 @@ def test_tf_rd_018_optimizer_family_v1_replays_noise_drift_before_optimizer_comp
         "corpus_ref": "tf_rd_020_shift_noise_drift_v1",
     }
     assert row1["training"]["surface_label"] == "linear_warmup_decay"
-    assert row1["training"]["task_batch_size"] == 4
+    assert row1["training"]["task_batch_size"] == 1
     assert row1["training"]["overrides"]["optimizer"] == {
-        "name": "schedulefree_adamw",
+        "name": "adamw",
         "require_requested": True,
         "weight_decay": 0.0,
         "betas": [0.9, 0.999],
@@ -104,8 +103,8 @@ def test_tf_rd_018_optimizer_family_v1_replays_noise_drift_before_optimizer_comp
         "muon_per_parameter_lr": False,
     }
     assert row1["training"]["overrides"]["runtime"] == {
-        "grad_accum_steps": 1,
-        "max_steps": 2500,
+        "grad_accum_steps": 4,
+        "max_steps": 400,
         "target_train_seconds": None,
         "eval_every": 25,
         "checkpoint_every": 25,
@@ -123,27 +122,18 @@ def test_tf_rd_018_optimizer_family_v1_replays_noise_drift_before_optimizer_comp
             }
         ]
     }
-    assert "--promote-first-executed-row-to-anchor" in row1["next_action"]
+    assert "locked TF-RD-020 noise-drift anchor" in row1["next_action"]
+    assert "parent_delta_ref" not in row1
 
-    row2 = _row_by_ref(queue, "delta_training_adamw")
-    assert row2["parent_delta_ref"] == "delta_data_manifest_root_tf_rd_020_shift_noise_drift"
+    row2 = _row_by_ref(queue, "delta_training_muon")
     assert row2["data"] == row1["data"]
     assert row2["training"]["surface_label"] == "linear_warmup_decay"
-    assert row2["training"]["task_batch_size"] == 4
+    assert row2["training"]["task_batch_size"] == 1
     assert row2["training"]["overrides"]["runtime"] == row1["training"]["overrides"]["runtime"]
     assert row2["training"]["overrides"]["schedule"] == row1["training"]["overrides"]["schedule"]
-    assert row2["training"]["overrides"]["optimizer"]["name"] == "adamw"
-    assert row2["training"]["overrides"]["optimizer"]["weight_decay"] == 0.0
-
-    row3 = _row_by_ref(queue, "delta_training_muon")
-    assert row3["parent_delta_ref"] == "delta_data_manifest_root_tf_rd_020_shift_noise_drift"
-    assert row3["data"] == row1["data"]
-    assert row3["training"]["surface_label"] == "linear_warmup_decay"
-    assert row3["training"]["task_batch_size"] == 4
-    assert row3["training"]["overrides"]["runtime"] == row1["training"]["overrides"]["runtime"]
-    assert row3["training"]["overrides"]["schedule"] == row1["training"]["overrides"]["schedule"]
-    assert row3["training"]["overrides"]["optimizer"]["name"] == "muon"
-    assert row3["training"]["overrides"]["optimizer"]["muon_per_parameter_lr"] is True
+    assert row2["training"]["overrides"]["optimizer"]["name"] == "muon"
+    assert row2["training"]["overrides"]["optimizer"]["muon_per_parameter_lr"] is True
+    assert "parent_delta_ref" not in row2
 
 
 def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_active_alias() -> None:
@@ -155,23 +145,21 @@ def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_activ
 
     rows = queue["rows"]
     assert [row["delta_id"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready", "ready", "ready"]
+    assert [row["status"] for row in rows] == ["ready", "ready"]
 
-    row1 = next(row for row in rows if row["delta_id"] == "delta_data_manifest_root_tf_rd_020_shift_noise_drift")
-    assert row1["data"]["surface_label"] == "tf_rd_020_shift_noise_drift"
+    row1 = next(row for row in rows if row["delta_id"] == "delta_training_adamw")
     assert row1["data"]["corpus_ref"] == "tf_rd_020_shift_noise_drift_v1"
-    assert row1["training"]["task_batch_size"] == 4
-    assert row1["training"]["overrides"]["optimizer"]["name"] == "schedulefree_adamw"
+    assert row1["training"]["task_batch_size"] == 1
+    assert row1["training"]["overrides"]["runtime"]["grad_accum_steps"] == 4
+    assert row1["training"]["overrides"]["runtime"]["max_steps"] == 400
+    assert row1["training"]["overrides"]["optimizer"]["name"] == "adamw"
 
-    row2 = next(row for row in rows if row["delta_id"] == "delta_training_adamw")
-    assert row2["parent_delta_ref"] == "delta_data_manifest_root_tf_rd_020_shift_noise_drift"
+    row2 = next(row for row in rows if row["delta_id"] == "delta_training_muon")
     assert row2["data"]["corpus_ref"] == "tf_rd_020_shift_noise_drift_v1"
-    assert row2["training"]["overrides"]["optimizer"]["name"] == "adamw"
-
-    row3 = next(row for row in rows if row["delta_id"] == "delta_training_muon")
-    assert row3["parent_delta_ref"] == "delta_data_manifest_root_tf_rd_020_shift_noise_drift"
-    assert row3["data"]["corpus_ref"] == "tf_rd_020_shift_noise_drift_v1"
-    assert row3["training"]["overrides"]["optimizer"]["name"] == "muon"
+    assert row2["training"]["task_batch_size"] == 1
+    assert row2["training"]["overrides"]["runtime"]["grad_accum_steps"] == 4
+    assert row2["training"]["overrides"]["runtime"]["max_steps"] == 400
+    assert row2["training"]["overrides"]["optimizer"]["name"] == "muon"
 
     matrix = (
         REPO_ROOT
@@ -186,7 +174,6 @@ def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_activ
     assert "# System Delta Matrix" in matrix
     assert SWEEP_ID in matrix
     assert ANCHOR_RUN_ID in matrix
-    assert "delta_data_manifest_root_tf_rd_020_shift_noise_drift" in matrix
     assert "delta_training_adamw" in matrix
     assert "delta_training_muon" in matrix
     assert "tf_rd_020_shift_noise_drift_v1" in matrix

@@ -186,7 +186,7 @@ sweeps:
   tf_rd_018_optimizer_family_v1:
     parent_sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
     status: draft
-    anchor_run_id: sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1
+    anchor_run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
     control_baseline_id: cls_benchmark_linear_v2

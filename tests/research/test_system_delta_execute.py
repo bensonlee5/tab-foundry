@@ -419,6 +419,45 @@ def test_main_allows_omitting_prior_dump(
     assert exit_code == 0
     assert captured['prior_dump'] is None
     assert captured['fallback_python'] == fallback_python
+    assert captured['reuse_nanotabpfn_only'] is False
+
+
+def test_main_passes_reuse_nanotabpfn_only(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    nanotabpfn_root = tmp_path / 'nanoTabPFN'
+    fallback_python = tmp_path / '.venv' / 'bin' / 'python'
+
+    nanotabpfn_root.mkdir(parents=True, exist_ok=True)
+    fallback_python.parent.mkdir(parents=True, exist_ok=True)
+    fallback_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    fallback_python.chmod(0o755)
+
+    captured: dict[str, Any] = {}
+
+    def fake_execute_sweep(**kwargs: Any) -> list[str]:
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(sweep_execute_cli_module, 'execute_sweep', fake_execute_sweep)
+
+    exit_code = sweep_execute_cli_module.main(
+        [
+            '--sweep-id',
+            'shared_surface_bridge_v1',
+            '--reuse-nanotabpfn-only',
+            '--nanotabpfn-root',
+            str(nanotabpfn_root),
+            '--tab-foundry-python',
+            str(fallback_python),
+            '--device',
+            'cpu',
+        ]
+    )
+
+    assert exit_code == 0
+    assert captured['reuse_nanotabpfn_only'] is True
 
 
 def test_main_rejects_explicit_missing_prior_dump(tmp_path: Path) -> None:
@@ -478,6 +517,7 @@ def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pyte
                 'order': int(kwargs['queue_row']['order']),
                 'sweep_id': kwargs['sweep_id'],
                 'prior_dump': kwargs['prior_dump'],
+                'reuse_nanotabpfn_only': kwargs['reuse_nanotabpfn_only'],
             }
         )
         return f"run_{kwargs['queue_row']['order']}"
@@ -496,7 +536,14 @@ def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pyte
     )
 
     assert executed == ['run_1']
-    assert calls == [{'order': 1, 'sweep_id': sweep_id, 'prior_dump': None}]
+    assert calls == [
+        {
+            'order': 1,
+            'sweep_id': sweep_id,
+            'prior_dump': None,
+            'reuse_nanotabpfn_only': False,
+        }
+    ]
 
 
 def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -2722,6 +2769,155 @@ def test_run_row_benchmark_full_without_reuse_fails_lazily_when_prior_dump_is_mi
         )
 
     assert captured['bootstrap_called'] is True
+
+
+def test_run_row_reuse_only_skips_fresh_nanotabpfn_helper_when_no_local_reuse_exists(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'shared_surface_bridge_v1'
+    delta_ref = 'delta_qass_context_v3'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    benchmark_dir = train_dir.parent / 'benchmark'
+    (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='manifest')
+    (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+    benchmark_dir.mkdir(parents=True, exist_ok=True)
+
+    bundle_path = tmp_path / 'bundle.json'
+    bundle_path.write_text('{}\n', encoding='utf-8')
+    nanotab_root = tmp_path / 'nano'
+    registry_path = tmp_path / 'benchmark_run_registry.json'
+    registry_path.write_text(json.dumps({'runs': {}}, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+    control_baseline_registry_path = tmp_path / 'control_baselines.json'
+    control_baseline_registry_path.write_text(
+        json.dumps({'baselines': {}}, indent=2, sort_keys=True) + '\n',
+        encoding='utf-8',
+    )
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'training': {},
+        'execution_policy': 'benchmark_full',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'model',
+        'family': 'tokenization',
+        'description': 'Benchmark the factorized row.',
+        'anchor_delta': 'Change only the queued model delta.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=registry_path,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=control_baseline_registry_path,
+    )
+
+    captured_benchmark_config: dict[str, Any] = {}
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'ensure_nanotabpfn_python',
+        lambda **_: (_ for _ in ()).throw(AssertionError('unexpected nanotabpfn bootstrap')),
+    )
+
+    def fake_benchmark(config: Any) -> dict[str, Any]:
+        captured_benchmark_config['external_benchmarks'] = config.external_benchmarks
+        captured_benchmark_config['reuse_nanotabpfn_curve_path'] = config.reuse_nanotabpfn_curve_path
+        captured_benchmark_config['reuse_nanotabpfn_error'] = config.reuse_nanotabpfn_error
+        captured_benchmark_config['reuse_nanotabpfn_metadata'] = config.reuse_nanotabpfn_metadata
+        return {
+            'tab_foundry': {
+                'best_step': 100.0,
+                'best_log_loss': 0.41,
+                'final_log_loss': 0.40,
+                'best_to_final_log_loss_delta': -0.01,
+                'best_brier_score': 0.12,
+                'final_brier_score': 0.11,
+                'best_to_final_brier_score_delta': -0.01,
+                'best_roc_auc': 0.80,
+                'final_roc_auc': 0.81,
+                'best_to_final_roc_auc_delta': 0.01,
+                'training_diagnostics': {'max_grad_norm': 7.5},
+            },
+            'nanotabpfn_error': dict(cast(dict[str, Any], config.reuse_nanotabpfn_error)),
+        }
+
+    monkeypatch.setattr(runner_module, 'run_nanotabpfn_benchmark', fake_benchmark)
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda **_kwargs: {
+            'run': {
+                'comparisons': {
+                    'vs_anchor': {
+                        'final_log_loss_delta': -0.02,
+                        'final_brier_score_delta': -0.01,
+                        'final_roc_auc_delta': 0.01,
+                    }
+                }
+            }
+        },
+    )
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'training_experiment': 'cls_benchmark_staged',
+            'training_config_profile': 'cls_benchmark_staged',
+            'surface_role': 'architecture_screen',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='anchor_missing',
+        parent_run_id='anchor_missing',
+        queue=queue,
+        prior_dump=None,
+        nanotabpfn_root=nanotab_root,
+        reuse_nanotabpfn_only=True,
+        device='cuda',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Stay reuse-only when no local nanoTabPFN comparator artifact is present.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert captured_benchmark_config['external_benchmarks'] == ('nanotabpfn',)
+    assert captured_benchmark_config['reuse_nanotabpfn_curve_path'] is None
+    assert captured_benchmark_config['reuse_nanotabpfn_metadata'] is None
+    assert captured_benchmark_config['reuse_nanotabpfn_error'] == {
+        'kind': runner_module.NANOTABPFN_REUSE_ONLY_MISSING_KIND,
+        'message': 'reuse-only execution requested but no reusable nanoTabPFN benchmark artifact was available locally',
+    }
 
 
 def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_anchor_is_unavailable(

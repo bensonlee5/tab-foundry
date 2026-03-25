@@ -62,11 +62,11 @@ This is the canonical long-form evidence note for
 - `tf_rd_020_noise_mixture_v1` remains the named TF-RD-018 fallback harder
   surface if the first optimizer-family read on the noise-drift winner is too
   close or unstable to collapse cleanly
-- the TF-RD-020 noise-drift winner remains a data-surface handoff only; the
-  active TF-RD-018 optimizer sweep
+- the TF-RD-020 noise-drift winner now feeds TF-RD-018 as both the harder
+  surface handoff and the locked optimizer anchor; the active TF-RD-018 sweep
   [tf_rd_018_optimizer_family_v1](../system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md)
-  replays the settled schedulefree `task_batch_size=4` recipe on that surface
-  instead of reusing the harmonized `400`-step TF-RD-020 row as the optimizer anchor
+  compares `adamw` and `muon` directly against the inherited harmonized
+  `400`-step TF-RD-020 row
 - The larger-corpus and winner-mix follow-up directions under closed issues
   [#154](https://github.com/bensonlee5/tab-foundry/issues/154),
   [#155](https://github.com/bensonlee5/tab-foundry/issues/155), and
@@ -81,9 +81,9 @@ This is the canonical long-form evidence note for
   that hands three explicit harder-front family winners back into TF-RD-018
 - hand TF-RD-018 a documented default harder carry-forward surface rather than
   leaving all three kept family winners equally active for optimizer follow-up
-- keep the optimizer anchor separate from the TF-RD-020 executed winner: issue
-  `#137` should replay schedulefree on `tf_rd_020_shift_noise_drift_v1` before
-  reading `adamw` or `muon`
+- keep the inherited optimizer anchor explicit: issue `#137` should read
+  `adamw` and `muon` directly against TF-RD-020 row `06` on
+  `tf_rd_020_shift_noise_drift_v1`
 - treat missingness, shift or drift, and mechanism-diversity or noise as the
   bounded first candidate fronts rather than opening a broad new corpus program
 - keep those first harder-front comparisons pre-filter and close TF-RD-020 on

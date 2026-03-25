@@ -2,7 +2,7 @@
 
 A tabular foundation model that generates the data it learns from.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/bensonlee5/tab-foundry/blob/main/LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/bensonlee5/tab-foundry/blob/main/LICENSE)
 [![Python 3.14](https://img.shields.io/badge/python-3.14-blue.svg)](https://www.python.org/downloads/)
 [![Docs](https://img.shields.io/badge/docs-bensonlee5.github.io%2Ftab--foundry-blue)](https://bensonlee5.github.io/tab-foundry/)
 
@@ -181,7 +181,7 @@ comparability. For the full architecture reference, see
 
 ## License and Contributing
 
-tab-foundry is released under the [MIT License](LICENSE).
+tab-foundry is released under the [Apache License 2.0](LICENSE).
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
 development workflow, code standards, and how to run the test suite.

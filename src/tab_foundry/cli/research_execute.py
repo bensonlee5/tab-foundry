@@ -61,6 +61,14 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
         default=str(DEFAULT_NANOTABPFN_ROOT),
         help="Path to the nanoTabPFN checkout",
     )
+    parser.add_argument(
+        "--reuse-nanotabpfn-only",
+        action="store_true",
+        help=(
+            "Do not launch a fresh nanoTabPFN helper; reuse a cached curve/error when available "
+            "and otherwise record a synthetic nanoTabPFN reuse-missing outcome."
+        ),
+    )
     parser.add_argument("--device", default=DEFAULT_DEVICE, choices=("cpu", "cuda", "mps", "auto"))
     parser.add_argument(
         "--tab-foundry-python",
@@ -119,6 +127,7 @@ def run_from_args(args: argparse.Namespace) -> int:
         sweep_id=(None if args.sweep_id is None else str(args.sweep_id)),
         prior_dump=prior_dump,
         nanotabpfn_root=nanotabpfn_root,
+        reuse_nanotabpfn_only=bool(args.reuse_nanotabpfn_only),
         device=str(args.device),
         fallback_python=fallback_python,
         orders=list(args.order),

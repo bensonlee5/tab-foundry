@@ -60,17 +60,20 @@ This is the canonical long-form evidence note for
 - [#137](https://github.com/bensonlee5/tab-foundry/issues/137) now executes as
   active sweep
   [tf_rd_018_optimizer_family_v1](../system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md)
-  with a replayed schedulefree row on `tf_rd_020_shift_noise_drift_v1`
-  followed by `adamw` and `muon`
-- the TF-RD-020 noise-drift winner is therefore a data-surface handoff only:
-  the optimizer anchor for issue `#137` is the replayed schedulefree carry on
-  the harder surface, not the original harmonized `400`-step TF-RD-020 run
+  with direct `adamw` and `muon` comparisons against the inherited TF-RD-020
+  noise-drift winner
+- the TF-RD-020 noise-drift winner is now both the data-surface handoff and
+  the locked optimizer anchor for issue `#137`, carrying forward the uncapped
+  `task_batch_size=1`, `grad_accum_steps=4`, `max_steps=400` runtime
 
 ## Current Interpretation
 
 - `task_batch_size=4` is the current default training-surface rung on the
   settled medium surface because it satisfied the runtime gate that stopped the
   first ladder
+- the inherited harder-surface optimizer anchor now comes from TF-RD-020 row
+  `06`, so issue `#137` no longer replays schedulefree on top of
+  `tf_rd_020_shift_noise_drift_v1`
 - `task_batch_size=8` is now negative gate evidence rather than the new default:
   it preserved clean batching, reused the row-1 nanoTabPFN curve, but still
   missed the `<=900s` gate and regressed final benchmark-facing metrics
@@ -84,17 +87,18 @@ This is the canonical long-form evidence note for
 - use `tf_rd_020_shift_noise_drift_v1` as the default harder carry-forward
   surface for issues `#137`, `#138`, and `#139`
 - use `tf_rd_018_optimizer_family_v1` as the active execution sweep for issue
-  `#137`: row `01` replays schedulefree on `tf_rd_020_shift_noise_drift_v1`,
-  then rows `02` and `03` compare `adamw` and `muon` against that promoted replay
+  `#137`: compare `adamw` and `muon` directly against the locked TF-RD-020 row
+  `06` noise-drift anchor
 - retain `tf_rd_020_noise_mixture_v1` as the named fallback harder surface only
   if the first optimizer-family read on noise drift is too confounded to
   collapse to a single carry-forward front
 - after the full uncapped harder dagzoo blocker closed, retune LR and schedule
   on the settled rung rather than jointly searching batch and LR across the
   whole ladder
-- issues `#137`, `#138`, and `#139` should now rebase onto
-  `task_batch_size=4` plus `tf_rd_020_shift_noise_drift_v1` instead of
-  reopening singleton updates or leaving the harder surface implicit
+- issues `#137`, `#138`, and `#139` should now rebase onto the inherited
+  TF-RD-020 noise-drift runtime (`task_batch_size=1`, `grad_accum_steps=4`,
+  `max_steps=400`) plus `tf_rd_020_shift_noise_drift_v1` instead of reopening
+  singleton updates or leaving the harder surface implicit
 - compare strong Adam-family baselines before treating `muon` or other
   specialized optimizers as necessary
 - keep architecture changes out of TF-RD-018; they belong later under
@@ -103,8 +107,9 @@ This is the canonical long-form evidence note for
 ## Open Evidence Gaps
 
 - optimizer-family, LR-shape, clipping, and step-budget evidence are still
-  open, but they should now be read on top of `task_batch_size=4` and the
-  documented `tf_rd_020_shift_noise_drift_v1` carry-forward surface
+  open, but they should now be read on top of the inherited TF-RD-020
+  noise-drift runtime and the documented `tf_rd_020_shift_noise_drift_v1`
+  carry-forward surface
 - the repo still needs an explicit handoff rule for how much of the TF-RD-018
   recipe should stay fixed when TF-RD-020 closes and
   [TF-RD-009](tf_rd_009_scaling_law_measurement.md) starts

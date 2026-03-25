@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tab-foundry"
-version = "0.11.4"
+version = "0.11.5"
 description = "Tabular foundation model that generates its own training data via dagzoo, trains on it, and predicts on new tasks"
 readme = "README.md"
-license = "MIT"
+license = "Apache-2.0"
 requires-python = ">=3.14,<3.15"
 keywords = [
   "tabular",
@@ -19,7 +19,7 @@ keywords = [
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]

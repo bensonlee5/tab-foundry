@@ -2,87 +2,17 @@ schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: tf_rd_018_optimizer_family_v1
 rows:
 - order: 1
-  delta_ref: delta_data_manifest_root_tf_rd_020_shift_noise_drift
-  status: ready
-  rationale: Open issue `#137` by replaying the settled schedulefree baseline on
-    the documented TF-RD-020 noise-drift carry-forward surface before comparing
-    any non-schedulefree optimizer family.
-  hypothesis: Replaying the kept TF-RD-018 four-task schedulefree recipe on `tf_rd_020_shift_noise_drift_v1`
-    should provide the cleanest optimizer baseline and remove the TF-RD-020 harmonized
-    `400`-step recipe as a confounder.
-  anchor_delta: Keep the settled row-first model, preprocessing surface, benchmark
-    bundle, and `task_batch_size=4` recipe fixed, but replace the carried medium
-    control corpus with `tf_rd_020_shift_noise_drift_v1` and replay the schedulefree
-    baseline at the settled `2500`-step adequacy recipe.
-  model:
-    stage: qass_context
-    stage_label: delta_qass_no_column_v3
-    module_overrides:
-      column_encoder: none
-  data:
-    surface_label: tf_rd_020_shift_noise_drift
-    source: manifest
-    corpus_ref: tf_rd_020_shift_noise_drift_v1
-  preprocessing:
-    surface_label: runtime_default
-  training:
-    surface_label: linear_warmup_decay
-    task_batch_size: 4
-    overrides:
-      apply_schedule: true
-      optimizer:
-        name: schedulefree_adamw
-        require_requested: true
-        weight_decay: 0.0
-        betas:
-        - 0.9
-        - 0.999
-        min_lr: 0.0004
-        muon_per_parameter_lr: false
-      runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
-        target_train_seconds: null
-        eval_every: 25
-        checkpoint_every: 25
-        trace_activations: false
-        val_batches: 0
-      schedule:
-        stages:
-        - name: stage1
-          steps: 2500
-          lr_max: 0.004
-          lr_schedule: linear
-          warmup_ratio: 0.05
-  parameter_adequacy_plan:
-  - Confirm the materialized corpus preserves the carried `8/28/4` invocation mix
-    and resolves the TF-RD-020 noise-drift effective config artifacts before reading
-    benchmark output.
-  - Treat this row as the replayed schedulefree harder-surface baseline, not as the
-    final optimizer-family decision by itself.
-  - Compare final log loss first, final Brier score second, final ROC AUC third, and
-    best-to-final drift fourth while treating NaNs, OOM, clipped-step fraction,
-    and runtime as guardrails.
-  run_id: null
-  followup_run_ids: []
-  decision: null
-  interpretation_status: pending
-  confounders: []
-  next_action: Run first under issue `#137` with `--promote-first-executed-row-to-anchor`,
-    then compare rows `02` and `03` against the promoted harder-surface replay.
-  notes: []
-- order: 2
   delta_ref: delta_training_adamw
   status: ready
-  parent_delta_ref: delta_data_manifest_root_tf_rd_020_shift_noise_drift
-  rationale: Compare plain AdamW against the replayed schedulefree baseline on the
-    same harder noise-drift surface so issue `#137` can separate optimizer family
-    effects from TF-RD-020 data-surface choice.
+  rationale: Compare plain AdamW against the locked TF-RD-020 noise-drift winner
+    so issue `#137` can isolate optimizer family after the uncapped harder-front
+    ladder removed dataset row caps.
   hypothesis: Plain AdamW may improve late retention or reduce drift on the harder
     surface if schedulefree dynamics are masking the best benchmark-facing read.
-  anchor_delta: Keep the replayed `tf_rd_020_shift_noise_drift_v1` data surface,
-    preprocessing surface, benchmark bundle, and settled `task_batch_size=4` runtime
-    fixed, but replace `schedulefree_adamw` with plain `adamw`.
+  anchor_delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface,
+    preprocessing surface, benchmark bundle, and harmonized `task_batch_size=1`
+    with `grad_accum_steps=4` `400`-step runtime fixed, but replace
+    `schedulefree_adamw` with plain `adamw`.
   model:
     stage: qass_context
     stage_label: delta_qass_no_column_v3
@@ -96,7 +26,7 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -109,8 +39,8 @@ rows:
         min_lr: 0.0004
         muon_per_parameter_lr: false
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -124,10 +54,10 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Treat this as a bounded optimizer-family comparison on the replayed harder-surface
-    baseline.
-  - Compare final log loss first, then final Brier score, final ROC AUC, and best-to-final
-    drift against rows `01` and `03`.
+  - Treat this as a bounded optimizer-family comparison on the locked TF-RD-020
+    harder-surface anchor.
+  - Compare final log loss first, then final Brier score, final ROC AUC, and
+    best-to-final drift against the locked anchor and row `02`.
   - Use NaNs, OOM, clipped-step fraction, and obvious LR-transfer artifacts as guardrails
     before making a reject call.
   run_id: null
@@ -135,21 +65,21 @@ rows:
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Run after row `01` is promoted so plain AdamW is read against the
-    harder-surface replay rather than the medium-surface anchor alone.
+  next_action: Run directly against the locked TF-RD-020 noise-drift anchor, then
+    compare against row `02`.
   notes: []
-- order: 3
+- order: 2
   delta_ref: delta_training_muon
   status: ready
-  parent_delta_ref: delta_data_manifest_root_tf_rd_020_shift_noise_drift
-  rationale: Compare Muon against the replayed schedulefree baseline on the same
-    harder noise-drift surface so issue `#137` can read whether a more specialized
-    optimizer changes the adequacy story.
+  rationale: Compare Muon against the locked TF-RD-020 noise-drift winner so
+    issue `#137` can read whether a more specialized optimizer changes the adequacy
+    story on the inherited harder surface.
   hypothesis: Muon may improve convergence or late retention on the harder surface,
     but a weak result should only matter if it is not obviously an LR-transfer problem.
-  anchor_delta: Keep the replayed `tf_rd_020_shift_noise_drift_v1` data surface,
-    preprocessing surface, benchmark bundle, and settled `task_batch_size=4` runtime
-    fixed, but replace `schedulefree_adamw` with `muon`.
+  anchor_delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface,
+    preprocessing surface, benchmark bundle, and harmonized `task_batch_size=1`
+    with `grad_accum_steps=4` `400`-step runtime fixed, but replace
+    `schedulefree_adamw` with `muon`.
   model:
     stage: qass_context
     stage_label: delta_qass_no_column_v3
@@ -163,7 +93,7 @@ rows:
     surface_label: runtime_default
   training:
     surface_label: linear_warmup_decay
-    task_batch_size: 4
+    task_batch_size: 1
     overrides:
       apply_schedule: true
       optimizer:
@@ -178,8 +108,8 @@ rows:
         muon_lr_scale_base: 0.2
         muon_partition_non2d: true
       runtime:
-        grad_accum_steps: 1
-        max_steps: 2500
+        grad_accum_steps: 4
+        max_steps: 400
         target_train_seconds: null
         eval_every: 25
         checkpoint_every: 25
@@ -193,10 +123,10 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Treat this as a bounded optimizer-family comparison only on the replayed harder-surface
-    baseline.
-  - Compare final log loss first, then final Brier score, final ROC AUC, and best-to-final
-    drift against rows `01` and `02`.
+  - Treat this as a bounded optimizer-family comparison only on the locked TF-RD-020
+    harder-surface anchor.
+  - Compare final log loss first, then final Brier score, final ROC AUC, and
+    best-to-final drift against the locked anchor and row `01`.
   - If weak, defer rather than reject unless the result is clearly worse without an
     offsetting stability or runtime benefit and does not look like pure LR-transfer misspecification.
   run_id: null
@@ -204,6 +134,6 @@ rows:
   decision: null
   interpretation_status: pending
   confounders: []
-  next_action: Run after row `01` is promoted; if the result is close, retain at
-    most one fallback optimizer family for issue `#138`.
+  next_action: Run directly against the locked TF-RD-020 noise-drift anchor; if
+    the result is close, retain at most one fallback optimizer family for issue `#138`.
   notes: []

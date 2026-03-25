@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.5] - 2026-03-25
+
+### Changed
+
+- User-facing note: `tab-foundry research sweep execute` now accepts
+  `--reuse-nanotabpfn-only`. When set, manifest-backed sweep rows reuse a
+  cached nanoTabPFN curve or cached nanoTabPFN error if one matches locally,
+  and otherwise record a synthetic reuse-missing nanoTabPFN outcome instead of
+  launching a fresh helper run.
+
 ## [0.11.4] - 2026-03-25
 
 ### Changed
