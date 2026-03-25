@@ -1,12 +1,11 @@
-______________________________________________________________________
-
+---
 title: "Sweeps"
 linkTitle: "Sweeps"
 description: "Start here for the active sweep contract, queue discipline, and inspect-first workflow."
 weight: 10
 aliases:
-
-- /docs/sweeps/
+  - /docs/sweeps/
+---
 
 ______________________________________________________________________
 

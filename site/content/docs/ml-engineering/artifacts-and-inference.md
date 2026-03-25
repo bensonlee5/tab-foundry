@@ -1,12 +1,11 @@
-______________________________________________________________________
-
+---
 title: "Artifacts & Inference"
 linkTitle: "Artifacts & Inference"
 description: "Start here for manifests, runs, checkpoints, export bundles, and runtime handoff boundaries."
 weight: 10
 aliases:
-
-- /docs/artifacts-and-inference/
+  - /docs/artifacts-and-inference/
+---
 
 ______________________________________________________________________
 

@@ -1,6 +1,10 @@
-______________________________________________________________________
-
-## title: "Development Docs" linkTitle: "Development" description: "Deep references for architecture, planning, config, and repo-shape decisions." weight: 40 no_list: true
+---
+title: "Development Docs"
+linkTitle: "Development"
+description: "Deep references for architecture, planning, config, and repo-shape decisions."
+weight: 40
+no_list: true
+---
 
 Use this section when you need the deeper references behind architecture,
 planning, config, or repo-shape decisions.

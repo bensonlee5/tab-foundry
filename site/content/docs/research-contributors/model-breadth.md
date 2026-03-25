@@ -1,12 +1,11 @@
-______________________________________________________________________
-
+---
 title: "Model Breadth"
 linkTitle: "Model Breadth"
 description: "Entry point for many-class, regression, scaling, and later capability-expansion questions."
 weight: 40
 aliases:
-
-- /docs/model-breadth/
+  - /docs/model-breadth/
+---
 
 ______________________________________________________________________
 

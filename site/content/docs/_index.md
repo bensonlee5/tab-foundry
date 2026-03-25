@@ -1,6 +1,10 @@
-______________________________________________________________________
-
-## title: "Documentation" linkTitle: "Docs" description: "Start here to choose the right docs path for repo overview, research work, or ML engineering." weight: 1 no_list: true
+---
+title: "Documentation"
+linkTitle: "Docs"
+description: "Start here to choose the right docs path for repo overview, research work, or ML engineering."
+weight: 1
+no_list: true
+---
 
 ## Start Here
 

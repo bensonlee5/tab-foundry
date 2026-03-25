@@ -1,12 +1,11 @@
-______________________________________________________________________
-
+---
 title: "Architecture"
 linkTitle: "Architecture"
 description: "Best route from the active model question to the architecture, design, and code references that answer it."
 weight: 15
 aliases:
-
-- /docs/architecture/
+  - /docs/architecture/
+---
 
 ______________________________________________________________________
 
