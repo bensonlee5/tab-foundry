@@ -435,6 +435,14 @@ def _resolved_recipe_paths(
     return recipe_paths
 
 
+def _load_recipe_from_path(recipe_id: str, recipe_path: Path) -> CorpusRecipe:
+    try:
+        payload = _load_yaml_mapping(recipe_path, context=f"corpus recipe {recipe_id!r}")
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"corpus recipe {recipe_id!r} does not exist: {recipe_path}") from exc
+    return _recipe_from_payload(payload, recipe_path=recipe_path)
+
+
 def load_corpus_recipe(
     recipe_id: str,
     *,
@@ -450,10 +458,7 @@ def load_corpus_recipe(
     recipe_path = recipe_paths.get(recipe_id)
     if recipe_path is None:
         raise RuntimeError(f"unknown corpus recipe: {recipe_id!r}")
-    return _recipe_from_payload(
-        _load_yaml_mapping(recipe_path, context=f"corpus recipe {recipe_id!r}"),
-        recipe_path=recipe_path,
-    )
+    return _load_recipe_from_path(recipe_id, recipe_path)
 
 
 def list_corpus_recipes(
@@ -468,10 +473,7 @@ def list_corpus_recipes(
         sweeps_root=sweeps_root,
     )
     return [
-        _recipe_from_payload(
-            _load_yaml_mapping(recipe_paths[recipe_id], context=f"corpus recipe {recipe_id!r}"),
-            recipe_path=recipe_paths[recipe_id],
-        )
+        _load_recipe_from_path(recipe_id, recipe_paths[recipe_id])
         for recipe_id in sorted(recipe_paths)
     ]
 
@@ -482,6 +484,32 @@ def _global_recipe_paths(*, repo_root: Path | None = None) -> dict[str, Path]:
         index_path=corpus_recipe_index_path(repo_root=resolved_repo_root),
         root=corpus_recipes_root(repo_root=resolved_repo_root),
         context="corpus recipe index",
+        allow_missing=False,
+    )
+
+
+def _sweep_recipe_paths(
+    sweep_id: str,
+    *,
+    repo_root: Path | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Path] | None:
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    index_path = sweep_corpus_recipe_index_path(
+        sweep_id,
+        repo_root=resolved_repo_root,
+        sweeps_root=sweeps_root,
+    )
+    if not index_path.expanduser().resolve().exists():
+        return None
+    return _recipe_paths_from_index(
+        index_path=index_path,
+        root=sweep_corpus_recipes_root(
+            sweep_id,
+            repo_root=resolved_repo_root,
+            sweeps_root=sweeps_root,
+        ),
+        context=f"sweep-local corpus recipe index for {sweep_id!r}",
         allow_missing=False,
     )
 
@@ -498,8 +526,8 @@ def _recipe_storage_context(
     resolved_recipe_path = recipe.recipe_path.expanduser().resolve()
     global_recipe_path = _global_recipe_paths(repo_root=repo_root).get(recipe.recipe_id)
     uses_scoped_identity = (
-        global_recipe_path is not None
-        and global_recipe_path.expanduser().resolve() != resolved_recipe_path
+        global_recipe_path is None
+        or global_recipe_path.expanduser().resolve() != resolved_recipe_path
     )
     return CorpusRecipeStorageContext(
         recipe_identity=_recipe_identity_for_path(resolved_recipe_path),
@@ -619,16 +647,25 @@ def _selected_recipe_for_lookup(
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
 ) -> tuple[CorpusRecipe, CorpusRecipeStorageContext] | None:
-    try:
-        recipe = load_corpus_recipe(
-            recipe_id,
-            repo_root=repo_root,
-            sweep_id=sweep_id,
+    resolved_repo_root = (repo_root or _repo_root()).expanduser().resolve()
+    if sweep_id is not None:
+        sweep_recipe_paths = _sweep_recipe_paths(
+            sweep_id,
+            repo_root=resolved_repo_root,
             sweeps_root=sweeps_root,
         )
-    except (FileNotFoundError, RuntimeError):
+        if sweep_recipe_paths is not None and recipe_id in sweep_recipe_paths:
+            recipe = _load_recipe_from_path(recipe_id, sweep_recipe_paths[recipe_id])
+            return recipe, _recipe_storage_context(recipe, repo_root=resolved_repo_root)
+
+    try:
+        global_recipe_path = _global_recipe_paths(repo_root=resolved_repo_root).get(recipe_id)
+        if global_recipe_path is None:
+            return None
+        recipe = _load_recipe_from_path(recipe_id, global_recipe_path)
+    except RuntimeError:
         return None
-    return recipe, _recipe_storage_context(recipe, repo_root=repo_root)
+    return recipe, _recipe_storage_context(recipe, repo_root=resolved_repo_root)
 
 
 def _candidate_corpus_record_paths(
