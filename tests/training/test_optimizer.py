@@ -91,7 +91,11 @@ def test_muon_init_failures_raise(
         def __init__(self, *args: object, **kwargs: object) -> None:
             raise RuntimeError("simulated muon init bug")
 
-    monkeypatch.setitem(sys.modules, "muon", SimpleNamespace(Muon=_RaisingMuon))
+    monkeypatch.setitem(
+        sys.modules,
+        "muon",
+        SimpleNamespace(Muon=_RaisingMuon, SingleDeviceMuon=_RaisingMuon),
+    )
 
     model = nn.Linear(4, 2)
     with pytest.raises(RuntimeError, match="Muon initialization failed"):
@@ -114,7 +118,7 @@ def test_muon_no_eligible_params_falls_back_without_init(
             self.embed = nn.Embedding(16, 8)
             self.bias = nn.Parameter(torch.zeros(8))
 
-    monkeypatch.setitem(sys.modules, "muon", SimpleNamespace(Muon=object))
+    monkeypatch.setitem(sys.modules, "muon", SimpleNamespace(Muon=object, SingleDeviceMuon=object))
 
     model = _EmbeddingOnly()
     sel = build_optimizer(
@@ -162,6 +166,31 @@ def test_muon_param_group_builder() -> None:
     assert isinstance(second_group, dict)
     assert first_group["lr"] == pytest.approx(1e-3 * 0.2 * math.sqrt(4.0))
     assert second_group["lr"] == pytest.approx(1e-3)
+
+
+def test_muon_single_device_step_supports_per_parameter_lr_without_process_group() -> None:
+    _ = pytest.importorskip("muon")
+
+    model = nn.Linear(8, 4)
+    x = torch.randn(4, 8)
+    y = torch.randn(4, 4)
+    loss = ((model(x) - y) ** 2).mean()
+    loss.backward()
+
+    selection = build_optimizer(
+        model,
+        name="muon",
+        lr=1e-3,
+        weight_decay=0.0,
+        extra_kwargs={},
+        require_requested=True,
+        muon_per_parameter_lr=True,
+        muon_partition_non2d=True,
+    )
+
+    assert selection.resolved_name == "muon+adamw"
+    for _name, optimizer in selection.optimizers:
+        optimizer.step(None)
 
 
 def test_partition_muon_params_excludes_embeddings_and_non_2d() -> None:

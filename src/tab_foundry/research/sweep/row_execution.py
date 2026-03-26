@@ -59,6 +59,7 @@ DEFAULT_CONCLUSION = (
 ALLOWED_DECISIONS = {"keep", "defer", "reject"}
 SCREEN_ONLY_POLICY = "screen_only"
 BENCHMARK_FULL_POLICY = "benchmark_full"
+NANOTABPFN_REUSE_ONLY_MISSING_KIND = "reuse_only_missing"
 
 
 def _mapping_value(payload: Mapping[str, Any], key: str) -> Mapping[str, Any] | None:
@@ -148,6 +149,7 @@ def run_row(
     decision: str,
     conclusion: str,
     paths: ExecutionPaths,
+    reuse_nanotabpfn_only: bool = False,
 ) -> str:
     execution_policy = _normalize_execution_policy(queue_row)
     _row_dependencies.resolve_dynamic_model_overrides(
@@ -315,15 +317,29 @@ def run_row(
             flush=True,
         )
     elif EXTERNAL_BENCHMARK_NANOTABPFN in external_benchmarks:
-        _ = ensure_nanotabpfn_python(
-            nanotabpfn_root=nanotabpfn_root,
-            fallback_python=fallback_python,
-        )
-        print(
-            f"[row {int(queue_row['order']):02d}] running fresh nanoTabPFN helper",
-            f"device={device}",
-            flush=True,
-        )
+        if reuse_nanotabpfn_only:
+            reuse_nanotabpfn_error = {
+                "kind": NANOTABPFN_REUSE_ONLY_MISSING_KIND,
+                "message": (
+                    "reuse-only execution requested but no reusable nanoTabPFN benchmark "
+                    "artifact was available locally"
+                ),
+            }
+            print(
+                f"[row {int(queue_row['order']):02d}] skipping fresh nanoTabPFN helper",
+                "reason=reuse_only_requested",
+                flush=True,
+            )
+        else:
+            _ = ensure_nanotabpfn_python(
+                nanotabpfn_root=nanotabpfn_root,
+                fallback_python=fallback_python,
+            )
+            print(
+                f"[row {int(queue_row['order']):02d}] running fresh nanoTabPFN helper",
+                f"device={device}",
+                flush=True,
+            )
     else:
         print(
             f"[row {int(queue_row['order']):02d}] running external benchmarks",

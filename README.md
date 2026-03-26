@@ -2,7 +2,7 @@
 
 A tabular foundation model that generates the data it learns from.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/bensonlee5/tab-foundry/blob/main/LICENSE)
 [![Python 3.14](https://img.shields.io/badge/python-3.14-blue.svg)](https://www.python.org/downloads/)
 [![Docs](https://img.shields.io/badge/docs-bensonlee5.github.io%2Ftab--foundry-blue)](https://bensonlee5.github.io/tab-foundry/)
 
@@ -60,6 +60,40 @@ tab-foundry eval checkpoint \
 ```
 
 For full setup details, see [docs/getting-started.md](docs/getting-started.md).
+
+Python `3.14` is the pinned runtime for this repo, and the standard local setup
+assumes a repo-local `.venv`.
+
+## Workflow Surfaces
+
+`tab-foundry` is the canonical packaged CLI. Use `./scripts/dev` as the fast
+repo-local path for bootstrap, verification, and Iris smoke; keep
+`scripts/bench/` and `scripts/materialize_tf_rd_013_support.py` reserved for
+their narrow internal helper workflows.
+
+| Surface | Use it for |
+| --- | --- |
+| `tab-foundry` | Canonical packaged CLI for data, training, evaluation, export, benchmark, and research workflows. |
+| `./scripts/dev` | Fast repo-local bootstrap, doctor, review, verification, and Iris smoke flows. |
+| `scripts/bench/` | Standalone internal benchmark helper entrypoints that stay outside the packaged CLI. |
+| `scripts/materialize_tf_rd_013_support.py` | Narrow TF-RD-013 support materialization workflow. |
+
+Use `--help` in this order:
+
+1. `tab-foundry --help`
+1. `tab-foundry <group> --help`
+1. `tab-foundry <group> <command> --help`
+
+| Namespace | Purpose | Read next |
+| --- | --- | --- |
+| `data` | Corpus recipes, corpus materialization, and manifest inspection. | `docs/workflows.md` |
+| `dev` | Fast inspection and verification surfaces for local development. | `docs/ml-engineering.md` |
+| `train`, `eval`, `export` | Manifest-backed training, checkpoint evaluation, and inference-bundle workflows. | `docs/ml-engineering.md` |
+| `bench` | Smoke harnesses, benchmark comparisons, and baseline-registry flows. | `docs/ml-engineering.md` |
+| `research` | Sweep queues, inspection, execution, and sweep-aware corpus materialization. | `docs/research-contributors.md` |
+
+For the canonical leaf-command inventory, use
+`docs/development/codebase-navigation.md`.
 
 ## What Makes This Different
 
@@ -133,7 +167,7 @@ comparability. For the full architecture reference, see
 | Run research sweeps | [Research contributors](docs/research-contributors.md) | [Research program](program.md) |
 | Work on artifacts or infra | [ML engineering](docs/ml-engineering.md) | [Inference & export](docs/inference.md) |
 
-## Docs and Resources
+## Resources
 
 - [Published docs site](https://bensonlee5.github.io/tab-foundry/) for the
   fastest route to workflows, architecture, and research context
@@ -147,7 +181,7 @@ comparability. For the full architecture reference, see
 
 ## License and Contributing
 
-tab-foundry is released under the [MIT License](LICENSE).
+tab-foundry is released under the [Apache License 2.0](LICENSE).
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
 development workflow, code standards, and how to run the test suite.

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import inspect
 import math
+from types import MethodType
 from typing import Any
 
 import torch
@@ -67,6 +68,26 @@ def _partition_muon_params(
     return muon_params, adamw_params
 
 
+def _wrap_step_to_ignore_unused_closure(
+    optimizer: torch.optim.Optimizer,
+) -> torch.optim.Optimizer:
+    step_sig = inspect.signature(type(optimizer).step)
+    if "closure" in step_sig.parameters:
+        return optimizer
+
+    original_step = optimizer.step
+
+    def _step_with_optional_closure(
+        self: torch.optim.Optimizer,
+        closure: Any = None,
+    ) -> Any:
+        del self, closure
+        return original_step()
+
+    setattr(optimizer, "step", MethodType(_step_with_optional_closure, optimizer))
+    return optimizer
+
+
 def build_optimizer(
     model: nn.Module,
     *,
@@ -126,7 +147,7 @@ def build_optimizer(
 
     if requested == "muon":
         try:
-            from muon import Muon  # type: ignore
+            import muon as muon_module  # type: ignore
         except (ImportError, ModuleNotFoundError) as exc:
             if require_requested:
                 raise RuntimeError(
@@ -141,9 +162,10 @@ def build_optimizer(
                 fallback_reason=fallback_reason,
             )
 
-        muon_sig = inspect.signature(Muon)
-        allowed_muon_keys = set(muon_sig.parameters.keys())
-        muon_kwargs = {k: v for k, v in extra_kwargs.items() if k in allowed_muon_keys}
+        distributed_muon_cls = getattr(muon_module, "Muon", None)
+        if not callable(distributed_muon_cls):
+            raise RuntimeError("Installed muon package does not export Muon.")
+
         muon_source_params = params
         adamw_tail_params: list[nn.Parameter] = []
         if muon_partition_non2d:
@@ -157,6 +179,30 @@ def build_optimizer(
                 resolved_name="adamw",
                 fallback_reason=fallback_reason,
             )
+        dist_ready = torch.distributed.is_available() and torch.distributed.is_initialized()
+        use_single_device_muon = not dist_ready
+        muon_cls = distributed_muon_cls
+        if use_single_device_muon:
+            single_device_muon_cls = getattr(muon_module, "SingleDeviceMuon", None)
+            if not callable(single_device_muon_cls):
+                if require_requested:
+                    raise RuntimeError(
+                        "Requested optimizer 'muon' requires SingleDeviceMuon when no distributed "
+                        "process group is initialized."
+                    )
+                fallback_reason = "muon_single_device_unavailable"
+                opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay, **extra_kwargs)
+                return OptimizerSelection(
+                    optimizers=[("adamw", opt)],
+                    requested_name=requested,
+                    resolved_name="adamw",
+                    fallback_reason=fallback_reason,
+                )
+            muon_cls = single_device_muon_cls
+
+        muon_sig = inspect.signature(muon_cls)
+        allowed_muon_keys = set(muon_sig.parameters.keys())
+        muon_kwargs = {k: v for k, v in extra_kwargs.items() if k in allowed_muon_keys}
         muon_params = _build_muon_params(
             muon_source_params,
             base_lr=lr,
@@ -165,9 +211,10 @@ def build_optimizer(
         )
         optimizers: list[tuple[str, torch.optim.Optimizer]] = []
         try:
-            muon_opt = Muon(muon_params, lr=lr, weight_decay=weight_decay, **muon_kwargs)
+            muon_opt = muon_cls(muon_params, lr=lr, weight_decay=weight_decay, **muon_kwargs)
         except Exception as exc:
             raise RuntimeError("Muon initialization failed for requested optimizer 'muon'.") from exc
+        muon_opt = _wrap_step_to_ignore_unused_closure(muon_opt)
         optimizers.append(("muon", muon_opt))
         if adamw_tail_params:
             adamw_tail = torch.optim.AdamW(

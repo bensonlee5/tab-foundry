@@ -17,19 +17,34 @@ provenance_labels:
   shift_mode: noise_drift
 invocations:
 - invocation_id: benchmark_cpu
-  config_ref: configs/tf_rd_020_shift_noise_drift_benchmark_cpu_v1.yaml
+  base_config_ref: configs/benchmark_cpu.yaml
+  config_overrides:
+    shift:
+      enabled: true
+      mode: noise_drift
+      variance_scale: 0.5
   num_datasets: 8
   seed: 1
   device: cpu
   hardware_policy: none
 - invocation_id: default_medium
-  config_ref: configs/tf_rd_020_shift_noise_drift_default_v1.yaml
+  base_config_ref: configs/default.yaml
+  config_overrides:
+    shift:
+      enabled: true
+      mode: noise_drift
+      variance_scale: 0.5
   num_datasets: 28
   seed: 1
   device: cpu
   hardware_policy: none
 - invocation_id: large_shape
-  config_ref: configs/tf_rd_020_shift_noise_drift_benchmark_cuda_h100_large_shape_v1.yaml
+  base_config_ref: configs/benchmark_cuda_h100_large_shape.yaml
+  config_overrides:
+    shift:
+      enabled: true
+      mode: noise_drift
+      variance_scale: 0.5
   num_datasets: 4
   seed: 1
   device: cpu

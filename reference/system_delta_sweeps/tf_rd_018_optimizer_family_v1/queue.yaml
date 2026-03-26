@@ -1,137 +1,23 @@
-schema: tab-foundry-system-delta-queue-v1
-generated_from_sweep_id: tf_rd_018_optimizer_family_v1
-catalog_path: reference/system_delta_catalog.yaml
-canonical_sweep_path: reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/sweep.yaml
-canonical_queue_path: reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/queue.yaml
-canonical_matrix_path: reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md
+schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: tf_rd_018_optimizer_family_v1
-parent_sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
-sweep_status: draft
-complexity_level: binary_md
-anchor_run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2
-benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
-control_baseline_id: cls_benchmark_linear_v2
-external_benchmarks:
-- nanotabpfn
-training_experiment: cls_benchmark_staged_corpus
-training_config_profile: cls_benchmark_staged_corpus
-surface_role: architecture_screen
-comparison_policy: anchor_only
-upstream_reference:
-  name: TabICLv2
-  model_source: https://arxiv.org/abs/2602.11139
-anchor_surface:
-  notes:
-  - This sweep opens TF-RD-018 issue `#137` by comparing optimizer families directly
-    against the completed TF-RD-020 noise-drift winner after the harder-front ladder
-    removed dataset row caps.
-  - Keep the settled row-first model, preprocessing surface, benchmark bundle, and
-    harmonized `task_batch_size=1`, `grad_accum_steps=4`, `400`-step runtime fixed;
-    only the inherited harder data surface and optimizer family are in scope here.
-  - The locked anchor is benchmark registry run `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`
-    on `tf_rd_020_shift_noise_drift_v1`; TF-RD-018 does not replay or promote a separate
-    schedulefree row before reading `adamw` and `muon`.
-  - Compare `adamw` and `muon` directly against the locked TF-RD-020 anchor and against
-    each other on the same uncapped harder-surface runtime.
-  - '`tf_rd_020_noise_mixture_v1` remains the named fallback harder surface, but it
-    is intentionally outside `tf_rd_018_optimizer_family_v1`.'
-  dimension_table:
-  - dimension: locked anchor
-    upstream: TabICLv2 motivates synthetic pretraining but does not define this repo-local
-      row-first promoted-anchor contract.
-    anchor: The kept `row_cls + qass + no tfcol` TF-RD-020 noise-drift winner trained
-      on the uncapped `task_batch_size=1`, `grad_accum_steps=4`, `400`-step runtime.
-    interpretation: TF-RD-018 issue `#137` must keep the promoted row-first model
-      surface fixed while reading optimizer-family evidence.
-  - dimension: harder carry-forward surface
-    upstream: No upstream reference defines this exact dagzoo harder-surface handoff.
-    anchor: The locked harder-surface anchor is `tf_rd_020_shift_noise_drift_v1`,
-      inherited directly from TF-RD-020 row `06`.
-    interpretation: The TF-RD-020 noise-drift winner is already the carried optimizer
-      anchor for this sweep rather than a replay target inside the queue.
-  - dimension: optimizer family
-    upstream: Not applicable.
-    anchor: Schedulefree AdamW on the inherited TF-RD-020 row-`06` runtime is the
-      locked comparison baseline for this sweep.
-    interpretation: Compare `adamw` and `muon` on the same harder-surface recipe before
-      reopening LR, clipping, or budget work.
-  - dimension: fallback scope
-    upstream: Not applicable.
-    anchor: '`tf_rd_020_noise_mixture_v1` is excluded from this v1 sweep.'
-    interpretation: If noise drift is too confounded, stop with an explicit defer
-      note and open fallback-surface work separately rather than broadening
-anchor_context:
-  run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2
-  experiment: cls_benchmark_staged_corpus
-  config_profile: cls_benchmark_staged_corpus
-  model:
-    arch: tabfoundry_staged
-    benchmark_profile: delta_qass_no_column_v3
-    stage: qass_context
-    stage_label: delta_qass_no_column_v3
-    module_selection:
-      allow_test_self_attention: true
-      column_encoder: none
-      context_encoder: qass
-      feature_encoder: shared
-      head: small_class
-      post_encoder_norm: none
-      post_stack_norm: none
-      row_pool: row_cls
-      table_block_residual_scale: none
-      table_block_style: prenorm
-      target_conditioner: label_token
-      tokenizer: shifted_grouped
-  surface_labels:
-    data: tf_rd_020_shift_noise_drift
-    model: delta_qass_no_column_v3
-    preprocessing: runtime_default
-    training: linear_warmup_decay
 rows:
 - order: 1
-  delta_id: delta_training_adamw
+  delta_ref: delta_training_adamw
   status: completed
-  dimension_family: training
-  family: optimizer
-  binary_applicable: true
-  description: Keep the anchor model, data, and preprocessing surfaces fixed but replace
-    schedulefree AdamW with plain AdamW on the same linear-warmup-decay schedule.
   rationale: Compare plain AdamW against the locked TF-RD-020 noise-drift winner so
     issue `#137` can isolate optimizer family after the uncapped harder-front ladder
     removed dataset row caps.
   hypothesis: Plain AdamW may improve late retention or reduce drift on the harder
     surface if schedulefree dynamics are masking the best benchmark-facing read.
-  upstream_delta: Not applicable; this is a repo-local optimizer-family comparison
-    on the settled row-first anchor.
   anchor_delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface,
     preprocessing surface, benchmark bundle, and harmonized `task_batch_size=1` with
     `grad_accum_steps=4` `400`-step runtime fixed, but replace `schedulefree_adamw`
     with plain `adamw`.
-  entangled_legacy_stage: none
-  expected_effect: AdamW may provide a cleaner or more stable optimization path if
-    schedulefree dynamics are masking the anchor's real quality ceiling.
-  adequacy_knobs:
-  - optimizer.name
-  - optimizer.weight_decay
-  - optimizer.betas
-  - optimizer.min_lr
-  parameter_adequacy_policy:
-    default_plan:
-    - Treat this as a bounded optimizer-family comparison on the settled warmup-decay
-      surface.
-    - Compare final log loss first, then supporting calibration and stability diagnostics.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
   model:
     stage: qass_context
     stage_label: delta_qass_no_column_v3
     module_overrides:
       column_encoder: none
-  dynamic_model_overrides: null
   data:
     surface_label: tf_rd_020_shift_noise_drift
     source: manifest
@@ -174,7 +60,6 @@ rows:
     drift against the locked anchor and row `02`.
   - Use NaNs, OOM, clipped-step fraction, and obvious LR-transfer artifacts as guardrails
     before making a reject call.
-  execution_policy: benchmark_full
   run_id: sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1
   followup_run_ids: []
   decision: defer
@@ -186,7 +71,6 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
-  screen_metrics: null
   benchmark_metrics:
     best_step: 375
     max_grad_norm: 3.076207160949707
@@ -208,50 +92,22 @@ rows:
     row_pool_final_window_mean_grad_norm: 0.016934863011069324
     context_encoder_final_window_mean_grad_norm: 0.028639515760509403
 - order: 2
-  delta_id: delta_training_muon
+  delta_ref: delta_training_muon
   status: completed
-  dimension_family: training
-  family: optimizer
-  binary_applicable: true
-  description: Keep the anchor model, data, and preprocessing surfaces fixed but replace
-    schedulefree AdamW with Muon on the same linear-warmup-decay schedule.
   rationale: Compare Muon against the locked TF-RD-020 noise-drift winner so issue
     `#137` can read whether a more specialized optimizer changes the adequacy story
     on the inherited harder surface.
   hypothesis: Muon may improve convergence or late retention on the harder surface,
     but a weak result should only matter if it is not obviously an LR-transfer problem.
-  upstream_delta: Not applicable; this is a repo-local optimizer-family comparison
-    on the settled row-first anchor.
   anchor_delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface,
     preprocessing surface, benchmark bundle, and harmonized `task_batch_size=1` with
     `grad_accum_steps=4` `400`-step runtime fixed, but replace `schedulefree_adamw`
     with `muon`.
-  entangled_legacy_stage: none
-  expected_effect: Muon may improve convergence or late retention on the settled row-first
-    surface, but any read must stay separate from model-surface expansion.
-  adequacy_knobs:
-  - optimizer.name
-  - optimizer.weight_decay
-  - optimizer.betas
-  - optimizer.min_lr
-  - optimizer.muon_per_parameter_lr
-  parameter_adequacy_policy:
-    default_plan:
-    - Treat this as a bounded optimizer-family comparison only.
-    - If weak, defer rather than reject until the optimizer-default surface itself
-      has had one clean read on the locked anchor.
-    default_negative_decision: defer
-    reject_requires:
-    - isolated_change
-    - adequacy_plan_complete
-    - clearly_worse_without_offsetting_benefit
-  applicability_guards: []
   model:
     stage: qass_context
     stage_label: delta_qass_no_column_v3
     module_overrides:
       column_encoder: none
-  dynamic_model_overrides: null
   data:
     surface_label: tf_rd_020_shift_noise_drift
     source: manifest
@@ -297,7 +153,6 @@ rows:
   - If weak, defer rather than reject unless the result is clearly worse without an
     offsetting stability or runtime benefit and does not look like pure LR-transfer
     misspecification.
-  execution_policy: benchmark_full
   run_id: sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1
   followup_run_ids: []
   decision: defer
@@ -309,7 +164,6 @@ rows:
   - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
-  screen_metrics: null
   benchmark_metrics:
     best_step: 125
     max_grad_norm: 3.7085604667663574
