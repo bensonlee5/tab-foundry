@@ -107,7 +107,7 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
 def test_tf_rd_013_shape_aware_sweep_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "tf_rd_018_optimizer_family_v1"
+    assert index["active_sweep_id"] == "tf_rd_018_lr_warmup_shape_v1"
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {

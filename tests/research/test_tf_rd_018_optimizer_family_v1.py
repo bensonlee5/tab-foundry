@@ -45,17 +45,17 @@ def _assert_row_state(row: dict[str, Any], *, delta_ref: str) -> None:
     assert benchmark_metrics["final_log_loss"] is not None
 
 
-def test_tf_rd_018_optimizer_family_v1_is_registered_and_active() -> None:
+def test_tf_rd_018_optimizer_family_v1_is_registered_and_completed() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == SWEEP_ID
+    assert index["active_sweep_id"] == "tf_rd_018_lr_warmup_shape_v1"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps["tf_rd_020_harder_dagzoo_ladder_v1"]["status"] == "completed"
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_020_harder_dagzoo_ladder_v1",
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -89,6 +89,7 @@ def test_tf_rd_018_optimizer_family_v1_inherits_noise_drift_anchor_for_optimizer
     assert any("sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2" in note for note in notes)
     assert any("does not replay or promote a separate schedulefree row" in note for note in notes)
     assert any("tf_rd_020_noise_mixture_v1" in note for note in notes)
+    assert any("inherited the same short-run mismatch" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
@@ -139,7 +140,7 @@ def test_tf_rd_018_optimizer_family_v1_inherits_noise_drift_anchor_for_optimizer
             }
         ]
     }
-    assert "locked TF-RD-020 noise-drift anchor" in row1["next_action"]
+    assert "carry the locked `schedulefree_adamw` anchor into TF-RD-018 issue `#138`" in row1["next_action"]
     assert "parent_delta_ref" not in row1
 
     row2 = _row_by_ref(queue, "delta_training_muon")
@@ -153,7 +154,7 @@ def test_tf_rd_018_optimizer_family_v1_inherits_noise_drift_anchor_for_optimizer
     assert "parent_delta_ref" not in row2
 
 
-def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_active_alias() -> None:
+def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_canonical_artifacts() -> None:
     queue = load_system_delta_queue(
         sweep_id=SWEEP_ID,
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
@@ -203,7 +204,7 @@ def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_activ
     assert "delta_training_adamw" in matrix
     assert "delta_training_muon" in matrix
     assert "tf_rd_020_shift_noise_drift_v1" in matrix
-    assert "generated_from_sweep_id: tf_rd_018_optimizer_family_v1" in active_queue
-    assert "canonical_queue_path: reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/queue.yaml" in active_queue
-    assert "- active sweep id: `tf_rd_018_optimizer_family_v1`" in program
-    assert "- canonical sweep queue: `reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/queue.yaml`" in program
+    assert "generated_from_sweep_id: tf_rd_018_lr_warmup_shape_v1" in active_queue
+    assert "canonical_queue_path: reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/queue.yaml" in active_queue
+    assert "- active sweep id: `tf_rd_018_lr_warmup_shape_v1`" in program
+    assert "- canonical sweep queue: `reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/queue.yaml`" in program

@@ -11,6 +11,7 @@ from tab_foundry.data.surface import DataSurfaceConfig, resolve_data_surface
 from tab_foundry.hashing import sha256_path
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.spec import (
+    SANDWICH_MODEL_ARCH,
     checkpoint_model_build_spec_from_mappings,
     model_build_spec_from_mappings,
 )
@@ -219,6 +220,14 @@ def build_training_surface_record(
         model_payload["module_selection"] = surface.module_selection()
         model_payload["module_hyperparameters"] = surface.component_hyperparameters()
         model_label = str(surface.stage_label)
+    elif model_spec.arch == SANDWICH_MODEL_ARCH:
+        model_payload["architecture"] = {
+            "row_latents": int(model_spec.sandwich_row_latents),
+            "col_latents": int(model_spec.sandwich_col_latents),
+            "layers": int(model_spec.sandwich_layers),
+            "heads": int(model_spec.sandwich_heads),
+            "ff_expansion": int(model_spec.sandwich_ff_expansion),
+        }
 
     data_label = str(data_surface.surface_label)
     preprocessing_label = str(preprocessing_surface.surface_label)

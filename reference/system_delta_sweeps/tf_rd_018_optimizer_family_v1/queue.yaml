@@ -65,12 +65,14 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run directly against the locked TF-RD-020 noise-drift anchor, then
-    compare against row `02`.
+  next_action: Leave deferred and carry the locked `schedulefree_adamw` anchor into
+    TF-RD-018 issue `#138` on the same `tf_rd_020_shift_noise_drift_v1` runtime.
   notes:
   - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - This row underperformed the locked anchor on final log loss, final Brier score,
+    and final ROC AUC, so it does not remain as an optimizer fallback.
   benchmark_metrics:
     best_step: 375
     max_grad_norm: 3.076207160949707
@@ -158,12 +160,15 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Run directly against the locked TF-RD-020 noise-drift anchor; if the
-    result is close, retain at most one fallback optimizer family for issue `#138`.
+  next_action: Leave deferred, do not activate the `tf_rd_020_noise_mixture_v1`
+    fallback surface, and carry the locked `schedulefree_adamw` anchor into
+    TF-RD-018 issue `#138`.
   notes:
   - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
+  - This row regressed final log loss and final Brier badly enough that TF-RD-018
+    does not retain any non-schedulefree optimizer fallback after closing issue `#137`.
   benchmark_metrics:
     best_step: 125
     max_grad_norm: 3.7085604667663574

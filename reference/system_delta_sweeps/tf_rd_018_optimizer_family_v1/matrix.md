@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_018_optimizer_fa
 ## Sweep
 
 - Sweep id: `tf_rd_018_optimizer_family_v1`
-- Sweep status: `draft`
+- Sweep status: `completed`
 - Parent sweep id: `tf_rd_020_harder_dagzoo_ladder_v1`
 - Complexity level: `binary_md`
 
@@ -29,15 +29,15 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 | --- | --- | --- | --- |
 | locked anchor | TabICLv2 motivates synthetic pretraining but does not define this repo-local row-first promoted-anchor contract. | The kept `row_cls + qass + no tfcol` TF-RD-020 noise-drift winner trained on the uncapped `task_batch_size=1`, `grad_accum_steps=4`, `400`-step runtime. | TF-RD-018 issue `#137` must keep the promoted row-first model surface fixed while reading optimizer-family evidence. |
 | harder carry-forward surface | No upstream reference defines this exact dagzoo harder-surface handoff. | The locked harder-surface anchor is `tf_rd_020_shift_noise_drift_v1`, inherited directly from TF-RD-020 row `06`. | The TF-RD-020 noise-drift winner is already the carried optimizer anchor for this sweep rather than a replay target inside the queue. |
-| optimizer family | Not applicable. | Schedulefree AdamW on the inherited TF-RD-020 row-`06` runtime is the locked comparison baseline for this sweep. | Compare `adamw` and `muon` on the same harder-surface recipe before reopening LR, clipping, or budget work. |
-| fallback scope | Not applicable. | `tf_rd_020_noise_mixture_v1` is excluded from this v1 sweep. | If noise drift is too confounded, stop with an explicit defer note and open fallback-surface work separately rather than broadening |
+| optimizer family | Not applicable. | Schedulefree AdamW on the inherited TF-RD-020 row-`06` runtime is the locked comparison baseline for this sweep. | This completed read keeps `schedulefree_adamw` as the carried optimizer family before TF-RD-018 reopens LR, clipping, or budget work, and it should be interpreted as an optimizer-family comparison under a shared inherited `2500`-step schedule horizon on a `400`-step runtime. |
+| fallback scope | Not applicable. | `tf_rd_020_noise_mixture_v1` is excluded from this v1 sweep. | This completed read was not close or unstable enough to activate the fallback harder surface, so `tf_rd_020_shift_noise_drift_v1` stays carried into the LR-shape follow-up. |
 
 ## Queue Summary
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_training_adamw` | optimizer | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with plain AdamW on the same linear-warmup-decay schedule. | Run directly against the locked TF-RD-020 noise-drift anchor, then compare against row `02`. |
-| 2 | `delta_training_muon` | optimizer | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with Muon on the same linear-warmup-decay schedule. | Run directly against the locked TF-RD-020 noise-drift anchor; if the result is close, retain at most one fallback optimizer family for issue `#138`. |
+| 1 | `delta_training_adamw` | optimizer | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with plain AdamW on the same linear-warmup-decay schedule. | Leave deferred and carry the locked `schedulefree_adamw` anchor into TF-RD-018 issue `#138` on the same `tf_rd_020_shift_noise_drift_v1` runtime. |
+| 2 | `delta_training_muon` | optimizer | yes | completed | none | Keep the anchor model, data, and preprocessing surfaces fixed but replace schedulefree AdamW with Muon on the same linear-warmup-decay schedule. | Leave deferred, do not activate the `tf_rd_020_noise_mixture_v1` fallback surface, and carry the locked `schedulefree_adamw` anchor into TF-RD-018 issue `#138`. |
 
 ## Detailed Rows
 
@@ -71,6 +71,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Notes:
   - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - This row underperformed the locked anchor on final log loss, final Brier score, and final ROC AUC, so it does not remain as an optimizer fallback.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_018_optimizer_family_v1/delta_training_adamw/result_card.md`
 - Registered run: `sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1` with final log loss `0.5971`, delta final log loss `+0.0470`, final Brier score `0.4114`, delta final Brier score `+0.0374`, best ROC AUC `0.5515`, final ROC AUC `0.5614`, final-minus-best `+0.0099`, delta final ROC AUC `-0.0266`, delta drift `+0.0164`, delta final training time `+25.7s`
@@ -106,6 +107,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Notes:
   - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
+  - This row regressed final log loss and final Brier badly enough that TF-RD-018 does not retain any non-schedulefree optimizer fallback after closing issue `#137`.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_018_optimizer_family_v1/delta_training_muon/result_card.md`
 - Registered run: `sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1` with final log loss `1.0768`, delta final log loss `+0.5267`, final Brier score `0.4742`, delta final Brier score `+0.1002`, best ROC AUC `0.6596`, final ROC AUC `0.6725`, final-minus-best `+0.0129`, delta final ROC AUC `+0.0845`, delta drift `+0.0194`, delta final training time `+37.3s`

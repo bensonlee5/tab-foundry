@@ -1,0 +1,332 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_018_lr_warmup_shape_v1
+rows:
+- order: 1
+  delta_ref: delta_training_linear_warmup_decay
+  status: ready
+  rationale: Replay the carried schedulefree warmup-decay baseline on a corrected
+    short-run `400`-step schedule horizon so issue `#138` has one explicit local
+    reference row before reading the schedule variants.
+  hypothesis: The corrected `0.05` warmup replay should remain competitive and
+    provide the local comparison point for warmup-zero, lower-ceiling, lower-floor,
+    and materially longer-warmup probes.
+  anchor_delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface,
+    preprocessing surface, `schedulefree_adamw` optimizer family, and harmonized
+    `task_batch_size=1` with `grad_accum_steps=4` `400`-step runtime fixed, then
+    replay the carried linear-warmup-decay recipe on a matching `400`-step schedule
+    horizon.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_shift_noise_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_noise_drift_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 1
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 4
+        max_steps: 400
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 400
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Use this row as the explicit local reference for rows `02` through `05`, while
+    still comparing every row against the locked sweep anchor.
+  - Rank rows by final log loss first, final Brier score second, and final ROC AUC
+    third.
+  - Treat drift, clipped-step fraction, and runtime as guardrails only.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run first as the corrected short-run LR/warmup baseline replay,
+    then compare the four bounded variants against it and the locked anchor.
+  notes:
+  - Keep `tf_rd_020_noise_mixture_v1` inactive while reading this row.
+  - Align `schedule.stages[0].steps` to `runtime.max_steps=400` so warmup and
+    floor reads are interpreted on the actual short-run horizon rather than on
+    the inherited `2500`-step parent setting.
+- order: 2
+  delta_ref: delta_training_linear_warmup_decay_warm0
+  status: ready
+  rationale: Remove warmup while keeping the corrected short-run LR pair fixed so
+    issue `#138` can test whether the inherited `0.05` warmup is still necessary
+    on the locked noise-drift runtime.
+  hypothesis: If the corrected `400`-step runtime is already stable enough, no
+    warmup may preserve or improve final quality without materially reopening
+    early instability.
+  anchor_delta: Keep the inherited harder-surface runtime fixed and change only
+    `warmup_ratio` from `0.05` to `0.0` relative to row `01`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_shift_noise_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_noise_drift_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 1
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 4
+        max_steps: 400
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 400
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.0
+  parameter_adequacy_plan:
+  - Compare directly against row `01` and the locked anchor on final log loss,
+    then supporting Brier and ROC AUC.
+  - Use early clipped-step behavior only to decide whether the no-warmup recipe
+    reopened obvious instability.
+  - Do not promote this row on cleaner runtime alone.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run second as the no-warmup discriminator against the carried baseline.
+  notes: []
+- order: 3
+  delta_ref: delta_training_linear_warmup_decay_lr3e3
+  status: ready
+  rationale: Lower the LR ceiling while keeping the carried floor and corrected
+    warmup horizon fixed so issue `#138` can test whether the inherited `0.004`
+    peak is still too aggressive on the locked noise-drift runtime.
+  hypothesis: A slightly lower peak LR may reduce residual clipping and improve final
+    retention without needing a different optimizer family or harder-surface branch.
+  anchor_delta: Keep the inherited harder-surface runtime fixed and change only
+    `lr_max` from `0.004` to `0.003` relative to row `01`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_shift_noise_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_noise_drift_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 1
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 4
+        max_steps: 400
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 400
+          lr_max: 0.003
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against row `01` and the locked anchor on final log loss,
+    then supporting Brier and ROC AUC.
+  - Prefer this row only if the quality win is not merely a guardrail-only
+    stability trade.
+  - Use the result to bound the LR search downward before issue `#139` opens.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run after rows `01` and `02` as the lower-ceiling LR probe.
+  notes: []
+- order: 4
+  delta_ref: delta_training_linear_warmup_decay_minlr1e4
+  status: ready
+  rationale: Lower the LR floor while keeping the carried peak LR and corrected
+    warmup horizon fixed so issue `#138` can test whether the inherited floor is
+    decaying too conservatively on the locked noise-drift runtime.
+  hypothesis: On a corrected `400`-step schedule horizon, a lower LR floor may
+    preserve late plasticity and improve final retention without changing the
+    early-step behavior materially.
+  anchor_delta: Keep the inherited harder-surface runtime fixed and change only
+    `optimizer.min_lr` from `0.0004` to `0.0001` relative to row `01`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_shift_noise_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_noise_drift_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 1
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0001
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 4
+        max_steps: 400
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 400
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against row `01` and the locked anchor on final log loss,
+    then supporting Brier and ROC AUC.
+  - Prefer this row only if it yields a real late-curve gain rather than a small
+    telemetry-only change.
+  - Treat worse drift or clipping without a quality win as negative evidence for
+    reopening the LR floor.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run after the carried baseline as the lower-floor LR probe.
+  notes: []
+- order: 5
+  delta_ref: delta_training_linear_warmup_decay_warm20
+  status: ready
+  rationale: Materially lengthen warmup while keeping the carried LR pair fixed
+    so issue `#138` can test whether the inherited runtime wants more early protection
+    before issue `#139` opens clip or budget work.
+  hypothesis: A `0.20` warmup may reduce early clipping further on the corrected
+    short-run horizon, though it risks underusing the fixed-step budget and hurting
+    final quality.
+  anchor_delta: Keep the inherited harder-surface runtime fixed and change only
+    `warmup_ratio` from `0.05` to `0.20` relative to row `01`.
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  data:
+    surface_label: tf_rd_020_shift_noise_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_noise_drift_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 1
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 4
+        max_steps: 400
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 400
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.20
+  parameter_adequacy_plan:
+  - Compare directly against row `01` and the locked anchor on final log loss,
+    then supporting Brier and ROC AUC.
+  - Prefer this row only if better early stability comes with a real benchmark
+    quality win rather than a budget-underuse regression.
+  - Treat this row as the upper warmup bracket; do not promote it solely on cleaner
+    clipped-step behavior.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run after the carried baseline as the materially longer-warmup probe.
+  notes: []

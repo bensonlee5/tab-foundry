@@ -17,6 +17,10 @@ anchor_surface:
   notes:
   - This sweep closes TF-RD-020 issue `#147` by recording the canonical pre-filter harder-front ladder on top of the kept TF-RD-018 four-task batch rung.
   - Keep the settled row-first model, preprocessing surface, benchmark bundle, and warmup-decay training recipe fixed; only the synthetic dagzoo corpus front changes across rows.
+  - All completed rows inherited the same short-run mismatch where `schedule.stages[0].steps`
+    remained `2500` while the benchmark runtime stopped at `400` steps; TF-RD-020
+    records shared corpus-front comparisons under that fixed condition rather than
+    treating the schedule as fully decayed.
   - The carried control surface remains `tf_rd_013_dagzoo_shape_aware_size_medium_v1`, now trained with `training.task_batch_size=4`.
   - Missingness rows use existing tab-foundry dagzoo CLI overrides; shift, mechanism-diversity, and noise rows resolve through dedicated dagzoo config refs derived from `benchmark_cpu.yaml`, `default.yaml`, and `benchmark_cuda_h100_large_shape.yaml`.
   - Every row stays pre-filter with `filter.enabled=false`; TF-RD-020 closes on this uncapped v1 ladder rather than handing a selected winner to a separate filter follow-up.
@@ -26,7 +30,9 @@ anchor_surface:
   - dimension: promoted anchor
     upstream: TabICLv2 motivates synthetic pretraining but does not define this repo-local row-first promoted-anchor contract.
     anchor: The kept `row_cls + qass + no tfcol` anchor trained on the settled `task_batch_size=4` manifest-batched surface from TF-RD-018 issue `#109`.
-    interpretation: TF-RD-020 should change only the synthetic corpus front while keeping the promoted row-first training recipe fixed.
+    interpretation: TF-RD-020 should change only the synthetic corpus front while
+      keeping the promoted row-first training recipe fixed, and interpret all completed
+      rows as sharing the inherited `2500`-step schedule horizon on a `400`-step runtime.
   - dimension: harder dagzoo corpus front
     upstream: No dedicated upstream reference defines this exact dagzoo harder-front ladder.
     anchor: "`tf_rd_013_dagzoo_shape_aware_size_medium_v1` is the carried medium control surface."
