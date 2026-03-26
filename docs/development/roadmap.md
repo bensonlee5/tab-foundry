@@ -110,10 +110,15 @@ Important non-goals for this roadmap:
   optimizing it; TF-RD-018 training adequacy next on that representative data
   base; TF-RD-020 harder dagzoo corpus fronts next as the adjacent synthetic
   harder-surface lane, closing on one kept uncapped winner per family on the
-  canonical pre-filter ladder; TF-RD-014 missingness and TF-RD-017
-  class-imbalance as the preferred next benchmark-backed harder-surface
-  ladders; then TF-RD-016 architecture-surface adequacy and bounded low-level
-  micro-decisions.
+  canonical pre-filter ladder; TF-RD-021 steering-derived dagzoo corpus fronts
+  after TF-RD-018 settles one explicit default recipe and dagzoo RD-008
+  steering lands, so the repo can test whether curriculum-steered corpora beat
+  the TF-RD-020 control before benchmark-front ladders; TF-RD-022 runtime and
+  VRAM efficiency as the adjacent sibling lane that makes time and memory a
+  measured surface without reopening the carried recipe; TF-RD-014 missingness
+  and TF-RD-017 class-imbalance as the preferred next benchmark-backed
+  harder-surface ladders; then TF-RD-016 architecture-surface adequacy and
+  bounded low-level micro-decisions.
 - Low-level questions such as norm family or placement, learned special-token
   initialization scale, QASS scaler capacity, and activation family belong
   under TF-RD-016 after the earlier adequacy and harder-surface gates are in
@@ -144,15 +149,16 @@ retained for traceability.
 | 9 | TF-RD-008 | Coherent classification anchor promotion | implemented | Implemented |
 | 10 | TF-RD-013 | Dagzoo synthetic-data efficacy on the promoted anchor | completed | Completed |
 | 11 | TF-RD-018 | Training-surface adequacy on the promoted anchor | planned | Next |
-| 12 | TF-RD-021 | Training runtime and VRAM efficiency on the promoted anchor | planned | Next |
-| 13 | TF-RD-020 | Harder dagzoo corpus fronts on the promoted anchor | completed | Completed |
-| 14 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
-| 15 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
-| 16 | TF-RD-016 | Architecture surface adequacy and selective expansion | planned | Next |
-| 17 | TF-RD-010 | Many-class promotion on the row-first base | planned | Next |
-| 18 | TF-RD-015 | Regression rebuild on the promoted row-first base | planned | Next |
-| 19 | TF-RD-012 | Inference handoff and later modalities | research | Later |
-| 20 | TF-RD-009 | Scaling-law measurement on the promoted anchor | planned | Next |
+| 12 | TF-RD-020 | Harder dagzoo corpus fronts on the promoted anchor | completed | Completed |
+| 13 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the promoted anchor | planned | Next |
+| 14 | TF-RD-022 | Training runtime and VRAM efficiency on the promoted anchor | planned | Next |
+| 15 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
+| 16 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
+| 17 | TF-RD-016 | Architecture surface adequacy and selective expansion | planned | Next |
+| 18 | TF-RD-010 | Many-class promotion on the row-first base | planned | Next |
+| 19 | TF-RD-015 | Regression rebuild on the promoted row-first base | planned | Next |
+| 20 | TF-RD-012 | Inference handoff and later modalities | research | Later |
+| 21 | TF-RD-009 | Scaling-law measurement on the promoted anchor | planned | Next |
 
 TF-RD-019 remains intentionally unranked in the canonical queue because it is a
 separate later filtering-policy lane, but it is included in the dependency
@@ -176,8 +182,9 @@ flowchart TD
     RD008["TF-RD-008 ✅<br/>DEFAULT SETTLED<br/>Coherent anchor"]
     RD013["TF-RD-013 ✅<br/>Dagzoo synthetic<br/>data efficacy"]
     RD018["TF-RD-018<br/>Training-surface<br/>adequacy"]
-    RD021["TF-RD-021<br/>Runtime & VRAM<br/>efficiency"]
     RD020["TF-RD-020<br/>Harder dagzoo<br/>corpus fronts"]
+    RD021["TF-RD-021<br/>Steering-derived<br/>corpus fronts"]
+    RD022["TF-RD-022<br/>Runtime & VRAM<br/>efficiency"]
     RD019["TF-RD-019<br/>Filtering policy"]
     RD014["TF-RD-014<br/>Missingness<br/>robustness"]
     RD017["TF-RD-017<br/>Class-imbalance<br/>robustness"]
@@ -197,19 +204,21 @@ flowchart TD
     RD007 --> RD008
     RD008 --> RD013
     RD013 --> RD018
-    RD018 -.-> RD021
     RD018 --> RD020
+    RD018 --> RD021
+    RD018 -.-> RD022
+    RD020 --> RD021
     RD013 -.-> RD019
     RD020 -.-> RD019
-    RD020 --> RD014
-    RD020 --> RD017
+    RD021 --> RD014
+    RD021 --> RD017
     RD014 --> RD016
     RD017 --> RD016
     RD013 --> RD016
     RD016 --> RD010
     RD016 --> RD015
     RD016 --> RD012
-    RD021 -.-> RD009
+    RD022 -.-> RD009
     RD016 --> RD009
 
     classDef done fill:#d4edda,stroke:#28a745,color:#155724;
@@ -219,7 +228,7 @@ flowchart TD
     classDef later fill:#f3e8ff,stroke:#7c3aed,color:#3b1f6e;
 
     class RD000,RD001,RD002,RD003,RD004,RD005,RD006,RD007,RD008,RD011,RD013,RD020 done;
-    class RD009,RD018,RD021,RD020,RD014,RD017,RD010,RD015 readyNow;
+    class RD009,RD018,RD021,RD022,RD014,RD017,RD010,RD015 readyNow;
     class RD016 gate;
     class RD012,RD019 later;
 ```
@@ -230,13 +239,16 @@ and 008 is now implemented as an explicit split with `row_cls + qass + no tfcol`
 now closed, TF-RD-018 resumes on the inherited TF-RD-020 noise-drift runtime
 (`task_batch_size=1`, `grad_accum_steps=4`, `max_steps=400`) over
 `tf_rd_020_shift_noise_drift_v1` to settle optimizer, LR or warmup, clipping,
-and budget before TF-RD-014 and TF-RD-017 start as the preferred
-benchmark-backed harder-surface ladders. `tf_rd_020_noise_mixture_v1`
+and budget. Once that recipe is explicit and dagzoo RD-008 steering lands
+under [#246](https://github.com/bensonlee5/dagzoo/issues/246), TF-RD-021 can
+compare a small steering-derived corpus ladder against the incumbent
+`tf_rd_020_shift_noise_drift_v1` control before TF-RD-014 and TF-RD-017 start
+as the preferred benchmark-backed harder-surface ladders. `tf_rd_020_noise_mixture_v1`
 remains the named fallback harder surface if the first optimizer-family read on
 noise drift is too close or unstable to collapse cleanly. TF-RD-016 now follows
 as the bounded architecture-surface and low-level micro-decision track before
 TF-RD-010, TF-RD-015, TF-RD-012, or TF-RD-009 absorb the main roadmap
-attention. TF-RD-021 now runs as the adjacent runtime-efficiency lane: it
+attention. TF-RD-022 now runs as the adjacent runtime-efficiency lane: it
 should make time and VRAM a measured, reproducible surface without reopening
 TF-RD-018 recipe choices, then hand one explicit runtime policy back into
 later batching, blocked CUDA-capacity follow-up, and scaling preparation.
@@ -256,10 +268,10 @@ execution spine rather than a blocker on it.
 | Coherent row-first migration ladder exists in code | `implemented` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly, and `qass_tfcol_large_missing_validation_v1` closed the missing-permitting settlement sweep | The remaining work is no longer anchor coherence; it is harder and broader post-008 regime coverage on the settled row-first base | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and both large-bundle validators now separate row embeddings, plain context, TFCol-only, QASS-only, the no-TFCol default line, and the retained `qass + tfcol_heads4` calibration variant | The next comparison gap is no longer anchor settlement; it is whether harder post-008 fronts provide more decisive regime separation before scaling work | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | One promoted row-first classification anchor exists | `implemented` | `qass_tfcol_large_missing_validation_v1` closed on an explicit split: `row_cls + qass + no tfcol` is now the default row-first anchor, while `row_cls + qass + tfcol_heads4` is retained as a calibration-oriented alternative | Future work should treat the no-TFCol line as the default and reserve TFCol for explicit calibration-oriented follow-up rather than reopening anchor settlement | `TF-RD-008` |
-| Harder post-008 data surfaces can be exercised | `implemented` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, the completed TF-RD-013 size ladder under `#132`, the completed TF-RD-018 batch ladder under `#109`, the completed TF-RD-020 harder-front ladder under `#146/#148/#149/#150`, and the completed TF-RD-018 optimizer-family sweep under `#137` now exist on the current manifest backend | The next gap is no longer whether harder synthetic fronts can be executed or which optimizer family to carry; it is finishing LR, clipping, and budget continuation on top of the chosen `tf_rd_020_shift_noise_drift_v1` carry-forward surface with locked `schedulefree_adamw` | `TF-RD-011`, `TF-RD-013`, `TF-RD-018`, `TF-RD-020`, `TF-RD-014`, `TF-RD-017` |
+| Harder post-008 data surfaces can be exercised | `implemented` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, the completed TF-RD-013 size ladder under `#132`, the completed TF-RD-018 batch ladder under `#109`, and the completed TF-RD-020 harder-front ladder under `#146/#148/#149/#150` now exist on the current manifest backend | The next gap is no longer whether harder synthetic fronts can be executed; it is finishing TF-RD-018 LR, clipping, and budget continuation on top of `tf_rd_020_shift_noise_drift_v1`, then testing whether steering-derived corpus fronts under TF-RD-021 beat that incumbent carry-forward surface before benchmark-backed ladders open | `TF-RD-011`, `TF-RD-013`, `TF-RD-018`, `TF-RD-020`, `TF-RD-021`, `TF-RD-014`, `TF-RD-017` |
 | Class-imbalance robustness is meaningfully exercised | `partial` | Current benchmark bundles enforce `min_minority_class_pct = 2.5`, so the repo already excludes degenerate class-balance cases | There is no dedicated imbalance-focused bundle ladder, imbalance-oriented reporting contract, or explicit decision on the promoted anchor under materially skewed priors | `TF-RD-017` |
-| Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist, `row_first_training_adequacy_v1` completed the first TF-RD-018 dataset-batch ladder under `#109`, TF-RD-020 now records kept harder-front winners for missingness, shift or drift, and mechanism or noise, and `tf_rd_018_optimizer_family_v1` kept `schedulefree_adamw` on the inherited noise-drift runtime | The repo still needs TF-RD-018 to resolve LR-shape, clipping, and step-budget adequacy on top of the inherited TF-RD-020 noise-drift runtime and the chosen `tf_rd_020_shift_noise_drift_v1` carry-forward surface | `TF-RD-018`, `TF-RD-020` |
-| Runtime and VRAM efficiency are deliberate and measurable | `partial` | The repo already has deferred runtime or VRAM measurement issue [#58](https://github.com/bensonlee5/tab-foundry/issues/58), benchmark and sweep profiles, bf16-capable runtime plumbing, and `tabfoundry_staged` activation checkpointing support | Canonical telemetry still lacks peak CUDA memory and throughput summaries, the benchmark-facing runtime policy is not first-class yet, and the harder-surface batching lane still lacks a measured reopen rule under an explicit memory guardrail | `TF-RD-021`, `TF-RD-018`, `TF-RD-009` |
+| Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist, `row_first_training_adequacy_v1` completed the first TF-RD-018 dataset-batch ladder under `#109`, TF-RD-020 records kept harder-front winners for missingness, shift or drift, and mechanism or noise, and issue `#165` now gives steering-derived synthetic continuation a dedicated roadmap home | The repo still needs TF-RD-018 to resolve LR-shape, clipping, and step-budget adequacy on the inherited TF-RD-020 noise-drift runtime, then TF-RD-021 to decide whether any steering-derived corpus front changes the carried control enough to justify one fresh bounded Muon retry | `TF-RD-018`, `TF-RD-020`, `TF-RD-021` |
+| Runtime and VRAM efficiency are deliberate and measurable | `partial` | The repo already has deferred runtime or VRAM measurement issue [#58](https://github.com/bensonlee5/tab-foundry/issues/58), benchmark and sweep profiles, bf16-capable runtime plumbing, and `tabfoundry_staged` activation checkpointing support | Canonical telemetry still lacks peak CUDA memory and throughput summaries, the benchmark-facing runtime policy is not first-class yet, and the harder-surface batching lane still lacks a measured reopen rule under an explicit memory guardrail | `TF-RD-022`, `TF-RD-018`, `TF-RD-009` |
 | Many-class evaluation can start on the row-first base | `partial` | The staged family already includes `many_class`, reusable machinery exists, and `nanotabpfn_openml_classification_small_v1.json` provides a benchmark-facing multiclass bundle | Many-class still lacks a promoted row-first benchmark ladder, adequacy sweeps, and a keep/defer decision | `TF-RD-010` |
 | Regression rebuild can start on the staged base | `research` | Regression metrics and benchmark-bundle normalization support already exist in the repo | There is no active staged regression program, canonical regression bundle, or staged regression head/loss contract | `TF-RD-015` |
 | The staged surface is broad enough for future adequacy work before adding new knobs | `partial` | Tokenization already includes `scalar_per_feature`, `scalar_per_feature_nan_mask`, and `shifted_grouped`; token count is already adjustable through `feature_group_size`; norms, widths, depths, row CLS count, TFCol inducing count, context FF expansion, dropout, and clipping are already exposed | The repo still needs a deliberate decision on whether the existing surface is sufficient on harder regimes and, only if not, whether low-level or hardcoded choices such as special-token init scale, activation family, row or column FF expansion, QASS scaler capacity, grouped shift recipe, or many-class threshold should be surfaced selectively | `TF-RD-016` |
@@ -946,7 +958,7 @@ This roadmap assumes the following repo truths:
   - the repo has a clear rule for when optimizer or schedule adequacy must be
     resolved before interpreting architecture outcomes
 
-### TF-RD-021: Training Runtime And VRAM Efficiency On The Promoted Anchor
+### TF-RD-022: Training Runtime And VRAM Efficiency On The Promoted Anchor
 
 - Status: `planned`
 - Milestone: `Next`
@@ -1087,6 +1099,10 @@ This roadmap assumes the following repo truths:
     [#155](https://github.com/bensonlee5/tab-foundry/issues/155), and
     [#156](https://github.com/bensonlee5/tab-foundry/issues/156) as deferred
     future work rather than part of the completed TF-RD-020 scope
+  - issue [#165](https://github.com/bensonlee5/tab-foundry/issues/165) now
+    tracks the later steering-derived synthetic follow-on so TF-RD-020 stays
+    closed on the v1 harder-front ladder rather than being reopened for
+    curriculum-steered corpora
 - Exit criteria:
   - the repo has explicit keep, defer, or reject decisions across the harder
     dagzoo corpus fronts, including exactly one kept row in each TF-RD-020
@@ -1100,6 +1116,61 @@ This roadmap assumes the following repo truths:
   - the relationship between TF-RD-020 and the benchmark-front epics TF-RD-014
     and TF-RD-017 plus the later filtering-policy lane TF-RD-019 is explicit
     and non-overlapping
+
+### TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Promoted Anchor
+
+- Status: `planned`
+- Milestone: `Next`
+- Goal: once TF-RD-018 has one explicit default training recipe and dagzoo
+  RD-008 steering lands, test whether steering-derived dagzoo corpus fronts
+  beat the carried TF-RD-020 control without reopening TF-RD-018
+- Current state:
+  - issue [#165](https://github.com/bensonlee5/tab-foundry/issues/165) is the
+    sibling epic to issues
+    [#107](https://github.com/bensonlee5/tab-foundry/issues/107) and
+    [#146](https://github.com/bensonlee5/tab-foundry/issues/146)
+  - TF-RD-020 already closed on `tf_rd_020_shift_noise_drift_v1` as the
+    default carried harder surface plus `tf_rd_020_noise_mixture_v1` as the
+    named fallback context
+  - TF-RD-018 still needs issues
+    [#138](https://github.com/bensonlee5/tab-foundry/issues/138) and
+    [#139](https://github.com/bensonlee5/tab-foundry/issues/139) to finish one
+    explicit default LR, clipping, and step-budget recipe on the inherited
+    noise-drift runtime
+  - completed issue [#137](https://github.com/bensonlee5/tab-foundry/issues/137)
+    deferred `muon` on that inherited control, so the repo does not retry it
+    inside TF-RD-018
+  - dagzoo issue
+    [#246](https://github.com/bensonlee5/dagzoo/issues/246) now owns the
+    upstream steering implementation, deterministic metadata, and
+    coverage-movement diagnostics
+- Required work:
+  - wait until TF-RD-018 closes issues `#138` and `#139` and dagzoo RD-008 has
+    landed enough of issue `#246` to make steering fixed-seed reproducible and
+    auditable
+  - define one bounded first sweep under issue
+    [#167](https://github.com/bensonlee5/tab-foundry/issues/167): one control
+    row on `tf_rd_020_shift_noise_drift_v1` plus `3-4` steering-derived corpus
+    rows produced from named steering policies or presets
+  - hold model, optimizer, LR, clipping, and budget fixed at the final
+    TF-RD-018 recipe across every row
+  - interpret final log loss first, final Brier score second, final ROC AUC
+    third, with runtime, clipped-step fraction, and stability telemetry as
+    guardrails
+  - keep exactly one steering-derived carry-forward surface only if it clearly
+    beats the incumbent control; otherwise keep `tf_rd_020_shift_noise_drift_v1`
+  - only if a steering-derived front wins, execute issue
+    [#166](https://github.com/bensonlee5/tab-foundry/issues/166) as one bounded
+    `schedulefree_adamw` versus `muon` retry on the promoted steering front
+  - keep this epic synthetic-data-only rather than absorbing benchmark-front
+    missingness or class-imbalance conclusions
+- Exit criteria:
+  - the repo has one explicit keep/defer decision on whether any
+    steering-derived corpus front replaces `tf_rd_020_shift_noise_drift_v1`
+  - if a steering-derived front wins, the repo has one bounded optimizer-family
+    follow-up on that front; otherwise the retry is explicitly skipped
+  - the relationship between TF-RD-021 and TF-RD-018 or TF-RD-020 plus
+    TF-RD-014 and TF-RD-017 is explicit and non-overlapping
 
 ### TF-RD-019: Predictable Dagzoo Filtering Policy For Training Corpora
 

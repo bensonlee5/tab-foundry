@@ -2,11 +2,11 @@
 
 This is the bounded sidecar evidence note for the experimental
 `tabfoundry_sandwich` lane that now runs alongside
-[TF-RD-021](../../docs/development/roadmap.md#tf-rd-021-training-runtime-and-vram-efficiency-on-the-promoted-anchor).
+[TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-training-runtime-and-vram-efficiency-on-the-promoted-anchor).
 
 - Status: `partial`
 - Milestone: `Next`
-- Dependency position: bounded execution sidecar under TF-RD-021; it should
+- Dependency position: bounded execution sidecar under TF-RD-022; it should
   not displace the canonical staged target, and if it survives the phased
   screen it should hand evidence back into later TF-RD-016 architecture
   decisions and the harder-surface CUDA reads
@@ -73,7 +73,7 @@ This is the bounded sidecar evidence note for the experimental
 - no dagzoo confirmation read exists yet for the new architecture
 - the repo still lacks the peak CUDA-memory telemetry from
   [#58](https://github.com/bensonlee5/tab-foundry/issues/58), so future hard
-  dagzoo reads still need the TF-RD-021 telemetry work to rank memory wins
+  dagzoo reads still need the TF-RD-022 telemetry work to rank memory wins
   cleanly
 - the quality or fit floor that would justify keeping or stopping this sidecar
   is not yet explicit

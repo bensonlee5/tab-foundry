@@ -1,7 +1,7 @@
-# TF-RD-021: Training Runtime And VRAM Efficiency On The Promoted Anchor
+# TF-RD-022: Training Runtime And VRAM Efficiency On The Promoted Anchor
 
 This is the canonical long-form evidence note for
-[TF-RD-021](../../docs/development/roadmap.md#tf-rd-021-training-runtime-and-vram-efficiency-on-the-promoted-anchor).
+[TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-training-runtime-and-vram-efficiency-on-the-promoted-anchor).
 
 - Status: `planned`
 - Milestone: `Next`
@@ -55,7 +55,7 @@ This is the canonical long-form evidence note for
 - the hard-surface decision anchor for this epic must stay CUDA-only; MPS OOMs
   are useful for local iteration but should not be mixed into A100 memory
   conclusions
-- TF-RD-021 should treat `bf16`, benchmark-facing activation-trace policy, and
+- TF-RD-022 should treat `bf16`, benchmark-facing activation-trace policy, and
   activation checkpointing as the first bounded runtime knobs on the current
   harder-surface training path
 - TF-RD-021A can run in parallel as a bounded simplification screen, but it

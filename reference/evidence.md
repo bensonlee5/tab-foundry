@@ -26,6 +26,12 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 
 - [`TF-RD-018`](roadmap_evidence/tf_rd_018_training_surface_adequacy.md):
   training-surface adequacy, batch ladder, LR, and optimizer sequencing
+- [`TF-RD-020`](roadmap_evidence/tf_rd_020_harder_dagzoo_corpus_fronts.md):
+  harder dagzoo corpus-front evidence and v1 carry-forward decisions
+- [`TF-RD-021`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
+  steering-derived corpus-front evidence and conditional Muon retry framing
+- [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
+  runtime and VRAM efficiency evidence plus the measured-policy handoff
 - [`TF-RD-019`](roadmap_evidence/tf_rd_019_dagzoo_filtering_policy.md):
   dagzoo filtering-policy evidence and open curation questions
 - [`TF-RD-014`](roadmap_evidence/tf_rd_014_missingness_robustness.md):
@@ -238,6 +244,46 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the repo identifies a default batch and training-recipe starting point on
     the promoted row-first anchor before optimizer-family or scaling-law work
     is treated as the main next decision surface
+
+### TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Promoted Anchor
+
+- External evidence:
+  - dedicated literature for coverage-steered synthetic harder fronts is not
+    yet curated in this repo
+  - the existing TabPFN-v2 analysis note implies that meta-feature sensitivity
+    should be tested structurally rather than inferred from one frozen surface
+- Repo-local evidence:
+  - TF-RD-020 kept `tf_rd_020_shift_noise_drift_v1` as the current synthetic
+    harder-surface control under `#146/#149`
+  - TF-RD-018 issue `#137` deferred Muon on that inherited control rather than
+    keeping it as an optimizer fallback
+  - dagzoo issue `bensonlee5/dagzoo#246` now defines the upstream steering
+    implementation, metadata, and diagnostics lane
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md`
+- Success signal:
+  - the repo records one explicit keep/defer decision on whether a
+    steering-derived corpus front changes the carried synthetic control, and it
+    retries Muon only on a genuinely new promoted front
+
+### TF-RD-022: Training Runtime And VRAM Efficiency On The Promoted Anchor
+
+- External evidence:
+  - dedicated runtime-policy literature is not yet curated in this repo
+  - the next sources to curate are PyTorch bf16, activation-checkpointing, and
+    throughput or memory telemetry references for A100-class training
+- Repo-local evidence:
+  - deferred issue `#58` already tracks runtime or VRAM summary work but
+    stayed attached to the earlier TF-RD-002 measurement chain
+  - epic `#168` plus child issues `#169`, `#170`, and `#171` now give the
+    runtime lane an explicit roadmap home
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`
+  - TF-RD-021A remains the bounded sidecar for the experimental
+    `tabfoundry_sandwich` screen under `#174/#175`
+- Success signal:
+  - the repo records one explicit runtime policy with peak-memory and
+    throughput evidence, and later batching or scaling work can inherit it
 
 ### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
 

@@ -24,9 +24,10 @@ Conventions:
 ## Roadmap-Ordered Notes
 
 1. [TF-RD-018: Training-Surface Adequacy On The Promoted Anchor](tf_rd_018_training_surface_adequacy.md)
-1. [TF-RD-021: Training Runtime And VRAM Efficiency On The Promoted Anchor](tf_rd_021_training_runtime_vram_efficiency.md)
-1. [TF-RD-021A: Latent-Bank Sandwich Prototype And Phased Screen](tf_rd_021a_latent_bank_sandwich_prototype.md)
 1. [TF-RD-020: Harder Dagzoo Corpus Fronts On The Promoted Anchor](tf_rd_020_harder_dagzoo_corpus_fronts.md)
+1. [TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Promoted Anchor](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md)
+1. [TF-RD-022: Training Runtime And VRAM Efficiency On The Promoted Anchor](tf_rd_022_training_runtime_vram_efficiency.md)
+1. [TF-RD-021A: Latent-Bank Sandwich Prototype And Phased Screen](tf_rd_021a_latent_bank_sandwich_prototype.md)
 1. [TF-RD-019: Predictable Dagzoo Filtering Policy For Training Corpora](tf_rd_019_dagzoo_filtering_policy.md)
 1. [TF-RD-014: Missingness Robustness On The Promoted Anchor](tf_rd_014_missingness_robustness.md)
 1. [TF-RD-017: Class-Imbalance Robustness On The Promoted Anchor](tf_rd_017_class_imbalance_robustness.md)
@@ -39,8 +40,8 @@ Conventions:
 Notes:
 
 - TF-RD-019 is seeded here even though it is not ranked in the canonical queue,
-  because it is a research-oriented next-lane epic immediately downstream of
-  TF-RD-018 in the roadmap body.
+  because it remains a research-oriented later lane adjacent to TF-RD-020 and
+  TF-RD-021 in the roadmap body.
 - Earlier implemented and completed roadmap items remain summarized in
   [reference/evidence.md](../evidence.md); this directory starts at the current
   epic and continues forward.
