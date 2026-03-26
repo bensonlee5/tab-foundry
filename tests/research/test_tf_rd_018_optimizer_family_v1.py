@@ -89,6 +89,7 @@ def test_tf_rd_018_optimizer_family_v1_inherits_noise_drift_anchor_for_optimizer
     assert any("sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2" in note for note in notes)
     assert any("does not replay or promote a separate schedulefree row" in note for note in notes)
     assert any("tf_rd_020_noise_mixture_v1" in note for note in notes)
+    assert any("inherited the same short-run mismatch" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)

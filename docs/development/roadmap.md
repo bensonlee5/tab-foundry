@@ -897,7 +897,7 @@ This roadmap assumes the following repo truths:
     [`tf_rd_018_lr_warmup_shape_v1`](../../reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/matrix.md),
     which keeps the inherited TF-RD-020 row-`06` noise-drift runtime fixed
     while tuning LR and warmup shape around the kept `schedulefree_adamw`
-    optimizer family
+    optimizer family on a corrected `400`-step schedule horizon
 - later architecture reads remain confounded until the repo has one explicit
   adequacy decision surface on the settled row-first base
 - Required work:
@@ -911,8 +911,9 @@ This roadmap assumes the following repo truths:
   `adamw` and `muon` remain deferred
 - use `tf_rd_018_lr_warmup_shape_v1` as the active execution sweep for issue
   [#138](https://github.com/bensonlee5/tab-foundry/issues/138): compare the
-  carried linear-warmup baseline against no-warmup, lower-ceiling, lower-floor,
-  and longer-warmup variants on the locked noise-drift runtime
+  carried corrected short-run linear-warmup baseline against warmup-zero,
+  lower-ceiling, lower-floor, and warmup-20 variants on the locked noise-drift
+  runtime
 - keep `tf_rd_020_noise_mixture_v1` as inactive fallback context only; this
   branch is not reopened unless a later TF-RD-018 read becomes genuinely
   confounded on the carried noise-drift surface

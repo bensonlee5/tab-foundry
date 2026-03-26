@@ -23,6 +23,10 @@ anchor_surface:
   - Keep the settled row-first model, preprocessing surface, benchmark bundle, and
     harmonized `task_batch_size=1`, `grad_accum_steps=4`, `400`-step runtime fixed;
     only the inherited harder data surface and optimizer family are in scope here.
+  - Both completed challenger rows inherited the same short-run mismatch where
+    `schedule.stages[0].steps` remained `2500` while the benchmark runtime stopped
+    at `400` steps; the optimizer-family read therefore stays valid as a shared-condition
+    comparison, not as evidence about a fully decayed schedule.
   - The locked anchor is benchmark registry run `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`
     on `tf_rd_020_shift_noise_drift_v1`; TF-RD-018 does not replay or promote a separate
     schedulefree row before reading `adamw` and `muon`.
@@ -57,7 +61,8 @@ anchor_surface:
       comparison baseline for this sweep.
     interpretation: This completed read keeps `schedulefree_adamw` as the
       carried optimizer family before TF-RD-018 reopens LR, clipping, or
-      budget work.
+      budget work, and it should be interpreted as an optimizer-family comparison
+      under a shared inherited `2500`-step schedule horizon on a `400`-step runtime.
   - dimension: fallback scope
     upstream: Not applicable.
     anchor: '`tf_rd_020_noise_mixture_v1` is excluded from this v1 sweep.'
