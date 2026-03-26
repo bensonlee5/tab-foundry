@@ -95,6 +95,10 @@ Required keys:
   (`x_train`, `y_train`) before applying the model.
 - The bundled `preprocessor` section is the executable runtime policy surface
   for the reference consumer, not a cache of export-time train statistics.
+- Task-level sandwich `feature_types` are runtime request metadata, not bundled
+  preprocessor metadata. `run_reference_consumer(..., feature_types=[...])`
+  accepts an optional per-request list, and omitting it falls back to all
+  `floating`.
 - Bundles with `preprocessor.missing_value_policy.impute_missing=false` remain
   policy-valid, but the reference consumer only executes them when runtime
   feature inputs are already finite; otherwise it raises instead of returning

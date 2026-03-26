@@ -14,7 +14,6 @@ from typing import Any, Mapping
 from safetensors.torch import save_file
 import torch
 
-from tab_foundry.feature_types import normalize_feature_types
 from tab_foundry.model.spec import ModelBuildSpec, checkpoint_model_build_spec_from_mappings
 from tab_foundry.preprocessing import (
     MISSING_VALUE_STRATEGY_TRAIN_MEAN,
@@ -166,13 +165,6 @@ def _preprocessor_state_v3(cfg: Mapping[str, Any]) -> ExportPreprocessorState:
         else None
     )
     resolved = resolve_preprocessing_surface(preprocessing_cfg)
-    feature_types = None
-    if preprocessing_cfg is not None and preprocessing_cfg.get("feature_types") is not None:
-        feature_types = normalize_feature_types(
-            preprocessing_cfg.get("feature_types"),
-            expected_count=None,
-            context="cfg.preprocessing.feature_types",
-        )
     return ExportPreprocessorState(
         feature_order_policy=str(resolved.feature_order_policy),
         missing_value_policy=ExportMissingValuePolicy(
@@ -185,7 +177,6 @@ def _preprocessor_state_v3(cfg: Mapping[str, Any]) -> ExportPreprocessorState:
             unseen_test_label=str(resolved.unseen_test_label_policy),
         ),
         dtype_policy=dict(resolved.dtype_policy),
-        feature_types=feature_types,
     )
 
 

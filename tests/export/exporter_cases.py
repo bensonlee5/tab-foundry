@@ -726,6 +726,7 @@ def test_export_manifest_embeds_policy_only_preprocessor(tmp_path: Path) -> None
     assert "feature_ids" not in preproc
     assert "fill_values" not in preproc["missing_value_policy"]
     assert "label_values" not in preproc["classification_label_policy"]
+    assert "feature_types" not in preproc
 
 
 def test_export_manifest_embeds_resolved_nondefault_preprocessing_policy(tmp_path: Path) -> None:
@@ -1218,10 +1219,28 @@ def test_reference_consumer_applies_embedded_nondefault_all_nan_fill(tmp_path: P
     )
 
 
-def test_reference_consumer_propagates_embedded_feature_types(tmp_path: Path) -> None:
+def test_reference_consumer_accepts_runtime_feature_types(tmp_path: Path) -> None:
     checkpoint = tmp_path / "ckpt_runtime_feature_types.pt"
     _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=23)
     out_dir = tmp_path / "export_runtime_feature_types"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    x_train, y_train, x_test = _classification_reference_arrays()
+    output = run_reference_consumer(
+        out_dir,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        feature_types=["integer", "floating", "bool"],
+    )
+
+    assert output.batch.metadata["feature_types"] == ["integer", "floating", "bool"]
+
+
+def test_validate_export_rejects_v3_preprocessor_feature_types(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_preproc_feature_types.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=29)
+    out_dir = tmp_path / "export_preproc_feature_types"
     _ = _export_v3_checkpoint(checkpoint, out_dir)
 
     manifest_path = out_dir / "manifest.json"
@@ -1230,10 +1249,8 @@ def test_reference_consumer_propagates_embedded_feature_types(tmp_path: Path) ->
     manifest_payload["manifest_sha256"] = compute_v3_manifest_sha256(manifest_payload)
     _rewrite_json(manifest_path, manifest_payload)
 
-    x_train, y_train, x_test = _classification_reference_arrays()
-    output = run_reference_consumer(out_dir, x_train=x_train, y_train=y_train, x_test=x_test)
-
-    assert output.batch.metadata["feature_types"] == ["integer", "floating", "bool"]
+    with pytest.raises(ValueError, match="feature_types"):
+        _ = validate_export_bundle(out_dir)
 
 
 def test_reference_consumer_rejects_nonfinite_class_probabilities(

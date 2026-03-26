@@ -99,6 +99,7 @@ def _reference_batch(
     x_train: Any,
     y_train: Any,
     x_test: Any,
+    feature_types: list[str] | None = None,
 ) -> TaskBatch:
     manifest = bundle.validated.manifest
     if manifest.task != "classification":
@@ -138,8 +139,8 @@ def _reference_batch(
         _dummy_y_test("classification", row_count=int(processed.x_test.shape[0]))
     )
     num_classes = processed.num_classes
-    feature_types = resolve_feature_types(
-        policy.feature_types,
+    resolved_feature_types = resolve_feature_types(
+        feature_types,
         expected_count=int(processed.x_train.shape[1]),
         context="reference_consumer.feature_types",
     )
@@ -150,7 +151,7 @@ def _reference_batch(
         y_test=y_test_tensor,
         metadata={
             "preprocessor_policy": policy.to_dict(),
-            "feature_types": feature_types,
+            "feature_types": resolved_feature_types,
         },
         num_classes=num_classes,
     )
@@ -162,6 +163,7 @@ def run_reference_consumer(
     x_train: Any,
     y_train: Any,
     x_test: Any,
+    feature_types: list[str] | None = None,
 ) -> ReferenceConsumerOutput:
     """Execute the reference-only inference path for one exported bundle."""
 
@@ -171,6 +173,7 @@ def run_reference_consumer(
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
+        feature_types=feature_types,
     )
     with torch.no_grad():
         output = bundle.model(batch)

@@ -29,6 +29,7 @@ _export(
         "test_reference_consumer_rejects_missing_inputs_for_embedded_no_impute_policy",
         "test_reference_consumer_executes_embedded_no_impute_policy_on_finite_inputs",
         "test_reference_consumer_applies_embedded_nondefault_all_nan_fill",
+        "test_reference_consumer_accepts_runtime_feature_types",
         "test_reference_consumer_rejects_nonfinite_class_probabilities",
         "test_reference_batch_rejects_non_classification_before_preprocessing",
         "test_reference_consumer_rejects_underwidth_logits",

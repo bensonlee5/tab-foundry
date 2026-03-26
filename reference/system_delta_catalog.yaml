@@ -500,6 +500,350 @@ deltas:
     default_next_action: Run the first stage-native grouped-token benchmark row on top of the locked `prenorm_block` handoff.
     applicability_guards: []
 
+  delta_tf_rd_021a_sandwich_replay_v1:
+    dimension_family: model
+    family: architecture_capacity
+    binary_applicable: true
+    description: Replay the current repeated-input `tabfoundry_sandwich` prior-benchmark baseline before reading latent-count movement.
+    upstream_delta: Perceiver-style latent bottlenecks motivate treating latent count as an explicit capacity knob, but this replay row is repo-local.
+    expected_effect: Establish one local sandwich benchmark reference on the locked batch64-sqrt prior surface before latent-only and width follow-up rows are interpreted.
+    adequacy_knobs:
+      - Keep the prior batch, LR scaling, and benchmark bundle fixed to the locked prior anchor surface.
+      - Treat this row as the sandwich local reference for later rows, not as a promotion claim.
+      - Rank rows by final log loss first, final Brier score second, final ROC AUC third, and runtime fourth.
+    parameter_adequacy_policy:
+      default_plan:
+        - Run this row first so the sandwich screen has one explicit local baseline on the benchmark prior surface.
+        - Compare all later sandwich rows against both this replay and the staged prior anchor.
+        - Keep the repeated-input architecture fixed while reading latent count and width.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 96
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 128
+        norm_type: layernorm
+        sandwich_latents: 48
+        sandwich_layers: 8
+        sandwich_heads: 8
+        sandwich_ff_expansion: 2
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        task_batch_size: 1
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 64
+        prior_dump_lr_scale_rule: sqrt
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.0004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run first as the sandwich local replay before reading latent-count rows.
+    applicability_guards: []
+
+  delta_tf_rd_021a_sandwich_latents24_v1:
+    dimension_family: model
+    family: architecture_capacity
+    binary_applicable: true
+    description: Halve the sandwich latent count from 48 to 24 while keeping width and repeated-stage depth fixed.
+    upstream_delta: Perceiver-style models often trade latent count against compute and fidelity; this row is the lower-capacity bracket for the repo-local sandwich screen.
+    expected_effect: Fewer latents may cut training cost if the repeated-input sandwich is overprovisioned, but could reduce fit on the prior benchmark.
+    adequacy_knobs:
+      - Compare directly against the sandwich replay row before opening any width change.
+      - Treat this as the lower latent bracket, not as a final small-model promotion claim.
+      - Prefer this row only if the quality trade is clearly acceptable relative to the replay.
+    parameter_adequacy_policy:
+      default_plan:
+        - Run after the sandwich replay as the lower latent-count bracket.
+        - Use this row and the high-latent row to decide whether width follow-up should stay near the replay or move upward.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 96
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 128
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 8
+        sandwich_heads: 8
+        sandwich_ff_expansion: 2
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        task_batch_size: 1
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 64
+        prior_dump_lr_scale_rule: sqrt
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.0004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run after the replay as the lower latent-count discriminator.
+    applicability_guards: []
+
+  delta_tf_rd_021a_sandwich_latents96_v1:
+    dimension_family: model
+    family: architecture_capacity
+    binary_applicable: true
+    description: Double the sandwich latent count from 48 to 96 while keeping width and repeated-stage depth fixed.
+    upstream_delta: Perceiver-style models often improve fidelity by enlarging the latent bank; this row is the upper latent bracket for the repo-local sandwich screen.
+    expected_effect: More latents may improve fit if the current sandwich replay is memory-bottlenecked, though runtime and VRAM will increase.
+    adequacy_knobs:
+      - Compare directly against the sandwich replay before opening any width change.
+      - Use runtime and memory only as guardrails; benchmark quality remains primary.
+      - Treat this as the upper latent bracket for deciding the width follow-up starting point.
+    parameter_adequacy_policy:
+      default_plan:
+        - Run after the replay and the low-latent row to bracket the first latent-count read.
+        - If this row is clearly best, use it as the upper candidate for the blocked width follow-up.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 96
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 128
+        norm_type: layernorm
+        sandwich_latents: 96
+        sandwich_layers: 8
+        sandwich_heads: 8
+        sandwich_ff_expansion: 2
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        task_batch_size: 1
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 64
+        prior_dump_lr_scale_rule: sqrt
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.0004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run after the replay as the high-latent discriminator before width follow-up opens.
+    applicability_guards: []
+
+  delta_tf_rd_021a_sandwich_width128_latents48_v1:
+    dimension_family: model
+    family: architecture_capacity
+    binary_applicable: true
+    description: Increase sandwich width from 96 to 128 while keeping the replay latent count fixed at 48.
+    upstream_delta: Perceiver-style width changes alter latent-channel capacity and attention projection width; this is the lower width follow-up row once the latent screen is visible.
+    expected_effect: More width may improve fit if the replay is width-bottlenecked, though it increases training cost and should not be interpreted before the latent screen.
+    adequacy_knobs:
+      - Keep this row blocked until the latent-only screen confirms that a width read is warranted.
+      - Compare this row against the replay row and the high-latent row once unblocked.
+    parameter_adequacy_policy:
+      default_plan:
+        - Unblock only after rows `01` through `03` establish whether the replay latent count remains a live candidate.
+        - If unblocked, compare directly against the replay row before treating width as a needed axis.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked_on_latent_screen
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 128
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 128
+        norm_type: layernorm
+        sandwich_latents: 48
+        sandwich_layers: 8
+        sandwich_heads: 8
+        sandwich_ff_expansion: 2
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        task_batch_size: 1
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 64
+        prior_dump_lr_scale_rule: sqrt
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.0004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Leave blocked until the latent-only screen says the replay latent count is worth widening.
+    applicability_guards: []
+
+  delta_tf_rd_021a_sandwich_width128_latents96_v1:
+    dimension_family: model
+    family: architecture_capacity
+    binary_applicable: true
+    description: Increase sandwich width from 96 to 128 around the upper latent candidate at 96 latents.
+    upstream_delta: Perceiver-style scaling often couples latent count and channel width; this row is the blocked width follow-up around the high-latent bracket.
+    expected_effect: Jointly larger width and latent count may improve fit if the sandwich screen is constrained on both bottlenecks, but it is intentionally deferred until the latent screen lands.
+    adequacy_knobs:
+      - Keep this row blocked until the latent-only screen shows that the 96-latent candidate remains live.
+      - Compare against both the 96-latent row and the replay row once unblocked.
+    parameter_adequacy_policy:
+      default_plan:
+        - Unblock only if the high-latent row is viable enough to justify a width follow-up.
+        - Treat this as a bounded second-pass size probe rather than a new architecture fork.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked_on_latent_screen
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 128
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 128
+        norm_type: layernorm
+        sandwich_latents: 96
+        sandwich_layers: 8
+        sandwich_heads: 8
+        sandwich_ff_expansion: 2
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        task_batch_size: 1
+        prior_dump_non_finite_policy: skip
+        prior_dump_batch_size: 64
+        prior_dump_lr_scale_rule: sqrt
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.0004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Leave blocked until the 96-latent row earns a width follow-up.
+    applicability_guards: []
+
   delta_shifted_grouped_tokenizer:
     dimension_family: model
     family: tokenization

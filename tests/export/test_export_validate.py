@@ -37,6 +37,7 @@ _export(
         "test_validate_export_rejects_quantile_levels_for_classification",
         "test_validate_export_rejects_fixed_inference_contract_drift",
         "test_validate_export_rejects_fixed_preprocessor_contract_drift",
+        "test_validate_export_rejects_v3_preprocessor_feature_types",
         "test_validate_export_rejects_manifest_preprocessor_tamper_with_stale_manifest_sha256",
         "test_validate_export_requires_manifest_sha256_for_v3",
         "test_validate_export_rejects_malformed_manifest_sha256_for_v3",

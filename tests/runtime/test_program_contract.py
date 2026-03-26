@@ -294,6 +294,7 @@ def test_tabfoundry_sandwich_doc_covers_current_surface() -> None:
         "`sandwich_heads`",
         "`sandwich_ff_expansion`",
         "`TaskBatch.metadata[\"feature_types\"]`",
+        "`run_reference_consumer(..., feature_types=[...])`",
         "`latent_seed`",
         "truncated normal",
         "repeated Perceiver stages",
@@ -307,6 +308,7 @@ def test_tabfoundry_sandwich_doc_covers_current_surface() -> None:
         "prior sandwich",
         "intermediate shared-latent",
         "previous sandwich",
+        "explicit list is embedded",
     ]
     lowered = contents.lower()
     for statement in forbidden_statements:

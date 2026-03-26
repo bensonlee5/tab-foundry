@@ -327,13 +327,9 @@ class ExportPreprocessorState:
     missing_value_policy: ExportMissingValuePolicy
     classification_label_policy: ExportClassificationLabelPolicy | None
     dtype_policy: dict[str, Any]
-    feature_types: list[str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        payload = dict(asdict(self))
-        if self.feature_types is None:
-            payload.pop("feature_types", None)
-        return payload
+        return dict(asdict(self))
 
 
 @dataclass(slots=True)

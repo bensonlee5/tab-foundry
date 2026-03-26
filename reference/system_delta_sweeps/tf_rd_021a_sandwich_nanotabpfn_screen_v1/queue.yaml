@@ -1,0 +1,361 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_021a_sandwich_nanotabpfn_screen_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_021a_sandwich_replay_v1
+  status: ready
+  rationale: Reproduce the current repeated-input sandwich baseline on the locked
+    batch64-sqrt prior surface so [#179](https://github.com/bensonlee5/tab-foundry/issues/179)
+    has one explicit local comparator before the latent-count rows are interpreted.
+  hypothesis: If the current sandwich architecture is viable at all on the fast
+    nanoTabPFN surface, this row should train cleanly and land within decision-relevant
+    distance of the staged prior anchor.
+  anchor_delta: Keep the nanoTabPFN medium bundle, `prior_linear_warmup_decay`
+    batch64-sqrt recipe, and small-class classification contract fixed, then swap
+    the staged row-cls prior anchor for the current repeated-input sandwich baseline.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 128
+    norm_type: layernorm
+    sandwich_latents: 48
+    sandwich_layers: 8
+    sandwich_heads: 8
+    sandwich_ff_expansion: 2
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    task_batch_size: 1
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Run this row first so the sandwich screen has one explicit local baseline on the
+    benchmark prior surface.
+  - Compare all later sandwich rows against both this replay and the staged prior
+    anchor.
+  - Keep the repeated-input architecture fixed while reading latent count and width.
+  parent_delta_ref: null
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run first as the sandwich local replay, then interpret rows `02`
+    and `03` relative to it before unblocking any width row.
+  notes:
+  - This row is the local sandwich reference for the queue, not a promotion claim.
+  - If this row is clearly non-viable, keep the result as explicit evidence instead
+    of skipping straight to wider rows.
+- order: 2
+  delta_ref: delta_tf_rd_021a_sandwich_latents24_v1
+  status: ready
+  rationale: Read the lower latent bracket first so the initial screen can tell
+    whether the sandwich replay is over-provisioned before width becomes a live
+    axis.
+  hypothesis: If the current sandwich replay is carrying more latent memory than
+    the prior benchmark needs, halving `sandwich_latents` to `24` may keep most
+    of the quality while softening cost.
+  anchor_delta: Keep row `01` fixed and change only `sandwich_latents` from `48`
+    to `24`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 128
+    norm_type: layernorm
+    sandwich_latents: 24
+    sandwich_layers: 8
+    sandwich_heads: 8
+    sandwich_ff_expansion: 2
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    task_batch_size: 1
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Run after the sandwich replay as the lower latent-count bracket.
+  - Use this row and the high-latent row to decide whether width follow-up should
+    stay near the replay or move upward.
+  parent_delta_ref: delta_tf_rd_021a_sandwich_replay_v1
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run second as the lower latent-count discriminator against row `01`.
+  notes:
+  - Treat this as the lower latent bracket only; do not interpret it as a final
+    compact-model claim.
+- order: 3
+  delta_ref: delta_tf_rd_021a_sandwich_latents96_v1
+  status: ready
+  rationale: Read the upper latent bracket on the same fixed-width sandwich surface
+    before any width follow-up opens.
+  hypothesis: If the repeated-input sandwich is memory-bottlenecked rather than
+    width-bottlenecked on this prior surface, doubling `sandwich_latents` to `96`
+    should improve fit enough to justify the blocked width follow-up around the
+    high-latent row.
+  anchor_delta: Keep row `01` fixed and change only `sandwich_latents` from `48`
+    to `96`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 96
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 128
+    norm_type: layernorm
+    sandwich_latents: 96
+    sandwich_layers: 8
+    sandwich_heads: 8
+    sandwich_ff_expansion: 2
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    task_batch_size: 1
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Run after the replay and the low-latent row to bracket the first latent-count
+    read.
+  - If this row is clearly best, use it as the upper candidate for the blocked width
+    follow-up.
+  parent_delta_ref: delta_tf_rd_021a_sandwich_replay_v1
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run third as the high-latent discriminator, then decide whether
+    row `05` should be unblocked.
+  notes:
+  - Use runtime and any local VRAM observation as guardrails only; this row exists
+    to read quality first.
+- order: 4
+  delta_ref: delta_tf_rd_021a_sandwich_width128_latents48_v1
+  status: blocked_on_latent_screen
+  rationale: Pre-author the baseline-width follow-up now, but keep it blocked until
+    rows `01` through `03` say that widening the replay latent line is worth the
+    extra budget.
+  hypothesis: If the replay latent count remains live after the first screen but
+    still looks representation-limited, widening `d_icl` to `128` may recover quality
+    without needing the larger latent bank.
+  anchor_delta: Keep row `01` fixed and change only `d_icl` from `96` to `128`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 128
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 128
+    norm_type: layernorm
+    sandwich_latents: 48
+    sandwich_layers: 8
+    sandwich_heads: 8
+    sandwich_ff_expansion: 2
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    task_batch_size: 1
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Unblock only after rows `01` through `03` establish whether the replay latent
+    count remains a live candidate.
+  - If unblocked, compare directly against the replay row before treating width as
+    a needed axis.
+  parent_delta_ref: delta_tf_rd_021a_sandwich_replay_v1
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Leave blocked until the latent-only screen says the replay latent
+    count is still live and width-limited.
+  notes:
+  - Do not execute this row in the first pass.
+  - If row `01` is clearly non-viable, leave this row blocked rather than escalating
+    width as a rescue attempt.
+- order: 5
+  delta_ref: delta_tf_rd_021a_sandwich_width128_latents96_v1
+  status: blocked_on_latent_screen
+  rationale: Pre-author the high-latent width follow-up now, but keep it blocked
+    until row `03` shows that the upper latent bracket is worth widening.
+  hypothesis: If the `96`-latent row is viable but still width-limited, the joint
+    `d_icl=128` plus `sandwich_latents=96` setting may become the first serious
+    second-pass size probe.
+  anchor_delta: Keep row `03` fixed and change only `d_icl` from `96` to `128`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 128
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 128
+    norm_type: layernorm
+    sandwich_latents: 96
+    sandwich_layers: 8
+    sandwich_heads: 8
+    sandwich_ff_expansion: 2
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_linear_warmup_decay
+    task_batch_size: 1
+    prior_dump_non_finite_policy: skip
+    prior_dump_batch_size: 64
+    prior_dump_lr_scale_rule: sqrt
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Unblock only if the high-latent row is viable enough to justify a width follow-up.
+  - Treat this as a bounded second-pass size probe rather than a new architecture
+    fork.
+  parent_delta_ref: delta_tf_rd_021a_sandwich_latents96_v1
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: blocked
+  confounders: []
+  next_action: Leave blocked until row `03` earns a width follow-up.
+  notes:
+  - This row is the only pre-authored width follow-up around the high-latent bracket.
+  - Do not unblock unless row `03` is both viable and directionally stronger than
+    row `01`.

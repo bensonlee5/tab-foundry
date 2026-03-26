@@ -230,8 +230,10 @@ Interpretation:
 - these are collapsed Parquet or Arrow physical groups, not exact logical type
   strings
 - when `feature_types` is absent, the runtime falls back to all `floating`
-- exported runtime/reference preprocessor payloads may omit the list; that also
-  means all-`floating` fallback unless an explicit list is embedded
+- `run_reference_consumer(..., feature_types=[...])` accepts an optional
+  per-request list for exported-bundle execution
+- export-bundle `manifest.preprocessor` payloads are policy-only and must not
+  include `feature_types`
 
 ## Parameterization Notes
 

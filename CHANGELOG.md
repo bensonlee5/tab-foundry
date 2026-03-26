@@ -16,10 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Row and column summaries are summary-query attention outputs over
   position-aware cell tokens, and sandwich cell tokens include shared Fourier
   row/column positions plus schema-aware feature-type embeddings.
-- User-facing break: runtime metadata and v3 export preprocessor payloads now
-  support `feature_types` with the collapsed parquet-group vocabulary
-  `bool`, `integer`, `floating`, `string_binary`, or `unknown`. When
-  absent, the sandwich path falls back to all `floating`.
+- User-facing break: sandwich runtime metadata and the reference consumer now
+  support per-request `feature_types` with the collapsed parquet-group
+  vocabulary `bool`, `integer`, `floating`, `string_binary`, or `unknown`.
+  When absent, the sandwich path falls back to all `floating`. v3 export
+  preprocessor payloads remain policy-only and do not serialize this list.
 
 ## [0.11.5] - 2026-03-25
 

@@ -166,7 +166,7 @@ def test_validate_preprocessor_state_dict_roundtrips_valid_v3_payloads() -> None
     assert validated.to_dict() == payload
 
 
-def test_validate_preprocessor_state_dict_roundtrips_feature_types() -> None:
+def test_validate_preprocessor_state_dict_rejects_feature_types() -> None:
     payload: dict[str, object] = {
         "feature_order_policy": "positional_feature_ids",
         "missing_value_policy": {
@@ -186,15 +186,12 @@ def test_validate_preprocessor_state_dict_roundtrips_feature_types() -> None:
         "feature_types": ["bool", "integer", "floating"],
     }
 
-    validated = validate_preprocessor_state_dict(
-        payload,
-        schema_version=SCHEMA_VERSION_V3,
-        task="classification",
-    )
-
-    assert isinstance(validated, ExportPreprocessorState)
-    assert validated.feature_types == ["bool", "integer", "floating"]
-    assert validated.to_dict() == payload
+    with pytest.raises(ValueError, match="feature_types"):
+        validate_preprocessor_state_dict(
+            payload,
+            schema_version=SCHEMA_VERSION_V3,
+            task="classification",
+        )
 
 
 def test_validate_preprocessor_state_dict_defaults_missing_impute_missing_to_true() -> None:

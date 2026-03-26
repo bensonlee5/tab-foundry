@@ -213,19 +213,17 @@ def test_v3_section_validation_supports_classification_policy() -> None:
     assert cls_preprocessor.classification_label_policy.unseen_test_label == "filter"
 
 
-def test_v3_section_validation_accepts_feature_types() -> None:
+def test_v3_section_validation_rejects_feature_types() -> None:
     manifest_payload = _load_fixture("manifest_v3.json")
     preprocessor_payload = dict(manifest_payload["preprocessor"])
     preprocessor_payload["feature_types"] = ["bool", "integer", "floating"]
 
-    cls_preprocessor = validate_preprocessor_state_dict(
-        preprocessor_payload,
-        schema_version=SCHEMA_VERSION_V3,
-        task="classification",
-    )
-
-    assert isinstance(cls_preprocessor, ExportPreprocessorState)
-    assert cls_preprocessor.feature_types == ["bool", "integer", "floating"]
+    with pytest.raises(ValueError, match="feature_types"):
+        validate_preprocessor_state_dict(
+            preprocessor_payload,
+            schema_version=SCHEMA_VERSION_V3,
+            task="classification",
+        )
 
 
 def test_v3_section_validation_defaults_missing_impute_missing_to_true() -> None:
