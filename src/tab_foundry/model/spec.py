@@ -12,7 +12,8 @@ from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES
 
 SUPPORTED_MODEL_TASKS = ("classification",)
 STAGED_MODEL_ARCH = "tabfoundry_staged"
-SUPPORTED_MODEL_ARCHES = ("tabfoundry_simple", STAGED_MODEL_ARCH)
+SANDWICH_MODEL_ARCH = "tabfoundry_sandwich"
+SUPPORTED_MODEL_ARCHES = ("tabfoundry_simple", STAGED_MODEL_ARCH, SANDWICH_MODEL_ARCH)
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -42,6 +43,13 @@ DEFAULT_MODEL_HEAD_HIDDEN_DIM = 1024
 DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED = True
 DEFAULT_MODEL_STAGED_DROPOUT = 0.0
 DEFAULT_MODEL_PRE_ENCODER_CLIP: float | None = None
+DEFAULT_SANDWICH_MODEL_D_ICL = 96
+DEFAULT_SANDWICH_MODEL_HEAD_HIDDEN_DIM = 128
+DEFAULT_MODEL_SANDWICH_ROW_LATENTS = 32
+DEFAULT_MODEL_SANDWICH_COL_LATENTS = 16
+DEFAULT_MODEL_SANDWICH_LAYERS = 2
+DEFAULT_MODEL_SANDWICH_HEADS = 4
+DEFAULT_MODEL_SANDWICH_FF_EXPANSION = 2
 MAX_MODEL_STAGED_DROPOUT = 0.5
 MIN_MODEL_MANY_CLASS_BASE = 2
 _LINEAR_WEIGHT_TENSOR_RANK = 2
@@ -176,6 +184,11 @@ class ModelBuildSpec:
     use_digit_position_embed: bool = DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED
     staged_dropout: float = DEFAULT_MODEL_STAGED_DROPOUT
     pre_encoder_clip: float | None = DEFAULT_MODEL_PRE_ENCODER_CLIP
+    sandwich_row_latents: int = DEFAULT_MODEL_SANDWICH_ROW_LATENTS
+    sandwich_col_latents: int = DEFAULT_MODEL_SANDWICH_COL_LATENTS
+    sandwich_layers: int = DEFAULT_MODEL_SANDWICH_LAYERS
+    sandwich_heads: int = DEFAULT_MODEL_SANDWICH_HEADS
+    sandwich_ff_expansion: int = DEFAULT_MODEL_SANDWICH_FF_EXPANSION
 
     def __post_init__(self) -> None:
         task = str(self.task).strip().lower()
@@ -259,6 +272,11 @@ class ModelBuildSpec:
             "tficl_ff_expansion",
             "many_class_base",
             "head_hidden_dim",
+            "sandwich_row_latents",
+            "sandwich_col_latents",
+            "sandwich_layers",
+            "sandwich_heads",
+            "sandwich_ff_expansion",
         ):
             value = int(getattr(self, field_name))
             object.__setattr__(self, field_name, value)
@@ -312,14 +330,31 @@ def model_build_spec_from_mappings(
             return fallback_map[name]
         return default
 
+    arch_value = str(_pick("arch", DEFAULT_MODEL_ARCH)).strip().lower()
+
+    def _arch_default(name: str, default: Any, *, sandwich_default: Any | None = None) -> Any:
+        if name in primary_map and primary_map[name] is not None:
+            return primary_map[name]
+        if name in fallback_map and fallback_map[name] is not None:
+            return fallback_map[name]
+        if arch_value == SANDWICH_MODEL_ARCH and sandwich_default is not None:
+            return sandwich_default
+        return default
+
     return ModelBuildSpec(
         task=str(task).strip().lower(),
-        arch=str(_pick("arch", DEFAULT_MODEL_ARCH)),
+        arch=arch_value,
         stage=_pick("stage", DEFAULT_MODEL_STAGE),
         stage_label=_pick("stage_label", DEFAULT_MODEL_STAGE_LABEL),
         module_overrides=_pick("module_overrides", DEFAULT_MODEL_MODULE_OVERRIDES),
         d_col=int(_pick("d_col", DEFAULT_MODEL_D_COL)),
-        d_icl=int(_pick("d_icl", DEFAULT_MODEL_D_ICL)),
+        d_icl=int(
+            _arch_default(
+                "d_icl",
+                DEFAULT_MODEL_D_ICL,
+                sandwich_default=DEFAULT_SANDWICH_MODEL_D_ICL,
+            )
+        ),
         input_normalization=str(_pick("input_normalization", DEFAULT_MODEL_INPUT_NORMALIZATION)),
         feature_group_size=int(_pick("feature_group_size", DEFAULT_MODEL_FEATURE_GROUP_SIZE)),
         many_class_train_mode=str(
@@ -342,13 +377,30 @@ def model_build_spec_from_mappings(
             _pick("tficl_ff_expansion", DEFAULT_MODEL_TFICL_FF_EXPANSION)
         ),
         many_class_base=int(_pick("many_class_base", DEFAULT_MODEL_MANY_CLASS_BASE)),
-        head_hidden_dim=int(_pick("head_hidden_dim", DEFAULT_MODEL_HEAD_HIDDEN_DIM)),
+        head_hidden_dim=int(
+            _arch_default(
+                "head_hidden_dim",
+                DEFAULT_MODEL_HEAD_HIDDEN_DIM,
+                sandwich_default=DEFAULT_SANDWICH_MODEL_HEAD_HIDDEN_DIM,
+            )
+        ),
         use_digit_position_embed=_coerce_bool(
             _pick("use_digit_position_embed", DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED),
             context="use_digit_position_embed",
         ),
         staged_dropout=float(_pick("staged_dropout", DEFAULT_MODEL_STAGED_DROPOUT)),
         pre_encoder_clip=_pick("pre_encoder_clip", DEFAULT_MODEL_PRE_ENCODER_CLIP),
+        sandwich_row_latents=int(
+            _pick("sandwich_row_latents", DEFAULT_MODEL_SANDWICH_ROW_LATENTS)
+        ),
+        sandwich_col_latents=int(
+            _pick("sandwich_col_latents", DEFAULT_MODEL_SANDWICH_COL_LATENTS)
+        ),
+        sandwich_layers=int(_pick("sandwich_layers", DEFAULT_MODEL_SANDWICH_LAYERS)),
+        sandwich_heads=int(_pick("sandwich_heads", DEFAULT_MODEL_SANDWICH_HEADS)),
+        sandwich_ff_expansion=int(
+            _pick("sandwich_ff_expansion", DEFAULT_MODEL_SANDWICH_FF_EXPANSION)
+        ),
     )
 
 

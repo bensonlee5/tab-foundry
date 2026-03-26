@@ -30,6 +30,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   harder dagzoo corpus-front evidence and v1 carry-forward decisions
 - [`TF-RD-021`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
   steering-derived corpus-front evidence and conditional Muon retry framing
+- [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
+  runtime and VRAM efficiency evidence plus the measured-policy handoff
 - [`TF-RD-019`](roadmap_evidence/tf_rd_019_dagzoo_filtering_policy.md):
   dagzoo filtering-policy evidence and open curation questions
 - [`TF-RD-014`](roadmap_evidence/tf_rd_014_missingness_robustness.md):
@@ -263,6 +265,25 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the repo records one explicit keep/defer decision on whether a
     steering-derived corpus front changes the carried synthetic control, and it
     retries Muon only on a genuinely new promoted front
+
+### TF-RD-022: Training Runtime And VRAM Efficiency On The Promoted Anchor
+
+- External evidence:
+  - dedicated runtime-policy literature is not yet curated in this repo
+  - the next sources to curate are PyTorch bf16, activation-checkpointing, and
+    throughput or memory telemetry references for A100-class training
+- Repo-local evidence:
+  - deferred issue `#58` already tracks runtime or VRAM summary work but
+    stayed attached to the earlier TF-RD-002 measurement chain
+  - epic `#168` plus child issues `#169`, `#170`, and `#171` now give the
+    runtime lane an explicit roadmap home
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`
+  - TF-RD-021A remains the bounded sidecar for the experimental
+    `tabfoundry_sandwich` screen under `#174/#175`
+- Success signal:
+  - the repo records one explicit runtime policy with peak-memory and
+    throughput evidence, and later batching or scaling work can inherit it
 
 ### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
 

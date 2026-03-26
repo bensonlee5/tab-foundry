@@ -218,6 +218,42 @@ def test_build_training_surface_record_marks_missing_inputs_when_manifest_is_dir
     assert record["data"]["manifest"]["characteristics"]["all_records_no_missing"] is False
 
 
+def test_build_training_surface_record_includes_sandwich_architecture_metadata(
+    tmp_path: Path,
+) -> None:
+    manifest_path = _write_manifest(tmp_path / "manifest_sandwich.parquet")
+
+    record = build_training_surface_record(
+        raw_cfg={
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_sandwich",
+                "d_icl": 96,
+                "head_hidden_dim": 128,
+                "sandwich_row_latents": 16,
+                "sandwich_col_latents": 8,
+                "sandwich_layers": 2,
+                "sandwich_heads": 4,
+                "sandwich_ff_expansion": 2,
+            },
+            "data": {
+                "source": "manifest",
+                "manifest_path": str(manifest_path),
+            },
+        },
+        run_dir=tmp_path / "run_sandwich",
+    )
+
+    assert record["model"]["arch"] == "tabfoundry_sandwich"
+    assert record["model"]["architecture"] == {
+        "row_latents": 16,
+        "col_latents": 8,
+        "layers": 2,
+        "heads": 4,
+        "ff_expansion": 2,
+    }
+
+
 def test_build_training_surface_record_keeps_manifest_path_when_file_is_missing(
     tmp_path: Path,
 ) -> None:

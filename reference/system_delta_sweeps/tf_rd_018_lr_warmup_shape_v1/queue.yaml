@@ -2,7 +2,7 @@ schema: tab-foundry-system-delta-sweep-queue-v1
 sweep_id: tf_rd_018_lr_warmup_shape_v1
 rows:
 - order: 1
-  delta_ref: delta_training_linear_warmup_decay
+  delta_ref: delta_training_tf_rd_018_linear_warmup_decay
   status: ready
   rationale: Replay the carried schedulefree warmup-decay baseline on a corrected
     short-run `400`-step schedule horizon so issue `#138` has one explicit local
@@ -74,7 +74,7 @@ rows:
     floor reads are interpreted on the actual short-run horizon rather than on
     the inherited `2500`-step parent setting.
 - order: 2
-  delta_ref: delta_training_linear_warmup_decay_warm0
+  delta_ref: delta_training_tf_rd_018_linear_warmup_decay_warm0
   status: ready
   rationale: Remove warmup while keeping the corrected short-run LR pair fixed so
     issue `#138` can test whether the inherited `0.05` warmup is still necessary
@@ -138,7 +138,7 @@ rows:
   next_action: Run second as the no-warmup discriminator against the carried baseline.
   notes: []
 - order: 3
-  delta_ref: delta_training_linear_warmup_decay_lr3e3
+  delta_ref: delta_training_tf_rd_018_linear_warmup_decay_lr3e3
   status: ready
   rationale: Lower the LR ceiling while keeping the carried floor and corrected
     warmup horizon fixed so issue `#138` can test whether the inherited `0.004`
@@ -201,7 +201,7 @@ rows:
   next_action: Run after rows `01` and `02` as the lower-ceiling LR probe.
   notes: []
 - order: 4
-  delta_ref: delta_training_linear_warmup_decay_minlr1e4
+  delta_ref: delta_training_tf_rd_018_linear_warmup_decay_minlr1e4
   status: ready
   rationale: Lower the LR floor while keeping the carried peak LR and corrected
     warmup horizon fixed so issue `#138` can test whether the inherited floor is
@@ -266,7 +266,7 @@ rows:
   next_action: Run after the carried baseline as the lower-floor LR probe.
   notes: []
 - order: 5
-  delta_ref: delta_training_linear_warmup_decay_warm20
+  delta_ref: delta_training_tf_rd_018_linear_warmup_decay_warm20
   status: ready
   rationale: Materially lengthen warmup while keeping the carried LR pair fixed
     so issue `#138` can test whether the inherited runtime wants more early protection

@@ -4,6 +4,7 @@ import pytest
 import torch
 
 from tab_foundry.model.factory import build_model
+from tab_foundry.model.architectures.tabfoundry_sandwich import TabFoundrySandwichClassifier
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import (
     STAGED_MODEL_ARCH,
@@ -47,6 +48,36 @@ def test_build_model_supports_tabfoundry_simple_classification() -> None:
     )
 
     assert isinstance(model, TabFoundrySimpleClassifier)
+
+
+def test_build_model_supports_tabfoundry_sandwich_classification() -> None:
+    model = build_model(
+        task="classification",
+        arch="tabfoundry_sandwich",
+        d_icl=96,
+        input_normalization="train_zscore_clip",
+        many_class_base=4,
+        head_hidden_dim=128,
+        sandwich_row_latents=16,
+        sandwich_col_latents=8,
+        sandwich_layers=2,
+        sandwich_heads=4,
+        sandwich_ff_expansion=2,
+    )
+
+    assert isinstance(model, TabFoundrySandwichClassifier)
+
+
+def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={"arch": "tabfoundry_sandwich"},
+    )
+
+    assert spec.d_icl == 96
+    assert spec.head_hidden_dim == 128
+    assert spec.sandwich_row_latents == 32
+    assert spec.sandwich_col_latents == 16
 
 
 def test_build_model_rejects_legacy_tabfoundry_arch() -> None:

@@ -317,8 +317,8 @@ def train(cfg: DictConfig) -> TrainResult:
         if not callable(enable_activation_checkpointing):
             raise RuntimeError(
                 "runtime.activation_checkpointing=true requires a model with "
-                "enable_activation_checkpointing(); only tabfoundry_staged currently "
-                "supports activation checkpointing"
+                "enable_activation_checkpointing(); this runtime hook is currently "
+                "implemented by tabfoundry_staged and tabfoundry_sandwich"
             )
         enable_activation_checkpointing()
     if val_loader is None:
