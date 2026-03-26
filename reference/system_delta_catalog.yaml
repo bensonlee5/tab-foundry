@@ -1330,14 +1330,14 @@ deltas:
     dimension_family: training
     family: schedule
     binary_applicable: true
-    description: Keep the anchor model, data, and preprocessing surfaces but lengthen warmup on the carried warmup-decay schedule.
-    upstream_delta: Not applicable; this is a repo-local warmup-length follow-up on the settled warmup-decay surface.
-    expected_effect: Longer warmup may reduce early clipping further, though it risks underusing the fixed-step budget.
+    description: Keep the carried short-run warmup-decay surface but lengthen warmup modestly.
+    upstream_delta: Not applicable; this is a repo-local warmup-length follow-up on the corrected short-run warmup-decay surface.
+    expected_effect: A `0.10` warmup may reduce early clipping further on the corrected `400`-step runtime, though it risks underusing the fixed-step budget.
     adequacy_knobs:
       - schedule.stages[0].warmup_ratio
     parameter_adequacy_policy:
       default_plan:
-        - Compare locally against the carried warmup-decay baseline while keeping peak LR, floor, and optimizer family fixed.
+        - Compare locally against the corrected short-run warmup-decay baseline while keeping peak LR, floor, and optimizer family fixed.
         - Prefer it only if benchmark quality and early stability improve together.
       default_negative_decision: defer
       reject_requires:
@@ -1355,7 +1355,7 @@ deltas:
       preprocessing:
         surface_label: runtime_default
       training:
-        surface_label: prior_linear_warmup_decay
+        surface_label: linear_warmup_decay
         overrides:
           apply_schedule: true
           optimizer:
@@ -1363,11 +1363,11 @@ deltas:
           schedule:
             stages:
               - name: stage1
-                steps: 2500
+                steps: 400
                 lr_max: 0.004
                 lr_schedule: linear
                 warmup_ratio: 0.10
-    default_next_action: Run after the carried warmup-decay baseline as the longer-warmup probe.
+    default_next_action: Run after the corrected short-run baseline as the modestly longer-warmup probe.
     applicability_guards: []
 
   delta_training_linear_warmup_decay_warm20:

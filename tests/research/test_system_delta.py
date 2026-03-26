@@ -652,6 +652,54 @@ def test_create_sweep_bootstraps_tf_rd_018_lr_shape_followups_on_corpus_surface(
     assert materialized["rows"][1]["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
 
 
+def test_create_sweep_bootstraps_tf_rd_018_warm10_followup_on_corrected_short_run_surface(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="tf_rd_018_lr_warm10_clone",
+        anchor_run_id="sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2",
+        parent_sweep_id="tf_rd_018_optimizer_family_v1",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=["delta_training_linear_warmup_decay_warm10"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    created_queue = load_system_delta_queue_instance(
+        "tf_rd_018_lr_warm10_clone",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="tf_rd_018_lr_warm10_clone",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert [row["delta_ref"] for row in created_queue["rows"]] == [
+        "delta_training_linear_warmup_decay_warm10",
+    ]
+
+    created_row = created_queue["rows"][0]
+    assert created_row["training"]["surface_label"] == "linear_warmup_decay"
+    assert created_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
+    assert created_row["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.10
+    assert created_row["training"]["overrides"]["optimizer"]["min_lr"] == 0.0004
+
+    materialized_row = materialized["rows"][0]
+    assert materialized_row["training"]["surface_label"] == "linear_warmup_decay"
+    assert materialized_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
+    assert materialized_row["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.10
+    assert materialized_row["training"]["overrides"]["optimizer"]["min_lr"] == 0.0004
+
+
 def test_create_sweep_rejects_unknown_explicit_delta_ref(tmp_path: Path) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
 
