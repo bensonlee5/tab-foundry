@@ -1194,6 +1194,50 @@ deltas:
     default_next_action: Run after the no-warmup linear-decay row so warmup is isolated from pure decay.
     applicability_guards: []
 
+  delta_training_linear_warmup_decay_warm0:
+    dimension_family: training
+    family: schedule
+    binary_applicable: true
+    description: Keep the carried short-run warmup-decay surface but remove warmup entirely.
+    upstream_delta: Not applicable; this is a repo-local warmup-zero follow-up on the corrected short-run warmup-decay surface.
+    expected_effect: No warmup may preserve quality if the corrected `400`-step runtime is already stable enough without early protection.
+    adequacy_knobs:
+      - schedule.stages[0].warmup_ratio
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare locally against the corrected short-run warmup-decay baseline while keeping LR ceiling, LR floor, optimizer family, and runtime fixed.
+        - Prefer it only if benchmark quality stays competitive without reopening obvious early instability.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: linear_warmup_decay
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          schedule:
+            stages:
+              - name: stage1
+                steps: 400
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.0
+    default_next_action: Run after the corrected short-run baseline as the warmup-zero discriminator.
+    applicability_guards: []
+
   delta_training_linear_warmup_decay_lr3e3:
     dimension_family: training
     family: schedule
@@ -1324,6 +1368,50 @@ deltas:
                 lr_schedule: linear
                 warmup_ratio: 0.10
     default_next_action: Run after the carried warmup-decay baseline as the longer-warmup probe.
+    applicability_guards: []
+
+  delta_training_linear_warmup_decay_warm20:
+    dimension_family: training
+    family: schedule
+    binary_applicable: true
+    description: Keep the carried short-run warmup-decay surface but lengthen warmup materially.
+    upstream_delta: Not applicable; this is a repo-local warmup-length follow-up on the corrected short-run warmup-decay surface.
+    expected_effect: A `0.20` warmup may reduce early clipping further on the corrected `400`-step runtime, though it risks underusing the fixed-step budget.
+    adequacy_knobs:
+      - schedule.stages[0].warmup_ratio
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare locally against the corrected short-run warmup-decay baseline while keeping peak LR, floor, and optimizer family fixed.
+        - Prefer it only if benchmark quality and early stability improve together.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: linear_warmup_decay
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          schedule:
+            stages:
+              - name: stage1
+                steps: 400
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.20
+    default_next_action: Run after the corrected short-run baseline as the materially longer-warmup probe.
     applicability_guards: []
 
   delta_training_adamw:

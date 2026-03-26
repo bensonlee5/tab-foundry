@@ -67,7 +67,8 @@ This is the canonical long-form evidence note for
   active sweep
   [tf_rd_018_lr_warmup_shape_v1](../system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/matrix.md)
   with bounded LR and warmup-shape comparisons on the inherited noise-drift
-  runtime
+  runtime, now corrected to a real `400`-step schedule horizon rather than the
+  inherited parent `2500`-step setting
 - the TF-RD-020 noise-drift winner is now both the data-surface handoff and
   the locked optimizer anchor for issue `#137`, carrying forward the uncapped
   `task_batch_size=1`, `grad_accum_steps=4`, `max_steps=400` runtime
@@ -96,11 +97,13 @@ This is the canonical long-form evidence note for
 - use `tf_rd_020_shift_noise_drift_v1` as the default harder carry-forward
   surface for issues `#137`, `#138`, and `#139`
 - use the completed `tf_rd_018_optimizer_family_v1` sweep to keep
-  `schedulefree_adamw` as the carried optimizer family after issue `#137`
+  `schedulefree_adamw` as the carried optimizer family after issue `#137`,
+  interpreting its completed rows as shared-condition optimizer evidence on the
+  inherited `2500`-step schedule horizon plus `400`-step runtime
 - use `tf_rd_018_lr_warmup_shape_v1` as the active execution sweep for issue
-  `#138`: compare the carried warmup-decay baseline against no-warmup,
-  lower-ceiling, lower-floor, and longer-warmup variants on the locked
-  TF-RD-020 row `06` noise-drift runtime
+  `#138`: compare the corrected short-run warmup-decay baseline against warmup-zero,
+  lower-ceiling, lower-floor, and warmup-20 variants on the locked TF-RD-020
+  row `06` noise-drift runtime
 - do not activate `tf_rd_020_noise_mixture_v1` as a fallback harder surface
   after the completed optimizer-family read because the noise-drift result was
   not a near-tie or ambiguous wash

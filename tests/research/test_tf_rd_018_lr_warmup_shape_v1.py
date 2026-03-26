@@ -14,10 +14,10 @@ PARENT_SWEEP_ID = "tf_rd_018_optimizer_family_v1"
 ANCHOR_RUN_ID = "sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2"
 EXPECTED_ROWS = [
     "delta_training_linear_warmup_decay",
-    "delta_training_linear_decay",
+    "delta_training_linear_warmup_decay_warm0",
     "delta_training_linear_warmup_decay_lr3e3",
     "delta_training_linear_warmup_decay_minlr1e4",
-    "delta_training_linear_warmup_decay_warm10",
+    "delta_training_linear_warmup_decay_warm20",
 ]
 
 
@@ -77,6 +77,7 @@ def test_tf_rd_018_lr_warmup_shape_v1_locks_runtime_and_reads_schedule_variants(
     assert any("`#139`" in note for note in notes)
     assert any("schedulefree_adamw" in note for note in notes)
     assert any("tf_rd_020_noise_mixture_v1" in note for note in notes)
+    assert any("corrects the inherited parent mismatch" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
@@ -110,6 +111,10 @@ def test_tf_rd_018_lr_warmup_shape_v1_locks_runtime_and_reads_schedule_variants(
             "trace_activations": False,
             "val_batches": 0,
         }
+        assert (
+            row["training"]["overrides"]["schedule"]["stages"][0]["steps"]
+            == row["training"]["overrides"]["runtime"]["max_steps"]
+        )
 
     baseline = _row_by_ref(queue, "delta_training_linear_warmup_decay")
     assert baseline["training"]["overrides"]["optimizer"]["min_lr"] == 0.0004
@@ -117,35 +122,39 @@ def test_tf_rd_018_lr_warmup_shape_v1_locks_runtime_and_reads_schedule_variants(
         "stages": [
             {
                 "name": "stage1",
-                "steps": 2500,
+                "steps": 400,
                 "lr_max": 0.004,
                 "lr_schedule": "linear",
                 "warmup_ratio": 0.05,
             }
         ]
     }
-    assert "explicit LR/warmup baseline replay" in baseline["next_action"]
+    assert "corrected short-run LR/warmup baseline replay" in baseline["next_action"]
 
-    no_warmup = _row_by_ref(queue, "delta_training_linear_decay")
+    no_warmup = _row_by_ref(queue, "delta_training_linear_warmup_decay_warm0")
     assert no_warmup["training"]["overrides"]["optimizer"]["min_lr"] == 0.0004
+    assert no_warmup["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
     assert no_warmup["training"]["overrides"]["schedule"]["stages"][0]["lr_max"] == 0.004
     assert no_warmup["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.0
 
     lower_ceiling = _row_by_ref(queue, "delta_training_linear_warmup_decay_lr3e3")
     assert lower_ceiling["training"]["overrides"]["optimizer"]["min_lr"] == 0.0004
+    assert lower_ceiling["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
     assert lower_ceiling["training"]["overrides"]["schedule"]["stages"][0]["lr_max"] == 0.003
     assert lower_ceiling["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.05
 
     lower_floor = _row_by_ref(queue, "delta_training_linear_warmup_decay_minlr1e4")
     assert lower_floor["training"]["overrides"]["optimizer"]["min_lr"] == 0.0001
+    assert lower_floor["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
     assert lower_floor["training"]["overrides"]["schedule"]["stages"][0]["lr_max"] == 0.004
     assert lower_floor["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.05
 
-    longer_warmup = _row_by_ref(queue, "delta_training_linear_warmup_decay_warm10")
+    longer_warmup = _row_by_ref(queue, "delta_training_linear_warmup_decay_warm20")
     assert longer_warmup["training"]["overrides"]["optimizer"]["min_lr"] == 0.0004
+    assert longer_warmup["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
     assert longer_warmup["training"]["overrides"]["schedule"]["stages"][0]["lr_max"] == 0.004
-    assert longer_warmup["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.10
-    assert "longer-warmup probe" in longer_warmup["next_action"]
+    assert longer_warmup["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.20
+    assert "materially longer-warmup probe" in longer_warmup["next_action"]
 
 
 def test_tf_rd_018_lr_warmup_shape_v1_materialized_queue_matches_active_alias() -> None:
@@ -165,6 +174,7 @@ def test_tf_rd_018_lr_warmup_shape_v1_materialized_queue_matches_active_alias() 
     assert baseline["training"]["overrides"]["optimizer"]["name"] == "schedulefree_adamw"
     assert baseline["training"]["overrides"]["runtime"]["grad_accum_steps"] == 4
     assert baseline["training"]["overrides"]["runtime"]["max_steps"] == 400
+    assert baseline["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
     assert baseline["training"]["overrides"]["schedule"]["stages"][0]["lr_max"] == 0.004
     assert baseline["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.05
 
@@ -182,6 +192,8 @@ def test_tf_rd_018_lr_warmup_shape_v1_materialized_queue_matches_active_alias() 
     assert SWEEP_ID in matrix
     assert ANCHOR_RUN_ID in matrix
     assert "delta_training_linear_warmup_decay_lr3e3" in matrix
+    assert "delta_training_linear_warmup_decay_warm0" in matrix
+    assert "delta_training_linear_warmup_decay_warm20" in matrix
     assert "tf_rd_020_shift_noise_drift_v1" in matrix
     assert "generated_from_sweep_id: tf_rd_018_lr_warmup_shape_v1" in active_queue
     assert "canonical_queue_path: reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/queue.yaml" in active_queue

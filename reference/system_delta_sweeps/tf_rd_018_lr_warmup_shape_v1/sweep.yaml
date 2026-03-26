@@ -24,8 +24,12 @@ anchor_surface:
     surface, and harmonized `task_batch_size=1`, `grad_accum_steps=4`, `400`-step
     runtime fixed; only LR and warmup shape are in scope here.
   - The locked anchor is benchmark registry run `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`
-    on `tf_rd_020_shift_noise_drift_v1`; row `01` replays that carried baseline as
-    an explicit local reference for the remaining rows.
+    on `tf_rd_020_shift_noise_drift_v1`; row `01` replays that carried baseline on
+    a corrected `400`-step schedule horizon as an explicit local reference for the
+    remaining rows.
+  - This sweep corrects the inherited parent mismatch where `schedule.stages[0].steps`
+    stayed at `2500` despite the short runtime ending at `400` steps, so LR floor
+    and warmup reads here should be interpreted on the actual benchmark horizon.
   - The `tf_rd_020_noise_mixture_v1` surface remains inactive fallback context;
     this sweep does not reopen the harder-surface choice unless a later adequacy
     read becomes genuinely confounded.
@@ -53,11 +57,14 @@ anchor_surface:
   - dimension: LR and warmup shape
     upstream: Adam-style scaling papers motivate treating LR ceiling, LR floor, and
       warmup as coupled knobs rather than independent universal rules.
-    anchor: The carried baseline uses `lr_max=0.004`, `optimizer.min_lr=0.0004`, and
-      `warmup_ratio=0.05` on the inherited runtime.
-    interpretation: Rank rows by final log loss first, final Brier score second, final
-      ROC AUC third, and best-to-final drift fourth while treating runtime and
-      clipped-step fraction as guardrails only.
+    anchor: The carried baseline uses `lr_max=0.004`, `optimizer.min_lr=0.0004`,
+      and `warmup_ratio=0.05` on a corrected `400`-step schedule horizon layered
+      onto the inherited runtime.
+    interpretation: Rank rows by final log loss first, final Brier score second,
+      final ROC AUC third, and best-to-final drift fourth while treating runtime
+      and clipped-step fraction as guardrails only; use row `02` as the `warm0`
+      challenger and row `05` as the `warm20` challenger around the corrected
+      short-run baseline.
   - dimension: fallback scope
     upstream: Not applicable.
     anchor: '`tf_rd_020_noise_mixture_v1` is not active in this sweep.'
