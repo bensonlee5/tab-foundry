@@ -28,7 +28,7 @@ This is not the right page if you only want a general repo overview. Start with
 ## Objective
 
 Optimize for attributable evidence against the locked anchor
-`sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1`, not for rapid base
+`sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`, not for rapid base
 promotion.
 
 The primary score remains `final_log_loss` on the canonical binary benchmark
@@ -59,9 +59,9 @@ Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
 - active sweep id: `tf_rd_018_optimizer_family_v1`
-- anchor run id: `sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1`
-- anchor train run: `outputs/staged_ladder/research/row_first_training_adequacy_v1/delta_training_task_batch4/sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1/train`
-- anchor benchmark: `outputs/staged_ladder/research/row_first_training_adequacy_v1/delta_training_task_batch4/sd_row_first_training_adequacy_v1_01_delta_training_task_batch4_v1/benchmark`
+- anchor run id: `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`
+- anchor train run: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/train`
+- anchor benchmark: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/benchmark`
 - canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
 - canonical control baseline id: `cls_benchmark_linear_v2`
 - canonical control source run: `01_nano_exact_md_prior_parity_fix_binary_medium_v1`

@@ -84,7 +84,7 @@ def _wrap_step_to_ignore_unused_closure(
         del self, closure
         return original_step()
 
-    optimizer.step = MethodType(_step_with_optional_closure, optimizer)
+    setattr(optimizer, "step", MethodType(_step_with_optional_closure, optimizer))
     return optimizer
 
 
