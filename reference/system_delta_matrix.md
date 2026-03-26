@@ -54,7 +54,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Description: Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup.
 - Rationale: Replay the carried schedulefree warmup-decay baseline on a corrected short-run `400`-step schedule horizon so issue `#138` has one explicit local reference row before reading the schedule variants.
 - Hypothesis: The corrected `0.05` warmup replay should remain competitive and provide the local comparison point for warmup-zero, lower-ceiling, lower-floor, and materially longer-warmup probes.
-- Upstream delta: Not applicable; this is a repo-local exact-prior training recipe change.
+- Upstream delta: Not applicable; this is a repo-local corrected short-run warmup-decay baseline on the inherited harder surface.
 - Anchor delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface, preprocessing surface, `schedulefree_adamw` optimizer family, and harmonized `task_batch_size=1` with `grad_accum_steps=4` `400`-step runtime fixed, then replay the carried linear-warmup-decay recipe on a matching `400`-step schedule horizon.
 - Expected effect: Reduced early instability versus constant LR or plain linear decay, with uncertain final quality impact.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_shift_noise_drift`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
