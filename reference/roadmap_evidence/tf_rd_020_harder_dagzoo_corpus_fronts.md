@@ -81,9 +81,9 @@ This is the canonical long-form evidence note for
   that hands three explicit harder-front family winners back into TF-RD-018
 - hand TF-RD-018 a documented default harder carry-forward surface rather than
   leaving all three kept family winners equally active for optimizer follow-up
-- keep the inherited optimizer anchor explicit: issue `#137` should read
-  `adamw` and `muon` directly against TF-RD-020 row `06` on
-  `tf_rd_020_shift_noise_drift_v1`
+- keep the inherited optimizer anchor explicit: completed issue `#137` kept
+  `schedulefree_adamw` on TF-RD-020 row `06` and left both `adamw` and `muon`
+  deferred on `tf_rd_020_shift_noise_drift_v1`
 - treat missingness, shift or drift, and mechanism-diversity or noise as the
   bounded first candidate fronts rather than opening a broad new corpus program
 - keep those first harder-front comparisons pre-filter and close TF-RD-020 on

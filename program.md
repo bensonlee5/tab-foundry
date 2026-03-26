@@ -58,7 +58,7 @@ not the main score.
 Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
-- active sweep id: `tf_rd_018_optimizer_family_v1`
+- active sweep id: `tf_rd_018_lr_warmup_shape_v1`
 - anchor run id: `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`
 - anchor train run: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/train`
 - anchor benchmark: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/benchmark`
@@ -69,8 +69,8 @@ dimension family:
 - canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
-- canonical sweep queue: `reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/queue.yaml`
-- canonical sweep matrix: `reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md`
+- canonical sweep queue: `reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/queue.yaml`
+- canonical sweep matrix: `reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/matrix.md`
 - active queue alias: `reference/system_delta_queue.yaml`
 - active matrix alias: `reference/system_delta_matrix.md`
 - research template: `reference/system_delta_campaign_template.md`

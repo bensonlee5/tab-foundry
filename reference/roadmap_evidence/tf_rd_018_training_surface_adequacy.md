@@ -54,14 +54,20 @@ This is the canonical long-form evidence note for
   carry-forward surface because it leads the kept TF-RD-020 winners on final
   log loss and final Brier while preserving a positive final ROC delta and the
   shortest runtime among the kept set
-- `tf_rd_020_noise_mixture_v1` remains the named fallback harder surface if the
-  first optimizer-family read on `tf_rd_020_shift_noise_drift_v1` is too close
-  or unstable to collapse cleanly
-- [#137](https://github.com/bensonlee5/tab-foundry/issues/137) now executes as
+- [#137](https://github.com/bensonlee5/tab-foundry/issues/137) is now closed on
+  completed sweep
+  [tf_rd_018_optimizer_family_v1](../system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md),
+  which kept `schedulefree_adamw` as the primary optimizer family and left
+  both `adamw` and `muon` deferred on the inherited TF-RD-020 noise-drift
+  winner
+- `tf_rd_020_noise_mixture_v1` remains documented fallback context, but the
+  completed optimizer-family read on `tf_rd_020_shift_noise_drift_v1` was not
+  close or unstable enough to activate that surface
+- [#138](https://github.com/bensonlee5/tab-foundry/issues/138) now executes as
   active sweep
-  [tf_rd_018_optimizer_family_v1](../system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md)
-  with direct `adamw` and `muon` comparisons against the inherited TF-RD-020
-  noise-drift winner
+  [tf_rd_018_lr_warmup_shape_v1](../system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/matrix.md)
+  with bounded LR and warmup-shape comparisons on the inherited noise-drift
+  runtime
 - the TF-RD-020 noise-drift winner is now both the data-surface handoff and
   the locked optimizer anchor for issue `#137`, carrying forward the uncapped
   `task_batch_size=1`, `grad_accum_steps=4`, `max_steps=400` runtime
@@ -74,6 +80,9 @@ This is the canonical long-form evidence note for
 - the inherited harder-surface optimizer anchor now comes from TF-RD-020 row
   `06`, so issue `#137` no longer replays schedulefree on top of
   `tf_rd_020_shift_noise_drift_v1`
+- the optimizer-family read is now closed: keep `schedulefree_adamw` as the
+  default optimizer family, leave `adamw` and `muon` deferred, and do not
+  retain an optimizer fallback family
 - `task_batch_size=8` is now negative gate evidence rather than the new default:
   it preserved clean batching, reused the row-1 nanoTabPFN curve, but still
   missed the `<=900s` gate and regressed final benchmark-facing metrics
@@ -86,12 +95,15 @@ This is the canonical long-form evidence note for
   reopening harder-front design inside TF-RD-018
 - use `tf_rd_020_shift_noise_drift_v1` as the default harder carry-forward
   surface for issues `#137`, `#138`, and `#139`
-- use `tf_rd_018_optimizer_family_v1` as the active execution sweep for issue
-  `#137`: compare `adamw` and `muon` directly against the locked TF-RD-020 row
-  `06` noise-drift anchor
-- retain `tf_rd_020_noise_mixture_v1` as the named fallback harder surface only
-  if the first optimizer-family read on noise drift is too confounded to
-  collapse to a single carry-forward front
+- use the completed `tf_rd_018_optimizer_family_v1` sweep to keep
+  `schedulefree_adamw` as the carried optimizer family after issue `#137`
+- use `tf_rd_018_lr_warmup_shape_v1` as the active execution sweep for issue
+  `#138`: compare the carried warmup-decay baseline against no-warmup,
+  lower-ceiling, lower-floor, and longer-warmup variants on the locked
+  TF-RD-020 row `06` noise-drift runtime
+- do not activate `tf_rd_020_noise_mixture_v1` as a fallback harder surface
+  after the completed optimizer-family read because the noise-drift result was
+  not a near-tie or ambiguous wash
 - after the full uncapped harder dagzoo blocker closed, retune LR and schedule
   on the settled rung rather than jointly searching batch and LR across the
   whole ladder
@@ -106,16 +118,16 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- optimizer-family, LR-shape, clipping, and step-budget evidence are still
-  open, but they should now be read on top of the inherited TF-RD-020
-  noise-drift runtime and the documented `tf_rd_020_shift_noise_drift_v1`
-  carry-forward surface
+- LR-shape, clipping, and step-budget evidence are still open, but they should
+  now be read on top of the inherited TF-RD-020 noise-drift runtime, the
+  documented `tf_rd_020_shift_noise_drift_v1` carry-forward surface, and the
+  kept `schedulefree_adamw` optimizer family
 - the repo still needs an explicit handoff rule for how much of the TF-RD-018
   recipe should stay fixed when TF-RD-020 closes and
   [TF-RD-009](tf_rd_009_scaling_law_measurement.md) starts
-- the repo still needs an explicit stop rule for when TF-RD-020 should fall
-  back from `tf_rd_020_shift_noise_drift_v1` to `tf_rd_020_noise_mixture_v1`
-  during the first optimizer-family read
+- the repo still needs an explicit stop rule for whether a later TF-RD-018
+  adequacy read should ever fall back from `tf_rd_020_shift_noise_drift_v1`
+  to `tf_rd_020_noise_mixture_v1`
 - the current medium-surface record still lacks evidence that larger manifest
   task batches are worth reopening without separate runtime work
 

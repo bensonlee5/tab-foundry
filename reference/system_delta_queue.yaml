@@ -1,11 +1,11 @@
 schema: tab-foundry-system-delta-queue-v1
-generated_from_sweep_id: tf_rd_018_optimizer_family_v1
+generated_from_sweep_id: tf_rd_018_lr_warmup_shape_v1
 catalog_path: reference/system_delta_catalog.yaml
-canonical_sweep_path: reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/sweep.yaml
-canonical_queue_path: reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/queue.yaml
-canonical_matrix_path: reference/system_delta_sweeps/tf_rd_018_optimizer_family_v1/matrix.md
-sweep_id: tf_rd_018_optimizer_family_v1
-parent_sweep_id: tf_rd_020_harder_dagzoo_ladder_v1
+canonical_sweep_path: reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/sweep.yaml
+canonical_queue_path: reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/queue.yaml
+canonical_matrix_path: reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/matrix.md
+sweep_id: tf_rd_018_lr_warmup_shape_v1
+parent_sweep_id: tf_rd_018_optimizer_family_v1
 sweep_status: draft
 complexity_level: binary_md
 anchor_run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2
@@ -22,44 +22,52 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2602.11139
 anchor_surface:
   notes:
-  - This sweep opens TF-RD-018 issue `#137` by comparing optimizer families directly
-    against the completed TF-RD-020 noise-drift winner after the harder-front ladder
-    removed dataset row caps.
-  - Keep the settled row-first model, preprocessing surface, benchmark bundle, and
-    harmonized `task_batch_size=1`, `grad_accum_steps=4`, `400`-step runtime fixed;
-    only the inherited harder data surface and optimizer family are in scope here.
+  - This sweep opens TF-RD-018 issue `#138` after completed issue `#137` kept `schedulefree_adamw`
+    as the primary optimizer family on the inherited TF-RD-020 noise-drift anchor.
+  - Keep the settled row-first model, preprocessing surface, harder carry-forward
+    surface, and harmonized `task_batch_size=1`, `grad_accum_steps=4`, `400`-step
+    runtime fixed; only LR and warmup shape are in scope here.
   - The locked anchor is benchmark registry run `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`
-    on `tf_rd_020_shift_noise_drift_v1`; TF-RD-018 does not replay or promote a separate
-    schedulefree row before reading `adamw` and `muon`.
-  - Compare `adamw` and `muon` directly against the locked TF-RD-020 anchor and against
-    each other on the same uncapped harder-surface runtime.
-  - '`tf_rd_020_noise_mixture_v1` remains the named fallback harder surface, but it
-    is intentionally outside `tf_rd_018_optimizer_family_v1`.'
+    on `tf_rd_020_shift_noise_drift_v1`; row `01` replays that carried baseline as
+    an explicit local reference for the remaining rows.
+  - The `tf_rd_020_noise_mixture_v1` surface remains inactive fallback context; this
+    sweep does not reopen the harder-surface choice unless a later adequacy read becomes
+    genuinely confounded.
+  - Issue `#139` should not open clipping or budget follow-up until this sweep keeps
+    exactly one LR or warmup recipe.
   dimension_table:
   - dimension: locked anchor
     upstream: TabICLv2 motivates synthetic pretraining but does not define this repo-local
       row-first promoted-anchor contract.
     anchor: The kept `row_cls + qass + no tfcol` TF-RD-020 noise-drift winner trained
       on the uncapped `task_batch_size=1`, `grad_accum_steps=4`, `400`-step runtime.
-    interpretation: TF-RD-018 issue `#137` must keep the promoted row-first model
-      surface fixed while reading optimizer-family evidence.
+    interpretation: TF-RD-018 issue `#138` must keep the promoted row-first model
+      surface fixed while reading LR and warmup evidence.
   - dimension: harder carry-forward surface
     upstream: No upstream reference defines this exact dagzoo harder-surface handoff.
     anchor: The locked harder-surface anchor is `tf_rd_020_shift_noise_drift_v1`,
       inherited directly from TF-RD-020 row `06`.
-    interpretation: The TF-RD-020 noise-drift winner is already the carried optimizer
-      anchor for this sweep rather than a replay target inside the queue.
+    interpretation: The TF-RD-020 noise-drift winner remains the carried training-data
+      surface throughout this sweep.
   - dimension: optimizer family
     upstream: Not applicable.
-    anchor: Schedulefree AdamW on the inherited TF-RD-020 row-`06` runtime is the
-      locked comparison baseline for this sweep.
-    interpretation: Compare `adamw` and `muon` on the same harder-surface recipe before
-      reopening LR, clipping, or budget work.
+    anchor: Completed issue `#137` kept `schedulefree_adamw` on the inherited TF-RD-020
+      runtime.
+    interpretation: LR and warmup rows should not reopen optimizer-family choice.
+  - dimension: LR and warmup shape
+    upstream: Adam-style scaling papers motivate treating LR ceiling, LR floor, and
+      warmup as coupled knobs rather than independent universal rules.
+    anchor: The carried baseline uses `lr_max=0.004`, `optimizer.min_lr=0.0004`, and
+      `warmup_ratio=0.05` on the inherited runtime.
+    interpretation: Rank rows by final log loss first, final Brier score second, final
+      ROC AUC third, and best-to-final drift fourth while treating runtime and clipped-step
+      fraction as guardrails only.
   - dimension: fallback scope
     upstream: Not applicable.
-    anchor: '`tf_rd_020_noise_mixture_v1` is excluded from this v1 sweep.'
-    interpretation: If noise drift is too confounded, stop with an explicit defer
-      note and open fallback-surface work separately rather than broadening
+    anchor: '`tf_rd_020_noise_mixture_v1` is not active in this sweep.'
+    interpretation: If this sweep stays ambiguous, defer cleanly or retain exactly
+      one fallback schedule variant; do not broaden back to the alternate harder surface
+      here.
 anchor_context:
   run_id: sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2
   experiment: cls_benchmark_staged_corpus
@@ -89,37 +97,37 @@ anchor_context:
     training: linear_warmup_decay
 rows:
 - order: 1
-  delta_id: delta_training_adamw
-  status: completed
+  delta_id: delta_training_linear_warmup_decay
+  status: ready
   dimension_family: training
-  family: optimizer
+  family: schedule
   binary_applicable: true
-  description: Keep the anchor model, data, and preprocessing surfaces fixed but replace
-    schedulefree AdamW with plain AdamW on the same linear-warmup-decay schedule.
-  rationale: Compare plain AdamW against the locked TF-RD-020 noise-drift winner so
-    issue `#137` can isolate optimizer family after the uncapped harder-front ladder
-    removed dataset row caps.
-  hypothesis: Plain AdamW may improve late retention or reduce drift on the harder
-    surface if schedulefree dynamics are masking the best benchmark-facing read.
-  upstream_delta: Not applicable; this is a repo-local optimizer-family comparison
-    on the settled row-first anchor.
+  description: Keep the anchor model, data, and preprocessing surfaces but use single-stage
+    linear decay with a short warmup.
+  rationale: Replay the carried schedulefree warmup-decay baseline on the inherited
+    TF-RD-020 noise-drift runtime so issue `#138` has one explicit local reference
+    row before reading the schedule variants.
+  hypothesis: The inherited baseline should remain competitive and provide the local
+    comparison point for no-warmup, lower-ceiling, lower-floor, and longer-warmup
+    probes.
+  upstream_delta: Not applicable; this is a repo-local exact-prior training recipe
+    change.
   anchor_delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface,
-    preprocessing surface, benchmark bundle, and harmonized `task_batch_size=1` with
-    `grad_accum_steps=4` `400`-step runtime fixed, but replace `schedulefree_adamw`
-    with plain `adamw`.
+    preprocessing surface, `schedulefree_adamw` optimizer family, and harmonized `task_batch_size=1`
+    with `grad_accum_steps=4` `400`-step runtime fixed, then replay the carried linear-warmup-decay
+    recipe.
   entangled_legacy_stage: none
-  expected_effect: AdamW may provide a cleaner or more stable optimization path if
-    schedulefree dynamics are masking the anchor's real quality ceiling.
+  expected_effect: Reduced early instability versus constant LR or plain linear decay,
+    with uncertain final quality impact.
   adequacy_knobs:
-  - optimizer.name
-  - optimizer.weight_decay
-  - optimizer.betas
+  - schedule.stages[0].lr_max
   - optimizer.min_lr
+  - schedule.stages[0].warmup_ratio
   parameter_adequacy_policy:
     default_plan:
-    - Treat this as a bounded optimizer-family comparison on the settled warmup-decay
-      surface.
-    - Compare final log loss first, then supporting calibration and stability diagnostics.
+    - Compare against both the constant-LR anchor and the no-warmup linear-decay row.
+    - Treat best/final ROC, post-warmup train-loss variance, and gradient norms as
+      the primary interpretation surface.
     default_negative_decision: defer
     reject_requires:
     - isolated_change
@@ -144,7 +152,7 @@ rows:
     overrides:
       apply_schedule: true
       optimizer:
-        name: adamw
+        name: schedulefree_adamw
         require_requested: true
         weight_decay: 0.0
         betas:
@@ -168,78 +176,52 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Treat this as a bounded optimizer-family comparison on the locked TF-RD-020 harder-surface
-    anchor.
-  - Compare final log loss first, then final Brier score, final ROC AUC, and best-to-final
-    drift against the locked anchor and row `02`.
-  - Use NaNs, OOM, clipped-step fraction, and obvious LR-transfer artifacts as guardrails
-    before making a reject call.
+  - Use this row as the explicit local reference for rows `02` through `05`, while
+    still comparing every row against the locked sweep anchor.
+  - Rank rows by final log loss first, final Brier score second, and final ROC AUC
+    third.
+  - Treat drift, clipped-step fraction, and runtime as guardrails only.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1
+  run_id: null
   followup_run_ids: []
-  decision: defer
-  interpretation_status: completed
+  decision: null
+  interpretation_status: pending
   confounders: []
-  next_action: Run directly against the locked TF-RD-020 noise-drift anchor, then
-    compare against row `02`.
+  next_action: Run first as the explicit LR/warmup baseline replay, then compare the
+    four bounded variants against it and the locked anchor.
   notes:
-  - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_01_delta_training_adamw_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
+  - Keep `tf_rd_020_noise_mixture_v1` inactive while reading this row.
   screen_metrics: null
-  benchmark_metrics:
-    best_step: 375
-    max_grad_norm: 3.076207160949707
-    clipped_step_fraction: 0.085
-    best_log_loss: 0.5962619779392131
-    final_log_loss: 0.5971377714420258
-    best_brier_score: 0.41071540645974924
-    final_brier_score: 0.41142143225208005
-    best_roc_auc: 0.5515201949195326
-    final_roc_auc: 0.5614259544613724
-    final_minus_best_log_loss: 0.0008757935028127495
-    final_minus_best_brier_score: 0.0007060257923308111
-    final_minus_best_roc_auc: 0.00990575954183981
-    drift: 0.00990575954183981
-    delta_final_log_loss: 0.047032702542814775
-    delta_final_brier_score: 0.03737211271942226
-    delta_final_roc_auc: -0.02657669996656653
-    column_encoder_final_window_mean_grad_norm: 0.0
-    row_pool_final_window_mean_grad_norm: 0.016934863011069324
-    context_encoder_final_window_mean_grad_norm: 0.028639515760509403
+  benchmark_metrics: null
 - order: 2
-  delta_id: delta_training_muon
-  status: completed
+  delta_id: delta_training_linear_decay
+  status: ready
   dimension_family: training
-  family: optimizer
+  family: schedule
   binary_applicable: true
-  description: Keep the anchor model, data, and preprocessing surfaces fixed but replace
-    schedulefree AdamW with Muon on the same linear-warmup-decay schedule.
-  rationale: Compare Muon against the locked TF-RD-020 noise-drift winner so issue
-    `#137` can read whether a more specialized optimizer changes the adequacy story
-    on the inherited harder surface.
-  hypothesis: Muon may improve convergence or late retention on the harder surface,
-    but a weak result should only matter if it is not obviously an LR-transfer problem.
-  upstream_delta: Not applicable; this is a repo-local optimizer-family comparison
-    on the settled row-first anchor.
-  anchor_delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface,
-    preprocessing surface, benchmark bundle, and harmonized `task_batch_size=1` with
-    `grad_accum_steps=4` `400`-step runtime fixed, but replace `schedulefree_adamw`
-    with `muon`.
+  description: Keep the anchor model, data, and preprocessing surfaces but replace
+    the exact-prior constant LR with single-stage linear decay.
+  rationale: Remove warmup while keeping the carried LR pair fixed so issue `#138`
+    can test whether the inherited `0.05` warmup is still necessary on the locked
+    noise-drift runtime.
+  hypothesis: If the inherited runtime is already stable enough, no warmup may preserve
+    or improve final quality without materially reopening early instability.
+  upstream_delta: Not applicable; this is a repo-local exact-prior training recipe
+    change.
+  anchor_delta: Keep the inherited harder-surface runtime fixed and change only `warmup_ratio`
+    from `0.05` to `0.0` relative to row `01`.
   entangled_legacy_stage: none
-  expected_effect: Muon may improve convergence or late retention on the settled row-first
-    surface, but any read must stay separate from model-surface expansion.
+  expected_effect: Better late-curve retention or stability if the constant exact-prior
+    LR is too aggressive for the anchored surface.
   adequacy_knobs:
-  - optimizer.name
-  - optimizer.weight_decay
-  - optimizer.betas
+  - schedule.stages[0].lr_max
   - optimizer.min_lr
-  - optimizer.muon_per_parameter_lr
+  - schedule.stages[0].warmup_ratio
   parameter_adequacy_policy:
     default_plan:
-    - Treat this as a bounded optimizer-family comparison only.
-    - If weak, defer rather than reject until the optimizer-default surface itself
-      has had one clean read on the locked anchor.
+    - Interpret against the constant-LR anchor on both ROC and post-warmup stability
+      diagnostics.
+    - Keep optimizer, model, data, and preprocessing fixed for the first pass.
     default_negative_decision: defer
     reject_requires:
     - isolated_change
@@ -264,16 +246,195 @@ rows:
     overrides:
       apply_schedule: true
       optimizer:
-        name: muon
+        name: schedulefree_adamw
         require_requested: true
-        weight_decay: 0.01
+        weight_decay: 0.0
         betas:
         - 0.9
-        - 0.95
-        min_lr: 1.0e-06
-        muon_per_parameter_lr: true
-        muon_lr_scale_base: 0.2
-        muon_partition_non2d: true
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 4
+        max_steps: 400
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.0
+  parameter_adequacy_plan:
+  - Compare directly against row `01` and the locked anchor on final log loss, then
+    supporting Brier and ROC AUC.
+  - Use early clipped-step behavior only to decide whether the no-warmup recipe reopened
+    obvious instability.
+  - Do not promote this row on cleaner runtime alone.
+  execution_policy: benchmark_full
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run second as the no-warmup discriminator against the carried baseline.
+  notes: []
+  screen_metrics: null
+  benchmark_metrics: null
+- order: 3
+  delta_id: delta_training_linear_warmup_decay_lr3e3
+  status: ready
+  dimension_family: training
+  family: schedule
+  binary_applicable: true
+  description: Keep the anchor model, data, and preprocessing surfaces but lower the
+    peak LR while keeping the carried warmup-decay floor fixed.
+  rationale: Lower the LR ceiling while keeping the carried floor and warmup fixed
+    so issue `#138` can test whether the inherited `0.004` peak is still too aggressive
+    on the locked noise-drift runtime.
+  hypothesis: A slightly lower peak LR may reduce residual clipping and improve final
+    retention without needing a different optimizer family or harder-surface branch.
+  upstream_delta: Not applicable; this is a repo-local LR-shape follow-up on the settled
+    warmup-decay surface.
+  anchor_delta: Keep the inherited harder-surface runtime fixed and change only `lr_max`
+    from `0.004` to `0.003` relative to row `01`.
+  entangled_legacy_stage: none
+  expected_effect: Lower peak LR may reduce clipping and improve final retention if
+    the carried `0.004` ceiling is still too aggressive on the inherited harder surface.
+  adequacy_knobs:
+  - schedule.stages[0].lr_max
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare locally against the carried warmup-decay baseline while keeping optimizer
+      family, data surface, and runtime fixed.
+    - Prefer it only if final quality improves without relying on guardrail metrics
+      alone.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  dynamic_model_overrides: null
+  data:
+    surface_label: tf_rd_020_shift_noise_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_noise_drift_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 1
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 4
+        max_steps: 400
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.003
+          lr_schedule: linear
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Compare directly against row `01` and the locked anchor on final log loss, then
+    supporting Brier and ROC AUC.
+  - Prefer this row only if the quality win is not merely a guardrail-only stability
+    trade.
+  - Use the result to bound the LR search downward before issue `#139` opens.
+  execution_policy: benchmark_full
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run after rows `01` and `02` as the lower-ceiling LR probe.
+  notes: []
+  screen_metrics: null
+  benchmark_metrics: null
+- order: 4
+  delta_id: delta_training_linear_warmup_decay_minlr1e4
+  status: ready
+  dimension_family: training
+  family: schedule
+  binary_applicable: true
+  description: Keep the anchor model, data, and preprocessing surfaces but lower the
+    LR floor while keeping the carried peak LR and warmup fixed.
+  rationale: Lower the LR floor while keeping the carried peak LR and warmup fixed
+    so issue `#138` can test whether the inherited floor is decaying too conservatively
+    on the locked noise-drift runtime.
+  hypothesis: A lower LR floor may preserve late plasticity and improve final retention
+    without changing the early-step behavior materially.
+  upstream_delta: Not applicable; this is a repo-local LR-floor follow-up on the settled
+    warmup-decay surface.
+  anchor_delta: Keep the inherited harder-surface runtime fixed and change only `optimizer.min_lr`
+    from `0.0004` to `0.0001` relative to row `01`.
+  entangled_legacy_stage: none
+  expected_effect: A lower floor may preserve later plasticity if the carried `0.0004`
+    floor is decaying too conservatively on the inherited harder surface.
+  adequacy_knobs:
+  - optimizer.min_lr
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare locally against the carried warmup-decay baseline while keeping the
+      peak LR, warmup, and optimizer family fixed.
+    - Prefer it only if final quality improves without a material stability regression.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  dynamic_model_overrides: null
+  data:
+    surface_label: tf_rd_020_shift_noise_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_noise_drift_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 1
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0001
+        muon_per_parameter_lr: false
       runtime:
         grad_accum_steps: 4
         max_steps: 400
@@ -290,43 +451,110 @@ rows:
           lr_schedule: linear
           warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Treat this as a bounded optimizer-family comparison only on the locked TF-RD-020
-    harder-surface anchor.
-  - Compare final log loss first, then final Brier score, final ROC AUC, and best-to-final
-    drift against the locked anchor and row `01`.
-  - If weak, defer rather than reject unless the result is clearly worse without an
-    offsetting stability or runtime benefit and does not look like pure LR-transfer
-    misspecification.
+  - Compare directly against row `01` and the locked anchor on final log loss, then
+    supporting Brier and ROC AUC.
+  - Prefer this row only if it yields a real late-curve gain rather than a small telemetry-only
+    change.
+  - Treat worse drift or clipping without a quality win as negative evidence for reopening
+    the LR floor.
   execution_policy: benchmark_full
-  run_id: sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1
+  run_id: null
   followup_run_ids: []
-  decision: defer
-  interpretation_status: completed
+  decision: null
+  interpretation_status: pending
   confounders: []
-  next_action: Run directly against the locked TF-RD-020 noise-drift anchor; if the
-    result is close, retain at most one fallback optimizer family for issue `#138`.
-  notes:
-  - Canonical rerun registered as `sd_tf_rd_018_optimizer_family_v1_02_delta_training_muon_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
+  next_action: Run after the carried baseline as the lower-floor LR probe.
+  notes: []
   screen_metrics: null
-  benchmark_metrics:
-    best_step: 125
-    max_grad_norm: 3.7085604667663574
-    clipped_step_fraction: 0.2775
-    best_log_loss: 0.5713489949959529
-    final_log_loss: 1.0767658908850677
-    best_brier_score: 0.38501635996509037
-    final_brier_score: 0.4742361773507387
-    best_roc_auc: 0.6596032000340473
-    final_roc_auc: 0.6725241717217486
-    final_minus_best_log_loss: 0.5054168958891148
-    final_minus_best_brier_score: 0.08921981738564833
-    final_minus_best_roc_auc: 0.012920971687701344
-    drift: 0.012920971687701344
-    delta_final_log_loss: 0.5266608219858566
-    delta_final_brier_score: 0.1001868578180809
-    delta_final_roc_auc: 0.08452151729380963
-    column_encoder_final_window_mean_grad_norm: 0.0
-    row_pool_final_window_mean_grad_norm: 0.16238504500758294
-    context_encoder_final_window_mean_grad_norm: 0.18583062269523193
+  benchmark_metrics: null
+- order: 5
+  delta_id: delta_training_linear_warmup_decay_warm10
+  status: ready
+  dimension_family: training
+  family: schedule
+  binary_applicable: true
+  description: Keep the anchor model, data, and preprocessing surfaces but lengthen
+    warmup on the carried warmup-decay schedule.
+  rationale: Lengthen warmup while keeping the carried LR pair fixed so issue `#138`
+    can test whether the inherited runtime wants more early protection before issue
+    `#139` opens clip or budget work.
+  hypothesis: A `0.10` warmup may reduce early clipping further, though it risks underusing
+    the fixed-step budget and hurting final quality.
+  upstream_delta: Not applicable; this is a repo-local warmup-length follow-up on
+    the settled warmup-decay surface.
+  anchor_delta: Keep the inherited harder-surface runtime fixed and change only `warmup_ratio`
+    from `0.05` to `0.10` relative to row `01`.
+  entangled_legacy_stage: none
+  expected_effect: Longer warmup may reduce early clipping further, though it risks
+    underusing the fixed-step budget.
+  adequacy_knobs:
+  - schedule.stages[0].warmup_ratio
+  parameter_adequacy_policy:
+    default_plan:
+    - Compare locally against the carried warmup-decay baseline while keeping peak
+      LR, floor, and optimizer family fixed.
+    - Prefer it only if benchmark quality and early stability improve together.
+    default_negative_decision: defer
+    reject_requires:
+    - isolated_change
+    - adequacy_plan_complete
+    - clearly_worse_without_offsetting_benefit
+  applicability_guards: []
+  model:
+    stage: qass_context
+    stage_label: delta_qass_no_column_v3
+    module_overrides:
+      column_encoder: none
+  dynamic_model_overrides: null
+  data:
+    surface_label: tf_rd_020_shift_noise_drift
+    source: manifest
+    corpus_ref: tf_rd_020_shift_noise_drift_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: linear_warmup_decay
+    task_batch_size: 1
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.0004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_accum_steps: 4
+        max_steps: 400
+        target_train_seconds: null
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+        val_batches: 0
+      schedule:
+        stages:
+        - name: stage1
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: linear
+          warmup_ratio: 0.1
+  parameter_adequacy_plan:
+  - Compare directly against row `01` and the locked anchor on final log loss, then
+    supporting Brier and ROC AUC.
+  - Prefer this row only if better early stability comes with a real benchmark quality
+    win rather than a budget-underuse regression.
+  - Treat this row as the upper warmup bracket; do not promote it solely on cleaner
+    clipped-step behavior.
+  execution_policy: benchmark_full
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Run after the carried baseline as the longer-warmup probe.
+  notes: []
+  screen_metrics: null
+  benchmark_metrics: null

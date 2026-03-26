@@ -76,7 +76,7 @@ def _assert_full_replay_training_payload(row: dict[str, Any]) -> None:
 def test_row_embedding_attribution_v3_is_registered_but_not_active() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "tf_rd_018_optimizer_family_v1"
+    assert index["active_sweep_id"] == "tf_rd_018_lr_warmup_shape_v1"
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
