@@ -30,6 +30,23 @@ def _staged_spec(*, stage: str, stage_label: str) -> object:
     )
 
 
+def _sandwich_spec() -> object:
+    return model_build_spec_from_mappings(
+        task="classification",
+        primary={
+            "arch": "tabfoundry_sandwich",
+            "d_icl": 32,
+            "many_class_base": 4,
+            "head_hidden_dim": 64,
+            "sandwich_row_latents": 8,
+            "sandwich_col_latents": 4,
+            "sandwich_layers": 2,
+            "sandwich_heads": 4,
+            "sandwich_ff_expansion": 2,
+        },
+    )
+
+
 def test_synthetic_forward_batch_binary_surface_returns_logits() -> None:
     batch = synthetic_forward_batch(_staged_spec(stage="row_cls_pool", stage_label="row_cls_pool_test"))
 
@@ -61,3 +78,24 @@ def test_parameter_counts_and_surface_payload_include_staged_metadata() -> None:
     assert payload["benchmark_profile"] == "row_cls_pool_test"
     assert payload["module_selection"]["row_pool"] == "row_cls"
     assert "table_block" in payload["module_hyperparameters"]
+
+
+def test_parameter_counts_and_surface_payload_include_sandwich_metadata() -> None:
+    spec = _sandwich_spec()
+
+    counts = parameter_counts_from_model_spec(spec)
+    payload = model_surface_payload(spec)
+    batch = synthetic_forward_batch(spec)
+
+    assert counts["total_params"] > 0
+    assert counts["trainable_params"] > 0
+    assert payload["arch"] == "tabfoundry_sandwich"
+    assert payload["architecture"] == {
+        "row_latents": 8,
+        "col_latents": 4,
+        "layers": 2,
+        "heads": 4,
+        "ff_expansion": 2,
+    }
+    assert batch.expected_output_kind == "logits"
+    assert batch.expected_num_classes == 4

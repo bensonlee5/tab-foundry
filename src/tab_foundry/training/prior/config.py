@@ -307,9 +307,9 @@ def _model_spec_from_cfg(cfg: DictConfig):
 def _validate_prior_training_model_spec(
     spec: ModelBuildSpec,
 ) -> ResolvedStageSurface | None:
-    if spec.arch not in {"tabfoundry_simple", "tabfoundry_staged"}:
+    if spec.arch not in {"tabfoundry_simple", "tabfoundry_staged", "tabfoundry_sandwich"}:
         raise ValueError(
-            "prior-dump training requires model.arch in {'tabfoundry_simple', 'tabfoundry_staged'}, "
+            "prior-dump training requires model.arch in {'tabfoundry_simple', 'tabfoundry_staged', 'tabfoundry_sandwich'}, "
             f"got {spec.arch!r}"
         )
     if spec.arch != "tabfoundry_staged":

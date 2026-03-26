@@ -802,6 +802,42 @@ def test_train_smoke_runs_end_to_end(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     assert training_surface_record['training']['backend'] == 'manifest'
 
 
+def test_train_smoke_runs_end_to_end_with_tabfoundry_sandwich(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(trainer_module, "build_task_dataset", lambda *_args, **_kwargs: _FakeTaskDataset())
+    monkeypatch.setattr(
+        trainer_module,
+        "build_accelerator_from_runtime",
+        lambda *_args, **_kwargs: _FakeAccelerator(),
+    )
+    monkeypatch.setattr(trainer_module, "init_wandb_run", lambda *_args, **_kwargs: None)
+    cfg = _classification_cfg(tmp_path)
+    cfg.model.arch = "tabfoundry_sandwich"
+    cfg.model.d_icl = 16
+    cfg.model.input_normalization = "train_zscore_clip"
+    cfg.model.many_class_base = 4
+    cfg.model.head_hidden_dim = 32
+    cfg.model.sandwich_row_latents = 8
+    cfg.model.sandwich_col_latents = 4
+    cfg.model.sandwich_layers = 2
+    cfg.model.sandwich_heads = 4
+    cfg.model.sandwich_ff_expansion = 2
+
+    result = trainer_module.train(cfg)
+    training_surface_record = json.loads(
+        (result.output_dir / "training_surface_record.json").read_text(encoding="utf-8")
+    )
+
+    assert result.global_step == 1
+    assert result.best_checkpoint is not None
+    assert result.best_checkpoint.exists()
+    assert training_surface_record["model"]["arch"] == "tabfoundry_sandwich"
+    assert training_surface_record["model"]["architecture"]["row_latents"] == 8
+    assert training_surface_record["model"]["architecture"]["col_latents"] == 4
+
+
 def test_train_activation_checkpointing_enables_supported_model(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

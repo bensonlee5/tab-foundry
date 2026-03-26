@@ -15,7 +15,7 @@ from pydantic import (
     field_validator,
 )
 
-from tab_foundry.model.spec import STAGED_MODEL_ARCH
+from tab_foundry.model.spec import SANDWICH_MODEL_ARCH, STAGED_MODEL_ARCH
 
 
 SCHEMA_VERSION_V2 = "tab-foundry-export-v2"
@@ -63,6 +63,11 @@ class _ManifestModelPayloadV2(_ContractsPayloadModel):
     many_class_base: StrictInt | None = None
     head_hidden_dim: StrictInt | None = None
     use_digit_position_embed: StrictBool | None = None
+    sandwich_row_latents: StrictInt | None = None
+    sandwich_col_latents: StrictInt | None = None
+    sandwich_layers: StrictInt | None = None
+    sandwich_heads: StrictInt | None = None
+    sandwich_ff_expansion: StrictInt | None = None
 
 
 class _ManifestModelPayloadV3(_ManifestModelPayloadV2):
@@ -122,6 +127,11 @@ class ExportModelSpec:
     use_digit_position_embed: bool
     staged_dropout: float
     pre_encoder_clip: float | None
+    sandwich_row_latents: int
+    sandwich_col_latents: int
+    sandwich_layers: int
+    sandwich_heads: int
+    sandwich_ff_expansion: int
 
     @classmethod
     def from_build_spec(
@@ -159,6 +169,11 @@ class ExportModelSpec:
             pre_encoder_clip=None
             if spec.pre_encoder_clip is None
             else float(spec.pre_encoder_clip),
+            sandwich_row_latents=int(spec.sandwich_row_latents),
+            sandwich_col_latents=int(spec.sandwich_col_latents),
+            sandwich_layers=int(spec.sandwich_layers),
+            sandwich_heads=int(spec.sandwich_heads),
+            sandwich_ff_expansion=int(spec.sandwich_ff_expansion),
         )
 
     def to_build_spec(self, task: str) -> Any:
@@ -193,31 +208,53 @@ class ExportModelSpec:
                 "use_digit_position_embed": self.use_digit_position_embed,
                 "staged_dropout": self.staged_dropout,
                 "pre_encoder_clip": self.pre_encoder_clip,
+                "sandwich_row_latents": self.sandwich_row_latents,
+                "sandwich_col_latents": self.sandwich_col_latents,
+                "sandwich_layers": self.sandwich_layers,
+                "sandwich_heads": self.sandwich_heads,
+                "sandwich_ff_expansion": self.sandwich_ff_expansion,
             },
         )
 
     def to_dict(self) -> dict[str, Any]:
         payload = dict(asdict(self))
-        if self.arch != STAGED_MODEL_ARCH:
+        if self.arch == STAGED_MODEL_ARCH:
+            if self.stage is None:
+                payload.pop("stage", None)
+            if self.stage_label is None:
+                payload.pop("stage_label", None)
+            if self.module_overrides is None:
+                payload.pop("module_overrides", None)
+            if self.pre_encoder_clip is None:
+                payload.pop("pre_encoder_clip", None)
+            if self.staged_dropout is None:
+                payload.pop("staged_dropout", None)
             for field_name in (
-                "stage",
-                "stage_label",
-                "module_overrides",
-                "staged_dropout",
-                "pre_encoder_clip",
+                "sandwich_row_latents",
+                "sandwich_col_latents",
+                "sandwich_layers",
+                "sandwich_heads",
+                "sandwich_ff_expansion",
+            ):
+                payload.pop(field_name, None)
+            return payload
+        for field_name in ("stage", "stage_label", "module_overrides", "staged_dropout"):
+            payload.pop(field_name, None)
+        if self.arch != SANDWICH_MODEL_ARCH:
+            payload.pop("pre_encoder_clip", None)
+            for field_name in (
+                "sandwich_row_latents",
+                "sandwich_col_latents",
+                "sandwich_layers",
+                "sandwich_heads",
+                "sandwich_ff_expansion",
             ):
                 payload.pop(field_name, None)
             return payload
         if self.stage is None:
             payload.pop("stage", None)
-        if self.stage_label is None:
-            payload.pop("stage_label", None)
-        if self.module_overrides is None:
-            payload.pop("module_overrides", None)
         if self.pre_encoder_clip is None:
             payload.pop("pre_encoder_clip", None)
-        if self.staged_dropout is None:
-            payload.pop("staged_dropout", None)
         return payload
 
 
