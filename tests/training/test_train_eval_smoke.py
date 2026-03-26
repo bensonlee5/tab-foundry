@@ -672,7 +672,7 @@ def _write_task_batch_manifest(tmp_path: Path) -> Path:
                 "y_train": y_train,
                 "x_test": x_test,
                 "y_test": y_test,
-                "feature_types": ["num"] * 4,
+                "feature_types": ["floating"] * 4,
                 "metadata": _classification_metadata(n_features=4, n_classes=3, seed=seed),
             }
         )
@@ -819,8 +819,7 @@ def test_train_smoke_runs_end_to_end_with_tabfoundry_sandwich(
     cfg.model.input_normalization = "train_zscore_clip"
     cfg.model.many_class_base = 4
     cfg.model.head_hidden_dim = 32
-    cfg.model.sandwich_row_latents = 8
-    cfg.model.sandwich_col_latents = 4
+    cfg.model.sandwich_latents = 12
     cfg.model.sandwich_layers = 2
     cfg.model.sandwich_heads = 4
     cfg.model.sandwich_ff_expansion = 2
@@ -834,8 +833,12 @@ def test_train_smoke_runs_end_to_end_with_tabfoundry_sandwich(
     assert result.best_checkpoint is not None
     assert result.best_checkpoint.exists()
     assert training_surface_record["model"]["arch"] == "tabfoundry_sandwich"
-    assert training_surface_record["model"]["architecture"]["row_latents"] == 8
-    assert training_surface_record["model"]["architecture"]["col_latents"] == 4
+    assert training_surface_record["model"]["architecture"]["latents"] == 12
+    assert training_surface_record["model"]["architecture"]["input_tokens"] == "row_col_summary_stream"
+    assert (
+        training_surface_record["model"]["architecture"]["label_injection"]
+        == "fused_into_row_summaries"
+    )
 
 
 def test_train_activation_checkpointing_enables_supported_model(

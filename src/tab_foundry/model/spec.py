@@ -45,14 +45,14 @@ DEFAULT_MODEL_STAGED_DROPOUT = 0.0
 DEFAULT_MODEL_PRE_ENCODER_CLIP: float | None = None
 DEFAULT_SANDWICH_MODEL_D_ICL = 96
 DEFAULT_SANDWICH_MODEL_HEAD_HIDDEN_DIM = 128
-DEFAULT_MODEL_SANDWICH_ROW_LATENTS = 32
-DEFAULT_MODEL_SANDWICH_COL_LATENTS = 16
-DEFAULT_MODEL_SANDWICH_LAYERS = 2
-DEFAULT_MODEL_SANDWICH_HEADS = 4
+DEFAULT_MODEL_SANDWICH_LATENTS = 48
+DEFAULT_MODEL_SANDWICH_LAYERS = 8
+DEFAULT_MODEL_SANDWICH_HEADS = 8
 DEFAULT_MODEL_SANDWICH_FF_EXPANSION = 2
 MAX_MODEL_STAGED_DROPOUT = 0.5
 MIN_MODEL_MANY_CLASS_BASE = 2
 _LINEAR_WEIGHT_TENSOR_RANK = 2
+_LEGACY_SANDWICH_FIELDS = ("sandwich_row_latents", "sandwich_col_latents")
 
 
 class ModelStage(StrEnum):
@@ -153,6 +153,30 @@ def resolve_model_stage(*, arch: str, stage: Any) -> str | None:
     return None
 
 
+def _reject_legacy_sandwich_fields(
+    *,
+    arch: str,
+    primary_map: Mapping[str, Any],
+    fallback_map: Mapping[str, Any],
+) -> None:
+    if arch != SANDWICH_MODEL_ARCH:
+        return
+    legacy_keys = sorted(
+        {
+            key
+            for key in _LEGACY_SANDWICH_FIELDS
+            if primary_map.get(key) is not None or fallback_map.get(key) is not None
+        }
+    )
+    if not legacy_keys:
+        return
+    legacy_fields = ", ".join(f"model.{key}" for key in legacy_keys)
+    raise ValueError(
+        "tabfoundry_sandwich no longer supports "
+        f"{legacy_fields}; use model.sandwich_latents instead."
+    )
+
+
 @dataclass(slots=True, frozen=True)
 class ModelBuildSpec:
     """Canonical model-construction settings shared across train/eval/export/load."""
@@ -184,8 +208,7 @@ class ModelBuildSpec:
     use_digit_position_embed: bool = DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED
     staged_dropout: float = DEFAULT_MODEL_STAGED_DROPOUT
     pre_encoder_clip: float | None = DEFAULT_MODEL_PRE_ENCODER_CLIP
-    sandwich_row_latents: int = DEFAULT_MODEL_SANDWICH_ROW_LATENTS
-    sandwich_col_latents: int = DEFAULT_MODEL_SANDWICH_COL_LATENTS
+    sandwich_latents: int = DEFAULT_MODEL_SANDWICH_LATENTS
     sandwich_layers: int = DEFAULT_MODEL_SANDWICH_LAYERS
     sandwich_heads: int = DEFAULT_MODEL_SANDWICH_HEADS
     sandwich_ff_expansion: int = DEFAULT_MODEL_SANDWICH_FF_EXPANSION
@@ -272,8 +295,7 @@ class ModelBuildSpec:
             "tficl_ff_expansion",
             "many_class_base",
             "head_hidden_dim",
-            "sandwich_row_latents",
-            "sandwich_col_latents",
+            "sandwich_latents",
             "sandwich_layers",
             "sandwich_heads",
             "sandwich_ff_expansion",
@@ -331,6 +353,11 @@ def model_build_spec_from_mappings(
         return default
 
     arch_value = str(_pick("arch", DEFAULT_MODEL_ARCH)).strip().lower()
+    _reject_legacy_sandwich_fields(
+        arch=arch_value,
+        primary_map=primary_map,
+        fallback_map=fallback_map,
+    )
 
     def _arch_default(name: str, default: Any, *, sandwich_default: Any | None = None) -> Any:
         if name in primary_map and primary_map[name] is not None:
@@ -390,12 +417,7 @@ def model_build_spec_from_mappings(
         ),
         staged_dropout=float(_pick("staged_dropout", DEFAULT_MODEL_STAGED_DROPOUT)),
         pre_encoder_clip=_pick("pre_encoder_clip", DEFAULT_MODEL_PRE_ENCODER_CLIP),
-        sandwich_row_latents=int(
-            _pick("sandwich_row_latents", DEFAULT_MODEL_SANDWICH_ROW_LATENTS)
-        ),
-        sandwich_col_latents=int(
-            _pick("sandwich_col_latents", DEFAULT_MODEL_SANDWICH_COL_LATENTS)
-        ),
+        sandwich_latents=int(_pick("sandwich_latents", DEFAULT_MODEL_SANDWICH_LATENTS)),
         sandwich_layers=int(_pick("sandwich_layers", DEFAULT_MODEL_SANDWICH_LAYERS)),
         sandwich_heads=int(_pick("sandwich_heads", DEFAULT_MODEL_SANDWICH_HEADS)),
         sandwich_ff_expansion=int(

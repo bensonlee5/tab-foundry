@@ -58,8 +58,7 @@ def test_build_model_supports_tabfoundry_sandwich_classification() -> None:
         input_normalization="train_zscore_clip",
         many_class_base=4,
         head_hidden_dim=128,
-        sandwich_row_latents=16,
-        sandwich_col_latents=8,
+        sandwich_latents=16,
         sandwich_layers=2,
         sandwich_heads=4,
         sandwich_ff_expansion=2,
@@ -76,8 +75,27 @@ def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
 
     assert spec.d_icl == 96
     assert spec.head_hidden_dim == 128
-    assert spec.sandwich_row_latents == 32
-    assert spec.sandwich_col_latents == 16
+    assert spec.sandwich_latents == 48
+
+
+def test_sandwich_model_spec_rejects_legacy_dual_bank_fields() -> None:
+    with pytest.raises(ValueError, match="sandwich_latents"):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={
+                "arch": "tabfoundry_sandwich",
+                "sandwich_row_latents": 32,
+            },
+        )
+
+    with pytest.raises(ValueError, match="sandwich_latents"):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={
+                "arch": "tabfoundry_sandwich",
+                "sandwich_col_latents": 16,
+            },
+        )
 
 
 def test_build_model_rejects_legacy_tabfoundry_arch() -> None:

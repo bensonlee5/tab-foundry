@@ -38,8 +38,7 @@ def _sandwich_spec() -> object:
             "d_icl": 32,
             "many_class_base": 4,
             "head_hidden_dim": 64,
-            "sandwich_row_latents": 8,
-            "sandwich_col_latents": 4,
+            "sandwich_latents": 12,
             "sandwich_layers": 2,
             "sandwich_heads": 4,
             "sandwich_ff_expansion": 2,
@@ -91,8 +90,15 @@ def test_parameter_counts_and_surface_payload_include_sandwich_metadata() -> Non
     assert counts["trainable_params"] > 0
     assert payload["arch"] == "tabfoundry_sandwich"
     assert payload["architecture"] == {
-        "row_latents": 8,
-        "col_latents": 4,
+        "input_tokens": "row_col_summary_stream",
+        "input_token_count": "R_plus_C",
+        "label_injection": "fused_into_row_summaries",
+        "summary_builder": "summary_query_attention",
+        "position_encoding": "shared_fourier_row_col",
+        "feature_type_encoding": "parquet_physical_group",
+        "latent_core": "perceiver_repeated_cross_self_stages",
+        "layer_semantics": "repeated_stages",
+        "latents": 12,
         "layers": 2,
         "heads": 4,
         "ff_expansion": 2,

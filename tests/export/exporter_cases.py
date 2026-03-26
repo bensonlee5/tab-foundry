@@ -1080,6 +1080,7 @@ def test_reference_consumer_derives_preprocessing_from_runtime_support_set(tmp_p
             "regression_targets": "float32",
         },
     }
+    assert output.batch.metadata["feature_types"] == ["floating", "floating"]
     assert torch.allclose(
         output.batch.x_train,
         torch.tensor([[1.0, 6.0], [3.0, 5.0], [5.0, 7.0]], dtype=torch.float32),
@@ -1215,6 +1216,24 @@ def test_reference_consumer_applies_embedded_nondefault_all_nan_fill(tmp_path: P
         output.batch.x_test,
         torch.tensor([[1.0, 8.0]], dtype=torch.float32),
     )
+
+
+def test_reference_consumer_propagates_embedded_feature_types(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_feature_types.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=23)
+    out_dir = tmp_path / "export_runtime_feature_types"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest_payload["preprocessor"]["feature_types"] = ["integer", "floating", "bool"]
+    manifest_payload["manifest_sha256"] = compute_v3_manifest_sha256(manifest_payload)
+    _rewrite_json(manifest_path, manifest_payload)
+
+    x_train, y_train, x_test = _classification_reference_arrays()
+    output = run_reference_consumer(out_dir, x_train=x_train, y_train=y_train, x_test=x_test)
+
+    assert output.batch.metadata["feature_types"] == ["integer", "floating", "bool"]
 
 
 def test_reference_consumer_rejects_nonfinite_class_probabilities(

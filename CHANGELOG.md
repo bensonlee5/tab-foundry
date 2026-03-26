@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-03-26
+
+### Changed
+
+- User-facing break: `model.arch=tabfoundry_sandwich` uses a single fixed
+  latent array that reads `y` first and an `R + C` x-side byte array second.
+  Row and column summaries are summary-query attention outputs over
+  position-aware cell tokens, and sandwich cell tokens include shared Fourier
+  row/column positions plus schema-aware feature-type embeddings.
+- User-facing break: runtime metadata and v3 export preprocessor payloads now
+  support `feature_types` with the collapsed parquet-group vocabulary
+  `bool`, `integer`, `floating`, `string_binary`, or `unknown`. When
+  absent, the sandwich path falls back to all `floating`.
+
 ## [0.11.5] - 2026-03-25
 
 ### Changed

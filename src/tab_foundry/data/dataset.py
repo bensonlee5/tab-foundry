@@ -14,6 +14,7 @@ import torch
 from torch.utils.data import Dataset
 
 from tab_foundry.data.validation import assert_no_non_finite_values
+from tab_foundry.feature_types import resolve_feature_types
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
@@ -222,6 +223,7 @@ def _read_packed_split_targets(
 class _LoadedManifestTaskRecord:
     record: dict[str, Any]
     metadata: dict[str, Any]
+    feature_types: list[str]
     x_train: np.ndarray
     y_train: np.ndarray
     x_test: np.ndarray
@@ -277,6 +279,11 @@ def _load_manifest_task_record(
         raise RuntimeError(
             f"metadata record missing object payload at key 'metadata': path={metadata_path}"
         )
+    feature_types = resolve_feature_types(
+        metadata_record.get("feature_types", metadata.get("feature_types")),
+        expected_count=int(x_train.shape[1]),
+        context="metadata_record.feature_types",
+    )
 
     expected_n_train = int(record.get("n_train", -1))
     expected_n_test = int(record.get("n_test", -1))
@@ -302,6 +309,7 @@ def _load_manifest_task_record(
     return _LoadedManifestTaskRecord(
         record=record,
         metadata=metadata,
+        feature_types=feature_types,
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
@@ -383,6 +391,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         x_test = loaded.x_test
         y_test = loaded.y_test
         metadata = loaded.metadata
+        feature_types = loaded.feature_types
         if not self.allow_missing_values:
             assert_no_non_finite_values(
                 {
@@ -428,6 +437,7 @@ class PackedParquetTaskDataset(Dataset[TaskBatch]):
         num_classes = processed.num_classes
 
         metadata_out = dict(metadata)
+        metadata_out["feature_types"] = list(feature_types)
 
         if self.task == "classification":
             if y_test is None:

@@ -96,7 +96,7 @@ def _write_generated_dataset(
         "y_train": y_train,
         "x_test": x_test,
         "y_test": y_test,
-        "feature_types": ["num"] * x_train.shape[1],
+        "feature_types": ["floating"] * x_train.shape[1],
         "metadata": metadata,
     }
     return cases._write_packed_shard(shard_dir, datasets=[dataset])

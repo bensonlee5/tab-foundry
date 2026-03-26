@@ -32,11 +32,13 @@ def test_cls_workstation_sandwich_resolution() -> None:
     assert int(cfg.model.d_icl) == 96
     assert str(cfg.model.input_normalization) == "train_zscore_clip"
     assert int(cfg.model.head_hidden_dim) == 128
-    assert int(cfg.model.sandwich_row_latents) == 32
-    assert int(cfg.model.sandwich_col_latents) == 16
+    assert int(cfg.model.sandwich_latents) == 48
+    assert int(cfg.model.sandwich_layers) == 8
+    assert int(cfg.model.sandwich_heads) == 8
     assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_sandwich"
     assert bool(cfg.runtime.trace_activations) is False
     assert str(cfg.logging.run_name) == "cls-workstation-sandwich"
+
 
 def test_cls_smoke_optimizer_resolution() -> None:
     cfg = _compose("experiment=cls_smoke")
@@ -124,10 +126,9 @@ def test_cls_benchmark_sandwich_prior_resolution() -> None:
     assert str(cfg.model.input_normalization) == "train_zscore_clip"
     assert int(cfg.model.many_class_base) == 2
     assert int(cfg.model.head_hidden_dim) == 128
-    assert int(cfg.model.sandwich_row_latents) == 32
-    assert int(cfg.model.sandwich_col_latents) == 16
-    assert int(cfg.model.sandwich_layers) == 2
-    assert int(cfg.model.sandwich_heads) == 4
+    assert int(cfg.model.sandwich_latents) == 48
+    assert int(cfg.model.sandwich_layers) == 8
+    assert int(cfg.model.sandwich_heads) == 8
     assert int(cfg.model.sandwich_ff_expansion) == 2
     assert int(cfg.runtime.max_steps) == 2500
     assert int(cfg.runtime.eval_every) == 25

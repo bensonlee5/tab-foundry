@@ -30,6 +30,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   harder dagzoo corpus-front evidence and v1 carry-forward decisions
 - [`TF-RD-021`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
   steering-derived corpus-front evidence and conditional Muon retry framing
+- [`TF-RD-021A`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
+  fixed-latent sandwich candidate note and immediate nanoTabPFN screen
 - [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
   runtime and VRAM efficiency evidence plus the measured-policy handoff
 - [`TF-RD-019`](roadmap_evidence/tf_rd_019_dagzoo_filtering_policy.md):
@@ -279,11 +281,33 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     runtime lane an explicit roadmap home
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`
-  - TF-RD-021A remains the bounded sidecar for the experimental
-    `tabfoundry_sandwich` screen under `#174/#175`
+  - sandwich architecture work now lives under implementation issue `#174`,
+    umbrella issue `#178`, and immediate nanoTabPFN screen issue `#179`; this
+    runtime lane is now a dependency surface for later sandwich hard-surface
+    reads rather than the owner of that architecture line
 - Success signal:
   - the repo records one explicit runtime policy with peak-memory and
     throughput evidence, and later batching or scaling work can inherit it
+
+### TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
+
+- External evidence:
+  - Perceiver, Set Transformer, SAINT, and PFN-style tabular references justify
+    latent bottlenecks, set-style aggregation, and train-conditioned tabular
+    reads as relevant design space
+- Repo-local evidence:
+  - `model.arch=tabfoundry_sandwich` now exists as a fixed-latent `y` /
+    byte-array `x` architecture
+  - issue `#174` records the implementation landing
+  - issue `#178` now owns long-running sandwich stabilization and iteration
+  - issue `#179` now owns the immediate nanoTabPFN latent-count and width
+    screen
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md`
+- Success signal:
+  - the repo records one explicit nanoTabPFN latent/width shortlist for the
+    next sandwich follow-on ticket without bundling the whole future sandwich
+    program into one issue
 
 ### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
 

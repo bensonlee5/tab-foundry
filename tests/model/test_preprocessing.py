@@ -32,6 +32,7 @@ def test_classification_preprocessing_persists_fill_values_and_filters_unseen_te
     )
 
     assert state.feature_ids == [0, 1, 2]
+    assert state.feature_types == ["floating", "floating", "floating"]
     assert state.missing_value_policy.fill_values == [3.0, 6.0, 6.0]
     assert state.classification_label_policy is not None
     assert state.classification_label_policy.label_values == [3, 7]
@@ -70,6 +71,7 @@ def test_regression_preprocessing_round_trips_fill_values_without_label_policy()
         y_train=y_train,
     )
     assert state.classification_label_policy is None
+    assert state.feature_types == ["floating", "floating"]
     assert state.missing_value_policy.fill_values == [2.0, 4.0]
 
     processed = apply_fitted_preprocessor(

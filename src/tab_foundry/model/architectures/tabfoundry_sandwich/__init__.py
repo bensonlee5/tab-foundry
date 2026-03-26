@@ -1,4 +1,4 @@
-"""Latent-bank sandwich architecture family."""
+"""Fixed-latent sandwich architecture family."""
 
 from .model import TabFoundrySandwichClassifier
 

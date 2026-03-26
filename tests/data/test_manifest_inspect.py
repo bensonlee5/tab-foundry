@@ -45,7 +45,7 @@ def test_manifest_inspect_compatibility_accepts_matching_manifest(tmp_path: Path
                 "y_train": y_train,
                 "x_test": x_test,
                 "y_test": y_test,
-                "feature_types": ["num"] * x_train.shape[1],
+                "feature_types": ["floating"] * x_train.shape[1],
                 "metadata": cases._classification_metadata(
                     n_features=x_train.shape[1],
                     n_classes=2,
@@ -90,7 +90,7 @@ def test_manifest_inspect_compatibility_rejects_nonfinite_rows_when_missing_valu
                 "y_train": clean_y_train,
                 "x_test": clean_x_test,
                 "y_test": clean_y_test,
-                "feature_types": ["num"] * clean_x_train.shape[1],
+                "feature_types": ["floating"] * clean_x_train.shape[1],
                 "metadata": cases._classification_metadata(
                     n_features=clean_x_train.shape[1],
                     filter_status="accepted",
@@ -103,7 +103,7 @@ def test_manifest_inspect_compatibility_rejects_nonfinite_rows_when_missing_valu
                 "y_train": dirty_y_train,
                 "x_test": dirty_x_test,
                 "y_test": dirty_y_test,
-                "feature_types": ["num"] * dirty_x_train.shape[1],
+                "feature_types": ["floating"] * dirty_x_train.shape[1],
                 "metadata": cases._classification_metadata(
                     n_features=dirty_x_train.shape[1],
                     filter_status="accepted",
@@ -147,7 +147,7 @@ def test_manifest_inspect_compatibility_ignores_nonfinite_rows_from_other_tasks(
                 "y_train": clean_y_train,
                 "x_test": clean_x_test,
                 "y_test": clean_y_test,
-                "feature_types": ["num"] * clean_x_train.shape[1],
+                "feature_types": ["floating"] * clean_x_train.shape[1],
                 "metadata": cases._classification_metadata(
                     n_features=clean_x_train.shape[1],
                     n_classes=2,
@@ -161,7 +161,7 @@ def test_manifest_inspect_compatibility_ignores_nonfinite_rows_from_other_tasks(
                 "y_train": dirty_y_train,
                 "x_test": dirty_x_test,
                 "y_test": dirty_y_test,
-                "feature_types": ["num"] * dirty_x_train.shape[1],
+                "feature_types": ["floating"] * dirty_x_train.shape[1],
                 "metadata": {
                     **cases._classification_metadata(
                         n_features=dirty_x_train.shape[1],

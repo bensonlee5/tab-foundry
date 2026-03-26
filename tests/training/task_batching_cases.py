@@ -45,7 +45,7 @@ def write_task_batch_manifest_from_specs(
                 "y_train": y_train,
                 "x_test": x_test,
                 "y_test": y_test,
-                "feature_types": ["num"] * n_features,
+                "feature_types": ["floating"] * n_features,
                 "metadata": _classification_metadata(
                     n_features=n_features,
                     n_classes=n_classes,

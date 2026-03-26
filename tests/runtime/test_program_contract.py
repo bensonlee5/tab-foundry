@@ -273,6 +273,45 @@ def test_model_config_documents_staged_override_surface() -> None:
     for statement in required_statements:
         assert statement in contents
 
+
+def test_tabfoundry_sandwich_doc_covers_current_surface() -> None:
+    contents = (REPO_ROOT / "docs" / "development" / "tabfoundry-sandwich.md").read_text(
+        encoding="utf-8"
+    )
+
+    required_statements = [
+        "`tabfoundry_sandwich` is a fixed-latent repeated-input",
+        "`R + C`",
+        "`model.arch`",
+        "`d_icl`",
+        "`input_normalization`",
+        "`many_class_base`",
+        "`head_hidden_dim`",
+        "`pre_encoder_clip`",
+        "`norm_type`",
+        "`sandwich_latents`",
+        "`sandwich_layers`",
+        "`sandwich_heads`",
+        "`sandwich_ff_expansion`",
+        "`TaskBatch.metadata[\"feature_types\"]`",
+        "`latent_seed`",
+        "truncated normal",
+        "repeated Perceiver stages",
+        "`2 <= num_classes <= many_class_base`",
+    ]
+    for statement in required_statements:
+        assert statement in contents
+
+    forbidden_statements = [
+        "earlier sandwich",
+        "prior sandwich",
+        "intermediate shared-latent",
+        "previous sandwich",
+    ]
+    lowered = contents.lower()
+    for statement in forbidden_statements:
+        assert statement not in lowered
+
     assert "The current staged ladder is:" not in contents
 
 

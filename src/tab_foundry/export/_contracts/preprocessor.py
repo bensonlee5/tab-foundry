@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from tab_foundry.feature_types import normalize_feature_types
 from tab_foundry.preprocessing import (
     CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
     DTYPE_POLICY,
@@ -54,6 +55,7 @@ def _validate_v2_preprocessor_state(payload: dict[str, Any]) -> LegacyPreprocess
             "classification_label_policy",
             "dtype_policy",
         },
+        optional_keys={"feature_types"},
         context="preprocessor_state",
     )
 
@@ -225,6 +227,7 @@ def _validate_v3_preprocessor_state(
             "classification_label_policy",
             "dtype_policy",
         },
+        optional_keys={"feature_types"},
         context="preprocessor_state",
     )
 
@@ -245,6 +248,15 @@ def _validate_v3_preprocessor_state(
             task=task,
         ),
         dtype_policy=_validate_dtype_policy(payload["dtype_policy"]),
+        feature_types=(
+            None
+            if "feature_types" not in payload
+            else normalize_feature_types(
+                payload["feature_types"],
+                expected_count=None,
+                context="preprocessor_state.feature_types",
+            )
+        ),
     )
 
 

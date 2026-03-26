@@ -81,7 +81,7 @@ def write_iris_tasks(
                 "n_train": int(x_train.shape[0]),
                 "n_test": int(x_test.shape[0]),
                 "n_features": int(x_train.shape[1]),
-                "feature_types": ["num"] * int(x_train.shape[1]),
+                "feature_types": ["floating"] * int(x_train.shape[1]),
                 "metadata": {
                     "n_features": int(x_train.shape[1]),
                     "n_classes": 2,

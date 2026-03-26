@@ -8,6 +8,7 @@ from typing import Any
 
 import torch
 
+from tab_foundry.feature_types import DEFAULT_FEATURE_TYPE
 from tab_foundry.types import TaskBatch
 
 from .architectures.tabfoundry_staged.resolved import resolve_staged_surface
@@ -67,8 +68,15 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
     if spec.arch != "tabfoundry_staged":
         if spec.arch == SANDWICH_MODEL_ARCH:
             payload["architecture"] = {
-                "row_latents": int(spec.sandwich_row_latents),
-                "col_latents": int(spec.sandwich_col_latents),
+                "input_tokens": "row_col_summary_stream",
+                "input_token_count": "R_plus_C",
+                "label_injection": "fused_into_row_summaries",
+                "summary_builder": "summary_query_attention",
+                "position_encoding": "shared_fourier_row_col",
+                "feature_type_encoding": "parquet_physical_group",
+                "latent_core": "perceiver_repeated_cross_self_stages",
+                "layer_semantics": "repeated_stages",
+                "latents": int(spec.sandwich_latents),
                 "layers": int(spec.sandwich_layers),
                 "heads": int(spec.sandwich_heads),
                 "ff_expansion": int(spec.sandwich_ff_expansion),
@@ -107,7 +115,10 @@ def synthetic_forward_batch(spec: ModelBuildSpec) -> SyntheticForwardBatch:
         y_train=y_train,
         x_test=x_test,
         y_test=y_test,
-        metadata={"source": "synthetic_forward_check"},
+        metadata={
+            "source": "synthetic_forward_check",
+            "feature_types": [DEFAULT_FEATURE_TYPE] * feature_count,
+        },
         num_classes=int(num_classes),
     )
     return SyntheticForwardBatch(

@@ -222,8 +222,15 @@ def build_training_surface_record(
         model_label = str(surface.stage_label)
     elif model_spec.arch == SANDWICH_MODEL_ARCH:
         model_payload["architecture"] = {
-            "row_latents": int(model_spec.sandwich_row_latents),
-            "col_latents": int(model_spec.sandwich_col_latents),
+            "input_tokens": "row_col_summary_stream",
+            "input_token_count": "R_plus_C",
+            "label_injection": "fused_into_row_summaries",
+            "summary_builder": "summary_query_attention",
+            "position_encoding": "shared_fourier_row_col",
+            "feature_type_encoding": "parquet_physical_group",
+            "latent_core": "perceiver_repeated_cross_self_stages",
+            "layer_semantics": "repeated_stages",
+            "latents": int(model_spec.sandwich_latents),
             "layers": int(model_spec.sandwich_layers),
             "heads": int(model_spec.sandwich_heads),
             "ff_expansion": int(model_spec.sandwich_ff_expansion),

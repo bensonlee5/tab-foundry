@@ -1,15 +1,17 @@
-# TF-RD-021A: Latent-Bank Sandwich Prototype And Phased Screen
+# TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
 
-This is the bounded sidecar evidence note for the experimental
-`tabfoundry_sandwich` lane that now runs alongside
-[TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-training-runtime-and-vram-efficiency-on-the-promoted-anchor).
+This is the long-form evidence note for the fixed-latent
+`tabfoundry_sandwich` architecture candidate.
+The lane now lives under the broader
+[TF-RD-016](../../docs/development/roadmap.md#tf-rd-016-architecture-surface-adequacy-and-selective-expansion)
+architecture-adequacy workstream rather than as a runtime-sidecar under
+TF-RD-022.
 
 - Status: `partial`
 - Milestone: `Next`
-- Dependency position: bounded execution sidecar under TF-RD-022; it should
-  not displace the canonical staged target, and if it survives the phased
-  screen it should hand evidence back into later TF-RD-016 architecture
-  decisions and the harder-surface CUDA reads
+- Dependency position: architecture sub-lane under TF-RD-016; TF-RD-022 remains
+  a dependency surface for later runtime-aware hard-surface reads, but it does
+  not own sandwich planning
 
 ## External Evidence
 
@@ -28,19 +30,23 @@ This is the bounded sidecar evidence note for the experimental
 ## Repo-Local Evidence
 
 - implementation issue [#174](https://github.com/bensonlee5/tab-foundry/issues/174)
-  now defines the fixed v0 architecture scope
-- phased sweep issue [#175](https://github.com/bensonlee5/tab-foundry/issues/175)
-  now defines the required data ladder:
-  - local CPU or MPS smoke
-  - nanoTabPFN prior-dump latent-size screen
-  - nanoTabPFN prior-dump width plus latent-size screen
-  - smaller dagzoo confirmation
-  - hard dagzoo decision read on the TF-RD-020 anchor
+  now records the fixed-latent implementation landing
+- umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178)
+  now owns long-running sandwich stabilization and future child tickets
+- immediate nanoTabPFN screen issue
+  [#179](https://github.com/bensonlee5/tab-foundry/issues/179) now owns only:
+  - sweep 1 analogue: latent-count screen with width and depth fixed
+  - sweep 2 analogue: width plus latent-count follow-up around sweep-1 winners
 - `tabfoundry_sandwich` now exists as a separate experimental `model.arch`
   family with:
-  - learned row and column latent banks
-  - pre-norm residual cross-attention blocks
-  - train-write or test-read semantics
+  - one fixed learned latent bank
+  - an `R + C` repeated row/column summary stream
+  - train-label or test-query conditioning fused into the row-summary tokens
+  - repeated Perceiver-style cross-attention reads plus latent self-attention
+    stages
+  - shared Fourier row or column positions plus schema-aware feature-type
+    encoding
+  - test-row readout from the final latent state
   - `forward_batched()` support for prior-dump training
   - shared inspection, export, and training-surface wiring
 - local CPU forward-check and local MPS forward-check both succeed on the new
@@ -51,39 +57,44 @@ This is the bounded sidecar evidence note for the experimental
 
 ## Current Interpretation
 
-- the first useful question is not whether the prototype wins on the hardest
-  dagzoo fronts; it is whether the simpler latent-bank design trains at all and
+- the first useful question is still not whether sandwich wins on the hardest
+  surfaces; it is whether the fixed-latent `y/x` design trains at all and
   scales predictably on the fastest feedback surface
-- that is why the sequence should start on nanoTabPFN prior-dump data rather
-  than dagzoo:
+- that is why the immediate sequence should start on nanoTabPFN prior-dump data
+  rather than dagzoo:
   - prior-dump sweeps are smaller and faster
   - more historical sweep context already exists on that lane
-  - they are the best place to settle latent-bank sizes and the first width read
-- width should not be mixed into the first latent-size sweep; keep sweep 1 as a
-  latent-only screen, then use sweep 2 to jointly vary width and latent sizes
-- dagzoo remains necessary for the real decision because the actual fit and OOM
-  pressure that motivated this work live on the harder TF-RD-020 surfaces, not
-  on the prior dump
-- MPS OOMs are informative for local iteration but should not be counted as the
-  quantitative hard-surface evidence lane
+  - they are the best place to settle the first latent-count and width reads
+- width should not be mixed into the first sweep; keep sweep 1 as a
+  latent-only screen, then use sweep 2 to jointly vary width and latent count
+- `tabfoundry_sandwich` should now be treated as the primary long-term
+  architecture candidate, while `tabfoundry_staged` remains the incumbent
+  benchmark/reference line until sandwich earns promotion
+- later dagzoo confirmation, runtime-aware hard-surface reads, and any eventual
+  promotion decision should be broken into additional child issues under
+  [#178](https://github.com/bensonlee5/tab-foundry/issues/178), not bundled
+  into the immediate nanoTabPFN sweep issue
+- MPS OOMs remain informative for local iteration but should not be counted as
+  the quantitative hard-surface evidence lane
 
 ## Open Evidence Gaps
 
 - no actual nanoTabPFN sandwich sweep results are recorded yet
-- no dagzoo confirmation read exists yet for the new architecture
+- no longer-budget stability read exists yet for the new architecture
+- no harder-surface confirmation read exists yet for the new architecture
 - the repo still lacks the peak CUDA-memory telemetry from
   [#58](https://github.com/bensonlee5/tab-foundry/issues/58), so future hard
-  dagzoo reads still need the TF-RD-022 telemetry work to rank memory wins
+  surface reads still need the TF-RD-022 telemetry work to rank memory wins
   cleanly
-- the quality or fit floor that would justify keeping or stopping this sidecar
-  is not yet explicit
+- the quality or fit floor that would justify promoting or deferring this
+  architecture candidate is not yet explicit
 
 ## Exit Signals
 
-- sweep 1 identifies viable latent-bank rows on nanoTabPFN prior-dump data
-- sweep 2 identifies whether width plus latent-size changes materially improve
+- sweep 1 identifies viable latent-count rows on nanoTabPFN prior-dump data
+- sweep 2 identifies whether width plus latent-count changes materially improve
   the first viable rows
-- dagzoo confirmation shows the prototype transfers off the prior dump without
-  obvious collapse
-- the hard dagzoo read can make one explicit keep or stop decision for the
-  experimental sidecar
+- the next sandwich follow-on issue can be scoped from those winners without
+  carrying the old monolithic phased ladder forward
+- later hard-surface reads can make one explicit keep/defer decision on whether
+  sandwich should displace the staged reference line
