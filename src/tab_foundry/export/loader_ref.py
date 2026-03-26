@@ -11,7 +11,7 @@ from safetensors.torch import load_file
 import torch
 from torch import nn
 
-from tab_foundry.feature_types import resolve_feature_types
+from tab_foundry.feature_types import normalize_feature_types, resolve_feature_types
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.outputs import ClassificationOutput, validate_classification_output_contract
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
@@ -139,11 +139,23 @@ def _reference_batch(
         _dummy_y_test("classification", row_count=int(processed.x_test.shape[0]))
     )
     num_classes = processed.num_classes
-    resolved_feature_types = resolve_feature_types(
-        feature_types,
-        expected_count=int(processed.x_train.shape[1]),
-        context="reference_consumer.feature_types",
-    )
+    model_arch = str(manifest.model.arch).strip().lower()
+    if model_arch == "tabfoundry_sandwich":
+        if feature_types is None:
+            raise RuntimeError(
+                "tabfoundry_sandwich reference consumer requires explicit feature_types"
+            )
+        resolved_feature_types = normalize_feature_types(
+            feature_types,
+            expected_count=int(processed.x_train.shape[1]),
+            context="reference_consumer.feature_types",
+        )
+    else:
+        resolved_feature_types = resolve_feature_types(
+            feature_types,
+            expected_count=int(processed.x_train.shape[1]),
+            context="reference_consumer.feature_types",
+        )
     return TaskBatch(
         x_train=torch.from_numpy(np.asarray(processed.x_train, dtype=np.float32)),
         y_train=y_train_tensor,

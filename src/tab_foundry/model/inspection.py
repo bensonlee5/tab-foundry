@@ -36,6 +36,7 @@ class SyntheticReferenceArrays:
     x_train: torch.Tensor
     y_train: torch.Tensor
     x_test: torch.Tensor
+    feature_types: list[str] | None
     expected_num_classes: int
 
 
@@ -155,10 +156,16 @@ def synthetic_reference_arrays(
 
     y_train = torch.arange(train_rows, dtype=torch.int64).remainder(int(num_classes))
     y_train = y_train + 100
+    feature_types = (
+        [DEFAULT_FEATURE_TYPE] * feature_count
+        if str(spec.arch).strip().lower() == SANDWICH_MODEL_ARCH
+        else None
+    )
     return SyntheticReferenceArrays(
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
+        feature_types=feature_types,
         expected_num_classes=int(num_classes),
     )
 

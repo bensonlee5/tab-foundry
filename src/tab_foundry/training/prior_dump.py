@@ -11,6 +11,7 @@ from typing import Literal, cast
 import numpy as np
 import torch
 
+from tab_foundry.feature_types import normalize_feature_types
 from tab_foundry.types import TaskBatch
 
 
@@ -148,6 +149,7 @@ class PriorDumpTaskBatchReader:
         batch_size: int,
         allow_missing_values: bool = False,
         non_finite_policy: PriorDumpNonFinitePolicy = "error",
+        require_feature_types: bool = False,
         on_non_finite_batch: Callable[[PriorDumpBatchMissingness], None] | None = None,
     ) -> None:
         self.path = path.expanduser().resolve()
@@ -155,6 +157,7 @@ class PriorDumpTaskBatchReader:
         self.batch_size = int(batch_size)
         self.allow_missing_values = bool(allow_missing_values)
         self.non_finite_policy = _resolve_non_finite_policy(non_finite_policy)
+        self.require_feature_types = bool(require_feature_types)
         self.on_non_finite_batch = on_non_finite_batch
         if self.num_steps <= 0:
             raise ValueError(f"num_steps must be >= 1, got {self.num_steps}")
@@ -183,9 +186,21 @@ class PriorDumpTaskBatchReader:
             num_features_ds = handle["num_features"]
             num_datapoints_ds = handle["num_datapoints"]
             split_ds = handle["single_eval_pos"]
+            feature_types_ds = handle.get("feature_types")
             dataset_count = int(x_ds.shape[0])
             if dataset_count <= 0:
                 raise RuntimeError("prior dump contains no datasets")
+            if feature_types_ds is not None:
+                if len(feature_types_ds.shape) != 2 or int(feature_types_ds.shape[0]) != dataset_count:
+                    raise RuntimeError(
+                        "prior dump feature_types must have shape [dataset_count, max_num_features], "
+                        f"got {tuple(int(dim) for dim in feature_types_ds.shape)}"
+                    )
+            elif self.require_feature_types:
+                raise RuntimeError(
+                    "tabfoundry_sandwich prior-dump training requires a 'feature_types' dataset "
+                    f"in the prior dump: {self.path}"
+                )
 
             batches_per_cycle = max(1, int(math.ceil(float(dataset_count) / float(self.batch_size))))
             successful_step_index = 0
@@ -202,6 +217,12 @@ class PriorDumpTaskBatchReader:
                 split_values = np.asarray(split_ds[pointer:end], dtype=np.int64)
                 if split_values.size == 0:
                     raise RuntimeError("prior dump batch is empty")
+                batch_feature_widths = [int(value) for value in num_features.tolist()]
+                if len(set(batch_feature_widths)) != 1:
+                    raise RuntimeError(
+                        "prior dump batches must use one shared num_features value across the batch: "
+                        f"dataset_indices={batch_dataset_indices}, num_features={batch_feature_widths}"
+                    )
                 first_split = int(split_values[0])
                 max_num_features = int(num_features.max())
                 max_num_datapoints = int(num_datapoints.max())
@@ -241,6 +262,18 @@ class PriorDumpTaskBatchReader:
                         x_ds[dataset_index, :n_datapoints, :n_features],
                         dtype=np.float32,
                     )
+                    resolved_feature_types: list[str] | None = None
+                    if feature_types_ds is not None:
+                        raw_feature_types = np.asarray(feature_types_ds[dataset_index, :n_features])
+                        feature_types_list = [
+                            value.decode("utf-8") if isinstance(value, (bytes, bytearray)) else str(value)
+                            for value in raw_feature_types.tolist()
+                        ]
+                        resolved_feature_types = normalize_feature_types(
+                            feature_types_list,
+                            expected_count=n_features,
+                            context=f"prior dump dataset {dataset_index} feature_types",
+                        )
                     raw_y = np.asarray(
                         y_ds[dataset_index, :n_datapoints],
                         dtype=np.float32,
@@ -278,21 +311,24 @@ class PriorDumpTaskBatchReader:
                             f"got dataset_index={dataset_index}, labels={sorted(set(y.tolist()))}"
                         )
 
+                    metadata = {
+                        "source": "nanotabpfn_prior_dump",
+                        "prior_dump_path": str(self.path),
+                        "dataset_index": int(dataset_index),
+                        "num_features": n_features,
+                        "num_datapoints": n_datapoints,
+                        "train_test_split_index": first_split,
+                        "raw_single_eval_pos": int(split_values[local_index]),
+                    }
+                    if resolved_feature_types is not None:
+                        metadata["feature_types"] = resolved_feature_types
                     tasks.append(
                         TaskBatch(
                             x_train=torch.from_numpy(x[:first_split].copy()),
                             y_train=torch.from_numpy(y[:first_split].copy()),
                             x_test=torch.from_numpy(x[first_split:].copy()),
                             y_test=torch.from_numpy(y[first_split:].copy()),
-                            metadata={
-                                "source": "nanotabpfn_prior_dump",
-                                "prior_dump_path": str(self.path),
-                                "dataset_index": int(dataset_index),
-                                "num_features": n_features,
-                                "num_datapoints": n_datapoints,
-                                "train_test_split_index": first_split,
-                                "raw_single_eval_pos": int(split_values[local_index]),
-                            },
+                            metadata=metadata,
                             num_classes=2,
                         )
                     )

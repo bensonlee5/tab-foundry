@@ -9,11 +9,7 @@ import torch
 from torch import nn
 from torch.utils.checkpoint import checkpoint as activation_checkpoint
 
-from tab_foundry.feature_types import (
-    DEFAULT_FEATURE_TYPE,
-    FEATURE_TYPE_VOCAB,
-    resolve_feature_types,
-)
+from tab_foundry.feature_types import FEATURE_TYPE_VOCAB, normalize_feature_types
 from tab_foundry.input_normalization import InputNormalizationMode, normalize_train_test_tensors
 from tab_foundry.model.components.attention import multihead_attention_sdpa
 from tab_foundry.model.components.non_finite import clip_finite_values
@@ -403,18 +399,72 @@ class TabFoundrySandwichClassifier(nn.Module):
         return encoding.to(dtype=dtype).unsqueeze(0)
 
     @staticmethod
-    def _default_feature_type_ids(
+    def _normalize_required_feature_types(
+        feature_types: Any,
+        *,
+        expected_count: int,
+        context: str,
+    ) -> list[str]:
+        if feature_types is None:
+            raise ValueError(f"{context} is required for tabfoundry_sandwich")
+        return normalize_feature_types(
+            feature_types,
+            expected_count=expected_count,
+            context=context,
+        )
+
+    @staticmethod
+    def _feature_type_ids_from_resolved(
+        resolved_types_by_task: list[list[str]],
+        *,
+        device: torch.device,
+    ) -> torch.Tensor:
+        feature_type_ids = [
+            [int(_FEATURE_TYPE_TO_ID[value]) for value in feature_types]
+            for feature_types in resolved_types_by_task
+        ]
+        return torch.tensor(feature_type_ids, device=device, dtype=torch.int64)
+
+    def _feature_type_ids_from_forward_batched(
+        self,
+        feature_types: list[str] | list[list[str]] | None,
         *,
         batch_size: int,
         num_features: int,
         device: torch.device,
     ) -> torch.Tensor:
-        default_id = int(_FEATURE_TYPE_TO_ID[DEFAULT_FEATURE_TYPE])
-        return torch.full(
-            (int(batch_size), int(num_features)),
-            default_id,
+        if feature_types is None:
+            raise ValueError("tabfoundry_sandwich forward_batched() requires explicit feature_types")
+        if not feature_types or isinstance(feature_types[0], str):
+            if batch_size != 1:
+                raise ValueError(
+                    "tabfoundry_sandwich forward_batched() requires one feature_types list per task "
+                    f"when batch_size={batch_size}"
+                )
+            resolved = [
+                self._normalize_required_feature_types(
+                    feature_types,
+                    expected_count=num_features,
+                    context="forward_batched.feature_types",
+                )
+            ]
+            return self._feature_type_ids_from_resolved(resolved, device=device)
+        if not isinstance(feature_types, list) or len(feature_types) != batch_size:
+            raise ValueError(
+                "tabfoundry_sandwich forward_batched() requires one feature_types list per task "
+                f"when batch_size={batch_size}, got {type(feature_types).__name__}"
+            )
+        resolved_types_by_task = [
+            self._normalize_required_feature_types(
+                value,
+                expected_count=num_features,
+                context=f"forward_batched.feature_types[{index}]",
+            )
+            for index, value in enumerate(feature_types)
+        ]
+        return self._feature_type_ids_from_resolved(
+            resolved_types_by_task,
             device=device,
-            dtype=torch.int64,
         )
 
     def _feature_type_ids_from_metadata(
@@ -440,25 +490,36 @@ class TabFoundrySandwichClassifier(nn.Module):
                         "tabfoundry_sandwich task-batched metadata members must be objects, "
                         f"got task_members[{index}]={type(member).__name__}"
                     )
-                resolved_types_by_task.append(
-                    resolve_feature_types(
-                        member.get("feature_types"),
-                        expected_count=int(num_features),
-                        context=f"batch.metadata.task_members[{index}].feature_types",
+                try:
+                    resolved_types_by_task.append(
+                        self._normalize_required_feature_types(
+                            member.get("feature_types"),
+                            expected_count=int(num_features),
+                            context=f"batch.metadata.task_members[{index}].feature_types",
+                        )
                     )
-                )
+                except ValueError as exc:
+                    raise RuntimeError(str(exc)) from exc
         else:
-            feature_types = resolve_feature_types(
-                metadata.get("feature_types"),
-                expected_count=int(num_features),
-                context="batch.metadata.feature_types",
-            )
-            resolved_types_by_task = [list(feature_types) for _ in range(int(batch_size))]
-        feature_type_ids = [
-            [int(_FEATURE_TYPE_TO_ID[value]) for value in feature_types]
-            for feature_types in resolved_types_by_task
-        ]
-        return torch.tensor(feature_type_ids, device=device, dtype=torch.int64)
+            if int(batch_size) != 1:
+                raise RuntimeError(
+                    "tabfoundry_sandwich task-batched metadata requires "
+                    "batch.metadata.task_members with one feature_types list per task"
+                )
+            try:
+                resolved_types_by_task = [
+                    self._normalize_required_feature_types(
+                        metadata.get("feature_types"),
+                        expected_count=int(num_features),
+                        context="batch.metadata.feature_types",
+                    )
+                ]
+            except ValueError as exc:
+                raise RuntimeError(str(exc)) from exc
+        return self._feature_type_ids_from_resolved(
+            resolved_types_by_task,
+            device=device,
+        )
 
     def _feature_cells(
         self,
@@ -686,8 +747,10 @@ class TabFoundrySandwichClassifier(nn.Module):
         x_all: torch.Tensor,
         y_train: torch.Tensor,
         train_test_split_index: int,
+        feature_types: list[str] | list[list[str]],
     ) -> torch.Tensor:
-        feature_type_ids = self._default_feature_type_ids(
+        feature_type_ids = self._feature_type_ids_from_forward_batched(
+            feature_types,
             batch_size=int(x_all.shape[0]),
             num_features=int(x_all.shape[2]),
             device=x_all.device,

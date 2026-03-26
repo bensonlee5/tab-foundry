@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import Dataset
 
 from tab_foundry.data.validation import assert_no_non_finite_values
-from tab_foundry.feature_types import resolve_feature_types
+from tab_foundry.feature_types import normalize_feature_types
 from tab_foundry.preprocessing import preprocess_runtime_task_arrays
 from tab_foundry.types import TaskBatch
 
@@ -279,11 +279,23 @@ def _load_manifest_task_record(
         raise RuntimeError(
             f"metadata record missing object payload at key 'metadata': path={metadata_path}"
         )
-    feature_types = resolve_feature_types(
-        metadata_record.get("feature_types", metadata.get("feature_types")),
-        expected_count=int(x_train.shape[1]),
-        context="metadata_record.feature_types",
-    )
+    raw_feature_types = metadata_record.get("feature_types", metadata.get("feature_types"))
+    if raw_feature_types is None:
+        raise RuntimeError(
+            "manifest-backed task dataset requires explicit feature_types metadata: "
+            f"dataset_index={dataset_index}, path={metadata_path}"
+        )
+    try:
+        feature_types = normalize_feature_types(
+            raw_feature_types,
+            expected_count=int(x_train.shape[1]),
+            context="metadata_record.feature_types",
+        )
+    except ValueError as exc:
+        raise RuntimeError(
+            "invalid manifest-backed feature_types metadata: "
+            f"dataset_index={dataset_index}, path={metadata_path}: {exc}"
+        ) from exc
 
     expected_n_train = int(record.get("n_train", -1))
     expected_n_test = int(record.get("n_test", -1))

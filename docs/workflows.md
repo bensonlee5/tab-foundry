@@ -135,6 +135,10 @@ Keep these workflows separate:
 
 The sweep loop should not call the OpenML benchmark directly.
 
+Manifest-backed task loading now requires explicit persisted `feature_types`
+metadata for each task record; the loader does not infer an all-`floating`
+fallback when that metadata is absent.
+
 ## Dataset Curation Gate
 
 Real-data additions now require a license review before they can enter a
@@ -323,6 +327,9 @@ you opt into the nanoTabPFN comparator with
 input, while `bench compare` uses `--nanotabpfn-prior-dump` because that flag
 only matters when the nanoTabPFN comparator is selected. Plain `tab-foundry train run ...` commands use the manifest-backed surface, typically via
 `data.corpus_ref` and optionally via a direct `data.manifest_path` override.
+Prior-dump batches must also be rectangular in feature width; mixed
+`num_features` batches now fail early instead of relying on padded feature
+columns inside one optimizer step.
 
 Use the queue row plus `reference/system_delta_campaign_template.md` to decide
 the staged labels, any bounded module overrides, and the research-package paths

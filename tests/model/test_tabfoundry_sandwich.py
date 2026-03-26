@@ -9,10 +9,19 @@ from tab_foundry.task_batching import collate_task_batch
 from tab_foundry.types import TaskBatch
 
 
-def _batch(*, num_classes: int = 3, include_feature_types: bool = True) -> TaskBatch:
+_DEFAULT_FEATURE_TYPES = ["floating", "integer", "bool", "string_binary"]
+_SECONDARY_FEATURE_TYPES = ["integer", "floating", "unknown", "bool"]
+
+
+def _batch(
+    *,
+    num_classes: int = 3,
+    include_feature_types: bool = True,
+    feature_types: list[str] | None = None,
+) -> TaskBatch:
     metadata = {"source": "unit_test"}
     if include_feature_types:
-        metadata["feature_types"] = ["floating", "integer", "bool", "string_binary"]
+        metadata["feature_types"] = list(feature_types or _DEFAULT_FEATURE_TYPES)
     return TaskBatch(
         x_train=torch.tensor(
             [
@@ -66,6 +75,10 @@ def _batched_inputs() -> tuple[torch.Tensor, torch.Tensor, int]:
     return x_all, y_train, 3
 
 
+def _batched_feature_types() -> list[list[str]]:
+    return [list(_DEFAULT_FEATURE_TYPES), list(_SECONDARY_FEATURE_TYPES)]
+
+
 def _model() -> TabFoundrySandwichClassifier:
     return TabFoundrySandwichClassifier(
         d_icl=32,
@@ -95,6 +108,7 @@ def test_tabfoundry_sandwich_forward_batched_shapes() -> None:
         x_all=x_all,
         y_train=y_train,
         train_test_split_index=train_test_split_index,
+        feature_types=_batched_feature_types(),
     )
 
     assert tuple(logits.shape) == (2, 2, 4)
@@ -247,21 +261,69 @@ def test_tabfoundry_sandwich_layers_count_matches_repeated_stages() -> None:
     assert len(model.perceiver_stages) == 3
 
 
-def test_tabfoundry_sandwich_defaults_missing_feature_types_to_floating() -> None:
-    output = _model()(_batch(include_feature_types=False))
+def test_tabfoundry_sandwich_requires_feature_types_for_forward() -> None:
+    with pytest.raises(RuntimeError, match="feature_types"):
+        _ = _model()(_batch(include_feature_types=False))
+
+
+def test_tabfoundry_sandwich_requires_feature_types_for_forward_batched() -> None:
+    model = _model()
+    x_all, y_train, train_test_split_index = _batched_inputs()
+
+    with pytest.raises(ValueError, match="feature_types"):
+        _ = model.forward_batched(
+            x_all=x_all,
+            y_train=y_train,
+            train_test_split_index=train_test_split_index,
+            feature_types=None,
+        )
+
+
+def test_tabfoundry_sandwich_forward_batched_matches_forward_with_feature_types() -> None:
+    model = _model()
+    batch = _batch()
+    x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
+
+    output = model(batch)
+    logits = model.forward_batched(
+        x_all=x_all,
+        y_train=y_train,
+        train_test_split_index=train_test_split_index,
+        feature_types=list(_DEFAULT_FEATURE_TYPES),
+    )
 
     assert output.logits is not None
-    assert torch.isfinite(output.logits).all()
+    assert torch.allclose(logits.squeeze(0), output.logits, atol=1.0e-6, rtol=1.0e-5)
 
 
 def test_tabfoundry_sandwich_supports_task_batched_feature_type_metadata() -> None:
     model = _model()
-    batch = collate_task_batch([_batch(), _batch()], requested_task_batch_size=2)
+    batch = collate_task_batch(
+        [
+            _batch(feature_types=_DEFAULT_FEATURE_TYPES),
+            _batch(feature_types=_SECONDARY_FEATURE_TYPES),
+        ],
+        requested_task_batch_size=2,
+    )
 
     output = model(batch)
 
     assert output.logits is not None
     assert tuple(output.logits.shape) == (4, 4)
+
+
+def test_tabfoundry_sandwich_rejects_missing_task_member_feature_types() -> None:
+    model = _model()
+    batch = collate_task_batch(
+        [
+            _batch(feature_types=_DEFAULT_FEATURE_TYPES),
+            _batch(include_feature_types=False),
+        ],
+        requested_task_batch_size=2,
+    )
+
+    with pytest.raises(RuntimeError, match="task_members\\[1\\]\\.feature_types"):
+        _ = model(batch)
 
 
 def test_tabfoundry_sandwich_rejects_true_many_class_batches() -> None:

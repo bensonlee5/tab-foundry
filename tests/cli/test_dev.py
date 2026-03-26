@@ -249,6 +249,36 @@ def test_export_check_keeps_explicit_bundle_dir(tmp_path: Path) -> None:
     assert payload["reference_smoke"]["used_missing_inputs"] is False
 
 
+def test_export_check_passes_for_sandwich_bundle(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "checkpoint_sandwich.pt"
+    _ = exporter_cases._write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="none",
+        model_overrides={
+            "arch": "tabfoundry_sandwich",
+            "d_icl": 32,
+            "many_class_base": 4,
+            "head_hidden_dim": 64,
+            "sandwich_latents": 12,
+            "sandwich_layers": 2,
+            "sandwich_heads": 4,
+            "sandwich_ff_expansion": 2,
+        },
+        seed=31,
+    )
+
+    payload = export_check(
+        checkpoint,
+        out_dir=None,
+        artifact_version=SCHEMA_VERSION_V3,
+    )
+
+    assert payload["schema_version"] == SCHEMA_VERSION_V3
+    assert payload["model"]["arch"] == "tabfoundry_sandwich"
+    assert payload["reference_smoke"]["output_shape"][0] == 2
+
+
 def test_export_check_rejects_non_v3_artifact_version(tmp_path: Path) -> None:
     checkpoint = tmp_path / "checkpoint.pt"
     _ = exporter_cases._write_checkpoint(checkpoint, task="classification", seed=29)

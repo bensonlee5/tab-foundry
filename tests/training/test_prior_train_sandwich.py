@@ -20,6 +20,7 @@ def _write_prior_dump(
     num_features: np.ndarray,
     num_datapoints: np.ndarray,
     single_eval_pos: np.ndarray,
+    feature_types: np.ndarray | None = None,
     max_num_classes: int = 2,
 ) -> Path:
     with h5py.File(path, "w") as handle:
@@ -28,6 +29,11 @@ def _write_prior_dump(
         handle.create_dataset("num_features", data=num_features)
         handle.create_dataset("num_datapoints", data=num_datapoints)
         handle.create_dataset("single_eval_pos", data=single_eval_pos)
+        if feature_types is not None:
+            handle.create_dataset(
+                "feature_types",
+                data=np.asarray(feature_types, dtype=h5py.string_dtype(encoding="utf-8")),
+            )
         handle.create_dataset("max_num_classes", data=np.asarray([max_num_classes], dtype=np.int64))
     return path
 
@@ -52,6 +58,13 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
         num_features=np.asarray([2, 2], dtype=np.int64),
         num_datapoints=np.asarray([4, 4], dtype=np.int64),
         single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+        feature_types=np.asarray(
+            [
+                ["floating", "integer"],
+                ["bool", "string_binary"],
+            ],
+            dtype=object,
+        ),
     )
     cfg = OmegaConf.create(
         {
@@ -108,3 +121,72 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
         (tmp_path / "train_out" / "training_surface_record.json").read_text(encoding="utf-8")
     )
     assert training_surface["model"]["arch"] == "tabfoundry_sandwich"
+
+
+def test_train_tabfoundry_sandwich_prior_rejects_dump_without_feature_types(tmp_path: Path) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_sandwich_missing_feature_types.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+            ],
+            dtype=np.int64,
+        ),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([4], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_sandwich",
+                "d_icl": 32,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+                "head_hidden_dim": 64,
+                "sandwich_latents": 12,
+                "sandwich_layers": 2,
+                "sandwich_heads": 4,
+                "sandwich_ff_expansion": 2,
+            },
+            "runtime": {
+                "seed": 1,
+                "output_dir": str(tmp_path / "train_out_missing_feature_types"),
+                "device": "cpu",
+                "mixed_precision": "no",
+                "grad_clip": 1.0,
+                "max_steps": 1,
+                "eval_every": 1,
+                "checkpoint_every": 1,
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "require_requested": True,
+                "weight_decay": 0.0,
+                "min_lr": 4.0e-3,
+                "betas": [0.9, 0.95],
+                "muon_per_parameter_lr": False,
+                "muon_lr_scale_base": 0.2,
+                "muon_partition_non2d": True,
+            },
+            "logging": {
+                "history_jsonl_path": str(
+                    tmp_path / "train_out_missing_feature_types" / "train_history.jsonl"
+                ),
+            },
+        }
+    )
+
+    with pytest.raises(RuntimeError, match="feature_types"):
+        _ = prior_train_module.train_tabfoundry_simple_prior(
+            cfg,
+            prior_dump_path=path,
+            batch_size=1,
+        )

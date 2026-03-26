@@ -40,6 +40,7 @@ def _reference_arrays(
         "x_train": synthetic.x_train.cpu().numpy().astype(np.float32, copy=False),
         "y_train": synthetic.y_train.cpu().numpy().astype(np.int64, copy=False),
         "x_test": synthetic.x_test.cpu().numpy().astype(np.float32, copy=False),
+        "feature_types": None if synthetic.feature_types is None else list(synthetic.feature_types),
         "expected_num_classes": int(synthetic.expected_num_classes),
         "used_missing_inputs": include_missing_inputs,
         "build_spec": dict(build_spec),
@@ -82,6 +83,7 @@ def _run_export_check(
         x_train=arrays["x_train"],
         y_train=arrays["y_train"],
         x_test=arrays["x_test"],
+        feature_types=arrays["feature_types"],
     )
     class_probs = reference_output.class_probs
     if class_probs is None:

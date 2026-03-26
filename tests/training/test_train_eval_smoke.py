@@ -177,7 +177,7 @@ class _FakeTaskDataset(Dataset[TaskBatch]):
             y_train=y_train,
             x_test=torch.randn(3, 4),
             y_test=torch.tensor([0, 1, 2], dtype=torch.int64),
-            metadata={"dataset_index": index},
+            metadata={"dataset_index": index, "feature_types": ["floating"] * 4},
             num_classes=3,
         )
 
@@ -201,7 +201,7 @@ class _VariableShapeTaskDataset(Dataset[TaskBatch]):
             y_train=y_train,
             x_test=torch.randn(n_test, 4),
             y_test=y_test,
-            metadata={"dataset_index": index},
+            metadata={"dataset_index": index, "feature_types": ["floating"] * 4},
             num_classes=3,
         )
 

@@ -75,22 +75,32 @@ class GraphTarget:
 class _ForwardBatchedWrapper(torch.nn.Module):
     """Expose the repo's batched forward path as a simple tensor-only module."""
 
-    def __init__(self, model: torch.nn.Module, *, train_test_split_index: int) -> None:
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        *,
+        train_test_split_index: int,
+        feature_types: list[str] | list[list[str]] | None = None,
+    ) -> None:
         super().__init__()
         self.model = model
         self.train_test_split_index = int(train_test_split_index)
+        self.feature_types = feature_types
 
     def forward(self, x_all: torch.Tensor, y_train: torch.Tensor) -> torch.Tensor:
         forward_batched = getattr(self.model, "forward_batched", None)
         if not callable(forward_batched):
             raise RuntimeError("selected model does not expose forward_batched()")
+        batched_kwargs: dict[str, Any] = {
+            "x_all": x_all,
+            "y_train": y_train,
+            "train_test_split_index": self.train_test_split_index,
+        }
+        if str(getattr(self.model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+            batched_kwargs["feature_types"] = self.feature_types
         return cast(
             torch.Tensor,
-            forward_batched(
-                x_all=x_all,
-                y_train=y_train,
-                train_test_split_index=self.train_test_split_index,
-            ),
+            forward_batched(**batched_kwargs),
         )
 
 
@@ -470,6 +480,7 @@ def render_graph_target(target: GraphTarget, *, out_dir: Path) -> Path:
     wrapper = _ForwardBatchedWrapper(
         model,
         train_test_split_index=forward_batch.train_test_split_index,
+        feature_types=forward_batch.task_batch.metadata.get("feature_types"),
     )
     wrapper.eval()
     with torch.no_grad():

@@ -375,14 +375,19 @@ def forward_check(
     if synthetic_batch.expected_output_kind == "logits":
         forward_batched = getattr(model, "forward_batched", None)
         if callable(forward_batched):
+            batched_kwargs: dict[str, Any] = {
+                "x_all": x_all,
+                "y_train": y_train_batched,
+                "train_test_split_index": synthetic_batch.train_test_split_index,
+            }
+            if str(getattr(model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+                batched_kwargs["feature_types"] = synthetic_batch.task_batch.metadata.get(
+                    "feature_types"
+                )
             with torch.inference_mode():
                 batched_logits = cast(
                     torch.Tensor,
-                    forward_batched(
-                        x_all=x_all,
-                        y_train=y_train_batched,
-                        train_test_split_index=synthetic_batch.train_test_split_index,
-                    ),
+                    forward_batched(**batched_kwargs),
                 )
             validated_batched = _require_finite_tensor(batched_logits, context="forward_batched logits")
             expected_batched_shape = (

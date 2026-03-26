@@ -232,8 +232,9 @@ removed legacy family.
     `input_normalization`, and `pre_encoder_clip`. `sandwich_layers` now means
     repeated Perceiver stages, not a tail-only latent depth. The runtime task
     metadata contract also supports `feature_types` with the collapsed parquet-group
-    vocabulary `bool`, `integer`, `floating`, `string_binary`, or `unknown`;
-    when absent, the model falls back to all `floating`. Export-bundle
+    vocabulary `bool`, `integer`, `floating`, `string_binary`, or `unknown`.
+    `tabfoundry_sandwich` requires this metadata explicitly at runtime and on
+    `forward_batched(..., feature_types=...)`. Export-bundle
     `preprocessor` payloads stay policy-only and do not serialize this list.
     Only `sandwich_latents` is accepted. `sandwich_row_latents` and
     `sandwich_col_latents` are invalid for `tabfoundry_sandwich`.

@@ -229,9 +229,14 @@ Interpretation:
 
 - these are collapsed Parquet or Arrow physical groups, not exact logical type
   strings
-- when `feature_types` is absent, the runtime falls back to all `floating`
-- `run_reference_consumer(..., feature_types=[...])` accepts an optional
-  per-request list for exported-bundle execution
+- sandwich requires explicit feature types at runtime; it does not fall back
+  to all `floating`
+- manifest-backed tasks must persist `feature_types`; the shared dataset loader
+  no longer infers an all-`floating` default when the metadata is absent
+- `run_reference_consumer(..., feature_types=[...])` requires a per-request
+  list for exported-bundle execution
+- `forward_batched(..., feature_types=[...])` also requires explicit feature
+  types; task-batched calls must pass one list per task
 - export-bundle `manifest.preprocessor` payloads are policy-only and must not
   include `feature_types`
 

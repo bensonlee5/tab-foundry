@@ -262,7 +262,7 @@ def test_manifest_and_dataset_loading(tmp_path: Path) -> None:
     assert sample.metadata["feature_types"] == ["floating"] * int(sample.x_train.shape[1])
 
 
-def test_dataset_defaults_missing_feature_types_to_floating(tmp_path: Path) -> None:
+def test_dataset_rejects_missing_feature_types_metadata(tmp_path: Path) -> None:
     shard_dir = tmp_path / "run" / "shard_00000"
     x_train, y_train, x_test, y_test = _classification_arrays(n_features=3, seed=17)
     dataset = {
@@ -281,9 +281,34 @@ def test_dataset_defaults_missing_feature_types_to_floating(tmp_path: Path) -> N
     manifest_path = tmp_path / "manifest.parquet"
     _ = build_manifest([tmp_path / "run"], manifest_path)
     split = pq.read_table(manifest_path).to_pylist()[0]["split"]
-    sample = PackedParquetTaskDataset(manifest_path, split=split, task="classification")[0]
 
-    assert sample.metadata["feature_types"] == ["floating", "floating", "floating"]
+    with pytest.raises(RuntimeError, match="feature_types"):
+        _ = PackedParquetTaskDataset(manifest_path, split=split, task="classification")[0]
+
+
+def test_dataset_rejects_wrong_feature_types_length(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    x_train, y_train, x_test, y_test = _classification_arrays(n_features=3, seed=19)
+    dataset = {
+        "dataset_index": 0,
+        "x_train": x_train,
+        "y_train": y_train,
+        "x_test": x_test,
+        "y_test": y_test,
+        "feature_types": ["floating", "integer"],
+        "metadata": _classification_metadata(
+            n_features=3,
+            seed=19,
+        ),
+    }
+    _ = _write_packed_shard(shard_dir, datasets=[dataset])
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    split = pq.read_table(manifest_path).to_pylist()[0]["split"]
+
+    with pytest.raises(RuntimeError, match="feature_types"):
+        _ = PackedParquetTaskDataset(manifest_path, split=split, task="classification")[0]
 
 
 def test_manifest_include_all_tracks_missing_filter_metadata(tmp_path: Path) -> None:
