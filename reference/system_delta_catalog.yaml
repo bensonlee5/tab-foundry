@@ -1179,7 +1179,7 @@ deltas:
       preprocessing:
         surface_label: runtime_default
       training:
-        surface_label: prior_linear_warmup_decay
+        surface_label: linear_warmup_decay
         overrides:
           apply_schedule: true
           optimizer:
@@ -1187,7 +1187,7 @@ deltas:
           schedule:
             stages:
               - name: stage1
-                steps: 2500
+                steps: 400
                 lr_max: 0.004
                 lr_schedule: linear
                 warmup_ratio: 0.05
