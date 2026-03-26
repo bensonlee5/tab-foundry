@@ -610,8 +610,8 @@ def test_create_sweep_bootstraps_tf_rd_018_lr_shape_followups_on_corpus_surface(
         benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
         delta_refs=[
-            "delta_training_linear_warmup_decay_lr3e3",
-            "delta_training_linear_warmup_decay_minlr1e4",
+            "delta_training_tf_rd_018_linear_warmup_decay_lr3e3",
+            "delta_training_tf_rd_018_linear_warmup_decay_minlr1e4",
         ],
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
@@ -632,8 +632,8 @@ def test_create_sweep_bootstraps_tf_rd_018_lr_shape_followups_on_corpus_surface(
     )
 
     assert [row["delta_ref"] for row in created_queue["rows"]] == [
-        "delta_training_linear_warmup_decay_lr3e3",
-        "delta_training_linear_warmup_decay_minlr1e4",
+        "delta_training_tf_rd_018_linear_warmup_decay_lr3e3",
+        "delta_training_tf_rd_018_linear_warmup_decay_minlr1e4",
     ]
 
     lower_ceiling = created_queue["rows"][0]
@@ -664,7 +664,7 @@ def test_create_sweep_bootstraps_tf_rd_018_corrected_baseline_on_corpus_surface(
         complexity_level="binary_md",
         benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
-        delta_refs=["delta_training_linear_warmup_decay"],
+        delta_refs=["delta_training_tf_rd_018_linear_warmup_decay"],
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
         registry_path=REGISTRY_PATH,
@@ -684,18 +684,119 @@ def test_create_sweep_bootstraps_tf_rd_018_corrected_baseline_on_corpus_surface(
     )
 
     assert [row["delta_ref"] for row in created_queue["rows"]] == [
-        "delta_training_linear_warmup_decay",
+        "delta_training_tf_rd_018_linear_warmup_decay",
     ]
 
     created_row = created_queue["rows"][0]
     assert created_row["training"]["surface_label"] == "linear_warmup_decay"
     assert created_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
     assert created_row["training"]["overrides"]["optimizer"]["min_lr"] == 0.0004
+    assert (
+        created_row["next_action"]
+        == "Run first as the corrected short-run LR/warmup baseline replay, then compare "
+        "the four bounded variants against it and the locked anchor."
+    )
+    assert created_row["parameter_adequacy_plan"] == [
+        "Use this as the explicit local reference for TF-RD-018 warmup and LR-shape "
+        "follow-ups while still comparing against the locked anchor.",
+        "Rank final log loss first, final Brier score second, and final ROC AUC third; "
+        "treat drift and clipped-step behavior as guardrails.",
+    ]
 
     materialized_row = materialized["rows"][0]
     assert materialized_row["training"]["surface_label"] == "linear_warmup_decay"
     assert materialized_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
     assert materialized_row["training"]["overrides"]["optimizer"]["min_lr"] == 0.0004
+
+
+def test_create_sweep_keeps_generic_linear_warmup_decay_on_prior_surface(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="generic_linear_warmup_decay_clone",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="binary_md_v1",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=["delta_training_linear_warmup_decay"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    created_queue = load_system_delta_queue_instance(
+        "generic_linear_warmup_decay_clone",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="generic_linear_warmup_decay_clone",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert [row["delta_ref"] for row in created_queue["rows"]] == [
+        "delta_training_linear_warmup_decay",
+    ]
+
+    created_row = created_queue["rows"][0]
+    assert created_row["training"]["surface_label"] == "prior_linear_warmup_decay"
+    assert created_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 2500
+
+    materialized_row = materialized["rows"][0]
+    assert materialized_row["training"]["surface_label"] == "prior_linear_warmup_decay"
+    assert materialized_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 2500
+
+
+def test_create_sweep_preserves_legacy_generic_warm20_short_run_surface(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="generic_linear_warmup_decay_warm20_clone",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="binary_md_v1",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=["delta_training_linear_warmup_decay_warm20"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    created_queue = load_system_delta_queue_instance(
+        "generic_linear_warmup_decay_warm20_clone",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="generic_linear_warmup_decay_warm20_clone",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert [row["delta_ref"] for row in created_queue["rows"]] == [
+        "delta_training_linear_warmup_decay_warm20",
+    ]
+
+    created_row = created_queue["rows"][0]
+    assert created_row["training"]["surface_label"] == "linear_warmup_decay"
+    assert created_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
+    assert created_row["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.20
+
+    materialized_row = materialized["rows"][0]
+    assert materialized_row["training"]["surface_label"] == "linear_warmup_decay"
+    assert materialized_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
+    assert materialized_row["training"]["overrides"]["schedule"]["stages"][0]["warmup_ratio"] == 0.20
 
 
 def test_create_sweep_bootstraps_tf_rd_018_warm10_followup_on_corrected_short_run_surface(
@@ -710,7 +811,7 @@ def test_create_sweep_bootstraps_tf_rd_018_warm10_followup_on_corrected_short_ru
         complexity_level="binary_md",
         benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         control_baseline_id="cls_benchmark_linear_v2",
-        delta_refs=["delta_training_linear_warmup_decay_warm10"],
+        delta_refs=["delta_training_tf_rd_018_linear_warmup_decay_warm10"],
         index_path=sweeps_root / "index.yaml",
         catalog_path=reference_root / "system_delta_catalog.yaml",
         registry_path=REGISTRY_PATH,
@@ -730,7 +831,7 @@ def test_create_sweep_bootstraps_tf_rd_018_warm10_followup_on_corrected_short_ru
     )
 
     assert [row["delta_ref"] for row in created_queue["rows"]] == [
-        "delta_training_linear_warmup_decay_warm10",
+        "delta_training_tf_rd_018_linear_warmup_decay_warm10",
     ]
 
     created_row = created_queue["rows"][0]

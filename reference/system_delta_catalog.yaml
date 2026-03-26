@@ -1179,6 +1179,228 @@ deltas:
       preprocessing:
         surface_label: runtime_default
       training:
+        surface_label: prior_linear_warmup_decay
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run after the no-warmup linear-decay row so warmup is isolated from pure decay.
+    applicability_guards: []
+
+  delta_training_linear_warmup_decay_lr3e3:
+    dimension_family: training
+    family: schedule
+    binary_applicable: true
+    description: Keep the anchor model, data, and preprocessing surfaces but lower the peak LR while keeping the carried warmup-decay floor fixed.
+    upstream_delta: Not applicable; this is a repo-local LR-shape follow-up on the settled warmup-decay surface.
+    expected_effect: Lower peak LR may reduce clipping and improve final retention if the carried `0.004` ceiling is still too aggressive on the inherited harder surface.
+    adequacy_knobs:
+      - schedule.stages[0].lr_max
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare locally against the carried warmup-decay baseline while keeping optimizer family, data surface, and runtime fixed.
+        - Prefer it only if final quality improves without relying on guardrail metrics alone.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.003
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run after the carried warmup-decay baseline as the lower-ceiling LR probe.
+    applicability_guards: []
+
+  delta_training_linear_warmup_decay_minlr1e4:
+    dimension_family: training
+    family: schedule
+    binary_applicable: true
+    description: Keep the anchor model, data, and preprocessing surfaces but lower the LR floor while keeping the carried peak LR and warmup fixed.
+    upstream_delta: Not applicable; this is a repo-local LR-floor follow-up on the settled warmup-decay surface.
+    expected_effect: A lower floor may preserve later plasticity if the carried `0.0004` floor is decaying too conservatively on the inherited harder surface.
+    adequacy_knobs:
+      - optimizer.min_lr
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare locally against the carried warmup-decay baseline while keeping the peak LR, warmup, and optimizer family fixed.
+        - Prefer it only if final quality improves without a material stability regression.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0001
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.05
+    default_next_action: Run after the carried warmup-decay baseline as the lower-floor LR probe.
+    applicability_guards: []
+
+  delta_training_linear_warmup_decay_warm10:
+    dimension_family: training
+    family: schedule
+    binary_applicable: true
+    description: Keep the anchor model, data, and preprocessing surfaces but lengthen warmup on the carried warmup-decay schedule.
+    upstream_delta: Not applicable; this is a repo-local warmup-length follow-up on the settled warmup-decay surface.
+    expected_effect: Longer warmup may reduce early clipping further, though it risks underusing the fixed-step budget.
+    adequacy_knobs:
+      - schedule.stages[0].warmup_ratio
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare locally against the carried warmup-decay baseline while keeping peak LR, floor, and optimizer family fixed.
+        - Prefer it only if benchmark quality and early stability improve together.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_linear_warmup_decay
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          schedule:
+            stages:
+              - name: stage1
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.10
+    default_next_action: Run after the carried warmup-decay baseline as the longer-warmup probe.
+    applicability_guards: []
+
+  delta_training_linear_warmup_decay_warm20:
+    dimension_family: training
+    family: schedule
+    binary_applicable: true
+    description: Keep the carried short-run warmup-decay surface but lengthen warmup materially.
+    upstream_delta: Not applicable; this is a repo-local warmup-length follow-up on the corrected short-run warmup-decay surface.
+    expected_effect: A `0.20` warmup may reduce early clipping further on the corrected `400`-step runtime, though it risks underusing the fixed-step budget.
+    adequacy_knobs:
+      - schedule.stages[0].warmup_ratio
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare locally against the corrected short-run warmup-decay baseline while keeping peak LR, floor, and optimizer family fixed.
+        - Prefer it only if benchmark quality and early stability improve together.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: linear_warmup_decay
+        overrides:
+          apply_schedule: true
+          optimizer:
+            min_lr: 0.0004
+          schedule:
+            stages:
+              - name: stage1
+                steps: 400
+                lr_max: 0.004
+                lr_schedule: linear
+                warmup_ratio: 0.20
+    default_next_action: Run after the corrected short-run baseline as the materially longer-warmup probe.
+    applicability_guards: []
+
+  delta_training_tf_rd_018_linear_warmup_decay:
+    dimension_family: training
+    family: schedule
+    binary_applicable: true
+    description: Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup.
+    upstream_delta: Not applicable; this is a repo-local corrected short-run warmup-decay baseline on the inherited harder surface.
+    expected_effect: Reduced early instability versus constant LR or plain linear decay, with uncertain final quality impact.
+    adequacy_knobs:
+      - schedule.stages[0].lr_max
+      - optimizer.min_lr
+      - schedule.stages[0].warmup_ratio
+    parameter_adequacy_policy:
+      default_plan:
+        - Use this as the explicit local reference for TF-RD-018 warmup and LR-shape follow-ups while still comparing against the locked anchor.
+        - Rank final log loss first, final Brier score second, and final ROC AUC third; treat drift and clipped-step behavior as guardrails.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        stage_label: anchor_model
+      data:
+        surface_label: anchor_manifest_default
+      preprocessing:
+        surface_label: runtime_default
+      training:
         surface_label: linear_warmup_decay
         overrides:
           apply_schedule: true
@@ -1191,10 +1413,10 @@ deltas:
                 lr_max: 0.004
                 lr_schedule: linear
                 warmup_ratio: 0.05
-    default_next_action: Run after the no-warmup linear-decay row so warmup is isolated from pure decay.
+    default_next_action: Run first as the corrected short-run LR/warmup baseline replay, then compare the four bounded variants against it and the locked anchor.
     applicability_guards: []
 
-  delta_training_linear_warmup_decay_warm0:
+  delta_training_tf_rd_018_linear_warmup_decay_warm0:
     dimension_family: training
     family: schedule
     binary_applicable: true
@@ -1238,7 +1460,7 @@ deltas:
     default_next_action: Run after the corrected short-run baseline as the warmup-zero discriminator.
     applicability_guards: []
 
-  delta_training_linear_warmup_decay_lr3e3:
+  delta_training_tf_rd_018_linear_warmup_decay_lr3e3:
     dimension_family: training
     family: schedule
     binary_applicable: true
@@ -1282,7 +1504,7 @@ deltas:
     default_next_action: Run after the carried warmup-decay baseline as the lower-ceiling LR probe.
     applicability_guards: []
 
-  delta_training_linear_warmup_decay_minlr1e4:
+  delta_training_tf_rd_018_linear_warmup_decay_minlr1e4:
     dimension_family: training
     family: schedule
     binary_applicable: true
@@ -1326,7 +1548,7 @@ deltas:
     default_next_action: Run after the carried warmup-decay baseline as the lower-floor LR probe.
     applicability_guards: []
 
-  delta_training_linear_warmup_decay_warm10:
+  delta_training_tf_rd_018_linear_warmup_decay_warm10:
     dimension_family: training
     family: schedule
     binary_applicable: true
@@ -1370,7 +1592,7 @@ deltas:
     default_next_action: Run after the corrected short-run baseline as the modestly longer-warmup probe.
     applicability_guards: []
 
-  delta_training_linear_warmup_decay_warm20:
+  delta_training_tf_rd_018_linear_warmup_decay_warm20:
     dimension_family: training
     family: schedule
     binary_applicable: true

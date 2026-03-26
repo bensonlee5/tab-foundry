@@ -37,15 +37,15 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_training_linear_warmup_decay` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup. | Run first as the corrected short-run LR/warmup baseline replay, then compare the four bounded variants against it and the locked anchor. |
-| 2 | `delta_training_linear_warmup_decay_warm0` | schedule | yes | ready | none | Keep the carried short-run warmup-decay surface but remove warmup entirely. | Run second as the no-warmup discriminator against the carried baseline. |
-| 3 | `delta_training_linear_warmup_decay_lr3e3` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but lower the peak LR while keeping the carried warmup-decay floor fixed. | Run after rows `01` and `02` as the lower-ceiling LR probe. |
-| 4 | `delta_training_linear_warmup_decay_minlr1e4` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but lower the LR floor while keeping the carried peak LR and warmup fixed. | Run after the carried baseline as the lower-floor LR probe. |
-| 5 | `delta_training_linear_warmup_decay_warm20` | schedule | yes | ready | none | Keep the carried short-run warmup-decay surface but lengthen warmup materially. | Run after the carried baseline as the materially longer-warmup probe. |
+| 1 | `delta_training_tf_rd_018_linear_warmup_decay` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup. | Run first as the corrected short-run LR/warmup baseline replay, then compare the four bounded variants against it and the locked anchor. |
+| 2 | `delta_training_tf_rd_018_linear_warmup_decay_warm0` | schedule | yes | ready | none | Keep the carried short-run warmup-decay surface but remove warmup entirely. | Run second as the no-warmup discriminator against the carried baseline. |
+| 3 | `delta_training_tf_rd_018_linear_warmup_decay_lr3e3` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but lower the peak LR while keeping the carried warmup-decay floor fixed. | Run after rows `01` and `02` as the lower-ceiling LR probe. |
+| 4 | `delta_training_tf_rd_018_linear_warmup_decay_minlr1e4` | schedule | yes | ready | none | Keep the anchor model, data, and preprocessing surfaces but lower the LR floor while keeping the carried peak LR and warmup fixed. | Run after the carried baseline as the lower-floor LR probe. |
+| 5 | `delta_training_tf_rd_018_linear_warmup_decay_warm20` | schedule | yes | ready | none | Keep the carried short-run warmup-decay surface but lengthen warmup materially. | Run after the carried baseline as the materially longer-warmup probe. |
 
 ## Detailed Rows
 
-### 1. `delta_training_linear_warmup_decay`
+### 1. `delta_training_tf_rd_018_linear_warmup_decay`
 
 - Dimension family: `training`
 - Status: `ready`
@@ -54,7 +54,7 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Description: Keep the anchor model, data, and preprocessing surfaces but use single-stage linear decay with a short warmup.
 - Rationale: Replay the carried schedulefree warmup-decay baseline on a corrected short-run `400`-step schedule horizon so issue `#138` has one explicit local reference row before reading the schedule variants.
 - Hypothesis: The corrected `0.05` warmup replay should remain competitive and provide the local comparison point for warmup-zero, lower-ceiling, lower-floor, and materially longer-warmup probes.
-- Upstream delta: Not applicable; this is a repo-local exact-prior training recipe change.
+- Upstream delta: Not applicable; this is a repo-local corrected short-run warmup-decay baseline on the inherited harder surface.
 - Anchor delta: Keep the inherited `tf_rd_020_shift_noise_drift_v1` data surface, preprocessing surface, `schedulefree_adamw` optimizer family, and harmonized `task_batch_size=1` with `grad_accum_steps=4` `400`-step runtime fixed, then replay the carried linear-warmup-decay recipe on a matching `400`-step schedule horizon.
 - Expected effect: Reduced early instability versus constant LR or plain linear decay, with uncertain final quality impact.
 - Effective labels: model=`delta_qass_no_column_v3`, data=`tf_rd_020_shift_noise_drift`, preprocessing=`runtime_default`, training=`linear_warmup_decay`
@@ -74,10 +74,10 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
   - Keep `tf_rd_020_noise_mixture_v1` inactive while reading this row.
   - Align `schedule.stages[0].steps` to `runtime.max_steps=400` so warmup and floor reads are interpreted on the actual short-run horizon rather than on the inherited `2500`-step parent setting.
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_linear_warmup_decay/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_tf_rd_018_linear_warmup_decay/result_card.md`
 - Benchmark metrics: pending
 
-### 2. `delta_training_linear_warmup_decay_warm0`
+### 2. `delta_training_tf_rd_018_linear_warmup_decay_warm0`
 
 - Dimension family: `training`
 - Status: `ready`
@@ -101,10 +101,10 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_linear_warmup_decay_warm0/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_tf_rd_018_linear_warmup_decay_warm0/result_card.md`
 - Benchmark metrics: pending
 
-### 3. `delta_training_linear_warmup_decay_lr3e3`
+### 3. `delta_training_tf_rd_018_linear_warmup_decay_lr3e3`
 
 - Dimension family: `training`
 - Status: `ready`
@@ -128,10 +128,10 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_linear_warmup_decay_lr3e3/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_tf_rd_018_linear_warmup_decay_lr3e3/result_card.md`
 - Benchmark metrics: pending
 
-### 4. `delta_training_linear_warmup_decay_minlr1e4`
+### 4. `delta_training_tf_rd_018_linear_warmup_decay_minlr1e4`
 
 - Dimension family: `training`
 - Status: `ready`
@@ -155,10 +155,10 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_linear_warmup_decay_minlr1e4/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_tf_rd_018_linear_warmup_decay_minlr1e4/result_card.md`
 - Benchmark metrics: pending
 
-### 5. `delta_training_linear_warmup_decay_warm20`
+### 5. `delta_training_tf_rd_018_linear_warmup_decay_warm20`
 
 - Dimension family: `training`
 - Status: `ready`
@@ -182,5 +182,5 @@ Upstream reference: `TabICLv2` from `https://arxiv.org/abs/2602.11139`.
 - Interpretation status: `pending`
 - Decision: `None`
 - Follow-up run ids: `[]`
-- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_linear_warmup_decay_warm20/result_card.md`
+- Result card path: `outputs/staged_ladder/research/tf_rd_018_lr_warmup_shape_v1/delta_training_tf_rd_018_linear_warmup_decay_warm20/result_card.md`
 - Benchmark metrics: pending
