@@ -597,6 +597,61 @@ def test_create_sweep_supports_missing_permitting_bundle_anchor_surface(tmp_path
     assert "missing values permitted" in training_data_anchor
 
 
+def test_create_sweep_bootstraps_tf_rd_018_lr_shape_followups_on_corpus_surface(
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="tf_rd_018_lr_shape_clone",
+        anchor_run_id="sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2",
+        parent_sweep_id="tf_rd_018_optimizer_family_v1",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=[
+            "delta_training_linear_warmup_decay_lr3e3",
+            "delta_training_linear_warmup_decay_minlr1e4",
+        ],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    created_queue = load_system_delta_queue_instance(
+        "tf_rd_018_lr_shape_clone",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="tf_rd_018_lr_shape_clone",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert [row["delta_ref"] for row in created_queue["rows"]] == [
+        "delta_training_linear_warmup_decay_lr3e3",
+        "delta_training_linear_warmup_decay_minlr1e4",
+    ]
+
+    lower_ceiling = created_queue["rows"][0]
+    assert lower_ceiling["training"]["surface_label"] == "linear_warmup_decay"
+    assert lower_ceiling["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
+    assert lower_ceiling["training"]["overrides"]["schedule"]["stages"][0]["lr_max"] == 0.003
+
+    lower_floor = created_queue["rows"][1]
+    assert lower_floor["training"]["surface_label"] == "linear_warmup_decay"
+    assert lower_floor["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
+    assert lower_floor["training"]["overrides"]["optimizer"]["min_lr"] == 0.0001
+
+    assert materialized["rows"][0]["training"]["surface_label"] == "linear_warmup_decay"
+    assert materialized["rows"][0]["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
+    assert materialized["rows"][1]["training"]["surface_label"] == "linear_warmup_decay"
+    assert materialized["rows"][1]["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
+
+
 def test_create_sweep_rejects_unknown_explicit_delta_ref(tmp_path: Path) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
 
