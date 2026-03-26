@@ -53,6 +53,10 @@ cross-epic map.
   canonical TF-RD-020 harder-front handoff note on the promoted anchor
 - [`roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
   canonical TF-RD-021 steering-derived synthetic follow-on note
+- [`roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
+  canonical TF-RD-022 runtime-and-VRAM efficiency note on the promoted anchor
+- [`roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
+  bounded TF-RD-021A latent-bank sandwich sidecar note and phased screen
 - [`roadmap_evidence/tf_rd_009_scaling_law_measurement.md`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
   canonical TF-RD-009 scaling-specific note and TF-RD-018 handoff target
 

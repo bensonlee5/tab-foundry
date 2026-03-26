@@ -83,6 +83,11 @@ def _manifest_model_primary_dict(model_raw: dict[str, Any]) -> dict[str, Any]:
         ("head_hidden_dim", "manifest.model.head_hidden_dim"),
         ("staged_dropout", "manifest.model.staged_dropout"),
         ("pre_encoder_clip", "manifest.model.pre_encoder_clip"),
+        ("sandwich_row_latents", "manifest.model.sandwich_row_latents"),
+        ("sandwich_col_latents", "manifest.model.sandwich_col_latents"),
+        ("sandwich_layers", "manifest.model.sandwich_layers"),
+        ("sandwich_heads", "manifest.model.sandwich_heads"),
+        ("sandwich_ff_expansion", "manifest.model.sandwich_ff_expansion"),
     )
     for field_name, context in optional_fields:
         if field_name not in model_raw:
@@ -153,6 +158,11 @@ def _validate_model_spec(
         "many_class_base",
         "head_hidden_dim",
         "use_digit_position_embed",
+        "sandwich_row_latents",
+        "sandwich_col_latents",
+        "sandwich_layers",
+        "sandwich_heads",
+        "sandwich_ff_expansion",
     }
     if schema_version == SCHEMA_VERSION_V3:
         required_model_keys.add("input_normalization")

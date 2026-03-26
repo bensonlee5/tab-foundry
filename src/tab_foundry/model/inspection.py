@@ -12,7 +12,7 @@ from tab_foundry.types import TaskBatch
 
 from .architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from .factory import build_model_from_spec
-from .spec import ModelBuildSpec
+from .spec import ModelBuildSpec, SANDWICH_MODEL_ARCH
 
 
 @dataclass(slots=True, frozen=True)
@@ -65,6 +65,14 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
         "build_spec": spec.to_dict(),
     }
     if spec.arch != "tabfoundry_staged":
+        if spec.arch == SANDWICH_MODEL_ARCH:
+            payload["architecture"] = {
+                "row_latents": int(spec.sandwich_row_latents),
+                "col_latents": int(spec.sandwich_col_latents),
+                "layers": int(spec.sandwich_layers),
+                "heads": int(spec.sandwich_heads),
+                "ff_expansion": int(spec.sandwich_ff_expansion),
+            }
         return payload
 
     surface = resolve_staged_surface(spec)
@@ -147,6 +155,8 @@ def synthetic_reference_arrays(
 def _resolved_forward_shape(spec: ModelBuildSpec) -> tuple[int, str]:
     if spec.arch == "tabfoundry_simple":
         return 2, "logits"
+    if spec.arch == SANDWICH_MODEL_ARCH:
+        return int(spec.many_class_base), "logits"
 
     surface = resolve_staged_surface(spec)
     if surface.head == "many_class":

@@ -1,0 +1,21 @@
+# @package _global_
+
+defaults:
+  - cls_workstation
+  - _self_
+
+model:
+  arch: tabfoundry_sandwich
+  d_icl: 96
+  input_normalization: train_zscore_clip
+  head_hidden_dim: 128
+  sandwich_row_latents: 32
+  sandwich_col_latents: 16
+  sandwich_layers: 2
+  sandwich_heads: 4
+  sandwich_ff_expansion: 2
+runtime:
+  output_dir: outputs/cls_workstation_sandwich
+  trace_activations: false
+logging:
+  run_name: cls-workstation-sandwich

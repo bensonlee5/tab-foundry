@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from torch import nn
 
+from .architectures.tabfoundry_sandwich import TabFoundrySandwichClassifier
 from .architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from .architectures.tabfoundry_staged import TabFoundryStagedClassifier
 from .spec import (
@@ -22,6 +23,11 @@ from .spec import (
     DEFAULT_MODEL_STAGE,
     DEFAULT_MODEL_STAGE_LABEL,
     DEFAULT_MODEL_STAGED_DROPOUT,
+    DEFAULT_MODEL_SANDWICH_COL_LATENTS,
+    DEFAULT_MODEL_SANDWICH_FF_EXPANSION,
+    DEFAULT_MODEL_SANDWICH_HEADS,
+    DEFAULT_MODEL_SANDWICH_LAYERS,
+    DEFAULT_MODEL_SANDWICH_ROW_LATENTS,
     DEFAULT_MODEL_TFCOL_N_HEADS,
     DEFAULT_MODEL_TFCOL_N_INDUCING,
     DEFAULT_MODEL_TFCOL_N_LAYERS,
@@ -34,6 +40,7 @@ from .spec import (
     DEFAULT_MODEL_TFROW_NORM,
     DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
     ModelBuildSpec,
+    SANDWICH_MODEL_ARCH,
     STAGED_MODEL_ARCH,
 )
 
@@ -73,6 +80,11 @@ def build_model(
     use_digit_position_embed: bool = DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
     staged_dropout: float = DEFAULT_MODEL_STAGED_DROPOUT,
     pre_encoder_clip: float | None = DEFAULT_MODEL_PRE_ENCODER_CLIP,
+    sandwich_row_latents: int = DEFAULT_MODEL_SANDWICH_ROW_LATENTS,
+    sandwich_col_latents: int = DEFAULT_MODEL_SANDWICH_COL_LATENTS,
+    sandwich_layers: int = DEFAULT_MODEL_SANDWICH_LAYERS,
+    sandwich_heads: int = DEFAULT_MODEL_SANDWICH_HEADS,
+    sandwich_ff_expansion: int = DEFAULT_MODEL_SANDWICH_FF_EXPANSION,
 ) -> nn.Module:
     """Instantiate model for task."""
 
@@ -86,7 +98,7 @@ def build_model(
     if normalized_arch == "tabfoundry":
         raise ValueError(
             "Legacy model arch 'tabfoundry' is no longer supported; "
-            "use 'tabfoundry_staged' or 'tabfoundry_simple'."
+            "use 'tabfoundry_staged', 'tabfoundry_simple', or 'tabfoundry_sandwich'."
         )
     if normalized_arch == "tabfoundry_simple":
         if stage is not None or stage_label is not None or module_overrides is not None:
@@ -140,5 +152,21 @@ def build_model(
             use_digit_position_embed=use_digit_position_embed,
             staged_dropout=staged_dropout,
             pre_encoder_clip=pre_encoder_clip,
+        )
+    if normalized_arch == SANDWICH_MODEL_ARCH:
+        if stage is not None or stage_label is not None or module_overrides is not None:
+            raise ValueError("tabfoundry_sandwich does not support staged model surface fields")
+        return TabFoundrySandwichClassifier(
+            d_icl=d_icl,
+            input_normalization=input_normalization,
+            many_class_base=many_class_base,
+            norm_type=norm_type,
+            head_hidden_dim=head_hidden_dim,
+            pre_encoder_clip=pre_encoder_clip,
+            sandwich_row_latents=sandwich_row_latents,
+            sandwich_col_latents=sandwich_col_latents,
+            sandwich_layers=sandwich_layers,
+            sandwich_heads=sandwich_heads,
+            sandwich_ff_expansion=sandwich_ff_expansion,
         )
     raise ValueError(f"Unsupported model arch: {arch!r}")
