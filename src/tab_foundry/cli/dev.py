@@ -28,12 +28,25 @@ from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import resolve_preprocessing_surface
 from tab_foundry.task_batching import move_batch
 from tab_foundry.training.health import health_check, run_inspect
+from tab_foundry.training.prior.settings import resolve_prior_backend_surface_config
 from tab_foundry.training.surface import resolve_training_backend_from_data_cfg
 
 
 _DEVICE_CHOICES = ("auto", "cpu", "cuda", "mps")
 _MISSING_MARKER = "<missing>"
 _DIFF_EXCLUDED_PATHS = {"runtime.output_dir"}
+_MODEL_ARCH_PREFIXES = ("model.arch=", "+model.arch=", "++model.arch=")
+_STAGED_COMPAT_PREFIXES = (
+    "model.stage=",
+    "+model.stage=",
+    "++model.stage=",
+    "model.stage_label=",
+    "+model.stage_label=",
+    "++model.stage_label=",
+    "model.module_overrides",
+    "+model.module_overrides",
+    "++model.module_overrides",
+)
 
 
 def _mapping_from_node(value: Any, *, context: str) -> dict[str, Any]:
@@ -69,6 +82,15 @@ def _resolved_experiment_name(overrides: Sequence[str]) -> str | None:
         value = token.split("=", 1)[1].strip()
         return value or None
     return _project_default_experiment()
+
+
+def _normalized_dev_overrides(overrides: Sequence[str]) -> list[str]:
+    normalized = [str(override) for override in overrides]
+    if any(token.strip().startswith(_MODEL_ARCH_PREFIXES) for token in normalized):
+        return normalized
+    if any(token.strip().startswith(_STAGED_COMPAT_PREFIXES) for token in normalized):
+        return [*normalized, "model.arch=tabfoundry_staged"]
+    return normalized
 
 
 def _training_surface_payload(
@@ -110,25 +132,10 @@ def _training_surface_payload(
     if backend is not None:
         payload["backend"] = backend
     if backend == "legacy_prior":
-        payload["legacy_prior"] = {
-            "non_finite_policy": legacy_prior_cfg.get("non_finite_policy"),
-            "batch_size": (
-                None
-                if legacy_prior_cfg.get("batch_size") is None
-                else int(legacy_prior_cfg["batch_size"])
-            ),
-            "lr_scale_rule": legacy_prior_cfg.get("lr_scale_rule"),
-            "batch_reference_size": (
-                None
-                if legacy_prior_cfg.get("batch_reference_size") is None
-                else int(legacy_prior_cfg["batch_reference_size"])
-            ),
-            "effective_lr_scale_factor": (
-                None
-                if legacy_prior_cfg.get("effective_lr_scale_factor") is None
-                else float(legacy_prior_cfg["effective_lr_scale_factor"])
-            ),
-        }
+        payload["legacy_prior"] = resolve_prior_backend_surface_config(
+            training_cfg=training_cfg,
+            legacy_prior_cfg=legacy_prior_cfg,
+        ).to_dict()
     return payload
 
 
@@ -143,7 +150,8 @@ def _inspection_training_backend(data_cfg: Mapping[str, Any]) -> str | None:
 
 
 def resolve_config_payload(overrides: Sequence[str]) -> dict[str, Any]:
-    cfg = compose_config(list(overrides))
+    normalized_overrides = _normalized_dev_overrides(overrides)
+    cfg = compose_config(normalized_overrides)
     task = str(getattr(cfg, "task", "classification")).strip().lower()
     model_cfg = _mapping_from_node(getattr(cfg, "model", None), context="cfg.model")
     spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
@@ -341,7 +349,8 @@ def forward_check(
     requested_device: str,
     seed: int,
 ) -> dict[str, Any]:
-    cfg = compose_config(list(overrides))
+    normalized_overrides = _normalized_dev_overrides(overrides)
+    cfg = compose_config(normalized_overrides)
     task = str(getattr(cfg, "task", "classification")).strip().lower()
     model_cfg = _mapping_from_node(getattr(cfg, "model", None), context="cfg.model")
     spec = model_build_spec_from_mappings(task=task, primary=model_cfg)

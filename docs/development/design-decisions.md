@@ -19,9 +19,10 @@ Use these alongside this page:
 
 `tab-foundry` should not fragment across multiple live model families.
 
-The active architecture surface is now `tabfoundry_staged`, with
-`tabfoundry_simple` retained only as the frozen exact anchor. The repo should
-evolve through:
+The active architecture surface is now `tabfoundry_sandwich`, with
+`tabfoundry_simple` retained only as the frozen exact anchor and
+`tabfoundry_staged` retained only as the historical reference line. The repo
+should evolve through:
 
 - modular building blocks
 - explicit baseline comparisons against adjacent repos
@@ -31,8 +32,9 @@ evolve through:
 Near-term architecture direction is now explicit:
 
 - keep a frozen PFN-style control lane for benchmark trust
-- evolve `tabfoundry_staged` toward a coherent row-first classifier inspired
-  primarily by TabICLv2
+- evolve `tabfoundry_sandwich` as the coherent primary classification family
+- keep `tabfoundry_staged` available only for historical comparison and
+  compatibility
 - remain free to borrow specific components from TabPFN or other references
   when they fit better than a literal TabICLv2 copy
 
@@ -60,19 +62,23 @@ intentionally deferred further still.
 ### Single Active Architecture Surface
 
 - Internal code should optimize for one active model-development surface:
-  `tabfoundry_staged`.
+  `tabfoundry_sandwich`.
 - `tabfoundry_simple` remains only as the frozen compatibility anchor.
+- `tabfoundry_staged` remains only as a historical comparison or
+  compatibility surface.
 - New feature work should not create a second live family unless it is planned
-  as an explicit replacement of `tabfoundry_staged`.
+  as an explicit replacement of `tabfoundry_sandwich`.
 
 ### PFN Control, Row-First Target
 
 - `tabfoundry_simple` and `stage=nano_exact` are the frozen PFN-style control
   lane.
-- The active architecture target is a row-first staged classifier inspired by
-  TabICLv2, not a permanent hybrid made from `nano_exact` plus more overrides.
-- Architecture promotion should prefer coherent staged surfaces over piling
-  structurally unrelated deltas onto the PFN control path.
+- `tabfoundry_sandwich` is the active architecture target.
+- `tabfoundry_staged` remains the historical row-first reference line rather
+  than the active development destination.
+- Architecture promotion should prefer coherent sandwich surfaces over piling
+  structurally unrelated deltas onto the PFN control path or extending the
+  staged reference line indefinitely.
 
 ### Modular Model Construction
 
@@ -202,8 +208,9 @@ Notes:
 ## Naming And Compatibility Guidance
 
 - Prefer family ids that reflect current ownership and scope.
-- `tabfoundry_staged` is the active development family and
-  `tabfoundry_simple` is the frozen anchor.
+- `tabfoundry_sandwich` is the active development family,
+  `tabfoundry_simple` is the frozen anchor, and `tabfoundry_staged` is the
+  historical reference family.
 - Export and inference compatibility changes still require explicit schema
   migration planning.
 - Optimize naming for clear role separation, not for keeping retired families

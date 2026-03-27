@@ -23,11 +23,17 @@ from tab_foundry.export.contracts import (
 )
 from tab_foundry.export.exporter import export_checkpoint, validate_export_bundle
 from tab_foundry.export.loader_ref import load_export_bundle, run_reference_consumer
-from tab_foundry.model.factory import build_model
+from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.outputs import ClassificationOutput
+from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.types import TaskBatch
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _build_model(task: str, model_cfg: dict[str, object]) -> torch.nn.Module:
+    spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
+    return build_model_from_spec(spec)
 
 
 def _classification_reference_arrays() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -121,10 +127,7 @@ def _write_checkpoint(
     model_cfg = cfg["model"]
     assert isinstance(model_cfg, dict)
     torch.manual_seed(seed)
-    model = build_model(
-        task=task,
-        **model_cfg,
-    )
+    model = _build_model(task, model_cfg)
     payload: dict[str, object] = {
         "model": model.state_dict(),
         "global_step": 3,
@@ -238,7 +241,10 @@ def test_export_bundle_defaults_omitted_feature_group_size_to_one_when_weights_m
     model_cfg.pop("feature_group_size", None)
     default_model_cfg.pop("feature_group_size", None)
     torch.manual_seed(0)
-    model = build_model(task="classification", feature_group_size=1, **default_model_cfg)
+    model = _build_model(
+        "classification",
+        {"feature_group_size": 1, **default_model_cfg},
+    )
     torch.save(
         {
             "model": model.state_dict(),
@@ -930,7 +936,7 @@ def test_model_config_round_trip_across_eval_export_and_loader(tmp_path: Path) -
     model_cfg = cfg["model"]
     assert isinstance(model_cfg, dict)
     torch.manual_seed(0)
-    model = build_model(task="classification", **model_cfg)
+    model = _build_model("classification", model_cfg)
     torch.save(
         {
             "model": model.state_dict(),

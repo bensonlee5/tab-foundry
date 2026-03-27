@@ -33,19 +33,14 @@ The model config surface is shared across several layers, but the roles differ:
 
 Current canonical default:
 
-- `arch = tabfoundry_staged`
+- `arch = tabfoundry_sandwich`
 - `feature_group_size = 1`
 
-That means the default model uses the staged classification family with one
+That means the default model uses the sandwich classification family with one
 token per feature. Larger values such as `32` are non-default grouped-token
-experiments that reduce token count and change the inductive bias.
-
-Current long-term architecture candidate:
-
-- `arch = tabfoundry_sandwich`
-
-That candidate is not yet the repo default, but it is the main architecture
-family expected to absorb future model-iteration work.
+experiments that reduce token count and change the inductive bias. The staged
+family remains loadable as a historical/reference lane, while
+`tabfoundry_simple` remains the frozen control.
 
 ## Resolution Order
 
@@ -113,7 +108,7 @@ did not yet serialize every reconstruction field.
 
 | Name | Type | Default | Applies To | Meaning |
 | ---- | ---- | ---- | ---- | ---- |
-| `arch` | `str` | `"tabfoundry_staged"` | classification | Model architecture. Supported values are `tabfoundry_simple` (frozen binary repro), `tabfoundry_staged` (incumbent reference family), and `tabfoundry_sandwich` (fixed-latent candidate family). |
+| `arch` | `str` | `"tabfoundry_sandwich"` | classification | Model architecture. Supported values are `tabfoundry_simple` (frozen binary repro), `tabfoundry_staged` (historical reference family), and `tabfoundry_sandwich` (active fixed-latent family). |
 | `stage` | `str \| null` | `null` | classification | Stage selector for `tabfoundry_staged`. `null` resolves to `nano_exact` when `arch=tabfoundry_staged`; non-null values are rejected for `tabfoundry_simple` and `tabfoundry_sandwich`. |
 | `stage_label` | `str \| null` | `null` | classification | Optional reporting label for staged runs. When present, benchmark/profile metadata uses this label while the underlying recipe still resolves from `stage`. |
 | `module_overrides` | `mapping \| null` | `null` | classification | Additive atomic staged-surface overrides. Supported top-level keys are `feature_encoder`, `post_encoder_norm`, `post_stack_norm`, `target_conditioner`, `tokenizer`, `column_encoder`, `row_pool`, `context_encoder`, `head`, `table_block_style`, `table_block_residual_scale`, and `allow_test_self_attention`. Rejected for `tabfoundry_simple` and `tabfoundry_sandwich`. |

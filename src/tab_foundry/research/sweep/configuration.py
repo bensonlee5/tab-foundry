@@ -9,6 +9,7 @@ from typing import Any, Mapping, cast
 from omegaconf import DictConfig, OmegaConf
 
 from tab_foundry.config import compose_config
+from tab_foundry.training.prior.settings import resolve_prior_backend_surface_config
 from tab_foundry.training.surface import resolve_training_backend_from_data_cfg
 
 
@@ -23,6 +24,12 @@ def row_id_for_order(sweep_id: str, order: int, delta_ref: str, existing_run_id:
 
 
 def apply_mapping(cfg: DictConfig, prefix: str, payload: Mapping[str, Any]) -> None:
+    if (
+        prefix == "model"
+        and payload.get("arch") is None
+        and any(payload.get(key) is not None for key in ("stage", "stage_label", "module_overrides"))
+    ):
+        OmegaConf.update(cfg, "model.arch", "tabfoundry_staged", merge=False)
     for key, value in payload.items():
         if prefix == "data" and key == "corpus_ref":
             OmegaConf.update(cfg, f"{prefix}.surface_overrides.{key}", value, merge=True)
@@ -78,6 +85,25 @@ def _apply_corpus_lookup_context(
         )
 
 
+def _has_explicit_prior_backend_settings(
+    *,
+    training_payload: Mapping[str, Any],
+    legacy_prior_payload: Mapping[str, Any] | None,
+) -> bool:
+    if legacy_prior_payload is not None:
+        return True
+    return any(
+        training_payload.get(key) is not None
+        for key in (
+            "prior_dump_non_finite_policy",
+            "prior_dump_batch_size",
+            "prior_dump_lr_scale_rule",
+            "prior_dump_batch_reference_size",
+            "effective_lr_scale_factor",
+        )
+    )
+
+
 def compose_cfg(
     *,
     row: Mapping[str, Any],
@@ -108,35 +134,29 @@ def compose_cfg(
     ):
         if key in training_payload:
             OmegaConf.update(cfg, f"training.{key}", training_payload[key], merge=True)
-    legacy_prior_payload = training_payload.get("legacy_prior")
-    if isinstance(legacy_prior_payload, dict):
-        for source_key, target_key in (
-            ("non_finite_policy", "non_finite_policy"),
-            ("batch_size", "batch_size"),
-            ("lr_scale_rule", "lr_scale_rule"),
-            ("batch_reference_size", "batch_reference_size"),
-        ):
-            if source_key in legacy_prior_payload:
-                OmegaConf.update(
-                    cfg,
-                    f"legacy_prior.{target_key}",
-                    legacy_prior_payload[source_key],
-                    merge=True,
-                )
-    else:
-        for source_key, target_key in (
-            ("prior_dump_non_finite_policy", "non_finite_policy"),
-            ("prior_dump_batch_size", "batch_size"),
-            ("prior_dump_lr_scale_rule", "lr_scale_rule"),
-            ("prior_dump_batch_reference_size", "batch_reference_size"),
-        ):
-            if source_key in training_payload:
-                OmegaConf.update(
-                    cfg,
-                    f"legacy_prior.{target_key}",
-                    training_payload[source_key],
-                    merge=True,
-                )
+    legacy_prior_payload = (
+        legacy
+        if isinstance((legacy := training_payload.get("legacy_prior")), Mapping)
+        else None
+    )
+    normalized_prior_backend = resolve_prior_backend_surface_config(
+        training_cfg=training_payload,
+        legacy_prior_cfg=legacy_prior_payload,
+    )
+    if _has_explicit_prior_backend_settings(
+        training_payload=training_payload,
+        legacy_prior_payload=legacy_prior_payload,
+    ):
+        for source_key, value in normalized_prior_backend.to_dict().items():
+            if value is None or source_key == "effective_lr_scale_factor":
+                continue
+            OmegaConf.update(
+                cfg,
+                f"legacy_prior.{source_key}",
+                value,
+                merge=True,
+                force_add=True,
+            )
 
     overrides = cast(Mapping[str, Any], training_payload.get("overrides", {}))
     if "apply_schedule" in overrides:
@@ -161,5 +181,12 @@ def _cfg_data_mapping(cfg: Any) -> Mapping[str, Any] | None:
     return cast(Mapping[str, Any], raw_data_cfg)
 
 
-def resolve_training_backend(cfg: Any) -> str:
-    return resolve_training_backend_from_data_cfg(_cfg_data_mapping(cfg))
+def resolve_training_backend(
+    cfg: Any,
+    *,
+    allow_unresolved_corpus_ref: bool = False,
+) -> str:
+    return resolve_training_backend_from_data_cfg(
+        _cfg_data_mapping(cfg),
+        allow_unresolved_corpus_ref=allow_unresolved_corpus_ref,
+    )

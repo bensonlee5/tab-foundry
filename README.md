@@ -137,27 +137,28 @@ For the canonical leaf-command inventory, use
 
 ## Architecture at a Glance
 
-The active model family (`tabfoundry_staged`) decomposes a tabular foundation
-model into explicit subsystems:
+The active development family (`tabfoundry_sandwich`) is a fixed-latent hybrid
+full-cell / summary-stream Perceiver classifier:
 
 ```mermaid
 graph TD
-    A[input table] --> B[shared normalization +<br>shifted-grouped tokenizer]
-    B --> C[label-token<br>target conditioning]
-    C --> D[prenorm cell blocks<br>test-self attention]
-    D --> E[column encoder — TFCol<br><i>optional</i>]
-    E --> F[row-CLS pooling]
-    F --> G[QASS context encoder]
+    A[input table] --> B[shared normalization +<br>cell tokenizer]
+    B --> C[full cell stream]
+    B --> D[row + column<br>summary streams]
+    C --> E[stage 0 latent read]
+    D --> F[later latent refinement]
+    E --> F
+    F --> G[test-row readout]
     G --> H[class head]
 
     classDef default fill:#f8f9fa,stroke:#495057,stroke-width:1.5px,color:#212529
-    classDef optional fill:#f8f9fa,stroke:#adb5bd,stroke-width:1px,stroke-dasharray:5 5
-    class E optional
 ```
 
 A frozen nanoTabPFN control lane (`tabfoundry_simple`) preserves benchmark
-comparability. For the full architecture reference, see
-[docs/development/model-architecture.md](docs/development/model-architecture.md).
+comparability, and `tabfoundry_staged` remains loadable as the historical
+reference family. For the full architecture reference, see
+[docs/development/model-architecture.md](docs/development/model-architecture.md)
+and [docs/development/tabfoundry-sandwich.md](docs/development/tabfoundry-sandwich.md).
 
 ## Find Your Path
 

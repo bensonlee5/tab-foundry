@@ -1,5 +1,9 @@
 # @package _global_
 
+defaults:
+  - /legacy_prior: default
+  - _self_
+
 task: classification
 data:
   source: prior_dump

@@ -15,11 +15,11 @@ from tab_foundry.research.lane_contract import (
 
 from .anchor import anchor_training_surface_label
 from .catalog import (
-    SWEEP_QUEUE_SCHEMA,
     load_system_delta_catalog,
     load_system_delta_queue_instance,
     load_system_delta_sweep,
 )
+from .models import SWEEP_QUEUE_SCHEMA
 from .paths_io import (
     _copy_jsonable,
     _render_path,

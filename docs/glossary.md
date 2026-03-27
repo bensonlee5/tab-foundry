@@ -10,9 +10,9 @@ unless the queue row explicitly declares a different preserved surface.
 
 ## Architecture-Screen Surface
 
-The canonical benchmark-facing staged surface used for future architecture work.
-In current docs this is `cls_benchmark_staged_corpus`, distinct from hybrid
-diagnostic rows.
+The canonical benchmark-facing sandwich surface used for current architecture
+work. Historical staged surfaces still exist for comparison, but they are no
+longer the default landing zone for new architecture evidence.
 
 ## Benchmark Bundle
 
