@@ -64,9 +64,11 @@ def test_build_model_supports_tabfoundry_sandwich_classification() -> None:
         sandwich_ff_expansion=2,
         sandwich_summary_tokens_per_axis=4,
         sandwich_self_attention_per_cross=4,
+        sandwich_pre_column_inducing_tokens=8,
     )
 
     assert isinstance(model, TabFoundrySandwichClassifier)
+    assert model.pre_column_inducing_tokens == 8
 
 
 def test_sandwich_constructor_defaults_match_factory_defaults() -> None:
@@ -78,7 +80,7 @@ def test_sandwich_constructor_defaults_match_factory_defaults() -> None:
 
     assert constructor_model.model_spec == factory_model.model_spec
     assert constructor_params == factory_params
-    assert 450_000 <= constructor_params <= 550_000
+    assert 550_000 <= constructor_params <= 650_000
 
 
 def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
@@ -94,6 +96,7 @@ def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
     assert spec.sandwich_self_attention_per_cross == 4
     assert spec.sandwich_pre_row_attention_layers == 1
     assert spec.sandwich_pre_column_attention_layers == 1
+    assert spec.sandwich_pre_column_inducing_tokens == 16
 
 
 @pytest.mark.parametrize(
@@ -134,6 +137,7 @@ def test_sandwich_model_spec_rejects_negative_repeat_count_fields(field_name: st
     (
         "sandwich_layers",
         "sandwich_summary_tokens_per_axis",
+        "sandwich_pre_column_inducing_tokens",
     ),
 )
 def test_sandwich_model_spec_requires_positive_core_counts(field_name: str) -> None:

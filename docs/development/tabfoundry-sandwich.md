@@ -34,7 +34,7 @@ The model:
 1. adds shared Fourier row positions, shared Fourier column positions, and
    learned feature-type embeddings to every cell token
 1. optionally applies axial pre-Perceiver mixing with per-row self-attention
-   over feature cells and per-column self-attention over rows
+   over feature cells and per-column ISAB row mixing over rows
 1. builds a full cell-token stream by flattening the `R x C` cell table and
    adding broadcast train-label or learned test-query conditioning, train/test
    role embeddings, and a learned cell token-type embedding
@@ -59,7 +59,7 @@ Mental model:
 
 - latent array = fixed-capacity latent memory
 - full cell stream = `R * C` conditioned cell tokens
-- pre-Perceiver mixer = row-wise feature attention plus column-wise row attention
+- pre-Perceiver mixer = row-wise feature attention plus column-wise ISAB row mixing
 - stage `0` = high-bandwidth read from the full dataset
 - later stages = cheaper repeated refinement on the compact summary stream
 - readout = `latent-then-full-cell` reasoning plus a raw-cell bypass for
@@ -175,8 +175,10 @@ More concretely:
 - Pre-Perceiver cell mixer:
   - `sandwich_pre_row_attention_layers` applies per-row self-attention over
     feature cells before flattening
-  - `sandwich_pre_column_attention_layers` applies per-column self-attention
+  - `sandwich_pre_column_attention_layers` applies per-column ISAB row mixing
     over rows after the row-wise mixer
+  - `sandwich_pre_column_inducing_tokens = M` sets the learned inducing-set
+    bottleneck width for that ISAB path
   - both use the same `d_icl`, `sandwich_heads`, and `sandwich_ff_expansion`
     attention surface as the rest of the sandwich blocks
 - Full-cell stream:
@@ -209,7 +211,8 @@ More concretely:
   - the fused `K` test-row summary tokens per row act as readout queries
   - readout first cross-attends to the final latents
   - the updated test-row states then cross-attend to the full cell stream
-  - the `K` updated query tokens are mean-pooled back to one state per test row
+  - the `K` updated query tokens are collapsed with a learned
+    latent-conditioned query pool back to one state per test row
   - `DirectClassifierHead` produces logits of width `many_class_base`
 
 ## Hyperparameters
@@ -233,7 +236,8 @@ architecture.
 | `sandwich_summary_tokens_per_axis` | `4` | Number of learned summary queries per row and per column. | This sets `K` in the compact summary stream `K * (R + C)`. |
 | `sandwich_self_attention_per_cross` | `4` | Number of latent self-attention blocks applied after each cross-attention read. | `sandwich_layers` counts cross-attention stages, not these inner latent blocks. |
 | `sandwich_pre_row_attention_layers` | `1` | Number of pre-Perceiver row-wise self-attention blocks over feature cells. | These blocks run on `[B * R, C, d_icl]` before the Perceiver flatten. |
-| `sandwich_pre_column_attention_layers` | `1` | Number of pre-Perceiver column-wise self-attention blocks over rows. | These blocks run on `[B * C, R, d_icl]` after the row-wise mixer. |
+| `sandwich_pre_column_attention_layers` | `1` | Number of pre-Perceiver column-wise ISAB row mixers. | Each block mixes `[B * C, R, d_icl]` through a learned inducing bottleneck after the row-wise mixer. |
+| `sandwich_pre_column_inducing_tokens` | `16` | Number of learned inducing tokens used by each pre-column ISAB block. | This sets `M` in the low-rank `rows -> inducing -> rows` mixer and is independent of `sandwich_summary_tokens_per_axis`. |
 
 Rejected staged-only fields:
 

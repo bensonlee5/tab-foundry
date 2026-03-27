@@ -171,13 +171,14 @@ row representation width and the final QASS transformer width.
 - `sandwich_self_attention_per_cross`
 - `sandwich_pre_row_attention_layers`
 - `sandwich_pre_column_attention_layers`
+- `sandwich_pre_column_inducing_tokens`
 
 These parameters matter only for `tabfoundry_sandwich`.
 They control fixed latent-memory size, latent depth, and block capacity after
 stage `0` reads the hybrid full-cell-plus-summary stream and later stages reuse
 the compact `K * (R + C)` summary stream, while the pre-Perceiver axial mixer
-controls how much row-wise feature attention and column-wise row attention the
-raw cell grid receives before flattening.
+controls how much row-wise feature attention and column-wise ISAB row mixing
+the raw cell grid receives before flattening.
 
 ### Tokenization And Preprocessing
 
@@ -241,11 +242,14 @@ removed legacy family.
     `sandwich_heads`, `sandwich_ff_expansion`,
     `sandwich_summary_tokens_per_axis`, `sandwich_self_attention_per_cross`,
     `sandwich_pre_row_attention_layers`,
-    `sandwich_pre_column_attention_layers`, `d_icl`, `head_hidden_dim`,
+    `sandwich_pre_column_attention_layers`,
+    `sandwich_pre_column_inducing_tokens`, `d_icl`, `head_hidden_dim`,
     `input_normalization`, and `pre_encoder_clip`. `sandwich_layers` now means
     repeated Perceiver stages, not a tail-only latent depth, while
     `sandwich_self_attention_per_cross` controls the number of latent
-    self-attention blocks between cross-attention reads. The runtime task
+    self-attention blocks between cross-attention reads. The pre-column mixer
+    uses an ISAB-style learned inducing bottleneck rather than exact row
+    self-attention. The runtime task
     metadata contract also supports `feature_types` with the collapsed
     parquet-group vocabulary `bool`, `integer`, `floating`, `string_binary`,
     or `unknown`. `tabfoundry_sandwich` requires this metadata explicitly at

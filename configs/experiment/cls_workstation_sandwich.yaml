@@ -17,6 +17,7 @@ model:
   sandwich_self_attention_per_cross: 4
   sandwich_pre_row_attention_layers: 1
   sandwich_pre_column_attention_layers: 1
+  sandwich_pre_column_inducing_tokens: 16
 runtime:
   output_dir: outputs/cls_workstation_sandwich
   trace_activations: false

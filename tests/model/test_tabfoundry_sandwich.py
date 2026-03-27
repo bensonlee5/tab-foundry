@@ -92,6 +92,7 @@ def _model() -> TabFoundrySandwichClassifier:
         sandwich_self_attention_per_cross=4,
         sandwich_pre_row_attention_layers=1,
         sandwich_pre_column_attention_layers=1,
+        sandwich_pre_column_inducing_tokens=8,
     )
 
 
@@ -197,6 +198,129 @@ def test_tabfoundry_sandwich_broadcasts_row_conditioning_into_full_cell_stream()
     assert not torch.allclose(conditioning_delta[:, 0, 0, :], conditioning_delta[:, 4, 0, :])
 
 
+def test_tabfoundry_sandwich_pools_test_readout_facets_with_learned_query() -> None:
+    model = _model()
+    x_all, y_train, train_test_split_index = _batched_inputs()
+    feature_type_ids = model._feature_type_ids_from_metadata(
+        {
+            "task_members": [
+                {"feature_types": feature_types}
+                for feature_types in _batched_feature_types()
+            ]
+        },
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+    feature_cells = model._feature_cells(
+        x_all,
+        train_test_split_index=train_test_split_index,
+        feature_type_ids=feature_type_ids,
+    )
+    full_cell_stream = model._full_cell_tokens(feature_cells, y_train=y_train)
+    summary_input, row_tokens = model._summary_input_tokens(feature_cells, y_train=y_train)
+    initial_input = torch.cat([full_cell_stream, summary_input], dim=1)
+    latents = model.latent_seed.expand(int(x_all.shape[0]), -1, -1)
+    for index, stage in enumerate(model.perceiver_stages):
+        key_value = initial_input if index == 0 else summary_input
+        latents = model._cross_block(stage.input_read, latents, key_value)
+        for self_block in stage.self_blocks:
+            latents = model._self_block(self_block, latents)
+    batch_size = int(x_all.shape[0])
+    num_rows = int(feature_cells.shape[1])
+    num_test_rows = num_rows - train_test_split_index
+    row_token_grid = row_tokens.reshape(
+        batch_size,
+        num_rows,
+        model.summary_tokens_per_axis,
+        model.d_icl,
+    )
+    test_queries = row_token_grid[:, train_test_split_index:, :, :].reshape(
+        batch_size,
+        num_test_rows * model.summary_tokens_per_axis,
+        model.d_icl,
+    )
+    latent_readout = model._cross_block(model.latent_readout, test_queries, latents)
+    cell_readout = model._cross_block(model.cell_readout, latent_readout, full_cell_stream)
+    latent_readout_rows = latent_readout.reshape(
+        batch_size,
+        num_test_rows,
+        model.summary_tokens_per_axis,
+        model.d_icl,
+    )
+    cell_readout_rows = cell_readout.reshape(
+        batch_size,
+        num_test_rows,
+        model.summary_tokens_per_axis,
+        model.d_icl,
+    )
+
+    pooled = model._pool_test_rows(
+        latent_readout_rows=latent_readout_rows,
+        cell_readout_rows=cell_readout_rows,
+    )
+
+    assert tuple(pooled.shape) == (2, 2, 32)
+    assert not torch.allclose(pooled, cell_readout_rows.mean(dim=2))
+
+
+def test_tabfoundry_sandwich_pre_column_isab_uses_inducing_bottleneck() -> None:
+    model = TabFoundrySandwichClassifier(
+        d_icl=32,
+        many_class_base=4,
+        head_hidden_dim=64,
+        sandwich_latents=12,
+        sandwich_layers=1,
+        sandwich_heads=4,
+        sandwich_ff_expansion=2,
+        sandwich_summary_tokens_per_axis=4,
+        sandwich_self_attention_per_cross=4,
+        sandwich_pre_row_attention_layers=0,
+        sandwich_pre_column_attention_layers=1,
+        sandwich_pre_column_inducing_tokens=3,
+    )
+    batch = _batch()
+    x_all, _y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
+    feature_type_ids = model._feature_type_ids_from_metadata(
+        batch.metadata,
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+    isab_block = model.pre_column_attention_blocks[0]
+    events: list[tuple[str, tuple[int, ...], tuple[int, ...] | None]] = []
+    original_cross_block = model._cross_block
+    original_self_block = model._self_block
+
+    def _recording_cross_block(block, query: torch.Tensor, key_value: torch.Tensor) -> torch.Tensor:
+        if block is isab_block.rows_to_inducing:
+            events.append(("rows_to_inducing", tuple(query.shape), tuple(key_value.shape)))
+        elif block is isab_block.rows_from_inducing:
+            events.append(("rows_from_inducing", tuple(query.shape), tuple(key_value.shape)))
+        return original_cross_block(block, query, key_value)
+
+    def _recording_self_block(block, hidden: torch.Tensor) -> torch.Tensor:
+        if block is isab_block.inducing_self:
+            events.append(("inducing_self", tuple(hidden.shape), None))
+        return original_self_block(block, hidden)
+
+    model._cross_block = _recording_cross_block  # type: ignore[method-assign]
+    model._self_block = _recording_self_block  # type: ignore[method-assign]
+
+    feature_cells = model._feature_cells(
+        x_all,
+        train_test_split_index=train_test_split_index,
+        feature_type_ids=feature_type_ids,
+    )
+
+    assert tuple(feature_cells.shape) == (1, 5, 4, 32)
+    assert events == [
+        ("rows_to_inducing", (4, 3, 32), (4, 5, 32)),
+        ("inducing_self", (4, 3, 32), None),
+        ("rows_from_inducing", (4, 5, 32), (4, 3, 32)),
+    ]
+
+
 def test_tabfoundry_sandwich_initializes_latent_seed_with_truncated_normal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -218,7 +342,10 @@ def test_tabfoundry_sandwich_initializes_latent_seed_with_truncated_normal(
 
     model = _model()
 
-    assert calls == [((1, 12, 32), 0.0, 0.02, -2.0, 2.0)]
+    assert calls == [
+        ((1, 8, 32), 0.0, 0.02, -2.0, 2.0),
+        ((1, 12, 32), 0.0, 0.02, -2.0, 2.0),
+    ]
     assert tuple(model.latent_seed.shape) == (1, 12, 32)
     assert torch.isfinite(model.latent_seed).all()
 
@@ -246,6 +373,8 @@ def test_tabfoundry_sandwich_runs_repeated_cross_then_self_stages() -> None:
             order.append("latent_readout")
         elif block is model.cell_readout:
             order.append("cell_readout")
+        elif block is model.test_row_pool:
+            order.append("test_row_pool")
         return original_cross_block(block, query, key_value)
 
     def _recording_self_block(block, hidden: torch.Tensor) -> torch.Tensor:
@@ -272,6 +401,7 @@ def test_tabfoundry_sandwich_runs_repeated_cross_then_self_stages() -> None:
         "self_1_3",
         "latent_readout",
         "cell_readout",
+        "test_row_pool",
     ]
 
 
@@ -328,6 +458,7 @@ def test_tabfoundry_sandwich_exposes_activation_trace_hooks() -> None:
     assert "post_stage_0_self" in trace
     assert "post_latent_readout" in trace
     assert "post_test_readout" in trace
+    assert "post_test_row_pool" in trace
 
 
 def test_tabfoundry_sandwich_layers_count_matches_repeated_stages() -> None:
@@ -380,10 +511,12 @@ def test_tabfoundry_sandwich_allows_configurable_pre_perceiver_attention_layers(
         sandwich_self_attention_per_cross=4,
         sandwich_pre_row_attention_layers=2,
         sandwich_pre_column_attention_layers=1,
+        sandwich_pre_column_inducing_tokens=3,
     )
 
     assert len(model.pre_row_attention_blocks) == 2
     assert len(model.pre_column_attention_blocks) == 1
+    assert model.pre_column_inducing_tokens == 3
 
 
 def test_tabfoundry_sandwich_requires_feature_types_for_forward() -> None:

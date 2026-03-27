@@ -42,9 +42,9 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_021b_sandwich_latents12_v1` | architecture_sensitivity | yes | ready | none | Halve the hybrid sandwich latent bank from 24 to 12 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
-| 2 | `delta_tf_rd_021b_sandwich_layers1_v1` | architecture_sensitivity | yes | ready | none | Reduce the hybrid sandwich repeated cross-attend stack from 2 stages to 1 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
-| 3 | `delta_tf_rd_021b_sandwich_heads2_v1` | architecture_sensitivity | yes | ready | none | Reduce hybrid sandwich attention heads from 4 to 2 while keeping width and all other compact-control settings fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
+| 1 | `delta_tf_rd_021b_sandwich_latents12_v1` | architecture_sensitivity | yes | completed | none | Halve the hybrid sandwich latent bank from 24 to 12 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
+| 2 | `delta_tf_rd_021b_sandwich_layers1_v1` | architecture_sensitivity | yes | completed | none | Reduce the hybrid sandwich repeated cross-attend stack from 2 stages to 1 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
+| 3 | `delta_tf_rd_021b_sandwich_heads2_v1` | architecture_sensitivity | yes | completed | none | Reduce hybrid sandwich attention heads from 4 to 2 while keeping width and all other compact-control settings fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
 | 4 | `delta_tf_rd_021b_sandwich_ffexp1_v1` | architecture_sensitivity | yes | ready | none | Reduce the hybrid sandwich feed-forward expansion from 2x to 1x while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
 | 5 | `delta_tf_rd_021b_sandwich_summarytokens1_v1` | architecture_sensitivity | yes | ready | none | Reduce row and column summary token multiplicity from 4 tokens per axis position to 1 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
 | 6 | `delta_tf_rd_021b_sandwich_selfattn1_v1` | architecture_sensitivity | yes | ready | none | Reduce latent self-attention refinement between cross-attention reads from 4 blocks to 1 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
@@ -56,7 +56,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 ### 1. `delta_tf_rd_021b_sandwich_latents12_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Halve the hybrid sandwich latent bank from 24 to 12 while keeping the compact control otherwise fixed.
@@ -74,16 +74,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep the locked medium bundle, prior-dump surface, and 2500-step cosine budget fixed.
   - Interpret directly against the registered compact hybrid control before width or head-MLP changes.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1` with final log loss `0.4760`, delta final log loss `+0.0088`, final Brier score `0.3133`, delta final Brier score `+0.0061`, best ROC AUC `0.7292`, final ROC AUC `0.7292`, final-minus-best `+0.0000`, delta final ROC AUC `-0.0078`, delta drift `+0.0000`, delta final training time `-393.7s`
 
 ### 2. `delta_tf_rd_021b_sandwich_layers1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Reduce the hybrid sandwich repeated cross-attend stack from 2 stages to 1 while keeping the compact control otherwise fixed.
@@ -101,16 +104,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep the stage-0 full-cell read, summary-token count, and train budget fixed.
   - Read this as repeated-stage sensitivity, not as a general model-size change.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1` with final log loss `0.4721`, delta final log loss `+0.0049`, final Brier score `0.3104`, delta final Brier score `+0.0031`, best ROC AUC `0.7275`, final ROC AUC `0.7265`, final-minus-best `-0.0010`, delta final ROC AUC `-0.0105`, delta drift `-0.0010`, delta final training time `-405.8s`
 
 ### 3. `delta_tf_rd_021b_sandwich_heads2_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Reduce hybrid sandwich attention heads from 4 to 2 while keeping width and all other compact-control settings fixed.
@@ -128,11 +134,14 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep `d_icl=60` fixed so this row isolates attention partitioning rather than total width.
   - Compare directly against the compact control before opening any width ladder.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1` with final log loss `0.4641`, delta final log loss `-0.0031`, final Brier score `0.3053`, delta final Brier score `-0.0020`, best ROC AUC `0.7369`, final ROC AUC `0.7366`, final-minus-best `-0.0003`, delta final ROC AUC `-0.0005`, delta drift `-0.0003`, delta final training time `-402.5s`
 
 ### 4. `delta_tf_rd_021b_sandwich_ffexp1_v1`
 

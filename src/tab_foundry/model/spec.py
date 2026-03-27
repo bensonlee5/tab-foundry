@@ -53,6 +53,7 @@ DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS = 4
 DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS = 4
 DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS = 1
 DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS = 1
+DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS = 16
 MAX_MODEL_STAGED_DROPOUT = 0.5
 MIN_MODEL_MANY_CLASS_BASE = 2
 _LINEAR_WEIGHT_TENSOR_RANK = 2
@@ -220,6 +221,7 @@ class ModelBuildSpec:
     sandwich_self_attention_per_cross: int = DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS
     sandwich_pre_row_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS
     sandwich_pre_column_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS
+    sandwich_pre_column_inducing_tokens: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS
 
     def __post_init__(self) -> None:
         task = str(self.task).strip().lower()
@@ -308,6 +310,7 @@ class ModelBuildSpec:
             "sandwich_heads",
             "sandwich_ff_expansion",
             "sandwich_summary_tokens_per_axis",
+            "sandwich_pre_column_inducing_tokens",
         ):
             value = int(getattr(self, field_name))
             object.__setattr__(self, field_name, value)
@@ -463,6 +466,12 @@ def model_build_spec_from_mappings(
             _pick(
                 "sandwich_pre_column_attention_layers",
                 DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
+            )
+        ),
+        sandwich_pre_column_inducing_tokens=int(
+            _pick(
+                "sandwich_pre_column_inducing_tokens",
+                DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS,
             )
         ),
     )

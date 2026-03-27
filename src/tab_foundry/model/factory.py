@@ -28,6 +28,7 @@ from .spec import (
     DEFAULT_MODEL_SANDWICH_LAYERS,
     DEFAULT_MODEL_SANDWICH_LATENTS,
     DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
+    DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS,
     DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS,
     DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS,
     DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS,
@@ -93,6 +94,7 @@ def build_model(
     sandwich_self_attention_per_cross: int = DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS,
     sandwich_pre_row_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS,
     sandwich_pre_column_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
+    sandwich_pre_column_inducing_tokens: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS,
 ) -> nn.Module:
     """Instantiate model for task."""
 
@@ -189,5 +191,6 @@ def build_model(
             sandwich_self_attention_per_cross=sandwich_self_attention_per_cross,
             sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
             sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
+            sandwich_pre_column_inducing_tokens=sandwich_pre_column_inducing_tokens,
         )
     raise ValueError(f"Unsupported model arch: {arch!r}")
