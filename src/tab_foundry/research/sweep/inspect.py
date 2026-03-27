@@ -298,6 +298,12 @@ def _merge_plain_mapping(
     if not isinstance(destination, dict):
         destination = {}
         target[prefix] = destination
+    if (
+        prefix == "model"
+        and payload.get("arch") is None
+        and any(payload.get(key) is not None for key in ("stage", "stage_label", "module_overrides"))
+    ):
+        destination["arch"] = "tabfoundry_staged"
     for key, value in payload.items():
         if prefix == "model" and key == "module_overrides" and isinstance(value, Mapping):
             destination[key] = dict(cast(Mapping[str, Any], _copy_jsonable(value)))

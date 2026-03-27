@@ -5,6 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
+from .models import (
+    CatalogPayload,
+    SweepIndexPayload,
+    SweepPayload,
+    SweepQueuePayload,
+)
 from .paths_io import (
     default_catalog_path,
     default_sweep_index_path,
@@ -12,37 +20,29 @@ from .paths_io import (
     sweep_metadata_path,
     sweep_queue_path,
 )
-from .validation import ensure_non_empty_string, ensure_rows, validate_prose_fields
+from .validation import ensure_non_empty_string
 
 
-CATALOG_SCHEMA = "tab-foundry-system-delta-catalog-v1"
-SWEEP_INDEX_SCHEMA = "tab-foundry-system-delta-sweep-index-v2"
-SWEEP_SCHEMA = "tab-foundry-system-delta-sweep-v1"
-SWEEP_QUEUE_SCHEMA = "tab-foundry-system-delta-sweep-queue-v1"
+def _validate_payload(payload_model: type[Any], payload: dict[str, Any], *, context: str) -> dict[str, Any]:
+    try:
+        validated = payload_model.model_validate(payload)
+    except ValidationError as exc:
+        raise RuntimeError(f"{context} is invalid: {exc}") from exc
+    return validated.model_dump(
+        by_alias=True,
+        exclude_none=False,
+        exclude_unset=True,
+    )
 
 
 def load_system_delta_catalog(path: Path | None = None) -> dict[str, Any]:
     catalog = load_yaml_mapping(path or default_catalog_path(), context="system delta catalog")
-    if catalog.get("schema") != CATALOG_SCHEMA:
-        raise RuntimeError(
-            f"system delta catalog schema must be {CATALOG_SCHEMA!r}, got {catalog.get('schema')!r}"
-        )
-    deltas = catalog.get("deltas")
-    if not isinstance(deltas, dict) or not deltas:
-        raise RuntimeError("system delta catalog must include a non-empty deltas mapping")
-    return catalog
+    return _validate_payload(CatalogPayload, catalog, context="system delta catalog")
 
 
 def load_system_delta_index(path: Path | None = None) -> dict[str, Any]:
     index = load_yaml_mapping(path or default_sweep_index_path(), context="system delta sweep index")
-    if index.get("schema") != SWEEP_INDEX_SCHEMA:
-        raise RuntimeError(
-            f"system delta sweep index schema must be {SWEEP_INDEX_SCHEMA!r}, got {index.get('schema')!r}"
-        )
-    sweeps = index.get("sweeps")
-    if not isinstance(sweeps, dict) or not sweeps:
-        raise RuntimeError("system delta sweep index must include a non-empty sweeps mapping")
-    return index
+    return _validate_payload(SweepIndexPayload, index, context="system delta sweep index")
 
 
 def resolve_selected_sweep_id(
@@ -63,14 +63,15 @@ def load_system_delta_sweep(
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_sweep_id = resolve_selected_sweep_id(sweep_id, index_path=index_path)
-    sweep = load_yaml_mapping(
+    raw_sweep = load_yaml_mapping(
         sweep_metadata_path(resolved_sweep_id, sweeps_root=sweeps_root),
         context=f"system delta sweep {resolved_sweep_id!r}",
     )
-    if sweep.get("schema") != SWEEP_SCHEMA:
-        raise RuntimeError(
-            f"system delta sweep schema must be {SWEEP_SCHEMA!r}, got {sweep.get('schema')!r}"
-        )
+    sweep = _validate_payload(
+        SweepPayload,
+        raw_sweep,
+        context=f"system delta sweep {resolved_sweep_id!r}",
+    )
     if ensure_non_empty_string(sweep.get("sweep_id"), context="sweep.sweep_id") != resolved_sweep_id:
         raise RuntimeError(
             f"system delta sweep id mismatch: expected {resolved_sweep_id!r}, got {sweep.get('sweep_id')!r}"
@@ -85,23 +86,17 @@ def load_system_delta_queue_instance(
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
     resolved_sweep_id = resolve_selected_sweep_id(sweep_id, index_path=index_path)
-    queue = load_yaml_mapping(
+    raw_queue = load_yaml_mapping(
         sweep_queue_path(resolved_sweep_id, sweeps_root=sweeps_root),
         context=f"system delta queue instance {resolved_sweep_id!r}",
     )
-    if queue.get("schema") != SWEEP_QUEUE_SCHEMA:
-        raise RuntimeError(
-            f"system delta queue instance schema must be {SWEEP_QUEUE_SCHEMA!r}, got {queue.get('schema')!r}"
-        )
+    queue = _validate_payload(
+        SweepQueuePayload,
+        raw_queue,
+        context=f"system delta queue instance {resolved_sweep_id!r}",
+    )
     if ensure_non_empty_string(queue.get("sweep_id"), context="queue.sweep_id") != resolved_sweep_id:
         raise RuntimeError(
             f"system delta queue sweep id mismatch: expected {resolved_sweep_id!r}, got {queue.get('sweep_id')!r}"
-        )
-    rows = ensure_rows(queue.get("rows"), context="system delta queue instance rows")
-    for index, row in enumerate(rows):
-        validate_prose_fields(
-            row,
-            context=f"system delta queue instance rows[{index}]",
-            field_names=("notes", "confounders", "parameter_adequacy_plan"),
         )
     return queue

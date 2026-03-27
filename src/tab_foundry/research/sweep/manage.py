@@ -14,14 +14,13 @@ from tab_foundry.research.lane_contract import (
 
 from .anchor import anchor_context_from_registry_run, anchor_training_surface_label, build_anchor_surface
 from .catalog import (
-    SWEEP_QUEUE_SCHEMA,
-    SWEEP_SCHEMA,
     load_system_delta_catalog,
     load_system_delta_index,
     load_system_delta_sweep,
 )
 from .materialize import guarded_initial_state, materialize_system_delta_queue
 from .matrix import render_and_write_system_delta_matrix
+from .models import SWEEP_QUEUE_SCHEMA, SWEEP_SCHEMA
 from .paths_io import (
     _copy_jsonable,
     default_sweep_index_path,
