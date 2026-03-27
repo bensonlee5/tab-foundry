@@ -20,7 +20,8 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
   `tab_foundry.timestamps`, `tab_foundry.training`, and
   `tab_foundry.types`.
-- `tab_foundry.benchmark_registry` depends on `tab_foundry.repo_paths`.
+- `tab_foundry.benchmark_registry` depends on `tab_foundry.bench` and
+  `tab_foundry.repo_paths`.
 - `tab_foundry.cli` depends on `tab_foundry.bench`,
   `tab_foundry.benchmark_registry`, `tab_foundry.config`,
   `tab_foundry.control_baseline_registry`, `tab_foundry.data`,
@@ -29,16 +30,15 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.preprocessing`, `tab_foundry.research`,
   `tab_foundry.task_batching`, and `tab_foundry.training`.
 - `tab_foundry.config` depends on `tab_foundry.repo_paths`.
-- `tab_foundry.control_baseline_registry` depends on
-  `tab_foundry.repo_paths`.
+- `tab_foundry.control_baseline_registry` depends on `tab_foundry.bench`
+  and `tab_foundry.repo_paths`.
 - `tab_foundry.data` depends on `tab_foundry.benchmark_registry`,
   `tab_foundry.feature_types`, `tab_foundry.hashing`,
   `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
   `tab_foundry.task_batching`, `tab_foundry.timestamps`, and
   `tab_foundry.types`.
 - `tab_foundry.export` depends on `tab_foundry.feature_types`,
-  `tab_foundry.hashing`, `tab_foundry.input_normalization`,
-  `tab_foundry.model`, `tab_foundry.preprocessing`,
+  `tab_foundry.hashing`, `tab_foundry.model`, `tab_foundry.preprocessing`,
   `tab_foundry.repo_paths`, and `tab_foundry.types`.
 - `tab_foundry.model` depends on `tab_foundry.feature_types`,
   `tab_foundry.input_normalization`, and `tab_foundry.types`.
@@ -61,7 +61,9 @@ section factual and keep design intent in the policy section below it.
 
 Observed cycle status:
 
-- none
+- cycle candidates currently exist between `tab_foundry.bench` and the
+  read-only registry wrappers. Keep these wrappers thin and avoid letting the
+  cycle spread deeper into model, data, training, or research layers.
 
 ## Intended Dependency-Direction Policy
 

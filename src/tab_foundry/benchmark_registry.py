@@ -2,16 +2,28 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from .repo_paths import normalize_repo_relative_path, repo_root, resolve_repo_relative_path
+from pydantic import BaseModel, ConfigDict, StrictStr, ValidationError
+
+from tab_foundry.bench.registry.storage import load_versioned_registry_payload
+from tab_foundry.repo_paths import (
+    normalize_repo_relative_path,
+    repo_root,
+    resolve_repo_relative_path,
+)
 
 
 REGISTRY_SCHEMA = "tab-foundry-benchmark-runs-v1"
 REGISTRY_VERSION = 1
 _TOP_LEVEL_KEYS = {"schema", "version", "runs"}
+
+
+class _ReadOnlyBenchmarkRunEntryPayload(BaseModel):
+    model_config = ConfigDict(extra="allow", strict=True)
+
+    run_id: StrictStr
 
 
 def default_benchmark_run_registry_path() -> Path:
@@ -44,10 +56,12 @@ def _validate_run_entry(entry: Any, *, run_id: str) -> dict[str, Any]:
     if not isinstance(entry, Mapping):
         raise RuntimeError(f"benchmark run entry {run_id!r} must be a mapping")
     entry_payload = {str(key): value for key, value in entry.items()}
-    actual_run_id = entry_payload.get("run_id")
-    if not isinstance(actual_run_id, str) or not actual_run_id.strip():
-        raise RuntimeError(f"benchmark run entry {run_id!r} must include a non-empty run_id")
-    if str(actual_run_id) != run_id:
+    try:
+        validated = _ReadOnlyBenchmarkRunEntryPayload.model_validate(entry_payload)
+    except ValidationError as exc:
+        raise RuntimeError(f"benchmark run entry {run_id!r} is invalid: {exc}") from exc
+    actual_run_id = str(validated.run_id)
+    if actual_run_id != run_id:
         raise RuntimeError(
             "benchmark run entry run_id mismatch: "
             f"expected={run_id!r}, actual={actual_run_id!r}"
@@ -55,48 +69,31 @@ def _validate_run_entry(entry: Any, *, run_id: str) -> dict[str, Any]:
     return entry_payload
 
 
+def _empty_registry() -> dict[str, Any]:
+    return {
+        "schema": REGISTRY_SCHEMA,
+        "version": REGISTRY_VERSION,
+        "runs": {},
+    }
+
+
 def load_benchmark_run_registry(path: Path | None = None) -> dict[str, Any]:
     """Load and minimally validate the benchmark run registry."""
 
     registry_path = (path or default_benchmark_run_registry_path()).expanduser().resolve()
-    if not registry_path.exists():
-        raise RuntimeError(f"benchmark run registry does not exist: {registry_path}")
-    with registry_path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"benchmark run registry must be a JSON object: {registry_path}")
-
-    actual_keys = set(payload.keys())
-    if actual_keys != _TOP_LEVEL_KEYS:
-        raise RuntimeError(
-            "benchmark run registry keys mismatch: "
-            f"missing={sorted(_TOP_LEVEL_KEYS - actual_keys)}, "
-            f"extra={sorted(actual_keys - _TOP_LEVEL_KEYS)}"
-        )
-    if payload.get("schema") != REGISTRY_SCHEMA:
-        raise RuntimeError(
-            "benchmark run registry schema mismatch: "
-            f"expected={REGISTRY_SCHEMA!r}, actual={payload.get('schema')!r}"
-        )
-    if int(payload.get("version", -1)) != REGISTRY_VERSION:
-        raise RuntimeError(
-            "benchmark run registry version mismatch: "
-            f"expected={REGISTRY_VERSION}, actual={payload.get('version')!r}"
-        )
-
-    runs = payload.get("runs")
-    if not isinstance(runs, Mapping):
-        raise RuntimeError("benchmark run registry runs must be an object")
-    normalized_runs: dict[str, Any] = {}
-    for run_id, entry in runs.items():
-        if not isinstance(run_id, str) or not run_id.strip():
-            raise RuntimeError("benchmark run registry run ids must be non-empty strings")
-        normalized_runs[str(run_id)] = _validate_run_entry(entry, run_id=str(run_id))
-    return {
-        "schema": REGISTRY_SCHEMA,
-        "version": REGISTRY_VERSION,
-        "runs": cast(dict[str, Any], normalized_runs),
-    }
+    payload = load_versioned_registry_payload(
+        registry_path,
+        allow_missing=False,
+        empty_payload=_empty_registry(),
+        top_level_keys=_TOP_LEVEL_KEYS,
+        schema=REGISTRY_SCHEMA,
+        version=REGISTRY_VERSION,
+        entries_key="runs",
+        registry_label="benchmark run registry",
+        validate_entry_fn=_validate_run_entry,
+        entry_label="run_id",
+    )
+    return cast(dict[str, Any], payload)
 
 
 def load_benchmark_run_entry(

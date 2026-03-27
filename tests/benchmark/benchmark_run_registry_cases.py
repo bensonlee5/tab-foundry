@@ -10,7 +10,8 @@ import tab_foundry.benchmark_registry as benchmark_registry
 import tab_foundry.bench.run_registration as registry_module
 import tab_foundry.cli.bench_run_registration as registry_cli_module
 import tab_foundry.data.corpus as corpus_module
-from tab_foundry.model.factory import build_model
+from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.spec import model_build_spec_from_mappings
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -812,15 +813,19 @@ def test_derive_benchmark_run_record_rejects_legacy_checkpoint_without_arch_meta
     run_dir, summary_path = _prepare_run(repo_root, run_name="legacy_simple_anchor")
     monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
 
-    simple_model = build_model(
-        task="classification",
-        arch="tabfoundry_simple",
-        d_icl=96,
-        input_normalization="train_zscore_clip",
-        many_class_base=2,
-        tficl_n_heads=4,
-        tficl_n_layers=3,
-        head_hidden_dim=192,
+    simple_model = build_model_from_spec(
+        model_build_spec_from_mappings(
+            task="classification",
+            primary={
+                "arch": "tabfoundry_simple",
+                "d_icl": 96,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+                "tficl_n_heads": 4,
+                "tficl_n_layers": 3,
+                "head_hidden_dim": 192,
+            },
+        )
     )
     torch.save(
         {

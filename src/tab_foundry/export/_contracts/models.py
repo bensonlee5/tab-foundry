@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any
+from datetime import datetime
+import math
+from typing import Any, Final, Literal
 
 from pydantic import (
     BaseModel,
@@ -13,13 +15,26 @@ from pydantic import (
     StrictInt,
     StrictStr,
     field_validator,
+    model_validator,
 )
 
-from tab_foundry.model.spec import SANDWICH_MODEL_ARCH, STAGED_MODEL_ARCH
+from tab_foundry.hashing import SHA256_HEX_LENGTH
+from tab_foundry.model.spec import (
+    SANDWICH_MODEL_ARCH,
+    STAGED_MODEL_ARCH,
+    SUPPORTED_MODEL_ARCHES,
+)
+from tab_foundry.preprocessing import (
+    CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
+    DTYPE_POLICY,
+    FEATURE_ORDER_POLICY_POSITIONAL,
+    MISSING_VALUE_STRATEGY_TRAIN_MEAN,
+    UNSEEN_TEST_LABEL_POLICY_FILTER,
+)
 
 
-SCHEMA_VERSION_V2 = "tab-foundry-export-v2"
-SCHEMA_VERSION_V3 = "tab-foundry-export-v3"
+SCHEMA_VERSION_V2: Final = "tab-foundry-export-v2"
+SCHEMA_VERSION_V3: Final = "tab-foundry-export-v3"
 SUPPORTED_SCHEMA_VERSIONS = (SCHEMA_VERSION_V2, SCHEMA_VERSION_V3)
 SUPPORTED_TASKS = ("classification",)
 SUPPORTED_MANY_CLASS_INFERENCE_MODES = ("full_probs",)
@@ -38,6 +53,24 @@ class _ContractsPayloadModel(BaseModel):
         if isinstance(value, str) and not value.strip():
             raise ValueError("must be a non-empty string")
         return value
+
+
+def _validate_created_at_utc(value: str) -> str:
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("must be ISO8601") from exc
+    return value
+
+
+def _validate_hex_digest(value: str) -> str:
+    if len(value) != SHA256_HEX_LENGTH:
+        raise ValueError("must be a 64-char hex digest")
+    try:
+        int(value, 16)
+    except ValueError as exc:
+        raise ValueError("must be a 64-char hex digest") from exc
+    return value
 
 
 class _ManifestModelPayloadV2(_ContractsPayloadModel):
@@ -78,14 +111,250 @@ class _ManifestModelPayloadV3(_ManifestModelPayloadV2):
 
 
 class _InferenceConfigPayload(_ContractsPayloadModel):
-    task: StrictStr
+    task: Literal["classification"]
     model_arch: StrictStr
     model_stage: StrictStr | None = None
     group_shifts: list[StrictInt]
     feature_group_size: StrictInt
     many_class_threshold: StrictInt
-    many_class_inference_mode: StrictStr
+    many_class_inference_mode: Literal["full_probs"]
     quantile_levels: list[FiniteFloat] | None = None
+
+    @field_validator("model_arch")
+    @classmethod
+    def _validate_model_arch(cls, value: str) -> str:
+        if value not in SUPPORTED_MODEL_ARCHES:
+            raise ValueError(f"Unsupported inference model_arch: {value!r}")
+        return value
+
+    @field_validator("group_shifts")
+    @classmethod
+    def _validate_group_shifts(cls, value: list[int]) -> list[int]:
+        if list(value) != EXPECTED_GROUP_SHIFTS:
+            raise ValueError(
+                f"inference_config.group_shifts must equal {EXPECTED_GROUP_SHIFTS}, got {list(value)!r}"
+            )
+        return list(value)
+
+    @field_validator("feature_group_size")
+    @classmethod
+    def _validate_feature_group_size(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("inference_config.feature_group_size must be positive")
+        return int(value)
+
+    @field_validator("many_class_threshold")
+    @classmethod
+    def _validate_many_class_threshold(cls, value: int) -> int:
+        if value != EXPECTED_MANY_CLASS_THRESHOLD:
+            raise ValueError(
+                "inference_config.many_class_threshold must equal "
+                f"{EXPECTED_MANY_CLASS_THRESHOLD}, got {value}"
+            )
+        return int(value)
+
+    @field_validator("quantile_levels")
+    @classmethod
+    def _reject_quantile_levels(cls, value: list[float] | None) -> list[float] | None:
+        if value is not None:
+            raise ValueError(
+                "inference_config.quantile_levels is not supported in this branch; "
+                "regression export has been removed pending a staged rebuild."
+            )
+        return value
+
+    @model_validator(mode="after")
+    def _validate_model_stage(self) -> "_InferenceConfigPayload":
+        if self.model_stage is not None and self.model_arch != STAGED_MODEL_ARCH:
+            raise ValueError(
+                "inference_config.model_stage is only valid when model_arch='tabfoundry_staged'"
+            )
+        return self
+
+
+class _ProducerInfoPayload(_ContractsPayloadModel):
+    name: StrictStr
+    version: StrictStr
+    git_sha: StrictStr | None = None
+
+
+class _ExportFilesPayload(_ContractsPayloadModel):
+    weights: StrictStr
+    inference_config: StrictStr
+    preprocessor_state: StrictStr
+
+
+class _ExportWeightsPayload(_ContractsPayloadModel):
+    file: StrictStr
+    sha256: StrictStr
+
+    @field_validator("sha256")
+    @classmethod
+    def _validate_sha256(cls, value: str) -> str:
+        return _validate_hex_digest(value)
+
+
+class _ExportChecksumsPayload(_ContractsPayloadModel):
+    weights: StrictStr
+    inference_config: StrictStr
+    preprocessor_state: StrictStr
+
+    @field_validator("weights", "inference_config", "preprocessor_state")
+    @classmethod
+    def _validate_sha256(cls, value: str) -> str:
+        return _validate_hex_digest(value)
+
+
+class _DtypePolicyPayload(_ContractsPayloadModel):
+    features: StrictStr
+    classification_labels: StrictStr
+    regression_targets: StrictStr
+
+    @model_validator(mode="after")
+    def _validate_expected_values(self) -> "_DtypePolicyPayload":
+        payload = self.model_dump()
+        for key, expected in DTYPE_POLICY.items():
+            actual = str(payload[key])
+            if actual != expected:
+                raise ValueError(
+                    f"preprocessor_state.dtype_policy.{key} must equal {expected!r}, got {actual!r}"
+                )
+        return self
+
+
+class _LegacyMissingValuePolicyPayload(_ContractsPayloadModel):
+    strategy: StrictStr
+    all_nan_fill: float
+
+    @model_validator(mode="after")
+    def _validate_expected_values(self) -> "_LegacyMissingValuePolicyPayload":
+        if self.strategy != MISSING_VALUE_STRATEGY_TRAIN_MEAN:
+            raise ValueError(
+                "preprocessor_state.missing_value_policy.strategy must equal "
+                f"{MISSING_VALUE_STRATEGY_TRAIN_MEAN!r}"
+            )
+        if not math.isfinite(float(self.all_nan_fill)):
+            raise ValueError("preprocessor_state.missing_value_policy.all_nan_fill must be finite")
+        if float(self.all_nan_fill) != EXPECTED_MISSING_VALUE_ALL_NAN_FILL:
+            raise ValueError(
+                "preprocessor_state.missing_value_policy.all_nan_fill must equal "
+                f"{EXPECTED_MISSING_VALUE_ALL_NAN_FILL}"
+            )
+        return self
+
+
+class _ExportMissingValuePolicyPayload(_ContractsPayloadModel):
+    strategy: StrictStr
+    all_nan_fill: float
+    impute_missing: StrictBool = True
+
+    @field_validator("strategy")
+    @classmethod
+    def _validate_strategy(cls, value: str) -> str:
+        if value != MISSING_VALUE_STRATEGY_TRAIN_MEAN:
+            raise ValueError(
+                "preprocessor_state.missing_value_policy.strategy must equal "
+                f"{MISSING_VALUE_STRATEGY_TRAIN_MEAN!r}"
+            )
+        return value
+
+    @field_validator("all_nan_fill")
+    @classmethod
+    def _validate_all_nan_fill(cls, value: float) -> float:
+        if not math.isfinite(float(value)):
+            raise ValueError("preprocessor_state.missing_value_policy.all_nan_fill must be finite")
+        return float(value)
+
+
+class _ClassificationLabelPolicyPayload(_ContractsPayloadModel):
+    mapping: StrictStr
+    unseen_test_label: StrictStr
+
+    @model_validator(mode="after")
+    def _validate_expected_values(self) -> "_ClassificationLabelPolicyPayload":
+        if self.mapping != CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP:
+            raise ValueError(
+                "preprocessor_state.classification_label_policy.mapping must equal "
+                f"{CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP!r}"
+            )
+        if self.unseen_test_label != UNSEEN_TEST_LABEL_POLICY_FILTER:
+            raise ValueError(
+                "preprocessor_state.classification_label_policy.unseen_test_label must equal "
+                f"{UNSEEN_TEST_LABEL_POLICY_FILTER!r}"
+            )
+        return self
+
+
+class _LegacyPreprocessorStatePayload(_ContractsPayloadModel):
+    feature_order_policy: StrictStr
+    missing_value_policy: _LegacyMissingValuePolicyPayload
+    classification_label_policy: _ClassificationLabelPolicyPayload
+    dtype_policy: _DtypePolicyPayload
+    feature_types: list[StrictStr] | None = None
+
+    @field_validator("feature_order_policy")
+    @classmethod
+    def _validate_feature_order_policy(cls, value: str) -> str:
+        if value != EXPECTED_V2_FEATURE_ORDER_POLICY:
+            raise ValueError(
+                "preprocessor_state.feature_order_policy must equal "
+                f"{EXPECTED_V2_FEATURE_ORDER_POLICY!r}"
+            )
+        return value
+
+
+class _ExportPreprocessorStatePayload(_ContractsPayloadModel):
+    feature_order_policy: StrictStr
+    missing_value_policy: _ExportMissingValuePolicyPayload
+    classification_label_policy: _ClassificationLabelPolicyPayload
+    dtype_policy: _DtypePolicyPayload
+
+    @field_validator("feature_order_policy")
+    @classmethod
+    def _validate_feature_order_policy(cls, value: str) -> str:
+        if value != FEATURE_ORDER_POLICY_POSITIONAL:
+            raise ValueError(
+                "preprocessor_state.feature_order_policy must equal "
+                f"{FEATURE_ORDER_POLICY_POSITIONAL!r}"
+            )
+        return value
+
+
+class _ManifestPayloadV2(_ContractsPayloadModel):
+    schema_version: Literal["tab-foundry-export-v2"]
+    producer: _ProducerInfoPayload
+    task: Literal["classification"]
+    model: _ManifestModelPayloadV2
+    created_at_utc: StrictStr
+    files: _ExportFilesPayload
+    checksums: _ExportChecksumsPayload
+
+    @field_validator("created_at_utc")
+    @classmethod
+    def _validate_created_at_utc(cls, value: str) -> str:
+        return _validate_created_at_utc(value)
+
+
+class _ManifestPayloadV3(_ContractsPayloadModel):
+    schema_version: Literal["tab-foundry-export-v3"]
+    producer: _ProducerInfoPayload
+    task: Literal["classification"]
+    model: _ManifestModelPayloadV3
+    created_at_utc: StrictStr
+    manifest_sha256: StrictStr
+    inference: _InferenceConfigPayload
+    preprocessor: _ExportPreprocessorStatePayload
+    weights: _ExportWeightsPayload
+
+    @field_validator("created_at_utc")
+    @classmethod
+    def _validate_created_at_utc(cls, value: str) -> str:
+        return _validate_created_at_utc(value)
+
+    @field_validator("manifest_sha256")
+    @classmethod
+    def _validate_manifest_sha256(cls, value: str) -> str:
+        return _validate_hex_digest(value)
 
 
 @dataclass(slots=True)

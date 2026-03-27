@@ -14,13 +14,16 @@ from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     resolve_staged_surface,
 )
 from tab_foundry.model.spec import ModelBuildSpec, model_build_spec_from_mappings
+from tab_foundry.training.prior.settings import (
+    DEFAULT_BATCH_SIZE,
+    PriorBackendSurfaceConfig,
+    resolve_prior_backend_surface_config,
+)
 from tab_foundry.training.prior_dump import PriorDumpNonFinitePolicy
 from tab_foundry.training.schedule import StageConfig, build_stage_configs
 
 
-DEFAULT_BATCH_SIZE = 32
 _DEFAULT_STAGED_PRIOR_WANDB_RUN_NAME = "cls-benchmark-staged-prior"
-_SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES = ("none", "sqrt", "linear")
 
 
 @dataclass(slots=True, frozen=True)
@@ -110,20 +113,15 @@ def _resolve_prior_missingness_config(cfg: DictConfig) -> dict[str, Any] | None:
     }
 
 
-def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> PriorDumpNonFinitePolicy:
-    legacy_prior_cfg = getattr(cfg, "legacy_prior", None)
-    raw_value = (
-        "error"
-        if legacy_prior_cfg is None
-        else getattr(legacy_prior_cfg, "non_finite_policy", "error")
+def _prior_backend_surface_config(cfg: DictConfig) -> PriorBackendSurfaceConfig:
+    return resolve_prior_backend_surface_config(
+        training_cfg=_resolve_mapping(getattr(cfg, "training", None), name="training"),
+        legacy_prior_cfg=_resolve_mapping(getattr(cfg, "legacy_prior", None), name="legacy_prior"),
     )
-    normalized = str(raw_value).strip().lower()
-    if normalized not in {"error", "skip"}:
-        raise ValueError(
-            "legacy_prior.non_finite_policy must be one of {'error', 'skip'}, "
-            f"got {raw_value!r}"
-        )
-    return cast(PriorDumpNonFinitePolicy, normalized)
+
+
+def _resolve_prior_dump_non_finite_policy(cfg: DictConfig) -> PriorDumpNonFinitePolicy:
+    return cast(PriorDumpNonFinitePolicy, _prior_backend_surface_config(cfg).non_finite_policy)
 
 
 def _queue_aware_run_name_from_output_dir(output_dir: Path) -> str | None:
@@ -182,39 +180,15 @@ def _resolve_prior_dump_batch_size(
 ) -> int:
     if override is not None:
         return _resolve_positive_int(override, name="batch_size")
-    legacy_prior_cfg = getattr(cfg, "legacy_prior", None)
-    raw_value = (
-        DEFAULT_BATCH_SIZE
-        if legacy_prior_cfg is None
-        else getattr(legacy_prior_cfg, "batch_size", DEFAULT_BATCH_SIZE)
-    )
-    return _resolve_positive_int(raw_value, name="legacy_prior.batch_size")
+    return int(_prior_backend_surface_config(cfg).batch_size or DEFAULT_BATCH_SIZE)
 
 
 def _resolve_prior_dump_lr_scale_rule(cfg: DictConfig) -> str:
-    legacy_prior_cfg = getattr(cfg, "legacy_prior", None)
-    raw_value = (
-        "none"
-        if legacy_prior_cfg is None
-        else getattr(legacy_prior_cfg, "lr_scale_rule", "none")
-    )
-    normalized = str(raw_value).strip().lower()
-    if normalized not in _SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES:
-        raise ValueError(
-            "legacy_prior.lr_scale_rule must be one of "
-            f"{_SUPPORTED_PRIOR_DUMP_LR_SCALE_RULES}, got {raw_value!r}"
-        )
-    return normalized
+    return str(_prior_backend_surface_config(cfg).lr_scale_rule or "none")
 
 
 def _resolve_prior_dump_batch_reference_size(cfg: DictConfig) -> int:
-    legacy_prior_cfg = getattr(cfg, "legacy_prior", None)
-    raw_value = (
-        DEFAULT_BATCH_SIZE
-        if legacy_prior_cfg is None
-        else getattr(legacy_prior_cfg, "batch_reference_size", DEFAULT_BATCH_SIZE)
-    )
-    return _resolve_positive_int(raw_value, name="legacy_prior.batch_reference_size")
+    return int(_prior_backend_surface_config(cfg).batch_reference_size or DEFAULT_BATCH_SIZE)
 
 
 def _resolve_prior_dump_batch_config(

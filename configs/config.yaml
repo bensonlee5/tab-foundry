@@ -2,14 +2,13 @@ defaults:
   - data: default
   - preprocessing: default
   - training: default
-  - legacy_prior: default
   - model: default
   - optimizer: muon_default
   - schedule: scaled_default
   - runtime: workstation
   - logging: wandb
   - _self_
-  - experiment: cls_workstation
+  - experiment: cls_workstation_sandwich
 
 task: classification
 
