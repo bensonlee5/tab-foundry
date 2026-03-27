@@ -324,7 +324,8 @@ This roadmap assumes the following repo truths:
 - TF-RD-013 is complete: the representative post-008 synthetic-data surface is
   `tf_rd_013_dagzoo_shape_aware_size_medium_v1`.
 - The detailed historical record remains in completed issues, sweep artifacts,
-  and [reference/evidence.md](/Users/bensonlee/dev/tab-foundry/reference/evidence.md); the sections below focus on active and later work only.
+  and [reference/evidence.md](../../reference/evidence.md); the sections below
+  focus on active and later work only.
 
 ### TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Row-First Base
 
