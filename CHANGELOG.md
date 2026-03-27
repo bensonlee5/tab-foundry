@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-03-27
+
+### Changed
+
+- User-facing break: the root workstation defaults now promote
+  `tabfoundry_sandwich` as the canonical development family. The frozen
+  `tabfoundry_simple` control lane remains available, and historical staged
+  configs still resolve through compatibility handling when staged-only
+  overrides are used without an explicit `model.arch`.
+- User-facing note: prior-specific `legacy_prior` settings are no longer
+  composed into the generic root config by default. Exact prior workflows now
+  resolve that surface only when the selected backend needs it.
+- User-facing note: model spec parsing, export v3 contract loading,
+  benchmark/control registries, and system-delta sweep metadata now validate
+  through typed Pydantic payloads while preserving the current export artifact
+  version and staged sweep compatibility paths.
+
 ## [0.13.0] - 2026-03-27
 
 ### Changed
