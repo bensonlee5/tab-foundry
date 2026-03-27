@@ -38,24 +38,22 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
   runtime and VRAM efficiency evidence plus the measured-policy pre-scaling
   handoff
-- [`TF-RD-019`](roadmap_evidence/tf_rd_019_dagzoo_filtering_policy.md):
-  dagzoo filtering-policy evidence and open curation questions
+- [`TF-RD-016`](roadmap_evidence/tf_rd_016_architecture_surface_adequacy.md):
+  existing-surface adequacy and selective expansion evidence
+- [`TF-RD-010`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
+  first many-class plus missingness dagzoo gate evidence on the row-first base
+- [`TF-RD-009`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
+  classification-first scaling-law design evidence and the runtime plus
+  harder-surface handoff
 - [`TF-RD-014`](roadmap_evidence/tf_rd_014_missingness_robustness.md):
   missingness robustness evidence and benchmark-ladder framing
 - [`TF-RD-017`](roadmap_evidence/tf_rd_017_class_imbalance_robustness.md):
   class-imbalance robustness evidence and reporting contract
-- [`TF-RD-016`](roadmap_evidence/tf_rd_016_architecture_surface_adequacy.md):
-  existing-surface adequacy and selective expansion evidence
-- [`TF-RD-010`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
-  many-class promotion evidence on the row-first base
 - [`TF-RD-015`](roadmap_evidence/tf_rd_015_regression_rebuild.md):
   deferred regression rebuild evidence after the classification-first scaling
   program
 - [`TF-RD-012`](roadmap_evidence/tf_rd_012_inference_handoff_and_later_modalities.md):
   inference handoff and later-modality evidence
-- [`TF-RD-009`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
-  classification-first scaling-law design evidence and the runtime plus
-  harder-surface handoff
 
 ## Evidence-to-Roadmap Mapping
 
@@ -86,7 +84,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 | Broken Neural Scaling Laws (2210.14891) | Knees and plateaus must be treated as expected outcomes when the architecture target is still moving | `TF-RD-009` | Next | medium |
 | SAINT (2106.01342) | Row/column interaction changes should be benchmarked as explicit structural choices rather than imported as defaults | `TF-RD-005`, `TF-RD-006` | Next | medium |
 | Perceiver (2103.03206) | Latent bottlenecks remain a later alternative if row/column token count becomes the limiting factor | `TF-RD-006`, `TF-RD-012` | Later | medium |
-| EquiTabPFN (2502.06684) | Label-conditioning choices should stay modular so target handling can evolve after the row-first base stabilizes | `TF-RD-010`, `TF-RD-012` | Later | medium |
+| EquiTabPFN (2502.06684) | Label-conditioning choices should stay modular so target handling can evolve after the row-first base stabilizes | `TF-RD-010`, `TF-RD-012` | Next | medium |
 | TabDPT (2410.18164) | Prior/source changes are a later scaling lever and should not displace the core architecture migration prematurely | `TF-RD-011`, `TF-RD-012` | Later | medium |
 | Sentence-BERT (D19-1410) | Text-conditioned columns should remain an external-embedding later lane rather than a distraction from the classification-first backbone plan | `TF-RD-012` | Later | high |
 | nanochat (repo) | Compact-transformer training and residual-layout ideas are valid donors, but only when they preserve the tabular set-structured goal | `TF-RD-002`, `TF-RD-007`, `TF-RD-009` | Now | high |
@@ -242,7 +240,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     `task_batch_size` ladder on that medium surface under `#109`
   - `TF-RD-020` now records the adjacent harder dagzoo synthetic front winners
     before TF-RD-018 resumes optimizer-family follow-up
-  - issue `#147` now records the canonical pre-filter TF-RD-020 harder-front
+  - issue `#147` now records the canonical TF-RD-020 harder-front
     ladder plus the matching `tf_rd_020_*_v1` corpus recipes
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_018_training_surface_adequacy.md`, with

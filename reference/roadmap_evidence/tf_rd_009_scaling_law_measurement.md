@@ -8,7 +8,7 @@ This is the canonical long-form evidence note for
 - Dependency position: follows
   [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md),
   [TF-RD-022](tf_rd_022_training_runtime_vram_efficiency.md),
-  [TF-RD-014](tf_rd_014_missingness_robustness.md), and the simplified-parent
+  [TF-RD-010](tf_rd_010_many_class_promotion.md), and the simplified-parent
   phase of
   [TF-RD-016](../../docs/development/roadmap.md#tf-rd-016-architecture-surface-adequacy-sandwich-simplification-and-selective-expansion)
 
@@ -48,6 +48,8 @@ This is the canonical long-form evidence note for
 - sandwich simplification under
   [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is the required
   pre-scaling step for the family, but it does not satisfy TF-RD-009 by itself
+- the first scaling target is now a fixed dagzoo many-class plus missingness
+  slice rather than the earlier binary-only regime
 - regression is explicitly deferred from the first scaling program and is not a
   blocker for the first classification law fit
 
@@ -80,6 +82,8 @@ This is the canonical long-form evidence note for
   - optimizer transfer via LR, momentum, and batch
   - fixed inherited runtime policy
   - fixed curriculum or SCM-mixture slice
+- the first carried slice should be dagzoo-backed many-class plus missingness,
+  and the primary objective on that slice should be multiclass log loss
 - matched token budget remains necessary, but comparisons should be interpreted
   through matched regime budget:
   - token budget
@@ -92,8 +96,8 @@ This is the canonical long-form evidence note for
 ## Open Evidence Gaps
 
 - the dedicated literature-synthesis and law-design note is not yet written
-- the repo does not yet have one fixed dagzoo curriculum slice and one
-  matching missingness read on the same simplified sandwich trunk
+- the repo does not yet have one fixed dagzoo many-class plus missingness slice
+  on the same simplified sandwich trunk
 - the runtime policy is not yet finalized as a hard inherited precondition for
   the scaling ladder
 - sweep/result summaries still need compact presentation of the new
@@ -104,8 +108,9 @@ This is the canonical long-form evidence note for
 - the repo has a written law-design note that separates theory-backed and
   empirical dimensions explicitly
 - width-depth classification laws are fit on the simplified sandwich family
-  under one carried dagzoo slice and one inherited runtime policy
+  under one carried dagzoo many-class plus missingness slice and one inherited
+  runtime policy
 - the scaling artifacts compare rows by matched regime budget with final
-  classification log loss as the primary objective
+  multiclass log loss as the primary objective
 - any later `sandwich_scale` interface is explicitly derived from those law
   fits and remains internal until cross-surface validation is complete

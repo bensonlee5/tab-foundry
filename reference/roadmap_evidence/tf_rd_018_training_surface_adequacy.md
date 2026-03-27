@@ -10,7 +10,8 @@ This is the canonical long-form evidence note for
   records three synthetic harder-front family winners before the remaining
   optimizer or LR or clipping continuation, and then sets the default training
   surface for
-  [TF-RD-014](tf_rd_014_missingness_robustness.md),
+  [TF-RD-010](tf_rd_010_many_class_promotion.md), later robustness lanes such
+  as [TF-RD-014](tf_rd_014_missingness_robustness.md) and
   [TF-RD-017](tf_rd_017_class_imbalance_robustness.md), and the scaling handoff
   into [TF-RD-009](tf_rd_009_scaling_law_measurement.md)
 
@@ -48,7 +49,7 @@ This is the canonical long-form evidence note for
   TF-RD-018 resumes optimizer-family, LR-shape, clipping, or step-budget
   follow-up
 - [#147](https://github.com/bensonlee5/tab-foundry/issues/147) now records the
-  canonical pre-filter harder-front ladder under
+  canonical harder-front ladder under
   [tf_rd_020_harder_dagzoo_ladder_v1](../system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md)
 - `tf_rd_020_shift_noise_drift_v1` is now the default TF-RD-018 harder
   carry-forward surface because it leads the kept TF-RD-020 winners on final
@@ -92,7 +93,7 @@ This is the canonical long-form evidence note for
 - carry that settled batch rung onto TF-RD-020 before reopening optimizer or
   schedule-family follow-up
 - use the recorded `tf_rd_020_harder_dagzoo_ladder_v1` ladder as the fixed
-  pre-filter handoff for issues `#148`, `#149`, and `#150` rather than
+  harder-front handoff for issues `#148`, `#149`, and `#150` rather than
   reopening harder-front design inside TF-RD-018
 - use `tf_rd_020_shift_noise_drift_v1` as the default harder carry-forward
   surface for issues `#137`, `#138`, and `#139`

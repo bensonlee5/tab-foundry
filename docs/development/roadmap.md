@@ -14,9 +14,9 @@ The repo-wide plan is now architecture-first:
   every scale ladder inherits one measured runtime policy
 - stay free to borrow the best components from TabPFN and other tabular models
   rather than aiming for literal TabICLv2 parity
-- defer regression from the first classification scaling plan; many-class can
-  advance later as a non-blocking extension once the classification base is
-  coherent and documented
+- defer regression from the first classification scaling plan, and use
+  many-class plus missingness as the first anti-saturation classification regime
+  before the first scaling fit
 
 Use these alongside this roadmap:
 
@@ -97,10 +97,11 @@ Important non-goals for this roadmap:
 - Row-first migration work should move one architectural boundary at a time:
   shared surface, small-class/test-self bridge, grouped tokens, row
   embedding, column set reasoning, then row-level context.
-- After the binary anchor is coherent, the next deliberate fronts should make
-  the research surface less saturating and more realistic: synthetic data,
-  training adequacy, runtime policy, missingness, class imbalance, and later
-  many-class.
+- After the binary anchor is coherent, the next deliberate front should make
+  the research surface less saturating and more realistic: a dagzoo-backed
+  many-class plus missingness regime on the frozen sandwich parent, followed by
+  later robustness lanes such as deeper missingness-mechanism and
+  class-imbalance coverage.
 - If those harder or broader surfaces still leave the model hard to separate or
   obviously underfit, open a later architecture-surface adequacy pass before
   relying on scaling-law work as the main next source of evidence.
@@ -123,17 +124,18 @@ Important non-goals for this roadmap:
   optimizing it; TF-RD-018 training adequacy next on that representative data
   base; TF-RD-020 harder dagzoo corpus fronts next as the adjacent synthetic
   harder-surface lane, closing on one kept uncapped winner per family on the
-  canonical pre-filter ladder; TF-RD-021 steering-derived dagzoo corpus fronts
+  canonical harder-front ladder; TF-RD-021 steering-derived dagzoo corpus fronts
   after TF-RD-018 settles one explicit default recipe and dagzoo RD-008
   steering lands, so the repo can test whether curriculum-steered corpora beat
   the TF-RD-020 control before benchmark-front ladders; TF-RD-022 runtime and
   VRAM efficiency next as the hard pre-scaling gate that makes time and memory
-  a measured surface without reopening the carried recipe; TF-RD-021B
-  simplification work on `tabfoundry_sandwich` then narrows the classification
-  parent before broader law fitting; TF-RD-014 missingness and TF-RD-017
-  class-imbalance remain the preferred benchmark-backed harder-surface ladders;
-  then TF-RD-016 architecture-surface adequacy and bounded low-level
-  micro-decisions.
+  a measured surface without reopening the carried recipe; the simplified-parent
+  phase under TF-RD-016 then narrows the sandwich classification parent before
+  broader law fitting; TF-RD-010 then uses that frozen parent on one carried
+  dagzoo many-class plus missingness slice so the first scaling target does not
+  saturate too early on binary data; TF-RD-009 then fits the first scaling law
+  on that carried multiclass slice; TF-RD-014 missingness follow-up and
+  TF-RD-017 class-imbalance remain later robustness lanes off that main path.
 - Low-level questions such as norm family or placement, learned special-token
   initialization scale, QASS scaler capacity, and activation family belong
   under TF-RD-016 after the earlier adequacy and harder-surface gates are in
@@ -170,17 +172,13 @@ retained for traceability.
 | 12 | TF-RD-020 | Harder dagzoo corpus fronts on the promoted anchor | completed | Completed |
 | 13 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the promoted anchor | planned | Next |
 | 14 | TF-RD-022 | Training runtime and VRAM efficiency before classification scaling | planned | Next |
-| 15 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
-| 16 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
-| 17 | TF-RD-016 | Architecture surface adequacy, sandwich simplification, and selective expansion | planned | Next |
-| 18 | TF-RD-010 | Many-class promotion on the row-first base | planned | Later |
-| 19 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | planned | Next |
+| 15 | TF-RD-016 | Architecture surface adequacy, sandwich simplification, and selective expansion | planned | Next |
+| 16 | TF-RD-010 | First many-class + missingness dagzoo gate on the row-first base | planned | Next |
+| 17 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | planned | Next |
+| 18 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
+| 19 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
 | 20 | TF-RD-015 | Regression rebuild deferred from the classification-first scaling plan | research | Later |
 | 21 | TF-RD-012 | Inference handoff and later modalities | research | Later |
-
-TF-RD-019 remains intentionally unranked in the canonical queue because it is a
-separate later filtering-policy lane, but it is included in the dependency
-graph below for completeness.
 
 ## Dependency Graph
 
@@ -203,11 +201,10 @@ flowchart TD
     RD020["TF-RD-020<br/>Harder dagzoo<br/>corpus fronts"]
     RD021["TF-RD-021<br/>Steering-derived<br/>corpus fronts"]
     RD022["TF-RD-022<br/>Runtime & VRAM<br/>pre-scaling gate"]
-    RD019["TF-RD-019<br/>Filtering policy"]
     RD014["TF-RD-014<br/>Missingness<br/>robustness"]
     RD017["TF-RD-017<br/>Class-imbalance<br/>robustness"]
     RD016["TF-RD-016<br/>Architecture surface<br/>adequacy"]
-    RD010["TF-RD-010<br/>Many-class promotion"]
+    RD010["TF-RD-010<br/>Many-class + missingness<br/>dagzoo gate"]
     RD015["TF-RD-015<br/>Regression rebuild<br/>(deferred)"]
     RD012["TF-RD-012<br/>Inference handoff &<br/>later modalities"]
     RD009["TF-RD-009<br/>Scaling-law design &<br/>measurement"]
@@ -224,23 +221,15 @@ flowchart TD
     RD013 --> RD018
     RD018 --> RD020
     RD018 --> RD021
-    RD018 -.-> RD022
     RD020 --> RD021
-    RD013 -.-> RD019
-    RD020 -.-> RD019
-    RD021 --> RD014
-    RD021 --> RD017
-    RD021 --> RD009
-    RD022 -.-> RD014
-    RD014 --> RD016
-    RD014 --> RD009
-    RD017 --> RD016
-    RD013 --> RD016
+    RD021 --> RD022
+    RD022 --> RD016
     RD016 --> RD010
+    RD010 --> RD009
+    RD010 --> RD014
+    RD016 --> RD017
     RD016 --> RD015
     RD016 --> RD012
-    RD022 --> RD009
-    RD016 --> RD009
 
     classDef done fill:#d4edda,stroke:#28a745,color:#155724;
     classDef readyNow fill:#fff3cd,stroke:#ffc107,color:#856404;
@@ -251,10 +240,10 @@ flowchart TD
     class RD000,RD001,RD002,RD003,RD004,RD005,RD006,RD007,RD008,RD011,RD013,RD020 done;
     class RD009,RD018,RD021,RD022,RD014,RD017,RD010 readyNow;
     class RD016 gate;
-    class RD012,RD015,RD019 later;
+    class RD012,RD015 later;
 ```
 
-Current path: **TF-RD-018 → TF-RD-021 → TF-RD-022 → TF-RD-016 (simplified-parent phase) → TF-RD-014 → TF-RD-009**.
+Current path: **TF-RD-018 → TF-RD-021 → TF-RD-022 → TF-RD-016 (simplified-parent phase) → TF-RD-010 → TF-RD-009**.
 
 - TF-RD-018 is the first active gate: finish one explicit training recipe on
   the inherited `tf_rd_020_shift_noise_drift_v1` harder surface.
@@ -264,18 +253,21 @@ Current path: **TF-RD-018 → TF-RD-021 → TF-RD-022 → TF-RD-016 (simplified-
   policy before broader classification ladders or scaling fits.
 - TF-RD-016 then chooses and freezes a simplified sandwich parent for the
   classification family.
-- TF-RD-014 reads missingness on that simplified parent and inherited runtime
-  policy.
-- TF-RD-009 only starts after those gates are closed and compares by matched
-  regime budget rather than token budget alone.
+- TF-RD-010 then evaluates the first dagzoo-backed many-class plus missingness
+  classification slice on that frozen parent, with multiclass log loss as the
+  primary objective.
+- TF-RD-009 only starts after those gates are closed and fits the first law on
+  that carried multiclass slice under matched regime budget.
 
 Parallel/later lanes are intentionally off that main path:
 
+- TF-RD-014 is now a follow-on missingness robustness lane after the first
+  many-class plus missingness gate rather than a blocker to the first scaling
+  fit.
 - TF-RD-017 is still a preferred benchmark-backed robustness lane, but not a
   blocker for the first scaling fit.
-- TF-RD-010 is a later many-class extension.
-- TF-RD-015 regression, TF-RD-012 inference handoff/later modalities, and
-  TF-RD-019 filtering policy all remain later work.
+- TF-RD-015 regression and TF-RD-012 inference handoff/later modalities remain
+  later work.
 
 ## Current Capability Matrix
 
@@ -286,10 +278,10 @@ Parallel/later lanes are intentionally off that main path:
 | Sandwich is the primary classification candidate | `partial` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, and the first knob screen plus bounded width/head follow-up both kept the compact control; [#184](https://github.com/bensonlee5/tab-foundry/issues/184) now owns simplified-parent follow-up | Choose and freeze one simplified sandwich parent before harder-surface or scaling work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B` |
 | Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, TF-RD-020 settled harder-front winners, and TF-RD-018 kept `schedulefree_adamw` on the inherited noise-drift runtime | Finish TF-RD-018 continuation and TF-RD-021 steering before using those fronts as scaling evidence | `TF-RD-011`, `TF-RD-013`, `TF-RD-018`, `TF-RD-020`, `TF-RD-021` |
 | Runtime and VRAM are measurable | `partial` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, and the repo already has bf16/checkpointing-capable runtime plumbing | TF-RD-022 still needs to turn that into one explicit 80 GB A100-safe runtime policy | `TF-RD-022` |
-| Missingness and imbalance are the next benchmark-backed robustness lanes | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 and TF-RD-017 still need explicit benchmark ladders and keep/defer decisions on the promoted family | `TF-RD-014`, `TF-RD-017` |
-| Many-class exists but is later | `partial` | `many_class` is implemented and the small multiclass benchmark bundle already exists | It remains a later extension, not a blocker for the first classification-scaling fit | `TF-RD-010` |
+| Many-class + missingness is now the first anti-saturation carried slice | `partial` | `many_class` is implemented, the small multiclass bundle already exists, and the roadmap now treats a dagzoo-backed many-class plus missingness slice as the first harder classification gate | The repo still needs one explicit carried many-class plus missingness dagzoo slice on the frozen sandwich parent | `TF-RD-010` |
+| Follow-on missingness and imbalance robustness remain open | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 and TF-RD-017 still need explicit follow-on robustness ladders and keep/defer decisions on the promoted family after the first multiclass gate | `TF-RD-014`, `TF-RD-017` |
 | Regression and later modalities are deferred | `research` | Partial bundle/runtime scaffolding exists | They should not absorb attention from the classification-first path | `TF-RD-015`, `TF-RD-012` |
-| Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata | TF-RD-009 still waits on the runtime gate, simplified parent, and one carried harder classification slice | `TF-RD-009` |
+| Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata | TF-RD-009 still waits on the runtime gate, simplified parent, and one fixed dagzoo many-class plus missingness slice | `TF-RD-009` |
 
 ## Current Implementation Baseline
 
@@ -309,9 +301,10 @@ This roadmap assumes the following repo truths:
   one-way data boundary are part of the baseline rather than active blockers.
 - the representative post-008 synthetic training-data surface is
   `tf_rd_013_dagzoo_shape_aware_size_medium_v1`.
-- many-class scaffolding exists, but many-class, regression, and later
-  inference/runtime handoff are not part of the first classification-scaling
-  path.
+- many-class scaffolding exists, and the next harder carried classification
+  target is now a dagzoo-backed many-class plus missingness slice; regression
+  and later inference/runtime handoff are still not part of the first
+  classification-scaling path.
 
 ## Roadmap Items
 
@@ -333,27 +326,37 @@ This roadmap assumes the following repo truths:
 - The detailed historical record remains in completed issues, sweep artifacts,
   and [reference/evidence.md](/Users/bensonlee/dev/tab-foundry/reference/evidence.md); the sections below focus on active and later work only.
 
-### TF-RD-010: Many-Class Promotion On The Row-First Base
+### TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Row-First Base
 
 - Status: `planned`
-- Milestone: `Later`
-- Goal: extend the promoted row-first backbone into the existing `many_class`
-  path
+- Milestone: `Next`
+- Goal: use a dagzoo-backed many-class plus missingness regime as the first
+  harder post-simplification classification gate so the first scaling target
+  does not saturate too early on binary data
 - Current state:
   - the staged family already contains `many_class`
   - the hierarchical many-class machinery already exists
   - `nanotabpfn_openml_classification_small_v1.json` already exists as a
     benchmark-facing multiclass bundle
-  - many-class is not part of the first classification-scaling path
+  - issue [#52](https://github.com/bensonlee5/tab-foundry/issues/52) is now
+    the epic for this lane, and issue
+    [#99](https://github.com/bensonlee5/tab-foundry/issues/99) is the first
+    execution issue
+  - this lane now sits on the first classification-scaling path after the
+    simplified-parent phase of TF-RD-016 rather than as a later extension
 - Required work:
-  - confirm the canonical multiclass bundle and promoted backbone
-  - validate many-class on the promoted row-first base without opening a
-    separate architecture lane
-  - keep this as a later extension rather than a blocker for the first
-    classification scaling program
+  - confirm one carried dagzoo-backed many-class plus missingness slice and the
+    promoted backbone that will read it
+  - keep the lane on the same promoted family rather than opening a separate
+    architecture track
+  - evaluate this first gate by multiclass log loss first, with runtime,
+    stability, and calibration-oriented metrics as guardrails
+  - record one explicit keep/defer decision on the carried many-class plus
+    missingness slice before TF-RD-009 starts
 - Exit criteria:
-  - many-class has benchmark-facing evidence on the promoted backbone and is no
-    longer only untested scaffolding
+  - the repo has one explicit carried dagzoo many-class plus missingness slice
+    on the promoted backbone
+  - multiclass is no longer only untested scaffolding on the first scaling path
 
 ### TF-RD-012: Inference Handoff And Later Modalities
 
@@ -376,16 +379,16 @@ This roadmap assumes the following repo truths:
 
 - Status: `planned`
 - Milestone: `Next`
-- Goal: decide how the promoted row-first family should handle missing-valued
-  inputs in training and evaluation
+- Goal: deepen missingness robustness after the first many-class plus
+  missingness gate is established on the promoted family
 - Current state:
   - `missingness_followup` exists, but it is anchored on the older stabilized
     prenorm hybrid surface rather than the row-first line
   - the repo already has separate no-missing and allow-missing benchmark bundle
     contracts
-  - this is now one of the preferred next benchmark-backed harder-surface
-    ladders once TF-RD-013 and TF-RD-018 have settled the representative
-    training-data and adequacy surface
+  - issue [#97](https://github.com/bensonlee5/tab-foundry/issues/97) remains
+    the missingness epic, but TF-RD-010 now owns the first anti-saturation
+    many-class plus missingness gate
   - issue [#146](https://github.com/bensonlee5/tab-foundry/issues/146) now
     occupies the adjacent synthetic harder-dagzoo slot and does not replace
     this benchmark-front missingness lane
@@ -393,7 +396,8 @@ This roadmap assumes the following repo truths:
     TF-RD-008 only settled the default row-first anchor on the allow-missing
     benchmark surface
 - Required work:
-  - re-anchor missingness work on the promoted row-first base
+  - re-anchor missingness work on the promoted row-first base after the carried
+    many-class plus missingness slice is established under TF-RD-010
   - keep one pinned OpenML missingness ladder as the canonical benchmark
     baseline and allow license-cleared manifest-backed external augmentations
     when they add missingness regimes OpenML does not cover cleanly
@@ -402,13 +406,13 @@ This roadmap assumes the following repo truths:
   - keep regime identity in task-source names, bundle names, manifest names,
     and curation reports rather than changing benchmark bundle schema in this
     pass
-  - separate missing-token or missingness-mechanism adequacy from synthetic
-    missingness training and from benchmark-surface evaluation
+  - focus this lane on deeper missingness mechanism, severity, and benchmark
+    coverage rather than on establishing the first anti-saturation regime
   - decide whether explicit missingness handling belongs in the default
-    row-first line or remains an optional robustness variant
+    promoted line or remains an optional robustness variant after TF-RD-010
 - Exit criteria:
-  - the repo has a benchmark-backed missingness recommendation for the row-first
-    family
+  - the repo has a benchmark-backed follow-on missingness recommendation for
+    the promoted family beyond the first many-class plus missingness gate
 
 ### TF-RD-017: Class-Imbalance Robustness On The Promoted Anchor
 
@@ -615,19 +619,19 @@ This roadmap assumes the following repo truths:
     surface for TF-RD-018 and `tf_rd_020_noise_mixture_v1` retained as named
     fallback context.
   - The completed ladder stayed synthetic-data-only; benchmark-front
-    missingness, imbalance, and broader filtering policy remain separate work.
+    missingness and imbalance remain separate work.
 - Completed outcomes:
   - `tf_rd_020_missingness_mcar_v1` is the kept missingness family winner.
   - `tf_rd_020_shift_noise_drift_v1` is the kept default harder carry-forward
     winner.
   - `tf_rd_020_noise_mixture_v1` is the kept mechanism/noise-family winner.
-  - Larger-corpus, winner-mix, steering, and filtering follow-ups moved to
-    later lanes rather than reopening TF-RD-020 itself.
+  - Larger-corpus, winner-mix, and steering follow-ups moved to later lanes
+    rather than reopening TF-RD-020 itself.
 - Exit criteria:
   - satisfied: TF-RD-018 inherits a documented default harder front plus named
     fallback context without reopening the completed ladder
-  - satisfied: the relationship to TF-RD-014, TF-RD-017, TF-RD-019, and
-    TF-RD-021 is explicit and non-overlapping
+  - satisfied: the relationship to TF-RD-014, TF-RD-017, and TF-RD-021 is
+    explicit and non-overlapping
 
 ### TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Promoted Anchor
 
@@ -682,54 +686,7 @@ This roadmap assumes the following repo truths:
   - if a steering-derived front wins, the repo has one bounded optimizer-family
     follow-up on that front; otherwise the retry is explicitly skipped
   - the relationship between TF-RD-021 and TF-RD-018 or TF-RD-020 plus
-    TF-RD-014 and TF-RD-017 is explicit and non-overlapping
-
-### TF-RD-019: Predictable Dagzoo Filtering Policy For Training Corpora
-
-- Status: `research`
-- Milestone: `Later`
-- Goal: if this lane is reopened later, decide whether tab-foundry should treat
-  dagzoo filtering as part of the default training-data pipeline after the
-  current harder-front program, and if so, what implementation, provenance
-  contract, and throughput budget are acceptable
-- Current state:
-  - TF-RD-013 is no longer blocked on filtering for its initial dagzoo read;
-    issue `#120` records the unfiltered generated-source support artifacts
-  - dagzoo now ships a concrete small-shot ease filter contract using
-    `ease_k_small`, `easy_skill_threshold`, `easy_gain_threshold`,
-    `hard_skill_threshold`, `stump_skill_threshold`, and `use_lineage_veto`
-    rather than the removed threshold-era filter contract
-  - issue [#146](https://github.com/bensonlee5/tab-foundry/issues/146) now ends
-    with the uncapped no-filter harder-front ladder, so TF-RD-019 remains the
-    broader later policy lane for any future filtering recommendation
-  - issue [#151](https://github.com/bensonlee5/tab-foundry/issues/151) is now
-    closed `not_planned`, so there is no active TF-RD-020 filter-regime follow-up
-  - this lane is now deferred indefinitely unless later training-surface or
-    benchmark evidence makes filtering decision-relevant again
-  - `filter-calibration` is currently unsupported for the small-shot ease
-    filter, so TF-RD-019 should not assume calibration is the active decision
-    path
-  - any filtering strategy that materially reduces corpus throughput must
-    justify the cost before it becomes part of the default training-data lane
-- Required work:
-  - define what predictable training corpora mean for tab-foundry and which
-    failure modes filtering is supposed to address
-  - decide whether filtered dagzoo surfaces are required, optional, or out of
-    scope for the promoted-anchor training-data program after TF-RD-020 closes
-  - evaluate the shipped small-shot ease filter contract in dagzoo against
-    lighter heuristics or no post-generation filter rather than reopening the
-    removed threshold-era contract
-  - measure or estimate the throughput and operational cost of the candidate
-    approaches
-  - define the provenance and artifact contract needed if filtered dagzoo
-    surfaces are re-enabled
-- Exit criteria:
-  - the repo has an explicit recommendation on whether dagzoo filtering belongs
-    in the training-data pipeline after the current harder-front program closes
-  - if filtering is kept, the acceptable implementation and throughput budget
-    plus provenance contract are documented
-  - later filtered dagzoo surfaces can either be introduced under a defined
-    contract or retired explicitly
+    TF-RD-010, TF-RD-014, and TF-RD-017 is explicit and non-overlapping
 
 ### TF-RD-015: Regression Rebuild Deferred From The Classification-First Scaling Plan
 
@@ -790,8 +747,11 @@ This roadmap assumes the following repo truths:
   - Choose the smallest parent that stays inside the bounded final-log-loss,
     clipped-step-fraction, and late-drift tolerances, then freeze the
     non-shape sandwich knobs on that parent.
-  - Carry that frozen parent onto one curriculum-backed dagzoo slice and then
-    onto missingness before reopening broader architecture adequacy.
+  - Carry that frozen parent first onto one dagzoo-backed many-class plus
+    missingness slice under
+    [#52](https://github.com/bensonlee5/tab-foundry/issues/52) and
+    [#99](https://github.com/bensonlee5/tab-foundry/issues/99) before treating
+    deeper missingness or imbalance as follow-on robustness work.
   - Prefer already-exposed choices such as norm placement, tokenizer/grouping,
     and width/depth/capacity controls before adding new public fields.
   - Only if the simplified harder-surface reads remain low-signal, consider a
@@ -810,19 +770,20 @@ This roadmap assumes the following repo truths:
 
 - Status: `planned`
 - Milestone: `Next`
-- Goal: fit classification scaling laws on the simplified sandwich family only
-  after the repo has one carried harder classification surface, one runtime
-  policy, and a literature-grounded law-design note
+- Goal: fit the first classification scaling laws on the simplified sandwich
+  family only after the repo has one fixed dagzoo many-class plus missingness
+  slice, one runtime policy, and a literature-grounded law-design note
 - Current state:
   - tuning and benchmark-adjacent tooling already exist
   - scaling-law intent is clear, but scaling on the current simple binary regime
-    still risks low-signal conclusions because recent architecture deltas are
-    already close on that surface
+    risks low-signal conclusions because recent architecture deltas are already
+    close on that surface
   - training telemetry and benchmark-registry artifacts now preserve resolved
     sandwich specs, runtime summaries, and regime-budget metadata needed for
     later scaling comparisons
-  - there is still no canonical scaling artifact path on a fixed dagzoo slice
-    with matched runtime policy and matched regime budget
+  - there is still no canonical scaling artifact path on a fixed dagzoo
+    many-class plus missingness slice with matched runtime policy and matched
+    regime budget
   - sandwich-local simplification work under
     [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is the
     required precursor for this family, but it does not satisfy TF-RD-009 by
@@ -838,21 +799,24 @@ This roadmap assumes the following repo truths:
   - treat matched token budget as necessary but not sufficient; compare by
     matched regime budget using token budget, unique-task budget, fixed
     curriculum or SCM-mixture slice, and fixed task-complexity band
-  - finish TF-RD-021, TF-RD-022, TF-RD-014, and the simplified-parent phase of
+  - finish TF-RD-021, TF-RD-022, TF-RD-010, and the simplified-parent phase of
     TF-RD-016 before using scaling results as architecture evidence
   - keep the other sandwich knobs frozen at the chosen simplified-parent values
     while fitting the first width-depth classification laws
+  - use multiclass log loss as the primary ranking objective on the carried
+    many-class plus missingness slice
   - run optimizer-transfer and model-size scaling together rather than as
     separate programs
   - keep the eventual `sandwich_scale` interface internal-only until the law is
-    validated on dagzoo classification and missingness
+    validated on the carried multiclass slice and later follow-on robustness
+    lanes
 - Exit criteria:
   - the repo can fit width-depth classification laws on the simplified sandwich
-    architecture under a carried dagzoo slice that is harder or broader than
-    the current simple binary no-missing regime
+    architecture under a fixed dagzoo many-class plus missingness slice that is
+    harder or broader than the current simple binary regime
   - scaling artifacts compare runs by matched regime budget with final
-    classification log loss as the primary objective and Brier, ROC AUC,
-    clipped-step fraction, drift, and runtime as guardrails
+    multiclass log loss as the primary objective and stability, calibration,
+    and runtime as guardrails
   - any later single-knob scaling interface is explicitly derived from those
     law fits and remains internal until cross-surface validation is complete
 
@@ -879,12 +843,13 @@ hold:
 - Classification remains the anchor workload while the simplified sandwich
   parent is tested against the incumbent staged reference on harder post-008
   surfaces.
-- After TF-RD-008, harder or broader surfaces should come before large scaling
-  passes whenever the current binary regime risks saturation.
+- After TF-RD-008, the first anti-saturation carried regime should be
+  dagzoo-backed many-class plus missingness rather than another binary-only
+  surface whenever the current binary regime risks saturation.
 - Dagzoo synthetic-data efficacy is the first post-008 gate for training-surface
   optimization, and bounded low-level micro-architecture work belongs after
   that data-source decision, the initial TF-RD-018 batch-ladder closure, the
-  TF-RD-020 harder dagzoo corpus front, and at least one harder post-008
-  ladder.
+  TF-RD-020 harder dagzoo corpus front, and the first many-class plus
+  missingness gate under TF-RD-010.
 - The current large-anchor hybrid line is diagnostic evidence, not the intended
   architecture destination.

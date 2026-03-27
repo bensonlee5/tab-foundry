@@ -1,13 +1,15 @@
-# TF-RD-010: Many-Class Promotion On The Row-First Base
+# TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Row-First Base
 
 This is the canonical long-form evidence note for
-[TF-RD-010](../../docs/development/roadmap.md#tf-rd-010-many-class-promotion-on-the-row-first-base).
+[TF-RD-010](../../docs/development/roadmap.md).
 
-- Status: `completed`
+- Status: `planned`
 - Milestone: `Next`
 - Dependency position: follows
   [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md) in the current
-  roadmap ordering and extends the same staged family rather than opening a
+  roadmap ordering, establishes the first carried many-class plus missingness
+  dagzoo slice, and feeds
+  [TF-RD-009](tf_rd_009_scaling_law_measurement.md) rather than opening a
   separate architecture lane
 
 ## External Evidence
@@ -17,8 +19,8 @@ This is the canonical long-form evidence note for
   foundation-model references that keep label conditioning modular
 - Dedicated many-class literature is not yet curated beyond that shared context
 - External evidence to curate next: multiclass calibration, hierarchical
-  prediction, and many-class efficiency references if later expansion reopens
-  this lane
+  prediction, many-class efficiency, and missingness-aware multiclass
+  evaluation references for the first carried dagzoo slice
 
 ## Repo-Local Evidence
 
@@ -26,27 +28,35 @@ This is the canonical long-form evidence note for
 - the hierarchical many-class machinery already exists
 - `nanotabpfn_openml_classification_small_v1.json` already exists as a
   benchmark-facing multiclass bundle
-- the roadmap now records TF-RD-010 as completed rather than leaving it as
-  unvalidated scaffolding
+- issue [#52](https://github.com/bensonlee5/tab-foundry/issues/52) is the epic
+  for this lane, and issue
+  [#99](https://github.com/bensonlee5/tab-foundry/issues/99) is the first
+  execution issue
+- the roadmap now treats a dagzoo-backed many-class plus missingness slice as
+  the first anti-saturation classification gate before the first scaling fit
 
 ## Current Interpretation
 
-- many-class remains an extension of the promoted row-first staged family
-- the promoted row-first backbone should remain the parent for future many-class
-  work unless new evidence justifies reopening the lane
-- future many-class work should stay benchmark-first rather than opening a new
-  model family
+- keep this lane on the promoted classification family rather than opening a
+  separate multiclass model track
+- use one dagzoo-backed many-class plus missingness slice as the first carried
+  harder classification regime
+- interpret the lane by multiclass log loss first, with runtime, stability,
+  and calibration-oriented metrics as guardrails
 
 ## Open Evidence Gaps
 
 - there is no dedicated many-class literature subset yet beyond the shared
   foundation-model references
-- any future expansion would still need clearer evidence on multiclass
-  calibration and hierarchy-specific tradeoffs
-- the current note is mainly a record of the accepted extension path rather than
-  an active research queue
+- the repo does not yet have one explicit carried dagzoo many-class plus
+  missingness slice on the frozen sandwich parent
+- the first benchmark-facing many-class plus missingness sweep and decision
+  package do not exist yet
 
 ## Exit Signals
 
-- preserved historical signal: many-class uses the promoted row-first backbone,
-  has benchmark-facing evidence, and is no longer only untested scaffolding
+- the repo has one explicit carried dagzoo many-class plus missingness slice on
+  the promoted backbone
+- multiclass is no longer only untested scaffolding on the first scaling path
+- TF-RD-009 can inherit a fixed anti-saturation classification target instead
+  of reopening regime selection

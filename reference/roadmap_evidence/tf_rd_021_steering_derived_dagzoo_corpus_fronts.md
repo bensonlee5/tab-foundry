@@ -12,7 +12,9 @@ This is the canonical long-form evidence note for
   [#139](https://github.com/bensonlee5/tab-foundry/issues/139); depends on
   dagzoo RD-008 steering landing under
   [bensonlee5/dagzoo#246](https://github.com/bensonlee5/dagzoo/issues/246)
-  before the benchmark-front epics
+  before
+  [TF-RD-010](tf_rd_010_many_class_promotion.md) establishes the first carried
+  many-class plus missingness slice, and before later robustness lanes such as
   [TF-RD-014](tf_rd_014_missingness_robustness.md) and
   [TF-RD-017](tf_rd_017_class_imbalance_robustness.md)
 
@@ -71,6 +73,8 @@ This is the canonical long-form evidence note for
   beats the incumbent control; otherwise retain `tf_rd_020_shift_noise_drift_v1`
 - Only if a steering-derived front wins should tab-foundry run the bounded
   `schedulefree_adamw` versus `muon` retry tracked by issue `#166`
+- Feed the kept steering decision into TF-RD-010 as carried dagzoo-slice
+  selection rather than treating this note as a benchmark-front conclusion
 
 ## Open Evidence Gaps
 
@@ -88,6 +92,5 @@ This is the canonical long-form evidence note for
   corpus front replaces `tf_rd_020_shift_noise_drift_v1`
 - If a steering-derived front wins, the repo has one bounded optimizer-family
   follow-up on that new front; otherwise the retry is explicitly skipped
-- TF-RD-014 and TF-RD-017 can inherit a documented synthetic carry-forward
-  decision without reopening TF-RD-018 or blurring the completed TF-RD-020
-  ladder
+- TF-RD-010 can inherit a documented synthetic carry-forward decision without
+  reopening TF-RD-018 or blurring the completed TF-RD-020 ladder

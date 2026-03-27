@@ -7,9 +7,10 @@ This is the canonical long-form evidence note for
 - Milestone: `Next`
 - Dependency position: now includes an earlier simplified-parent phase before
   the main harder-surface ladders, then gates
-  [TF-RD-014](tf_rd_014_missingness_robustness.md),
-  [TF-RD-017](tf_rd_017_class_imbalance_robustness.md),
-  [TF-RD-010](tf_rd_010_many_class_promotion.md),
+  [TF-RD-010](tf_rd_010_many_class_promotion.md) as the first carried
+  many-class plus missingness slice before follow-on robustness lanes such as
+  [TF-RD-014](tf_rd_014_missingness_robustness.md) and
+  [TF-RD-017](tf_rd_017_class_imbalance_robustness.md), plus
   [TF-RD-015](tf_rd_015_regression_rebuild.md),
   [TF-RD-012](tf_rd_012_inference_handoff_and_later_modalities.md), and
   [TF-RD-009](tf_rd_009_scaling_law_measurement.md)
@@ -33,6 +34,8 @@ This is the canonical long-form evidence note for
   count, context FF expansion, dropout, and clipping
 - TF-RD-021B now makes sandwich-parent simplification the first explicit
   architecture task before broader harder-surface adequacy work
+- TF-RD-010 is now the first carried harder regime after that simplification:
+  many-class plus missingness on a dagzoo-backed slice
 - learned special-token and inducing-token initialization scale remains
   hardcoded
 - optimizer adequacy work, including `muon`, is already scoped out of this epic
@@ -42,13 +45,15 @@ This is the canonical long-form evidence note for
 
 - Phase 0 should choose and freeze a simplified sandwich parent before broader
   harder-surface adequacy work
-- Phase 1 should then read the existing surface on harder post-008 ladders
-  before adding new config fields
+- Phase 1 should then read the frozen parent on one dagzoo-backed many-class
+  plus missingness slice before adding new config fields
+- Phase 2 should use TF-RD-014 and TF-RD-017 as follow-on robustness lanes
+  rather than as blockers to the first scaling target
 - tokenizer and norm-family or placement choices are the first explicit
   subtracks because they are already exposed and could matter across multiple
   future regimes
-- selective surface expansion belongs only in Phase 2, and only if Phase 1
-  remains low-signal
+- selective surface expansion belongs only in Phase 3, and only if the carried
+  harder-surface reads remain low-signal
 
 ## Open Evidence Gaps
 
