@@ -9,7 +9,7 @@ from typing import Any, Mapping, Sequence, cast
 
 from tab_foundry.benchmark_registry import resolve_registry_path_value
 import tab_foundry.control_baseline_registry as control_baseline_registry
-from tab_foundry.bench.comparison_runtime import (
+from tab_foundry.bench.comparison_contract import (
     DEFAULT_NANOTABPFN_BATCH_SIZE,
     DEFAULT_NANOTABPFN_EVAL_EVERY,
     DEFAULT_NANOTABPFN_LR,

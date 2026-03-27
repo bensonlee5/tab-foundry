@@ -9,11 +9,11 @@ from pydantic import BaseModel, ConfigDict, Field, FiniteFloat, StrictInt, Stric
 
 from tab_foundry.bench.registry.storage import load_versioned_registry_payload
 from tab_foundry.bench.registry_common import copy_jsonable
-from tab_foundry.repo_paths import (
-    normalize_repo_relative_path,
-    repo_root,
-    resolve_repo_relative_path,
+from tab_foundry.bench.registry_paths import (  # noqa: F401 - re-exported
+    normalize_registry_path_value,
+    resolve_registry_path_value,
 )
+from tab_foundry.repo_paths import repo_root
 
 
 REGISTRY_SCHEMA = "tab-foundry-control-baselines-v1"
@@ -76,26 +76,6 @@ def default_control_baseline_registry_path() -> Path:
     """Return the repo-tracked control-baseline registry path."""
 
     return repo_root() / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
-
-
-def resolve_registry_path_value(
-    value: str,
-    *,
-    root: Path | None = None,
-) -> Path:
-    """Resolve one registry-stored path value."""
-
-    return resolve_repo_relative_path(value, root=root)
-
-
-def normalize_registry_path_value(
-    path: Path,
-    *,
-    root: Path | None = None,
-) -> str:
-    """Normalize one absolute path into the repo-relative registry form when possible."""
-
-    return normalize_repo_relative_path(path, root=root)
 
 
 def _validate_baseline_entry(entry: Any, *, baseline_id: str) -> dict[str, Any]:

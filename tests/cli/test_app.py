@@ -5,7 +5,7 @@ import subprocess
 import pytest
 
 import tab_foundry.bench.bounce_diagnosis as bounce_diagnosis_library_module
-import tab_foundry.bench.compare as compare_library_module
+import tab_foundry.bench.comparison_contract as comparison_contract_library_module
 import tab_foundry.bench.control_baseline_freeze as control_baseline_freeze_library_module
 import tab_foundry.bench.dagzoo_smoke as dagzoo_smoke_library_module
 import tab_foundry.bench.envs as env_library_module
@@ -585,7 +585,7 @@ def test_cli_groups_use_cli_only_execute_promote_and_bench_modules() -> None:
     assert research_group.research_promote_cli.__name__ == "tab_foundry.cli.research_promote"
     assert research_group.research_summarize_cli.__name__ == "tab_foundry.cli.research_summarize"
     for library_module in (
-        compare_library_module,
+        comparison_contract_library_module,
         tune_library_module,
         env_library_module,
         bundle_library_module,

@@ -9,26 +9,7 @@ from torch.nn.modules.transformer import Linear, MultiheadAttention
 
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES, build_norm
 from tab_foundry.model.outputs import ClassificationOutput, flatten_classification_output_rows
-from tab_foundry.model.spec import (
-    DEFAULT_MODEL_D_COL,
-    DEFAULT_MODEL_D_ICL,
-    DEFAULT_MODEL_FEATURE_GROUP_SIZE,
-    DEFAULT_MODEL_HEAD_HIDDEN_DIM,
-    DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE,
-    DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS,
-    DEFAULT_MODEL_NORM_TYPE,
-    DEFAULT_MODEL_TFCOL_N_HEADS,
-    DEFAULT_MODEL_TFCOL_N_INDUCING,
-    DEFAULT_MODEL_TFCOL_N_LAYERS,
-    DEFAULT_MODEL_TFICL_FF_EXPANSION,
-    DEFAULT_MODEL_TFICL_N_HEADS,
-    DEFAULT_MODEL_TFICL_N_LAYERS,
-    DEFAULT_MODEL_TFROW_CLS_TOKENS,
-    DEFAULT_MODEL_TFROW_N_HEADS,
-    DEFAULT_MODEL_TFROW_N_LAYERS,
-    DEFAULT_MODEL_TFROW_NORM,
-    DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
-)
+from tab_foundry.model.spec import FLAT_DEFAULTS as _D
 from tab_foundry.types import TaskBatch
 
 
@@ -151,65 +132,65 @@ class TabFoundrySimpleClassifier(nn.Module):
     def __init__(
         self,
         *,
-        d_col: int = DEFAULT_MODEL_D_COL,
-        d_icl: int = DEFAULT_MODEL_D_ICL,
+        d_col: int = _D["d_col"],
+        d_icl: int = _D["d_icl"],
         input_normalization: str = _REQUIRED_INPUT_NORMALIZATION,
-        feature_group_size: int = DEFAULT_MODEL_FEATURE_GROUP_SIZE,
-        many_class_train_mode: str = DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE,
-        max_mixed_radix_digits: int = DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS,
-        norm_type: str = DEFAULT_MODEL_NORM_TYPE,
-        tfcol_n_heads: int = DEFAULT_MODEL_TFCOL_N_HEADS,
-        tfcol_n_layers: int = DEFAULT_MODEL_TFCOL_N_LAYERS,
-        tfcol_n_inducing: int = DEFAULT_MODEL_TFCOL_N_INDUCING,
-        tfrow_n_heads: int = DEFAULT_MODEL_TFROW_N_HEADS,
-        tfrow_n_layers: int = DEFAULT_MODEL_TFROW_N_LAYERS,
-        tfrow_cls_tokens: int = DEFAULT_MODEL_TFROW_CLS_TOKENS,
-        tfrow_norm: str = DEFAULT_MODEL_TFROW_NORM,
-        tficl_n_heads: int = DEFAULT_MODEL_TFICL_N_HEADS,
-        tficl_n_layers: int = DEFAULT_MODEL_TFICL_N_LAYERS,
-        tficl_ff_expansion: int = DEFAULT_MODEL_TFICL_FF_EXPANSION,
+        feature_group_size: int = _D["feature_group_size"],
+        many_class_train_mode: str = _D["many_class_train_mode"],
+        max_mixed_radix_digits: int = _D["max_mixed_radix_digits"],
+        norm_type: str = _D["norm_type"],
+        tfcol_n_heads: int = _D["tfcol_n_heads"],
+        tfcol_n_layers: int = _D["tfcol_n_layers"],
+        tfcol_n_inducing: int = _D["tfcol_n_inducing"],
+        tfrow_n_heads: int = _D["tfrow_n_heads"],
+        tfrow_n_layers: int = _D["tfrow_n_layers"],
+        tfrow_cls_tokens: int = _D["tfrow_cls_tokens"],
+        tfrow_norm: str = _D["tfrow_norm"],
+        tficl_n_heads: int = _D["tficl_n_heads"],
+        tficl_n_layers: int = _D["tficl_n_layers"],
+        tficl_ff_expansion: int = _D["tficl_ff_expansion"],
         many_class_base: int = _REQUIRED_MANY_CLASS_BASE,
-        head_hidden_dim: int = DEFAULT_MODEL_HEAD_HIDDEN_DIM,
-        use_digit_position_embed: bool = DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
+        head_hidden_dim: int = _D["head_hidden_dim"],
+        use_digit_position_embed: bool = _D["use_digit_position_embed"],
     ) -> None:
         super().__init__()
-        self._require_default("d_col", int(d_col), DEFAULT_MODEL_D_COL)
+        self._require_default("d_col", int(d_col), _D["d_col"])
         self._require_default(
             "feature_group_size",
             int(feature_group_size),
-            DEFAULT_MODEL_FEATURE_GROUP_SIZE,
+            _D["feature_group_size"],
         )
         self._require_default(
             "many_class_train_mode",
             str(many_class_train_mode),
-            DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE,
+            _D["many_class_train_mode"],
         )
         self._require_default(
             "max_mixed_radix_digits",
             int(max_mixed_radix_digits),
-            DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS,
+            _D["max_mixed_radix_digits"],
         )
-        self._require_default("tfcol_n_heads", int(tfcol_n_heads), DEFAULT_MODEL_TFCOL_N_HEADS)
-        self._require_default("tfcol_n_layers", int(tfcol_n_layers), DEFAULT_MODEL_TFCOL_N_LAYERS)
+        self._require_default("tfcol_n_heads", int(tfcol_n_heads), _D["tfcol_n_heads"])
+        self._require_default("tfcol_n_layers", int(tfcol_n_layers), _D["tfcol_n_layers"])
         self._require_default(
             "tfcol_n_inducing",
             int(tfcol_n_inducing),
-            DEFAULT_MODEL_TFCOL_N_INDUCING,
+            _D["tfcol_n_inducing"],
         )
-        self._require_default("tfrow_n_heads", int(tfrow_n_heads), DEFAULT_MODEL_TFROW_N_HEADS)
-        self._require_default("tfrow_n_layers", int(tfrow_n_layers), DEFAULT_MODEL_TFROW_N_LAYERS)
+        self._require_default("tfrow_n_heads", int(tfrow_n_heads), _D["tfrow_n_heads"])
+        self._require_default("tfrow_n_layers", int(tfrow_n_layers), _D["tfrow_n_layers"])
         self._require_default(
             "tfrow_cls_tokens",
             int(tfrow_cls_tokens),
-            DEFAULT_MODEL_TFROW_CLS_TOKENS,
+            _D["tfrow_cls_tokens"],
         )
         self._require_default(
-            "tfrow_norm", str(tfrow_norm).strip().lower(), DEFAULT_MODEL_TFROW_NORM
+            "tfrow_norm", str(tfrow_norm).strip().lower(), _D["tfrow_norm"]
         )
         self._require_default(
             "use_digit_position_embed",
             bool(use_digit_position_embed),
-            DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
+            _D["use_digit_position_embed"],
         )
 
         self.d_icl = int(d_icl)

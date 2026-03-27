@@ -10,8 +10,8 @@ from typing import Any, Mapping, cast
 from omegaconf import OmegaConf
 import pytest
 
-import tab_foundry.data.corpus as corpus_module
-from tab_foundry.data.corpus import materialize_corpus_recipe
+import tab_foundry.data.corpus_materialization as corpus_materialization_module
+from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 from tab_foundry.control_baseline_registry import (
@@ -233,7 +233,7 @@ def _write_control_baseline_registry(
 
 
 def test_runner_imports_benchmark_runtime_from_comparison_runtime() -> None:
-    assert runner_module.NanoTabPFNBenchmarkConfig.__module__ == 'tab_foundry.bench.comparison_runtime'
+    assert runner_module.BenchmarkComparisonConfig.__module__ == 'tab_foundry.bench.comparison_contract'
     assert runner_module.run_nanotabpfn_benchmark.__module__ == 'tab_foundry.bench.comparison_runtime'
 
 
@@ -955,7 +955,11 @@ def test_compose_cfg_resolves_sweep_local_corpus_from_nondefault_sweeps_root(
     _reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
     sweep_id = 'tf_rd_local'
     _write_sweep_recipe_registry(tmp_path, sweep_id=sweep_id)
-    monkeypatch.setattr(corpus_module, 'run_dagzoo_generate', _fake_run_dagzoo_generate)
+    monkeypatch.setattr(
+        corpus_materialization_module,
+        'run_dagzoo_generate',
+        _fake_run_dagzoo_generate,
+    )
     local_record = materialize_corpus_recipe(
         recipe_id='current_recipe',
         dagzoo_root=tmp_path.parent / 'dagzoo',

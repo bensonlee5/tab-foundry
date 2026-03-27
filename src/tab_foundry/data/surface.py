@@ -8,7 +8,7 @@ from typing import Any, Mapping
 
 from tab_foundry.repo_paths import repo_root_from_sweeps_root
 
-from .corpus import load_corpus_record
+from .corpus_lookup import load_corpus_record
 
 
 def _mapping_from_any(value: Any, *, context: str) -> dict[str, Any]:

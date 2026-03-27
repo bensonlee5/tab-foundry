@@ -11,12 +11,23 @@ from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_s
 from tab_foundry.model.spec import ModelBuildSpec
 
 from .paths_io import _copy_jsonable, default_registry_path
-from .validation import ensure_mapping, ensure_non_empty_string
 
 
 LEGACY_PRIOR_CONSTANT_LR_LABEL = "prior_constant_lr"
 UNAVAILABLE_TRAINING_LABEL = "training surface label unavailable"
 _LEGACY_PRIOR_CONFIG_PROFILE = "cls_benchmark_staged_prior"
+
+
+def _require_mapping(value: Any, *, context: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        raise RuntimeError(f"{context} must be a mapping")
+    return dict(cast(Mapping[str, Any], value))
+
+
+def _require_non_empty_string(value: Any, *, context: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"{context} must be a non-empty string")
+    return str(value)
 
 
 def staged_module_selection_from_run_model(model_payload: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -50,11 +61,11 @@ def anchor_context_from_registry_run(
     registry_path: Path | None = None,
 ) -> dict[str, Any]:
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
-    runs = ensure_mapping(registry.get("runs"), context="benchmark registry runs")
+    runs = _require_mapping(registry.get("runs"), context="benchmark registry runs")
     run = runs.get(anchor_run_id)
     if not isinstance(run, dict):
         raise RuntimeError(f"anchor_run_id {anchor_run_id!r} is missing from the benchmark registry")
-    model = ensure_mapping(run.get("model"), context=f"benchmark registry run {anchor_run_id}.model")
+    model = _require_mapping(run.get("model"), context=f"benchmark registry run {anchor_run_id}.model")
     surface_labels_raw = run.get("surface_labels")
     surface_labels = (
         None
@@ -308,7 +319,7 @@ def build_anchor_surface(
     # permit missing-valued inputs, even when the sweep is not itself deciding
     # the missingness mechanism.
     bundle = load_benchmark_bundle(bundle_path, allow_missing_values=True)
-    bundle_name = ensure_non_empty_string(bundle.get("name"), context="benchmark bundle name")
+    bundle_name = _require_non_empty_string(bundle.get("name"), context="benchmark bundle name")
     task_ids = cast(list[Any], bundle.get("task_ids", []))
     task_count = int(len(task_ids))
     selection = bundle.get("selection")

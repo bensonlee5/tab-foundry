@@ -7,7 +7,10 @@ import pyarrow.parquet as pq
 from omegaconf import OmegaConf
 
 from tab_foundry.config import compose_config
-from tab_foundry.data import corpus as corpus_module
+import tab_foundry.data.corpus_loading as corpus_loading_module
+import tab_foundry.data.corpus_lookup as corpus_lookup_module
+import tab_foundry.data.corpus_materialization as corpus_materialization_module
+from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
 from tab_foundry.training.surface import build_training_surface_record
 
 from tests.data.test_corpus import _fake_run_dagzoo_generate, _write_recipe_registry
@@ -305,14 +308,15 @@ def test_build_training_surface_record_persists_corpus_identity(
     dagzoo_root = tmp_path / "dagzoo"
     (dagzoo_root / "configs").mkdir(parents=True, exist_ok=True)
     (dagzoo_root / "configs" / "default.yaml").write_text("seed: 1\n", encoding="utf-8")
-    monkeypatch.setattr(corpus_module, "run_dagzoo_generate", _fake_run_dagzoo_generate)
-    record = corpus_module.materialize_corpus_recipe(
+    monkeypatch.setattr(corpus_materialization_module, "run_dagzoo_generate", _fake_run_dagzoo_generate)
+    record = materialize_corpus_recipe(
         recipe_id="current_recipe",
         dagzoo_root=dagzoo_root,
         force=True,
         repo_root=repo_root,
     )
-    monkeypatch.setattr(corpus_module, "_repo_root", lambda: repo_root)
+    monkeypatch.setattr(corpus_loading_module, "_repo_root", lambda: repo_root)
+    monkeypatch.setattr(corpus_lookup_module, "_repo_root", lambda: repo_root)
 
     surface_record = build_training_surface_record(
         raw_cfg={

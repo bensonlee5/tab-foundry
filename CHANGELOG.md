@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-03-27
+
+### Changed
+
+- User-facing break: `tab-foundry bench compare` no longer accepts the
+  deprecated `--with-tabiclv2` flag. Select TabICLv2 explicitly with
+  `--external-benchmark tabiclv2`; repeated `--external-benchmark` values now
+  remain the only public way to choose comparator order.
+- Internal architecture note: benchmark comparison is now split into
+  contract/defaults, execution, and reporting modules, and the programmatic
+  benchmark config surface is now `BenchmarkComparisonConfig`.
+- Internal architecture note: `research/sweep` now uses typed payload models
+  as its primary internal boundary, centralizes shared row/anchor surface
+  resolution, and removes repeated runtime validation passes from the typed
+  execution path while preserving persisted sweep field names.
+- Internal architecture note: `data/corpus` and `training/trainer` are now
+  split into smaller loading/lookup/materialization/reporting and
+  entrypoint/loop/guards/finalization modules respectively, replacing the
+  remaining large monoliths without changing the current artifact contracts.
+
 ## [0.13.1] - 2026-03-27
 
 ### Changed

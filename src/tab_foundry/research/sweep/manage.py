@@ -14,13 +14,13 @@ from tab_foundry.research.lane_contract import (
 
 from .anchor import anchor_context_from_registry_run, anchor_training_surface_label, build_anchor_surface
 from .catalog import (
-    load_system_delta_catalog,
-    load_system_delta_index,
-    load_system_delta_sweep,
+    load_system_delta_catalog_payload,
+    load_system_delta_index_payload,
+    load_system_delta_sweep_payload,
 )
 from .materialize import guarded_initial_state, materialize_system_delta_queue
 from .matrix import render_and_write_system_delta_matrix
-from .models import SWEEP_QUEUE_SCHEMA, SWEEP_SCHEMA
+from .models import SWEEP_INDEX_SCHEMA, SWEEP_QUEUE_SCHEMA, SWEEP_SCHEMA, QueueRowPayload, SweepIndexPayload, SweepPayload, SweepQueuePayload
 from .paths_io import (
     _copy_jsonable,
     default_sweep_index_path,
@@ -31,13 +31,20 @@ from .paths_io import (
 from .validation import (
     DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
     ensure_external_benchmarks,
-    ensure_mapping,
-    ensure_non_empty_string,
 )
 
 
 DEFAULT_SWEEP_STATUS = "draft"
-_STAGED_ONLY_MODEL_KEYS = ("stage", "stage_label", "module_overrides")
+_STAGED_ONLY_MODEL_KEYS = ("arch", "stage", "stage_label", "module_overrides")
+
+
+def _require_non_empty_string(value: str | None, *, context: str) -> str:
+    if value is None:
+        raise RuntimeError(f"{context} must be a non-empty string")
+    normalized = str(value).strip()
+    if not normalized:
+        raise RuntimeError(f"{context} must be a non-empty string")
+    return normalized
 
 
 def _sanitize_model_payload_for_training_experiment(
@@ -127,21 +134,20 @@ def create_sweep(
     registry_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, str]:
-    normalized_sweep_id = ensure_non_empty_string(sweep_id, context="sweep_id")
-    normalized_anchor_run_id = ensure_non_empty_string(anchor_run_id, context="anchor_run_id")
-    normalized_complexity_level = ensure_non_empty_string(complexity_level, context="complexity_level")
-    normalized_benchmark_bundle_path = ensure_non_empty_string(benchmark_bundle_path, context="benchmark_bundle_path")
-    normalized_control_baseline_id = ensure_non_empty_string(control_baseline_id, context="control_baseline_id")
+    normalized_sweep_id = _require_non_empty_string(sweep_id, context="sweep_id")
+    normalized_anchor_run_id = _require_non_empty_string(anchor_run_id, context="anchor_run_id")
+    normalized_complexity_level = _require_non_empty_string(complexity_level, context="complexity_level")
+    normalized_benchmark_bundle_path = _require_non_empty_string(benchmark_bundle_path, context="benchmark_bundle_path")
+    normalized_control_baseline_id = _require_non_empty_string(control_baseline_id, context="control_baseline_id")
     resolved_index_path = (index_path or default_sweep_index_path()).expanduser().resolve()
     resolved_sweeps_root = sweeps_root or resolved_index_path.parent
-    index = load_system_delta_index(resolved_index_path)
-    sweeps = ensure_mapping(index.get("sweeps"), context="sweep index sweeps")
-    if normalized_sweep_id in sweeps:
+    index = load_system_delta_index_payload(resolved_index_path)
+    if normalized_sweep_id in index.sweeps:
         raise RuntimeError(f"sweep_id {normalized_sweep_id!r} already exists")
 
-    catalog = load_system_delta_catalog(catalog_path)
+    catalog = load_system_delta_catalog_payload(catalog_path)
     template_sweep = (
-        load_system_delta_sweep(
+        load_system_delta_sweep_payload(
             parent_sweep_id,
             index_path=resolved_index_path,
             sweeps_root=resolved_sweeps_root,
@@ -157,15 +163,15 @@ def create_sweep(
     explicit_training_experiment = (
         None
         if training_experiment is None
-        else ensure_non_empty_string(training_experiment, context="training_experiment")
+        else _require_non_empty_string(training_experiment, context="training_experiment")
     )
     explicit_training_config_profile = (
         None
         if training_config_profile is None
-        else ensure_non_empty_string(training_config_profile, context="training_config_profile")
+        else _require_non_empty_string(training_config_profile, context="training_config_profile")
     )
     explicit_surface_role = (
-        None if surface_role is None else ensure_non_empty_string(surface_role, context="surface_role")
+        None if surface_role is None else _require_non_empty_string(surface_role, context="surface_role")
     )
     inherited_external_benchmarks = (
         template_sweep.get("external_benchmarks")
@@ -220,7 +226,8 @@ def create_sweep(
     else:
         resolved_surface_role = explicit_surface_role
 
-    sweep_payload = {
+    sweep_payload = SweepPayload.model_validate(
+        {
         "schema": SWEEP_SCHEMA,
         "sweep_id": normalized_sweep_id,
         "parent_sweep_id": None if parent_sweep_id is None else str(parent_sweep_id),
@@ -253,14 +260,15 @@ def create_sweep(
             anchor_context=anchor_context,
         ),
         "anchor_context": anchor_context,
-    }
+        }
+    )
 
-    deltas = ensure_mapping(catalog.get("deltas"), context="catalog deltas")
+    deltas = catalog.deltas
     if delta_refs is None:
         selected_delta_ids = list(deltas)
     else:
         selected_delta_ids = [
-            ensure_non_empty_string(delta_ref, context="delta_refs[]") for delta_ref in delta_refs
+            _require_non_empty_string(delta_ref, context="delta_refs[]") for delta_ref in delta_refs
         ]
         if not selected_delta_ids:
             raise RuntimeError("delta_refs must include at least one delta id when provided")
@@ -270,22 +278,26 @@ def create_sweep(
         if unknown_delta_ids:
             raise RuntimeError(f"unknown delta_refs for sweep {normalized_sweep_id!r}: {unknown_delta_ids}")
     queue_rows = [
-        instantiate_queue_row(
-            sweep_id=normalized_sweep_id,
-            anchor_run_id=normalized_anchor_run_id,
-            order=order,
-            delta_id=delta_id,
-            delta_entry=cast(dict[str, Any], deltas[delta_id]),
-            anchor_context=anchor_context,
-            training_experiment=resolved_training_experiment,
+        QueueRowPayload.model_validate(
+            instantiate_queue_row(
+                sweep_id=normalized_sweep_id,
+                anchor_run_id=normalized_anchor_run_id,
+                order=order,
+                delta_id=delta_id,
+                delta_entry=deltas[delta_id].to_payload_dict(),
+                anchor_context=anchor_context,
+                training_experiment=resolved_training_experiment,
+            )
         )
         for order, delta_id in enumerate(selected_delta_ids, start=1)
     ]
-    queue_payload = {
-        "schema": SWEEP_QUEUE_SCHEMA,
-        "sweep_id": normalized_sweep_id,
-        "rows": queue_rows,
-    }
+    queue_payload = SweepQueuePayload.model_validate(
+        {
+            "schema": SWEEP_QUEUE_SCHEMA,
+            "sweep_id": normalized_sweep_id,
+            "rows": [row.to_payload_dict() for row in queue_rows],
+        }
+    )
 
     sweep_info = {
         "parent_sweep_id": None if parent_sweep_id is None else str(parent_sweep_id),
@@ -296,11 +308,25 @@ def create_sweep(
         "control_baseline_id": normalized_control_baseline_id,
         "external_benchmarks": resolved_external_benchmarks,
     }
-    sweeps[normalized_sweep_id] = sweep_info
+    index_payload = SweepIndexPayload.model_validate(
+        {
+            "schema": SWEEP_INDEX_SCHEMA,
+            "sweeps": {
+                **{sweep_id: entry.to_payload_dict() for sweep_id, entry in index.sweeps.items()},
+                normalized_sweep_id: sweep_info,
+            },
+        }
+    )
 
-    write_yaml(sweep_metadata_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), sweep_payload)
-    write_yaml(sweep_queue_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root), queue_payload)
-    write_yaml(resolved_index_path, index)
+    write_yaml(
+        sweep_metadata_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root),
+        sweep_payload.to_payload_dict(),
+    )
+    write_yaml(
+        sweep_queue_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root),
+        queue_payload.to_payload_dict(),
+    )
+    write_yaml(resolved_index_path, index_payload.to_payload_dict())
 
     queue = materialize_system_delta_queue(
         catalog=catalog,
@@ -311,7 +337,7 @@ def create_sweep(
     )
     matrix_path = render_and_write_system_delta_matrix(
         sweep_id=normalized_sweep_id,
-        queue=queue,
+        queue=queue.to_payload_dict(),
         registry_path=registry_path,
         sweeps_root=resolved_sweeps_root,
     )
@@ -325,13 +351,12 @@ def create_sweep(
 
 
 def list_sweeps(*, index_path: Path | None = None) -> list[dict[str, Any]]:
-    index = load_system_delta_index(index_path)
-    sweeps = ensure_mapping(index.get("sweeps"), context="sweep index sweeps")
-    ordered = sorted(sweeps.items(), key=lambda item: str(item[0]))
+    index = load_system_delta_index_payload(index_path)
+    ordered = sorted(index.sweeps.items(), key=lambda item: str(item[0]))
     return [
         {
             "sweep_id": sweep_id,
-            **cast(dict[str, Any], _copy_jsonable(sweep_info)),
+            **cast(dict[str, Any], _copy_jsonable(sweep_info.to_payload_dict())),
         }
         for sweep_id, sweep_info in ordered
     ]

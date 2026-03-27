@@ -8,12 +8,12 @@ from pathlib import Path
 import subprocess
 
 import tab_foundry.cli.data_inspect as data_inspect_module
-from tab_foundry.data.corpus import (
+from tab_foundry.data.corpus_loading import list_corpus_recipes
+from tab_foundry.data.corpus_lookup import load_corpus_record
+from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
+from tab_foundry.data.corpus_reporting import (
     corpus_compare_payload,
     corpus_results_payload,
-    list_corpus_recipes,
-    load_corpus_record,
-    materialize_corpus_recipe,
 )
 from tab_foundry.data.dagzoo_workflow import (
     DagzooGenerateManifestConfig,

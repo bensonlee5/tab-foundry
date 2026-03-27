@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Mapping, cast
+from typing import Any, Literal, Mapping, cast
 
-from tab_foundry.data.corpus import materialize_corpus_ref
+from pydantic import ValidationError
+
+from tab_foundry.data.corpus_materialization import materialize_corpus_ref
 from tab_foundry.repo_paths import repo_root_from_catalog_path, repo_root_from_sweeps_root
 from tab_foundry.research.lane_contract import (
     resolve_surface_role,
@@ -15,11 +17,21 @@ from tab_foundry.research.lane_contract import (
 
 from .anchor import anchor_training_surface_label
 from .catalog import (
-    load_system_delta_catalog,
-    load_system_delta_queue_instance,
-    load_system_delta_sweep,
+    load_system_delta_catalog_payload,
+    load_system_delta_queue_instance_payload,
+    load_system_delta_sweep_payload,
 )
-from .models import SWEEP_QUEUE_SCHEMA
+from .models import (
+    MATERIALIZED_QUEUE_SCHEMA,
+    CatalogDeltaPayload,
+    CatalogPayload,
+    MaterializedQueuePayload,
+    MaterializedQueueRowPayload,
+    QueueRowPayload,
+    SWEEP_QUEUE_SCHEMA,
+    SweepPayload,
+    SweepQueuePayload,
+)
 from .paths_io import (
     _copy_jsonable,
     _render_path,
@@ -31,57 +43,88 @@ from .paths_io import (
     sweep_queue_path,
 )
 from .validation import (
-    ensure_mapping,
-    ensure_non_empty_string,
-    ensure_rows,
     ensure_string_list,
     resolve_sweep_external_benchmarks,
     validate_prose_fields,
 )
 
 
-MATERIALIZED_QUEUE_SCHEMA = "tab-foundry-system-delta-queue-v1"
-
-
 def _inspection_surface_payload(
-    queue_row: Mapping[str, Any],
+    queue_row: QueueRowPayload | Mapping[str, Any],
     *,
     anchor_context: Mapping[str, Any],
     key: str,
 ) -> dict[str, Any]:
     raw_payload = queue_row.get(key)
     if isinstance(raw_payload, Mapping):
-        return cast(dict[str, Any], _copy_jsonable(raw_payload))
+        payload = cast(dict[str, Any], _copy_jsonable(raw_payload))
+    else:
+        payload = {}
     surface_labels = anchor_context.get("surface_labels")
     surface_label = surface_labels.get(key) if isinstance(surface_labels, Mapping) else None
-    if not isinstance(surface_label, str) or not surface_label.strip():
-        if key == "training":
-            surface_label = anchor_training_surface_label(anchor_context)
-        else:
-            return {}
-    payload: dict[str, Any] = {"surface_label": str(surface_label)}
-    if key == "training":
+    if not isinstance(payload.get("surface_label"), str) or not str(payload.get("surface_label")).strip():
+        if not isinstance(surface_label, str) or not surface_label.strip():
+            if key == "training":
+                surface_label = anchor_training_surface_label(anchor_context)
+            else:
+                return payload
+        payload["surface_label"] = str(surface_label)
+    if key == "training" and not isinstance(payload.get("overrides"), Mapping):
         payload["overrides"] = {}
     return payload
 
 
-def _optional_parent_delta_ref(queue_row: Mapping[str, Any]) -> str | None:
+def _surface_payload_or_default(
+    queue_row: QueueRowPayload | Mapping[str, Any],
+    *,
+    field_name: str,
+    value: Any,
+    default: Mapping[str, Any],
+) -> dict[str, Any]:
+    field_present = (
+        field_name in queue_row.model_fields_set
+        if isinstance(queue_row, QueueRowPayload)
+        else field_name in queue_row
+    )
+    merged = cast(dict[str, Any], _copy_jsonable(default))
+    if field_present and isinstance(value, Mapping) and not value:
+        return cast(dict[str, Any], _copy_jsonable(value))
+    if field_present and not isinstance(value, Mapping):
+        return {}
+    if not isinstance(value, Mapping):
+        return merged
+    for key, item in cast(Mapping[str, Any], value).items():
+        if isinstance(merged.get(str(key)), Mapping) and isinstance(item, Mapping):
+            merged[str(key)] = _surface_payload_or_default(
+                cast(Mapping[str, Any], value),
+                field_name=str(key),
+                value=item,
+                default=cast(Mapping[str, Any], merged[str(key)]),
+            )
+        else:
+            merged[str(key)] = _copy_jsonable(item) if isinstance(item, (dict, list)) else item
+    return merged
+
+
+def _optional_parent_delta_ref(queue_row: QueueRowPayload | Mapping[str, Any]) -> str | None:
     parent_delta_ref = queue_row.get("parent_delta_ref")
     if parent_delta_ref is None:
         return None
-    return ensure_non_empty_string(
-        parent_delta_ref,
-        context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}.parent_delta_ref",
-    )
+    normalized = str(parent_delta_ref).strip()
+    if not normalized:
+        raise RuntimeError(
+            f"queue row {queue_row.get('delta_ref', '<missing>')!r}.parent_delta_ref must be a non-empty string"
+        )
+    return normalized
 
 
 def inspection_row(
     *,
-    queue_row: Mapping[str, Any],
+    queue_row: QueueRowPayload,
     anchor_context: Mapping[str, Any],
-) -> dict[str, Any]:
+) -> MaterializedQueueRowPayload:
     validate_prose_fields(
-        queue_row,
+        queue_row.to_payload_dict(),
         context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}",
         field_names=("notes", "confounders", "parameter_adequacy_plan"),
     )
@@ -100,8 +143,8 @@ def inspection_row(
     )
     payload = {
         "order": int(queue_row["order"]),
-        "delta_id": ensure_non_empty_string(queue_row.get("delta_ref"), context="queue row delta_ref"),
-        "status": str(queue_row.get("status", "ready")),
+        "delta_id": str(queue_row.delta_ref),
+        "status": str(queue_row.status),
         "rationale": str(queue_row.get("rationale", "")),
         "hypothesis": str(queue_row.get("hypothesis", "")),
         "anchor_delta": str(queue_row.get("anchor_delta", "")),
@@ -144,55 +187,50 @@ def inspection_row(
     parent_delta_ref = _optional_parent_delta_ref(queue_row)
     if parent_delta_ref is not None:
         payload["parent_delta_ref"] = parent_delta_ref
-    return payload
+    return MaterializedQueueRowPayload.model_validate(payload)
 
 
 def inspection_system_delta_queue(
     *,
-    sweep: Mapping[str, Any],
-    queue_instance: Mapping[str, Any],
+    sweep: SweepPayload,
+    queue_instance: SweepQueuePayload,
     sweeps_root: Path | None = None,
-) -> dict[str, Any]:
-    sweep_id = ensure_non_empty_string(sweep.get("sweep_id"), context="sweep.sweep_id")
-    rows_payload = ensure_rows(queue_instance.get("rows"), context="queue rows")
-    anchor_context = cast(dict[str, Any], _copy_jsonable(sweep.get("anchor_context", {})))
+) -> MaterializedQueuePayload:
+    sweep_id = sweep.sweep_id
+    anchor_context = cast(dict[str, Any], _copy_jsonable(sweep.anchor_context))
     rows = [
         inspection_row(queue_row=queue_row, anchor_context=anchor_context)
-        for queue_row in sorted(rows_payload, key=lambda row: (int(row["order"]), str(row["delta_ref"])))
+        for queue_row in sorted(queue_instance.rows, key=lambda row: (int(row.order), str(row.delta_ref)))
     ]
     for index, row in enumerate(rows):
-        validate_prose_fields(row, context=f"inspection queue rows[{index}]")
+        validate_prose_fields(row.to_payload_dict(), context=f"inspection queue rows[{index}]")
     resolved_sweeps_root = sweeps_root or default_sweeps_root()
-    return {
-        "schema": MATERIALIZED_QUEUE_SCHEMA,
-        "generated_from_sweep_id": sweep_id,
-        "catalog_path": None,
-        "canonical_sweep_path": _render_path(sweep_metadata_path(sweep_id, sweeps_root=resolved_sweeps_root)),
-        "canonical_queue_path": _render_path(sweep_queue_path(sweep_id, sweeps_root=resolved_sweeps_root)),
-        "canonical_matrix_path": _render_path(sweep_matrix_path(sweep_id, sweeps_root=resolved_sweeps_root)),
-        "sweep_id": sweep_id,
-        "parent_sweep_id": sweep.get("parent_sweep_id"),
-        "sweep_status": sweep.get("status"),
-        "complexity_level": sweep.get("complexity_level"),
-        "anchor_run_id": sweep.get("anchor_run_id"),
-        "benchmark_bundle_path": sweep["benchmark_bundle_path"],
-        "control_baseline_id": sweep["control_baseline_id"],
-        "external_benchmarks": resolve_sweep_external_benchmarks(sweep),
-        "training_experiment": resolve_training_experiment(sweep),
-        "training_config_profile": resolve_training_config_profile(sweep),
-        "surface_role": resolve_surface_role(sweep),
-        "comparison_policy": sweep["comparison_policy"],
-        "upstream_reference": cast(
-            dict[str, Any],
-            _copy_jsonable(cast(dict[str, Any], sweep.get("upstream_reference", {}))),
-        ),
-        "anchor_surface": cast(
-            dict[str, Any],
-            _copy_jsonable(cast(dict[str, Any], sweep.get("anchor_surface", {}))),
-        ),
-        "anchor_context": anchor_context,
-        "rows": rows,
-    }
+    return MaterializedQueuePayload.model_validate(
+        {
+            "schema": MATERIALIZED_QUEUE_SCHEMA,
+            "generated_from_sweep_id": sweep_id,
+            "catalog_path": None,
+            "canonical_sweep_path": _render_path(sweep_metadata_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "canonical_queue_path": _render_path(sweep_queue_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "canonical_matrix_path": _render_path(sweep_matrix_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "sweep_id": sweep_id,
+            "parent_sweep_id": sweep.parent_sweep_id,
+            "sweep_status": sweep.status,
+            "complexity_level": sweep.complexity_level,
+            "anchor_run_id": sweep.anchor_run_id,
+            "benchmark_bundle_path": sweep.benchmark_bundle_path,
+            "control_baseline_id": sweep.control_baseline_id,
+            "external_benchmarks": resolve_sweep_external_benchmarks(sweep.to_payload_dict()),
+            "training_experiment": resolve_training_experiment(sweep),
+            "training_config_profile": resolve_training_config_profile(sweep),
+            "surface_role": resolve_surface_role(sweep),
+            "comparison_policy": sweep.comparison_policy,
+            "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep.upstream_reference)),
+            "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep.anchor_surface)),
+            "anchor_context": anchor_context,
+            "rows": [row.to_payload_dict() for row in rows],
+        }
+    )
 
 
 def evaluate_applicability_guard(
@@ -200,10 +238,16 @@ def evaluate_applicability_guard(
     *,
     anchor_context: Mapping[str, Any],
 ) -> tuple[bool, str | None]:
-    kind = ensure_non_empty_string(guard.get("kind"), context="applicability guard kind")
+    raw_kind = guard.get("kind")
+    kind = str(raw_kind).strip() if raw_kind is not None else ""
+    if not kind:
+        raise RuntimeError("applicability guard kind must be a non-empty string")
     if kind != "requires_anchor_model_selection":
         raise RuntimeError(f"Unsupported applicability guard kind: {kind!r}")
-    key = ensure_non_empty_string(guard.get("key"), context="applicability guard key")
+    raw_key = guard.get("key")
+    key = str(raw_key).strip() if raw_key is not None else ""
+    if not key:
+        raise RuntimeError("applicability guard key must be a non-empty string")
     any_of_raw = guard.get("any_of")
     if not isinstance(any_of_raw, list) or not any_of_raw:
         raise RuntimeError("applicability guard any_of must be a non-empty list")
@@ -221,7 +265,7 @@ def evaluate_applicability_guard(
 
 def guarded_initial_state(
     *,
-    delta_entry: Mapping[str, Any],
+    delta_entry: CatalogDeltaPayload | Mapping[str, Any],
     anchor_context: Mapping[str, Any],
 ) -> tuple[str, str, str | None]:
     status = str(delta_entry.get("default_initial_status", "ready"))
@@ -249,10 +293,10 @@ def guarded_initial_state(
 
 def materialize_row(
     *,
-    queue_row: Mapping[str, Any],
-    delta_entry: Mapping[str, Any],
+    queue_row: QueueRowPayload,
+    delta_entry: CatalogDeltaPayload,
     anchor_context: Mapping[str, Any],
-) -> dict[str, Any]:
+) -> MaterializedQueueRowPayload:
     default_effective_surface = cast(
         dict[str, Any],
         _copy_jsonable(cast(dict[str, Any], delta_entry.get("default_effective_surface", {}))),
@@ -262,12 +306,12 @@ def materialize_row(
         _copy_jsonable(cast(dict[str, Any], delta_entry.get("parameter_adequacy_policy", {}))),
     )
     validate_prose_fields(
-        queue_row,
+        queue_row.to_payload_dict(),
         context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}",
         field_names=("notes", "confounders", "parameter_adequacy_plan"),
     )
     validate_prose_fields(
-        delta_entry,
+        delta_entry.to_payload_dict(),
         context=f"delta entry {queue_row.get('delta_ref', '<missing>')!r}",
         field_names=("adequacy_knobs",),
     )
@@ -280,18 +324,18 @@ def materialize_row(
     )
     payload = {
         "order": int(queue_row["order"]),
-        "delta_id": ensure_non_empty_string(queue_row.get("delta_ref"), context="queue row delta_ref"),
-        "status": str(queue_row["status"]),
-        "dimension_family": str(delta_entry["dimension_family"]),
-        "family": str(delta_entry["family"]),
-        "binary_applicable": bool(delta_entry.get("binary_applicable", False)),
-        "description": str(delta_entry["description"]),
+        "delta_id": str(queue_row.delta_ref),
+        "status": str(queue_row.status),
+        "dimension_family": delta_entry.dimension_family,
+        "family": delta_entry.family,
+        "binary_applicable": bool(delta_entry.binary_applicable),
+        "description": delta_entry.description,
         "rationale": str(queue_row.get("rationale", "")),
         "hypothesis": str(queue_row.get("hypothesis", "")),
-        "upstream_delta": str(delta_entry["upstream_delta"]),
+        "upstream_delta": delta_entry.upstream_delta,
         "anchor_delta": str(queue_row.get("anchor_delta", "")),
-        "entangled_legacy_stage": str(delta_entry.get("legacy_stage_alias", "none")),
-        "expected_effect": str(delta_entry["expected_effect"]),
+        "entangled_legacy_stage": delta_entry.legacy_stage_alias or "none",
+        "expected_effect": delta_entry.expected_effect,
         "adequacy_knobs": cast(list[Any], _copy_jsonable(delta_entry.get("adequacy_knobs", []))),
         "parameter_adequacy_policy": parameter_policy,
         "applicability_guards": cast(
@@ -300,7 +344,12 @@ def materialize_row(
         ),
         "model": cast(
             dict[str, Any],
-            _copy_jsonable(queue_row.get("model", default_effective_surface.get("model", {}))),
+            _surface_payload_or_default(
+                queue_row,
+                field_name="model",
+                value=queue_row.get("model"),
+                default=cast(Mapping[str, Any], default_effective_surface.get("model", {})),
+            ),
         ),
         "dynamic_model_overrides": cast(
             dict[str, Any] | None,
@@ -310,19 +359,30 @@ def materialize_row(
         ),
         "data": cast(
             dict[str, Any],
-            _copy_jsonable(queue_row.get("data", default_effective_surface.get("data", {}))),
+            _surface_payload_or_default(
+                queue_row,
+                field_name="data",
+                value=queue_row.get("data"),
+                default=cast(Mapping[str, Any], default_effective_surface.get("data", {})),
+            ),
         ),
         "preprocessing": cast(
             dict[str, Any],
-            _copy_jsonable(
-                queue_row.get("preprocessing", default_effective_surface.get("preprocessing", {}))
+            _surface_payload_or_default(
+                queue_row,
+                field_name="preprocessing",
+                value=queue_row.get("preprocessing"),
+                default=cast(Mapping[str, Any], default_effective_surface.get("preprocessing", {})),
             ),
         ),
         "training": cast(
             dict[str, Any],
-            _copy_jsonable(
-                queue_row.get(
-                    "training",
+            _surface_payload_or_default(
+                queue_row,
+                field_name="training",
+                value=queue_row.get("training"),
+                default=cast(
+                    Mapping[str, Any],
                     default_effective_surface.get(
                         "training",
                         {
@@ -330,7 +390,7 @@ def materialize_row(
                             "overrides": {},
                         },
                     ),
-                )
+                ),
             ),
         ),
         "parameter_adequacy_plan": cast(list[Any], _copy_jsonable(parameter_plan)),
@@ -354,60 +414,140 @@ def materialize_row(
     parent_delta_ref = _optional_parent_delta_ref(queue_row)
     if parent_delta_ref is not None:
         payload["parent_delta_ref"] = parent_delta_ref
-    return payload
+    return MaterializedQueueRowPayload.model_validate(payload)
 
 
 def materialize_system_delta_queue(
     *,
-    catalog: Mapping[str, Any],
-    sweep: Mapping[str, Any],
-    queue_instance: Mapping[str, Any],
+    catalog: CatalogPayload,
+    sweep: SweepPayload,
+    queue_instance: SweepQueuePayload,
     catalog_path: Path | None = None,
     sweeps_root: Path | None = None,
-) -> dict[str, Any]:
-    deltas = ensure_mapping(catalog.get("deltas"), context="catalog deltas")
-    sweep_id = ensure_non_empty_string(sweep.get("sweep_id"), context="sweep.sweep_id")
-    rows_payload = ensure_rows(queue_instance.get("rows"), context="queue rows")
-    rows: list[dict[str, Any]] = []
-    for queue_row in sorted(rows_payload, key=lambda row: (int(row["order"]), str(row["delta_ref"]))):
-        delta_ref = ensure_non_empty_string(queue_row.get("delta_ref"), context="queue row delta_ref")
-        delta_entry = deltas.get(delta_ref)
-        if not isinstance(delta_entry, dict):
-            raise RuntimeError(f"unknown delta_ref {delta_ref!r} in sweep {sweep_id!r}")
+) -> MaterializedQueuePayload:
+    sweep_id = sweep.sweep_id
+    rows: list[MaterializedQueueRowPayload] = []
+    for queue_row in sorted(queue_instance.rows, key=lambda row: (int(row.order), str(row.delta_ref))):
+        delta_entry = catalog.deltas.get(queue_row.delta_ref)
+        if delta_entry is None:
+            raise RuntimeError(f"unknown delta_ref {queue_row.delta_ref!r} in sweep {sweep_id!r}")
         rows.append(
             materialize_row(
                 queue_row=queue_row,
                 delta_entry=delta_entry,
-                anchor_context=cast(dict[str, Any], sweep.get("anchor_context", {})),
+                anchor_context=cast(dict[str, Any], sweep.anchor_context),
             )
         )
     for index, row in enumerate(rows):
-        validate_prose_fields(row, context=f"materialized queue rows[{index}]")
+        validate_prose_fields(row.to_payload_dict(), context=f"materialized queue rows[{index}]")
     resolved_sweeps_root = sweeps_root or default_sweeps_root()
-    return {
-        "schema": MATERIALIZED_QUEUE_SCHEMA,
-        "generated_from_sweep_id": sweep_id,
-        "catalog_path": _render_path(catalog_path or default_catalog_path()),
-        "canonical_sweep_path": _render_path(sweep_metadata_path(sweep_id, sweeps_root=resolved_sweeps_root)),
-        "canonical_queue_path": _render_path(sweep_queue_path(sweep_id, sweeps_root=resolved_sweeps_root)),
-        "canonical_matrix_path": _render_path(sweep_matrix_path(sweep_id, sweeps_root=resolved_sweeps_root)),
-        "sweep_id": sweep_id,
-        "parent_sweep_id": sweep.get("parent_sweep_id"),
-        "sweep_status": sweep.get("status"),
-        "complexity_level": sweep.get("complexity_level"),
-        "anchor_run_id": sweep["anchor_run_id"],
-        "benchmark_bundle_path": sweep["benchmark_bundle_path"],
-        "control_baseline_id": sweep["control_baseline_id"],
-        "external_benchmarks": resolve_sweep_external_benchmarks(sweep),
-        "training_experiment": resolve_training_experiment(sweep),
-        "training_config_profile": resolve_training_config_profile(sweep),
-        "surface_role": resolve_surface_role(sweep),
-        "comparison_policy": sweep["comparison_policy"],
-        "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep["upstream_reference"])),
-        "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep["anchor_surface"])),
-        "anchor_context": cast(dict[str, Any], _copy_jsonable(sweep.get("anchor_context", {}))),
-        "rows": rows,
-    }
+    return MaterializedQueuePayload.model_validate(
+        {
+            "schema": MATERIALIZED_QUEUE_SCHEMA,
+            "generated_from_sweep_id": sweep_id,
+            "catalog_path": _render_path(catalog_path or default_catalog_path()),
+            "canonical_sweep_path": _render_path(sweep_metadata_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "canonical_queue_path": _render_path(sweep_queue_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "canonical_matrix_path": _render_path(sweep_matrix_path(sweep_id, sweeps_root=resolved_sweeps_root)),
+            "sweep_id": sweep_id,
+            "parent_sweep_id": sweep.parent_sweep_id,
+            "sweep_status": sweep.status,
+            "complexity_level": sweep.complexity_level,
+            "anchor_run_id": sweep.anchor_run_id,
+            "benchmark_bundle_path": sweep.benchmark_bundle_path,
+            "control_baseline_id": sweep.control_baseline_id,
+            "external_benchmarks": resolve_sweep_external_benchmarks(sweep.to_payload_dict()),
+            "training_experiment": resolve_training_experiment(sweep),
+            "training_config_profile": resolve_training_config_profile(sweep),
+            "surface_role": resolve_surface_role(sweep),
+            "comparison_policy": sweep.comparison_policy,
+            "upstream_reference": cast(dict[str, Any], _copy_jsonable(sweep.upstream_reference)),
+            "anchor_surface": cast(dict[str, Any], _copy_jsonable(sweep.anchor_surface)),
+            "anchor_context": cast(dict[str, Any], _copy_jsonable(sweep.anchor_context)),
+            "rows": [row.to_payload_dict() for row in rows],
+        }
+    )
+
+
+def _load_materialized_queue_payload(path: Path) -> MaterializedQueuePayload:
+    payload = load_yaml_mapping(path, context="system delta queue")
+    return MaterializedQueuePayload.model_validate(payload)
+
+
+def _load_system_delta_queue_common(
+    path: Path | None = None,
+    *,
+    sweep_id: str | None = None,
+    index_path: Path | None = None,
+    catalog_path: Path | None = None,
+    sweeps_root: Path | None = None,
+    mode: Literal["materialized", "inspection"],
+) -> MaterializedQueuePayload:
+    def _materialize_or_fallback(
+        *,
+        catalog: CatalogPayload,
+        sweep: SweepPayload,
+        queue_instance: SweepQueuePayload,
+    ) -> MaterializedQueuePayload:
+        try:
+            return materialize_system_delta_queue(
+                catalog=catalog,
+                sweep=sweep,
+                queue_instance=queue_instance,
+                catalog_path=catalog_path,
+                sweeps_root=sweeps_root,
+            )
+        except RuntimeError as exc:
+            if mode != "inspection" or "unknown delta_ref" not in str(exc):
+                raise
+            return inspection_system_delta_queue(
+                sweep=sweep,
+                queue_instance=queue_instance,
+                sweeps_root=sweeps_root,
+            )
+
+    if path is None:
+        catalog = load_system_delta_catalog_payload(catalog_path)
+        sweep = load_system_delta_sweep_payload(sweep_id, index_path=index_path, sweeps_root=sweeps_root)
+        queue_instance = load_system_delta_queue_instance_payload(
+            sweep_id or sweep.sweep_id,
+            index_path=index_path,
+            sweeps_root=sweeps_root,
+        )
+        return _materialize_or_fallback(
+            catalog=catalog,
+            sweep=sweep,
+            queue_instance=queue_instance,
+        )
+
+    payload = load_yaml_mapping(path, context="system delta queue")
+    schema = payload.get("schema")
+    if schema == SWEEP_QUEUE_SCHEMA:
+        try:
+            queue_instance = SweepQueuePayload.model_validate(payload)
+        except ValidationError as exc:
+            raise RuntimeError(f"system delta queue instance is invalid: {exc}") from exc
+        catalog = load_system_delta_catalog_payload(catalog_path)
+        sweep = load_system_delta_sweep_payload(
+            queue_instance.sweep_id,
+            index_path=index_path,
+            sweeps_root=sweeps_root,
+        )
+        return _materialize_or_fallback(
+            catalog=catalog,
+            sweep=sweep,
+            queue_instance=queue_instance,
+        )
+    try:
+        materialized = MaterializedQueuePayload.model_validate(payload)
+    except ValidationError as exc:
+        raise RuntimeError(f"system delta queue is invalid: {exc}") from exc
+    for index, row in enumerate(materialized.rows):
+        validate_prose_fields(
+            row.to_payload_dict(),
+            context=f"materialized system delta queue rows[{index}]",
+        )
+    return materialized
 
 
 def load_system_delta_queue(
@@ -418,51 +558,14 @@ def load_system_delta_queue(
     catalog_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
-    if path is None:
-        catalog = load_system_delta_catalog(catalog_path)
-        sweep = load_system_delta_sweep(sweep_id, index_path=index_path, sweeps_root=sweeps_root)
-        queue_instance = load_system_delta_queue_instance(
-            sweep_id or str(sweep["sweep_id"]),
-            index_path=index_path,
-            sweeps_root=sweeps_root,
-        )
-        return materialize_system_delta_queue(
-            catalog=catalog,
-            sweep=sweep,
-            queue_instance=queue_instance,
-            catalog_path=catalog_path,
-            sweeps_root=sweeps_root,
-        )
-
-    payload = load_yaml_mapping(path, context="system delta queue")
-    schema = payload.get("schema")
-    if schema == SWEEP_QUEUE_SCHEMA:
-        queue_instance = payload
-        resolved_sweep_id = ensure_non_empty_string(
-            queue_instance.get("sweep_id"),
-            context="system delta queue instance sweep_id",
-        )
-        catalog = load_system_delta_catalog(catalog_path)
-        sweep = load_system_delta_sweep(
-            resolved_sweep_id,
-            index_path=index_path,
-            sweeps_root=sweeps_root,
-        )
-        return materialize_system_delta_queue(
-            catalog=catalog,
-            sweep=sweep,
-            queue_instance=queue_instance,
-            catalog_path=catalog_path,
-            sweeps_root=sweeps_root,
-        )
-    rows = payload.get("rows")
-    if not isinstance(rows, list):
-        raise RuntimeError("materialized system delta queue must include rows")
-    for index, row in enumerate(rows):
-        if not isinstance(row, dict):
-            raise RuntimeError(f"materialized system delta queue rows[{index}] must be mappings")
-        validate_prose_fields(row, context=f"materialized system delta queue rows[{index}]")
-    return payload
+    return _load_system_delta_queue_common(
+        path,
+        sweep_id=sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        mode="materialized",
+    ).to_payload_dict()
 
 
 def load_system_delta_queue_for_inspection(
@@ -473,81 +576,35 @@ def load_system_delta_queue_for_inspection(
     catalog_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
-    def _materialize_or_fallback(
-        *,
-        catalog: Mapping[str, Any],
-        sweep: Mapping[str, Any],
-        queue_instance: Mapping[str, Any],
-    ) -> dict[str, Any]:
-        try:
-            return materialize_system_delta_queue(
-                catalog=catalog,
-                sweep=sweep,
-                queue_instance=queue_instance,
-                catalog_path=catalog_path,
-                sweeps_root=sweeps_root,
-            )
-        except RuntimeError as exc:
-            if "unknown delta_ref" not in str(exc):
-                raise
-            return inspection_system_delta_queue(
-                sweep=sweep,
-                queue_instance=queue_instance,
-                sweeps_root=sweeps_root,
-            )
-
-    if path is None:
-        catalog = load_system_delta_catalog(catalog_path)
-        sweep = load_system_delta_sweep(sweep_id, index_path=index_path, sweeps_root=sweeps_root)
-        queue_instance = load_system_delta_queue_instance(
-            sweep_id or str(sweep["sweep_id"]),
-            index_path=index_path,
-            sweeps_root=sweeps_root,
-        )
-        return _materialize_or_fallback(
-            catalog=catalog,
-            sweep=sweep,
-            queue_instance=queue_instance,
-        )
-
-    payload = load_yaml_mapping(path, context="system delta queue")
-    schema = payload.get("schema")
-    if schema == SWEEP_QUEUE_SCHEMA:
-        queue_instance = payload
-        resolved_sweep_id = ensure_non_empty_string(
-            queue_instance.get("sweep_id"),
-            context="system delta queue instance sweep_id",
-        )
-        catalog = load_system_delta_catalog(catalog_path)
-        sweep = load_system_delta_sweep(
-            resolved_sweep_id,
-            index_path=index_path,
-            sweeps_root=sweeps_root,
-        )
-        return _materialize_or_fallback(
-            catalog=catalog,
-            sweep=sweep,
-            queue_instance=queue_instance,
-        )
-    rows = payload.get("rows")
-    if not isinstance(rows, list):
-        raise RuntimeError("materialized system delta queue must include rows")
-    for index, row in enumerate(rows):
-        if not isinstance(row, dict):
-            raise RuntimeError(f"materialized system delta queue rows[{index}] must be mappings")
-        validate_prose_fields(row, context=f"materialized system delta queue rows[{index}]")
-    return payload
+    return _load_system_delta_queue_common(
+        path,
+        sweep_id=sweep_id,
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        mode="inspection",
+    ).to_payload_dict()
 
 
-def ordered_rows(queue: Mapping[str, Any]) -> list[dict[str, Any]]:
-    rows = cast(list[dict[str, Any]], queue["rows"])
-    return sorted(rows, key=lambda row: (int(row["order"]), str(row["delta_id"])))
+def _ordered_row_models(queue: MaterializedQueuePayload | Mapping[str, Any]) -> list[MaterializedQueueRowPayload]:
+    if isinstance(queue, MaterializedQueuePayload):
+        rows = queue.rows
+    else:
+        raw_rows = queue.get("rows")
+        if not isinstance(raw_rows, list):
+            raise RuntimeError("materialized system delta queue must include rows")
+        rows = [MaterializedQueueRowPayload.model_validate(row) for row in raw_rows]
+    return sorted(rows, key=lambda row: (int(row.order), str(row.delta_id)))
 
 
-def next_ready_row(queue: Mapping[str, Any]) -> dict[str, Any] | None:
-    for row in ordered_rows(queue):
-        if str(row.get("status", "")).strip().lower() == "ready":
-            return row
+def ordered_rows(queue: MaterializedQueuePayload | Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [row.to_payload_dict() for row in _ordered_row_models(queue)]
+
+
+def next_ready_row(queue: MaterializedQueuePayload | Mapping[str, Any]) -> dict[str, Any] | None:
+    for row in _ordered_row_models(queue):
+        if str(row.status).strip().lower() == "ready":
+            return row.to_payload_dict()
     return None
 
 
@@ -582,13 +639,22 @@ def materialize_sweep_corpora(
         repo_root_from_sweeps_root(sweeps_root)
         or repo_root_from_catalog_path(catalog_path)
     )
-    resolved_sweep_id = ensure_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
+    resolved_sweep_id = str(queue["sweep_id"])
     requested_corpus_refs: list[str] = []
     seen_corpus_refs: set[str] = set()
-    for row in ordered_rows(queue):
-        data_payload = row.get("data")
-        if not isinstance(data_payload, Mapping):
-            continue
+    raw_rows = queue.get("rows")
+    if not isinstance(raw_rows, list):
+        raise RuntimeError("materialized system delta queue must include rows")
+    ordered_rows_for_corpora = sorted(
+        [cast(Mapping[str, Any], row) for row in raw_rows if isinstance(row, Mapping)],
+        key=lambda row: (
+            int(row.get("order", 0)),
+            str(row.get("delta_id", row.get("delta_ref", ""))),
+        ),
+    )
+    for row in ordered_rows_for_corpora:
+        raw_data = row.get("data")
+        data_payload = cast(Mapping[str, Any], raw_data) if isinstance(raw_data, Mapping) else {}
         normalized_corpus_ref = _effective_queue_corpus_ref(data_payload)
         if normalized_corpus_ref is None:
             continue
@@ -612,10 +678,7 @@ def materialize_sweep_corpora(
         "recipe_count": len(records),
         "requested_corpus_refs": requested_corpus_refs,
         "requested_recipe_ids": [
-            ensure_non_empty_string(
-                corpus_ref.split("/", 1)[0],
-                context="requested corpus_ref recipe_id",
-            )
+            corpus_ref.split("/", 1)[0]
             for corpus_ref in requested_corpus_refs
         ],
         "corpus_refs": [str(record["corpus_ref"]) for record in records],

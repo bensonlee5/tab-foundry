@@ -19,7 +19,12 @@ from .paths_io import (
     write_text,
 )
 from .queue_updates import stage_local_telemetry_metrics
-from .validation import ensure_non_empty_string
+
+
+def _require_non_empty_string(value: Any, *, context: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"{context} must be a non-empty string")
+    return str(value)
 
 
 def _optional_float(value: Any) -> float | None:
@@ -219,7 +224,7 @@ def validate_system_delta_queue(
     issues: list[str] = []
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = cast(dict[str, dict[str, Any]], registry["runs"])
-    sweep_id = ensure_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
+    sweep_id = _require_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
     for row in ordered_rows(queue):
         status = str(row.get("status", "")).strip().lower()
         if status != "completed":
@@ -268,7 +273,7 @@ def render_system_delta_matrix(
 ) -> str:
     registry = load_benchmark_run_registry(registry_path or default_registry_path())
     runs = cast(dict[str, dict[str, Any]], registry["runs"])
-    sweep_id = ensure_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
+    sweep_id = _require_non_empty_string(queue.get("sweep_id"), context="materialized queue sweep_id")
     anchor_run_id = str(queue["anchor_run_id"])
     anchor = runs.get(anchor_run_id)
     if anchor is None:
@@ -513,7 +518,7 @@ def render_and_write_system_delta_matrix(
             sweeps_root=sweeps_root,
         )
     )
-    resolved_sweep_id = ensure_non_empty_string(
+    resolved_sweep_id = _require_non_empty_string(
         sweep_id if sweep_id is not None else resolved_queue.get("sweep_id"),
         context="sweep_id",
     )

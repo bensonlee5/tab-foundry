@@ -23,7 +23,7 @@ def _export(names: list[str]) -> None:
 _export(
     [
         "test_compare_main_parses_cli_invocation",
-        "test_compare_main_parses_cli_invocation_with_tabiclv2",
+        "test_compare_main_parses_cli_invocation_with_explicit_tabiclv2",
         "test_compare_main_parses_cli_invocation_with_explicit_nanotabpfn",
     ]
 )

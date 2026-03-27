@@ -6,24 +6,22 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from omegaconf import OmegaConf
 import torch
 
 from tab_foundry.benchmark_registry import (
     load_benchmark_run_registry,
     resolve_registry_path_value,
 )
-from tab_foundry.config import compose_config
 from tab_foundry.model.inspection import model_surface_payload, parameter_counts_from_model_spec
-from tab_foundry.model.spec import model_build_spec_from_mappings
-from tab_foundry.training.surface import build_training_surface_record
 
 from .anchor import anchor_training_surface_label
-from .configuration import _corpus_lookup_context
-from .graph import (
-    _training_surface_record_model_spec,
+from .surface_resolution import (
+    build_lightweight_training_surface_record,
+    inspection_spec_and_record,
     resolve_anchor_originating_queue_row,
     resolve_anchor_model_spec,
+    resolve_queue_row_cfg_mapping,
+    training_surface_record_model_spec,
 )
 from .materialize import load_system_delta_queue_for_inspection, ordered_rows
 from .paths_io import (
@@ -281,52 +279,20 @@ def _surface_payload(
     }
 
 
-def _cfg_mapping(cfg: Any) -> dict[str, Any]:
-    payload = OmegaConf.to_container(cfg, resolve=True)
-    if not isinstance(payload, dict):
-        raise RuntimeError("resolved config must be a mapping")
-    return {str(key): value for key, value in payload.items()}
-
-
-def _merge_plain_mapping(
-    target: dict[str, Any],
+def _merge_model_fallback(
     *,
-    prefix: str,
-    payload: Mapping[str, Any],
-) -> None:
-    destination = target.get(prefix)
-    if not isinstance(destination, dict):
-        destination = {}
-        target[prefix] = destination
-    if (
-        prefix == "model"
-        and payload.get("arch") is None
-        and any(payload.get(key) is not None for key in ("stage", "stage_label", "module_overrides"))
-    ):
-        destination["arch"] = "tabfoundry_staged"
-    for key, value in payload.items():
-        if prefix == "model" and key == "module_overrides" and isinstance(value, Mapping):
-            destination[key] = dict(cast(Mapping[str, Any], _copy_jsonable(value)))
-            continue
-        current = destination.get(key)
-        if isinstance(current, dict) and isinstance(value, Mapping):
-            nested = dict(current)
-            for nested_key, nested_value in cast(Mapping[str, Any], value).items():
-                if isinstance(nested.get(nested_key), dict) and isinstance(nested_value, Mapping):
-                    nested_current = cast(dict[str, Any], nested[nested_key])
-                    nested_current.update(
-                        cast(dict[str, Any], _copy_jsonable(cast(Mapping[str, Any], nested_value)))
-                    )
-                    nested[nested_key] = nested_current
-                else:
-                    nested[nested_key] = (
-                        _copy_jsonable(nested_value)
-                        if isinstance(nested_value, (dict, list))
-                        else nested_value
-                    )
-            destination[key] = nested
-            continue
-        destination[key] = _copy_jsonable(value) if isinstance(value, (dict, list)) else value
+    resolved: dict[str, Any],
+    fallback_model: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(fallback_model, Mapping):
+        return resolved
+    resolved_model = resolved.get("model")
+    if not isinstance(resolved_model, dict):
+        return resolved
+    for key in ("arch", "stage", "stage_label"):
+        if resolved_model.get(key) in (None, "") and fallback_model.get(key) not in (None, ""):
+            resolved_model[key] = fallback_model[key]
+    return resolved
 
 
 def _inspection_raw_cfg(
@@ -336,48 +302,18 @@ def _inspection_raw_cfg(
     sweep_id: str | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
-    cfg = compose_config([f"experiment={training_experiment}"])
-    raw_cfg = _cfg_mapping(cfg)
-    _merge_plain_mapping(raw_cfg, prefix="model", payload=cast(Mapping[str, Any], row.get("model", {})))
-    _merge_plain_mapping(raw_cfg, prefix="data", payload=cast(Mapping[str, Any], row.get("data", {})))
-    data_cfg = raw_cfg.get("data")
-    if sweep_id is not None and isinstance(data_cfg, dict):
-        raw_corpus_ref = None
-        surface_overrides = data_cfg.get("surface_overrides")
-        if isinstance(surface_overrides, dict):
-            raw_corpus_ref = surface_overrides.get("corpus_ref")
-        if raw_corpus_ref is None:
-            raw_corpus_ref = data_cfg.get("corpus_ref")
-        if raw_corpus_ref is not None:
-            if not isinstance(surface_overrides, dict):
-                surface_overrides = {}
-                data_cfg["surface_overrides"] = surface_overrides
-            surface_overrides.update(
-                _corpus_lookup_context(
-                    sweep_id=sweep_id,
-                    sweeps_root=sweeps_root,
-                )
-            )
-    _merge_plain_mapping(
-        raw_cfg,
-        prefix="preprocessing",
-        payload=cast(Mapping[str, Any], row.get("preprocessing", {})),
+    target_sweep_id = sweep_id if sweep_id is not None else "inspection"
+    return resolve_queue_row_cfg_mapping(
+        row,
+        run_dir=_inspection_run_dir(
+            sweep_id=target_sweep_id,
+            target_kind="row",
+            target_id="raw_cfg",
+        ),
+        training_experiment=training_experiment,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
     )
-
-    training_payload = cast(Mapping[str, Any], row.get("training", {}))
-    _merge_plain_mapping(raw_cfg, prefix="training", payload=training_payload)
-    overrides = cast(Mapping[str, Any], training_payload.get("overrides", {}))
-    if "apply_schedule" in overrides:
-        training_cfg = raw_cfg.get("training")
-        if not isinstance(training_cfg, dict):
-            training_cfg = {}
-            raw_cfg["training"] = training_cfg
-        training_cfg["apply_schedule"] = overrides["apply_schedule"]
-    for key in ("optimizer", "runtime", "schedule"):
-        override_payload = overrides.get(key)
-        if isinstance(override_payload, Mapping):
-            _merge_plain_mapping(raw_cfg, prefix=key, payload=cast(Mapping[str, Any], override_payload))
-    return raw_cfg
 
 
 def _inspection_spec_and_record(
@@ -388,25 +324,13 @@ def _inspection_spec_and_record(
     sweep_id: str,
     sweeps_root: Path | None = None,
 ) -> tuple[Any, dict[str, Any]]:
-    raw_cfg = _inspection_raw_cfg(
+    return inspection_spec_and_record(
         row=row,
+        run_dir=run_dir,
         training_experiment=training_experiment,
         sweep_id=sweep_id,
         sweeps_root=sweeps_root,
     )
-    task = str(raw_cfg.get("task", "classification")).strip().lower()
-    raw_model_cfg = raw_cfg.get("model")
-    if not isinstance(raw_model_cfg, Mapping):
-        raise RuntimeError("inspection fallback requires cfg.model to resolve to a mapping")
-    spec = model_build_spec_from_mappings(
-        task=task,
-        primary={str(key): value for key, value in raw_model_cfg.items()},
-    )
-    training_surface_record = _build_lightweight_training_surface_record(
-        raw_cfg=raw_cfg,
-        run_dir=run_dir,
-    )
-    return spec, training_surface_record
 
 
 def _build_lightweight_training_surface_record(
@@ -415,12 +339,10 @@ def _build_lightweight_training_surface_record(
     run_dir: Path,
     state_dict: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return build_training_surface_record(
+    return build_lightweight_training_surface_record(
         raw_cfg=raw_cfg,
         run_dir=run_dir,
         state_dict=state_dict,
-        include_manifest_characteristics=False,
-        allow_unresolved_corpus_ref=True,
     )
 
 
@@ -435,7 +357,7 @@ def resolve_row_target(
     training_surface_entry = artifacts.get("training_surface_record_json")
     if isinstance(training_surface_entry, Mapping) and bool(training_surface_entry.get("exists")):
         training_surface_path = Path(str(training_surface_entry["path"]))
-        spec = _training_surface_record_model_spec(training_surface_path)
+        spec = training_surface_record_model_spec(training_surface_path)
         training_surface_record = _load_json_mapping(
             training_surface_path,
             context=f"row {int(row['order']):02d} training surface record",
@@ -451,7 +373,7 @@ def resolve_row_target(
                 target_id=f"{int(row['order']):02d}_{str(row['delta_id'])}",
             )
         )
-        spec, training_surface_record = _inspection_spec_and_record(
+        spec, training_surface_record = inspection_spec_and_record(
             row=row,
             run_dir=run_dir,
             training_experiment=str(queue["training_experiment"]),
@@ -461,6 +383,10 @@ def resolve_row_target(
     metrics = row.get("benchmark_metrics")
     if not isinstance(metrics, Mapping):
         metrics = row.get("screen_metrics")
+    resolved_payload = _surface_payload(
+        spec=spec,
+        training_surface_record=training_surface_record,
+    )
     return {
         "kind": "row",
         "identity": {
@@ -471,7 +397,10 @@ def resolve_row_target(
             "run_id": None if row.get("run_id") is None else str(row["run_id"]),
         },
         "artifacts": artifacts,
-        "resolved": _surface_payload(spec=spec, training_surface_record=training_surface_record),
+        "resolved": _merge_model_fallback(
+            resolved=resolved_payload,
+            fallback_model=cast(Mapping[str, Any] | None, row.get("model")),
+        ),
         "metrics": None if not isinstance(metrics, Mapping) else dict(cast(Mapping[str, Any], metrics)),
     }
 
@@ -633,6 +562,8 @@ def resolve_anchor_target(
             registry_path=registry_path,
             index_path=index_path,
             sweeps_root=sweeps_root,
+            load_registry=load_benchmark_run_registry,
+            resolve_registry_path=resolve_registry_path_value,
         )
         if _anchor_has_training_artifacts(artifacts):
             training_surface_record = _anchor_training_surface_record(queue=queue, artifacts=artifacts)
@@ -648,6 +579,7 @@ def resolve_anchor_target(
                     registry_path=registry_path,
                     index_path=index_path,
                     sweeps_root=sweeps_root,
+                    load_registry=load_benchmark_run_registry,
                 )
                 if originating_row is not None:
                     source_row, originating_metadata = originating_row
@@ -661,7 +593,7 @@ def resolve_anchor_target(
                     target_kind="anchor",
                     target_id="anchor",
                 )
-                _, training_surface_record = _inspection_spec_and_record(
+                _, training_surface_record = inspection_spec_and_record(
                     row=source_row,
                     run_dir=run_dir,
                     training_experiment=source_training_experiment,
@@ -674,7 +606,7 @@ def resolve_anchor_target(
             target_kind="anchor",
             target_id="anchor",
         )
-        spec, training_surface_record = _inspection_spec_and_record(
+        spec, training_surface_record = inspection_spec_and_record(
             row=anchor_row,
             run_dir=run_dir,
             training_experiment=str(queue["training_experiment"]),

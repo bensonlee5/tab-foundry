@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import math
 from pathlib import Path
 import time
-from typing import Any, Mapping, cast
+from typing import Any, cast
 
 import torch
 from omegaconf import DictConfig, OmegaConf
@@ -13,230 +12,50 @@ from omegaconf import DictConfig, OmegaConf
 from tab_foundry.data.factory import build_task_dataset, build_task_loader
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
-from tab_foundry.task_batching import (
-    move_batch,
-    resolve_task_batch_size,
-    task_batch_diagnostics,
-)
-from tab_foundry.types import TaskBatch, TrainResult
+from tab_foundry.task_batching import move_batch, resolve_task_batch_size
+from tab_foundry.types import TrainResult
 
-from .artifacts import (
-    append_history_record,
-    append_jsonl_record,
-    assert_clean_training_output,
-    canonical_latest_checkpoint_path,
-    gradient_history_record,
-    history_path_from_cfg,
-    history_record,
-    save_checkpoint,
-    stage_latest_checkpoint_path,
-)
-from .distributed import _reduce_any_flag, _reduction_float_dtype, _reduce_keyed_weighted_scalars
+from .artifacts import assert_clean_training_output, save_checkpoint
 from .instability import (
-    build_regime_budget_summary,
-    build_runtime_summary,
-    build_training_telemetry,
-    grad_norm_summary_from_running_totals,
     gradient_history_path,
-    module_grad_norms,
     normalize_grad_norm_value,
-    peak_device_memory_summary,
     reset_peak_device_memory_stats,
-    task_batch_examples_seen,
-    task_batch_token_count,
     telemetry_path,
-    total_grad_norm,
-    train_loss_delta,
-    update_loss_ema,
-    write_training_telemetry,
 )
 from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
-from .schedule import build_stage_configs, stage_base_lr
+from .schedule import build_stage_configs
 from .surface import TRAINING_BACKEND_MANIFEST, write_training_surface_record
-from .trainer_metrics import (
-    _compute_loss_and_metrics,
-    _evaluate_loader,
-    _expected_metric_keys,
-    cycle_loader,
-)
-from .trainer_optimizer import (
-    _optimizer_lr_scales,
-    _set_optimizer_base_lr,
-    _set_optimizer_training_mode,
-)
+from .trainer_finalize import finalize_training_run
+from .trainer_guards import _accelerator_num_processes
+from .trainer_loop import TrainingLoopState, run_training_loop
+from .trainer_metrics import _compute_loss_and_metrics, _evaluate_loader, _expected_metric_keys
+from .trainer_optimizer import _optimizer_lr_scales
 from .trainer_runtime_config import (
-    _resolve_activation_checkpointing,
     _checkpoint_every,
+    _resolve_activation_checkpointing,
     _resolve_grad_accum_steps,
     _resolve_max_steps,
     _resolve_target_train_seconds,
     _resolve_val_batches,
 )
-from .trainer_summary import _training_telemetry_summary_payload, _trainer_summary_payload
+from .trainer_summary import _trainer_summary_payload
 from .task_batching_validation import validate_task_batching_support
 from .wandb import (
     finish_wandb_run,
     init_wandb_run,
-    log_wandb_metrics,
     training_surface_wandb_summary_payload,
     update_wandb_summary,
-    wandb_identity_payload,
 )
 
-
-def _merge_activation_norms(
-    sum_sqs: dict[str, float],
-    element_counts: dict[str, float],
-) -> dict[str, float] | None:
-    if not sum_sqs:
-        return None
-    merged: dict[str, float] = {}
-    for name, value in sum_sqs.items():
-        count = float(element_counts.get(name, 0.0))
-        if count <= 0.0:
-            continue
-        merged[name] = float(math.sqrt(float(value) / count))
-    return merged or None
-
-
-def _accelerator_num_processes(accelerator: Any) -> int:
-    raw_num_processes = getattr(accelerator, "num_processes", None)
-    if isinstance(raw_num_processes, int) and raw_num_processes > 0:
-        return raw_num_processes
-    raw_state = getattr(accelerator, "state", None)
-    state_num_processes = getattr(raw_state, "num_processes", None)
-    if isinstance(state_num_processes, int) and state_num_processes > 0:
-        return state_num_processes
-    return 1
-
-
-def _global_grad_norm_kind(value: float) -> str:
-    if math.isnan(value):
-        return "nan"
-    if math.isinf(value):
-        return "pos_inf" if value > 0.0 else "neg_inf"
-    return "finite"
-
-
-def _reduce_global_grad_norm_kind(
-    accelerator: Any,
-    *,
-    local_kind: str,
-    device: torch.device,
-) -> str:
-    if local_kind not in {"finite", "nan", "pos_inf", "neg_inf"}:
-        raise ValueError(f"unsupported global grad norm kind {local_kind!r}")
-    if _accelerator_num_processes(accelerator) == 1:
-        return local_kind
-    if _reduce_any_flag(accelerator, local_kind == "nan", device=device):
-        return "nan"
-    if _reduce_any_flag(accelerator, local_kind == "pos_inf", device=device):
-        return "pos_inf"
-    if _reduce_any_flag(accelerator, local_kind == "neg_inf", device=device):
-        return "neg_inf"
-    return "finite"
-
-
-def _empty_task_batch_step_payload(*, requested_task_batch_size: int) -> dict[str, Any]:
-    return {
-        "task_batch_size_requested": int(requested_task_batch_size),
-        "task_batch_size_actual": 0,
-        "task_batch_batched_count": 0,
-        "task_batch_singleton_fallback_count": 0,
-        "task_batch_singleton_fallback_fraction": 0.0,
-        "task_batch_signature_counts": {},
-    }
-
-
-def _task_batch_microstep_payload(batch: TaskBatch) -> dict[str, Any]:
-    diagnostics = task_batch_diagnostics(batch)
-    requested = int(diagnostics["task_batch_size_requested"])
-    actual = int(diagnostics["task_batch_size_actual"])
-    is_fallback = requested > 1 and actual == 1
-    return {
-        "task_batch_size_requested": requested,
-        "task_batch_size_actual": actual,
-        "task_batch_batched_count": 1 if actual > 1 else 0,
-        "task_batch_singleton_fallback_count": 1 if is_fallback else 0,
-        "task_batch_singleton_fallback_fraction": 1.0 if is_fallback else 0.0,
-        "task_batch_signature_counts": {str(diagnostics["task_batch_signature"]): 1},
-    }
-
-
-def _accumulate_task_batch_step_payload(
-    step_payload: dict[str, Any],
-    *,
-    microstep_payload: Mapping[str, Any],
-) -> None:
-    requested = int(microstep_payload["task_batch_size_requested"])
-    expected_requested = int(step_payload["task_batch_size_requested"])
-    if int(step_payload["task_batch_size_actual"]) == 0:
-        step_payload["task_batch_size_requested"] = requested
-    elif requested != expected_requested:
-        raise RuntimeError(
-            "task-batch diagnostics changed requested task batch size within one optimizer step: "
-            f"expected {expected_requested}, got {requested}"
-        )
-
-    actual = int(microstep_payload["task_batch_size_actual"])
-    batched_count = (
-        int(step_payload["task_batch_batched_count"])
-        + int(microstep_payload["task_batch_batched_count"])
-    )
-    fallback_count = (
-        int(step_payload["task_batch_singleton_fallback_count"])
-        + int(microstep_payload["task_batch_singleton_fallback_count"])
-    )
-    step_payload["task_batch_size_actual"] = int(step_payload["task_batch_size_actual"]) + actual
-    step_payload["task_batch_batched_count"] = batched_count
-    step_payload["task_batch_singleton_fallback_count"] = fallback_count
-    task_batch_microsteps = batched_count + fallback_count
-    step_payload["task_batch_singleton_fallback_fraction"] = (
-        0.0
-        if task_batch_microsteps <= 0
-        else float(fallback_count / float(task_batch_microsteps))
-    )
-
-    step_signature_counts = cast(dict[str, int], step_payload["task_batch_signature_counts"])
-    for signature, count in cast(Mapping[str, int], microstep_payload["task_batch_signature_counts"]).items():
-        key = str(signature)
-        step_signature_counts[key] = step_signature_counts.get(key, 0) + int(count)
-
-
-def _task_weighted_microstep_loss(
-    loss: torch.Tensor,
-    *,
-    actual_task_count: int,
-    accelerator: Any,
-) -> torch.Tensor:
-    resolved_task_count = int(actual_task_count)
-    if resolved_task_count <= 0:
-        raise RuntimeError(
-            "task-batch accumulation requires a positive actual_task_count, "
-            f"got {resolved_task_count}"
-        )
-    accumulation_steps = getattr(accelerator, "gradient_accumulation_steps", 1)
-    if not isinstance(accumulation_steps, int) or accumulation_steps <= 0:
-        accumulation_steps = 1
-    return loss * float(resolved_task_count) * float(accumulation_steps)
-
-
-def _normalize_accumulated_task_gradients(
-    model: torch.nn.Module,
-    *,
-    step_total_task_count: int,
-) -> None:
-    resolved_task_count = int(step_total_task_count)
-    if resolved_task_count <= 0:
-        raise RuntimeError(
-            "task-batch accumulation requires a positive step_total_task_count, "
-            f"got {resolved_task_count}"
-        )
-    scale = 1.0 / float(resolved_task_count)
-    for parameter in model.parameters():
-        if parameter.grad is not None:
-            parameter.grad.mul_(scale)
+__all__ = [
+    "_compute_loss_and_metrics",
+    "_resolve_grad_accum_steps",
+    "_trainer_summary_payload",
+    "move_batch",
+    "normalize_grad_norm_value",
+    "train",
+]
 
 
 def train(cfg: DictConfig) -> TrainResult:
@@ -246,7 +65,13 @@ def train(cfg: DictConfig) -> TrainResult:
     seed = int(cfg.runtime.seed)
     output_dir = Path(str(cfg.runtime.output_dir)).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    history_path = history_path_from_cfg(cfg)
+    history_path = output_dir / "train_history.jsonl"
+    if hasattr(cfg, "runtime"):
+        from .artifacts import history_path_from_cfg
+
+        resolved_history_path = history_path_from_cfg(cfg)
+        if resolved_history_path is not None:
+            history_path = resolved_history_path
     assert_clean_training_output(output_dir, history_path=history_path)
     gradient_path = gradient_history_path(output_dir)
     telemetry_output_path = telemetry_path(output_dir)
@@ -337,11 +162,7 @@ def train(cfg: DictConfig) -> TrainResult:
     flush_activation_trace = getattr(base_model, "flush_activation_trace", None)
     flush_activation_trace_stats = getattr(base_model, "flush_activation_trace_stats", None)
     requires_exact_activation_trace_stats = bool(
-        trace_activations
-        and (
-            grad_accum_steps > 1
-            or _accelerator_num_processes(accelerator) > 1
-        )
+        trace_activations and (grad_accum_steps > 1 or _accelerator_num_processes(accelerator) > 1)
     )
     if (
         requires_exact_activation_trace_stats
@@ -379,7 +200,7 @@ def train(cfg: DictConfig) -> TrainResult:
             return {
                 str(name): (float(value) * float(value), 1)
                 for name, value in legacy_snapshot.items()
-                if math.isfinite(float(value))
+                if torch.isfinite(torch.tensor(float(value)))
             }
         return None
 
@@ -390,31 +211,8 @@ def train(cfg: DictConfig) -> TrainResult:
     optimizer_fallback_reason: str | None = None
     prepared_opts: list[tuple[str, torch.optim.Optimizer]] = []
     lr_scales: dict[str, list[float]] = {}
-
-    global_step = 0
-    best_checkpoint: Path | None = None
-    latest_checkpoint: Path | None = None
-    best_val = float("inf")
-    best_val_step = 0.0
-    last_val_metrics: dict[str, float] | None = None
+    state = TrainingLoopState()
     train_start = time.perf_counter()
-    train_elapsed_seconds = 0.0
-    stop_requested = False
-    grad_norm_sum = 0.0
-    grad_norm_count = 0
-    max_grad_norm = 0.0
-    final_grad_norm = 0.0
-    nan_skip_count = 0
-    previous_train_loss: float | None = None
-    loss_ema: float | None = None
-    final_train_loss: float | None = None
-    final_train_loss_ema: float | None = None
-    last_train_metrics: dict[str, float] | None = None
-    history_records: list[dict[str, Any]] = []
-    gradient_records: list[dict[str, Any]] = []
-    checkpoint_snapshots: list[dict[str, Any]] = []
-    examples_seen = 0
-    tokens_seen = 0
 
     def _artifacts_payload() -> dict[str, Any]:
         return {
@@ -423,8 +221,12 @@ def train(cfg: DictConfig) -> TrainResult:
             "telemetry_json": str(telemetry_output_path),
             "training_surface_record_json": str(training_surface_path.resolve()),
             "checkpoints_dir": str((output_dir / "checkpoints").resolve()),
-            "best_checkpoint": None if best_checkpoint is None else str(best_checkpoint.resolve()),
-            "latest_checkpoint": None if latest_checkpoint is None else str(latest_checkpoint.resolve()),
+            "best_checkpoint": (
+                None if state.best_checkpoint is None else str(state.best_checkpoint.resolve())
+            ),
+            "latest_checkpoint": (
+                None if state.latest_checkpoint is None else str(state.latest_checkpoint.resolve())
+            ),
         }
 
     try:
@@ -451,7 +253,6 @@ def train(cfg: DictConfig) -> TrainResult:
         stage_configs = build_stage_configs(raw_stages)
         if not stage_configs:
             raise RuntimeError("schedule.stages must contain at least one stage")
-        train_iter = cycle_loader(train_loader)
 
         first_stage = stage_configs[0]
         optimizer_sel = build_optimizer(
@@ -484,665 +285,85 @@ def train(cfg: DictConfig) -> TrainResult:
             prepared_opts.append((opt_name, prepared))
             lr_scales[opt_name] = _optimizer_lr_scales(prepared, base_lr=first_stage.lr_max)
 
-        expected_keys = _expected_metric_keys(task)
-
-        for stage in stage_configs:
-            _set_optimizer_training_mode(prepared_opts, training=True)
-
-            for stage_step in range(1, stage.steps + 1):
-                model.train()
-                current_base_lr = stage_base_lr(
-                    stage,
-                    step=stage_step,
-                    lr_min=float(cfg.optimizer.min_lr),
-                )
-                for opt_name, opt in prepared_opts:
-                    _set_optimizer_base_lr(
-                        opt,
-                        base_lr=current_base_lr,
-                        scales=lr_scales[opt_name],
-                    )
-                for _opt_name, opt in prepared_opts:
-                    opt.zero_grad(set_to_none=True)
-                train_loss_sum = 0.0
-                train_loss_count = 0
-                train_metric_sums: dict[str, float] = {}
-                train_metric_counts: dict[str, int] = {}
-                activation_sum_sqs: dict[str, float] = {}
-                activation_element_counts: dict[str, float] = {}
-                step_batch_payload = _empty_task_batch_step_payload(
-                    requested_task_batch_size=task_batch_size,
-                )
-                step_train_start = time.perf_counter()
-                step_total_task_count = 0
-                step_examples_seen = 0
-                step_tokens_seen = 0
-                for _micro_step in range(grad_accum_steps):
-                    batch = next(train_iter)
-                    microstep_batch_payload = _task_batch_microstep_payload(batch)
-                    _accumulate_task_batch_step_payload(
-                        step_batch_payload,
-                        microstep_payload=microstep_batch_payload,
-                    )
-                    actual_task_count = int(microstep_batch_payload["task_batch_size_actual"])
-                    step_total_task_count += actual_task_count
-                    step_examples_seen += task_batch_examples_seen(batch)
-                    step_tokens_seen += task_batch_token_count(batch)
-                    batch = move_batch(batch, accelerator.device)
-                    with accelerator.accumulate(model):
-                        with accelerator.autocast():
-                            output = model(batch)
-                            loss, metrics = _compute_loss_and_metrics(output, batch, task=task)
-                        accelerator.backward(
-                            _task_weighted_microstep_loss(
-                                loss,
-                                actual_task_count=actual_task_count,
-                                accelerator=accelerator,
-                            )
-                        )
-                    train_loss_sum += float(loss.detach().item()) * float(actual_task_count)
-                    train_loss_count += actual_task_count
-                    for key, value in metrics.items():
-                        train_metric_sums[key] = (
-                            train_metric_sums.get(key, 0.0)
-                            + (float(value) * float(actual_task_count))
-                        )
-                        train_metric_counts[key] = (
-                            train_metric_counts.get(key, 0)
-                            + actual_task_count
-                        )
-                    batch_activation_trace_stats = _flush_activation_trace_stats()
-                    if batch_activation_trace_stats is not None:
-                        for activation_name, (activation_sum_sq, activation_count) in batch_activation_trace_stats.items():
-                            activation_sum_sqs[activation_name] = (
-                                activation_sum_sqs.get(activation_name, 0.0)
-                                + float(activation_sum_sq)
-                            )
-                            activation_element_counts[activation_name] = (
-                                activation_element_counts.get(activation_name, 0.0)
-                                + float(activation_count)
-                            )
-                _normalize_accumulated_task_gradients(
-                    model,
-                    step_total_task_count=step_total_task_count,
-                )
-
-                local_nan_detected = not math.isfinite(train_loss_sum)
-                global_nan_detected = _reduce_any_flag(
-                    accelerator,
-                    local_nan_detected,
-                    device=accelerator.device,
-                )
-                if global_nan_detected:
-                    _ = _flush_activation_trace_stats()
-                    nan_skip_count += 1
-                    for _opt_name, opt in prepared_opts:
-                        opt.zero_grad(set_to_none=True)
-                    train_elapsed_seconds += time.perf_counter() - step_train_start
-                    global_step += 1
-                    examples_seen += step_examples_seen
-                    tokens_seen += step_tokens_seen
-                    nan_log: dict[str, Any] = {
-                        "train/nan_guard_triggered": True,
-                        "train/nan_skip_count": float(nan_skip_count),
-                    }
-                    log_wandb_metrics(run, nan_log, step=global_step)
-                    if accelerator.is_main_process:
-                        nan_history_payload = history_record(
-                            global_step=global_step,
-                            stage_name=stage.name,
-                            train_loss=float("nan"),
-                            train_metrics={"nan_guard_triggered": 1.0},
-                            lr=float(prepared_opts[0][1].param_groups[0]["lr"]),
-                            grad_norm=None,
-                            elapsed_seconds=time.perf_counter() - train_start,
-                            train_elapsed_seconds=train_elapsed_seconds,
-                            val_metrics=None,
-                            train_loss_delta=None,
-                            train_loss_ema=loss_ema,
-                            grad_clip_threshold=float(cfg.runtime.grad_clip),
-                            grad_clip_triggered=False,
-                            task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
-                            task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
-                            task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
-                            task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
-                            task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
-                            task_batch_signature_counts=cast(
-                                Mapping[str, int],
-                                step_batch_payload["task_batch_signature_counts"],
-                            ),
-                        )
-                        history_records.append(nan_history_payload)
-                        if history_path is not None:
-                            append_history_record(history_path, nan_history_payload)
-                    if max_steps is not None and global_step >= max_steps:
-                        stop_requested = True
-                    if target_train_seconds is not None and train_elapsed_seconds >= target_train_seconds:
-                        stop_requested = True
-                    if stop_requested:
-                        break
-                    continue
-
-                activation_norms: dict[str, float] | None = None
-                if trace_activations:
-                    activation_sum_sqs, activation_element_counts = _reduce_keyed_weighted_scalars(
-                        accelerator,
-                        weighted_sums=activation_sum_sqs,
-                        weights=activation_element_counts,
-                        device=accelerator.device,
-                    )
-                    activation_norms = _merge_activation_norms(
-                        activation_sum_sqs,
-                        activation_element_counts,
-                    )
-                pre_clip_module_grad_norms = (
-                    module_grad_norms(base_model) if accelerator.is_main_process else {}
-                )
-                local_grad_norm = total_grad_norm(model.parameters())
-                if float(cfg.runtime.grad_clip) > 0:
-                    clipped = accelerator.clip_grad_norm_(model.parameters(), float(cfg.runtime.grad_clip))
-                    local_grad_norm = normalize_grad_norm_value(clipped, fallback=local_grad_norm)
-                global_grad_norm_kind = _reduce_global_grad_norm_kind(
-                    accelerator,
-                    local_kind=_global_grad_norm_kind(float(local_grad_norm)),
-                    device=accelerator.device,
-                )
-                if global_grad_norm_kind != "finite":
-                    _ = _flush_activation_trace_stats()
-                    nan_skip_count += 1
-                    for _opt_name, opt in prepared_opts:
-                        opt.zero_grad(set_to_none=True)
-                    train_elapsed_seconds += time.perf_counter() - step_train_start
-                    global_step += 1
-                    examples_seen += step_examples_seen
-                    tokens_seen += step_tokens_seen
-                    non_finite_grad_log: dict[str, Any] = {
-                        "train/non_finite_grad_guard_triggered": True,
-                        "train/non_finite_grad_kind": global_grad_norm_kind,
-                        "train/nan_skip_count": float(nan_skip_count),
-                    }
-                    log_wandb_metrics(run, non_finite_grad_log, step=global_step)
-                    if accelerator.is_main_process:
-                        elapsed_seconds = time.perf_counter() - train_start
-                        history_payload = history_record(
-                            global_step=global_step,
-                            stage_name=stage.name,
-                            train_loss=float("nan"),
-                            train_metrics={"non_finite_grad_guard_triggered": 1.0},
-                            lr=float(prepared_opts[0][1].param_groups[0]["lr"]),
-                            grad_norm=None,
-                            elapsed_seconds=elapsed_seconds,
-                            train_elapsed_seconds=train_elapsed_seconds,
-                            val_metrics=None,
-                            train_loss_delta=None,
-                            train_loss_ema=loss_ema,
-                            grad_clip_threshold=float(cfg.runtime.grad_clip),
-                            grad_clip_triggered=False,
-                            task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
-                            task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
-                            task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
-                            task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
-                            task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
-                            task_batch_signature_counts=cast(
-                                Mapping[str, int],
-                                step_batch_payload["task_batch_signature_counts"],
-                            ),
-                        )
-                        history_records.append(history_payload)
-                        if history_path is not None:
-                            append_history_record(history_path, history_payload)
-                        gradient_payload = gradient_history_record(
-                            global_step=global_step,
-                            stage_name=stage.name,
-                            train_loss=float("nan"),
-                            train_acc=None,
-                            lr=float(prepared_opts[0][1].param_groups[0]["lr"]),
-                            global_grad_norm=None,
-                            global_grad_norm_kind=global_grad_norm_kind,
-                            module_grad_norms=pre_clip_module_grad_norms,
-                            activation_norms=None,
-                            elapsed_seconds=elapsed_seconds,
-                            train_elapsed_seconds=train_elapsed_seconds,
-                            grad_clip_threshold=float(cfg.runtime.grad_clip),
-                            grad_clip_triggered=False,
-                            task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
-                            task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
-                            task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
-                            task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
-                            task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
-                            task_batch_signature_counts=cast(
-                                Mapping[str, int],
-                                step_batch_payload["task_batch_signature_counts"],
-                            ),
-                        )
-                        gradient_records.append(gradient_payload)
-                        append_jsonl_record(gradient_path, gradient_payload)
-                    if max_steps is not None and global_step >= max_steps:
-                        stop_requested = True
-                    if (
-                        target_train_seconds is not None
-                        and train_elapsed_seconds >= target_train_seconds
-                    ):
-                        stop_requested = True
-                    if stop_requested:
-                        break
-                    continue
-                train_metric_sums["grad_norm"] = train_metric_sums.get("grad_norm", 0.0) + float(
-                    local_grad_norm
-                )
-                train_metric_counts["grad_norm"] = train_metric_counts.get("grad_norm", 0) + 1
-
-                for _opt_name, opt in prepared_opts:
-                    opt.step()
-
-                train_elapsed_seconds += time.perf_counter() - step_train_start
-                global_step += 1
-                examples_seen += step_examples_seen
-                tokens_seen += step_tokens_seen
-                metric_keys = sorted(set(train_metric_sums) | expected_keys)
-                # Pack loss + metric sums/counts into one tensor for a single all-reduce.
-                # Layout: [loss_sum, loss_count, key0_sum, key0_count, ...]
-                n_metrics = len(metric_keys)
-                packed = torch.zeros(
-                    2 + 2 * n_metrics,
-                    device=accelerator.device,
-                    dtype=_reduction_float_dtype(accelerator.device),
-                )
-                packed[0] = train_loss_sum
-                packed[1] = train_loss_count
-                for i, key in enumerate(metric_keys):
-                    packed[2 + 2 * i] = train_metric_sums.get(key, 0.0)
-                    packed[2 + 2 * i + 1] = train_metric_counts.get(key, 0)
-                reduced = accelerator.reduce(packed, reduction="sum")
-
-                g_loss_sum = reduced[0].item()
-                g_loss_count = reduced[1].item()
-                train_loss = g_loss_sum / g_loss_count if g_loss_count > 0 else 0.0
-
-                lr_values = {name: float(opt.param_groups[0]["lr"]) for name, opt in prepared_opts}
-                first_lr = next(iter(lr_values.values()))
-                grad_norm_value = float("nan")
-                train_log: dict[str, Any] = {
-                    "train/loss": train_loss,
-                    "train/lr": first_lr,
-                    "train/stage": stage.name,
-                }
-                for name, value in lr_values.items():
-                    train_log[f"train/lr_{name}"] = value
-                current_train_metrics: dict[str, float] = {}
-                for i, key in enumerate(metric_keys):
-                    g_sum = reduced[2 + 2 * i].item()
-                    g_count = reduced[2 + 2 * i + 1].item()
-                    metric_mean = g_sum / g_count if g_count > 0 else float("nan")
-                    if key == "grad_norm":
-                        grad_norm_value = float(metric_mean)
-                    if math.isfinite(metric_mean):
-                        current_train_metrics[key] = float(metric_mean)
-                        train_log[f"train/{key}"] = metric_mean
-                        if key == "grad_norm":
-                            grad_norm_sum += grad_norm_value
-                            grad_norm_count += 1
-                            max_grad_norm = max(max_grad_norm, grad_norm_value)
-                            final_grad_norm = grad_norm_value
-
-                current_train_loss = float(train_loss)
-                loss_delta_value = train_loss_delta(
-                    current_train_loss,
-                    previous_train_loss=previous_train_loss,
-                )
-                loss_ema = update_loss_ema(current_train_loss, previous_ema=loss_ema)
-                previous_train_loss = current_train_loss
-                elapsed_seconds = time.perf_counter() - train_start
-                grad_clip_threshold = float(cfg.runtime.grad_clip)
-                grad_clip_triggered = bool(
-                    grad_clip_threshold > 0
-                    and math.isfinite(grad_norm_value)
-                    and float(grad_norm_value) > grad_clip_threshold
-                )
-                global_grad_norm_kind = _global_grad_norm_kind(float(grad_norm_value))
-                train_log["train/loss_delta"] = loss_delta_value
-                train_log["train/loss_ema"] = loss_ema
-                train_log["train/elapsed_seconds"] = elapsed_seconds
-                train_log["train/train_elapsed_seconds"] = train_elapsed_seconds
-                train_log["train/grad_clip_threshold"] = grad_clip_threshold
-                train_log["train/grad_clip_triggered"] = grad_clip_triggered
-                train_log["train/task_batch_size_requested"] = int(step_batch_payload["task_batch_size_requested"])
-                train_log["train/task_batch_size_actual"] = int(step_batch_payload["task_batch_size_actual"])
-                train_log["train/task_batch_batched_count"] = int(step_batch_payload["task_batch_batched_count"])
-                train_log["train/task_batch_singleton_fallback_count"] = int(
-                    step_batch_payload["task_batch_singleton_fallback_count"]
-                )
-                train_log["train/task_batch_singleton_fallback_fraction"] = float(
-                    step_batch_payload["task_batch_singleton_fallback_fraction"]
-                )
-                if accelerator.is_main_process:
-                    for module_name, module_value in pre_clip_module_grad_norms.items():
-                        train_log[f"train/module_grad_norm/{module_name}"] = float(module_value)
-                    feature_grad = pre_clip_module_grad_norms.get("feature_encoder")
-                    head_grad = pre_clip_module_grad_norms.get("direct_head")
-                    if feature_grad is not None and float(feature_grad) > 0.0 and head_grad is not None:
-                        train_log["train/module_balance/direct_head_to_feature_encoder"] = float(head_grad) / float(feature_grad)
-                    if head_grad is not None and float(head_grad) > 0.0 and feature_grad is not None:
-                        train_log["train/module_balance/feature_encoder_to_direct_head"] = float(feature_grad) / float(head_grad)
-                    if activation_norms is not None:
-                        for activation_name, activation_value in activation_norms.items():
-                            train_log[f"train/activation_norm/{activation_name}"] = float(activation_value)
-                final_train_loss = current_train_loss
-                final_train_loss_ema = loss_ema
-                last_train_metrics = current_train_metrics
-                log_wandb_metrics(run, train_log, step=global_step)
-
-                history_val_metrics: dict[str, float] | None = None
-                if val_loader is not None and global_step % int(cfg.runtime.eval_every) == 0:
-                    _ = _flush_activation_trace_stats()
-                    _set_optimizer_training_mode(prepared_opts, training=False)
-                    val_metrics = _evaluate_loader(
-                        model,
-                        val_loader,
-                        accelerator=accelerator,
-                        task=task,
-                        max_batches=val_batches,
-                    )
-                    log_wandb_metrics(
-                        run,
-                        {f"val/{k}": v for k, v in val_metrics.items()},
-                        step=global_step,
-                    )
-                    history_val_metrics = val_metrics
-                    last_val_metrics = val_metrics
-                    _ = _flush_activation_trace_stats()
-
-                    if val_metrics["val_loss"] < best_val:
-                        best_val = val_metrics["val_loss"]
-                        best_val_step = float(global_step)
-                        best_checkpoint = output_dir / "checkpoints" / "best.pt"
-                        if accelerator.is_main_process:
-                            save_checkpoint(
-                                best_checkpoint,
-                                model_state=accelerator.get_state_dict(model),
-                                global_step=global_step,
-                                cfg=cfg,
-                            )
-                    _set_optimizer_training_mode(prepared_opts, training=True)
-
-                if checkpoint_every is not None and global_step % checkpoint_every == 0:
-                    snapshot_checkpoint = output_dir / "checkpoints" / f"step_{global_step:06d}.pt"
-                    if accelerator.is_main_process:
-                        save_checkpoint(
-                            snapshot_checkpoint,
-                            model_state=accelerator.get_state_dict(model),
-                            global_step=global_step,
-                            cfg=cfg,
-                        )
-                        checkpoint_snapshots.append(
-                            {
-                                "step": int(global_step),
-                                "path": str(snapshot_checkpoint.resolve()),
-                                "elapsed_seconds": float(train_elapsed_seconds),
-                                "train_elapsed_seconds": float(train_elapsed_seconds),
-                            }
-                        )
-
-                if accelerator.is_main_process:
-                    train_metrics_for_history = {
-                        key.removeprefix("train/"): float(value)
-                        for key, value in train_log.items()
-                        if key.startswith("train/")
-                        and isinstance(value, (int, float))
-                        and key != "train/lr"
-                        and math.isfinite(float(value))
-                    }
-                    history_payload = history_record(
-                        global_step=global_step,
-                        stage_name=stage.name,
-                        train_loss=float(train_loss),
-                        train_metrics=train_metrics_for_history,
-                        lr=float(first_lr),
-                        grad_norm=None if not math.isfinite(grad_norm_value) else float(grad_norm_value),
-                        elapsed_seconds=elapsed_seconds,
-                        train_elapsed_seconds=train_elapsed_seconds,
-                        val_metrics=history_val_metrics,
-                        train_loss_delta=loss_delta_value,
-                        train_loss_ema=loss_ema,
-                        grad_clip_threshold=grad_clip_threshold,
-                        grad_clip_triggered=grad_clip_triggered,
-                        task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
-                        task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
-                        task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
-                        task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
-                        task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
-                        task_batch_signature_counts=cast(
-                            Mapping[str, int],
-                            step_batch_payload["task_batch_signature_counts"],
-                        ),
-                    )
-                    history_records.append(history_payload)
-                    if history_path is not None:
-                        append_history_record(history_path, history_payload)
-
-                    gradient_payload = gradient_history_record(
-                        global_step=global_step,
-                        stage_name=stage.name,
-                        train_loss=float(train_loss),
-                        train_acc=current_train_metrics.get("acc"),
-                        lr=float(first_lr),
-                        global_grad_norm=None
-                        if not math.isfinite(grad_norm_value)
-                        else float(grad_norm_value),
-                        global_grad_norm_kind=global_grad_norm_kind,
-                        module_grad_norms=pre_clip_module_grad_norms,
-                        activation_norms=activation_norms,
-                        elapsed_seconds=elapsed_seconds,
-                        train_elapsed_seconds=train_elapsed_seconds,
-                        grad_clip_threshold=grad_clip_threshold,
-                        grad_clip_triggered=grad_clip_triggered,
-                        task_batch_size_requested=int(step_batch_payload["task_batch_size_requested"]),
-                        task_batch_size_actual=int(step_batch_payload["task_batch_size_actual"]),
-                        task_batch_batched_count=int(step_batch_payload["task_batch_batched_count"]),
-                        task_batch_singleton_fallback_count=int(step_batch_payload["task_batch_singleton_fallback_count"]),
-                        task_batch_singleton_fallback_fraction=float(step_batch_payload["task_batch_singleton_fallback_fraction"]),
-                        task_batch_signature_counts=cast(
-                            Mapping[str, int],
-                            step_batch_payload["task_batch_signature_counts"],
-                        ),
-                    )
-                    gradient_records.append(gradient_payload)
-                    append_jsonl_record(gradient_path, gradient_payload)
-
-                if max_steps is not None and global_step >= max_steps:
-                    stop_requested = True
-                if target_train_seconds is not None and train_elapsed_seconds >= target_train_seconds:
-                    stop_requested = True
-                if stop_requested:
-                    break
-
-            latest_checkpoint = stage_latest_checkpoint_path(output_dir, stage_name=stage.name)
-            compatibility_latest_checkpoint = canonical_latest_checkpoint_path(output_dir)
-            if accelerator.is_main_process:
-                save_checkpoint(
-                    latest_checkpoint,
-                    model_state=accelerator.get_state_dict(model),
-                    global_step=global_step,
-                    cfg=cfg,
-                )
-                save_checkpoint(
-                    compatibility_latest_checkpoint,
-                    model_state=accelerator.get_state_dict(model),
-                    global_step=global_step,
-                    cfg=cfg,
-                )
-            if stop_requested:
-                break
-
+        run_training_loop(
+            cfg=cfg,
+            task=task,
+            output_dir=output_dir,
+            history_path=history_path,
+            gradient_path=gradient_path,
+            accelerator=accelerator,
+            model=model,
+            base_model=base_model,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            prepared_opts=prepared_opts,
+            lr_scales=lr_scales,
+            stage_configs=stage_configs,
+            expected_keys=_expected_metric_keys(task),
+            task_batch_size=task_batch_size,
+            grad_accum_steps=grad_accum_steps,
+            checkpoint_every=checkpoint_every,
+            max_steps=max_steps,
+            target_train_seconds=target_train_seconds,
+            val_batches=val_batches,
+            train_start=train_start,
+            trace_activations=trace_activations,
+            flush_activation_trace_stats=_flush_activation_trace_stats,
+            run=run,
+            compute_loss_and_metrics=_compute_loss_and_metrics,
+            evaluate_loader=_evaluate_loader,
+            move_batch_fn=move_batch,
+            normalize_grad_norm_value_fn=normalize_grad_norm_value,
+            state=state,
+        )
         accelerator.wait_for_everyone()
 
-        wall_elapsed_seconds = time.perf_counter() - train_start
-        if best_checkpoint is None and latest_checkpoint is not None:
-            best_checkpoint = output_dir / "checkpoints" / "best.pt"
+        if state.best_checkpoint is None and state.latest_checkpoint is not None:
+            state.best_checkpoint = output_dir / "checkpoints" / "best.pt"
             if accelerator.is_main_process:
                 save_checkpoint(
-                    best_checkpoint,
+                    state.best_checkpoint,
                     model_state=accelerator.get_state_dict(model),
-                    global_step=global_step,
+                    global_step=state.global_step,
                     cfg=cfg,
                 )
 
-        result = TrainResult(
+        result, _wall_elapsed_seconds, _task_batching_summary = finalize_training_run(
+            accelerator=accelerator,
             output_dir=output_dir,
-            best_checkpoint=best_checkpoint,
-            latest_checkpoint=latest_checkpoint,
-            global_step=global_step,
-            metrics={
-                "best_val_loss": float(best_val),
-                "best_val_step": float(best_val_step),
-                "final_val_loss": float(last_val_metrics["val_loss"])
-                if last_val_metrics is not None
-                else float(best_val),
-                "train_elapsed_seconds": float(train_elapsed_seconds),
-                "wall_elapsed_seconds": float(wall_elapsed_seconds),
-                "nan_skip_count": float(nan_skip_count),
-                **grad_norm_summary_from_running_totals(
-                    grad_norm_sum=grad_norm_sum,
-                    grad_norm_count=grad_norm_count,
-                    max_grad_norm=max_grad_norm,
-                    final_grad_norm=final_grad_norm,
-                ),
-            },
+            task=task,
+            cfg=cfg,
+            run=run,
+            training_surface_payload=training_surface_payload,
+            telemetry_output_path=telemetry_output_path,
+            artifacts=_artifacts_payload(),
+            optimizer_requested_name=optimizer_requested_name,
+            optimizer_resolved_name=optimizer_resolved_name,
+            optimizer_fallback_reason=optimizer_fallback_reason,
+            state=state,
+            train_start=train_start,
+            success=True,
         )
-        task_batching_summary: Mapping[str, Any] | None = None
-        if accelerator.is_main_process:
-            runtime_summary = build_runtime_summary(
-                train_elapsed_seconds=train_elapsed_seconds,
-                wall_elapsed_seconds=wall_elapsed_seconds,
-                examples_seen=examples_seen,
-                tokens_seen=tokens_seen,
-                peak_memory_summary=peak_device_memory_summary(accelerator.device),
-            )
-            regime_budget = build_regime_budget_summary(
-                task=task,
-                training_surface_record=training_surface_payload,
-                global_step=global_step,
-                tokens_seen=tokens_seen,
-            )
-            telemetry_payload = build_training_telemetry(
-                run_dir=output_dir,
-                task=task,
-                global_step=global_step,
-                success=True,
-                artifacts=_artifacts_payload(),
-                checkpoint_snapshots=checkpoint_snapshots,
-                history_records=history_records,
-                gradient_records=gradient_records,
-                runtime_summary=runtime_summary,
-                regime_budget=regime_budget,
-                training_surface_record=training_surface_payload,
-                wandb=wandb_identity_payload(run, cfg=cfg),
-            )
-            raw_diagnostics = telemetry_payload.get("diagnostics")
-            if isinstance(raw_diagnostics, Mapping):
-                raw_task_batching = raw_diagnostics.get("task_batching")
-                if isinstance(raw_task_batching, Mapping):
-                    task_batching_summary = raw_task_batching
-            write_training_telemetry(telemetry_output_path, telemetry_payload)
-            update_wandb_summary(
-                run,
-                _training_telemetry_summary_payload(telemetry_payload=telemetry_payload),
-            )
-        update_wandb_summary(
-            run,
-            _trainer_summary_payload(
-                output_dir=output_dir,
-                optimizer_requested_name=optimizer_requested_name,
-                optimizer_resolved_name=optimizer_resolved_name,
-                optimizer_fallback_reason=optimizer_fallback_reason,
-                global_step=global_step,
-                best_checkpoint=best_checkpoint,
-                latest_checkpoint=latest_checkpoint,
-                best_val=best_val,
-                best_val_step=best_val_step,
-                final_train_loss=final_train_loss,
-                final_train_loss_ema=final_train_loss_ema,
-                last_train_metrics=last_train_metrics,
-                last_val_metrics=last_val_metrics,
-                final_grad_norm=final_grad_norm,
-                grad_norm_sum=grad_norm_sum,
-                grad_norm_count=grad_norm_count,
-                max_grad_norm=max_grad_norm,
-                train_elapsed_seconds=train_elapsed_seconds,
-                wall_elapsed_seconds=wall_elapsed_seconds,
-                nan_skip_count=nan_skip_count,
-                task_batching=task_batching_summary,
-            ),
-        )
+        if result is None:
+            raise RuntimeError("successful training finalization did not return a TrainResult")
         return result
     except Exception as exc:
-        task_batching_summary = None
-        if accelerator.is_main_process:
-            wall_elapsed_seconds = time.perf_counter() - train_start
-            runtime_summary = build_runtime_summary(
-                train_elapsed_seconds=train_elapsed_seconds,
-                wall_elapsed_seconds=wall_elapsed_seconds,
-                examples_seen=examples_seen,
-                tokens_seen=tokens_seen,
-                peak_memory_summary=peak_device_memory_summary(accelerator.device),
-            )
-            regime_budget = build_regime_budget_summary(
-                task=task,
-                training_surface_record=training_surface_payload,
-                global_step=global_step,
-                tokens_seen=tokens_seen,
-            )
-            telemetry_payload = build_training_telemetry(
-                run_dir=output_dir,
-                task=task,
-                global_step=global_step,
-                success=False,
-                artifacts=_artifacts_payload(),
-                checkpoint_snapshots=checkpoint_snapshots,
-                history_records=history_records,
-                gradient_records=gradient_records,
-                runtime_summary=runtime_summary,
-                regime_budget=regime_budget,
-                training_surface_record=training_surface_payload,
-                wandb=wandb_identity_payload(run, cfg=cfg),
-                error=exc,
-            )
-            raw_diagnostics = telemetry_payload.get("diagnostics")
-            if isinstance(raw_diagnostics, Mapping):
-                raw_task_batching = raw_diagnostics.get("task_batching")
-                if isinstance(raw_task_batching, Mapping):
-                    task_batching_summary = raw_task_batching
-            write_training_telemetry(telemetry_output_path, telemetry_payload)
-            update_wandb_summary(
-                run,
-                _training_telemetry_summary_payload(telemetry_payload=telemetry_payload),
-            )
-        update_wandb_summary(
-            run,
-            _trainer_summary_payload(
-                output_dir=output_dir,
-                optimizer_requested_name=optimizer_requested_name,
-                optimizer_resolved_name=optimizer_resolved_name,
-                optimizer_fallback_reason=optimizer_fallback_reason,
-                global_step=global_step,
-                best_checkpoint=best_checkpoint,
-                latest_checkpoint=latest_checkpoint,
-                best_val=best_val,
-                best_val_step=best_val_step,
-                final_train_loss=final_train_loss,
-                final_train_loss_ema=final_train_loss_ema,
-                last_train_metrics=last_train_metrics,
-                last_val_metrics=last_val_metrics,
-                final_grad_norm=final_grad_norm,
-                grad_norm_sum=grad_norm_sum,
-                grad_norm_count=grad_norm_count,
-                max_grad_norm=max_grad_norm,
-                train_elapsed_seconds=train_elapsed_seconds,
-                wall_elapsed_seconds=time.perf_counter() - train_start,
-                nan_skip_count=nan_skip_count,
-                task_batching=task_batching_summary,
-                error=exc,
-            ),
+        _result, _wall_elapsed_seconds, _task_batching_summary = finalize_training_run(
+            accelerator=accelerator,
+            output_dir=output_dir,
+            task=task,
+            cfg=cfg,
+            run=run,
+            training_surface_payload=training_surface_payload,
+            telemetry_output_path=telemetry_output_path,
+            artifacts=_artifacts_payload(),
+            optimizer_requested_name=optimizer_requested_name,
+            optimizer_resolved_name=optimizer_resolved_name,
+            optimizer_fallback_reason=optimizer_fallback_reason,
+            state=state,
+            train_start=train_start,
+            success=False,
+            error=exc,
         )
         raise
     finally:

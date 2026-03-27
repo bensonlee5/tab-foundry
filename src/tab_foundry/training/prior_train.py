@@ -70,7 +70,7 @@ from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import build_optimizer
 from tab_foundry.training.schedule import stage_base_lr
 from tab_foundry.training.surface import write_training_surface_record
-from tab_foundry.training.trainer import _set_optimizer_base_lr, _set_optimizer_training_mode
+from tab_foundry.training.trainer_optimizer import _set_optimizer_base_lr, _set_optimizer_training_mode
 from tab_foundry.training.wandb import (
     finish_wandb_run,
     init_wandb_run,

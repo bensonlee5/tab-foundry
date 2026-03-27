@@ -154,10 +154,10 @@ Observed cycle status:
 - Export bundle contract boundary.
 - Changes here are user-facing and must be treated as artifact-schema changes.
 
-### `src/tab_foundry/bench/comparison_runtime.py`, `src/tab_foundry/bench/compare.py`, And `src/tab_foundry/bench/checkpoint.py`
+### `src/tab_foundry/bench/comparison_contract.py`, `src/tab_foundry/bench/comparison_runtime.py`, `src/tab_foundry/bench/comparison_reporting.py`, And `src/tab_foundry/bench/checkpoint.py`
 
-- Benchmark-facing comparison runtime, CLI/manual orchestration, and checkpoint
-  evaluation logic.
+- Benchmark-facing comparison contract/defaults, execution, reporting, and
+  checkpoint evaluation logic.
 - Changes here affect external-baseline comparison and benchmark registry
   records.
 

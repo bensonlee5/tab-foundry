@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 import tab_foundry.bench.comparison_runtime as compare_module
-from tab_foundry.bench.comparison_runtime import NanoTabPFNBenchmarkConfig, run_nanotabpfn_benchmark
+from tab_foundry.bench.comparison_runtime import BenchmarkComparisonConfig, run_nanotabpfn_benchmark
 
 
 def test_run_nanotabpfn_benchmark_supports_local_only_mode(
@@ -112,7 +112,7 @@ def test_run_nanotabpfn_benchmark_supports_local_only_mode(
     )
 
     summary = run_nanotabpfn_benchmark(
-        NanoTabPFNBenchmarkConfig(
+        BenchmarkComparisonConfig(
             tab_foundry_run_dir=run_dir,
             out_root=out_root,
             benchmark_bundle_path=bundle_path,
