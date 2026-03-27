@@ -77,7 +77,7 @@ def _manifest_task_payload(
         "y_train": np.arange(n_train, dtype=np.int64) % n_classes,
         "x_test": x_test + float(dataset_index) + 0.5,
         "y_test": np.arange(n_test, dtype=np.int64) % n_classes,
-        "feature_types": ["num"] * n_features,
+        "feature_types": ["floating"] * n_features,
         "metadata": metadata,
     }
 
@@ -111,7 +111,7 @@ def _write_manifest_dataset(
                 dtype=np.float32,
             ),
             "y_test": np.asarray([0, 1, 2, 2], dtype=np.int64),
-            "feature_types": ["num"] * 3,
+            "feature_types": ["floating"] * 3,
             "metadata": _classification_metadata(n_features=3, n_classes=3, seed=11),
         }
     ]

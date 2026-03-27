@@ -6,14 +6,17 @@ defaults:
 
 model:
   arch: tabfoundry_sandwich
-  d_icl: 96
+  d_icl: 60
   input_normalization: train_zscore_clip
-  head_hidden_dim: 128
-  sandwich_row_latents: 32
-  sandwich_col_latents: 16
+  head_hidden_dim: 96
+  sandwich_latents: 24
   sandwich_layers: 2
   sandwich_heads: 4
   sandwich_ff_expansion: 2
+  sandwich_summary_tokens_per_axis: 4
+  sandwich_self_attention_per_cross: 4
+  sandwich_pre_row_attention_layers: 1
+  sandwich_pre_column_attention_layers: 1
 runtime:
   output_dir: outputs/cls_workstation_sandwich
   trace_activations: false

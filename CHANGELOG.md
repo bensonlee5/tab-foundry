@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-03-26
+
+### Changed
+
+- User-facing break: `model.arch=tabfoundry_sandwich` uses a single fixed
+  latent array that reads `y` first and an `R + C` x-side byte array second.
+  Row and column summaries are summary-query attention outputs over
+  position-aware cell tokens, and sandwich cell tokens include shared Fourier
+  row/column positions plus schema-aware feature-type embeddings.
+- User-facing break: sandwich runtime metadata and the reference consumer now
+  require explicit `feature_types` with the collapsed parquet-group
+  vocabulary `bool`, `integer`, `floating`, `string_binary`, or `unknown`.
+  `forward(TaskBatch)`, `forward_batched(...)`, and sandwich exported
+  reference inference now fail when this metadata is omitted. v3 export
+  preprocessor payloads remain policy-only and do not serialize this list.
+- User-facing note: sandwich legacy prior-dump training now persists explicit
+  per-dataset `feature_types` HDF5 metadata, and legacy numeric-only
+  nanoTabPFN dumps are enriched in place on first use so sweep and train runs
+  can reuse the canonical dump path across machines.
+- User-facing break: manifest-backed task loading now requires explicit
+  persisted `feature_types` metadata for every task record. The shared dataset
+  loader no longer infers an all-`floating` default when the metadata is
+  absent.
+- User-facing note: prior-dump training now preserves the legacy nanoTabPFN
+  padded-batch behavior for mixed `num_features` batches instead of requiring
+  dump regeneration.
+
 ## [0.11.5] - 2026-03-25
 
 ### Changed

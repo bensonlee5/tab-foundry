@@ -273,6 +273,59 @@ def test_model_config_documents_staged_override_surface() -> None:
     for statement in required_statements:
         assert statement in contents
 
+
+def test_tabfoundry_sandwich_doc_covers_current_surface() -> None:
+    contents = (REPO_ROOT / "docs" / "development" / "tabfoundry-sandwich.md").read_text(
+        encoding="utf-8"
+    )
+
+    required_statements = [
+        "`tabfoundry_sandwich` is a fixed-latent hybrid full-cell / summary-stream",
+        "`R * C`",
+        "`K * (R + C)`",
+        "stage `0`",
+        "latent-then-full-cell",
+        "per-row self-attention",
+        "per-column self-attention",
+        "`model.arch`",
+        "`d_icl`",
+        "`input_normalization`",
+        "`many_class_base`",
+        "`head_hidden_dim`",
+        "`pre_encoder_clip`",
+        "`norm_type`",
+        "`sandwich_latents`",
+        "`sandwich_layers`",
+        "`sandwich_heads`",
+        "`sandwich_ff_expansion`",
+        "`sandwich_summary_tokens_per_axis`",
+        "`sandwich_self_attention_per_cross`",
+        "`sandwich_pre_row_attention_layers`",
+        "`sandwich_pre_column_attention_layers`",
+        "`TaskBatch.metadata[\"feature_types\"]`",
+        "`run_reference_consumer(..., feature_types=[...])`",
+        "`forward_batched(..., feature_types=[...])`",
+        "`latent_seed`",
+        "truncated normal",
+        "repeated Perceiver stages",
+        "`2 <= num_classes <= many_class_base`",
+    ]
+    for statement in required_statements:
+        assert statement in contents
+
+    forbidden_statements = [
+        "earlier sandwich",
+        "prior sandwich",
+        "intermediate shared-latent",
+        "previous sandwich",
+        "explicit list is embedded",
+        "falls back to all `floating`",
+        "optional per-request list",
+    ]
+    lowered = contents.lower()
+    for statement in forbidden_statements:
+        assert statement not in lowered
+
     assert "The current staged ladder is:" not in contents
 
 

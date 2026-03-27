@@ -201,3 +201,28 @@ sweeps:
     control_baseline_id: cls_benchmark_linear_v2
     external_benchmarks:
     - nanotabpfn
+  tf_rd_021a_sandwich_nanotabpfn_screen_v1:
+    parent_sweep_id: null
+    status: completed
+    anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks:
+    - nanotabpfn
+  tf_rd_021b_sandwich_knob_sensitivity_v1:
+    parent_sweep_id: tf_rd_021a_sandwich_nanotabpfn_screen_v1
+    status: draft
+    anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: []
+  tf_rd_021b_sandwich_width_capacity_sensitivity_v1:
+    parent_sweep_id: tf_rd_021b_sandwich_knob_sensitivity_v1
+    status: blocked_on_knob_sensitivity
+    anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: []

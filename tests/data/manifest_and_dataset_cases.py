@@ -126,9 +126,10 @@ def _write_packed_shard(
                 "n_train": int(dataset["x_train"].shape[0]),
                 "n_test": int(dataset["x_test"].shape[0]),
                 "n_features": int(dataset["x_train"].shape[1]),
-                "feature_types": list(dataset["feature_types"]),
                 "metadata": dict(dataset["metadata"]),
             }
+            if dataset.get("feature_types") is not None:
+                payload["feature_types"] = list(dataset["feature_types"])
             raw = (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
             offset = int(handle.tell())
             handle.write(raw)
@@ -173,9 +174,10 @@ def _write_split_drift_shard(
                 "n_train": int(dataset["x_train"].shape[0]),
                 "n_test": int(dataset["x_test"].shape[0]),
                 "n_features": int(dataset["x_train"].shape[1]),
-                "feature_types": list(dataset["feature_types"]),
                 "metadata": dict(dataset["metadata"]),
             }
+            if dataset.get("feature_types") is not None:
+                payload["feature_types"] = list(dataset["feature_types"])
             raw = (json.dumps(payload, sort_keys=True) + "\n").encode("utf-8")
             offset = int(handle.tell())
             handle.write(raw)
@@ -218,7 +220,7 @@ def _write_dataset(
         "y_train": y_train,
         "x_test": x_test,
         "y_test": y_test,
-        "feature_types": ["num"] * n_features,
+        "feature_types": ["floating"] * n_features,
         "metadata": metadata,
     }
     return _write_packed_shard(shard_dir, datasets=[dataset])
@@ -257,6 +259,56 @@ def test_manifest_and_dataset_loading(tmp_path: Path) -> None:
     assert sample.x_train.ndim == 2
     assert sample.y_test.ndim == 1
     assert sample.metadata["config"]["dataset"]["task"] == "classification"
+    assert sample.metadata["feature_types"] == ["floating"] * int(sample.x_train.shape[1])
+
+
+def test_dataset_rejects_missing_feature_types_metadata(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    x_train, y_train, x_test, y_test = _classification_arrays(n_features=3, seed=17)
+    dataset = {
+        "dataset_index": 0,
+        "x_train": x_train,
+        "y_train": y_train,
+        "x_test": x_test,
+        "y_test": y_test,
+        "metadata": _classification_metadata(
+            n_features=3,
+            seed=17,
+        ),
+    }
+    _ = _write_packed_shard(shard_dir, datasets=[dataset])
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    split = pq.read_table(manifest_path).to_pylist()[0]["split"]
+
+    with pytest.raises(RuntimeError, match="feature_types"):
+        _ = PackedParquetTaskDataset(manifest_path, split=split, task="classification")[0]
+
+
+def test_dataset_rejects_wrong_feature_types_length(tmp_path: Path) -> None:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    x_train, y_train, x_test, y_test = _classification_arrays(n_features=3, seed=19)
+    dataset = {
+        "dataset_index": 0,
+        "x_train": x_train,
+        "y_train": y_train,
+        "x_test": x_test,
+        "y_test": y_test,
+        "feature_types": ["floating", "integer"],
+        "metadata": _classification_metadata(
+            n_features=3,
+            seed=19,
+        ),
+    }
+    _ = _write_packed_shard(shard_dir, datasets=[dataset])
+
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    split = pq.read_table(manifest_path).to_pylist()[0]["split"]
+
+    with pytest.raises(RuntimeError, match="feature_types"):
+        _ = PackedParquetTaskDataset(manifest_path, split=split, task="classification")[0]
 
 
 def test_manifest_include_all_tracks_missing_filter_metadata(tmp_path: Path) -> None:
@@ -308,7 +360,7 @@ def test_manifest_forbid_any_excludes_datasets_with_nan_or_inf(tmp_path: Path) -
             "y_train": clean_y_train,
             "x_test": clean_x_test,
             "y_test": clean_y_test,
-            "feature_types": ["num"] * clean_x_train.shape[1],
+            "feature_types": ["floating"] * clean_x_train.shape[1],
             "metadata": _classification_metadata(
                 n_features=clean_x_train.shape[1],
                 seed=7,
@@ -322,7 +374,7 @@ def test_manifest_forbid_any_excludes_datasets_with_nan_or_inf(tmp_path: Path) -
             "y_train": dirty_y_train,
             "x_test": dirty_x_test,
             "y_test": dirty_y_test,
-            "feature_types": ["num"] * dirty_x_train.shape[1],
+            "feature_types": ["floating"] * dirty_x_train.shape[1],
             "metadata": _classification_metadata(
                 n_features=dirty_x_train.shape[1],
                 seed=11,
@@ -385,7 +437,7 @@ def test_manifest_rejects_selected_dataset_index_missing_from_packed_split(
         "y_train": y_train,
         "x_test": x_test,
         "y_test": y_test,
-        "feature_types": ["num"] * x_train.shape[1],
+        "feature_types": ["floating"] * x_train.shape[1],
         "metadata": _classification_metadata(
             n_features=x_train.shape[1],
             seed=13,
@@ -464,7 +516,7 @@ def test_dataset_raises_when_unseen_filter_removes_all_test_rows(tmp_path: Path)
         "y_train": np.array([0, 0, 0], dtype=np.int64),
         "x_test": np.array([[4.0, 6.0], [5.0, 7.0]], dtype=np.float32),
         "y_test": np.array([1, 1], dtype=np.int64),
-        "feature_types": ["num", "num"],
+        "feature_types": ["floating", "floating"],
         "metadata": _classification_metadata(
             n_features=2,
             n_classes=2,
@@ -497,7 +549,7 @@ def test_dataset_keeps_nan_features_when_impute_missing_is_false_but_still_remap
         "y_train": np.array([10, 20, 10], dtype=np.int64),
         "x_test": np.array([[np.nan, 5.0], [6.0, np.nan]], dtype=np.float32),
         "y_test": np.array([20, 999], dtype=np.int64),
-        "feature_types": ["num", "num"],
+        "feature_types": ["floating", "floating"],
         "metadata": _classification_metadata(
             n_features=2,
             n_classes=2,
@@ -535,7 +587,7 @@ def test_dataset_rejects_missing_inputs_by_default(tmp_path: Path) -> None:
         "y_train": np.array([0, 1, 0], dtype=np.int64),
         "x_test": np.array([[4.0, 5.0], [6.0, np.inf]], dtype=np.float32),
         "y_test": np.array([1, 0], dtype=np.int64),
-        "feature_types": ["num", "num"],
+        "feature_types": ["floating", "floating"],
         "metadata": _classification_metadata(
             n_features=2,
             n_classes=2,
@@ -602,7 +654,7 @@ def test_dataset_and_reference_consumer_share_runtime_preprocessing_semantics(
         "y_train": np.array([100, 200, 100], dtype=np.int64),
         "x_test": np.array([[np.nan, 11.0]], dtype=np.float32),
         "y_test": np.array([200], dtype=np.int64),
-        "feature_types": ["num", "num"],
+        "feature_types": ["floating", "floating"],
         "metadata": _classification_metadata(
             n_features=2,
             n_classes=2,
@@ -928,7 +980,7 @@ def test_manifest_handles_null_n_features_in_metadata(tmp_path: Path) -> None:
         "n_train": 1,
         "n_test": 1,
         "n_features": None,
-        "feature_types": ["num", "num"],
+        "feature_types": ["floating", "floating"],
         "metadata": {
             "n_features": None,
             "n_classes": 1,
@@ -981,7 +1033,7 @@ def test_dataset_error_includes_dataset_identity_key_for_canonical_dagzoo_manife
             "y_train": np.array([0, 0, 0], dtype=np.int64),
             "x_test": np.array([[4.0, 6.0], [5.0, 7.0]], dtype=np.float32),
             "y_test": np.array([1, 1], dtype=np.int64),
-            "feature_types": ["num", "num"],
+            "feature_types": ["floating", "floating"],
             "metadata": {
                 **_classification_metadata(
                     n_features=2,

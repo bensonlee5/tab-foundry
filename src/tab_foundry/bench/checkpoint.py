@@ -226,7 +226,10 @@ class TabFoundryClassifier:
             y_train=torch.tensor(processed.y_train, dtype=torch.int64, device=self.device),
             x_test=torch.tensor(x_test_norm, dtype=torch.float32, device=self.device),
             y_test=torch.zeros((x_test_norm.shape[0],), dtype=torch.int64, device=self.device),
-            metadata={"dataset": "external_benchmark"},
+            metadata={
+                "dataset": "external_benchmark",
+                "feature_types": list(self._preprocessor_state.feature_types),
+            },
             num_classes=num_classes,
         )
         with torch.no_grad():

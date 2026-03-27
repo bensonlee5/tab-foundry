@@ -24,10 +24,13 @@ def normalize_external_benchmarks(
     *,
     default: Sequence[str] = DEFAULT_EXTERNAL_BENCHMARKS,
     context: str = "external_benchmarks",
+    allow_empty: bool = False,
 ) -> tuple[str, ...]:
     """Normalize and validate one external-benchmark selection list."""
 
     requested = default if values is None or not values else values
+    if values is not None and not values and allow_empty:
+        return ()
     normalized: list[str] = []
     for index, raw_value in enumerate(requested):
         if not isinstance(raw_value, str) or not raw_value.strip():
@@ -40,6 +43,6 @@ def normalize_external_benchmarks(
         if value in normalized:
             raise RuntimeError(f"{context} must not contain duplicates: {value!r}")
         normalized.append(value)
-    if not normalized:
+    if not normalized and not allow_empty:
         raise RuntimeError(f"{context} must contain at least one comparator")
     return tuple(normalized)

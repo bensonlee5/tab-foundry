@@ -31,6 +31,10 @@ def test_normalize_external_benchmarks_uses_default_when_missing_or_empty() -> N
     assert normalize_external_benchmarks([]) == DEFAULT_EXTERNAL_BENCHMARKS
 
 
+def test_normalize_external_benchmarks_allows_explicit_empty_when_requested() -> None:
+    assert normalize_external_benchmarks([], allow_empty=True) == ()
+
+
 def test_normalize_external_benchmarks_normalizes_case_and_whitespace() -> None:
     assert normalize_external_benchmarks([" NanoTabPFN ", "TabICLv2"]) == (
         EXTERNAL_BENCHMARK_NANOTABPFN,

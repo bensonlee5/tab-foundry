@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 from typing import Any
-
 from tab_foundry.preprocessing import (
     CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
     DTYPE_POLICY,
@@ -54,6 +53,7 @@ def _validate_v2_preprocessor_state(payload: dict[str, Any]) -> LegacyPreprocess
             "classification_label_policy",
             "dtype_policy",
         },
+        optional_keys={"feature_types"},
         context="preprocessor_state",
     )
 

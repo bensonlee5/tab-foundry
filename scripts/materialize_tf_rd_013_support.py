@@ -694,7 +694,7 @@ def _write_packed_shard(
         "n_train": int(x_train.shape[0]),
         "n_test": int(x_test.shape[0]),
         "n_features": int(x_train.shape[1]),
-        "feature_types": ["num"] * int(x_train.shape[1]),
+        "feature_types": ["floating"] * int(x_train.shape[1]),
         "metadata": metadata,
     }
     with (shard_dir / "metadata.ndjson").open("w", encoding="utf-8") as handle:

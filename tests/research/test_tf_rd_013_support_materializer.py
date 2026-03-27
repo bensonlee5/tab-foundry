@@ -195,7 +195,7 @@ def test_materialize_curated_openml_baseline_writes_manifest_backed_shards(
 
     metadata_path = paths.curated_openml_baseline_data_root / "shard_00001_first_dataset" / "metadata.ndjson"
     payload = json.loads(metadata_path.read_text(encoding="utf-8").strip())
-    assert payload["feature_types"] == ["num", "num", "num"]
+    assert payload["feature_types"] == ["floating", "floating", "floating"]
     assert payload["metadata"]["filter"] == {"mode": "deferred", "status": "not_run"}
     assert payload["metadata"]["source_platform"] == "openml"
     assert payload["metadata"]["benchmark_bundle"]["source_path"] == module.DEFAULT_BENCHMARK_BUNDLE_REF

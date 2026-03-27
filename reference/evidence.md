@@ -30,6 +30,10 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   harder dagzoo corpus-front evidence and v1 carry-forward decisions
 - [`TF-RD-021`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
   steering-derived corpus-front evidence and conditional Muon retry framing
+- [`TF-RD-021A`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
+  fixed-latent sandwich candidate note and closed immediate nanoTabPFN screen
+- [`TF-RD-021B`](roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md):
+  hybrid full-cell sandwich successor note and locked-prior replay handoff
 - [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
   runtime and VRAM efficiency evidence plus the measured-policy handoff
 - [`TF-RD-019`](roadmap_evidence/tf_rd_019_dagzoo_filtering_policy.md):
@@ -279,11 +283,59 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     runtime lane an explicit roadmap home
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`
-  - TF-RD-021A remains the bounded sidecar for the experimental
-    `tabfoundry_sandwich` screen under `#174/#175`
+  - sandwich architecture work now lives under implementation issue `#174`,
+    umbrella issue `#178`, and immediate nanoTabPFN screen issue `#179`; this
+    runtime lane is now a dependency surface for later sandwich hard-surface
+    reads rather than the owner of that architecture line
 - Success signal:
   - the repo records one explicit runtime policy with peak-memory and
     throughput evidence, and later batching or scaling work can inherit it
+
+### TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
+
+- External evidence:
+  - Perceiver, Set Transformer, SAINT, and PFN-style tabular references justify
+    latent bottlenecks, set-style aggregation, and train-conditioned tabular
+    reads as relevant design space
+- Repo-local evidence:
+  - `model.arch=tabfoundry_sandwich` now exists as a sandwich architecture
+    family and TF-RD-021A is now closed as negative evidence for the earlier
+    summary-bottleneck replay
+  - issue `#174` records the implementation landing
+  - issue `#178` now owns long-running sandwich stabilization and iteration
+  - issue `#179` owned the immediate nanoTabPFN latent-count and width screen
+    and now closes on row `01` as stable-but-underpowered evidence
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md`
+- Success signal:
+  - the repo records one explicit closeout for the summary-bottleneck replay
+    and leaves the abandoned latent/width ladder as deferred backlog rather
+    than pretending it is still the next execution target
+
+### TF-RD-021B: Hybrid Full-Cell Sandwich Successor And Locked Prior Replay
+
+- External evidence:
+  - PerceiverIO-style query readout and latent-bottleneck references justify
+    reopening the input and readout path after the summary-bottleneck replay
+    underfit
+- Repo-local evidence:
+  - successor replay issue `#181` now records the first bounded replay for the
+    hybrid full-cell sandwich successor under umbrella issue `#178`
+  - `tabfoundry_sandwich` now uses a hybrid stage-`0` full-cell-plus-summary
+    read, later summary-only repeated stages, and latent-then-full-cell readout
+  - the compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1`
+    is now benchmarked at final ROC AUC `0.7370`, final log loss `0.4672`, and
+    final Brier `0.3072` on the pinned medium binary bundle without an external
+    comparator
+  - child issues `#182`, `#183`, and `#184` now split the next work into the
+    9-run knob screen, bounded width or head follow-up, and later
+    sandwich-local empirical power-curve phase
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md`
+- Success signal:
+  - the repo records the bounded TF-RD-021B sensitivity passes and later
+    sandwich-local empirical power curves before collapsing the family to any
+    single-toggle scaling recipe
 
 ### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
 
@@ -299,6 +351,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - TF-RD-018 still needs to settle the default batch and LR starting point on
     the representative medium post-008 surface before scaling curves become
     interpretable
+  - sandwich-local empirical power-curve work under `#184` is a precursor for
+    the hybrid sandwich family only and does not close TF-RD-009 on the
+    promoted row-first anchor
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:

@@ -23,11 +23,14 @@ from .spec import (
     DEFAULT_MODEL_STAGE,
     DEFAULT_MODEL_STAGE_LABEL,
     DEFAULT_MODEL_STAGED_DROPOUT,
-    DEFAULT_MODEL_SANDWICH_COL_LATENTS,
     DEFAULT_MODEL_SANDWICH_FF_EXPANSION,
     DEFAULT_MODEL_SANDWICH_HEADS,
     DEFAULT_MODEL_SANDWICH_LAYERS,
-    DEFAULT_MODEL_SANDWICH_ROW_LATENTS,
+    DEFAULT_MODEL_SANDWICH_LATENTS,
+    DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
+    DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS,
+    DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS,
+    DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS,
     DEFAULT_MODEL_TFCOL_N_HEADS,
     DEFAULT_MODEL_TFCOL_N_INDUCING,
     DEFAULT_MODEL_TFCOL_N_LAYERS,
@@ -39,6 +42,8 @@ from .spec import (
     DEFAULT_MODEL_TFROW_N_LAYERS,
     DEFAULT_MODEL_TFROW_NORM,
     DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
+    DEFAULT_SANDWICH_MODEL_D_ICL,
+    DEFAULT_SANDWICH_MODEL_HEAD_HIDDEN_DIM,
     ModelBuildSpec,
     SANDWICH_MODEL_ARCH,
     STAGED_MODEL_ARCH,
@@ -80,11 +85,14 @@ def build_model(
     use_digit_position_embed: bool = DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
     staged_dropout: float = DEFAULT_MODEL_STAGED_DROPOUT,
     pre_encoder_clip: float | None = DEFAULT_MODEL_PRE_ENCODER_CLIP,
-    sandwich_row_latents: int = DEFAULT_MODEL_SANDWICH_ROW_LATENTS,
-    sandwich_col_latents: int = DEFAULT_MODEL_SANDWICH_COL_LATENTS,
+    sandwich_latents: int = DEFAULT_MODEL_SANDWICH_LATENTS,
     sandwich_layers: int = DEFAULT_MODEL_SANDWICH_LAYERS,
     sandwich_heads: int = DEFAULT_MODEL_SANDWICH_HEADS,
     sandwich_ff_expansion: int = DEFAULT_MODEL_SANDWICH_FF_EXPANSION,
+    sandwich_summary_tokens_per_axis: int = DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS,
+    sandwich_self_attention_per_cross: int = DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS,
+    sandwich_pre_row_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS,
+    sandwich_pre_column_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
 ) -> nn.Module:
     """Instantiate model for task."""
 
@@ -156,17 +164,30 @@ def build_model(
     if normalized_arch == SANDWICH_MODEL_ARCH:
         if stage is not None or stage_label is not None or module_overrides is not None:
             raise ValueError("tabfoundry_sandwich does not support staged model surface fields")
+        resolved_d_icl = (
+            DEFAULT_SANDWICH_MODEL_D_ICL
+            if d_icl == DEFAULT_MODEL_D_ICL
+            else d_icl
+        )
+        resolved_head_hidden_dim = (
+            DEFAULT_SANDWICH_MODEL_HEAD_HIDDEN_DIM
+            if head_hidden_dim == DEFAULT_MODEL_HEAD_HIDDEN_DIM
+            else head_hidden_dim
+        )
         return TabFoundrySandwichClassifier(
-            d_icl=d_icl,
+            d_icl=resolved_d_icl,
             input_normalization=input_normalization,
             many_class_base=many_class_base,
             norm_type=norm_type,
-            head_hidden_dim=head_hidden_dim,
+            head_hidden_dim=resolved_head_hidden_dim,
             pre_encoder_clip=pre_encoder_clip,
-            sandwich_row_latents=sandwich_row_latents,
-            sandwich_col_latents=sandwich_col_latents,
+            sandwich_latents=sandwich_latents,
             sandwich_layers=sandwich_layers,
             sandwich_heads=sandwich_heads,
             sandwich_ff_expansion=sandwich_ff_expansion,
+            sandwich_summary_tokens_per_axis=sandwich_summary_tokens_per_axis,
+            sandwich_self_attention_per_cross=sandwich_self_attention_per_cross,
+            sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
+            sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
         )
     raise ValueError(f"Unsupported model arch: {arch!r}")

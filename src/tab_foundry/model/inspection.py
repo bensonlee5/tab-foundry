@@ -8,6 +8,7 @@ from typing import Any
 
 import torch
 
+from tab_foundry.feature_types import DEFAULT_FEATURE_TYPE
 from tab_foundry.types import TaskBatch
 
 from .architectures.tabfoundry_staged.resolved import resolve_staged_surface
@@ -35,6 +36,7 @@ class SyntheticReferenceArrays:
     x_train: torch.Tensor
     y_train: torch.Tensor
     x_test: torch.Tensor
+    feature_types: list[str] | None
     expected_num_classes: int
 
 
@@ -67,11 +69,26 @@ def model_surface_payload(spec: ModelBuildSpec) -> dict[str, Any]:
     if spec.arch != "tabfoundry_staged":
         if spec.arch == SANDWICH_MODEL_ARCH:
             payload["architecture"] = {
-                "row_latents": int(spec.sandwich_row_latents),
-                "col_latents": int(spec.sandwich_col_latents),
+                "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+                "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+                "repeated_input_tokens": "row_col_summary_stream",
+                "repeated_input_token_count": "K_times_(R_plus_C)",
+                "summary_tokens_per_axis": int(spec.sandwich_summary_tokens_per_axis),
+                "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_self_attention",
+                "pre_row_attention_layers": int(spec.sandwich_pre_row_attention_layers),
+                "pre_column_attention_layers": int(spec.sandwich_pre_column_attention_layers),
+                "label_injection": "fused_into_row_summaries_and_feature_cells",
+                "summary_builder": "summary_query_attention",
+                "position_encoding": "shared_fourier_row_col",
+                "feature_type_encoding": "parquet_physical_group",
+                "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+                "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+                "readout": "latent_then_full_cell_cross_attention",
+                "latents": int(spec.sandwich_latents),
                 "layers": int(spec.sandwich_layers),
                 "heads": int(spec.sandwich_heads),
                 "ff_expansion": int(spec.sandwich_ff_expansion),
+                "self_attention_per_cross": int(spec.sandwich_self_attention_per_cross),
             }
         return payload
 
@@ -107,7 +124,10 @@ def synthetic_forward_batch(spec: ModelBuildSpec) -> SyntheticForwardBatch:
         y_train=y_train,
         x_test=x_test,
         y_test=y_test,
-        metadata={"source": "synthetic_forward_check"},
+        metadata={
+            "source": "synthetic_forward_check",
+            "feature_types": [DEFAULT_FEATURE_TYPE] * feature_count,
+        },
         num_classes=int(num_classes),
     )
     return SyntheticForwardBatch(
@@ -144,10 +164,16 @@ def synthetic_reference_arrays(
 
     y_train = torch.arange(train_rows, dtype=torch.int64).remainder(int(num_classes))
     y_train = y_train + 100
+    feature_types = (
+        [DEFAULT_FEATURE_TYPE] * feature_count
+        if str(spec.arch).strip().lower() == SANDWICH_MODEL_ARCH
+        else None
+    )
     return SyntheticReferenceArrays(
         x_train=x_train,
         y_train=y_train,
         x_test=x_test,
+        feature_types=feature_types,
         expected_num_classes=int(num_classes),
     )
 

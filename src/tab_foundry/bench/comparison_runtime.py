@@ -40,7 +40,7 @@ from tab_foundry.training.wandb import posthoc_update_wandb_summary
 
 DEFAULT_NANOTABPFN_STEPS = 2500
 DEFAULT_NANOTABPFN_SEEDS = 2
-DEFAULT_NANOTABPFN_EVAL_EVERY = 25
+DEFAULT_NANOTABPFN_EVAL_EVERY = 250
 DEFAULT_NANOTABPFN_BATCH_SIZE = 32
 DEFAULT_NANOTABPFN_LR = 4.0e-3
 DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION = "tabicl-classifier-v2-20260212.ckpt"
@@ -495,6 +495,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     requested_external_benchmarks = normalize_external_benchmarks(
         config.external_benchmarks,
         context="config.external_benchmarks",
+        allow_empty=True,
     )
     benchmark_bundle, allow_missing_values = load_benchmark_bundle_for_execution(
         benchmark_bundle_path

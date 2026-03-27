@@ -1,0 +1,112 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_021a_sandwich_nanotabpfn_screen_v1
+parent_sweep_id: null
+status: completed
+complexity_level: binary_md
+anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+external_benchmarks:
+- nanotabpfn
+training_experiment: cls_benchmark_sandwich_prior
+training_config_profile: cls_benchmark_sandwich_prior
+surface_role: architecture_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: Perceiver
+  model_source: https://proceedings.mlr.press/v139/jaegle21a.html
+anchor_surface:
+  notes:
+  - This completed sweep records the first nanoTabPFN-only screen for
+    [#179](https://github.com/bensonlee5/tab-foundry/issues/179) under the
+    broader sandwich umbrella in
+    [#178](https://github.com/bensonlee5/tab-foundry/issues/178).
+  - The locked anchor is benchmark registry run
+    `sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2`
+    on `nanotabpfn_openml_binary_medium_v1`; that staged row-cls prior surface
+    remains the incumbent benchmark comparator while sandwich evidence is still
+    being collected.
+  - Keep the nanoTabPFN medium bundle, `prior_linear_warmup_decay` batch64-sqrt
+    recipe, preprocessing, and small-class classification contract fixed across
+    the queue so the first read is about sandwich capacity, not about a new
+    runtime or data surface.
+  - Row `01` completed cleanly and showed the summary-bottleneck sandwich is
+    stable but materially underpowered on this surface, so rows `02` through
+    `05` are now deferred to separate successor-architecture work rather than
+    executed inside this sweep.
+  - This sweep does not spend dagzoo budget, does not reopen TF-RD-022 runtime
+    policy, and closes as negative evidence for the current summary-bottleneck
+    architecture rather than as a final promote or defer decision on the whole
+    sandwich family.
+  dimension_table:
+  - dimension: repeated latent bottleneck
+    upstream: Perceiver uses one fixed learned latent array that repeatedly
+      reads the input array through cross-attention and processes the latent
+      state through latent transformer blocks.
+    anchor: The locked staged anchor has no separate fixed latent bank; it is a
+      row-cls prior surface carried forward as the incumbent benchmark
+      comparator.
+    interpretation: This sweep asks first whether the sandwich latent bank is
+      viable at all on the benchmark prior surface before harder-surface work
+      opens.
+  - dimension: input stream
+    upstream: Perceiver repeatedly reads one shared input array.
+    anchor: The staged anchor uses scalar-per-feature tokens with row-cls
+      pooling rather than an `R + C` summary stream.
+    interpretation: The sandwich `R + C` repeated-input stream is the structural
+      architecture change under test relative to the incumbent staged anchor.
+  - dimension: first capacity axis
+    upstream: Perceiver scaling papers make latent count an explicit memory and
+      fidelity knob.
+    anchor: No latent-count axis exists on the staged anchor; the comparable
+      local discriminator is the sandwich replay row.
+    interpretation: Rows `02` and `03` were pre-authored as latent-only
+      follow-ups, but the sweep now closes before running them because row `01`
+      made the architecture boundary look more important than latent count.
+  - dimension: second capacity axis
+    upstream: Perceiver scaling can also move latent-channel width once the
+      basic latent budget is settled.
+    anchor: The staged anchor is not the width reference here; the sandwich
+      replay and high-latent rows provide the local context.
+    interpretation: Rows `04` and `05` remain deferred backlog evidence rather
+      than active width probes because the initial replay did not justify
+      spending more budget on the same summary-bottleneck topology.
+  - dimension: training surface
+    upstream: No repo-local prior-dump benchmark recipe is defined by the
+      Perceiver paper.
+    anchor: The locked benchmark recipe is `prior_linear_warmup_decay` with
+      `prior_dump_batch_size=64`, sqrt LR scaling, and the nanoTabPFN medium
+      bundle.
+    interpretation: Keep the training surface frozen so the queue reads model
+      capacity rather than optimizer or runtime movement.
+  - dimension: scope guardrail
+    upstream: Not applicable.
+    anchor: The incumbent staged anchor remains the decision comparator while
+      sandwich evidence is partial.
+    interpretation: This sweep is a bounded nanoTabPFN screen only; it does not
+      settle final promotion, dagzoo confirmation, or runtime policy.
+anchor_context:
+  run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
+  experiment: cls_benchmark_staged_prior
+  config_profile: cls_benchmark_staged_prior
+  model:
+    arch: tabfoundry_staged
+    benchmark_profile: dpnb_input_norm_anchor_replay_batch64_sqrt
+    stage: nano_exact
+    stage_label: dpnb_input_norm_anchor_replay_batch64_sqrt
+    module_selection:
+      allow_test_self_attention: false
+      column_encoder: none
+      context_encoder: none
+      feature_encoder: nano
+      head: binary_direct
+      post_encoder_norm: none
+      row_pool: row_cls
+      table_block_style: prenorm
+      target_conditioner: mean_padded_linear
+      tokenizer: scalar_per_feature
+  surface_labels:
+    data: anchor_manifest_default
+    model: dpnb_input_norm_anchor_replay_batch64_sqrt
+    preprocessing: runtime_default
+    training: prior_linear_warmup_decay

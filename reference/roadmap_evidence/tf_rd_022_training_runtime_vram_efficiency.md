@@ -33,10 +33,12 @@ This is the canonical long-form evidence note for
   [#169](https://github.com/bensonlee5/tab-foundry/issues/169),
   [#170](https://github.com/bensonlee5/tab-foundry/issues/170), and
   [#171](https://github.com/bensonlee5/tab-foundry/issues/171)
-- bounded sidecar issues [#174](https://github.com/bensonlee5/tab-foundry/issues/174)
-  and [#175](https://github.com/bensonlee5/tab-foundry/issues/175) now track a
-  non-canonical `tabfoundry_sandwich` simplification screen; the companion note
-  is [TF-RD-021A](tf_rd_021a_latent_bank_sandwich_prototype.md)
+- sandwich architecture work now lives under implementation issue
+  [#174](https://github.com/bensonlee5/tab-foundry/issues/174), umbrella issue
+  [#178](https://github.com/bensonlee5/tab-foundry/issues/178), and immediate
+  nanoTabPFN screen issue
+  [#179](https://github.com/bensonlee5/tab-foundry/issues/179); the companion
+  architecture note is [TF-RD-021A](tf_rd_021a_latent_bank_sandwich_prototype.md)
 - canonical benchmark prior configs still inherit `runtime.mixed_precision: "no"` from `configs/experiment/_shared/compact_binary_prior.yaml` unless a
   higher-level experiment overrides it
 - canonical training telemetry records loss, gradient, and instability
@@ -58,10 +60,8 @@ This is the canonical long-form evidence note for
 - TF-RD-022 should treat `bf16`, benchmark-facing activation-trace policy, and
   activation checkpointing as the first bounded runtime knobs on the current
   harder-surface training path
-- TF-RD-021A can run in parallel as a bounded simplification screen, but it
-  should start on nanoTabPFN prior-dump data, only promote onto dagzoo after
-  the fast screens settle viable latent or width rows, and it does not replace
-  the runtime-telemetry prerequisite for CUDA decisions
+- TF-RD-021A now runs in parallel as an architecture lane under TF-RD-016, and
+  it does not replace the runtime-telemetry prerequisite for CUDA decisions
 - activation checkpointing is primarily a headroom tool, not a default speed
   tool; prefer it only if the non-checkpointed rows still leave inadequate VRAM
   margin

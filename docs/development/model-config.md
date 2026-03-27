@@ -7,6 +7,7 @@ bundle loading.
 Use these alongside this reference:
 
 - architecture reference: `docs/development/model-architecture.md`
+- sandwich architecture: `docs/development/tabfoundry-sandwich.md`
 - inference contract: `docs/inference.md`
 - canonical model spec: `src/tab_foundry/model/spec.py`
 - config defaults: `configs/model/default.yaml`
@@ -38,6 +39,13 @@ Current canonical default:
 That means the default model uses the staged classification family with one
 token per feature. Larger values such as `32` are non-default grouped-token
 experiments that reduce token count and change the inductive bias.
+
+Current long-term architecture candidate:
+
+- `arch = tabfoundry_sandwich`
+
+That candidate is not yet the repo default, but it is the main architecture
+family expected to absorb future model-iteration work.
 
 ## Resolution Order
 
@@ -105,10 +113,10 @@ did not yet serialize every reconstruction field.
 
 | Name | Type | Default | Applies To | Meaning |
 | ---- | ---- | ---- | ---- | ---- |
-| `arch` | `str` | `"tabfoundry_staged"` | classification | Model architecture. Supported values are the frozen binary repro architecture `tabfoundry_simple` and the staged classification family `tabfoundry_staged`. |
-| `stage` | `str \| null` | `null` | classification | Stage selector for `tabfoundry_staged`. `null` resolves to `nano_exact` when `arch=tabfoundry_staged`; non-null values are rejected for `tabfoundry_simple`. |
+| `arch` | `str` | `"tabfoundry_staged"` | classification | Model architecture. Supported values are `tabfoundry_simple` (frozen binary repro), `tabfoundry_staged` (incumbent reference family), and `tabfoundry_sandwich` (fixed-latent candidate family). |
+| `stage` | `str \| null` | `null` | classification | Stage selector for `tabfoundry_staged`. `null` resolves to `nano_exact` when `arch=tabfoundry_staged`; non-null values are rejected for `tabfoundry_simple` and `tabfoundry_sandwich`. |
 | `stage_label` | `str \| null` | `null` | classification | Optional reporting label for staged runs. When present, benchmark/profile metadata uses this label while the underlying recipe still resolves from `stage`. |
-| `module_overrides` | `mapping \| null` | `null` | classification | Additive atomic staged-surface overrides. Supported top-level keys are `feature_encoder`, `post_encoder_norm`, `post_stack_norm`, `target_conditioner`, `tokenizer`, `column_encoder`, `row_pool`, `context_encoder`, `head`, `table_block_style`, `table_block_residual_scale`, and `allow_test_self_attention`. |
+| `module_overrides` | `mapping \| null` | `null` | classification | Additive atomic staged-surface overrides. Supported top-level keys are `feature_encoder`, `post_encoder_norm`, `post_stack_norm`, `target_conditioner`, `tokenizer`, `column_encoder`, `row_pool`, `context_encoder`, `head`, `table_block_style`, `table_block_residual_scale`, and `allow_test_self_attention`. Rejected for `tabfoundry_simple` and `tabfoundry_sandwich`. |
 | `d_col` | `int` | `128` | both | Width of grouped feature tokens and the column encoder. |
 | `d_icl` | `int` | `512` | both | Width of row embeddings and the final in-context encoder. |
 | `input_normalization` | `str` | `"none"` | both | Train/test feature normalization mode. Supported values are `none`, `train_zscore`, and `train_zscore_clip`. |
@@ -127,6 +135,12 @@ did not yet serialize every reconstruction field.
 | `many_class_base` | `int` | `10` | classification | Small-class head width and branching/base parameter for the many-class path. |
 | `head_hidden_dim` | `int` | `1024` | both | Hidden width of the task head MLP. |
 | `use_digit_position_embed` | `bool` | `true` | classification | Whether many-class mixed-radix views get a learned digit-position embedding. |
+| `staged_dropout` | `float` | `0.0` | staged | Dropout used by the staged family. |
+| `pre_encoder_clip` | `float \| null` | `null` | staged, sandwich | Optional finite-value clip applied before feature encoding. |
+| `sandwich_latents` | `int` | `48` | sandwich | Fixed latent-array size for `tabfoundry_sandwich`. This is the only accepted sandwich latent-count field. |
+| `sandwich_layers` | `int` | `2` | sandwich | Number of repeated Perceiver stages in `tabfoundry_sandwich`. |
+| `sandwich_heads` | `int` | `4` | sandwich | Attention heads used by the sandwich full-cell read, summary-query, latent-write, latent, and dual-readout blocks. |
+| `sandwich_ff_expansion` | `int` | `2` | sandwich | Feedforward expansion factor used inside the sandwich cross-attention and self-attention blocks. |
 
 ## Configuration Groups
 
@@ -141,10 +155,29 @@ These parameters set the overall model size:
 - `tfcol_n_layers`
 - `tfrow_n_layers`
 - `tficl_n_layers`
+- `sandwich_layers`
 - `head_hidden_dim`
 
 `d_col` controls the token width before row aggregation. `d_icl` controls the
 row representation width and the final QASS transformer width.
+
+### Sandwich Memory And Core
+
+- `sandwich_latents`
+- `sandwich_layers`
+- `sandwich_heads`
+- `sandwich_ff_expansion`
+- `sandwich_summary_tokens_per_axis`
+- `sandwich_self_attention_per_cross`
+- `sandwich_pre_row_attention_layers`
+- `sandwich_pre_column_attention_layers`
+
+These parameters matter only for `tabfoundry_sandwich`.
+They control fixed latent-memory size, latent depth, and block capacity after
+stage `0` reads the hybrid full-cell-plus-summary stream and later stages reuse
+the compact `K * (R + C)` summary stream, while the pre-Perceiver axial mixer
+controls how much row-wise feature attention and column-wise row attention the
+raw cell grid receives before flattening.
 
 ### Tokenization And Preprocessing
 
@@ -166,12 +199,15 @@ row representation width and the final QASS transformer width.
 These parameters matter only for classification and mostly only when the model
 enters the many-class path.
 
-### Task Heads
+### Task Heads And Candidate-Specific Capacity
 
 - `head_hidden_dim`
+- `many_class_base`
+- `pre_encoder_clip`
 
 The repo is currently classification-only. Regression will be rebuilt later on
-top of `tabfoundry_staged` rather than restored from the removed legacy family.
+top of the promoted post-staged architecture line rather than restored from the
+removed legacy family.
 
 ## Interaction Notes
 
@@ -185,11 +221,40 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
     It reuses `d_icl`, `tficl_n_heads`, `tficl_n_layers`, and `head_hidden_dim`,
     and rejects staged-only knobs such as grouped-token, row/column encoder,
     and many-class-path settings.
-- `tabfoundry_staged` is the classification-only staged research family.
+- `tabfoundry_staged` is the classification-only incumbent reference family.
   `model.stage` defaults to `nano_exact`, and non-null `model.stage` is
-  rejected for `tabfoundry_simple`.
+  rejected for `tabfoundry_simple` and `tabfoundry_sandwich`.
+- `tabfoundry_sandwich` is the classification-only fixed-latent candidate
+  family.
+  It uses a fixed learned latent array, a hybrid stage-`0` input stream built
+  from full cell tokens plus row/column summary tokens, later repeated
+  Perceiver stages over the compact `K * (R + C)` summary stream, configurable
+  `K`-token row/column summary banks, fused row-label or query conditioning in
+  both row summaries and feature cells, an axial row/column pre-Perceiver cell
+  mixer, and a dual-source latent-then-full-cell test-row readout path.
+  It rejects `stage`, `stage_label`, and `module_overrides`.
+  It currently requires:
+  - `task=classification`
+  - `norm_type=layernorm`
+  - `2 <= num_classes <= many_class_base`
+    Its main public tuning knobs are `sandwich_latents`, `sandwich_layers`,
+    `sandwich_heads`, `sandwich_ff_expansion`,
+    `sandwich_summary_tokens_per_axis`, `sandwich_self_attention_per_cross`,
+    `sandwich_pre_row_attention_layers`,
+    `sandwich_pre_column_attention_layers`, `d_icl`, `head_hidden_dim`,
+    `input_normalization`, and `pre_encoder_clip`. `sandwich_layers` now means
+    repeated Perceiver stages, not a tail-only latent depth, while
+    `sandwich_self_attention_per_cross` controls the number of latent
+    self-attention blocks between cross-attention reads. The runtime task
+    metadata contract also supports `feature_types` with the collapsed
+    parquet-group vocabulary `bool`, `integer`, `floating`, `string_binary`,
+    or `unknown`. `tabfoundry_sandwich` requires this metadata explicitly at
+    runtime and on `forward_batched(..., feature_types=...)`. Export-bundle
+    `preprocessor` payloads stay policy-only and do not serialize this list.
+    Only `sandwich_latents` is accepted. `sandwich_row_latents` and
+    `sandwich_col_latents` are invalid for `tabfoundry_sandwich`.
 - `model.stage` remains the stable public recipe selector and compatibility
-  surface.
+  surface for the staged family.
   Supported recipe names are:
   - `nano_exact`
   - `label_token`
@@ -203,7 +268,7 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
   - `qass_context`
   - `many_class`
 - Treat the public `stage` surface as the canonical migration ladder for live
-  architecture work.
+  staged-family attribution work.
 - Use queue-managed `stage_label + module_overrides` to make isolated
   attribution rows explicit, especially when a public stage bundles more than
   one mechanism or when a control row needs to hold the ladder steady.
@@ -243,11 +308,17 @@ top of `tabfoundry_staged` rather than restored from the removed legacy family.
   `input_normalization`. The sweep system adds `stage_label` and
   `module_overrides` so isolated structural changes are explicit and
   attributable without replacing the public stage ladder.
+- The low-level numeric tuning surface for `tabfoundry_sandwich` is mainly
+  `sandwich_latents`, `sandwich_layers`, `sandwich_heads`,
+  `sandwich_ff_expansion`, `d_icl`, `head_hidden_dim`,
+  `input_normalization`, and `pre_encoder_clip`.
 - `feature_group_size` changes both compute and inductive bias. Larger groups
   reduce token count but make each token represent a wider local feature bundle.
+  This knob does not apply to the current sandwich architecture.
 - `many_class_base` affects both the small-class classifier head width and the
-  many-class decomposition tree/radix. It does not currently control the branch
-  threshold directly.
+  many-class decomposition tree/radix on staged models, and it also sets the
+  direct-head width and maximum supported class count on sandwich models.
+  It does not currently control the branch threshold directly.
 - The current small-class vs many-class split is still fixed in code at
   `num_classes > 10`. That matches the current default `many_class_base`, but
   it is not yet a separately configurable threshold.
@@ -285,6 +356,13 @@ Staged benchmark family from the exact repro starting point:
 tab-foundry train run \
   experiment=cls_benchmark_staged_corpus \
   data.corpus_ref=tf_rd_013_current_corpus_default_v1
+```
+
+Shared-latent sandwich workstation run:
+
+```bash
+tab-foundry train run \
+  experiment=cls_workstation_sandwich
 ```
 
 Queue-driven isolated staged delta surface:
@@ -330,8 +408,10 @@ If you add, remove, or rename a model config field, update all of these:
 - `configs/model/default.yaml`
 - `src/tab_foundry/model/spec.py`
 - `src/tab_foundry/model/factory.py`
+- `src/tab_foundry/model/architectures/tabfoundry_sandwich/model.py`
 - `src/tab_foundry/model/architectures/tabfoundry_staged/model.py`
 - `src/tab_foundry/model/architectures/tabfoundry_simple.py`
 - `docs/development/model-architecture.md`
+- `docs/development/tabfoundry-sandwich.md`
 - `docs/inference.md` if the field is serialized into export bundles
 - tests that validate config resolution, export manifests, or checkpoint loading

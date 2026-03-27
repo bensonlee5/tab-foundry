@@ -7,6 +7,8 @@ from typing import Any
 
 import numpy as np
 
+from tab_foundry.feature_types import resolve_feature_types
+
 from .state import (
     CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
     DTYPE_POLICY,
@@ -99,6 +101,7 @@ def fit_fitted_preprocessor(
     all_nan_fill: float = 0.0,
     label_mapping: str = CLASSIFICATION_LABEL_MAPPING_TRAIN_ONLY_REMAP,
     unseen_test_label_policy: str = UNSEEN_TEST_LABEL_POLICY_FILTER,
+    feature_types: list[str] | None = None,
 ) -> FittedPreprocessorState:
     """Fit the shared preprocessing state from one train split."""
 
@@ -116,6 +119,11 @@ def fit_fitted_preprocessor(
         )
     x_train_matrix = _require_matrix(x_train, context="x_train")
     feature_ids = list(range(int(x_train_matrix.shape[1])))
+    resolved_feature_types = resolve_feature_types(
+        feature_types,
+        expected_count=int(x_train_matrix.shape[1]),
+        context="feature_types",
+    )
     missing_value_policy = MissingValuePolicyState(
         strategy=MISSING_VALUE_STRATEGY_TRAIN_MEAN,
         all_nan_fill=float(all_nan_fill),
@@ -141,6 +149,7 @@ def fit_fitted_preprocessor(
     return FittedPreprocessorState(
         feature_order_policy=FEATURE_ORDER_POLICY_POSITIONAL,
         feature_ids=feature_ids,
+        feature_types=resolved_feature_types,
         missing_value_policy=missing_value_policy,
         classification_label_policy=classification_label_policy,
         dtype_policy=dict(DTYPE_POLICY),

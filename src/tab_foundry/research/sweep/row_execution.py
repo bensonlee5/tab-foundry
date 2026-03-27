@@ -342,8 +342,12 @@ def run_row(
             )
     else:
         print(
-            f"[row {int(queue_row['order']):02d}] running external benchmarks",
-            f"comparators={','.join(external_benchmarks)}",
+            f"[row {int(queue_row['order']):02d}] running benchmark evaluation",
+            (
+                f"comparators={','.join(external_benchmarks)}"
+                if external_benchmarks
+                else "comparators=none"
+            ),
             flush=True,
         )
     summary = run_nanotabpfn_benchmark(

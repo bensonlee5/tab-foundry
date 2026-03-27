@@ -139,6 +139,7 @@ def create_sweep(
         list(external_benchmarks) if external_benchmarks is not None else None,
         context="external_benchmarks",
         default=DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
+        allow_empty=True,
     )
     resolved_index_path = (index_path or default_sweep_index_path()).expanduser().resolve()
     resolved_sweeps_root = sweeps_root or resolved_index_path.parent

@@ -213,6 +213,19 @@ def test_v3_section_validation_supports_classification_policy() -> None:
     assert cls_preprocessor.classification_label_policy.unseen_test_label == "filter"
 
 
+def test_v3_section_validation_rejects_feature_types() -> None:
+    manifest_payload = _load_fixture("manifest_v3.json")
+    preprocessor_payload = dict(manifest_payload["preprocessor"])
+    preprocessor_payload["feature_types"] = ["bool", "integer", "floating"]
+
+    with pytest.raises(ValueError, match="feature_types"):
+        validate_preprocessor_state_dict(
+            preprocessor_payload,
+            schema_version=SCHEMA_VERSION_V3,
+            task="classification",
+        )
+
+
 def test_v3_section_validation_defaults_missing_impute_missing_to_true() -> None:
     manifest_payload = _load_fixture("manifest_v3.json")
     preprocessor_payload = dict(manifest_payload["preprocessor"])
@@ -313,8 +326,7 @@ def test_manifest_validation_accepts_tabfoundry_sandwich_fields() -> None:
     model_payload["many_class_base"] = 4
     model_payload["head_hidden_dim"] = 128
     model_payload["pre_encoder_clip"] = 10.0
-    model_payload["sandwich_row_latents"] = 16
-    model_payload["sandwich_col_latents"] = 8
+    model_payload["sandwich_latents"] = 24
     model_payload["sandwich_layers"] = 2
     model_payload["sandwich_heads"] = 4
     model_payload["sandwich_ff_expansion"] = 2
@@ -336,8 +348,7 @@ def test_manifest_validation_accepts_tabfoundry_sandwich_fields() -> None:
     assert manifest.model.arch == "tabfoundry_sandwich"
     assert manifest.model.stage is None
     assert manifest.model.pre_encoder_clip == pytest.approx(10.0)
-    assert manifest.model.sandwich_row_latents == 16
-    assert manifest.model.sandwich_col_latents == 8
+    assert manifest.model.sandwich_latents == 24
     assert manifest.model.sandwich_layers == 2
     assert manifest.model.sandwich_heads == 4
     assert manifest.model.sandwich_ff_expansion == 2

@@ -3,25 +3,35 @@
 Use this reference when you need to understand the current model surface, the
 active architecture target, and where the main subsystems live.
 
-The repo now has one active architecture-development surface:
+The repo now has one primary architecture candidate:
 
-- `tabfoundry_staged`: the staged classification family used for new model work
+- `tabfoundry_sandwich`: the fixed-latent hybrid full-cell / summary-stream
+  Perceiver-style
+  classifier used for new architecture iteration
 
-It also keeps one frozen anchor:
+It also keeps one incumbent reference family:
+
+- `tabfoundry_staged`: the staged row-first classifier that remains the current
+  benchmark/reference line
+
+And it keeps one frozen anchor:
 
 - `tabfoundry_simple`: the exact nanoTabPFN-style binary compatibility path
 
 The legacy `tabfoundry` family has been removed. Regression is also removed for
-now and will be rebuilt later on top of `tabfoundry_staged`.
+now and will be rebuilt later on top of the promoted post-staged architecture
+line rather than the removed legacy family.
 
 Use these alongside this page:
 
 - `docs/development/model-config.md`
+- `docs/development/tabfoundry-sandwich.md`
 - `docs/development/architecture-deltas.md`
 - `docs/inference.md`
 
 Key code paths:
 
+- `src/tab_foundry/model/architectures/tabfoundry_sandwich/`
 - `src/tab_foundry/model/architectures/tabfoundry_staged/`
 - `src/tab_foundry/model/architectures/tabfoundry_simple.py`
 - `src/tab_foundry/model/components/`
@@ -36,9 +46,10 @@ confirm which family the repo is actively improving.
 The short version:
 
 - one frozen family exists for trust and comparison
-- one active staged family exists for new architecture work
-- the repo is trying to make changes inside that active family rather than
-  creating many separate model families
+- one incumbent staged family exists for benchmark continuity and reference
+  comparison
+- one fixed-latent sandwich family exists as the primary long-term candidate
+  for new architecture work
 
 If you want repo orientation first, use
 [docs/getting-started.md](../getting-started.md) or
@@ -46,8 +57,24 @@ If you want repo orientation first, use
 
 ## High-Level Structure
 
-`tabfoundry_staged` is a resolved-surface classifier. Construction starts from
-`ModelBuildSpec`, resolves a public `stage` plus optional
+Two model families matter for day-to-day development:
+
+- `tabfoundry_sandwich` is the primary architecture-candidate line.
+  It is a fixed-latent hybrid full-cell / summary-stream Perceiver-style
+  encoder with one learned latent bank, an axial row/column pre-Perceiver cell
+  mixer, a stage-`0` full-cell-plus-summary read, later repeated cross-attention
+  reads over the compact `K * (R + C)` row/column summary stream, configurable
+  latent self-attention depth between cross-reads, and latent-then-cell
+  test-row readout. Use
+  [docs/development/tabfoundry-sandwich.md](tabfoundry-sandwich.md) for the
+  dedicated breakdown.
+- `tabfoundry_staged` remains the incumbent reference line.
+  It is still the main comparison surface for benchmark continuity,
+  recipe-based attribution, and the row-first anchor that is currently carried
+  through the roadmap.
+
+`tabfoundry_staged` itself is a resolved-surface classifier. Construction
+starts from `ModelBuildSpec`, resolves a public `stage` plus optional
 `module_overrides`, then builds a concrete subsystem mix.
 
 The forward path is organized as:
@@ -1155,7 +1182,10 @@ There is no longer a repo-supported `RegressionOutput`.
   - canonical build spec, supported arch/task/stage values, and checkpoint
     compatibility rules
 - `src/tab_foundry/model/factory.py`
-  - model construction for `tabfoundry_simple` and `tabfoundry_staged`
+  - model construction for `tabfoundry_simple`, `tabfoundry_staged`, and
+    `tabfoundry_sandwich`
+- `src/tab_foundry/model/architectures/tabfoundry_sandwich/model.py`
+  - public fixed-latent `y` / byte-array `x` sandwich classifier
 - `src/tab_foundry/model/architectures/tabfoundry_staged/model.py`
   - public staged classifier facade
 - `src/tab_foundry/model/architectures/tabfoundry_staged/recipes.py`
@@ -1177,9 +1207,11 @@ There is no longer a repo-supported `RegressionOutput`.
 
 ## Maintenance Notes
 
-- `tabfoundry_staged` is the only model family that should absorb new feature
-  work.
+- `tabfoundry_sandwich` is the primary architecture-iteration surface.
+- `tabfoundry_staged` remains the incumbent reference and benchmark line; keep
+  work there attributable and reference-oriented unless a roadmap item says
+  otherwise.
 - `tabfoundry_simple` should change only for bug fixes or compatibility
   maintenance.
-- Future regression support should be introduced as a staged-family extension,
-  not by reviving the removed legacy `tabfoundry` family.
+- Future regression support should be introduced on the promoted architecture
+  line rather than by reviving the removed legacy `tabfoundry` family.

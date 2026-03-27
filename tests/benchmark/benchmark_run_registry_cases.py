@@ -115,6 +115,19 @@ def _write_history(path: Path) -> Path:
     return path
 
 
+def _write_telemetry(path: Path, *, prior_dump_path: str | None = None) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, object] = {}
+    if prior_dump_path is not None:
+        payload["missingness"] = {
+            "prior_dump": {
+                "path": str(prior_dump_path),
+            }
+        }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
 def _write_comparison_summary(
     path: Path,
     *,
@@ -193,6 +206,7 @@ def _prepare_run(
         training_cfg=training_cfg,
     )
     _write_history(run_dir / "train_history.jsonl")
+    _write_telemetry(run_dir / "telemetry.json")
     _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
@@ -428,6 +442,47 @@ def test_derive_benchmark_run_record_uses_materialized_corpus_manifest_path(
     assert surface_record["data"]["corpus_ref"] == "current_recipe/current_recipe__123456789abc"
     assert surface_record["data"]["recipe_id"] == "current_recipe"
     assert surface_record["data"]["corpus_id"] == "current_recipe__123456789abc"
+
+
+def test_derive_benchmark_run_record_uses_prior_dump_path_from_telemetry_when_manifest_absent(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    prior_dump_path = repo_root / "outputs" / "prior_dumps" / "300k_150x5_2.h5"
+    prior_dump_path.parent.mkdir(parents=True, exist_ok=True)
+    prior_dump_path.write_bytes(b"prior")
+    run_dir, summary_path = _prepare_run(
+        repo_root,
+        run_name="prior_dump_surface",
+        checkpoint_data_cfg={
+            "manifest_path": None,
+            "source": "prior_dump",
+            "surface_label": "prior_dump",
+            "surface_overrides": {
+                "manifest_path": None,
+            },
+        },
+    )
+    _write_telemetry(run_dir / "telemetry.json", prior_dump_path=str(prior_dump_path.resolve()))
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    surface_record = json.loads(
+        (summary_path.parent / "training_surface_record.json").read_text(encoding="utf-8")
+    )
+    assert record["manifest_path"] == "outputs/prior_dumps/300k_150x5_2.h5"
+    assert benchmark_registry.resolve_registry_path_value(
+        record["manifest_path"],
+        root=repo_root,
+    ) == prior_dump_path.resolve()
+    assert surface_record["data"]["source"] == "prior_dump"
+    assert surface_record["data"]["manifest"] is None
 
 
 def test_derive_benchmark_run_record_falls_back_to_best_benchmark_step_checkpoint(

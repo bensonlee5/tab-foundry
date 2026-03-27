@@ -63,8 +63,7 @@ class _ManifestModelPayloadV2(_ContractsPayloadModel):
     many_class_base: StrictInt | None = None
     head_hidden_dim: StrictInt | None = None
     use_digit_position_embed: StrictBool | None = None
-    sandwich_row_latents: StrictInt | None = None
-    sandwich_col_latents: StrictInt | None = None
+    sandwich_latents: StrictInt | None = None
     sandwich_layers: StrictInt | None = None
     sandwich_heads: StrictInt | None = None
     sandwich_ff_expansion: StrictInt | None = None
@@ -127,8 +126,7 @@ class ExportModelSpec:
     use_digit_position_embed: bool
     staged_dropout: float
     pre_encoder_clip: float | None
-    sandwich_row_latents: int
-    sandwich_col_latents: int
+    sandwich_latents: int
     sandwich_layers: int
     sandwich_heads: int
     sandwich_ff_expansion: int
@@ -169,8 +167,7 @@ class ExportModelSpec:
             pre_encoder_clip=None
             if spec.pre_encoder_clip is None
             else float(spec.pre_encoder_clip),
-            sandwich_row_latents=int(spec.sandwich_row_latents),
-            sandwich_col_latents=int(spec.sandwich_col_latents),
+            sandwich_latents=int(spec.sandwich_latents),
             sandwich_layers=int(spec.sandwich_layers),
             sandwich_heads=int(spec.sandwich_heads),
             sandwich_ff_expansion=int(spec.sandwich_ff_expansion),
@@ -208,8 +205,7 @@ class ExportModelSpec:
                 "use_digit_position_embed": self.use_digit_position_embed,
                 "staged_dropout": self.staged_dropout,
                 "pre_encoder_clip": self.pre_encoder_clip,
-                "sandwich_row_latents": self.sandwich_row_latents,
-                "sandwich_col_latents": self.sandwich_col_latents,
+                "sandwich_latents": self.sandwich_latents,
                 "sandwich_layers": self.sandwich_layers,
                 "sandwich_heads": self.sandwich_heads,
                 "sandwich_ff_expansion": self.sandwich_ff_expansion,
@@ -230,8 +226,7 @@ class ExportModelSpec:
             if self.staged_dropout is None:
                 payload.pop("staged_dropout", None)
             for field_name in (
-                "sandwich_row_latents",
-                "sandwich_col_latents",
+                "sandwich_latents",
                 "sandwich_layers",
                 "sandwich_heads",
                 "sandwich_ff_expansion",
@@ -243,8 +238,7 @@ class ExportModelSpec:
         if self.arch != SANDWICH_MODEL_ARCH:
             payload.pop("pre_encoder_clip", None)
             for field_name in (
-                "sandwich_row_latents",
-                "sandwich_col_latents",
+                "sandwich_latents",
                 "sandwich_layers",
                 "sandwich_heads",
                 "sandwich_ff_expansion",

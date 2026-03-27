@@ -302,11 +302,15 @@ def render_system_delta_matrix(
     external_benchmarks = (
         [str(value) for value in raw_external_benchmarks]
         if isinstance(raw_external_benchmarks, list) and raw_external_benchmarks
-        else ["nanotabpfn"]
+        else ([] if isinstance(raw_external_benchmarks, list) else ["nanotabpfn"])
     )
     lines.append(
         "- External benchmarks: "
-        + ", ".join(f"`{benchmark_id}`" for benchmark_id in external_benchmarks)
+        + (
+            ", ".join(f"`{benchmark_id}`" for benchmark_id in external_benchmarks)
+            if external_benchmarks
+            else "`none`"
+        )
     )
     lines.append(f"- Training experiment: `{queue.get('training_experiment')}`")
     lines.append(f"- Training config profile: `{queue.get('training_config_profile')}`")

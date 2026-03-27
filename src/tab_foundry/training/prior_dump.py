@@ -11,6 +11,7 @@ from typing import Literal, cast
 import numpy as np
 import torch
 
+from tab_foundry.feature_types import DEFAULT_FEATURE_TYPE, normalize_feature_types
 from tab_foundry.types import TaskBatch
 
 
@@ -137,6 +138,49 @@ def _advance_pointer(pointer: int, *, batch_size: int, dataset_count: int) -> in
     return next_pointer
 
 
+def _materialize_legacy_feature_types_dataset(path: Path) -> bool:
+    """Add explicit all-floating feature types to a legacy numeric-only prior dump."""
+
+    import h5py
+
+    resolved_path = path.expanduser().resolve()
+    with h5py.File(resolved_path, "r+") as handle:
+        if handle.get("feature_types") is not None:
+            return False
+        x_ds = handle["X"]
+        if len(x_ds.shape) != 3:
+            raise RuntimeError(
+                "prior dump X dataset must have shape [dataset_count, max_num_datapoints, max_num_features], "
+                f"got {tuple(int(dim) for dim in x_ds.shape)}"
+            )
+        dataset_count = int(x_ds.shape[0])
+        max_num_features = int(x_ds.shape[2])
+        if dataset_count <= 0:
+            raise RuntimeError("cannot materialize feature_types for an empty prior dump")
+        if max_num_features <= 0:
+            raise RuntimeError(
+                "cannot materialize feature_types for a prior dump with max_num_features <= 0"
+            )
+
+        string_dtype = h5py.string_dtype(encoding="utf-8")
+        chunk_rows = min(dataset_count, 4096)
+        feature_types_ds = handle.create_dataset(
+            "feature_types",
+            shape=(dataset_count, max_num_features),
+            dtype=string_dtype,
+            chunks=(chunk_rows, max_num_features),
+        )
+        template = np.full(
+            (chunk_rows, max_num_features),
+            DEFAULT_FEATURE_TYPE,
+            dtype=object,
+        )
+        for start in range(0, dataset_count, chunk_rows):
+            end = min(start + chunk_rows, dataset_count)
+            feature_types_ds[start:end, :] = template[: end - start]
+    return True
+
+
 class PriorDumpTaskBatchReader:
     """Iterate a nanoTabPFN prior dump with the notebook's batching semantics."""
 
@@ -148,6 +192,7 @@ class PriorDumpTaskBatchReader:
         batch_size: int,
         allow_missing_values: bool = False,
         non_finite_policy: PriorDumpNonFinitePolicy = "error",
+        require_feature_types: bool = False,
         on_non_finite_batch: Callable[[PriorDumpBatchMissingness], None] | None = None,
     ) -> None:
         self.path = path.expanduser().resolve()
@@ -155,6 +200,7 @@ class PriorDumpTaskBatchReader:
         self.batch_size = int(batch_size)
         self.allow_missing_values = bool(allow_missing_values)
         self.non_finite_policy = _resolve_non_finite_policy(non_finite_policy)
+        self.require_feature_types = bool(require_feature_types)
         self.on_non_finite_batch = on_non_finite_batch
         if self.num_steps <= 0:
             raise ValueError(f"num_steps must be >= 1, got {self.num_steps}")
@@ -166,6 +212,14 @@ class PriorDumpTaskBatchReader:
 
         if not self.path.exists():
             raise RuntimeError(f"prior dump does not exist: {self.path}")
+        if self.require_feature_types:
+            materialized = _materialize_legacy_feature_types_dataset(self.path)
+            if materialized:
+                print(
+                    "[prior_dump] materialized explicit feature_types for legacy dump",
+                    f"path={self.path}",
+                    flush=True,
+                )
         pointer = 0
         with h5py.File(self.path, "r") as handle:
             raw_max_classes = np.asarray(handle["max_num_classes"]).reshape(-1)
@@ -183,9 +237,21 @@ class PriorDumpTaskBatchReader:
             num_features_ds = handle["num_features"]
             num_datapoints_ds = handle["num_datapoints"]
             split_ds = handle["single_eval_pos"]
+            feature_types_ds = handle.get("feature_types")
             dataset_count = int(x_ds.shape[0])
             if dataset_count <= 0:
                 raise RuntimeError("prior dump contains no datasets")
+            if feature_types_ds is not None:
+                if len(feature_types_ds.shape) != 2 or int(feature_types_ds.shape[0]) != dataset_count:
+                    raise RuntimeError(
+                        "prior dump feature_types must have shape [dataset_count, max_num_features], "
+                        f"got {tuple(int(dim) for dim in feature_types_ds.shape)}"
+                    )
+            elif self.require_feature_types:
+                raise RuntimeError(
+                    "tabfoundry_sandwich prior-dump training requires a 'feature_types' dataset "
+                    f"in the prior dump: {self.path}"
+                )
 
             batches_per_cycle = max(1, int(math.ceil(float(dataset_count) / float(self.batch_size))))
             successful_step_index = 0
@@ -241,6 +307,18 @@ class PriorDumpTaskBatchReader:
                         x_ds[dataset_index, :n_datapoints, :n_features],
                         dtype=np.float32,
                     )
+                    resolved_feature_types: list[str] | None = None
+                    if feature_types_ds is not None:
+                        raw_feature_types = np.asarray(feature_types_ds[dataset_index, :n_features])
+                        feature_types_list = [
+                            value.decode("utf-8") if isinstance(value, (bytes, bytearray)) else str(value)
+                            for value in raw_feature_types.tolist()
+                        ]
+                        resolved_feature_types = normalize_feature_types(
+                            feature_types_list,
+                            expected_count=n_features,
+                            context=f"prior dump dataset {dataset_index} feature_types",
+                        )
                     raw_y = np.asarray(
                         y_ds[dataset_index, :n_datapoints],
                         dtype=np.float32,
@@ -278,21 +356,24 @@ class PriorDumpTaskBatchReader:
                             f"got dataset_index={dataset_index}, labels={sorted(set(y.tolist()))}"
                         )
 
+                    metadata = {
+                        "source": "nanotabpfn_prior_dump",
+                        "prior_dump_path": str(self.path),
+                        "dataset_index": int(dataset_index),
+                        "num_features": n_features,
+                        "num_datapoints": n_datapoints,
+                        "train_test_split_index": first_split,
+                        "raw_single_eval_pos": int(split_values[local_index]),
+                    }
+                    if resolved_feature_types is not None:
+                        metadata["feature_types"] = resolved_feature_types
                     tasks.append(
                         TaskBatch(
                             x_train=torch.from_numpy(x[:first_split].copy()),
                             y_train=torch.from_numpy(y[:first_split].copy()),
                             x_test=torch.from_numpy(x[first_split:].copy()),
                             y_test=torch.from_numpy(y[first_split:].copy()),
-                            metadata={
-                                "source": "nanotabpfn_prior_dump",
-                                "prior_dump_path": str(self.path),
-                                "dataset_index": int(dataset_index),
-                                "num_features": n_features,
-                                "num_datapoints": n_datapoints,
-                                "train_test_split_index": first_split,
-                                "raw_single_eval_pos": int(split_values[local_index]),
-                            },
+                            metadata=metadata,
                             num_classes=2,
                         )
                     )

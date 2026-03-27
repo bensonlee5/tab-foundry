@@ -726,6 +726,7 @@ def test_export_manifest_embeds_policy_only_preprocessor(tmp_path: Path) -> None
     assert "feature_ids" not in preproc
     assert "fill_values" not in preproc["missing_value_policy"]
     assert "label_values" not in preproc["classification_label_policy"]
+    assert "feature_types" not in preproc
 
 
 def test_export_manifest_embeds_resolved_nondefault_preprocessing_policy(tmp_path: Path) -> None:
@@ -1080,6 +1081,7 @@ def test_reference_consumer_derives_preprocessing_from_runtime_support_set(tmp_p
             "regression_targets": "float32",
         },
     }
+    assert output.batch.metadata["feature_types"] == ["floating", "floating"]
     assert torch.allclose(
         output.batch.x_train,
         torch.tensor([[1.0, 6.0], [3.0, 5.0], [5.0, 7.0]], dtype=torch.float32),
@@ -1215,6 +1217,81 @@ def test_reference_consumer_applies_embedded_nondefault_all_nan_fill(tmp_path: P
         output.batch.x_test,
         torch.tensor([[1.0, 8.0]], dtype=torch.float32),
     )
+
+
+def test_reference_consumer_accepts_runtime_feature_types(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_feature_types.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=23)
+    out_dir = tmp_path / "export_runtime_feature_types"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    x_train, y_train, x_test = _classification_reference_arrays()
+    output = run_reference_consumer(
+        out_dir,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        feature_types=["integer", "floating", "bool"],
+    )
+
+    assert output.batch.metadata["feature_types"] == ["integer", "floating", "bool"]
+
+
+def test_reference_consumer_requires_feature_types_for_sandwich(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_runtime_feature_types_sandwich.pt"
+    _ = _write_checkpoint(
+        checkpoint,
+        task="classification",
+        input_normalization="none",
+        model_overrides={
+            "arch": "tabfoundry_sandwich",
+            "d_icl": 32,
+            "many_class_base": 4,
+            "head_hidden_dim": 64,
+            "sandwich_latents": 12,
+            "sandwich_layers": 2,
+            "sandwich_heads": 4,
+            "sandwich_ff_expansion": 2,
+        },
+        seed=31,
+    )
+    out_dir = tmp_path / "export_runtime_feature_types_sandwich"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    x_train, y_train, x_test = _classification_reference_arrays()
+    with pytest.raises(RuntimeError, match="feature_types"):
+        _ = run_reference_consumer(
+            out_dir,
+            x_train=x_train,
+            y_train=y_train,
+            x_test=x_test,
+        )
+
+    output = run_reference_consumer(
+        out_dir,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        feature_types=["integer", "floating", "bool"],
+    )
+
+    assert output.batch.metadata["feature_types"] == ["integer", "floating", "bool"]
+
+
+def test_validate_export_rejects_v3_preprocessor_feature_types(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "ckpt_preproc_feature_types.pt"
+    _ = _write_checkpoint(checkpoint, task="classification", input_normalization="none", seed=29)
+    out_dir = tmp_path / "export_preproc_feature_types"
+    _ = _export_v3_checkpoint(checkpoint, out_dir)
+
+    manifest_path = out_dir / "manifest.json"
+    manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest_payload["preprocessor"]["feature_types"] = ["integer", "floating", "bool"]
+    manifest_payload["manifest_sha256"] = compute_v3_manifest_sha256(manifest_payload)
+    _rewrite_json(manifest_path, manifest_payload)
+
+    with pytest.raises(ValueError, match="feature_types"):
+        _ = validate_export_bundle(out_dir)
 
 
 def test_reference_consumer_rejects_nonfinite_class_probabilities(

@@ -111,7 +111,7 @@ def research_card_text(
     external_benchmarks_display = (
         ", ".join(f"`{str(value)}`" for value in external_benchmarks)
         if isinstance(external_benchmarks, list) and external_benchmarks
-        else "`nanotabpfn`"
+        else ("`none`" if isinstance(external_benchmarks, list) else "`nanotabpfn`")
     )
     return "\n".join(
         [

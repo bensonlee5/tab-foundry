@@ -16840,6 +16840,127 @@
         "wall_elapsed_seconds": 1402.0665887738578
       }
     },
+    "sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1/train/checkpoints/step_001325.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021a_sandwich_nanotabpfn_screen_v1/delta_tf_rd_021a_sandwich_replay_v1/sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.1578892008952575,
+          "best_training_time_delta": 72.61111475795042,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.11590314107114413,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.15768122633579573,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.14100092515884644,
+          "final_training_time_delta": 353.49814995913766,
+          "reference_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2"
+        },
+        "vs_parent": null
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_prior",
+      "lineage": {
+        "anchor_run_id": "sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "/Users/bensonlee/dev/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 96,
+        "head_hidden_dim": 128,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 1442018,
+        "trainable_params": 1442018
+      },
+      "registered_at_utc": "2026-03-26T23:01:09Z",
+      "run_id": "sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_linear_warmup_decay"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021a_sandwich_replay_v1",
+        "parent_sweep_id": null,
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.37349201528868586,
+        "best_crps": null,
+        "best_log_loss": 0.5494122402096481,
+        "best_picp_90": null,
+        "best_roc_auc": 0.6055606875128555,
+        "best_step": 1325.0,
+        "best_training_time": 330.10958048223983,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.3773978076360224,
+        "final_crps": null,
+        "final_log_loss": 0.554868714865437,
+        "final_picp_90": null,
+        "final_roc_auc": 0.6224489632492666,
+        "final_step": 2500.0,
+        "final_training_time": 610.9966156834271
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.1792174130678177,
+        "final_val_loss": null,
+        "max_grad_norm": 6.598875522613525,
+        "mean_grad_norm": 0.17884081682041286,
+        "post_warmup_train_loss_var": 0.0006294145702131526,
+        "train_elapsed_seconds": 610.9966156834271,
+        "wall_elapsed_seconds": 664.4608874170808
+      }
+    },
     "sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v1": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/research/tokenization_migration_v1/delta_architecture_screen_grouped_tokens/sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v1/benchmark",
@@ -17405,6 +17526,110 @@
         "post_warmup_train_loss_var": 0.0017719368785092202,
         "train_elapsed_seconds": 421.9473605758103,
         "wall_elapsed_seconds": 431.8746543750167
+      }
+    },
+    "tf_rd_021b_hybrid_full_cell_compact_prior_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/cls_benchmark_sandwich_hybrid_prior/benchmark_tab_foundry_only",
+        "benchmark_run_record_path": "outputs/cls_benchmark_sandwich_hybrid_prior/benchmark_tab_foundry_only/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/cls_benchmark_sandwich_hybrid_prior/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/cls_benchmark_sandwich_hybrid_prior/benchmark_tab_foundry_only/comparison_curve.png",
+        "comparison_summary_path": "outputs/cls_benchmark_sandwich_hybrid_prior/benchmark_tab_foundry_only/comparison_summary.json",
+        "history_path": "outputs/cls_benchmark_sandwich_hybrid_prior/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/cls_benchmark_sandwich_hybrid_prior",
+        "training_surface_record_path": "outputs/cls_benchmark_sandwich_hybrid_prior/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "Hybrid full-cell sandwich compact prior benchmark establishes the TF-RD-021B local control before knob-sensitivity sweeps.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "keep",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "/Users/bensonlee/dev/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 481070,
+        "trainable_params": 481070
+      },
+      "registered_at_utc": "2026-03-27T03:30:32Z",
+      "run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": null,
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.30722786571240607,
+        "best_crps": null,
+        "best_log_loss": 0.4671928495584242,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7370413161407714,
+        "best_step": 2500.0,
+        "best_training_time": 470.4519937566947,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.30722786571240607,
+        "final_crps": null,
+        "final_log_loss": 0.4671928495584242,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7370413161407714,
+        "final_step": 2500.0,
+        "final_training_time": 470.4519937566947
+      },
+      "track": "sandwich_hybrid_locked_prior_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.4007498621940613,
+        "final_val_loss": null,
+        "max_grad_norm": 7.769808769226074,
+        "mean_grad_norm": 0.24329446733742952,
+        "post_warmup_train_loss_var": 0.0013743808793917616,
+        "train_elapsed_seconds": 470.4519937566947,
+        "wall_elapsed_seconds": 504.953790999949
       }
     }
   },

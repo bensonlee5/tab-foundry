@@ -69,7 +69,11 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
             "and otherwise record a synthetic nanoTabPFN reuse-missing outcome."
         ),
     )
-    parser.add_argument("--device", default=DEFAULT_DEVICE, choices=("cpu", "cuda", "mps", "auto"))
+    parser.add_argument(
+        "--device",
+        default=DEFAULT_DEVICE,
+        help="Sweep execution device: cpu, cuda, or auto. Sweeps do not support mps.",
+    )
     parser.add_argument(
         "--tab-foundry-python",
         default=str(_repo_root() / ".venv" / "bin" / "python"),

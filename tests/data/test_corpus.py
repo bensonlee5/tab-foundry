@@ -323,7 +323,7 @@ def _write_generated_dataset(generated_dir: Path, *, seed: int) -> None:
                 "y_train": y_train,
                 "x_test": x_test,
                 "y_test": y_test,
-                "feature_types": ["num"] * x_train.shape[1],
+                "feature_types": ["floating"] * x_train.shape[1],
                 "metadata": metadata,
             }
         ],

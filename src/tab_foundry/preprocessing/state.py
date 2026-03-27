@@ -47,6 +47,7 @@ class FittedPreprocessorState:
 
     feature_order_policy: str
     feature_ids: list[int]
+    feature_types: list[str]
     missing_value_policy: MissingValuePolicyState
     classification_label_policy: ClassificationLabelPolicyState | None
     dtype_policy: dict[str, str]

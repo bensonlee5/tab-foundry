@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from hydra.errors import MissingConfigException
 from hydra import compose, initialize_config_dir
+import pytest
 
 
 def _compose(*overrides: str):
@@ -29,14 +31,32 @@ def test_cls_workstation_sandwich_resolution() -> None:
     assert str(cfg.task) == "classification"
     assert str(cfg.model.arch) == "tabfoundry_sandwich"
     assert cfg.model.stage is None
-    assert int(cfg.model.d_icl) == 96
+    assert int(cfg.model.d_icl) == 60
     assert str(cfg.model.input_normalization) == "train_zscore_clip"
-    assert int(cfg.model.head_hidden_dim) == 128
-    assert int(cfg.model.sandwich_row_latents) == 32
-    assert int(cfg.model.sandwich_col_latents) == 16
+    assert int(cfg.model.head_hidden_dim) == 96
+    assert int(cfg.model.sandwich_latents) == 24
+    assert int(cfg.model.sandwich_layers) == 2
+    assert int(cfg.model.sandwich_heads) == 4
+    assert int(cfg.model.sandwich_summary_tokens_per_axis) == 4
+    assert int(cfg.model.sandwich_self_attention_per_cross) == 4
+    assert int(cfg.model.sandwich_pre_row_attention_layers) == 1
+    assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
     assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_sandwich"
     assert bool(cfg.runtime.trace_activations) is False
     assert str(cfg.logging.run_name) == "cls-workstation-sandwich"
+
+
+def test_generic_sandwich_compose_accepts_pre_perceiver_override_without_plus() -> None:
+    cfg = _compose(
+        "model.arch=tabfoundry_sandwich",
+        "model.sandwich_pre_row_attention_layers=2",
+        "model.sandwich_pre_column_attention_layers=0",
+    )
+
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
+    assert int(cfg.model.sandwich_pre_row_attention_layers) == 2
+    assert int(cfg.model.sandwich_pre_column_attention_layers) == 0
+
 
 def test_cls_smoke_optimizer_resolution() -> None:
     cfg = _compose("experiment=cls_smoke")
@@ -115,29 +135,40 @@ def test_cls_benchmark_linear_simple_prior_resolution() -> None:
     assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_linear_simple_prior/train_history.jsonl"
 
 
-def test_cls_benchmark_sandwich_prior_resolution() -> None:
-    cfg = _compose("experiment=cls_benchmark_sandwich_prior")
+def test_cls_benchmark_sandwich_prior_is_retired() -> None:
+    with pytest.raises(MissingConfigException):
+        _compose("experiment=cls_benchmark_sandwich_prior")
+
+
+def test_cls_benchmark_sandwich_hybrid_prior_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_hybrid_prior")
     assert str(cfg.task) == "classification"
     assert str(cfg.model.arch) == "tabfoundry_sandwich"
     assert cfg.model.stage is None
-    assert int(cfg.model.d_icl) == 96
+    assert int(cfg.model.d_icl) == 60
     assert str(cfg.model.input_normalization) == "train_zscore_clip"
     assert int(cfg.model.many_class_base) == 2
-    assert int(cfg.model.head_hidden_dim) == 128
-    assert int(cfg.model.sandwich_row_latents) == 32
-    assert int(cfg.model.sandwich_col_latents) == 16
+    assert int(cfg.model.head_hidden_dim) == 96
+    assert int(cfg.model.sandwich_latents) == 24
     assert int(cfg.model.sandwich_layers) == 2
     assert int(cfg.model.sandwich_heads) == 4
     assert int(cfg.model.sandwich_ff_expansion) == 2
+    assert int(cfg.model.sandwich_summary_tokens_per_axis) == 4
+    assert int(cfg.model.sandwich_self_attention_per_cross) == 4
+    assert int(cfg.model.sandwich_pre_row_attention_layers) == 1
+    assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
     assert int(cfg.runtime.max_steps) == 2500
     assert int(cfg.runtime.eval_every) == 25
     assert int(cfg.runtime.checkpoint_every) == 25
     assert bool(cfg.runtime.trace_activations) is False
     assert str(cfg.optimizer.name) == "schedulefree_adamw"
     assert bool(cfg.optimizer.require_requested) is True
-    assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_sandwich_prior"
-    assert str(cfg.logging.run_name) == "cls-benchmark-sandwich-prior"
-    assert str(cfg.logging.history_jsonl_path) == "outputs/cls_benchmark_sandwich_prior/train_history.jsonl"
+    assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_sandwich_hybrid_prior"
+    assert str(cfg.logging.run_name) == "cls-benchmark-sandwich-hybrid-prior"
+    assert (
+        str(cfg.logging.history_jsonl_path)
+        == "outputs/cls_benchmark_sandwich_hybrid_prior/train_history.jsonl"
+    )
 
 
 def test_cls_benchmark_staged_resolution() -> None:

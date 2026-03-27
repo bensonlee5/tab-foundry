@@ -1,0 +1,60 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_021b_sandwich_width_capacity_sensitivity_v1
+parent_sweep_id: tf_rd_021b_sandwich_knob_sensitivity_v1
+status: blocked_on_knob_sensitivity
+complexity_level: binary_md
+anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_hybrid_prior
+training_config_profile: cls_benchmark_sandwich_hybrid_prior
+surface_role: architecture_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - This blocked follow-up reuses the same registered compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1` that anchors the first TF-RD-021B knob-sensitivity screen.
+  - The purpose is to read width and readout-head capacity only after the stage-1 sandwich-specific ablations establish which topology knobs can be frozen lower.
+  - Keep the medium binary bundle, prior-dump surface, `runtime_default` preprocessing, `prior_cosine_warmup` recipe, and `2500`-step budget fixed across all rows.
+  - This follow-up remains local-only; compare every row against the locked control on the pinned bundle without running any external comparator.
+  - If the stage-1 screen finds a clearly better simpler topology setting, update the control and respin this package before execution rather than silently interpreting these rows against the wrong anchor.
+  - The empirical power-curve phase comes after this bounded width or head read; do not collapse to a single-toggle scaling law until those many-run fits exist.
+  dimension_table:
+  - dimension: trunk width
+    upstream: Width is the primary channel-capacity axis once topology is stable enough to scale.
+    anchor: Compact hybrid control uses `d_icl=60` with `sandwich_heads=4`.
+    interpretation: These rows read whether width is the first live post-topology scaling axis.
+  - dimension: readout-head width
+    upstream: Prediction-head capacity can matter independently of trunk width on compact models.
+    anchor: Compact hybrid control uses `head_hidden_dim=96`.
+    interpretation: These rows test whether head width matters independently before the later power-curve phase.
+  - dimension: attention partitioning
+    upstream: Not changed here.
+    anchor: Keep `sandwich_heads=4` fixed.
+    interpretation: Width rows should not confound total width with head-factor movement.
+  - dimension: benchmark contract
+    upstream: Not applicable.
+    anchor: Locked medium binary bundle with no external comparator.
+    interpretation: Keep the benchmark bundle fixed so this follow-up measures width or head sensitivity only.
+  - dimension: training surface
+    upstream: Not specified by PerceiverIO.
+    anchor: Training surface label `prior_cosine_warmup`.
+    interpretation: Budget and optimizer stay frozen so this follow-up is still an architecture-capacity read.
+anchor_context:
+  run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
+  experiment: cls_benchmark_sandwich_hybrid_prior
+  config_profile: cls_benchmark_sandwich_hybrid_prior
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: sandwich_hybrid_compact_prior
+    stage: null
+    stage_label: sandwich_hybrid_compact_prior
+    module_selection: null
+  surface_labels:
+    data: prior_dump
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

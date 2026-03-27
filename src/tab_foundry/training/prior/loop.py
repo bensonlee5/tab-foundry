@@ -93,6 +93,7 @@ def _run_prior_step_with_microbatch_retry(
     x_batch: torch.Tensor,
     y_train_batch: torch.Tensor,
     y_all_batch: torch.Tensor,
+    feature_types_batch: list[list[str]] | None,
     train_test_split_index: int,
     trace_activations: bool,
     flush_activation_trace: object,
@@ -115,11 +116,19 @@ def _run_prior_step_with_microbatch_retry(
             stop = min(start + microbatch_size, total_batch_size)
             microbatch_count += 1
             weight = float(stop - start) / float(total_batch_size)
-            logits = forward_batched(
-                x_all=x_batch[start:stop],
-                y_train=y_train_batch[start:stop],
-                train_test_split_index=train_test_split_index,
-            )
+            batched_kwargs: dict[str, Any] = {
+                "x_all": x_batch[start:stop],
+                "y_train": y_train_batch[start:stop],
+                "train_test_split_index": train_test_split_index,
+            }
+            if str(getattr(model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+                if feature_types_batch is None:
+                    raise RuntimeError(
+                        "tabfoundry_sandwich prior-dump training requires explicit feature_types "
+                        "for every task in the batch"
+                    )
+                batched_kwargs["feature_types"] = feature_types_batch[start:stop]
+            logits = forward_batched(**batched_kwargs)
             if not isinstance(logits, torch.Tensor):
                 raise RuntimeError("prior-dump training requires tensor logits")
             activation_norms = (
@@ -367,6 +376,7 @@ def run_prior_training(
             num_steps=max_steps,
             batch_size=prior_batch_config.batch_size,
             non_finite_policy=prior_dump_non_finite_policy,
+            require_feature_types=str(spec.arch) == "tabfoundry_sandwich",
             on_non_finite_batch=_record_non_finite_batch,
         )
 
@@ -391,7 +401,10 @@ def run_prior_training(
             forward_batched = getattr(model, "forward_batched", None)
             if not callable(forward_batched):
                 raise RuntimeError("prior-dump training requires a model with forward_batched()")
-            x_batch, y_train_batch, y_all_batch = deps.stack_prior_step(prior_step, device=device)
+            x_batch, y_train_batch, y_all_batch, feature_types_batch = deps.stack_prior_step(
+                prior_step,
+                device=device,
+            )
             x_batch, synthetic_missingness = deps.apply_prior_missingness(
                 x_batch,
                 prior_step=prior_step,
@@ -415,6 +428,7 @@ def run_prior_training(
                 x_batch=x_batch,
                 y_train_batch=y_train_batch,
                 y_all_batch=y_all_batch,
+                feature_types_batch=feature_types_batch,
                 train_test_split_index=prior_step.train_test_split_index,
                 trace_activations=trace_activations,
                 flush_activation_trace=flush_activation_trace,
