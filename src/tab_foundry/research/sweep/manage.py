@@ -20,12 +20,10 @@ from .catalog import (
     load_system_delta_index,
     load_system_delta_sweep,
 )
-from .materialize import guarded_initial_state, load_system_delta_queue, materialize_system_delta_queue
+from .materialize import guarded_initial_state, materialize_system_delta_queue
 from .matrix import render_and_write_system_delta_matrix
 from .paths_io import (
     _copy_jsonable,
-    default_matrix_path,
-    default_queue_path,
     default_sweep_index_path,
     sweep_metadata_path,
     sweep_queue_path,
@@ -135,12 +133,6 @@ def create_sweep(
     normalized_complexity_level = ensure_non_empty_string(complexity_level, context="complexity_level")
     normalized_benchmark_bundle_path = ensure_non_empty_string(benchmark_bundle_path, context="benchmark_bundle_path")
     normalized_control_baseline_id = ensure_non_empty_string(control_baseline_id, context="control_baseline_id")
-    resolved_external_benchmarks = ensure_external_benchmarks(
-        list(external_benchmarks) if external_benchmarks is not None else None,
-        context="external_benchmarks",
-        default=DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
-        allow_empty=True,
-    )
     resolved_index_path = (index_path or default_sweep_index_path()).expanduser().resolve()
     resolved_sweeps_root = sweeps_root or resolved_index_path.parent
     index = load_system_delta_index(resolved_index_path)
@@ -149,20 +141,19 @@ def create_sweep(
         raise RuntimeError(f"sweep_id {normalized_sweep_id!r} already exists")
 
     catalog = load_system_delta_catalog(catalog_path)
-    active_sweep_id = ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id")
-    template_sweep = load_system_delta_sweep(
-        parent_sweep_id or active_sweep_id,
-        index_path=resolved_index_path,
-        sweeps_root=resolved_sweeps_root,
+    template_sweep = (
+        load_system_delta_sweep(
+            parent_sweep_id,
+            index_path=resolved_index_path,
+            sweeps_root=resolved_sweeps_root,
+        )
+        if parent_sweep_id is not None
+        else None
     )
     anchor_context = anchor_context_from_registry_run(
         anchor_run_id=normalized_anchor_run_id,
         registry_path=registry_path,
     )
-    sweep_status = DEFAULT_SWEEP_STATUS
-    if not sweeps:
-        sweep_status = "active"
-        index["active_sweep_id"] = normalized_sweep_id
 
     explicit_training_experiment = (
         None
@@ -177,28 +168,64 @@ def create_sweep(
     explicit_surface_role = (
         None if surface_role is None else ensure_non_empty_string(surface_role, context="surface_role")
     )
+    inherited_external_benchmarks = (
+        template_sweep.get("external_benchmarks")
+        if template_sweep is not None and external_benchmarks is None
+        else None
+    )
+    resolved_external_benchmarks = ensure_external_benchmarks(
+        list(external_benchmarks)
+        if external_benchmarks is not None
+        else (
+            list(inherited_external_benchmarks)
+            if isinstance(inherited_external_benchmarks, Sequence)
+            else None
+        ),
+        context="external_benchmarks",
+        default=DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
+        allow_empty=True,
+    )
+    if (
+        template_sweep is None
+        and (
+            explicit_training_experiment is None
+            or explicit_training_config_profile is None
+            or explicit_surface_role is None
+        )
+    ):
+        raise RuntimeError(
+            "create_sweep requires --parent-sweep-id or all of "
+            "--training-experiment, --training-config-profile, and --surface-role"
+        )
     if explicit_training_experiment is None:
+        assert template_sweep is not None
         resolved_training_experiment = resolve_training_experiment(template_sweep)
-        derived_lane_context: Mapping[str, Any] = template_sweep
     else:
         resolved_training_experiment = explicit_training_experiment
-        derived_lane_context = {"training_experiment": resolved_training_experiment}
-    resolved_training_config_profile = (
-        resolve_training_config_profile(derived_lane_context)
-        if explicit_training_config_profile is None
-        else explicit_training_config_profile
-    )
-    resolved_surface_role = (
-        resolve_surface_role(derived_lane_context)
-        if explicit_surface_role is None
-        else explicit_surface_role
-    )
+    if explicit_training_config_profile is None:
+        if explicit_training_experiment is not None:
+            resolved_training_config_profile = explicit_training_experiment
+        else:
+            assert template_sweep is not None
+            resolved_training_config_profile = resolve_training_config_profile(template_sweep)
+    else:
+        resolved_training_config_profile = explicit_training_config_profile
+    if explicit_surface_role is None:
+        if explicit_training_experiment is not None:
+            resolved_surface_role = resolve_surface_role(
+                {"training_experiment": explicit_training_experiment}
+            )
+        else:
+            assert template_sweep is not None
+            resolved_surface_role = resolve_surface_role(template_sweep)
+    else:
+        resolved_surface_role = explicit_surface_role
 
     sweep_payload = {
         "schema": SWEEP_SCHEMA,
         "sweep_id": normalized_sweep_id,
         "parent_sweep_id": None if parent_sweep_id is None else str(parent_sweep_id),
-        "status": sweep_status,
+        "status": DEFAULT_SWEEP_STATUS,
         "complexity_level": normalized_complexity_level,
         "anchor_run_id": normalized_anchor_run_id,
         "benchmark_bundle_path": normalized_benchmark_bundle_path,
@@ -207,10 +234,19 @@ def create_sweep(
         "training_experiment": resolved_training_experiment,
         "training_config_profile": resolved_training_config_profile,
         "surface_role": resolved_surface_role,
-        "comparison_policy": str(template_sweep.get("comparison_policy", "anchor_only")),
+        "comparison_policy": (
+            str(template_sweep.get("comparison_policy", "anchor_only"))
+            if template_sweep is not None
+            else "anchor_only"
+        ),
         "upstream_reference": cast(
             dict[str, Any],
-            _copy_jsonable(cast(dict[str, Any], template_sweep.get("upstream_reference", {}))),
+            _copy_jsonable(
+                cast(
+                    dict[str, Any],
+                    {} if template_sweep is None else template_sweep.get("upstream_reference", {}),
+                )
+            ),
         ),
         "anchor_surface": build_anchor_surface(
             anchor_run_id=normalized_anchor_run_id,
@@ -254,7 +290,7 @@ def create_sweep(
 
     sweep_info = {
         "parent_sweep_id": None if parent_sweep_id is None else str(parent_sweep_id),
-        "status": sweep_status,
+        "status": DEFAULT_SWEEP_STATUS,
         "anchor_run_id": normalized_anchor_run_id,
         "complexity_level": normalized_complexity_level,
         "benchmark_bundle_path": normalized_benchmark_bundle_path,
@@ -280,14 +316,6 @@ def create_sweep(
         registry_path=registry_path,
         sweeps_root=resolved_sweeps_root,
     )
-    if ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id") == normalized_sweep_id:
-        sync_active_sweep_aliases(
-            sweep_id=normalized_sweep_id,
-            index_path=resolved_index_path,
-            catalog_path=catalog_path,
-            registry_path=registry_path,
-            sweeps_root=resolved_sweeps_root,
-        )
 
     return {
         "sweep_path": str(sweep_metadata_path(normalized_sweep_id, sweeps_root=resolved_sweeps_root).resolve()),
@@ -297,69 +325,13 @@ def create_sweep(
     }
 
 
-def set_active_sweep(
-    sweep_id: str,
-    *,
-    index_path: Path | None = None,
-    catalog_path: Path | None = None,
-    registry_path: Path | None = None,
-    sweeps_root: Path | None = None,
-) -> dict[str, str]:
-    normalized_sweep_id = ensure_non_empty_string(sweep_id, context="sweep_id")
-    resolved_index_path = (index_path or default_sweep_index_path()).expanduser().resolve()
-    index = load_system_delta_index(resolved_index_path)
-    sweeps = ensure_mapping(index.get("sweeps"), context="sweep index sweeps")
-    if normalized_sweep_id not in sweeps:
-        raise RuntimeError(f"unknown sweep_id: {normalized_sweep_id}")
-    index["active_sweep_id"] = normalized_sweep_id
-    write_yaml(resolved_index_path, index)
-    return sync_active_sweep_aliases(
-        sweep_id=normalized_sweep_id,
-        index_path=resolved_index_path,
-        catalog_path=catalog_path,
-        registry_path=registry_path,
-        sweeps_root=sweeps_root,
-    )
-
-
-def sync_active_sweep_aliases(
-    *,
-    sweep_id: str | None = None,
-    index_path: Path | None = None,
-    catalog_path: Path | None = None,
-    registry_path: Path | None = None,
-    sweeps_root: Path | None = None,
-) -> dict[str, str]:
-    queue = load_system_delta_queue(
-        sweep_id=sweep_id,
-        index_path=index_path,
-        catalog_path=catalog_path,
-        sweeps_root=sweeps_root,
-    )
-    alias_queue_path = default_queue_path()
-    alias_matrix_path = default_matrix_path()
-    write_yaml(alias_queue_path, queue)
-    _ = render_and_write_system_delta_matrix(
-        sweep_id=str(queue["sweep_id"]),
-        queue=queue,
-        registry_path=registry_path,
-        out_path=alias_matrix_path,
-    )
-    return {
-        "queue_alias_path": str(alias_queue_path.resolve()),
-        "matrix_alias_path": str(alias_matrix_path.resolve()),
-    }
-
-
 def list_sweeps(*, index_path: Path | None = None) -> list[dict[str, Any]]:
     index = load_system_delta_index(index_path)
-    active_sweep_id = ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id")
     sweeps = ensure_mapping(index.get("sweeps"), context="sweep index sweeps")
     ordered = sorted(sweeps.items(), key=lambda item: str(item[0]))
     return [
         {
             "sweep_id": sweep_id,
-            "is_active": sweep_id == active_sweep_id,
             **cast(dict[str, Any], _copy_jsonable(sweep_info)),
         }
         for sweep_id, sweep_info in ordered

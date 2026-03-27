@@ -16,7 +16,7 @@ from tab_foundry.research.sweep.summarize import render_sweep_summary_table, sum
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
+    parser.add_argument("--sweep-id", required=True, help="Sweep id to inspect")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     parser.add_argument(
         "--include-screened",
@@ -49,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_from_args(args: argparse.Namespace) -> int:
     payload = summarize_sweep(
-        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
+        sweep_id=str(args.sweep_id),
         include_screened=bool(args.include_screened),
         index_path=Path(str(args.index_path)).expanduser().resolve(),
         catalog_path=Path(str(args.catalog_path)).expanduser().resolve(),

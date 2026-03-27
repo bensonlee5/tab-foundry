@@ -1288,6 +1288,228 @@ deltas:
     default_next_action: Run as part of the eight-row TF-RD-021B knob-sensitivity screen.
     applicability_guards: []
 
+  delta_tf_rd_021b_sandwich_selfattn0_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Remove latent self-attention refinement entirely between cross-attention reads while keeping the compact control otherwise fixed.
+    upstream_delta: The hybrid successor added repeated latent self-refinement between cross-attention segments; this row tests whether that feature can be removed outright.
+    expected_effect: If the structural gain comes from stage-0 full-cell access and dual readout more than from latent recycling, removing the self-attention stack may be only weakly harmful.
+    adequacy_knobs:
+      - Keep stage count, latent count, and FF expansion fixed so this row isolates removal of the latent self-refinement feature.
+      - Compare directly against the compact control before collapsing self-attention depth into later frozen defaults.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as the removal-first replacement for the earlier self-attention-depth ablation.
+        - If the drop is weak, prefer removing this feature entirely rather than retaining a reduced nonzero count.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 0
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the four-row TF-RD-021B feature-removal screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Remove latent self-attention refinement and collapse feed-forward expansion to 1x while keeping the compact control otherwise fixed.
+    upstream_delta: After the completed single-knob screen, this row tests whether the simplest acceptable parent can remove the self-refinement feature and retain only minimal trunk MLP expansion.
+    expected_effect: If the hybrid path is structurally adequate already, combining self-attention removal with 1x FF expansion may preserve most of the fit while simplifying the trunk materially.
+    adequacy_knobs:
+      - Keep summary-token multiplicity fixed so this row reads removal of latent refinement plus minimal FF capacity only.
+      - Compare directly against the compact control before carrying this compound simplification into harder-surface work.
+    parameter_adequacy_policy:
+      default_plan:
+        - Use this as the first compound removal candidate after the isolated removal row.
+        - Prefer this row over the anchor only if the combined simplification remains bounded on final quality and stability.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 1
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 0
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the four-row TF-RD-021B feature-removal screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Remove latent self-attention refinement, collapse feed-forward expansion to 1x, and reduce summary-token multiplicity to 1 while keeping the compact control otherwise fixed.
+    upstream_delta: This is the smallest removal-first parent expressible on the current sandwich surface without adding new zero-valued FF or summary-token semantics.
+    expected_effect: If the hybrid architecture mainly needs the stage-0 full-cell path and the final cell-stream readout, this compound simplification may preserve bounded quality with the smallest remaining nonzero summary/FF settings.
+    adequacy_knobs:
+      - Treat this as the lower bound of the current expressible removal-first simplification package.
+      - Compare directly against both the anchor and the simpler compound row before freezing any defaults.
+    parameter_adequacy_policy:
+      default_plan:
+        - Use this as the smallest currently supported parent in the TF-RD-021B removal-first screen.
+        - If this row is close enough to the anchor, the later freeze should prefer it over larger retained-feature variants.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 1
+        sandwich_summary_tokens_per_axis: 1
+        sandwich_self_attention_per_cross: 0
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the four-row TF-RD-021B feature-removal screen.
+    applicability_guards: []
+
   delta_tf_rd_021b_sandwich_prerow0_v1:
     dimension_family: model
     family: architecture_sensitivity

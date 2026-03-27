@@ -16,7 +16,7 @@ from .validation import ensure_non_empty_string, ensure_rows, validate_prose_fie
 
 
 CATALOG_SCHEMA = "tab-foundry-system-delta-catalog-v1"
-SWEEP_INDEX_SCHEMA = "tab-foundry-system-delta-sweep-index-v1"
+SWEEP_INDEX_SCHEMA = "tab-foundry-system-delta-sweep-index-v2"
 SWEEP_SCHEMA = "tab-foundry-system-delta-sweep-v1"
 SWEEP_QUEUE_SCHEMA = "tab-foundry-system-delta-sweep-queue-v1"
 
@@ -39,7 +39,6 @@ def load_system_delta_index(path: Path | None = None) -> dict[str, Any]:
         raise RuntimeError(
             f"system delta sweep index schema must be {SWEEP_INDEX_SCHEMA!r}, got {index.get('schema')!r}"
         )
-    ensure_non_empty_string(index.get("active_sweep_id"), context="system delta sweep index.active_sweep_id")
     sweeps = index.get("sweeps")
     if not isinstance(sweeps, dict) or not sweeps:
         raise RuntimeError("system delta sweep index must include a non-empty sweeps mapping")
@@ -51,10 +50,10 @@ def resolve_selected_sweep_id(
     *,
     index_path: Path | None = None,
 ) -> str:
-    if sweep_id is not None:
-        return ensure_non_empty_string(sweep_id, context="sweep_id")
-    index = load_system_delta_index(index_path)
-    return ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id")
+    del index_path
+    if sweep_id is None:
+        raise RuntimeError("sweep_id is required; the repo no longer tracks an active sweep")
+    return ensure_non_empty_string(sweep_id, context="sweep_id")
 
 
 def load_system_delta_sweep(

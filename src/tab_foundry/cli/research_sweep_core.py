@@ -8,12 +8,10 @@ from pathlib import Path
 
 from omegaconf import OmegaConf
 
-from tab_foundry.research.sweep import catalog as sweep_catalog
 from tab_foundry.research.sweep import manage as sweep_manage
 from tab_foundry.research.sweep import materialize as sweep_materialize
 from tab_foundry.research.sweep import matrix as sweep_matrix
 from tab_foundry.research.sweep import paths_io as sweep_paths
-from tab_foundry.research.sweep import validation as sweep_validation
 
 
 def _catalog_path(args: argparse.Namespace) -> Path:
@@ -48,30 +46,10 @@ def configure_core_path_arguments(parser: argparse.ArgumentParser) -> None:
 
 def _run_list_sweeps(args: argparse.Namespace) -> int:
     for sweep_info in sweep_manage.list_sweeps(index_path=_index_path(args)):
-        marker = "*" if sweep_info["is_active"] else " "
         print(
-            f"{marker} {sweep_info['sweep_id']}  {sweep_info['status']:<8}  "
+            f"{sweep_info['sweep_id']}  {sweep_info['status']:<8}  "
             f"{sweep_info['complexity_level']:<16}  anchor={sweep_info['anchor_run_id']}"
         )
-    return 0
-
-
-def _run_show_active(args: argparse.Namespace) -> int:
-    index = sweep_catalog.load_system_delta_index(_index_path(args))
-    print(sweep_validation.ensure_non_empty_string(index.get("active_sweep_id"), context="active_sweep_id"))
-    return 0
-
-
-def _run_set_active(args: argparse.Namespace) -> int:
-    result = sweep_manage.set_active_sweep(
-        str(args.sweep_id),
-        index_path=_index_path(args),
-        catalog_path=_catalog_path(args),
-        registry_path=_registry_path(args),
-    )
-    print(f"Active sweep set to {args.sweep_id}")
-    print(f"  queue_alias_path={result['queue_alias_path']}")
-    print(f"  matrix_alias_path={result['matrix_alias_path']}")
     return 0
 
 
@@ -109,9 +87,8 @@ def _run_sweep_create(args: argparse.Namespace) -> int:
 
 
 def _load_queue_from_args(args: argparse.Namespace) -> dict[str, object]:
-    selected_sweep_id = None if getattr(args, "sweep_id", None) is None else str(args.sweep_id)
     return sweep_materialize.load_system_delta_queue(
-        sweep_id=selected_sweep_id,
+        sweep_id=str(args.sweep_id),
         index_path=_index_path(args),
         catalog_path=_catalog_path(args),
     )
@@ -145,17 +122,6 @@ def _run_sweep_render(args: argparse.Namespace) -> int:
         registry_path=_registry_path(args),
         out_path=None if args.out_path is None else Path(str(args.out_path)),
     )
-    active_sweep_id = sweep_validation.ensure_non_empty_string(
-        sweep_catalog.load_system_delta_index(_index_path(args)).get("active_sweep_id"),
-        context="active_sweep_id",
-    )
-    if str(queue["sweep_id"]) == active_sweep_id:
-        sweep_manage.sync_active_sweep_aliases(
-            sweep_id=str(queue["sweep_id"]),
-            index_path=_index_path(args),
-            catalog_path=_catalog_path(args),
-            registry_path=_registry_path(args),
-        )
     print(f"Rendered system delta matrix to {resolved_out_path.expanduser().resolve()}")
     return 0
 
@@ -207,18 +173,6 @@ def register_core_subparsers(
     _configure_paths(list_sweeps_parser)
     list_sweeps_parser.set_defaults(func=_run_list_sweeps)
 
-    show_active_parser = subparsers.add_parser("show-active", help="Print the active sweep id")
-    _configure_paths(show_active_parser)
-    show_active_parser.set_defaults(func=_run_show_active)
-
-    set_active_parser = subparsers.add_parser(
-        "set-active",
-        help="Set the active sweep and regenerate aliases",
-    )
-    _configure_paths(set_active_parser)
-    set_active_parser.add_argument("--sweep-id", required=True, help="Sweep id to activate")
-    set_active_parser.set_defaults(func=_run_set_active)
-
     for command_name, help_text in (
         ("list", "List queue rows in order"),
         ("next", "Print the next ready row"),
@@ -229,8 +183,8 @@ def register_core_subparsers(
         _configure_paths(command_parser)
         command_parser.add_argument(
             "--sweep-id",
-            default=None,
-            help="Optional sweep id; defaults to the active sweep",
+            required=True,
+            help="Sweep id to inspect",
         )
         if command_name == "render":
             command_parser.add_argument(
@@ -254,8 +208,8 @@ def register_core_subparsers(
     _configure_paths(materialize_corpora_parser)
     materialize_corpora_parser.add_argument(
         "--sweep-id",
-        default=None,
-        help="Optional sweep id; defaults to the active sweep",
+        required=True,
+        help="Sweep id to materialize",
     )
     materialize_corpora_parser.add_argument(
         "--dagzoo-root",
@@ -303,17 +257,17 @@ def register_core_subparsers(
     create_parser.add_argument(
         "--training-experiment",
         default=None,
-        help="Optional training experiment for new rows; defaults to the parent sweep contract",
+        help="Training experiment for new rows; required unless --parent-sweep-id is provided",
     )
     create_parser.add_argument(
         "--training-config-profile",
         default=None,
-        help="Optional training config profile for new rows; defaults to the parent sweep contract",
+        help="Training config profile for new rows; required unless --parent-sweep-id is provided",
     )
     create_parser.add_argument(
         "--surface-role",
         default=None,
-        help="Optional lane role label such as hybrid_diagnostic or architecture_screen",
+        help="Lane role label such as hybrid_diagnostic or architecture_screen; required unless --parent-sweep-id is provided",
     )
     create_parser.add_argument(
         "--delta-ref",

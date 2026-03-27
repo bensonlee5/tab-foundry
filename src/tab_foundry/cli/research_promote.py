@@ -14,7 +14,6 @@ def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--run-id", help="Benchmark registry run id to promote")
     target.add_argument("--order", type=int, help="Queue order whose run_id should be promoted")
-    parser.add_argument("--set-active", action="store_true", help="Also mark this sweep as the active sweep")
     return parser
 
 
@@ -34,7 +33,6 @@ def run_from_args(args: argparse.Namespace) -> int:
     result = promote_anchor(
         sweep_id=str(args.sweep_id),
         anchor_run_id=run_id,
-        set_active=bool(args.set_active),
         paths=paths,
     )
     print(

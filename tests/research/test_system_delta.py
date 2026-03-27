@@ -83,22 +83,24 @@ def _anchor_dimension_anchor_text(sweep: dict[str, object], *, dimension: str) -
     return value
 
 
-def test_active_sweep_materializes_current_active_sweep() -> None:
+def test_explicit_sweep_materializes_selected_sweep() -> None:
+    selected_sweep_id = "tf_rd_018_lr_warmup_shape_v1"
     index = load_system_delta_index(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
-    active_sweep_id = str(index["active_sweep_id"])
     sweep = load_system_delta_sweep(
-        active_sweep_id,
+        selected_sweep_id,
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
     )
     queue = load_system_delta_queue(
-        sweep_id=active_sweep_id,
+        sweep_id=selected_sweep_id,
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
 
-    assert sweep["sweep_id"] == active_sweep_id
-    assert queue["sweep_id"] == active_sweep_id
-    assert queue["generated_from_sweep_id"] == active_sweep_id
+    assert index["schema"] == "tab-foundry-system-delta-sweep-index-v2"
+    assert "active_sweep_id" not in index
+    assert sweep["sweep_id"] == selected_sweep_id
+    assert queue["sweep_id"] == selected_sweep_id
+    assert queue["generated_from_sweep_id"] == selected_sweep_id
     anchor_surface = sweep["anchor_surface"]
     assert isinstance(anchor_surface, dict)
     dimension_table = anchor_surface["dimension_table"]
@@ -507,19 +509,25 @@ def test_missingness_rows_are_deferred_from_the_main_campaign() -> None:
     assert "missingness workstream" in fill_row["next_action"]
 
 
-def test_active_alias_queue_matches_materialized_active_sweep() -> None:
-    index = load_system_delta_index(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
+def test_materialized_queue_records_canonical_selected_sweep_paths() -> None:
+    selected_sweep_id = "tf_rd_018_lr_warmup_shape_v1"
     materialized = load_system_delta_queue(
-        sweep_id=str(index["active_sweep_id"]),
+        sweep_id=selected_sweep_id,
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
-    alias_payload = OmegaConf.to_container(
-        OmegaConf.load(REPO_ROOT / "reference" / "system_delta_queue.yaml"),
-        resolve=True,
-    )
 
-    assert alias_payload == materialized
+    assert materialized["generated_from_sweep_id"] == selected_sweep_id
+    assert (
+        materialized["canonical_queue_path"]
+        == f"reference/system_delta_sweeps/{selected_sweep_id}/queue.yaml"
+    )
+    assert (
+        materialized["canonical_matrix_path"]
+        == f"reference/system_delta_sweeps/{selected_sweep_id}/matrix.md"
+    )
+    assert not (REPO_ROOT / "reference" / "system_delta_queue.yaml").exists()
+    assert not (REPO_ROOT / "reference" / "system_delta_matrix.md").exists()
 
 
 def test_create_sweep_supports_explicit_delta_ref_order(tmp_path: Path) -> None:
@@ -595,6 +603,104 @@ def test_create_sweep_supports_missing_permitting_bundle_anchor_surface(tmp_path
     assert created_sweep["benchmark_bundle_path"] == "src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json"
     training_data_anchor = _anchor_dimension_anchor_text(created_sweep, dimension="training data surface")
     assert "missing values permitted" in training_data_anchor
+
+
+def test_create_sweep_requires_parent_or_explicit_training_surface(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    with pytest.raises(
+        RuntimeError,
+        match="create_sweep requires --parent-sweep-id or all of --training-experiment, --training-config-profile, and --surface-role",
+    ):
+        _ = create_sweep(
+            sweep_id="parentless_missing_surface",
+            anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+            parent_sweep_id=None,
+            complexity_level="binary_md",
+            benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+            control_baseline_id="cls_benchmark_linear_v2",
+            delta_refs=["delta_anchor_activation_trace_baseline"],
+            index_path=sweeps_root / "index.yaml",
+            catalog_path=reference_root / "system_delta_catalog.yaml",
+            registry_path=REGISTRY_PATH,
+            sweeps_root=sweeps_root,
+        )
+
+
+def test_create_sweep_supports_parentless_explicit_training_surface(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="parentless_explicit_surface",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id=None,
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        training_experiment="cls_benchmark_staged",
+        training_config_profile="cls_benchmark_staged",
+        surface_role="architecture_screen",
+        delta_refs=["delta_anchor_activation_trace_baseline"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    created_sweep = load_system_delta_sweep(
+        "parentless_explicit_surface",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="parentless_explicit_surface",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert created_sweep["parent_sweep_id"] is None
+    assert created_sweep["training_experiment"] == "cls_benchmark_staged"
+    assert created_sweep["training_config_profile"] == "cls_benchmark_staged"
+    assert created_sweep["surface_role"] == "architecture_screen"
+    assert created_sweep["comparison_policy"] == "anchor_only"
+    assert created_sweep["upstream_reference"] == {}
+    assert materialized["training_experiment"] == "cls_benchmark_staged"
+    assert materialized["training_config_profile"] == "cls_benchmark_staged"
+    assert materialized["surface_role"] == "architecture_screen"
+
+
+def test_create_sweep_inherits_parent_external_benchmarks_when_unspecified(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="tf_rd_021b_sandwich_feature_removal_clone",
+        anchor_run_id="tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        parent_sweep_id="tf_rd_021b_sandwich_width_capacity_sensitivity_v1",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        delta_refs=["delta_tf_rd_021b_sandwich_selfattn0_v1"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    created_sweep = load_system_delta_sweep(
+        "tf_rd_021b_sandwich_feature_removal_clone",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="tf_rd_021b_sandwich_feature_removal_clone",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert created_sweep["external_benchmarks"] == []
+    assert materialized["external_benchmarks"] == []
 
 
 def test_create_sweep_bootstraps_tf_rd_018_lr_shape_followups_on_corpus_surface(
@@ -1341,10 +1447,10 @@ def test_checked_in_completed_system_delta_queues_validate_against_registry(
         ) == []
 
 
-def test_checked_in_system_delta_matrix_matches_rendered_active_sweep() -> None:
-    index = load_system_delta_index(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
+def test_checked_in_system_delta_matrix_matches_rendered_selected_sweep() -> None:
+    selected_sweep_id = "tf_rd_021b_sandwich_feature_removal_v1"
     queue = load_system_delta_queue(
-        sweep_id=str(index["active_sweep_id"]),
+        sweep_id=selected_sweep_id,
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
@@ -1352,6 +1458,12 @@ def test_checked_in_system_delta_matrix_matches_rendered_active_sweep() -> None:
         queue,
         registry_path=REGISTRY_PATH,
     )
-    checked_in = (REPO_ROOT / "reference" / "system_delta_matrix.md").read_text(encoding="utf-8")
+    checked_in = (
+        REPO_ROOT
+        / "reference"
+        / "system_delta_sweeps"
+        / selected_sweep_id
+        / "matrix.md"
+    ).read_text(encoding="utf-8")
 
     assert checked_in == rendered

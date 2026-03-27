@@ -48,7 +48,8 @@ def _assert_row_state(row: dict[str, Any], *, delta_ref: str) -> None:
 def test_tf_rd_018_optimizer_family_v1_is_registered_and_completed() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "tf_rd_018_lr_warmup_shape_v1"
+    assert index["schema"] == "tab-foundry-system-delta-sweep-index-v2"
+    assert "active_sweep_id" not in index
 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
@@ -195,7 +196,6 @@ def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_canon
         / SWEEP_ID
         / "matrix.md"
     ).read_text(encoding="utf-8")
-    active_queue = (REPO_ROOT / "reference" / "system_delta_queue.yaml").read_text(encoding="utf-8")
     program = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
 
     assert "# System Delta Matrix" in matrix
@@ -204,7 +204,7 @@ def test_tf_rd_018_optimizer_family_v1_materialized_queue_and_matrix_match_canon
     assert "delta_training_adamw" in matrix
     assert "delta_training_muon" in matrix
     assert "tf_rd_020_shift_noise_drift_v1" in matrix
-    assert "generated_from_sweep_id: tf_rd_018_lr_warmup_shape_v1" in active_queue
-    assert "canonical_queue_path: reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/queue.yaml" in active_queue
-    assert "- active sweep id: `tf_rd_018_lr_warmup_shape_v1`" in program
-    assert "- canonical sweep queue: `reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/queue.yaml`" in program
+    assert not (REPO_ROOT / "reference" / "system_delta_queue.yaml").exists()
+    assert not (REPO_ROOT / "reference" / "system_delta_matrix.md").exists()
+    assert "`reference/system_delta_sweeps/<sweep_id>/queue.yaml`" in program
+    assert "There is no repo-global active sweep" in program

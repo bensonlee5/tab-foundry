@@ -79,7 +79,12 @@ def _batched_feature_types() -> list[list[str]]:
     return [list(_DEFAULT_FEATURE_TYPES), list(_SECONDARY_FEATURE_TYPES)]
 
 
-def _model() -> TabFoundrySandwichClassifier:
+def _model(
+    *,
+    sandwich_ff_expansion: int = 2,
+    sandwich_summary_tokens_per_axis: int = 4,
+    sandwich_self_attention_per_cross: int = 4,
+) -> TabFoundrySandwichClassifier:
     return TabFoundrySandwichClassifier(
         d_icl=32,
         many_class_base=4,
@@ -87,9 +92,9 @@ def _model() -> TabFoundrySandwichClassifier:
         sandwich_latents=12,
         sandwich_layers=2,
         sandwich_heads=4,
-        sandwich_ff_expansion=2,
-        sandwich_summary_tokens_per_axis=4,
-        sandwich_self_attention_per_cross=4,
+        sandwich_ff_expansion=sandwich_ff_expansion,
+        sandwich_summary_tokens_per_axis=sandwich_summary_tokens_per_axis,
+        sandwich_self_attention_per_cross=sandwich_self_attention_per_cross,
         sandwich_pre_row_attention_layers=1,
         sandwich_pre_column_attention_layers=1,
         sandwich_pre_column_inducing_tokens=8,
@@ -118,6 +123,14 @@ def test_tabfoundry_sandwich_forward_batched_shapes() -> None:
 
     assert tuple(logits.shape) == (2, 2, 4)
     assert torch.isfinite(logits).all()
+
+
+def test_tabfoundry_sandwich_accepts_zero_self_attention_per_cross() -> None:
+    model = _model(sandwich_self_attention_per_cross=0)
+    output = model(_batch())
+
+    assert tuple(output.logits.shape) == (2, 4)
+    assert torch.isfinite(output.logits).all()
 
 
 def test_tabfoundry_sandwich_uses_hybrid_full_cell_and_summary_inputs() -> None:

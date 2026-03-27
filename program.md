@@ -1,23 +1,23 @@
 # Agent Program
 
-Use this contract when you are running or reviewing the active anchor-only
+Use this contract when you are running or reviewing a selected anchor-only
 system-delta sweep in `tab-foundry`.
 
 Use `docs/workflows.md` for command syntax and artifact expectations. Use this
 contract for the objective, the locked comparison surface, the queue
 discipline, and the interpretation policy.
 
-Treat this as a research-execution contract, not the architecture roadmap. The
-active sweep may intentionally hold a PFN-adjacent or hybrid diagnostic surface
-fixed while isolating one question. The long-term direction for the public
-model surface still comes from `docs/development/roadmap.md` and
-`docs/development/model-architecture.md`.
+Treat this as a research-execution contract, not the architecture roadmap. A
+selected sweep may intentionally hold a PFN-adjacent, hybrid diagnostic, or
+sandwich-local surface fixed while isolating one question. The long-term
+direction for the public model surface still comes from
+`docs/development/roadmap.md` and `docs/development/model-architecture.md`.
 
 ## Overview
 
 Read it when you need to know:
 
-- what the current [anchor](docs/glossary.md#anchor) is
+- what the selected [anchor](docs/glossary.md#anchor) is
 - what is allowed to change in one sweep row
 - which artifacts a row must produce
 - how to interpret a result without over-claiming
@@ -27,12 +27,11 @@ This is not the right page if you only want a general repo overview. Start with
 
 ## Objective
 
-Optimize for attributable evidence against the locked anchor
-`sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`, not for rapid base
-promotion.
+Optimize for attributable evidence against the selected sweep anchor, not for
+rapid base promotion.
 
-The primary score remains `final_log_loss` on the canonical binary benchmark
-bundle `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
+The primary score remains `final_log_loss` on the canonical benchmark bundle
+declared by the selected sweep metadata.
 
 When the benchmark family changes, switch the sweep target with it:
 
@@ -46,8 +45,9 @@ Supporting metrics are:
 - multiclass classification: `final_brier_score`, with ROC AUC retained only as
   a diagnostic when it is reported
 - training-time deltas versus the anchor
-- manifest and preprocessing surface deltas recorded in `training_surface_record.json`
-- loss/gradient instability evidence from `train_history.jsonl`,
+- manifest and preprocessing surface deltas recorded in
+  `training_surface_record.json`
+- loss or gradient instability evidence from `train_history.jsonl`,
   `gradient_history.jsonl`, and `telemetry.json`
 
 `best_roc_auc` remains a tie-breaker and diagnostic for classification sweeps,
@@ -58,45 +58,47 @@ not the main score.
 Hold this surface fixed unless the queue row explicitly declares a different
 dimension family:
 
-- active sweep id: `tf_rd_018_lr_warmup_shape_v1`
-- anchor run id: `sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2`
-- anchor train run: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/train`
-- anchor benchmark: `outputs/staged_ladder/research/tf_rd_020_harder_dagzoo_ladder_v1/delta_data_manifest_root_tf_rd_020_shift_noise_drift/sd_tf_rd_020_harder_dagzoo_ladder_v1_06_delta_data_manifest_root_tf_rd_020_shift_noise_drift_v2/benchmark`
-- canonical benchmark bundle: `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`
-- canonical control baseline id: `cls_benchmark_linear_v2`
-- canonical control source run: `01_nano_exact_md_prior_parity_fix_binary_medium_v1`
-- canonical control source artifacts: `outputs/staged_ladder/01_nano_exact_md/prior_parity_fix` and `outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1`
-- canonical registry: `src/tab_foundry/bench/benchmark_run_registry_v1.json`
+- selected sweep metadata:
+  `reference/system_delta_sweeps/<sweep_id>/sweep.yaml`
+- selected canonical queue:
+  `reference/system_delta_sweeps/<sweep_id>/queue.yaml`
+- selected canonical matrix:
+  `reference/system_delta_sweeps/<sweep_id>/matrix.md`
+- selected anchor run id: `anchor_run_id` from the chosen `sweep.yaml`
+- canonical benchmark bundle: `benchmark_bundle_path` from the chosen
+  `sweep.yaml`
+- canonical control baseline id: `control_baseline_id` from the chosen
+  `sweep.yaml`
+- canonical benchmark registry:
+  `src/tab_foundry/bench/benchmark_run_registry_v1.json`
 - delta catalog: `reference/system_delta_catalog.yaml`
 - sweep index: `reference/system_delta_sweeps/index.yaml`
-- canonical sweep queue: `reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/queue.yaml`
-- canonical sweep matrix: `reference/system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/matrix.md`
-- active queue alias: `reference/system_delta_queue.yaml`
-- active matrix alias: `reference/system_delta_matrix.md`
 - research template: `reference/system_delta_campaign_template.md`
 - research sources: `reference/stage_research_sources.yaml`
 
 Keep these invariant by default:
 
-- manifest-backed experiment family: `cls_benchmark_staged_corpus`
-- PFN control lane: `tabfoundry_simple` plus `tabfoundry_staged` with `stage=nano_exact`
-- legacy hybrid diagnostic lane: `cls_benchmark_staged_prior`
-- canonical architecture-screen surface for future benchmark-facing architecture work: `cls_benchmark_staged_corpus`
 - benchmark bundle path
 - control baseline id
-- history, checkpoint, benchmark, and `training_surface_record.json` artifact contracts
+- the queue-declared `training_experiment`, `training_config_profile`, and
+  `surface_role`
+- PFN control lane
+- hybrid diagnostic lane
+- canonical architecture-screen surface
+- history, checkpoint, benchmark, and `training_surface_record.json` artifact
+  contracts
 
 The benchmark registry is the historical system of record.
 
-The `outputs/staged_ladder/...` anchor paths above are convenience runtime
-references for local workspaces. They may be absent in a fresh clone or CI
-checkout. Resolve canonical identity through
+Registry-resolved `outputs/staged_ladder/...` artifact paths are convenience
+runtime references for local workspaces. They may be absent in a fresh clone or
+CI checkout. Resolve canonical identity through
 `src/tab_foundry/bench/benchmark_run_registry_v1.json`.
 
 ## Dimension Families
 
-This sweep is not architecture-only. Every queue row must isolate exactly one
-declared dimension family against the anchor:
+This workflow is not architecture-only. Every queue row must isolate exactly
+one declared dimension family against the anchor:
 
 - model
 - training
@@ -122,30 +124,29 @@ The canonical source-of-truth hierarchy is:
 - `reference/system_delta_sweeps/<sweep_id>/queue.yaml`
 - `reference/system_delta_sweeps/<sweep_id>/matrix.md`
 
-The top-level files `reference/system_delta_queue.yaml` and
-`reference/system_delta_matrix.md` are generated compatibility aliases for the active sweep only.
-They are convenient views, not the canonical editable sources.
+There is no repo-global active sweep or generated top-level queue or matrix
+alias. Use explicit `--sweep-id` selection instead.
 
 The queue must carry, at minimum:
 
 - `order`, `delta_ref`, `status`
 - `description`, `rationale`, `hypothesis`
-- model/data/preprocessing labels and the one active override family
+- model or data or preprocessing labels and the one active override family
 - `parameter_adequacy_plan`
 - `execution_policy`
 - `run_id`, `followup_run_ids`
 - `decision`, `interpretation_status`, `confounders`, `next_action`, `notes`
 
-The matrix must be rerendered from the active or selected sweep plus the
-canonical benchmark registry. Metrics belong in the registry, not duplicated in
-the queue.
+The matrix must be rerendered from the selected sweep plus the canonical
+benchmark registry. Metrics belong in the registry, not duplicated in the
+queue.
 
 Use `tab-foundry research sweep` to:
 
-- create a new sweep or set a different active sweep
-- list rows in order
-- print the next `ready` row
-- validate completed rows
+- create a new sweep with either a parent sweep or an explicit training surface
+- list rows in order for one explicit `--sweep-id`
+- print the next `ready` row for one explicit `--sweep-id`
+- validate completed rows for one explicit `--sweep-id`
 - render `reference/system_delta_sweeps/<sweep_id>/matrix.md`
 
 Every benchmark-facing run belongs to exactly one `sweep_id`. New complexity
@@ -203,18 +204,24 @@ new reruns.
 
 For each queue row:
 
-1. Select the active sweep from `reference/system_delta_sweeps/index.yaml`, or pass an explicit `--sweep-id`.
-1. Select the next `status=ready` row from `reference/system_delta_sweeps/<sweep_id>/queue.yaml`.
+1. Select the sweep explicitly with `--sweep-id` and load
+   `reference/system_delta_sweeps/<sweep_id>/sweep.yaml`.
+1. Select the next `status=ready` row from
+   `reference/system_delta_sweeps/<sweep_id>/queue.yaml`.
 1. Write or update `research_card.md` and `campaign.yaml`.
 1. Train on the locked anchor surface, changing only the declared dimension.
 1. Ensure the run has `training_surface_record.json`,
    `gradient_history.jsonl`, and `telemetry.json`.
-1. If `execution_policy=screen_only`, stop after recording screen metrics in the queue and rerender the matrix; skip benchmark registration, do not write `result_card.md`, and treat the row as diagnostic only.
-1. If `execution_policy=benchmark_full`, benchmark on `src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`.
-1. If `execution_policy=benchmark_full`, register the benchmark-facing run in `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its `sweep_id`.
+1. If `execution_policy=screen_only`, stop after recording screen metrics in
+   the queue and rerender the matrix; skip benchmark registration, do not write
+   `result_card.md`, and treat the row as diagnostic only.
+1. If `execution_policy=benchmark_full`, benchmark on the bundle declared by
+   the selected sweep metadata.
+1. If `execution_policy=benchmark_full`, register the benchmark-facing run in
+   `src/tab_foundry/bench/benchmark_run_registry_v1.json`, including its
+   `sweep_id`.
 1. If `execution_policy=benchmark_full`, write `result_card.md`.
 1. Rerender `reference/system_delta_sweeps/<sweep_id>/matrix.md`.
-1. Regenerate the top-level alias files if and only if this is the active sweep.
 1. Update the queue row status, run ids, interpretation, and next action.
 
 To rank the existing first-pass `binary_md_v1` outputs before rerunning,
@@ -234,9 +241,14 @@ This pass is attribution-first. No row becomes the new base during the sweep.
 
 Use these decisions:
 
-- `keep`: the row is isolated, evidence is at least neutral or improved on the task-family primary final metric (`final_log_loss` for the current classification bundles), and the interpretation does not reveal unresolved confounding severe enough to block the signal
-- `defer`: evidence is mixed, the row is not isolated enough yet, or the introduced degrees of freedom have not been checked adequately
-- `reject`: only allowed when the row is isolated, the adequacy plan was completed, and the result is clearly worse without offsetting benefit
+- `keep`: the row is isolated, evidence is at least neutral or improved on the
+  task-family primary final metric (`final_log_loss` for the current
+  classification bundles), and the interpretation does not reveal unresolved
+  confounding severe enough to block the signal
+- `defer`: evidence is mixed, the row is not isolated enough yet, or the
+  introduced degrees of freedom have not been checked adequately
+- `reject`: only allowed when the row is isolated, the adequacy plan was
+  completed, and the result is clearly worse without offsetting benefit
 
 Underperformance alone is not enough for `reject`.
 
@@ -258,5 +270,5 @@ treated as strong evidence.
 
 The same rule applies to data and preprocessing rows. If a data-surface or
 preprocessing row underperforms, the result card must discuss manifest
-provenance, dataset-characteristic shifts, and preprocessing interaction before
-any rejection is allowed.
+adequacy, preprocessing adequacy, and any remaining boundary ambiguity before a
+negative read is treated as strong evidence.

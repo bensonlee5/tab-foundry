@@ -21,7 +21,7 @@ from tab_foundry.research.sweep.paths_io import repo_root as _repo_root
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    parser.add_argument("--sweep-id", default=None, help="Sweep id to execute; defaults to the active sweep")
+    parser.add_argument("--sweep-id", required=True, help="Sweep id to execute")
     parser.add_argument(
         "--order",
         type=int,
@@ -128,7 +128,7 @@ def run_from_args(args: argparse.Namespace) -> int:
             raise RuntimeError(f"decision must be one of {sorted(ALLOWED_DECISIONS)}, got {decision!r}")
 
     executed = execute_sweep(
-        sweep_id=(None if args.sweep_id is None else str(args.sweep_id)),
+        sweep_id=str(args.sweep_id),
         prior_dump=prior_dump,
         nanotabpfn_root=nanotabpfn_root,
         reuse_nanotabpfn_only=bool(args.reuse_nanotabpfn_only),
@@ -144,10 +144,9 @@ def run_from_args(args: argparse.Namespace) -> int:
         conclusion_overrides=conclusion_overrides,
         promote_first_executed_row_to_anchor=bool(args.promote_first_executed_row_to_anchor),
     )
-    target_sweep = "active" if args.sweep_id is None else str(args.sweep_id)
     print(
         "Queue execution complete.",
-        f"sweep_id={target_sweep}",
+        f"sweep_id={args.sweep_id}",
         f"executed_rows={len(executed)}",
         flush=True,
     )

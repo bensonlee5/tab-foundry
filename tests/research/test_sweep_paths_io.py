@@ -16,8 +16,6 @@ def test_sweep_path_defaults_follow_shared_repo_root() -> None:
     assert paths_io.default_catalog_path() == REPO_ROOT / "reference" / "system_delta_catalog.yaml"
     assert paths_io.default_sweeps_root() == REPO_ROOT / "reference" / "system_delta_sweeps"
     assert paths_io.default_sweep_index_path() == REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml"
-    assert paths_io.default_queue_path() == REPO_ROOT / "reference" / "system_delta_queue.yaml"
-    assert paths_io.default_matrix_path() == REPO_ROOT / "reference" / "system_delta_matrix.md"
     assert paths_io.default_registry_path() == default_benchmark_run_registry_path()
 
 

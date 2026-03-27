@@ -16,7 +16,7 @@ from tab_foundry.research.sweep.paths_io import (
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
-    parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
+    parser.add_argument("--sweep-id", required=True, help="Sweep id to inspect")
     parser.add_argument("--anchor", action="store_true", help="Render the selected sweep anchor graph")
     parser.add_argument("--all-rows", action="store_true", help="Render graphs for every row in the sweep")
     parser.add_argument("--order", type=int, action="append", default=[], help="Specific queue order to render")
@@ -62,7 +62,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_from_args(args: argparse.Namespace) -> int:
     result = render_sweep_graphs(
-        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
+        sweep_id=str(args.sweep_id),
         anchor=bool(args.anchor),
         all_rows=bool(args.all_rows),
         orders=[int(value) for value in args.order],

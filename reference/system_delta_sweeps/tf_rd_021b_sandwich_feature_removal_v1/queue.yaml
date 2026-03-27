@@ -1,0 +1,296 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_021b_sandwich_feature_removal_v1
+rows:
+- order: 1
+  delta_ref: delta_tf_rd_021b_sandwich_selfattn0_v1
+  status: ready
+  rationale: Replace the earlier self-attention-depth shrink row with a true removal-first
+    read on the locked compact hybrid control.
+  hypothesis: If stage-0 full-cell access and the final readout carry most of the
+    gain, setting `sandwich_self_attention_per_cross=0` should be only weakly harmful.
+  anchor_delta: Keep the compact hybrid control fixed and change only `sandwich_self_attention_per_cross`
+    from `4` to `0`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 96
+    norm_type: layernorm
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 4
+    sandwich_self_attention_per_cross: 0
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_non_finite_policy: error
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Treat this as the removal-first replacement for the earlier self-attention-depth
+    ablation.
+  - If the drop is weak, prefer removing this feature entirely rather than retaining
+    a reduced nonzero count.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen;
+    do not execute or promote in this pass.
+  notes: []
+- order: 2
+  delta_ref: delta_tf_rd_021b_sandwich_ffexp1_v1
+  status: ready
+  rationale: Measure the smallest currently supported retained feed-forward setting
+    before combining it with wider removal candidates.
+  hypothesis: If extra trunk MLP capacity is mostly surplus on the compact hybrid
+    control, collapsing `sandwich_ff_expansion` from `2` to `1` should remain bounded.
+  anchor_delta: Keep the compact hybrid control fixed and change only `sandwich_ff_expansion`
+    from `2` to `1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 96
+    norm_type: layernorm
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 1
+    sandwich_summary_tokens_per_axis: 4
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_non_finite_policy: error
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Treat this as the minimal retained FF form for the removal-first follow-up.
+  - Do not add `sandwich_ff_expansion=0` in this pass; freeze work can only choose
+    between the anchor and the supported `=1` contraction.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen;
+    do not execute or promote in this pass.
+  notes: []
+- order: 3
+  delta_ref: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1
+  status: ready
+  rationale: Test the first compound removal package after the isolated self-attention
+    removal row while keeping summary-token multiplicity fixed.
+  hypothesis: If the hybrid path is structurally adequate already, combining self-attention
+    removal with `sandwich_ff_expansion=1` may preserve most of the fit while simplifying
+    the trunk materially.
+  anchor_delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross`
+    from `4` to `0` plus `sandwich_ff_expansion` from `2` to `1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 96
+    norm_type: layernorm
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 1
+    sandwich_summary_tokens_per_axis: 4
+    sandwich_self_attention_per_cross: 0
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_non_finite_policy: error
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Use this as the first compound removal candidate after the isolated removal row.
+  - Prefer this row over the anchor only if the combined simplification remains bounded
+    on final quality and stability.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen;
+    do not execute or promote in this pass.
+  notes: []
+- order: 4
+  delta_ref: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1
+  status: ready
+  rationale: Test the smallest currently supported removal-first parent before any
+    manual freeze decision is made.
+  hypothesis: If the hybrid architecture mainly needs the stage-0 full-cell path
+    and the final cell-stream readout, this compound simplification may preserve
+    bounded quality with the smallest remaining nonzero summary and FF settings.
+  anchor_delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross`
+    from `4` to `0`, `sandwich_ff_expansion` from `2` to `1`, and `sandwich_summary_tokens_per_axis`
+    from `4` to `1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 2
+    head_hidden_dim: 96
+    norm_type: layernorm
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 1
+    sandwich_summary_tokens_per_axis: 1
+    sandwich_self_attention_per_cross: 0
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+  data:
+    source: prior_dump
+    surface_label: prior_dump
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+    prior_dump_non_finite_policy: error
+    prior_dump_batch_size: 32
+    prior_dump_lr_scale_rule: none
+    prior_dump_batch_reference_size: 32
+    overrides:
+      apply_schedule: true
+      optimizer:
+        name: schedulefree_adamw
+        require_requested: true
+        weight_decay: 0.0
+        betas:
+        - 0.9
+        - 0.999
+        min_lr: 0.004
+        muon_per_parameter_lr: false
+      runtime:
+        grad_clip: 1.0
+        max_steps: 2500
+        eval_every: 25
+        checkpoint_every: 25
+        trace_activations: false
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 2500
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
+  parameter_adequacy_plan:
+  - Use this as the smallest currently supported parent in the TF-RD-021B removal-first
+    screen.
+  - If this row is close enough to the anchor, the later freeze should prefer it over
+    larger retained-feature variants.
+  run_id: null
+  followup_run_ids: []
+  decision: null
+  interpretation_status: pending
+  confounders: []
+  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen;
+    do not execute or promote in this pass.
+  notes: []

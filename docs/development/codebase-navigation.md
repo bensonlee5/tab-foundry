@@ -82,7 +82,7 @@ into the canonical library modules.
   rendering, sweep-result summaries, and research-package path conventions.
   The canonical sweep ownership now lives under
   `src/tab_foundry/research/sweep/`: `catalog.py` owns sweep/index/catalog
-  loading, `manage.py` owns create/set-active/alias sync, `materialize.py`
+  loading, `manage.py` owns sweep creation and metadata inheritance, `materialize.py`
   owns queue loading/materialization, `matrix.py` owns validation/rendering,
   `paths_io.py` owns sweep paths plus YAML/text helpers, `validation.py`
   owns sweep-shape validation helpers, and `anchor.py` owns anchor-context
@@ -108,7 +108,7 @@ The repo uses three stable workflow layers:
 - `scripts/dev` as the canonical repo-local entrypoint for bootstrap checks,
   branch review, affected-scope verification, explicit-path verification, full
   verification, and Iris smoke delegation.
-- Reference YAML/Markdown artifacts for the active system-delta sweep.
+- Reference YAML/Markdown artifacts for explicit system-delta sweeps.
 
 Current canonical CLI namespaces:
 
@@ -145,11 +145,9 @@ Current canonical CLI namespaces:
 - `tab-foundry research sweep list`
 - `tab-foundry research sweep list-sweeps`
 - `tab-foundry research sweep materialize-corpora`
-- `tab-foundry research sweep show-active`
 - `tab-foundry research sweep next`
 - `tab-foundry research sweep render`
 - `tab-foundry research sweep validate`
-- `tab-foundry research sweep set-active`
 - `tab-foundry research sweep execute`
 - `tab-foundry research sweep graph`
 - `tab-foundry research sweep promote`
@@ -163,15 +161,11 @@ not absorb new orchestration logic.
 
 ## 4. Reference And Planning Surfaces
 
-- `program.md` is the active execution contract for agent-driven system-delta
-  work.
+- `program.md` is the explicit sweep-selection execution contract for
+  agent-driven system-delta work.
 - `reference/system_delta_catalog.yaml` and
   `reference/system_delta_sweeps/<sweep_id>/` are the canonical system-delta
   sources of truth.
-- `reference/system_delta_queue.yaml` and
-  `reference/system_delta_matrix.md` are generated active-sweep aliases. They
-  exist for convenience and compatibility, but they are not the canonical files
-  to edit directly.
 - `docs/workflows.md` and `docs/inference.md` stay top-level because they are
   stable operator-facing runbooks.
 - `docs/development/` is the canonical home for planning, rationale,

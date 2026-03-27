@@ -334,10 +334,11 @@ def render_system_delta_matrix(
     lines.append("")
     lines.append("## Anchor Comparison")
     lines.append("")
-    lines.append(f"Upstream reference: `{upstream['name']}` from `{upstream['model_source']}`.")
+    upstream_name = str(upstream.get("name", "unknown"))
+    upstream_source = str(upstream.get("model_source", "unknown"))
+    lines.append(f"Upstream reference: `{upstream_name}` from `{upstream_source}`.")
     lines.append("")
-    upstream_heading = ensure_non_empty_string(upstream.get("name"), context="upstream reference name")
-    lines.append(f"| Dimension | Upstream {upstream_heading} | Locked anchor | Interpretation |")
+    lines.append(f"| Dimension | Upstream {upstream_name} | Locked anchor | Interpretation |")
     lines.append("| --- | --- | --- | --- |")
     for dimension_row in cast(list[dict[str, Any]], anchor_surface["dimension_table"]):
         lines.append(

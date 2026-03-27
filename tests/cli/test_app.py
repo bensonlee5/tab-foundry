@@ -427,23 +427,24 @@ def test_nested_cli_research_sweep_list_sweeps_dispatches_to_handler(
     assert captured == {"index_path": "/tmp/index.yaml"}
 
 
-def test_nested_cli_research_sweep_show_active_dispatches_to_handler(
+def test_nested_cli_research_sweep_next_dispatches_to_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     captured: dict[str, object] = {}
 
-    def _fake_run_show_active(args):
+    def _fake_run_sweep_next(args):
+        captured["sweep_id"] = str(args.sweep_id)
         captured["index_path"] = str(args.index_path)
         return 0
 
-    monkeypatch.setattr(research_sweep_core_cli_module, "_run_show_active", _fake_run_show_active)
+    monkeypatch.setattr(research_sweep_core_cli_module, "_run_sweep_next", _fake_run_sweep_next)
 
     exit_code = cli_module.main(
-        ["research", "sweep", "show-active", "--index-path", "/tmp/index.yaml"]
+        ["research", "sweep", "next", "--sweep-id", "binary_md_v1", "--index-path", "/tmp/index.yaml"]
     )
 
     assert exit_code == 0
-    assert captured == {"index_path": "/tmp/index.yaml"}
+    assert captured == {"sweep_id": "binary_md_v1", "index_path": "/tmp/index.yaml"}
 
 
 def test_nested_cli_research_sweep_render_dispatches_to_handler(
@@ -510,16 +511,19 @@ def test_nested_cli_research_sweep_graph_dispatches_to_handler(
     captured: dict[str, object] = {}
 
     def _fake_graph_handler(args):
+        captured["sweep_id"] = str(args.sweep_id)
         captured["anchor"] = bool(args.anchor)
         captured["order"] = list(args.order)
         return 0
 
     monkeypatch.setattr(research_graph_cli_module, "run_from_args", _fake_graph_handler)
 
-    exit_code = cli_module.main(["research", "sweep", "graph", "--anchor", "--order", "7"])
+    exit_code = cli_module.main(
+        ["research", "sweep", "graph", "--sweep-id", "binary_md_v1", "--anchor", "--order", "7"]
+    )
 
     assert exit_code == 0
-    assert captured == {"anchor": True, "order": [7]}
+    assert captured == {"sweep_id": "binary_md_v1", "anchor": True, "order": [7]}
 
 
 def test_nested_cli_research_sweep_execute_dispatches_to_sweep_native_handler(
@@ -639,16 +643,19 @@ def test_nested_cli_research_sweep_inspect_dispatches_to_handler(
     captured: dict[str, object] = {}
 
     def _fake_inspect_handler(args):
+        captured["sweep_id"] = str(args.sweep_id)
         captured["order"] = int(args.order)
         captured["json"] = bool(args.json)
         return 0
 
     monkeypatch.setattr(research_inspect_cli_module, "run_from_args", _fake_inspect_handler)
 
-    exit_code = cli_module.main(["research", "sweep", "inspect", "--order", "6", "--json"])
+    exit_code = cli_module.main(
+        ["research", "sweep", "inspect", "--sweep-id", "binary_md_v1", "--order", "6", "--json"]
+    )
 
     assert exit_code == 0
-    assert captured == {"order": 6, "json": True}
+    assert captured == {"sweep_id": "binary_md_v1", "order": 6, "json": True}
 
 
 def test_nested_cli_research_sweep_diff_dispatches_to_handler(
@@ -657,6 +664,7 @@ def test_nested_cli_research_sweep_diff_dispatches_to_handler(
     captured: dict[str, object] = {}
 
     def _fake_diff_handler(args):
+        captured["sweep_id"] = str(args.sweep_id)
         captured["order"] = int(args.order)
         captured["against_order"] = int(args.against_order)
         return 0
@@ -664,11 +672,21 @@ def test_nested_cli_research_sweep_diff_dispatches_to_handler(
     monkeypatch.setattr(research_diff_cli_module, "run_from_args", _fake_diff_handler)
 
     exit_code = cli_module.main(
-        ["research", "sweep", "diff", "--order", "7", "--against-order", "6"]
+        [
+            "research",
+            "sweep",
+            "diff",
+            "--sweep-id",
+            "binary_md_v1",
+            "--order",
+            "7",
+            "--against-order",
+            "6",
+        ]
     )
 
     assert exit_code == 0
-    assert captured == {"order": 7, "against_order": 6}
+    assert captured == {"sweep_id": "binary_md_v1", "order": 7, "against_order": 6}
 
 
 def test_nested_cli_research_sweep_create_alias_is_rejected(

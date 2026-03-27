@@ -8,9 +8,8 @@ Use one copy of this template per queue row under:
 
 The canonical queue source of truth is
 `reference/system_delta_sweeps/<sweep_id>/queue.yaml`, backed by
-`reference/system_delta_catalog.yaml`. The top-level alias
-`reference/system_delta_queue.yaml` is the generated active-sweep view. These
-files explain and interpret one row; they do not redefine the row.
+`reference/system_delta_catalog.yaml`. These files explain and interpret one
+row; they do not redefine the row.
 
 ## research_card.md
 

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-03-27
+
+### Changed
+
+- User-facing break: the repo no longer tracks a global active sweep. The
+  sweep index schema is now `tab-foundry-system-delta-sweep-index-v2` without
+  `active_sweep_id`, `tab-foundry research sweep show-active` and
+  `tab-foundry research sweep set-active` are removed, sweep-native commands
+  now require explicit `--sweep-id`, and the generated top-level
+  `reference/system_delta_queue.yaml` and `reference/system_delta_matrix.md`
+  aliases are removed.
+- User-facing break: `tab-foundry research sweep create-sweep` no longer falls
+  back to repo-global sweep state. New sweeps now require either
+  `--parent-sweep-id` or an explicit `--training-experiment`,
+  `--training-config-profile`, and `--surface-role`, and parented sweeps
+  inherit the parent external-benchmark surface when it is not overridden.
+- User-facing note: added the draft TF-RD-021B removal-first sweep
+  `tf_rd_021b_sandwich_feature_removal_v1`, which queues the
+  `sandwich_self_attention_per_cross=0` removal row plus the bounded
+  `ffexp1` and `summarytokens1` compound follow-ups without executing
+  training in this pass.
+
 ## [0.12.1] - 2026-03-27
 
 ### Changed

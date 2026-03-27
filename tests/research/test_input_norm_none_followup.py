@@ -30,7 +30,8 @@ def _load_yaml(path: Path) -> dict[str, Any]:
 def test_input_norm_none_followup_is_registered_and_completed() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
-    assert index["active_sweep_id"] == "tf_rd_018_lr_warmup_shape_v1"
+    assert index["schema"] == "tab-foundry-system-delta-sweep-index-v2"
+    assert "active_sweep_id" not in index
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {

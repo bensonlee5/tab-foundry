@@ -26,7 +26,7 @@ Contents:
   real-data datasets before they enter curated bundles or manifests
 - `dataset_license_review_summary.md`: current status summary for the repo's
   reviewed real-data datasets
-- `system_delta_catalog.yaml`: reusable delta definitions for the active
+- `system_delta_catalog.yaml`: reusable delta definitions for the
   system-delta workflow
 - `system_delta_campaign_template.md`: required research-package template for
   one queue row
@@ -35,8 +35,6 @@ Contents:
 - `system_delta_sweeps/`: canonical sweep metadata, queue instances, and
   rendered matrices for research evidence; completed sweeps remain historical
   evidence even when the roadmap direction moves on
-- `system_delta_queue.yaml`: generated active-sweep queue alias
-- `system_delta_matrix.md`: generated active-sweep matrix alias
 
 ## Research Epic Notes
 
