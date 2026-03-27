@@ -211,6 +211,8 @@ def _prior_wandb_summary_payload(
             "global": gradient_global,
         },
         "diagnostics": telemetry_payload.get("diagnostics"),
+        "runtime_summary": telemetry_payload.get("runtime_summary"),
+        "regime_budget": telemetry_payload.get("regime_budget"),
     }
     if isinstance(prior_dump_missingness, dict) or isinstance(synthetic_prior_missingness, dict):
         summary["missingness"] = {}

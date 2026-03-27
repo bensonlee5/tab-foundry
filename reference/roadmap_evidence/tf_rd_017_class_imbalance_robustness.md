@@ -5,11 +5,12 @@ This is the canonical long-form evidence note for
 
 - Status: `planned`
 - Milestone: `Next`
-- Dependency position: follows [TF-RD-018](tf_rd_018_training_surface_adequacy.md)
-  as one of the first harder benchmark-backed ladders, sits adjacent to the
-  synthetic-data-only front
-  [TF-RD-020](tf_rd_020_harder_dagzoo_corpus_fronts.md), and feeds into
-  [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md)
+- Dependency position: follows the first carried sandwich many-class plus
+  missingness dagzoo gate under
+  [TF-RD-010](tf_rd_010_many_class_promotion.md) as a side robustness lane,
+  sits adjacent to the synthetic-data-only front
+  [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md), and does
+  not block [TF-RD-009](tf_rd_009_scaling_law_measurement.md)
 
 ## External Evidence
 

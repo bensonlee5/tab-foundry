@@ -49,10 +49,17 @@ from tab_foundry.training.artifacts import (
     save_checkpoint,
 )
 from tab_foundry.training.instability import (
+    build_regime_budget_summary,
+    build_runtime_summary,
     build_training_telemetry,
     gradient_history_path,
     module_grad_norms,
     normalize_grad_norm_value,
+    objective_metric_for_task,
+    peak_device_memory_summary,
+    reset_peak_device_memory_stats,
+    tensor_batch_examples_seen,
+    tensor_batch_token_count,
     telemetry_path,
     total_grad_norm,
     train_loss_delta,
@@ -160,7 +167,14 @@ def _build_prior_training_deps() -> PriorTrainingDeps:
         gradient_history_record=gradient_history_record,
         append_jsonl_record=append_jsonl_record,
         save_eval_mode_checkpoint=_save_eval_mode_checkpoint,
+        build_runtime_summary=build_runtime_summary,
+        build_regime_budget_summary=build_regime_budget_summary,
         build_training_telemetry=build_training_telemetry,
+        objective_metric_for_task=objective_metric_for_task,
+        peak_device_memory_summary=peak_device_memory_summary,
+        reset_peak_device_memory_stats=reset_peak_device_memory_stats,
+        tensor_batch_examples_seen=tensor_batch_examples_seen,
+        tensor_batch_token_count=tensor_batch_token_count,
         write_training_telemetry=write_training_telemetry,
     )
 

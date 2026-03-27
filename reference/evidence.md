@@ -25,7 +25,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 [`reference/roadmap_evidence/`](roadmap_evidence/README.md).
 
 - [`TF-RD-018`](roadmap_evidence/tf_rd_018_training_surface_adequacy.md):
-  training-surface adequacy, batch ladder, LR, and optimizer sequencing
+  historical staged-control training-surface closeout and partial adequacy
+  evidence
 - [`TF-RD-020`](roadmap_evidence/tf_rd_020_harder_dagzoo_corpus_fronts.md):
   harder dagzoo corpus-front evidence and v1 carry-forward decisions
 - [`TF-RD-021`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
@@ -33,25 +34,27 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - [`TF-RD-021A`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
   fixed-latent sandwich candidate note and closed immediate nanoTabPFN screen
 - [`TF-RD-021B`](roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md):
-  hybrid full-cell sandwich successor note and locked-prior replay handoff
+  hybrid full-cell sandwich successor note plus simplified-parent and
+  classification-scaling-prep handoff
 - [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
-  runtime and VRAM efficiency evidence plus the measured-policy handoff
-- [`TF-RD-019`](roadmap_evidence/tf_rd_019_dagzoo_filtering_policy.md):
-  dagzoo filtering-policy evidence and open curation questions
+  runtime and VRAM efficiency evidence plus the measured-policy pre-scaling
+  handoff
+- [`TF-RD-016`](roadmap_evidence/tf_rd_016_architecture_surface_adequacy.md):
+  existing-surface adequacy and selective expansion evidence
+- [`TF-RD-010`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
+  first many-class plus missingness dagzoo gate evidence on the row-first base
+- [`TF-RD-009`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
+  classification-first scaling-law design evidence and the runtime plus
+  harder-surface handoff
 - [`TF-RD-014`](roadmap_evidence/tf_rd_014_missingness_robustness.md):
   missingness robustness evidence and benchmark-ladder framing
 - [`TF-RD-017`](roadmap_evidence/tf_rd_017_class_imbalance_robustness.md):
   class-imbalance robustness evidence and reporting contract
-- [`TF-RD-016`](roadmap_evidence/tf_rd_016_architecture_surface_adequacy.md):
-  existing-surface adequacy and selective expansion evidence
-- [`TF-RD-010`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
-  many-class promotion evidence on the row-first base
 - [`TF-RD-015`](roadmap_evidence/tf_rd_015_regression_rebuild.md):
-  regression rebuild evidence on the staged family
+  deferred regression rebuild evidence after the classification-first scaling
+  program
 - [`TF-RD-012`](roadmap_evidence/tf_rd_012_inference_handoff_and_later_modalities.md):
   inference handoff and later-modality evidence
-- [`TF-RD-009`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
-  scaling-law evidence and the TF-RD-018 handoff
 
 ## Evidence-to-Roadmap Mapping
 
@@ -82,7 +85,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 | Broken Neural Scaling Laws (2210.14891) | Knees and plateaus must be treated as expected outcomes when the architecture target is still moving | `TF-RD-009` | Next | medium |
 | SAINT (2106.01342) | Row/column interaction changes should be benchmarked as explicit structural choices rather than imported as defaults | `TF-RD-005`, `TF-RD-006` | Next | medium |
 | Perceiver (2103.03206) | Latent bottlenecks remain a later alternative if row/column token count becomes the limiting factor | `TF-RD-006`, `TF-RD-012` | Later | medium |
-| EquiTabPFN (2502.06684) | Label-conditioning choices should stay modular so target handling can evolve after the row-first base stabilizes | `TF-RD-010`, `TF-RD-012` | Later | medium |
+| EquiTabPFN (2502.06684) | Label-conditioning choices should stay modular so target handling can evolve after the row-first base stabilizes | `TF-RD-010`, `TF-RD-012` | Next | medium |
 | TabDPT (2410.18164) | Prior/source changes are a later scaling lever and should not displace the core architecture migration prematurely | `TF-RD-011`, `TF-RD-012` | Later | medium |
 | Sentence-BERT (D19-1410) | Text-conditioned columns should remain an external-embedding later lane rather than a distraction from the classification-first backbone plan | `TF-RD-012` | Later | high |
 | nanochat (repo) | Compact-transformer training and residual-layout ideas are valid donors, but only when they preserve the tabular set-structured goal | `TF-RD-002`, `TF-RD-007`, `TF-RD-009` | Now | high |
@@ -238,16 +241,16 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     `task_batch_size` ladder on that medium surface under `#109`
   - `TF-RD-020` now records the adjacent harder dagzoo synthetic front winners
     before TF-RD-018 resumes optimizer-family follow-up
-  - issue `#147` now records the canonical pre-filter TF-RD-020 harder-front
+  - issue `#147` now records the canonical TF-RD-020 harder-front
     ladder plus the matching `tf_rd_020_*_v1` corpus recipes
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_018_training_surface_adequacy.md`, with
     the scaling-specific handoff recorded in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:
-  - the repo identifies a default batch and training-recipe starting point on
-    the promoted row-first anchor before optimizer-family or scaling-law work
-    is treated as the main next decision surface
+  - the repo retains a clear partial closeout record for the staged-control
+    training-surface lane without treating the unfinished LR or clipping work
+    as a blocker for sandwich-first planning
 
 ### TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Promoted Anchor
 
@@ -267,10 +270,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     `reference/roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md`
 - Success signal:
   - the repo records one explicit keep/defer decision on whether a
-    steering-derived corpus front changes the carried synthetic control, and it
-    retries Muon only on a genuinely new promoted front
+    steering-derived corpus front changes the carried sandwich dagzoo slice
 
-### TF-RD-022: Training Runtime And VRAM Efficiency On The Promoted Anchor
+### TF-RD-022: Training Runtime And VRAM Efficiency Before Classification Scaling
 
 - External evidence:
   - dedicated runtime-policy literature is not yet curated in this repo
@@ -287,9 +289,12 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     umbrella issue `#178`, and immediate nanoTabPFN screen issue `#179`; this
     runtime lane is now a dependency surface for later sandwich hard-surface
     reads rather than the owner of that architecture line
+  - training telemetry and benchmark-registry artifacts now preserve runtime
+    summaries and regime-budget metadata needed for later runtime-policy and
+    scaling comparisons
 - Success signal:
-  - the repo records one explicit runtime policy with peak-memory and
-    throughput evidence, and later batching or scaling work can inherit it
+  - the repo records one explicit kernel/runtime policy with peak-memory and
+    throughput evidence, and later scaling work can inherit it
 
 ### TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
 
@@ -312,7 +317,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     and leaves the abandoned latent/width ladder as deferred backlog rather
     than pretending it is still the next execution target
 
-### TF-RD-021B: Hybrid Full-Cell Sandwich Successor And Locked Prior Replay
+### TF-RD-021B: Hybrid Full-Cell Sandwich Successor, Simplification, And Classification-First Scaling Prep
 
 - External evidence:
   - PerceiverIO-style query readout and latent-bottleneck references justify
@@ -328,37 +333,42 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     final Brier `0.3072` on the pinned medium binary bundle without an external
     comparator
   - child issues `#182`, `#183`, and `#184` now split the next work into the
-    9-run knob screen, bounded width or head follow-up, and later
-    sandwich-local empirical power-curve phase
+    completed 9-run knob screen, completed bounded width or head follow-up, and
+    the remaining simplified-parent plus scaling-prep follow-up
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md`
 - Success signal:
-  - the repo records the bounded TF-RD-021B sensitivity passes and later
-    sandwich-local empirical power curves before collapsing the family to any
-    single-toggle scaling recipe
+  - the repo records the bounded TF-RD-021B simplification package, chooses one
+    simplified sandwich parent, and carries it onto harder classification
+    surfaces before any single-toggle scaling recipe is considered
 
-### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
+### TF-RD-009: Scaling-Law Design And Measurement On The Classification-First Sandwich Target
 
 - External evidence:
   - Chinchilla, Kaplan, Power Lines, and Broken Neural Scaling Laws all require
     a stable family and comparable artifacts
-  - muP is only meaningfully useful once one anchor family exists
-  - the TF-RD-018 batch/LR literature implies scaling reads should begin only
-    after one default training recipe is fixed on the promoted anchor
+  - μP is the strongest width-transfer prior, while newer width-depth work
+    should be treated as theory-informed but still empirical for sandwich
+  - the TF-RD-018 batch/LR literature and newer optimizer-budget scaling work
+    remain useful historical context, but the active scaling path now depends on
+    sandwich-specific dagzoo, steering, and runtime decisions
 - Repo-local evidence:
   - tuning and comparison tooling are already present
-  - scaling-law artifacts are not yet canonical on the right architecture
-  - TF-RD-018 still needs to settle the default batch and LR starting point on
-    the representative medium post-008 surface before scaling curves become
-    interpretable
-  - sandwich-local empirical power-curve work under `#184` is a precursor for
-    the hybrid sandwich family only and does not close TF-RD-009 on the
-    promoted row-first anchor
+  - runtime-summary and regime-budget artifacts now exist, but scaling-law
+    artifacts are not yet canonical on the carried dagzoo classification slice
+  - TF-RD-018 is now historical closeout evidence only and is no longer a
+    blocker for the first sandwich scaling fit
+  - TF-RD-022 must still hand back one measured runtime policy
+  - TF-RD-021 must still hand back one keep/defer steering decision on the
+    carried dagzoo slice
+  - TF-RD-021B simplification under `#184` is the precursor for the hybrid
+    sandwich family and does not close TF-RD-009 by itself
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:
-  - scaling curves are fit on the promoted row-first anchor, not on transient
-    bridge rows, and they reuse one explicit TF-RD-018-derived training recipe
+  - the repo fits classification scaling laws on the simplified sandwich family
+    under one harder dagzoo slice, one inherited runtime policy, and one
+    matched regime-budget contract
 
 ### TF-RD-010: Many-Class Promotion On The Row-First Base
 
@@ -367,8 +377,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     is coherent
 - Repo-local evidence:
   - the staged family already includes `many_class`
-  - many-class should inherit the promoted row-first backbone rather than become
-    its own architecture lane
+  - many-class should inherit the frozen sandwich dagzoo backbone rather than
+    become its own architecture lane
 - Success signal:
   - many-class is evaluated as an extension of the promoted anchor
 

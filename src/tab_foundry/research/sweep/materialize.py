@@ -473,18 +473,41 @@ def load_system_delta_queue_for_inspection(
     catalog_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> dict[str, Any]:
-    del catalog_path
+    def _materialize_or_fallback(
+        *,
+        catalog: Mapping[str, Any],
+        sweep: Mapping[str, Any],
+        queue_instance: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        try:
+            return materialize_system_delta_queue(
+                catalog=catalog,
+                sweep=sweep,
+                queue_instance=queue_instance,
+                catalog_path=catalog_path,
+                sweeps_root=sweeps_root,
+            )
+        except RuntimeError as exc:
+            if "unknown delta_ref" not in str(exc):
+                raise
+            return inspection_system_delta_queue(
+                sweep=sweep,
+                queue_instance=queue_instance,
+                sweeps_root=sweeps_root,
+            )
+
     if path is None:
+        catalog = load_system_delta_catalog(catalog_path)
         sweep = load_system_delta_sweep(sweep_id, index_path=index_path, sweeps_root=sweeps_root)
         queue_instance = load_system_delta_queue_instance(
             sweep_id or str(sweep["sweep_id"]),
             index_path=index_path,
             sweeps_root=sweeps_root,
         )
-        return inspection_system_delta_queue(
+        return _materialize_or_fallback(
+            catalog=catalog,
             sweep=sweep,
             queue_instance=queue_instance,
-            sweeps_root=sweeps_root,
         )
 
     payload = load_yaml_mapping(path, context="system delta queue")
@@ -495,15 +518,16 @@ def load_system_delta_queue_for_inspection(
             queue_instance.get("sweep_id"),
             context="system delta queue instance sweep_id",
         )
+        catalog = load_system_delta_catalog(catalog_path)
         sweep = load_system_delta_sweep(
             resolved_sweep_id,
             index_path=index_path,
             sweeps_root=sweeps_root,
         )
-        return inspection_system_delta_queue(
+        return _materialize_or_fallback(
+            catalog=catalog,
             sweep=sweep,
             queue_instance=queue_instance,
-            sweeps_root=sweeps_root,
         )
     rows = payload.get("rows")
     if not isinstance(rows, list):

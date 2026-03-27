@@ -33,14 +33,11 @@ This is the canonical long-form evidence note for
 - `row_first_training_adequacy_v1` completed the first TF-RD-018 dataset-batch
   ladder and closed [#109](https://github.com/bensonlee5/tab-foundry/issues/109)
 - issue [#147](https://github.com/bensonlee5/tab-foundry/issues/147) now records
-  the canonical pre-filter harder-front ladder in
+  the canonical harder-front ladder in
   [`tf_rd_020_harder_dagzoo_ladder_v1`](../system_delta_sweeps/tf_rd_020_harder_dagzoo_ladder_v1/matrix.md)
   plus the matching `tf_rd_020_*_v1` corpus recipes
 - Dagzoo already exposes explicit surfaces for missingness, shift or drift,
   mechanism diversity, and noise on the same synthetic-data lane
-- Dagzoo now also ships a small-shot ease filter contract rather than the
-  removed threshold-era filter contract, but TF-RD-020 now stays pre-filter and
-  leaves later filtering policy to TF-RD-019
 - The benchmark-front missingness and imbalance epics already exist as
   [#97](https://github.com/bensonlee5/tab-foundry/issues/97) and
   [#106](https://github.com/bensonlee5/tab-foundry/issues/106), so TF-RD-020
@@ -77,7 +74,7 @@ This is the canonical long-form evidence note for
 
 - reuse the settled row-first recipe rather than reopening TF-RD-018 recipe
   choice inside this epic
-- use `tf_rd_020_harder_dagzoo_ladder_v1` as the canonical pre-filter ladder
+- use `tf_rd_020_harder_dagzoo_ladder_v1` as the canonical harder-front ladder
   that hands three explicit harder-front family winners back into TF-RD-018
 - hand TF-RD-018 a documented default harder carry-forward surface rather than
   leaving all three kept family winners equally active for optimizer follow-up
@@ -86,12 +83,8 @@ This is the canonical long-form evidence note for
   deferred on `tf_rd_020_shift_noise_drift_v1`
 - treat missingness, shift or drift, and mechanism-diversity or noise as the
   bounded first candidate fronts rather than opening a broad new corpus program
-- keep those first harder-front comparisons pre-filter and close TF-RD-020 on
-  the uncapped v1 ladder rather than handing them to a separate filter issue
 - keep TF-RD-020 distinct from benchmark-front missingness or imbalance
   conclusions even when the underlying regimes overlap conceptually
-- keep the broader default-pipeline filtering-policy question under
-  [TF-RD-019](tf_rd_019_dagzoo_filtering_policy.md) rather than absorbing it
 - keep the TF-RD-020 outcome synthetic-only relative to TF-RD-014 and TF-RD-017:
   the kept rows are useful harder-front training surfaces, not claims about
   benchmark-facing robustness on naturally missing or imbalanced real data
@@ -108,9 +101,8 @@ This is the canonical long-form evidence note for
 - the repo has explicit keep, defer, or reject decisions across the harder
   dagzoo corpus fronts, including exactly one kept row in each TF-RD-020 family
 - issue [#147](https://github.com/bensonlee5/tab-foundry/issues/147) is closed
-  because the canonical pre-filter ladder and handoff are now recorded
+  because the canonical harder-front ladder and handoff are now recorded
 - TF-RD-018 continuation resumes from the uncapped v1 family winners plus the
   documented `tf_rd_020_shift_noise_drift_v1` carry-forward interpretation
 - the relationship between TF-RD-020 and the benchmark-front epics TF-RD-014
-  and TF-RD-017 plus the later filtering-policy lane TF-RD-019 remains
-  explicit and non-overlapping
+  and TF-RD-017 remains explicit and non-overlapping

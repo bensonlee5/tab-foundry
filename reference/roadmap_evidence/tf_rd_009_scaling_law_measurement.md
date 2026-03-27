@@ -1,67 +1,118 @@
-# TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
+# TF-RD-009: Scaling-Law Design And Measurement On The Classification-First Sandwich Target
 
 This is the canonical long-form evidence note for
-[TF-RD-009](../../docs/development/roadmap.md#tf-rd-009-scaling-law-measurement-on-the-promoted-anchor).
+[TF-RD-009](../../docs/development/roadmap.md#tf-rd-009-scaling-law-design-and-measurement-on-the-classification-first-sandwich-target).
 
 - Status: `planned`
 - Milestone: `Next`
 - Dependency position: follows
-  [TF-RD-018](tf_rd_018_training_surface_adequacy.md), at least one harder
-  post-008 ladder, and potentially
-  [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md) if architecture
-  separation remains low-signal
+  [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md),
+  [TF-RD-022](tf_rd_022_training_runtime_vram_efficiency.md),
+  [TF-RD-010](tf_rd_010_many_class_promotion.md), and the simplified-parent
+  phase of
+  [TF-RD-016](../../docs/development/roadmap.md#tf-rd-016-architecture-surface-adequacy-sandwich-simplification-and-selective-expansion)
 
 ## External Evidence
 
-- [Scaling Laws](../papers.md#scaling-laws): Chinchilla, Kaplan, Power Lines,
-  and Broken Neural Scaling Laws define the methodology and expected caveats
+- [Scaling Laws](../papers.md#scaling-laws): Kaplan and Chinchilla remain the
+  main methodology references for matched-budget comparisons and compute-quality
+  tradeoffs.
 - [Compact Transformers And Training Recipes](../papers.md#compact-transformers-and-training-recipes):
-  muP and related compact-training references only become interpretable once a
-  stable recipe exists
+  μP / muTransfer is the strongest prior for width-dependent transfer.
 - [Training-Surface Adequacy And Batch/LR Scaling](../papers.md#training-surface-adequacy-and-batchlr-scaling):
-  TF-RD-018 literature establishes why scaling should start from one settled
-  batch and LR starting point rather than reopening recipe search at every size
+  the modern optimizer-scaling literature is the main prior for LR, momentum,
+  and batch as a function of budget.
+- [Synthetic Data And Curriculum](../papers.md#synthetic-data-and-curriculum):
+  synthetic-data scaling and curriculum references remain the best guide for
+  treating curriculum or SCM-mixture as a first-class scaling dimension.
+- Dedicated references to keep explicit in the law-design note:
+  - μP / Tensor Programs V
+  - Spectral Condition for μP under Width-Depth Scaling
+  - Deriving Hyperparameter Scaling Laws via Modern Optimization Theory
+  - Scaling Laws for Neural Language Models
+  - Chinchilla
+  - Deliberate Practice
+  - CAMEL
 
 ## Repo-Local Evidence
 
-- the roadmap now requires TF-RD-013, TF-RD-018, and at least one harder
-  post-008 benchmark-backed front before scaling becomes architecture evidence
-- the promoted parent remains `row_cls + qass + no tfcol`, with TFCol scaling
-  still explicitly opt-in
-- tuning and benchmark-adjacent tooling already exist, but there is no
-  canonical scaling artifact path yet on the promoted row-first anchor
-- sandwich-local empirical power-curve work under
-  [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is now allowed
-  as a precursor for the hybrid `tabfoundry_sandwich` family, but that work is
-  explicitly pre-anchor and does not satisfy TF-RD-009 by itself
+- the roadmap now treats `tabfoundry_sandwich` as the primary classification
+  scaling family, with `tabfoundry_staged` retained as the incumbent reference
+  line rather than the scaling parent
+- training telemetry and benchmark-registry artifacts now preserve resolved
+  sandwich specs, runtime summaries, and regime-budget metadata needed for
+  later scaling comparisons
+- matched token budget alone is not sufficient once curriculum, SCM mixture,
+  or task complexity changes; the repo now needs a matched regime-budget
+  contract
+- sandwich simplification under
+  [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is the required
+  pre-scaling step for the family, but it does not satisfy TF-RD-009 by itself
+- the first scaling target is now a fixed dagzoo many-class plus missingness
+  slice rather than the earlier binary-only regime
+- regression is explicitly deferred from the first scaling program and is not a
+  blocker for the first classification law fit
+
+## Theory-Backed Versus Empirical Dimensions
+
+- High-confidence dimensions:
+  - width transfer via `d_icl` with μP-style priors
+  - optimizer transfer via LR, momentum, and batch as a function of budget
+  - curriculum or SCM-mixture as a real scaling dimension rather than noise
+- Medium-confidence dimensions:
+  - width and depth should be modeled jointly rather than collapsed to
+    parameter count alone
+  - matched regime budget should include unique-task budget as well as token
+    budget
+- Lower-confidence dimensions:
+  - exact width-depth exponents from recent theory transfer cleanly to the
+    tabular sandwich family without refitting
+  - one universal compound knob will transfer cleanly across every later
+    classification regime without further validation
 
 ## Current Interpretation
 
-- treat [TF-RD-018](tf_rd_018_training_surface_adequacy.md) as the training
-  recipe handoff rather than letting scaling reopen the batch-selection problem
-- hold the training surface as steady as possible across size, depth, and width
-  reads so scaling comparisons stay attributable
-- use scaling as architecture evidence only after the promoted row-first family
-  has a harder post-008 surface and a stable-enough recipe to make compute and
-  quality tradeoffs interpretable
-- allow sandwich-local power-curve fitting only as preparatory evidence for a
-  later sandwich compound-scaling recipe; do not treat those fits as closure of
-  promoted-anchor scaling on the row-first line
+- the first scaling-law note should be a design note, not an immediate sweep
+  spec
+- the first fit should stay classification-only and should not wait on
+  regression
+- the first law should be conditional over:
+  - width via `d_icl`
+  - depth via `sandwich_layers`
+  - optimizer transfer via LR, momentum, and batch
+  - fixed inherited runtime policy
+  - fixed curriculum or SCM-mixture slice
+- the first carried slice should be dagzoo-backed many-class plus missingness,
+  and the primary objective on that slice should be multiclass log loss
+- matched token budget remains necessary, but comparisons should be interpreted
+  through matched regime budget:
+  - token budget
+  - unique-task budget
+  - fixed curriculum or SCM-mixture slice
+  - fixed task-complexity band
+- the first public single-knob interface should be derived from the fitted law
+  later; it should not be authored up front
 
 ## Open Evidence Gaps
 
-- there is no canonical compute-accounting, parameter-count, and benchmark
-  artifact contract yet for scaling runs on the promoted anchor
-- the repo has not yet established how much hyperparameter transfer across size
-  should be assumed before rerunning adequacy work
-- the harder-surface prerequisite is still unresolved, so current simple-binary
-  scaling would remain low-signal
-- even if sandwich-local power curves land first, the repo still lacks the
-  promoted-anchor harder-surface contract that TF-RD-009 requires
+- the dedicated literature-synthesis and law-design note is not yet written
+- the repo does not yet have one fixed dagzoo many-class plus missingness slice
+  on the same simplified sandwich trunk
+- the runtime policy is not yet finalized as a hard inherited precondition for
+  the scaling ladder
+- the steering-derived corpus-front keep/defer decision is not yet finalized on
+  the carried dagzoo slice
+- sweep/result summaries still need compact presentation of the new
+  runtime-summary and regime-budget fields
 
 ## Exit Signals
 
-- scaling curves are fit on the promoted row-first architecture under a harder
-  or broader post-008 surface than the current simple binary regime
-- the scaling artifacts reuse one explicit TF-RD-018-derived training recipe
-  strongly enough that cross-size conclusions are interpretable
+- the repo has a written law-design note that separates theory-backed and
+  empirical dimensions explicitly
+- width-depth classification laws are fit on the simplified sandwich family
+  under one carried dagzoo many-class plus missingness slice and one inherited
+  runtime policy
+- the scaling artifacts compare rows by matched regime budget with final
+  multiclass log loss as the primary objective
+- any later `sandwich_scale` interface is explicitly derived from those law
+  fits and remains internal until cross-surface validation is complete

@@ -1744,10 +1744,31 @@ def test_train_logs_enriched_wandb_metrics_and_summary(
     assert fake_run.summary["telemetry/success"] is True
     assert fake_run.summary["artifacts/gradient_history_jsonl"].endswith("gradient_history.jsonl")
     assert fake_run.summary["artifacts/telemetry_json"].endswith("telemetry.json")
+    assert fake_run.summary["runtime_summary/non_train_overhead_seconds"] >= 0.0
+    assert fake_run.summary["runtime_summary/throughput_examples_per_second"] > 0.0
+    assert fake_run.summary["runtime_summary/throughput_tokens_per_second"] > 0.0
+    assert fake_run.summary["regime_budget/tokens_seen"] > 0
+    assert fake_run.summary["regime_budget/token_budget"] == fake_run.summary["regime_budget/tokens_seen"]
+    assert fake_run.summary["regime_budget/tokens_per_step"] > 0.0
+    assert (
+        fake_run.summary["regime_budget/objective_metric"]
+        == "final_log_loss_at_matched_regime_budget"
+    )
     assert fake_run.summary["surface/model/arch"] == "tabfoundry_staged"
     assert fake_run.summary["surface/model/module_selection/row_pool"] == "row_cls"
     assert fake_run.summary["surface/model/module_selection/context_encoder"] == "plain"
     assert fake_run.summary["surface/model/module_hyperparameters/row_pool/cls_tokens"] == 3
+    assert telemetry["runtime_summary"] == {
+        "peak_vram_allocated": None,
+        "peak_vram_reserved": None,
+        "throughput_examples_per_second": fake_run.summary["runtime_summary/throughput_examples_per_second"],
+        "throughput_tokens_per_second": fake_run.summary["runtime_summary/throughput_tokens_per_second"],
+        "non_train_overhead_seconds": fake_run.summary["runtime_summary/non_train_overhead_seconds"],
+    }
+    assert telemetry["regime_budget"]["tokens_seen"] == fake_run.summary["regime_budget/tokens_seen"]
+    assert telemetry["regime_budget"]["token_budget"] == telemetry["regime_budget"]["tokens_seen"]
+    assert telemetry["regime_budget"]["tokens_per_step"] == fake_run.summary["regime_budget/tokens_per_step"]
+    assert telemetry["regime_budget"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"
     assert telemetry["wandb"] == {
         "entity": "test-entity",
         "project": "test",

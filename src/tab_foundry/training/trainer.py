@@ -33,11 +33,17 @@ from .artifacts import (
 )
 from .distributed import _reduce_any_flag, _reduction_float_dtype, _reduce_keyed_weighted_scalars
 from .instability import (
+    build_regime_budget_summary,
+    build_runtime_summary,
     build_training_telemetry,
     grad_norm_summary_from_running_totals,
     gradient_history_path,
     module_grad_norms,
     normalize_grad_norm_value,
+    peak_device_memory_summary,
+    reset_peak_device_memory_stats,
+    task_batch_examples_seen,
+    task_batch_token_count,
     telemetry_path,
     total_grad_norm,
     train_loss_delta,
@@ -407,6 +413,8 @@ def train(cfg: DictConfig) -> TrainResult:
     history_records: list[dict[str, Any]] = []
     gradient_records: list[dict[str, Any]] = []
     checkpoint_snapshots: list[dict[str, Any]] = []
+    examples_seen = 0
+    tokens_seen = 0
 
     def _artifacts_payload() -> dict[str, Any]:
         return {
@@ -437,6 +445,7 @@ def train(cfg: DictConfig) -> TrainResult:
             run,
             training_surface_wandb_summary_payload(training_surface_payload),
         )
+        reset_peak_device_memory_stats(accelerator.device)
 
         raw_stages = cast(list[dict[str, object]], OmegaConf.to_container(cfg.schedule.stages, resolve=True))
         stage_configs = build_stage_configs(raw_stages)
@@ -506,6 +515,8 @@ def train(cfg: DictConfig) -> TrainResult:
                 )
                 step_train_start = time.perf_counter()
                 step_total_task_count = 0
+                step_examples_seen = 0
+                step_tokens_seen = 0
                 for _micro_step in range(grad_accum_steps):
                     batch = next(train_iter)
                     microstep_batch_payload = _task_batch_microstep_payload(batch)
@@ -515,6 +526,8 @@ def train(cfg: DictConfig) -> TrainResult:
                     )
                     actual_task_count = int(microstep_batch_payload["task_batch_size_actual"])
                     step_total_task_count += actual_task_count
+                    step_examples_seen += task_batch_examples_seen(batch)
+                    step_tokens_seen += task_batch_token_count(batch)
                     batch = move_batch(batch, accelerator.device)
                     with accelerator.accumulate(model):
                         with accelerator.autocast():
@@ -567,6 +580,8 @@ def train(cfg: DictConfig) -> TrainResult:
                         opt.zero_grad(set_to_none=True)
                     train_elapsed_seconds += time.perf_counter() - step_train_start
                     global_step += 1
+                    examples_seen += step_examples_seen
+                    tokens_seen += step_tokens_seen
                     nan_log: dict[str, Any] = {
                         "train/nan_guard_triggered": True,
                         "train/nan_skip_count": float(nan_skip_count),
@@ -639,6 +654,8 @@ def train(cfg: DictConfig) -> TrainResult:
                         opt.zero_grad(set_to_none=True)
                     train_elapsed_seconds += time.perf_counter() - step_train_start
                     global_step += 1
+                    examples_seen += step_examples_seen
+                    tokens_seen += step_tokens_seen
                     non_finite_grad_log: dict[str, Any] = {
                         "train/non_finite_grad_guard_triggered": True,
                         "train/non_finite_grad_kind": global_grad_norm_kind,
@@ -720,6 +737,8 @@ def train(cfg: DictConfig) -> TrainResult:
 
                 train_elapsed_seconds += time.perf_counter() - step_train_start
                 global_step += 1
+                examples_seen += step_examples_seen
+                tokens_seen += step_tokens_seen
                 metric_keys = sorted(set(train_metric_sums) | expected_keys)
                 # Pack loss + metric sums/counts into one tensor for a single all-reduce.
                 # Layout: [loss_sum, loss_count, key0_sum, key0_count, ...]
@@ -992,13 +1011,30 @@ def train(cfg: DictConfig) -> TrainResult:
         )
         task_batching_summary: Mapping[str, Any] | None = None
         if accelerator.is_main_process:
+            runtime_summary = build_runtime_summary(
+                train_elapsed_seconds=train_elapsed_seconds,
+                wall_elapsed_seconds=wall_elapsed_seconds,
+                examples_seen=examples_seen,
+                tokens_seen=tokens_seen,
+                peak_memory_summary=peak_device_memory_summary(accelerator.device),
+            )
+            regime_budget = build_regime_budget_summary(
+                task=task,
+                training_surface_record=training_surface_payload,
+                global_step=global_step,
+                tokens_seen=tokens_seen,
+            )
             telemetry_payload = build_training_telemetry(
                 run_dir=output_dir,
+                task=task,
+                global_step=global_step,
                 success=True,
                 artifacts=_artifacts_payload(),
                 checkpoint_snapshots=checkpoint_snapshots,
                 history_records=history_records,
                 gradient_records=gradient_records,
+                runtime_summary=runtime_summary,
+                regime_budget=regime_budget,
                 training_surface_record=training_surface_payload,
                 wandb=wandb_identity_payload(run, cfg=cfg),
             )
@@ -1042,13 +1078,31 @@ def train(cfg: DictConfig) -> TrainResult:
     except Exception as exc:
         task_batching_summary = None
         if accelerator.is_main_process:
+            wall_elapsed_seconds = time.perf_counter() - train_start
+            runtime_summary = build_runtime_summary(
+                train_elapsed_seconds=train_elapsed_seconds,
+                wall_elapsed_seconds=wall_elapsed_seconds,
+                examples_seen=examples_seen,
+                tokens_seen=tokens_seen,
+                peak_memory_summary=peak_device_memory_summary(accelerator.device),
+            )
+            regime_budget = build_regime_budget_summary(
+                task=task,
+                training_surface_record=training_surface_payload,
+                global_step=global_step,
+                tokens_seen=tokens_seen,
+            )
             telemetry_payload = build_training_telemetry(
                 run_dir=output_dir,
+                task=task,
+                global_step=global_step,
                 success=False,
                 artifacts=_artifacts_payload(),
                 checkpoint_snapshots=checkpoint_snapshots,
                 history_records=history_records,
                 gradient_records=gradient_records,
+                runtime_summary=runtime_summary,
+                regime_budget=regime_budget,
                 training_surface_record=training_surface_payload,
                 wandb=wandb_identity_payload(run, cfg=cfg),
                 error=exc,

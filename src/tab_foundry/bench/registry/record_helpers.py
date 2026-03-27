@@ -11,13 +11,17 @@ from tab_foundry.bench.nanotabpfn import (
     resolve_tab_foundry_best_checkpoint,
     resolve_tab_foundry_run_artifact_paths,
 )
-from tab_foundry.model.architectures.tabfoundry_staged.resolved import resolve_staged_surface
 from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.inspection import model_surface_payload
 from tab_foundry.model.spec import (
     checkpoint_model_build_spec_from_mappings,
     ModelBuildSpec,
 )
-from tab_foundry.training.instability import grad_norm_summary_from_values
+from tab_foundry.training.instability import (
+    grad_norm_summary_from_values,
+    objective_metric_for_task,
+    telemetry_path,
+)
 from tab_foundry.training.schedule import build_stage_configs, warmup_steps_for_stage
 from tab_foundry.training.surface import write_training_surface_record
 
@@ -151,27 +155,21 @@ def _model_payload_from_cfg(
     summary_tab_foundry: Mapping[str, Any],
 ) -> dict[str, Any]:
     model_spec = _checkpoint_model_spec_from_cfg(raw_cfg, state_dict=state_dict)
+    payload = model_surface_payload(model_spec)
+    payload.update(
+        {
+            "d_icl": int(model_spec.d_icl),
+            "tficl_n_heads": int(model_spec.tficl_n_heads),
+            "tficl_n_layers": int(model_spec.tficl_n_layers),
+            "head_hidden_dim": int(model_spec.head_hidden_dim),
+            "input_normalization": str(model_spec.input_normalization),
+            "feature_group_size": int(model_spec.feature_group_size),
+            "many_class_base": int(model_spec.many_class_base),
+        }
+    )
     benchmark_profile_raw = summary_tab_foundry.get("benchmark_profile")
-    payload: dict[str, Any] = {
-        "arch": str(model_spec.arch),
-        "stage": None if model_spec.stage is None else str(model_spec.stage),
-        "stage_label": None if model_spec.stage_label is None else str(model_spec.stage_label),
-        "benchmark_profile": None if benchmark_profile_raw is None else str(benchmark_profile_raw),
-        "d_icl": int(model_spec.d_icl),
-        "tficl_n_heads": int(model_spec.tficl_n_heads),
-        "tficl_n_layers": int(model_spec.tficl_n_layers),
-        "head_hidden_dim": int(model_spec.head_hidden_dim),
-        "input_normalization": str(model_spec.input_normalization),
-        "many_class_base": int(model_spec.many_class_base),
-    }
-    if model_spec.arch == "tabfoundry_staged":
-        surface = resolve_staged_surface(model_spec)
-        if payload["stage_label"] is None:
-            payload["stage_label"] = str(surface.stage_label)
-        if payload["benchmark_profile"] is None:
-            payload["benchmark_profile"] = str(surface.benchmark_profile)
-        payload["module_selection"] = surface.module_selection()
-        payload["module_hyperparameters"] = surface.component_hyperparameters()
+    if payload.get("benchmark_profile") is None and benchmark_profile_raw is not None:
+        payload["benchmark_profile"] = str(benchmark_profile_raw)
     return payload
 
 
@@ -199,6 +197,125 @@ def _training_surface_record(
         state_dict=raw_state_dict,
     )
     return payload, derived_path
+
+
+def _load_training_telemetry(run_dir: Path) -> dict[str, Any] | None:
+    resolved_path = telemetry_path(run_dir)
+    if not resolved_path.exists():
+        return None
+    with resolved_path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"telemetry.json must be a JSON object: {resolved_path}")
+    return cast(dict[str, Any], payload)
+
+
+def _normalized_optional_mapping(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    return {str(key): item for key, item in value.items()}
+
+
+def _training_surface_characteristics(
+    training_surface_record: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(training_surface_record, Mapping):
+        return None
+    raw_data = training_surface_record.get("data")
+    if not isinstance(raw_data, Mapping):
+        return None
+    raw_manifest = raw_data.get("manifest")
+    if not isinstance(raw_manifest, Mapping):
+        return None
+    raw_characteristics = raw_manifest.get("characteristics")
+    if not isinstance(raw_characteristics, Mapping):
+        return None
+    return raw_characteristics
+
+
+def _runtime_summary_from_telemetry(
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(telemetry_payload, Mapping):
+        return None
+    summary = _normalized_optional_mapping(telemetry_payload.get("runtime_summary"))
+    if summary is None:
+        return None
+    return summary or None
+
+
+def _regime_budget_from_artifacts(
+    *,
+    raw_cfg: Mapping[str, Any],
+    history: list[dict[str, Any]],
+    training_surface_record: Mapping[str, Any] | None,
+    telemetry_payload: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    payload = _normalized_optional_mapping(
+        None if telemetry_payload is None else telemetry_payload.get("regime_budget")
+    ) or {}
+    task = raw_cfg.get("task")
+    objective_metric = payload.get("objective_metric")
+    if objective_metric is None:
+        payload["objective_metric"] = objective_metric_for_task(
+            None if task is None else str(task)
+        )
+
+    characteristics = _training_surface_characteristics(training_surface_record)
+    split_counts = (
+        characteristics.get("split_counts")
+        if isinstance(characteristics, Mapping)
+        else None
+    )
+    if payload.get("unique_task_budget") is None:
+        if isinstance(split_counts, Mapping) and split_counts.get("train") is not None:
+            payload["unique_task_budget"] = int(split_counts["train"])
+        elif isinstance(characteristics, Mapping) and characteristics.get("record_count") is not None:
+            payload["unique_task_budget"] = int(characteristics["record_count"])
+
+    if training_surface_record is not None:
+        raw_data = training_surface_record.get("data")
+        if isinstance(raw_data, Mapping):
+            if payload.get("curriculum_id") is None:
+                raw_provenance = raw_data.get("dagzoo_provenance")
+                if isinstance(raw_provenance, Mapping):
+                    corpus_variant = raw_provenance.get("corpus_variant")
+                    if isinstance(corpus_variant, str) and corpus_variant.strip():
+                        payload["curriculum_id"] = str(corpus_variant)
+                if payload.get("curriculum_id") is None:
+                    raw_surface_label = raw_data.get("surface_label")
+                    if isinstance(raw_surface_label, str) and raw_surface_label.strip():
+                        payload["curriculum_id"] = str(raw_surface_label)
+            if payload.get("curriculum_mix") is None:
+                raw_provenance = raw_data.get("dagzoo_provenance")
+                if isinstance(raw_provenance, Mapping):
+                    payload["curriculum_mix"] = {
+                        "corpus_variant": raw_provenance.get("corpus_variant"),
+                        "config_refs": raw_provenance.get("config_refs"),
+                        "invocations": raw_provenance.get("invocations"),
+                    }
+            if payload.get("scm_complexity_summary") is None and isinstance(characteristics, Mapping):
+                payload["scm_complexity_summary"] = {
+                    key: characteristics.get(key)
+                    for key in (
+                        "row_count_distribution",
+                        "feature_count_distribution",
+                        "class_count_distribution",
+                    )
+                    if characteristics.get(key) is not None
+                }
+
+    if payload.get("tokens_per_step") is None:
+        raw_tokens_seen = payload.get("tokens_seen")
+        if raw_tokens_seen is not None and history:
+            try:
+                tokens_seen = int(raw_tokens_seen)
+            except (TypeError, ValueError):
+                tokens_seen = None
+            final_step = _coerce_integral_step(history[-1].get("step")) if history else None
+            if tokens_seen is not None and final_step is not None and final_step > 0:
+                payload["tokens_per_step"] = float(tokens_seen) / float(final_step)
+    return payload or None
 
 
 def _coerce_integral_step(value: Any) -> int | None:

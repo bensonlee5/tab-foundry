@@ -65,9 +65,13 @@ class _BenchmarkRunModelPayload(_RegistryPayloadModel):
     tficl_n_layers: StrictInt
     head_hidden_dim: StrictInt
     input_normalization: StrictStr
+    feature_group_size: StrictInt | None = None
     many_class_base: StrictInt
     module_selection: dict[StrictStr, Any] | None = None
     module_hyperparameters: dict[StrictStr, Any] | None = None
+    task_contract: dict[StrictStr, Any] | None = None
+    architecture: dict[StrictStr, Any] | None = None
+    build_spec: dict[StrictStr, Any] | None = None
 
 
 class _BenchmarkBundlePayload(_RegistryPayloadModel):
@@ -119,6 +123,25 @@ class _TrainingDiagnosticsPayload(_RegistryPayloadModel):
     final_grad_norm: FiniteFloat | None = None
     train_elapsed_seconds: FiniteFloat | None = None
     wall_elapsed_seconds: FiniteFloat | None = None
+
+
+class _RuntimeSummaryPayload(_RegistryPayloadModel):
+    peak_vram_allocated: StrictInt | None = None
+    peak_vram_reserved: StrictInt | None = None
+    throughput_examples_per_second: FiniteFloat | None = None
+    throughput_tokens_per_second: FiniteFloat | None = None
+    non_train_overhead_seconds: FiniteFloat | None = None
+
+
+class _RegimeBudgetPayload(_RegistryPayloadModel):
+    tokens_per_step: FiniteFloat | None = None
+    tokens_seen: StrictInt | None = None
+    token_budget: StrictInt | None = None
+    unique_task_budget: StrictInt | None = None
+    objective_metric: StrictStr | None = None
+    curriculum_id: StrictStr | None = None
+    curriculum_mix: dict[StrictStr, Any] | None = None
+    scm_complexity_summary: dict[StrictStr, Any] | None = None
 
 
 class _ModelSizePayload(_RegistryPayloadModel):
@@ -173,6 +196,8 @@ class _BenchmarkRunRecordPayload(_RegistryPayloadModel):
     artifacts: _BenchmarkArtifactsPayload
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
+    runtime_summary: _RuntimeSummaryPayload | None = None
+    regime_budget: _RegimeBudgetPayload | None = None
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None
     sweep: _SweepPayload | None = None
@@ -193,6 +218,8 @@ class _BenchmarkRunEntryPayload(_RegistryPayloadModel):
     artifacts: _BenchmarkArtifactsPayload
     tab_foundry_metrics: _TabFoundryMetricsPayload
     training_diagnostics: _TrainingDiagnosticsPayload
+    runtime_summary: _RuntimeSummaryPayload | None = None
+    regime_budget: _RegimeBudgetPayload | None = None
     model_size: _ModelSizePayload
     surface_labels: _SurfaceLabelsPayload | None = None
     sweep: _SweepPayload | None = None
