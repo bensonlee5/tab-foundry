@@ -3,65 +3,167 @@ sweep_id: tf_rd_021b_sandwich_width_capacity_sensitivity_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_021b_sandwich_dicl48_v1
-  status: ready
-  rationale: Use the smaller width bracket first to test whether the compact hybrid control is already wider than needed.
-  hypothesis: If the compact control is width-overprovisioned, reducing `d_icl` from `60` to `48` should only weakly harm the final benchmark metrics.
-  anchor_delta: Keep the compact hybrid control fixed and change only `d_icl` from `60` to `48` while holding `sandwich_heads=4` fixed.
+  status: completed
+  rationale: Use the smaller width bracket first to test whether the compact hybrid
+    control is already wider than needed.
+  hypothesis: If the compact control is width-overprovisioned, reducing `d_icl` from
+    `60` to `48` should only weakly harm the final benchmark metrics.
+  anchor_delta: Keep the compact hybrid control fixed and change only `d_icl` from
+    `60` to `48` while holding `sandwich_heads=4` fixed.
   parameter_adequacy_plan:
-  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
-  - Compare directly against the locked compact control before any longer-budget power-curve work opens.
-  run_id: null
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid
+    anchor, so this row is now ready to execute on that unchanged control.
+  - Compare directly against the locked compact control before any longer-budget power-curve
+    work opens.
+  run_id: sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2325
+    max_grad_norm: 11.958599090576172
+    clipped_step_fraction: 0.026
+    best_log_loss: 0.50336109986764
+    final_log_loss: 0.5053130648975923
+    best_brier_score: 0.33899190262896817
+    final_brier_score: 0.33995522585861915
+    best_roc_auc: 0.7004418636808121
+    final_roc_auc: 0.7015658450732282
+    final_minus_best_log_loss: 0.0019519650299523184
+    final_minus_best_brier_score: 0.0009633232296509808
+    final_minus_best_roc_auc: 0.0011239813924160957
+    drift: 0.0011239813924160957
+    delta_final_log_loss: 0.038120215339168095
+    delta_final_brier_score: 0.03272736014621308
+    delta_final_roc_auc: -0.03547547106754323
 - order: 2
   delta_ref: delta_tf_rd_021b_sandwich_dicl96_v1
-  status: ready
-  rationale: Use the larger width bracket to test whether the compact hybrid control is still width-limited.
-  hypothesis: If trunk width is the first live post-topology capacity axis, increasing `d_icl` from `60` to `96` should improve benchmark fit enough to justify later power-curve work.
-  anchor_delta: Keep the compact hybrid control fixed and change only `d_icl` from `60` to `96` while holding `sandwich_heads=4` fixed.
+  status: completed
+  rationale: Use the larger width bracket to test whether the compact hybrid control
+    is still width-limited.
+  hypothesis: If trunk width is the first live post-topology capacity axis, increasing
+    `d_icl` from `60` to `96` should improve benchmark fit enough to justify later
+    power-curve work.
+  anchor_delta: Keep the compact hybrid control fixed and change only `d_icl` from
+    `60` to `96` while holding `sandwich_heads=4` fixed.
   parameter_adequacy_plan:
-  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
-  - Compare directly against the locked compact control before any multi-rung scaling program is authored.
-  run_id: null
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid
+    anchor, so this row is now ready to execute on that unchanged control.
+  - Compare directly against the locked compact control before any multi-rung scaling
+    program is authored.
+  run_id: sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2400
+    max_grad_norm: 11.958596229553223
+    clipped_step_fraction: 0.0276
+    best_log_loss: 0.4825123246387383
+    final_log_loss: 0.48378090940183016
+    best_brier_score: 0.3178197584566623
+    final_brier_score: 0.3189571020337335
+    best_roc_auc: 0.722214817164488
+    final_roc_auc: 0.7211181638535928
+    final_minus_best_log_loss: 0.0012685847630918845
+    final_minus_best_brier_score: 0.0011373435770711815
+    final_minus_best_roc_auc: -0.001096653310895146
+    drift: -0.001096653310895146
+    delta_final_log_loss: 0.016588059843405945
+    delta_final_brier_score: 0.011729236321327441
+    delta_final_roc_auc: -0.015923152287178555
 - order: 3
   delta_ref: delta_tf_rd_021b_sandwich_headhidden64_v1
-  status: ready
-  rationale: Use the smaller head-hidden bracket to test whether the compact control readout is overprovisioned relative to the trunk.
-  hypothesis: If the trunk is the real bottleneck, reducing `head_hidden_dim` from `96` to `64` should only weakly harm the benchmark read.
-  anchor_delta: Keep the compact hybrid control fixed and change only `head_hidden_dim` from `96` to `64`.
+  status: completed
+  rationale: Use the smaller head-hidden bracket to test whether the compact control
+    readout is overprovisioned relative to the trunk.
+  hypothesis: If the trunk is the real bottleneck, reducing `head_hidden_dim` from
+    `96` to `64` should only weakly harm the benchmark read.
+  anchor_delta: Keep the compact hybrid control fixed and change only `head_hidden_dim`
+    from `96` to `64`.
   parameter_adequacy_plan:
-  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
-  - Compare directly against the locked compact control before treating readout-head width as a scaling axis.
-  run_id: null
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid
+    anchor, so this row is now ready to execute on that unchanged control.
+  - Compare directly against the locked compact control before treating readout-head
+    width as a scaling axis.
+  run_id: sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 800
+    max_grad_norm: 11.958596229553223
+    clipped_step_fraction: 0.026
+    best_log_loss: 0.5064593484159176
+    final_log_loss: 0.514659462532684
+    best_brier_score: 0.3378395781713894
+    final_brier_score: 0.34604739410428753
+    best_roc_auc: 0.6823384008116464
+    final_roc_auc: 0.7000537033385459
+    final_minus_best_log_loss: 0.008200114116766466
+    final_minus_best_brier_score: 0.008207815932898155
+    final_minus_best_roc_auc: 0.017715302526899457
+    drift: 0.017715302526899457
+    delta_final_log_loss: 0.0474666129742598
+    delta_final_brier_score: 0.038819528391881464
+    delta_final_roc_auc: -0.03698761280222551
 - order: 4
   delta_ref: delta_tf_rd_021b_sandwich_headhidden128_v1
-  status: ready
-  rationale: Use the larger head-hidden bracket to test whether the compact control is readout-limited even if the trunk stays fixed.
-  hypothesis: If the hybrid control is readout-limited, increasing `head_hidden_dim` from `96` to `128` should improve the final benchmark metrics without changing trunk width.
-  anchor_delta: Keep the compact hybrid control fixed and change only `head_hidden_dim` from `96` to `128`.
+  status: completed
+  rationale: Use the larger head-hidden bracket to test whether the compact control
+    is readout-limited even if the trunk stays fixed.
+  hypothesis: If the hybrid control is readout-limited, increasing `head_hidden_dim`
+    from `96` to `128` should improve the final benchmark metrics without changing
+    trunk width.
+  anchor_delta: Keep the compact hybrid control fixed and change only `head_hidden_dim`
+    from `96` to `128`.
   parameter_adequacy_plan:
-  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
-  - Compare directly against the locked compact control before the later sandwich-local power-curve phase opens.
-  run_id: null
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid
+    anchor, so this row is now ready to execute on that unchanged control.
+  - Compare directly against the locked compact control before the later sandwich-local
+    power-curve phase opens.
+  run_id: sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2325
+    max_grad_norm: 11.958596229553223
+    clipped_step_fraction: 0.026
+    best_log_loss: 0.5034209944158874
+    final_log_loss: 0.5057084859281769
+    best_brier_score: 0.33838628368281043
+    final_brier_score: 0.339960560661232
+    best_roc_auc: 0.7024100420402686
+    final_roc_auc: 0.7010136544985217
+    final_minus_best_log_loss: 0.0022874915122894635
+    final_minus_best_brier_score: 0.0015742769784215516
+    final_minus_best_roc_auc: -0.0013963875417468685
+    drift: -0.0013963875417468685
+    delta_final_log_loss: 0.03851563636975264
+    delta_final_brier_score: 0.03273269494882591
+    delta_final_roc_auc: -0.036027661642249686
