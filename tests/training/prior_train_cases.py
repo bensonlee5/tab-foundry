@@ -99,7 +99,7 @@ def test_prior_dump_reader_slices_tasks_from_batch(tmp_path: Path) -> None:
     assert task1.y_test.tolist() == [1, 0]
 
 
-def test_prior_dump_reader_rejects_mixed_feature_width_batches(tmp_path: Path) -> None:
+def test_prior_dump_reader_preserves_padded_batch_for_mixed_feature_widths(tmp_path: Path) -> None:
     path = _write_prior_dump(
         tmp_path / "prior_mixed_feature_widths.h5",
         x=np.asarray(
@@ -121,8 +121,14 @@ def test_prior_dump_reader_rejects_mixed_feature_width_batches(tmp_path: Path) -
         single_eval_pos=np.asarray([2, 2], dtype=np.int64),
     )
 
-    with pytest.raises(RuntimeError, match="shared num_features value"):
-        _ = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=2)))
+    step = next(iter(PriorDumpTaskBatchReader(path, num_steps=1, batch_size=2)))
+
+    assert step.x_batch is not None
+    assert tuple(step.x_batch.shape) == (2, 4, 3)
+    assert step.tasks[0].x_train.shape == (2, 2)
+    assert step.tasks[0].x_test.shape == (2, 2)
+    assert step.tasks[1].x_train.shape == (2, 3)
+    assert step.tasks[1].x_test.shape == (2, 3)
 
 
 def test_prior_dump_reader_uses_first_split_value_in_batch(tmp_path: Path) -> None:
@@ -841,6 +847,106 @@ def test_train_tabfoundry_sandwich_prior_passes_feature_types_to_forward_batched
 
     assert result.global_step == 1
     assert model.seen_feature_types == [[["floating", "integer"], ["bool", "string_binary"]]]
+
+
+def test_train_tabfoundry_sandwich_prior_pads_feature_types_for_mixed_feature_width_batch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_train_sandwich_feature_types_mixed_width.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0, 0.0], [3.0, 4.0, 0.0], [5.0, 6.0, 0.0], [7.0, 8.0, 0.0]],
+                [[2.0, 1.0, 9.0], [4.0, 3.0, 8.0], [6.0, 5.0, 7.0], [8.0, 7.0, 6.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 1],
+            ],
+            dtype=np.int64,
+        ),
+        num_features=np.asarray([2, 3], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+        feature_types=np.asarray(
+            [
+                ["floating", "integer", "unknown"],
+                ["bool", "string_binary", "unknown"],
+            ],
+            dtype=object,
+        ),
+    )
+    model = _FeatureTypeCapturingSandwichModel()
+    optimizer = _CountingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: model)
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("schedulefree_adamw", optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        ),
+    )
+
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_sandwich",
+                "d_icl": 8,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+                "head_hidden_dim": 16,
+                "sandwich_latents": 8,
+                "sandwich_layers": 1,
+                "sandwich_heads": 2,
+                "sandwich_ff_expansion": 2,
+            },
+            "runtime": {
+                "seed": 1,
+                "output_dir": str(tmp_path / "train_out_sandwich_mixed_width"),
+                "device": "cpu",
+                "mixed_precision": "no",
+                "grad_clip": 1.0,
+                "max_steps": 1,
+                "eval_every": 1,
+                "checkpoint_every": 1,
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "require_requested": True,
+                "weight_decay": 0.0,
+                "min_lr": 4.0e-3,
+                "betas": [0.9, 0.95],
+                "muon_per_parameter_lr": False,
+                "muon_lr_scale_base": 0.2,
+                "muon_partition_non2d": True,
+            },
+            "logging": {
+                "history_jsonl_path": str(
+                    tmp_path / "train_out_sandwich_mixed_width" / "train_history.jsonl"
+                ),
+            },
+        }
+    )
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=2,
+    )
+
+    assert result.global_step == 1
+    assert model.seen_feature_types == [[
+        ["floating", "integer", "floating"],
+        ["bool", "string_binary", "unknown"],
+    ]]
 
 
 def test_train_tabfoundry_simple_prior_saves_checkpoints_in_eval_mode(

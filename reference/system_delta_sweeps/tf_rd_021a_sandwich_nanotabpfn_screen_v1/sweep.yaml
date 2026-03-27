@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_021a_sandwich_nanotabpfn_screen_v1
 parent_sweep_id: null
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: sd_input_norm_followup_07_dpnb_input_norm_anchor_replay_batch64_sqrt_v2
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -17,7 +17,7 @@ upstream_reference:
   model_source: https://proceedings.mlr.press/v139/jaegle21a.html
 anchor_surface:
   notes:
-  - This draft sweep opens the first nanoTabPFN-only screen for
+  - This completed sweep records the first nanoTabPFN-only screen for
     [#179](https://github.com/bensonlee5/tab-foundry/issues/179) under the
     broader sandwich umbrella in
     [#178](https://github.com/bensonlee5/tab-foundry/issues/178).
@@ -30,11 +30,13 @@ anchor_surface:
     recipe, preprocessing, and small-class classification contract fixed across
     the queue so the first read is about sandwich capacity, not about a new
     runtime or data surface.
-  - Rows `01` through `03` are the actual first-pass latent screen. Rows `04`
-    and `05` are checked in now but stay blocked until the latent-only results
-    show whether width follow-up is warranted.
+  - Row `01` completed cleanly and showed the summary-bottleneck sandwich is
+    stable but materially underpowered on this surface, so rows `02` through
+    `05` are now deferred to separate successor-architecture work rather than
+    executed inside this sweep.
   - This sweep does not spend dagzoo budget, does not reopen TF-RD-022 runtime
-    policy, and does not attempt a final promote or defer decision on the
+    policy, and closes as negative evidence for the current summary-bottleneck
+    architecture rather than as a final promote or defer decision on the whole
     sandwich family.
   dimension_table:
   - dimension: repeated latent bottleneck
@@ -58,15 +60,17 @@ anchor_surface:
       fidelity knob.
     anchor: No latent-count axis exists on the staged anchor; the comparable
       local discriminator is the sandwich replay row.
-    interpretation: Rows `02` and `03` isolate `sandwich_latents` first, with
-      width held fixed.
+    interpretation: Rows `02` and `03` were pre-authored as latent-only
+      follow-ups, but the sweep now closes before running them because row `01`
+      made the architecture boundary look more important than latent count.
   - dimension: second capacity axis
     upstream: Perceiver scaling can also move latent-channel width once the
       basic latent budget is settled.
     anchor: The staged anchor is not the width reference here; the sandwich
       replay and high-latent rows provide the local context.
-    interpretation: Rows `04` and `05` stay blocked until the latent-only rows
-      show whether widening from `d_icl=96` is justified.
+    interpretation: Rows `04` and `05` remain deferred backlog evidence rather
+      than active width probes because the initial replay did not justify
+      spending more budget on the same summary-bottleneck topology.
   - dimension: training surface
     upstream: No repo-local prior-dump benchmark recipe is defined by the
       Perceiver paper.

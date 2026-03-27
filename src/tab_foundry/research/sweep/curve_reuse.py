@@ -20,6 +20,7 @@ from tab_foundry.bench.nanotabpfn import benchmark_host_fingerprint, resolve_dev
 from tab_foundry.bench.nanotabpfn.bundle import canonical_benchmark_bundle_source_path
 
 from .artifacts import ExecutionPaths
+from .device_policy import resolve_sweep_metadata_device
 from .runtime_env import planned_nanotabpfn_python_path
 
 
@@ -80,7 +81,10 @@ def _resolved_nanotabpfn_signature(
     prior_dump: Path | None,
     requested_device: str,
 ) -> dict[str, Any]:
-    normalized_requested_device = str(requested_device).strip()
+    normalized_requested_device, resolved_device = resolve_sweep_metadata_device(
+        requested_device,
+        auto_resolve_fn=resolve_device,
+    )
     return {
         "benchmark_bundle_path": canonical_benchmark_bundle_source_path(benchmark_bundle_path),
         "control_baseline_id": str(control_baseline_id).strip(),
@@ -88,7 +92,7 @@ def _resolved_nanotabpfn_signature(
         "nanotabpfn_python": planned_nanotabpfn_python_path(nanotabpfn_root),
         "prior_dump_path": None if prior_dump is None else prior_dump.expanduser().resolve(),
         "device": normalized_requested_device,
-        "resolved_device": resolve_device(normalized_requested_device),
+        "resolved_device": resolved_device,
         "benchmark_host_fingerprint": benchmark_host_fingerprint(),
         "steps": int(DEFAULT_NANOTABPFN_STEPS),
         "eval_every": int(DEFAULT_NANOTABPFN_EVAL_EVERY),

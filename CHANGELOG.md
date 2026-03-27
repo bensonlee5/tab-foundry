@@ -22,17 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `forward(TaskBatch)`, `forward_batched(...)`, and sandwich exported
   reference inference now fail when this metadata is omitted. v3 export
   preprocessor payloads remain policy-only and do not serialize this list.
-- User-facing break: sandwich legacy prior-dump training now requires prior
-  dumps with a per-dataset `feature_types` HDF5 dataset. Older dumps without
-  that dataset fail clearly instead of silently treating every feature as
-  `floating`.
+- User-facing note: sandwich legacy prior-dump training now persists explicit
+  per-dataset `feature_types` HDF5 metadata, and legacy numeric-only
+  nanoTabPFN dumps are enriched in place on first use so sweep and train runs
+  can reuse the canonical dump path across machines.
 - User-facing break: manifest-backed task loading now requires explicit
   persisted `feature_types` metadata for every task record. The shared dataset
   loader no longer infers an all-`floating` default when the metadata is
   absent.
-- User-facing break: prior-dump batches must now be rectangular in feature
-  width across each optimizer step. Mixed `num_features` batches fail early
-  instead of relying on padded feature columns inside one batch.
+- User-facing note: prior-dump training now preserves the legacy nanoTabPFN
+  padded-batch behavior for mixed `num_features` batches instead of requiring
+  dump regeneration.
 
 ## [0.11.5] - 2026-03-25
 

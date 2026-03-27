@@ -88,6 +88,10 @@ def _model() -> TabFoundrySandwichClassifier:
         sandwich_layers=2,
         sandwich_heads=4,
         sandwich_ff_expansion=2,
+        sandwich_summary_tokens_per_axis=4,
+        sandwich_self_attention_per_cross=4,
+        sandwich_pre_row_attention_layers=1,
+        sandwich_pre_column_attention_layers=1,
     )
 
 
@@ -115,7 +119,7 @@ def test_tabfoundry_sandwich_forward_batched_shapes() -> None:
     assert torch.isfinite(logits).all()
 
 
-def test_tabfoundry_sandwich_uses_r_plus_c_perceiver_input_tokens() -> None:
+def test_tabfoundry_sandwich_uses_hybrid_full_cell_and_summary_inputs() -> None:
     model = _model()
     batch = _batch()
     x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
@@ -130,13 +134,17 @@ def test_tabfoundry_sandwich_uses_r_plus_c_perceiver_input_tokens() -> None:
         train_test_split_index=train_test_split_index,
         feature_type_ids=feature_type_ids,
     )
-    repeated_input, row_tokens = model._perceiver_input_tokens(feature_cells, y_train=y_train)
+    full_cell_stream = model._full_cell_tokens(feature_cells, y_train=y_train)
+    summary_input, row_tokens = model._summary_input_tokens(feature_cells, y_train=y_train)
+    initial_input = torch.cat([full_cell_stream, summary_input], dim=1)
 
-    assert tuple(repeated_input.shape) == (1, 9, 32)
-    assert tuple(row_tokens.shape) == (1, 5, 32)
+    assert tuple(full_cell_stream.shape) == (1, 20, 32)
+    assert tuple(summary_input.shape) == (1, 36, 32)
+    assert tuple(initial_input.shape) == (1, 56, 32)
+    assert tuple(row_tokens.shape) == (1, 20, 32)
     assert tuple(model.latent_seed.shape) == (1, 12, 32)
     assert tuple(y_train.shape) == (1, 3)
-    assert torch.allclose(repeated_input[:, :5, :], row_tokens)
+    assert torch.allclose(summary_input[:, :20, :], row_tokens)
 
 
 def test_tabfoundry_sandwich_fuses_label_query_state_into_row_summaries() -> None:
@@ -158,8 +166,35 @@ def test_tabfoundry_sandwich_fuses_label_query_state_into_row_summaries() -> Non
     raw_row_summaries = model._row_summary_bytes(feature_cells)
     row_tokens = model._row_summary_tokens(feature_cells=feature_cells, y_train=y_train)
 
-    assert tuple(raw_row_summaries.shape) == tuple(row_tokens.shape)
-    assert not torch.allclose(raw_row_summaries, row_tokens)
+    assert tuple(raw_row_summaries.shape) == (1, 5, 4, 32)
+    assert tuple(row_tokens.shape) == (1, 20, 32)
+    assert not torch.allclose(raw_row_summaries.reshape(1, 20, 32), row_tokens)
+
+
+def test_tabfoundry_sandwich_broadcasts_row_conditioning_into_full_cell_stream() -> None:
+    model = _model()
+    batch = _batch()
+    x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
+    feature_type_ids = model._feature_type_ids_from_metadata(
+        batch.metadata,
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+    feature_cells = model._feature_cells(
+        x_all,
+        train_test_split_index=train_test_split_index,
+        feature_type_ids=feature_type_ids,
+    )
+
+    full_cell_stream = model._full_cell_tokens(feature_cells, y_train=y_train)
+    full_cell_tokens = full_cell_stream.reshape_as(feature_cells)
+    conditioning_delta = full_cell_tokens - feature_cells
+
+    assert tuple(full_cell_stream.shape) == (1, 20, 32)
+    torch.testing.assert_close(conditioning_delta[:, 0, 0, :], conditioning_delta[:, 0, 1, :])
+    torch.testing.assert_close(conditioning_delta[:, 4, 0, :], conditioning_delta[:, 4, 3, :])
+    assert not torch.allclose(conditioning_delta[:, 0, 0, :], conditioning_delta[:, 4, 0, :])
 
 
 def test_tabfoundry_sandwich_initializes_latent_seed_with_truncated_normal(
@@ -198,16 +233,19 @@ def test_tabfoundry_sandwich_runs_repeated_cross_then_self_stages() -> None:
         for index, stage in enumerate(model.perceiver_stages)
     }
     stage_latent_blocks = {
-        id(stage.latent_block): f"self_{index}"
+        id(latent_block): f"self_{index}_{self_index}"
         for index, stage in enumerate(model.perceiver_stages)
+        for self_index, latent_block in enumerate(stage.self_blocks)
     }
 
     def _recording_cross_block(block, query: torch.Tensor, key_value: torch.Tensor) -> torch.Tensor:
         stage_name = stage_reads.get(id(block))
         if stage_name is not None:
             order.append(stage_name)
-        elif block is model.test_readout:
-            order.append("readout")
+        elif block is model.latent_readout:
+            order.append("latent_readout")
+        elif block is model.cell_readout:
+            order.append("cell_readout")
         return original_cross_block(block, query, key_value)
 
     def _recording_self_block(block, hidden: torch.Tensor) -> torch.Tensor:
@@ -221,7 +259,42 @@ def test_tabfoundry_sandwich_runs_repeated_cross_then_self_stages() -> None:
 
     _ = model(_batch())
 
-    assert order == ["cross_0", "self_0", "cross_1", "self_1", "readout"]
+    assert order == [
+        "cross_0",
+        "self_0_0",
+        "self_0_1",
+        "self_0_2",
+        "self_0_3",
+        "cross_1",
+        "self_1_0",
+        "self_1_1",
+        "self_1_2",
+        "self_1_3",
+        "latent_readout",
+        "cell_readout",
+    ]
+
+
+def test_tabfoundry_sandwich_uses_full_cell_context_only_on_stage_zero() -> None:
+    model = _model()
+    observed_context_lengths: list[int] = []
+    original_cross_block = model._cross_block
+    stage_reads = {
+        id(stage.input_read): index
+        for index, stage in enumerate(model.perceiver_stages)
+    }
+
+    def _recording_cross_block(block, query: torch.Tensor, key_value: torch.Tensor) -> torch.Tensor:
+        stage_index = stage_reads.get(id(block))
+        if stage_index is not None:
+            observed_context_lengths.append(int(key_value.shape[1]))
+        return original_cross_block(block, query, key_value)
+
+    model._cross_block = _recording_cross_block  # type: ignore[method-assign]
+
+    _ = model(_batch())
+
+    assert observed_context_lengths[:2] == [56, 36]
 
 
 def test_tabfoundry_sandwich_exposes_activation_trace_hooks() -> None:
@@ -233,6 +306,10 @@ def test_tabfoundry_sandwich_exposes_activation_trace_hooks() -> None:
         sandwich_layers=1,
         sandwich_heads=4,
         sandwich_ff_expansion=2,
+        sandwich_summary_tokens_per_axis=4,
+        sandwich_self_attention_per_cross=4,
+        sandwich_pre_row_attention_layers=1,
+        sandwich_pre_column_attention_layers=1,
     )
     model.enable_activation_trace()
 
@@ -242,8 +319,14 @@ def test_tabfoundry_sandwich_exposes_activation_trace_hooks() -> None:
     assert trace is not None
     assert "post_feature_encoder" in trace
     assert "post_perceiver_input" in trace
+    assert "post_pre_row_attention_0" in trace
+    assert "post_pre_column_attention_0" in trace
+    assert "post_pre_perceiver_cells" in trace
+    assert "post_full_cell_stream" in trace
     assert "post_stage_0_cross" in trace
+    assert "post_stage_0_self_0" in trace
     assert "post_stage_0_self" in trace
+    assert "post_latent_readout" in trace
     assert "post_test_readout" in trace
 
 
@@ -256,9 +339,51 @@ def test_tabfoundry_sandwich_layers_count_matches_repeated_stages() -> None:
         sandwich_layers=3,
         sandwich_heads=4,
         sandwich_ff_expansion=2,
+        sandwich_summary_tokens_per_axis=4,
+        sandwich_self_attention_per_cross=4,
+        sandwich_pre_row_attention_layers=1,
+        sandwich_pre_column_attention_layers=1,
     )
 
     assert len(model.perceiver_stages) == 3
+    assert all(len(stage.self_blocks) == 4 for stage in model.perceiver_stages)
+
+
+def test_tabfoundry_sandwich_allows_configurable_self_attention_per_cross() -> None:
+    model = TabFoundrySandwichClassifier(
+        d_icl=32,
+        many_class_base=4,
+        head_hidden_dim=64,
+        sandwich_latents=12,
+        sandwich_layers=2,
+        sandwich_heads=4,
+        sandwich_ff_expansion=2,
+        sandwich_summary_tokens_per_axis=4,
+        sandwich_self_attention_per_cross=2,
+        sandwich_pre_row_attention_layers=1,
+        sandwich_pre_column_attention_layers=1,
+    )
+
+    assert all(len(stage.self_blocks) == 2 for stage in model.perceiver_stages)
+
+
+def test_tabfoundry_sandwich_allows_configurable_pre_perceiver_attention_layers() -> None:
+    model = TabFoundrySandwichClassifier(
+        d_icl=32,
+        many_class_base=4,
+        head_hidden_dim=64,
+        sandwich_latents=12,
+        sandwich_layers=2,
+        sandwich_heads=4,
+        sandwich_ff_expansion=2,
+        sandwich_summary_tokens_per_axis=4,
+        sandwich_self_attention_per_cross=4,
+        sandwich_pre_row_attention_layers=2,
+        sandwich_pre_column_attention_layers=1,
+    )
+
+    assert len(model.pre_row_attention_blocks) == 2
+    assert len(model.pre_column_attention_blocks) == 1
 
 
 def test_tabfoundry_sandwich_requires_feature_types_for_forward() -> None:
@@ -335,6 +460,10 @@ def test_tabfoundry_sandwich_rejects_true_many_class_batches() -> None:
         sandwich_layers=1,
         sandwich_heads=4,
         sandwich_ff_expansion=2,
+        sandwich_summary_tokens_per_axis=4,
+        sandwich_self_attention_per_cross=4,
+        sandwich_pre_row_attention_layers=1,
+        sandwich_pre_column_attention_layers=1,
     )
 
     with pytest.raises(RuntimeError, match="small-class only"):

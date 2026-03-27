@@ -7,6 +7,7 @@ from typing import Mapping
 
 from .artifacts import ExecutionPaths, read_yaml, write_yaml
 from .catalog import load_system_delta_sweep
+from .device_policy import resolve_sweep_execution_device
 from .paths_io import sweep_queue_path
 from .promote import promote_anchor
 from . import row_dependencies as _row_dependencies
@@ -35,6 +36,7 @@ def execute_sweep(
     paths: ExecutionPaths | None = None,
 ) -> list[str]:
     resolved_paths = ExecutionPaths.default() if paths is None else paths
+    resolved_device = resolve_sweep_execution_device(device)
 
     sweep_meta = load_system_delta_sweep(
         sweep_id,
@@ -100,7 +102,7 @@ def execute_sweep(
             prior_dump=prior_dump,
             nanotabpfn_root=nanotabpfn_root,
             reuse_nanotabpfn_only=reuse_nanotabpfn_only,
-            device=device,
+            device=resolved_device,
             fallback_python=fallback_python,
             decision=decision,
             conclusion=conclusion,

@@ -234,6 +234,10 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
                 "sandwich_layers": 2,
                 "sandwich_heads": 4,
                 "sandwich_ff_expansion": 2,
+                "sandwich_summary_tokens_per_axis": 4,
+                "sandwich_self_attention_per_cross": 4,
+                "sandwich_pre_row_attention_layers": 1,
+                "sandwich_pre_column_attention_layers": 1,
             },
             "data": {
                 "source": "manifest",
@@ -245,18 +249,26 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
 
     assert record["model"]["arch"] == "tabfoundry_sandwich"
     assert record["model"]["architecture"] == {
-        "input_tokens": "row_col_summary_stream",
-        "input_token_count": "R_plus_C",
-        "label_injection": "fused_into_row_summaries",
+        "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+        "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+        "repeated_input_tokens": "row_col_summary_stream",
+        "repeated_input_token_count": "K_times_(R_plus_C)",
+        "summary_tokens_per_axis": 4,
+        "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_self_attention",
+        "pre_row_attention_layers": 1,
+        "pre_column_attention_layers": 1,
+        "label_injection": "fused_into_row_summaries_and_feature_cells",
         "summary_builder": "summary_query_attention",
         "position_encoding": "shared_fourier_row_col",
         "feature_type_encoding": "parquet_physical_group",
-        "latent_core": "perceiver_repeated_cross_self_stages",
-        "layer_semantics": "repeated_stages",
+        "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+        "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+        "readout": "latent_then_full_cell_cross_attention",
         "latents": 24,
         "layers": 2,
         "heads": 4,
         "ff_expansion": 2,
+        "self_attention_per_cross": 4,
     }
 
 

@@ -123,7 +123,9 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     assert training_surface["model"]["arch"] == "tabfoundry_sandwich"
 
 
-def test_train_tabfoundry_sandwich_prior_rejects_dump_without_feature_types(tmp_path: Path) -> None:
+def test_train_tabfoundry_sandwich_prior_materializes_feature_types_for_legacy_dump(
+    tmp_path: Path,
+) -> None:
     path = _write_prior_dump(
         tmp_path / "prior_sandwich_missing_feature_types.h5",
         x=np.asarray(
@@ -184,9 +186,24 @@ def test_train_tabfoundry_sandwich_prior_rejects_dump_without_feature_types(tmp_
         }
     )
 
-    with pytest.raises(RuntimeError, match="feature_types"):
-        _ = prior_train_module.train_tabfoundry_simple_prior(
-            cfg,
-            prior_dump_path=path,
-            batch_size=1,
-        )
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=1,
+    )
+
+    assert result.global_step == 1
+    telemetry = json.loads(
+        (tmp_path / "train_out_missing_feature_types" / "telemetry.json").read_text(encoding="utf-8")
+    )
+    assert telemetry["success"] is True
+    with h5py.File(path, "r") as handle:
+        materialized = np.asarray(handle["feature_types"])
+    decoded = [
+        [
+            value.decode("utf-8") if isinstance(value, (bytes, bytearray)) else str(value)
+            for value in row
+        ]
+        for row in materialized.tolist()
+    ]
+    assert decoded == [["floating", "floating"]]

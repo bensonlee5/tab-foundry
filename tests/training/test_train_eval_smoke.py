@@ -834,10 +834,17 @@ def test_train_smoke_runs_end_to_end_with_tabfoundry_sandwich(
     assert result.best_checkpoint.exists()
     assert training_surface_record["model"]["arch"] == "tabfoundry_sandwich"
     assert training_surface_record["model"]["architecture"]["latents"] == 12
-    assert training_surface_record["model"]["architecture"]["input_tokens"] == "row_col_summary_stream"
+    assert (
+        training_surface_record["model"]["architecture"]["initial_input_tokens"]
+        == "full_cell_plus_row_col_summary_stream"
+    )
+    assert (
+        training_surface_record["model"]["architecture"]["repeated_input_tokens"]
+        == "row_col_summary_stream"
+    )
     assert (
         training_surface_record["model"]["architecture"]["label_injection"]
-        == "fused_into_row_summaries"
+        == "fused_into_row_summaries_and_feature_cells"
     )
 
 

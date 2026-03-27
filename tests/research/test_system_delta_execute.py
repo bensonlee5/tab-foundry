@@ -486,6 +486,30 @@ def test_main_rejects_explicit_missing_prior_dump(tmp_path: Path) -> None:
         )
 
 
+def test_main_rejects_mps_device_for_sweeps(tmp_path: Path) -> None:
+    nanotabpfn_root = tmp_path / 'nanoTabPFN'
+    fallback_python = tmp_path / '.venv' / 'bin' / 'python'
+
+    nanotabpfn_root.mkdir(parents=True, exist_ok=True)
+    fallback_python.parent.mkdir(parents=True, exist_ok=True)
+    fallback_python.write_text('#!/usr/bin/env bash\nexit 0\n', encoding='utf-8')
+    fallback_python.chmod(0o755)
+
+    with pytest.raises(RuntimeError, match='does not support --device mps'):
+        _ = sweep_execute_cli_module.main(
+            [
+                '--sweep-id',
+                'shared_surface_bridge_v1',
+                '--nanotabpfn-root',
+                str(nanotabpfn_root),
+                '--tab-foundry-python',
+                str(fallback_python),
+                '--device',
+                'mps',
+            ]
+        )
+
+
 def test_select_queue_rows_requires_include_completed_for_explicit_screened_rows() -> None:
     queue = {
         'rows': [
@@ -523,6 +547,7 @@ def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pyte
         return f"run_{kwargs['queue_row']['order']}"
 
     monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
     monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
     monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
@@ -544,6 +569,54 @@ def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pyte
             'reuse_nanotabpfn_only': False,
         }
     ]
+
+
+def test_execute_sweep_rejects_mps_device_programmatically(tmp_path: Path) -> None:
+    sweep_id, paths, _queue_path = _make_exec_sweep(tmp_path)
+
+    with pytest.raises(RuntimeError, match='does not support --device mps'):
+        _ = execute_sweep(
+            sweep_id=sweep_id,
+            prior_dump=None,
+            nanotabpfn_root=Path('/tmp/nanotabpfn'),
+            device='mps',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            paths=paths,
+        )
+
+
+def test_execute_sweep_passes_resolved_auto_device_to_run_row(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
+    queue = _load_yaml(queue_path)
+    queue['rows'][0]['status'] = 'ready'
+    queue['rows'][1]['status'] = 'completed'
+    _write_yaml(queue_path, queue)
+
+    captured_devices: list[str] = []
+
+    def fake_run_row(**kwargs: Any) -> str:
+        captured_devices.append(str(kwargs['device']))
+        return f"run_{kwargs['queue_row']['order']}"
+
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cpu')
+    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
+    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
+
+    executed = execute_sweep(
+        sweep_id=sweep_id,
+        prior_dump=None,
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='auto',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        paths=paths,
+    )
+
+    assert executed == ['run_1']
+    assert captured_devices == ['cpu']
 
 
 def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -577,6 +650,7 @@ def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pyt
 
     monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
     monkeypatch.setattr(sweep_execute_module, 'promote_anchor', fake_promote_anchor)
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
     monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
     monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
@@ -636,6 +710,7 @@ def test_execute_sweep_uses_completed_parent_delta_ref(monkeypatch: pytest.Monke
         return 'row_2_v1'
 
     monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
     monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
     monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
@@ -685,6 +760,7 @@ def test_execute_sweep_uses_same_invocation_parent_delta_ref(
         return run_id
 
     monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
+    monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
     monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
     monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 

@@ -138,8 +138,8 @@ did not yet serialize every reconstruction field.
 | `staged_dropout` | `float` | `0.0` | staged | Dropout used by the staged family. |
 | `pre_encoder_clip` | `float \| null` | `null` | staged, sandwich | Optional finite-value clip applied before feature encoding. |
 | `sandwich_latents` | `int` | `48` | sandwich | Fixed latent-array size for `tabfoundry_sandwich`. This is the only accepted sandwich latent-count field. |
-| `sandwich_layers` | `int` | `2` | sandwich | Number of latent self-attention blocks in `tabfoundry_sandwich`. |
-| `sandwich_heads` | `int` | `4` | sandwich | Attention heads used by the sandwich summary-query, latent-write, latent, and test-readout blocks. |
+| `sandwich_layers` | `int` | `2` | sandwich | Number of repeated Perceiver stages in `tabfoundry_sandwich`. |
+| `sandwich_heads` | `int` | `4` | sandwich | Attention heads used by the sandwich full-cell read, summary-query, latent-write, latent, and dual-readout blocks. |
 | `sandwich_ff_expansion` | `int` | `2` | sandwich | Feedforward expansion factor used inside the sandwich cross-attention and self-attention blocks. |
 
 ## Configuration Groups
@@ -167,10 +167,17 @@ row representation width and the final QASS transformer width.
 - `sandwich_layers`
 - `sandwich_heads`
 - `sandwich_ff_expansion`
+- `sandwich_summary_tokens_per_axis`
+- `sandwich_self_attention_per_cross`
+- `sandwich_pre_row_attention_layers`
+- `sandwich_pre_column_attention_layers`
 
 These parameters matter only for `tabfoundry_sandwich`.
 They control fixed latent-memory size, latent depth, and block capacity after
-the model compresses cells into `R + C` x-side byte tokens.
+stage `0` reads the hybrid full-cell-plus-summary stream and later stages reuse
+the compact `K * (R + C)` summary stream, while the pre-Perceiver axial mixer
+controls how much row-wise feature attention and column-wise row attention the
+raw cell grid receives before flattening.
 
 ### Tokenization And Preprocessing
 
@@ -219,22 +226,30 @@ removed legacy family.
   rejected for `tabfoundry_simple` and `tabfoundry_sandwich`.
 - `tabfoundry_sandwich` is the classification-only fixed-latent candidate
   family.
-  It uses a fixed learned latent array, an `R + C` repeated input stream built
-  from row/column summary-query tokens, fused row-label/query conditioning, and
-  repeated Perceiver stages before the test-row readout path.
+  It uses a fixed learned latent array, a hybrid stage-`0` input stream built
+  from full cell tokens plus row/column summary tokens, later repeated
+  Perceiver stages over the compact `K * (R + C)` summary stream, configurable
+  `K`-token row/column summary banks, fused row-label or query conditioning in
+  both row summaries and feature cells, an axial row/column pre-Perceiver cell
+  mixer, and a dual-source latent-then-full-cell test-row readout path.
   It rejects `stage`, `stage_label`, and `module_overrides`.
   It currently requires:
   - `task=classification`
   - `norm_type=layernorm`
   - `2 <= num_classes <= many_class_base`
     Its main public tuning knobs are `sandwich_latents`, `sandwich_layers`,
-    `sandwich_heads`, `sandwich_ff_expansion`, `d_icl`, `head_hidden_dim`,
+    `sandwich_heads`, `sandwich_ff_expansion`,
+    `sandwich_summary_tokens_per_axis`, `sandwich_self_attention_per_cross`,
+    `sandwich_pre_row_attention_layers`,
+    `sandwich_pre_column_attention_layers`, `d_icl`, `head_hidden_dim`,
     `input_normalization`, and `pre_encoder_clip`. `sandwich_layers` now means
-    repeated Perceiver stages, not a tail-only latent depth. The runtime task
-    metadata contract also supports `feature_types` with the collapsed parquet-group
-    vocabulary `bool`, `integer`, `floating`, `string_binary`, or `unknown`.
-    `tabfoundry_sandwich` requires this metadata explicitly at runtime and on
-    `forward_batched(..., feature_types=...)`. Export-bundle
+    repeated Perceiver stages, not a tail-only latent depth, while
+    `sandwich_self_attention_per_cross` controls the number of latent
+    self-attention blocks between cross-attention reads. The runtime task
+    metadata contract also supports `feature_types` with the collapsed
+    parquet-group vocabulary `bool`, `integer`, `floating`, `string_binary`,
+    or `unknown`. `tabfoundry_sandwich` requires this metadata explicitly at
+    runtime and on `forward_batched(..., feature_types=...)`. Export-bundle
     `preprocessor` payloads stay policy-only and do not serialize this list.
     Only `sandwich_latents` is accepted. `sandwich_row_latents` and
     `sandwich_col_latents` are invalid for `tabfoundry_sandwich`.

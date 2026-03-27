@@ -41,7 +41,7 @@ def test_tf_rd_021a_sandwich_nanotabpfn_screen_v1_is_registered_but_not_active()
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": None,
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -57,7 +57,7 @@ def test_tf_rd_021a_sandwich_nanotabpfn_screen_v1_matches_the_screen_plan() -> N
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] is None
-    assert sweep["status"] == "draft"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_prior"
     assert sweep["training_config_profile"] == "cls_benchmark_sandwich_prior"
@@ -78,24 +78,24 @@ def test_tf_rd_021a_sandwich_nanotabpfn_screen_v1_matches_the_screen_plan() -> N
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert any("#179" in note for note in notes)
+    assert any("materially underpowered" in note for note in notes)
     assert any("batch64-sqrt" in note for note in notes)
-    assert any("Rows `01` through `03`" in note for note in notes)
-    assert any("Rows `04`" in note for note in notes)
+    assert any("rows `02` through `05`" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
     assert [row["status"] for row in rows] == [
-        "ready",
-        "ready",
-        "ready",
-        "blocked_on_latent_screen",
-        "blocked_on_latent_screen",
+        "completed",
+        "deferred_separate_workstream",
+        "deferred_separate_workstream",
+        "deferred_separate_workstream",
+        "deferred_separate_workstream",
     ]
     assert [row["interpretation_status"] for row in rows] == [
-        "pending",
-        "pending",
-        "pending",
+        "completed",
+        "blocked",
+        "blocked",
         "blocked",
         "blocked",
     ]
@@ -118,29 +118,37 @@ def test_tf_rd_021a_sandwich_nanotabpfn_screen_v1_matches_the_screen_plan() -> N
     assert replay["training"]["prior_dump_batch_size"] == 64
     assert replay["training"]["prior_dump_lr_scale_rule"] == "sqrt"
     assert replay["training"]["overrides"]["runtime"]["max_steps"] == 2500
-    assert "local sandwich reference" in " ".join(replay["notes"])
+    assert replay["run_id"] == "sd_tf_rd_021a_sandwich_nanotabpfn_screen_v1_01_delta_tf_rd_021a_sandwich_replay_v1_v1"
+    assert replay["benchmark_metrics"]["final_roc_auc"] == 0.6224489632492666
+    assert "underperformed the locked staged anchor" in " ".join(replay["notes"])
 
     low_latent = _row_by_ref(queue, "delta_tf_rd_021a_sandwich_latents24_v1")
     assert low_latent["parent_delta_ref"] == "delta_tf_rd_021a_sandwich_replay_v1"
     assert low_latent["model"]["sandwich_latents"] == 24
-    assert "lower latent bracket" in " ".join(low_latent["notes"])
+    assert low_latent["run_id"] is None
+    assert low_latent["status"] == "deferred_separate_workstream"
+    assert "Do not run inside TF-RD-021A." in low_latent["next_action"]
 
     high_latent = _row_by_ref(queue, "delta_tf_rd_021a_sandwich_latents96_v1")
     assert high_latent["parent_delta_ref"] == "delta_tf_rd_021a_sandwich_replay_v1"
     assert high_latent["model"]["sandwich_latents"] == 96
-    assert "VRAM observation" in " ".join(high_latent["notes"])
+    assert high_latent["run_id"] is None
+    assert high_latent["status"] == "deferred_separate_workstream"
+    assert "successor replay" in high_latent["next_action"]
 
     width_replay = _row_by_ref(queue, "delta_tf_rd_021a_sandwich_width128_latents48_v1")
     assert width_replay["parent_delta_ref"] == "delta_tf_rd_021a_sandwich_replay_v1"
     assert width_replay["model"]["d_icl"] == 128
     assert width_replay["model"]["sandwich_latents"] == 48
-    assert "Do not execute this row in the first pass." in " ".join(width_replay["notes"])
+    assert width_replay["status"] == "deferred_separate_workstream"
+    assert "Do not execute in TF-RD-021A." in width_replay["next_action"]
 
     width_high = _row_by_ref(queue, "delta_tf_rd_021a_sandwich_width128_latents96_v1")
     assert width_high["parent_delta_ref"] == "delta_tf_rd_021a_sandwich_latents96_v1"
     assert width_high["model"]["d_icl"] == 128
     assert width_high["model"]["sandwich_latents"] == 96
-    assert "row `03`" in width_high["next_action"]
+    assert width_high["status"] == "deferred_separate_workstream"
+    assert "TF-RD-021B" in " ".join([width_high["next_action"], *width_high["notes"]]) or "successor replay" in width_high["next_action"]
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
@@ -163,9 +171,9 @@ def test_tf_rd_021a_sandwich_nanotabpfn_screen_v1_matrix_records_the_blocked_fol
     assert ANCHOR_RUN_ID in matrix
     assert "Perceiver" in matrix
     assert "cls_benchmark_sandwich_prior" in matrix
-    assert "blocked_on_latent_screen" in matrix
+    assert "deferred_separate_workstream" in matrix
     assert "delta_tf_rd_021a_sandwich_latents24_v1" in matrix
     assert "delta_tf_rd_021a_sandwich_latents96_v1" in matrix
     assert "delta_tf_rd_021a_sandwich_width128_latents48_v1" in matrix
     assert "delta_tf_rd_021a_sandwich_width128_latents96_v1" in matrix
-    assert "rows `01` through `03`" in matrix
+    assert "underperformed the locked staged anchor badly enough" in matrix

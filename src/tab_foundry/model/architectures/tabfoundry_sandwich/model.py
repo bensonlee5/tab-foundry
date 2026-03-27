@@ -1,4 +1,4 @@
-"""Fixed-latent repeated-input Perceiver-style sandwich classifier."""
+"""Hybrid full-cell / summary-stream Perceiver-style sandwich classifier."""
 
 from __future__ import annotations
 
@@ -22,8 +22,6 @@ from tab_foundry.model.components.tabular_primitives import (
 )
 from tab_foundry.model.outputs import ClassificationOutput, flatten_classification_output_rows
 from tab_foundry.model.spec import (
-    DEFAULT_MODEL_D_ICL,
-    DEFAULT_MODEL_HEAD_HIDDEN_DIM,
     DEFAULT_MODEL_INPUT_NORMALIZATION,
     DEFAULT_MODEL_MANY_CLASS_BASE,
     DEFAULT_MODEL_NORM_TYPE,
@@ -32,6 +30,12 @@ from tab_foundry.model.spec import (
     DEFAULT_MODEL_SANDWICH_HEADS,
     DEFAULT_MODEL_SANDWICH_LATENTS,
     DEFAULT_MODEL_SANDWICH_LAYERS,
+    DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
+    DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS,
+    DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS,
+    DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS,
+    DEFAULT_SANDWICH_MODEL_D_ICL,
+    DEFAULT_SANDWICH_MODEL_HEAD_HIDDEN_DIM,
     ModelBuildSpec,
 )
 from tab_foundry.types import TaskBatch
@@ -41,6 +45,7 @@ _BATCHED_TASK_RANK = 3
 _MIN_CLASS_COUNT = 2
 _ROW_SUMMARY_TOKEN_ID = 0
 _COLUMN_SUMMARY_TOKEN_ID = 1
+_CELL_TOKEN_ID = 2
 _TRAIN_ROLE_ID = 0
 _TEST_ROLE_ID = 1
 _FEATURE_TYPE_TO_ID = {name: index for index, name in enumerate(FEATURE_TYPE_VOCAB)}
@@ -128,7 +133,7 @@ class _SelfAttentionBlock(nn.Module):
 
 
 class _PerceiverStage(nn.Module):
-    """One unshared Perceiver stage: input read, then latent self-attention."""
+    """One unshared Perceiver stage: input read, then repeated latent self-attention."""
 
     def __init__(
         self,
@@ -137,6 +142,7 @@ class _PerceiverStage(nn.Module):
         n_heads: int,
         ff_expansion: int,
         norm_type: str,
+        self_attention_per_cross: int,
     ) -> None:
         super().__init__()
         self.input_read = _CrossAttentionBlock(
@@ -145,30 +151,39 @@ class _PerceiverStage(nn.Module):
             ff_expansion=ff_expansion,
             norm_type=norm_type,
         )
-        self.latent_block = _SelfAttentionBlock(
-            embedding_size=embedding_size,
-            n_heads=n_heads,
-            ff_expansion=ff_expansion,
-            norm_type=norm_type,
+        self.self_blocks = nn.ModuleList(
+            [
+                _SelfAttentionBlock(
+                    embedding_size=embedding_size,
+                    n_heads=n_heads,
+                    ff_expansion=ff_expansion,
+                    norm_type=norm_type,
+                )
+                for _ in range(self_attention_per_cross)
+            ]
         )
 
 
 class TabFoundrySandwichClassifier(nn.Module):
-    """Small-class fixed-latent repeated-input Perceiver-style classifier."""
+    """Small-class hybrid full-cell / summary-stream Perceiver-style classifier."""
 
     def __init__(
         self,
         *,
-        d_icl: int = DEFAULT_MODEL_D_ICL,
+        d_icl: int = DEFAULT_SANDWICH_MODEL_D_ICL,
         input_normalization: str = DEFAULT_MODEL_INPUT_NORMALIZATION,
         many_class_base: int = DEFAULT_MODEL_MANY_CLASS_BASE,
         norm_type: str = DEFAULT_MODEL_NORM_TYPE,
-        head_hidden_dim: int = DEFAULT_MODEL_HEAD_HIDDEN_DIM,
+        head_hidden_dim: int = DEFAULT_SANDWICH_MODEL_HEAD_HIDDEN_DIM,
         pre_encoder_clip: float | None = DEFAULT_MODEL_PRE_ENCODER_CLIP,
         sandwich_latents: int = DEFAULT_MODEL_SANDWICH_LATENTS,
         sandwich_layers: int = DEFAULT_MODEL_SANDWICH_LAYERS,
         sandwich_heads: int = DEFAULT_MODEL_SANDWICH_HEADS,
         sandwich_ff_expansion: int = DEFAULT_MODEL_SANDWICH_FF_EXPANSION,
+        sandwich_summary_tokens_per_axis: int = DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS,
+        sandwich_self_attention_per_cross: int = DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS,
+        sandwich_pre_row_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS,
+        sandwich_pre_column_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
@@ -184,6 +199,10 @@ class TabFoundrySandwichClassifier(nn.Module):
             sandwich_layers=sandwich_layers,
             sandwich_heads=sandwich_heads,
             sandwich_ff_expansion=sandwich_ff_expansion,
+            sandwich_summary_tokens_per_axis=sandwich_summary_tokens_per_axis,
+            sandwich_self_attention_per_cross=sandwich_self_attention_per_cross,
+            sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
+            sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
         )
         self.arch = "tabfoundry_sandwich"
         self.d_icl = int(self.model_spec.d_icl)
@@ -196,6 +215,10 @@ class TabFoundrySandwichClassifier(nn.Module):
         self.sandwich_layers = int(self.model_spec.sandwich_layers)
         self.sandwich_heads = int(self.model_spec.sandwich_heads)
         self.sandwich_ff_expansion = int(self.model_spec.sandwich_ff_expansion)
+        self.summary_tokens_per_axis = int(self.model_spec.sandwich_summary_tokens_per_axis)
+        self.self_attention_per_cross = int(self.model_spec.sandwich_self_attention_per_cross)
+        self.pre_row_attention_layers = int(self.model_spec.sandwich_pre_row_attention_layers)
+        self.pre_column_attention_layers = int(self.model_spec.sandwich_pre_column_attention_layers)
         if self.norm_type != "layernorm":
             raise ValueError(
                 "tabfoundry_sandwich currently requires norm_type='layernorm', "
@@ -207,8 +230,12 @@ class TabFoundrySandwichClassifier(nn.Module):
             embedding_size=self.d_icl,
         )
         self.feature_type_embedding = nn.Embedding(len(FEATURE_TYPE_VOCAB), self.d_icl)
-        self.row_summary_query = nn.Parameter(torch.randn(1, 1, self.d_icl) * 0.02)
-        self.column_summary_query = nn.Parameter(torch.randn(1, 1, self.d_icl) * 0.02)
+        self.row_summary_query = nn.Parameter(
+            torch.randn(1, self.summary_tokens_per_axis, self.d_icl) * 0.02
+        )
+        self.column_summary_query = nn.Parameter(
+            torch.randn(1, self.summary_tokens_per_axis, self.d_icl) * 0.02
+        )
         self.row_summary_builder = _CrossAttentionBlock(
             embedding_size=self.d_icl,
             n_heads=self.sandwich_heads,
@@ -221,7 +248,29 @@ class TabFoundrySandwichClassifier(nn.Module):
             ff_expansion=self.sandwich_ff_expansion,
             norm_type=self.norm_type,
         )
-        self.byte_token_type = nn.Embedding(2, self.d_icl)
+        self.pre_row_attention_blocks = nn.ModuleList(
+            [
+                _SelfAttentionBlock(
+                    embedding_size=self.d_icl,
+                    n_heads=self.sandwich_heads,
+                    ff_expansion=self.sandwich_ff_expansion,
+                    norm_type=self.norm_type,
+                )
+                for _ in range(self.pre_row_attention_layers)
+            ]
+        )
+        self.pre_column_attention_blocks = nn.ModuleList(
+            [
+                _SelfAttentionBlock(
+                    embedding_size=self.d_icl,
+                    n_heads=self.sandwich_heads,
+                    ff_expansion=self.sandwich_ff_expansion,
+                    norm_type=self.norm_type,
+                )
+                for _ in range(self.pre_column_attention_layers)
+            ]
+        )
+        self.token_type_embedding = nn.Embedding(3, self.d_icl)
         self.y_conditioner = LabelTokenTargetConditioner(self.many_class_base, self.d_icl)
         self.y_role_embedding = nn.Embedding(2, self.d_icl)
         self.latent_seed = nn.Parameter(torch.empty(1, self.sandwich_latents, self.d_icl))
@@ -233,11 +282,18 @@ class TabFoundrySandwichClassifier(nn.Module):
                     n_heads=self.sandwich_heads,
                     ff_expansion=self.sandwich_ff_expansion,
                     norm_type=self.norm_type,
+                    self_attention_per_cross=self.self_attention_per_cross,
                 )
                 for _ in range(self.sandwich_layers)
             ]
         )
-        self.test_readout = _CrossAttentionBlock(
+        self.latent_readout = _CrossAttentionBlock(
+            embedding_size=self.d_icl,
+            n_heads=self.sandwich_heads,
+            ff_expansion=self.sandwich_ff_expansion,
+            norm_type=self.norm_type,
+        )
+        self.cell_readout = _CrossAttentionBlock(
             embedding_size=self.d_icl,
             n_heads=self.sandwich_heads,
             ff_expansion=self.sandwich_ff_expansion,
@@ -553,7 +609,24 @@ class TabFoundrySandwichClassifier(nn.Module):
         feature_type_embed = feature_type_embed.to(dtype=feature_cells.dtype)
         feature_cells = feature_cells + row_pos + col_pos + feature_type_embed
         self.trace_activation("post_cell_encoding", feature_cells)
-        return feature_cells
+        return self._pre_perceiver_cell_mixer(feature_cells)
+
+    @staticmethod
+    def _role_ids(
+        *,
+        batch_size: int,
+        num_rows: int,
+        num_train_rows: int,
+        device: torch.device,
+    ) -> torch.Tensor:
+        role_ids = torch.full(
+            (batch_size, num_rows),
+            _TRAIN_ROLE_ID,
+            device=device,
+            dtype=torch.int64,
+        )
+        role_ids[:, num_train_rows:] = _TEST_ROLE_ID
+        return role_ids
 
     def _cross_block(
         self,
@@ -576,6 +649,51 @@ class TabFoundrySandwichClassifier(nn.Module):
 
         return self._apply_activation_checkpoint(_apply, hidden)
 
+    def _row_feature_self_attention(
+        self,
+        block: _SelfAttentionBlock,
+        feature_cells: torch.Tensor,
+    ) -> torch.Tensor:
+        batch_size, num_rows, num_features, embedding_size = (
+            int(feature_cells.shape[0]),
+            int(feature_cells.shape[1]),
+            int(feature_cells.shape[2]),
+            int(feature_cells.shape[3]),
+        )
+        row_major = feature_cells.reshape(batch_size * num_rows, num_features, embedding_size)
+        mixed = self._self_block(block, row_major)
+        return mixed.reshape(batch_size, num_rows, num_features, embedding_size)
+
+    def _column_row_self_attention(
+        self,
+        block: _SelfAttentionBlock,
+        feature_cells: torch.Tensor,
+    ) -> torch.Tensor:
+        batch_size, num_rows, num_features, embedding_size = (
+            int(feature_cells.shape[0]),
+            int(feature_cells.shape[1]),
+            int(feature_cells.shape[2]),
+            int(feature_cells.shape[3]),
+        )
+        column_major = feature_cells.transpose(1, 2).contiguous()
+        column_major = column_major.reshape(batch_size * num_features, num_rows, embedding_size)
+        mixed = self._self_block(block, column_major)
+        mixed = mixed.reshape(batch_size, num_features, num_rows, embedding_size)
+        return mixed.transpose(1, 2).contiguous()
+
+    def _pre_perceiver_cell_mixer(self, feature_cells: torch.Tensor) -> torch.Tensor:
+        mixed_cells = feature_cells
+        for index, block in enumerate(self.pre_row_attention_blocks):
+            block = cast(_SelfAttentionBlock, block)
+            mixed_cells = self._row_feature_self_attention(block, mixed_cells)
+            self.trace_activation(f"post_pre_row_attention_{index}", mixed_cells)
+        for index, block in enumerate(self.pre_column_attention_blocks):
+            block = cast(_SelfAttentionBlock, block)
+            mixed_cells = self._column_row_self_attention(block, mixed_cells)
+            self.trace_activation(f"post_pre_column_attention_{index}", mixed_cells)
+        self.trace_activation("post_pre_perceiver_cells", mixed_cells)
+        return mixed_cells
+
     def _summary_query_attention(
         self,
         block: _CrossAttentionBlock,
@@ -590,13 +708,14 @@ class TabFoundrySandwichClassifier(nn.Module):
             int(key_value.shape[2]),
             int(key_value.shape[3]),
         )
+        query_count = int(query.shape[1])
         flat_kv = key_value.reshape(batch_size * outer_count, inner_count, embedding_size)
         flat_query = query.expand(batch_size * outer_count, -1, -1).to(
             device=key_value.device,
             dtype=key_value.dtype,
         )
         summaries = self._cross_block(block, flat_query, flat_kv)
-        return summaries.squeeze(1).reshape(batch_size, outer_count, embedding_size)
+        return summaries.reshape(batch_size, outer_count, query_count, embedding_size)
 
     def _row_summary_bytes(self, feature_cells: torch.Tensor) -> torch.Tensor:
         summaries = self._summary_query_attention(
@@ -619,29 +738,6 @@ class TabFoundrySandwichClassifier(nn.Module):
         self.trace_activation("post_column_summary", summaries)
         return summaries
 
-    def _x_byte_array_tokens(self, feature_cells: torch.Tensor) -> torch.Tensor:
-        row_summaries = self._row_summary_bytes(feature_cells)
-        column_summaries = self._column_summary_bytes(feature_cells)
-        row_type_ids = torch.full(
-            row_summaries.shape[:2],
-            _ROW_SUMMARY_TOKEN_ID,
-            device=row_summaries.device,
-            dtype=torch.int64,
-        )
-        col_type_ids = torch.full(
-            column_summaries.shape[:2],
-            _COLUMN_SUMMARY_TOKEN_ID,
-            device=column_summaries.device,
-            dtype=torch.int64,
-        )
-        row_tokens = row_summaries + self.byte_token_type(row_type_ids).to(dtype=row_summaries.dtype)
-        column_tokens = column_summaries + self.byte_token_type(col_type_ids).to(
-            dtype=column_summaries.dtype
-        )
-        byte_tokens = torch.cat([row_tokens, column_tokens], dim=1)
-        self.trace_activation("post_x_byte_array", byte_tokens)
-        return byte_tokens
-
     def _row_summary_tokens(
         self,
         *,
@@ -655,43 +751,84 @@ class TabFoundrySandwichClassifier(nn.Module):
         )
         row_pos = self._fourier_positions(
             num_positions=num_rows,
-            embedding_size=int(row_summaries.shape[2]),
+            embedding_size=int(row_summaries.shape[3]),
             device=row_summaries.device,
             dtype=row_summaries.dtype,
         )
-        role_ids = torch.full(
-            row_summaries.shape[:2],
-            _TRAIN_ROLE_ID,
+        role_ids = self._role_ids(
+            batch_size=int(row_summaries.shape[0]),
+            num_rows=num_rows,
+            num_train_rows=int(y_train.shape[1]),
             device=row_summaries.device,
-            dtype=torch.int64,
         )
-        role_ids[:, int(y_train.shape[1]) :] = _TEST_ROLE_ID
         role_embed = self.y_role_embedding(role_ids).to(dtype=row_summaries.dtype)
-        token_type_ids = torch.full(
-            row_summaries.shape[:2],
-            _ROW_SUMMARY_TOKEN_ID,
-            device=row_summaries.device,
-            dtype=torch.int64,
+        token_type = self.token_type_embedding.weight[_ROW_SUMMARY_TOKEN_ID].to(
+            dtype=row_summaries.dtype
         )
-        token_type = self.byte_token_type(token_type_ids).to(dtype=row_summaries.dtype)
-        tokens = row_summaries + conditioned + row_pos + role_embed + token_type
-        self.trace_activation("post_row_summary_tokens", tokens)
-        return tokens
+        tokens = (
+            row_summaries
+            + conditioned.unsqueeze(2)
+            + row_pos.unsqueeze(2)
+            + role_embed.unsqueeze(2)
+            + token_type.view(1, 1, 1, -1)
+        )
+        flattened_tokens = tokens.reshape(
+            int(tokens.shape[0]),
+            num_rows * self.summary_tokens_per_axis,
+            int(tokens.shape[3]),
+        )
+        self.trace_activation("post_row_summary_tokens", flattened_tokens)
+        return flattened_tokens
 
     def _column_summary_tokens(self, feature_cells: torch.Tensor) -> torch.Tensor:
         column_summaries = self._column_summary_bytes(feature_cells)
-        token_type_ids = torch.full(
-            column_summaries.shape[:2],
-            _COLUMN_SUMMARY_TOKEN_ID,
-            device=column_summaries.device,
-            dtype=torch.int64,
+        token_type = self.token_type_embedding.weight[_COLUMN_SUMMARY_TOKEN_ID].to(
+            dtype=column_summaries.dtype
         )
-        token_type = self.byte_token_type(token_type_ids).to(dtype=column_summaries.dtype)
-        tokens = column_summaries + token_type
-        self.trace_activation("post_column_summary_tokens", tokens)
-        return tokens
+        tokens = column_summaries + token_type.view(1, 1, 1, -1)
+        flattened_tokens = tokens.reshape(
+            int(tokens.shape[0]),
+            int(tokens.shape[1]) * self.summary_tokens_per_axis,
+            int(tokens.shape[3]),
+        )
+        self.trace_activation("post_column_summary_tokens", flattened_tokens)
+        return flattened_tokens
 
-    def _perceiver_input_tokens(
+    def _full_cell_tokens(
+        self,
+        feature_cells: torch.Tensor,
+        *,
+        y_train: torch.Tensor,
+    ) -> torch.Tensor:
+        batch_size, num_rows, num_features, _embedding_size = (
+            int(feature_cells.shape[0]),
+            int(feature_cells.shape[1]),
+            int(feature_cells.shape[2]),
+            int(feature_cells.shape[3]),
+        )
+        conditioned = self.y_conditioner(y_train, num_rows=num_rows).squeeze(2).to(
+            dtype=feature_cells.dtype
+        )
+        role_ids = self._role_ids(
+            batch_size=batch_size,
+            num_rows=num_rows,
+            num_train_rows=int(y_train.shape[1]),
+            device=feature_cells.device,
+        )
+        role_embed = self.y_role_embedding(role_ids).to(dtype=feature_cells.dtype)
+        token_type = self.token_type_embedding.weight[_CELL_TOKEN_ID].to(dtype=feature_cells.dtype)
+        full_cell_tokens = (
+            feature_cells
+            + conditioned.unsqueeze(2)
+            + role_embed.unsqueeze(2)
+            + token_type.view(1, 1, 1, -1)
+        )
+        self.trace_activation("post_full_cell_tokens", full_cell_tokens)
+        full_cell_stream = full_cell_tokens.reshape(batch_size, num_rows * num_features, self.d_icl)
+        self.trace_activation("post_full_cell_stream", full_cell_stream)
+        return full_cell_stream
+
+    def _summary_input_tokens(
         self,
         feature_cells: torch.Tensor,
         *,
@@ -699,9 +836,9 @@ class TabFoundrySandwichClassifier(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         row_tokens = self._row_summary_tokens(feature_cells=feature_cells, y_train=y_train)
         column_tokens = self._column_summary_tokens(feature_cells)
-        input_tokens = torch.cat([row_tokens, column_tokens], dim=1)
-        self.trace_activation("post_perceiver_input", input_tokens)
-        return input_tokens, row_tokens
+        summary_tokens = torch.cat([row_tokens, column_tokens], dim=1)
+        self.trace_activation("post_summary_input", summary_tokens)
+        return summary_tokens, row_tokens
 
     def _validate_num_classes(self, num_classes: int) -> None:
         if num_classes < _MIN_CLASS_COUNT:
@@ -728,17 +865,46 @@ class TabFoundrySandwichClassifier(nn.Module):
             train_test_split_index=train_test_split_index,
             feature_type_ids=feature_type_ids,
         )
-        perceiver_input, row_tokens = self._perceiver_input_tokens(feature_cells, y_train=y_train)
+        full_cell_stream = self._full_cell_tokens(feature_cells, y_train=y_train)
+        summary_input, row_tokens = self._summary_input_tokens(feature_cells, y_train=y_train)
+        initial_input = torch.cat([full_cell_stream, summary_input], dim=1)
+        self.trace_activation("post_perceiver_input", initial_input)
         latents = self.latent_seed.expand(int(x_all.shape[0]), -1, -1)
         for index, stage in enumerate(self.perceiver_stages):
             stage = cast(_PerceiverStage, stage)
-            latents = self._cross_block(stage.input_read, latents, perceiver_input)
+            key_value = initial_input if index == 0 else summary_input
+            latents = self._cross_block(stage.input_read, latents, key_value)
             self.trace_activation(f"post_stage_{index}_cross", latents)
-            latents = self._self_block(stage.latent_block, latents)
+            for self_index, self_block in enumerate(stage.self_blocks):
+                self_block = cast(_SelfAttentionBlock, self_block)
+                latents = self._self_block(self_block, latents)
+                self.trace_activation(f"post_stage_{index}_self_{self_index}", latents)
             self.trace_activation(f"post_stage_{index}_self", latents)
-        test_queries = row_tokens[:, train_test_split_index:, :]
-        test_rows = self._cross_block(self.test_readout, test_queries, latents)
+        batch_size = int(x_all.shape[0])
+        num_rows = int(feature_cells.shape[1])
+        num_test_rows = num_rows - train_test_split_index
+        row_token_grid = row_tokens.reshape(
+            batch_size,
+            num_rows,
+            self.summary_tokens_per_axis,
+            self.d_icl,
+        )
+        test_queries = row_token_grid[:, train_test_split_index:, :, :].reshape(
+            batch_size,
+            num_test_rows * self.summary_tokens_per_axis,
+            self.d_icl,
+        )
+        test_rows = self._cross_block(self.latent_readout, test_queries, latents)
+        self.trace_activation("post_latent_readout", test_rows)
+        test_rows = self._cross_block(self.cell_readout, test_rows, full_cell_stream)
         self.trace_activation("post_test_readout", test_rows)
+        test_rows = test_rows.reshape(
+            batch_size,
+            num_test_rows,
+            self.summary_tokens_per_axis,
+            self.d_icl,
+        ).mean(dim=2)
+        self.trace_activation("post_test_row_pool", test_rows)
         return self.direct_head(test_rows)
 
     def forward_batched(

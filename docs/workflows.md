@@ -328,8 +328,9 @@ input, while `bench compare` uses `--nanotabpfn-prior-dump` because that flag
 only matters when the nanoTabPFN comparator is selected. Plain `tab-foundry train run ...` commands use the manifest-backed surface, typically via
 `data.corpus_ref` and optionally via a direct `data.manifest_path` override.
 Prior-dump batches must also be rectangular in feature width; mixed
-`num_features` batches now fail early instead of relying on padded feature
-columns inside one optimizer step.
+`num_features` batches now preserve the legacy nanoTabPFN padded-batch
+behavior, so smaller-width tasks can share one optimizer step with wider tasks
+without regenerating the dump.
 
 Use the queue row plus `reference/system_delta_campaign_template.md` to decide
 the staged labels, any bounded module overrides, and the research-package paths

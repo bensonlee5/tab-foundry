@@ -280,8 +280,13 @@ def test_tabfoundry_sandwich_doc_covers_current_surface() -> None:
     )
 
     required_statements = [
-        "`tabfoundry_sandwich` is a fixed-latent repeated-input",
-        "`R + C`",
+        "`tabfoundry_sandwich` is a fixed-latent hybrid full-cell / summary-stream",
+        "`R * C`",
+        "`K * (R + C)`",
+        "stage `0`",
+        "latent-then-full-cell",
+        "per-row self-attention",
+        "per-column self-attention",
         "`model.arch`",
         "`d_icl`",
         "`input_normalization`",
@@ -293,6 +298,10 @@ def test_tabfoundry_sandwich_doc_covers_current_surface() -> None:
         "`sandwich_layers`",
         "`sandwich_heads`",
         "`sandwich_ff_expansion`",
+        "`sandwich_summary_tokens_per_axis`",
+        "`sandwich_self_attention_per_cross`",
+        "`sandwich_pre_row_attention_layers`",
+        "`sandwich_pre_column_attention_layers`",
         "`TaskBatch.metadata[\"feature_types\"]`",
         "`run_reference_consumer(..., feature_types=[...])`",
         "`forward_batched(..., feature_types=[...])`",

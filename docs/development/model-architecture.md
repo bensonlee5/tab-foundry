@@ -5,7 +5,8 @@ active architecture target, and where the main subsystems live.
 
 The repo now has one primary architecture candidate:
 
-- `tabfoundry_sandwich`: the fixed-latent repeated-input Perceiver-style
+- `tabfoundry_sandwich`: the fixed-latent hybrid full-cell / summary-stream
+  Perceiver-style
   classifier used for new architecture iteration
 
 It also keeps one incumbent reference family:
@@ -59,9 +60,12 @@ If you want repo orientation first, use
 Two model families matter for day-to-day development:
 
 - `tabfoundry_sandwich` is the primary architecture-candidate line.
-  It is a fixed-latent repeated-input Perceiver-style encoder with one learned
-  latent bank, an `R + C` row/column summary stream, repeated cross-attention
-  reads plus latent Transformer stages, and test-row readout. Use
+  It is a fixed-latent hybrid full-cell / summary-stream Perceiver-style
+  encoder with one learned latent bank, an axial row/column pre-Perceiver cell
+  mixer, a stage-`0` full-cell-plus-summary read, later repeated cross-attention
+  reads over the compact `K * (R + C)` row/column summary stream, configurable
+  latent self-attention depth between cross-reads, and latent-then-cell
+  test-row readout. Use
   [docs/development/tabfoundry-sandwich.md](tabfoundry-sandwich.md) for the
   dedicated breakdown.
 - `tabfoundry_staged` remains the incumbent reference line.

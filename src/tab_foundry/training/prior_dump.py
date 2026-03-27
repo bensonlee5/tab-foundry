@@ -11,7 +11,7 @@ from typing import Literal, cast
 import numpy as np
 import torch
 
-from tab_foundry.feature_types import normalize_feature_types
+from tab_foundry.feature_types import DEFAULT_FEATURE_TYPE, normalize_feature_types
 from tab_foundry.types import TaskBatch
 
 
@@ -138,6 +138,49 @@ def _advance_pointer(pointer: int, *, batch_size: int, dataset_count: int) -> in
     return next_pointer
 
 
+def _materialize_legacy_feature_types_dataset(path: Path) -> bool:
+    """Add explicit all-floating feature types to a legacy numeric-only prior dump."""
+
+    import h5py
+
+    resolved_path = path.expanduser().resolve()
+    with h5py.File(resolved_path, "r+") as handle:
+        if handle.get("feature_types") is not None:
+            return False
+        x_ds = handle["X"]
+        if len(x_ds.shape) != 3:
+            raise RuntimeError(
+                "prior dump X dataset must have shape [dataset_count, max_num_datapoints, max_num_features], "
+                f"got {tuple(int(dim) for dim in x_ds.shape)}"
+            )
+        dataset_count = int(x_ds.shape[0])
+        max_num_features = int(x_ds.shape[2])
+        if dataset_count <= 0:
+            raise RuntimeError("cannot materialize feature_types for an empty prior dump")
+        if max_num_features <= 0:
+            raise RuntimeError(
+                "cannot materialize feature_types for a prior dump with max_num_features <= 0"
+            )
+
+        string_dtype = h5py.string_dtype(encoding="utf-8")
+        chunk_rows = min(dataset_count, 4096)
+        feature_types_ds = handle.create_dataset(
+            "feature_types",
+            shape=(dataset_count, max_num_features),
+            dtype=string_dtype,
+            chunks=(chunk_rows, max_num_features),
+        )
+        template = np.full(
+            (chunk_rows, max_num_features),
+            DEFAULT_FEATURE_TYPE,
+            dtype=object,
+        )
+        for start in range(0, dataset_count, chunk_rows):
+            end = min(start + chunk_rows, dataset_count)
+            feature_types_ds[start:end, :] = template[: end - start]
+    return True
+
+
 class PriorDumpTaskBatchReader:
     """Iterate a nanoTabPFN prior dump with the notebook's batching semantics."""
 
@@ -169,6 +212,14 @@ class PriorDumpTaskBatchReader:
 
         if not self.path.exists():
             raise RuntimeError(f"prior dump does not exist: {self.path}")
+        if self.require_feature_types:
+            materialized = _materialize_legacy_feature_types_dataset(self.path)
+            if materialized:
+                print(
+                    "[prior_dump] materialized explicit feature_types for legacy dump",
+                    f"path={self.path}",
+                    flush=True,
+                )
         pointer = 0
         with h5py.File(self.path, "r") as handle:
             raw_max_classes = np.asarray(handle["max_num_classes"]).reshape(-1)
@@ -217,12 +268,6 @@ class PriorDumpTaskBatchReader:
                 split_values = np.asarray(split_ds[pointer:end], dtype=np.int64)
                 if split_values.size == 0:
                     raise RuntimeError("prior dump batch is empty")
-                batch_feature_widths = [int(value) for value in num_features.tolist()]
-                if len(set(batch_feature_widths)) != 1:
-                    raise RuntimeError(
-                        "prior dump batches must use one shared num_features value across the batch: "
-                        f"dataset_indices={batch_dataset_indices}, num_features={batch_feature_widths}"
-                    )
                 first_split = int(split_values[0])
                 max_num_features = int(num_features.max())
                 max_num_datapoints = int(num_datapoints.max())

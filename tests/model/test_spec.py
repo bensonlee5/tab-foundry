@@ -62,9 +62,23 @@ def test_build_model_supports_tabfoundry_sandwich_classification() -> None:
         sandwich_layers=2,
         sandwich_heads=4,
         sandwich_ff_expansion=2,
+        sandwich_summary_tokens_per_axis=4,
+        sandwich_self_attention_per_cross=4,
     )
 
     assert isinstance(model, TabFoundrySandwichClassifier)
+
+
+def test_sandwich_constructor_defaults_match_factory_defaults() -> None:
+    constructor_model = TabFoundrySandwichClassifier()
+    factory_model = build_model(task="classification", arch="tabfoundry_sandwich")
+
+    constructor_params = sum(int(parameter.numel()) for parameter in constructor_model.parameters())
+    factory_params = sum(int(parameter.numel()) for parameter in factory_model.parameters())
+
+    assert constructor_model.model_spec == factory_model.model_spec
+    assert constructor_params == factory_params
+    assert 450_000 <= constructor_params <= 550_000
 
 
 def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
@@ -73,9 +87,61 @@ def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
         primary={"arch": "tabfoundry_sandwich"},
     )
 
-    assert spec.d_icl == 96
-    assert spec.head_hidden_dim == 128
-    assert spec.sandwich_latents == 48
+    assert spec.d_icl == 60
+    assert spec.head_hidden_dim == 96
+    assert spec.sandwich_latents == 24
+    assert spec.sandwich_summary_tokens_per_axis == 4
+    assert spec.sandwich_self_attention_per_cross == 4
+    assert spec.sandwich_pre_row_attention_layers == 1
+    assert spec.sandwich_pre_column_attention_layers == 1
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "sandwich_self_attention_per_cross",
+        "sandwich_pre_row_attention_layers",
+        "sandwich_pre_column_attention_layers",
+    ),
+)
+def test_sandwich_model_spec_allows_zero_repeat_count_fields(field_name: str) -> None:
+    spec = model_build_spec_from_mappings(
+        task="classification",
+        primary={"arch": "tabfoundry_sandwich", field_name: 0},
+    )
+
+    assert getattr(spec, field_name) == 0
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "sandwich_self_attention_per_cross",
+        "sandwich_pre_row_attention_layers",
+        "sandwich_pre_column_attention_layers",
+    ),
+)
+def test_sandwich_model_spec_rejects_negative_repeat_count_fields(field_name: str) -> None:
+    with pytest.raises(ValueError, match=field_name):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={"arch": "tabfoundry_sandwich", field_name: -1},
+        )
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    (
+        "sandwich_layers",
+        "sandwich_summary_tokens_per_axis",
+    ),
+)
+def test_sandwich_model_spec_requires_positive_core_counts(field_name: str) -> None:
+    with pytest.raises(ValueError, match=field_name):
+        _ = model_build_spec_from_mappings(
+            task="classification",
+            primary={"arch": "tabfoundry_sandwich", field_name: 0},
+        )
 
 
 def test_sandwich_model_spec_rejects_legacy_dual_bank_fields() -> None:

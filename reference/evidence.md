@@ -31,7 +31,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - [`TF-RD-021`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
   steering-derived corpus-front evidence and conditional Muon retry framing
 - [`TF-RD-021A`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
-  fixed-latent sandwich candidate note and immediate nanoTabPFN screen
+  fixed-latent sandwich candidate note and closed immediate nanoTabPFN screen
+- [`TF-RD-021B`](roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md):
+  hybrid full-cell sandwich successor note and locked-prior replay handoff
 - [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
   runtime and VRAM efficiency evidence plus the measured-policy handoff
 - [`TF-RD-019`](roadmap_evidence/tf_rd_019_dagzoo_filtering_policy.md):
@@ -296,18 +298,36 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     latent bottlenecks, set-style aggregation, and train-conditioned tabular
     reads as relevant design space
 - Repo-local evidence:
-  - `model.arch=tabfoundry_sandwich` now exists as a fixed-latent `y` /
-    byte-array `x` architecture
+  - `model.arch=tabfoundry_sandwich` now exists as a sandwich architecture
+    family and TF-RD-021A is now closed as negative evidence for the earlier
+    summary-bottleneck replay
   - issue `#174` records the implementation landing
   - issue `#178` now owns long-running sandwich stabilization and iteration
-  - issue `#179` now owns the immediate nanoTabPFN latent-count and width
-    screen
+  - issue `#179` owned the immediate nanoTabPFN latent-count and width screen
+    and now closes on row `01` as stable-but-underpowered evidence
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md`
 - Success signal:
-  - the repo records one explicit nanoTabPFN latent/width shortlist for the
-    next sandwich follow-on ticket without bundling the whole future sandwich
-    program into one issue
+  - the repo records one explicit closeout for the summary-bottleneck replay
+    and leaves the abandoned latent/width ladder as deferred backlog rather
+    than pretending it is still the next execution target
+
+### TF-RD-021B: Hybrid Full-Cell Sandwich Successor And Locked Prior Replay
+
+- External evidence:
+  - PerceiverIO-style query readout and latent-bottleneck references justify
+    reopening the input and readout path after the summary-bottleneck replay
+    underfit
+- Repo-local evidence:
+  - successor issue `#181` now owns the first bounded replay for the hybrid
+    full-cell sandwich successor under umbrella issue `#178`
+  - `tabfoundry_sandwich` now uses a hybrid stage-`0` full-cell-plus-summary
+    read, later summary-only repeated stages, and latent-then-full-cell readout
+  - the canonical long-form note now lives in
+    `reference/roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md`
+- Success signal:
+  - the repo records one explicit locked-prior replay for the successor
+    topology before authoring any new latent-count or width sweep
 
 ### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
 

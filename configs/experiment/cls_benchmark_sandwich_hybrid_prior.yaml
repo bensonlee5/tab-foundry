@@ -1,13 +1,14 @@
 # @package _global_
 
 defaults:
-  - cls_workstation
+  - _shared/compact_binary_prior
   - _self_
 
 model:
   arch: tabfoundry_sandwich
   d_icl: 60
   input_normalization: train_zscore_clip
+  many_class_base: 2
   head_hidden_dim: 96
   sandwich_latents: 24
   sandwich_layers: 2
@@ -18,7 +19,7 @@ model:
   sandwich_pre_row_attention_layers: 1
   sandwich_pre_column_attention_layers: 1
 runtime:
-  output_dir: outputs/cls_workstation_sandwich
+  output_dir: outputs/cls_benchmark_sandwich_hybrid_prior
   trace_activations: false
 logging:
-  run_name: cls-workstation-sandwich
+  run_name: cls-benchmark-sandwich-hybrid-prior
