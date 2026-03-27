@@ -28,22 +28,22 @@ rows:
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
   benchmark_metrics:
-    best_step: 2500
-    max_grad_norm: 7.769802093505859
-    clipped_step_fraction: 0.0208
-    best_log_loss: 0.47596839096154164
-    final_log_loss: 0.47596839096154164
-    best_brier_score: 0.3133359759497346
-    final_brier_score: 0.3133359759497346
-    best_roc_auc: 0.7292290658157116
-    final_roc_auc: 0.7292290658157116
-    final_minus_best_log_loss: 0.0
-    final_minus_best_brier_score: 0.0
-    final_minus_best_roc_auc: 0.0
-    drift: 0.0
-    delta_final_log_loss: 0.008775541403117426
-    delta_final_brier_score: 0.006108110237328546
-    delta_final_roc_auc: -0.007812250325059833
+    best_step: 2475
+    max_grad_norm: 11.958600044250488
+    clipped_step_fraction: 0.0264
+    best_log_loss: 0.49504852724480647
+    final_log_loss: 0.49507251039676603
+    best_brier_score: 0.3293394653415733
+    final_brier_score: 0.32935042665770164
+    best_roc_auc: 0.7132824280719947
+    final_roc_auc: 0.714114465094275
+    final_minus_best_log_loss: 2.3983151959561244e-05
+    final_minus_best_brier_score: 1.0961316128321741e-05
+    final_minus_best_roc_auc: 0.0008320370222802964
+    drift: 0.0008320370222802964
+    delta_final_log_loss: 0.027879660838341813
+    delta_final_brier_score: 0.022122560945295577
+    delta_final_roc_auc: -0.022926851046496388
 - order: 2
   delta_ref: delta_tf_rd_021b_sandwich_layers1_v1
   status: completed
@@ -69,22 +69,22 @@ rows:
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
   benchmark_metrics:
-    best_step: 2475
-    max_grad_norm: 7.769802093505859
-    clipped_step_fraction: 0.0196
-    best_log_loss: 0.47145724190610283
-    final_log_loss: 0.4720781860602695
-    best_brier_score: 0.3100665087186579
-    final_brier_score: 0.31037076065845715
-    best_roc_auc: 0.7275117372702435
-    final_roc_auc: 0.7265149469538474
-    final_minus_best_log_loss: 0.0006209441541666916
-    final_minus_best_brier_score: 0.00030425193979927156
-    final_minus_best_roc_auc: -0.0009967903163961012
-    drift: -0.0009967903163961012
-    delta_final_log_loss: 0.0048853365018453054
-    delta_final_brier_score: 0.003142894946051078
-    delta_final_roc_auc: -0.010526369186923956
+    best_step: 2500
+    max_grad_norm: 11.958596229553223
+    clipped_step_fraction: 0.0268
+    best_log_loss: 0.4899806685011021
+    final_log_loss: 0.4899806685011021
+    best_brier_score: 0.326895567614965
+    final_brier_score: 0.326895567614965
+    best_roc_auc: 0.7058289252176846
+    final_roc_auc: 0.7058289252176846
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    delta_final_log_loss: 0.022787818942677895
+    delta_final_brier_score: 0.019667701902558954
+    delta_final_roc_auc: -0.031212390923086808
 - order: 3
   delta_ref: delta_tf_rd_021b_sandwich_heads2_v1
   status: completed
@@ -110,25 +110,25 @@ rows:
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
   benchmark_metrics:
-    best_step: 2475
-    max_grad_norm: 7.769802093505859
-    clipped_step_fraction: 0.0204
-    best_log_loss: 0.4641005577184546
-    final_log_loss: 0.4641354580264732
-    best_brier_score: 0.3052081746646626
-    final_brier_score: 0.30527027239519977
-    best_roc_auc: 0.7368819121156533
-    final_roc_auc: 0.7365775434169927
-    final_minus_best_log_loss: 3.490030801861499e-05
-    final_minus_best_brier_score: 6.209773053716949e-05
-    final_minus_best_roc_auc: -0.00030436869866068417
-    drift: -0.00030436869866068417
-    delta_final_log_loss: -0.0030573915319510037
-    delta_final_brier_score: -0.0019575933172062965
-    delta_final_roc_auc: -0.0004637727237787326
+    best_step: 1225
+    max_grad_norm: 11.958599090576172
+    clipped_step_fraction: 0.0268
+    best_log_loss: 0.4963505298403021
+    final_log_loss: 0.5113385189653243
+    best_brier_score: 0.3314050903765475
+    final_brier_score: 0.3432937482779434
+    best_roc_auc: 0.7029306856996088
+    final_roc_auc: 0.703528118444496
+    final_minus_best_log_loss: 0.01498798912502225
+    final_minus_best_brier_score: 0.011888657901395927
+    final_minus_best_roc_auc: 0.0005974327448872163
+    drift: 0.0005974327448872163
+    delta_final_log_loss: 0.04414566940690012
+    delta_final_brier_score: 0.03606588256553733
+    delta_final_roc_auc: -0.033513197696275365
 - order: 4
   delta_ref: delta_tf_rd_021b_sandwich_ffexp1_v1
-  status: ready
+  status: completed
   rationale: Determine whether the compact control gain is coming from architectural
     routing or from extra FF capacity in the latent trunk.
   hypothesis: If trunk MLP width is not the dominant factor here, reducing `sandwich_ff_expansion`
@@ -139,17 +139,37 @@ rows:
   - Keep latent count, stage count, and summary-token multiplicity fixed.
   - Compare directly against the compact control before carrying FF expansion into
     a later compound scaling recipe.
-  run_id: null
+  run_id: sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run as one factor in the first TF-RD-021B sandwich knob-sensitivity
     screen.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2500
+    max_grad_norm: 11.958599090576172
+    clipped_step_fraction: 0.0264
+    best_log_loss: 0.4767745362432967
+    final_log_loss: 0.4767745362432967
+    best_brier_score: 0.31591785391288635
+    final_brier_score: 0.31591785391288635
+    best_roc_auc: 0.7189900789573351
+    final_roc_auc: 0.7189900789573351
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    delta_final_log_loss: 0.00958168668487247
+    delta_final_brier_score: 0.00868998820048028
+    delta_final_roc_auc: -0.018051237183436264
 - order: 5
   delta_ref: delta_tf_rd_021b_sandwich_summarytokens1_v1
-  status: ready
+  status: completed
   rationale: Test whether the widened `K=4` row or column summary stream actually
     matters once stage `0` and the readout can already see the full cell stream.
   hypothesis: If most of the recovered signal comes from the raw-cell bypass, reducing
@@ -160,17 +180,37 @@ rows:
   - Keep the stage-`0` full-cell read and final cell-stream readout fixed.
   - Compare directly against the compact control before any larger summary-token ladder
     is considered.
-  run_id: null
+  run_id: sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run as one factor in the first TF-RD-021B sandwich knob-sensitivity
     screen.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 1750
+    max_grad_norm: 11.958595275878906
+    clipped_step_fraction: 0.0256
+    best_log_loss: 0.4787136886557959
+    final_log_loss: 0.4818764371963672
+    best_brier_score: 0.3157191563122761
+    final_brier_score: 0.3174777356168009
+    best_roc_auc: 0.7216028414585345
+    final_roc_auc: 0.7265350121881924
+    final_minus_best_log_loss: 0.003162748540571303
+    final_minus_best_brier_score: 0.0017585793045248321
+    final_minus_best_roc_auc: 0.004932170729657903
+    drift: 0.004932170729657903
+    delta_final_log_loss: 0.014683587637942974
+    delta_final_brier_score: 0.01024986990439486
+    delta_final_roc_auc: -0.01050630395257901
 - order: 6
   delta_ref: delta_tf_rd_021b_sandwich_selfattn1_v1
-  status: ready
+  status: completed
   rationale: Determine whether the compact control really needs four latent self-attention
     blocks between cross-attention segments.
   hypothesis: If the hybrid gain comes mostly from the structural bypasses rather
@@ -183,17 +223,37 @@ rows:
     depth.
   - Compare directly against the compact control before treating self-attention depth
     as a scaling axis.
-  run_id: null
+  run_id: sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run as one factor in the first TF-RD-021B sandwich knob-sensitivity
     screen.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2425
+    max_grad_norm: 11.958597183227539
+    clipped_step_fraction: 0.0268
+    best_log_loss: 0.4711650928595309
+    final_log_loss: 0.4727128238556707
+    best_brier_score: 0.31157885163405585
+    final_brier_score: 0.3128899348965017
+    best_roc_auc: 0.7238168750806043
+    final_roc_auc: 0.7216903179298895
+    final_minus_best_log_loss: 0.0015477309961398067
+    final_minus_best_brier_score: 0.0013110832624458335
+    final_minus_best_roc_auc: -0.0021265571507148584
+    drift: -0.0021265571507148584
+    delta_final_log_loss: 0.005519974297246488
+    delta_final_brier_score: 0.0056620691840956194
+    delta_final_roc_auc: -0.015350998210881928
 - order: 7
   delta_ref: delta_tf_rd_021b_sandwich_prerow0_v1
-  status: ready
+  status: completed
   rationale: Test whether the row-wise feature pre-mixer is carrying the gain or whether
     raw-cell access alone is doing most of the work.
   hypothesis: If stage `0` full-cell access is sufficient without extra row-wise feature
@@ -204,17 +264,37 @@ rows:
   parameter_adequacy_plan:
   - Keep the column-wise pre-mixer on so the ablation isolates row-wise feature mixing.
   - Compare directly against the compact control before adding deeper axial pre-mixers.
-  run_id: null
+  run_id: sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run as one factor in the first TF-RD-021B sandwich knob-sensitivity
     screen.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2475
+    max_grad_norm: 11.958596229553223
+    clipped_step_fraction: 0.0276
+    best_log_loss: 0.5012611134013718
+    final_log_loss: 0.5015670463175201
+    best_brier_score: 0.3365358028985906
+    final_brier_score: 0.33676927452085875
+    best_roc_auc: 0.7031519471353563
+    final_roc_auc: 0.7026880106931392
+    final_minus_best_log_loss: 0.0003059329161483326
+    final_minus_best_brier_score: 0.00023347162226816653
+    final_minus_best_roc_auc: -0.0004639364422170944
+    drift: -0.0004639364422170944
+    delta_final_log_loss: 0.03437419675909592
+    delta_final_brier_score: 0.029541408808452685
+    delta_final_roc_auc: -0.034353305447632154
 - order: 8
   delta_ref: delta_tf_rd_021b_sandwich_precol0_v1
-  status: ready
+  status: completed
   rationale: Test whether the column-wise row pre-mixer is necessary after the row-wise
     feature mixer and the stage-`0` full-cell read are already present.
   hypothesis: If the second axial pre-mixer is not materially useful, removing `sandwich_pre_column_attention_layers`
@@ -225,11 +305,31 @@ rows:
   - Keep the row-wise feature mixer on so the ablation isolates column-wise row mixing.
   - Compare directly against the compact control before deeper axial-mixer changes
     are considered.
-  run_id: null
+  run_id: sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
   next_action: Run as one factor in the first TF-RD-021B sandwich knob-sensitivity
     screen.
-  notes: []
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2375
+    max_grad_norm: 11.958597183227539
+    clipped_step_fraction: 0.0264
+    best_log_loss: 0.4885236032280929
+    final_log_loss: 0.49131665130757873
+    best_brier_score: 0.32543216308084405
+    final_brier_score: 0.3271769265871148
+    best_roc_auc: 0.7075386324113507
+    final_roc_auc: 0.7071000857520523
+    final_minus_best_log_loss: 0.002793048079485827
+    final_minus_best_brier_score: 0.00174476350627073
+    final_minus_best_roc_auc: -0.0004385466592984333
+    drift: -0.0004385466592984333
+    delta_final_log_loss: 0.024123801749154516
+    delta_final_brier_score: 0.019949060874708713
+    delta_final_roc_auc: -0.029941230388719098

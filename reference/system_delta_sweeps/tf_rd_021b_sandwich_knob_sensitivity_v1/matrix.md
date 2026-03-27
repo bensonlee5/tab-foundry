@@ -45,11 +45,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 | 1 | `delta_tf_rd_021b_sandwich_latents12_v1` | architecture_sensitivity | yes | completed | none | Halve the hybrid sandwich latent bank from 24 to 12 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
 | 2 | `delta_tf_rd_021b_sandwich_layers1_v1` | architecture_sensitivity | yes | completed | none | Reduce the hybrid sandwich repeated cross-attend stack from 2 stages to 1 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
 | 3 | `delta_tf_rd_021b_sandwich_heads2_v1` | architecture_sensitivity | yes | completed | none | Reduce hybrid sandwich attention heads from 4 to 2 while keeping width and all other compact-control settings fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
-| 4 | `delta_tf_rd_021b_sandwich_ffexp1_v1` | architecture_sensitivity | yes | ready | none | Reduce the hybrid sandwich feed-forward expansion from 2x to 1x while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
-| 5 | `delta_tf_rd_021b_sandwich_summarytokens1_v1` | architecture_sensitivity | yes | ready | none | Reduce row and column summary token multiplicity from 4 tokens per axis position to 1 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
-| 6 | `delta_tf_rd_021b_sandwich_selfattn1_v1` | architecture_sensitivity | yes | ready | none | Reduce latent self-attention refinement between cross-attention reads from 4 blocks to 1 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
-| 7 | `delta_tf_rd_021b_sandwich_prerow0_v1` | architecture_sensitivity | yes | ready | none | Remove the pre-Perceiver per-row feature self-attention mixer while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
-| 8 | `delta_tf_rd_021b_sandwich_precol0_v1` | architecture_sensitivity | yes | ready | none | Remove the pre-Perceiver per-column row self-attention mixer while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
+| 4 | `delta_tf_rd_021b_sandwich_ffexp1_v1` | architecture_sensitivity | yes | completed | none | Reduce the hybrid sandwich feed-forward expansion from 2x to 1x while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
+| 5 | `delta_tf_rd_021b_sandwich_summarytokens1_v1` | architecture_sensitivity | yes | completed | none | Reduce row and column summary token multiplicity from 4 tokens per axis position to 1 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
+| 6 | `delta_tf_rd_021b_sandwich_selfattn1_v1` | architecture_sensitivity | yes | completed | none | Reduce latent self-attention refinement between cross-attention reads from 4 blocks to 1 while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
+| 7 | `delta_tf_rd_021b_sandwich_prerow0_v1` | architecture_sensitivity | yes | completed | none | Remove the pre-Perceiver per-row feature self-attention mixer while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
+| 8 | `delta_tf_rd_021b_sandwich_precol0_v1` | architecture_sensitivity | yes | completed | none | Remove the pre-Perceiver per-column row self-attention mixer while keeping the compact control otherwise fixed. | Run as one factor in the first TF-RD-021B sandwich knob-sensitivity screen. |
 
 ## Detailed Rows
 
@@ -81,7 +81,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/result_card.md`
-- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1` with final log loss `0.4760`, delta final log loss `+0.0088`, final Brier score `0.3133`, delta final Brier score `+0.0061`, best ROC AUC `0.7292`, final ROC AUC `0.7292`, final-minus-best `+0.0000`, delta final ROC AUC `-0.0078`, delta drift `+0.0000`, delta final training time `-393.7s`
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1` with final log loss `0.4951`, delta final log loss `+0.0279`, final Brier score `0.3294`, delta final Brier score `+0.0221`, best ROC AUC `0.7133`, final ROC AUC `0.7141`, final-minus-best `+0.0008`, delta final ROC AUC `-0.0229`, delta drift `+0.0008`, delta final training time `-385.9s`
 
 ### 2. `delta_tf_rd_021b_sandwich_layers1_v1`
 
@@ -111,7 +111,7 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/result_card.md`
-- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1` with final log loss `0.4721`, delta final log loss `+0.0049`, final Brier score `0.3104`, delta final Brier score `+0.0031`, best ROC AUC `0.7275`, final ROC AUC `0.7265`, final-minus-best `-0.0010`, delta final ROC AUC `-0.0105`, delta drift `-0.0010`, delta final training time `-405.8s`
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1` with final log loss `0.4900`, delta final log loss `+0.0228`, final Brier score `0.3269`, delta final Brier score `+0.0197`, best ROC AUC `0.7058`, final ROC AUC `0.7058`, final-minus-best `+0.0000`, delta final ROC AUC `-0.0312`, delta drift `+0.0000`, delta final training time `-386.4s`
 
 ### 3. `delta_tf_rd_021b_sandwich_heads2_v1`
 
@@ -141,12 +141,12 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/result_card.md`
-- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1` with final log loss `0.4641`, delta final log loss `-0.0031`, final Brier score `0.3053`, delta final Brier score `-0.0020`, best ROC AUC `0.7369`, final ROC AUC `0.7366`, final-minus-best `-0.0003`, delta final ROC AUC `-0.0005`, delta drift `-0.0003`, delta final training time `-402.5s`
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1` with final log loss `0.5113`, delta final log loss `+0.0441`, final Brier score `0.3433`, delta final Brier score `+0.0361`, best ROC AUC `0.7029`, final ROC AUC `0.7035`, final-minus-best `+0.0006`, delta final ROC AUC `-0.0335`, delta drift `+0.0006`, delta final training time `-385.8s`
 
 ### 4. `delta_tf_rd_021b_sandwich_ffexp1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Reduce the hybrid sandwich feed-forward expansion from 2x to 1x while keeping the compact control otherwise fixed.
@@ -164,16 +164,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep latent count, stage count, and summary-token count fixed so this row isolates FF capacity.
   - Compare directly against the compact control before treating FF expansion as a live scaling axis.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1` with final log loss `0.4768`, delta final log loss `+0.0096`, final Brier score `0.3159`, delta final Brier score `+0.0087`, best ROC AUC `0.7190`, final ROC AUC `0.7190`, final-minus-best `+0.0000`, delta final ROC AUC `-0.0181`, delta drift `+0.0000`, delta final training time `-384.1s`
 
 ### 5. `delta_tf_rd_021b_sandwich_summarytokens1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Reduce row and column summary token multiplicity from 4 tokens per axis position to 1 while keeping the compact control otherwise fixed.
@@ -191,16 +194,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep the stage-0 full-cell path and final full-cell readout fixed.
   - Read this as summary-stream bandwidth sensitivity, not as a generic width ablation.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1` with final log loss `0.4819`, delta final log loss `+0.0147`, final Brier score `0.3175`, delta final Brier score `+0.0102`, best ROC AUC `0.7216`, final ROC AUC `0.7265`, final-minus-best `+0.0049`, delta final ROC AUC `-0.0105`, delta drift `+0.0049`, delta final training time `-385.1s`
 
 ### 6. `delta_tf_rd_021b_sandwich_selfattn1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Reduce latent self-attention refinement between cross-attention reads from 4 blocks to 1 while keeping the compact control otherwise fixed.
@@ -218,16 +224,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep stage count and latent count fixed so this row isolates self-refinement depth.
   - Compare directly against the compact control before turning self-attention depth into a future scaling axis.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1` with final log loss `0.4727`, delta final log loss `+0.0055`, final Brier score `0.3129`, delta final Brier score `+0.0057`, best ROC AUC `0.7238`, final ROC AUC `0.7217`, final-minus-best `-0.0021`, delta final ROC AUC `-0.0154`, delta drift `-0.0021`, delta final training time `-390.9s`
 
 ### 7. `delta_tf_rd_021b_sandwich_prerow0_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Remove the pre-Perceiver per-row feature self-attention mixer while keeping the compact control otherwise fixed.
@@ -245,16 +254,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep the column-wise pre-mixer on so the ablation isolates row-wise feature mixing.
   - Compare directly against the compact control before adding deeper axial pre-mixers.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1` with final log loss `0.5016`, delta final log loss `+0.0344`, final Brier score `0.3368`, delta final Brier score `+0.0295`, best ROC AUC `0.7032`, final ROC AUC `0.7027`, final-minus-best `-0.0005`, delta final ROC AUC `-0.0344`, delta drift `-0.0005`, delta final training time `-384.0s`
 
 ### 8. `delta_tf_rd_021b_sandwich_precol0_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Remove the pre-Perceiver per-column row self-attention mixer while keeping the compact control otherwise fixed.
@@ -272,8 +284,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep the row-wise feature mixer on so the ablation isolates column-wise row mixing.
   - Compare directly against the compact control before deeper axial-mixer changes are considered.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1` with final log loss `0.4913`, delta final log loss `+0.0241`, final Brier score `0.3272`, delta final Brier score `+0.0199`, best ROC AUC `0.7075`, final ROC AUC `0.7071`, final-minus-best `-0.0004`, delta final ROC AUC `-0.0299`, delta drift `-0.0004`, delta final training time `-387.5s`

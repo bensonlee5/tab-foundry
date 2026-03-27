@@ -3,65 +3,65 @@ sweep_id: tf_rd_021b_sandwich_width_capacity_sensitivity_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_021b_sandwich_dicl48_v1
-  status: blocked_on_knob_sensitivity
+  status: ready
   rationale: Use the smaller width bracket first to test whether the compact hybrid control is already wider than needed.
   hypothesis: If the compact control is width-overprovisioned, reducing `d_icl` from `60` to `48` should only weakly harm the final benchmark metrics.
   anchor_delta: Keep the compact hybrid control fixed and change only `d_icl` from `60` to `48` while holding `sandwich_heads=4` fixed.
   parameter_adequacy_plan:
-  - Execute only after the first sandwich-specific sensitivity screen is interpreted.
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
   - Compare directly against the locked compact control before any longer-budget power-curve work opens.
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-021B knob-sensitivity screen before executing this width-capacity follow-up.
+  next_action: Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up.
   notes: []
 - order: 2
   delta_ref: delta_tf_rd_021b_sandwich_dicl96_v1
-  status: blocked_on_knob_sensitivity
+  status: ready
   rationale: Use the larger width bracket to test whether the compact hybrid control is still width-limited.
   hypothesis: If trunk width is the first live post-topology capacity axis, increasing `d_icl` from `60` to `96` should improve benchmark fit enough to justify later power-curve work.
   anchor_delta: Keep the compact hybrid control fixed and change only `d_icl` from `60` to `96` while holding `sandwich_heads=4` fixed.
   parameter_adequacy_plan:
-  - Execute only after the first sandwich-specific sensitivity screen is interpreted.
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
   - Compare directly against the locked compact control before any multi-rung scaling program is authored.
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-021B knob-sensitivity screen before executing this width-capacity follow-up.
+  next_action: Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up.
   notes: []
 - order: 3
   delta_ref: delta_tf_rd_021b_sandwich_headhidden64_v1
-  status: blocked_on_knob_sensitivity
+  status: ready
   rationale: Use the smaller head-hidden bracket to test whether the compact control readout is overprovisioned relative to the trunk.
   hypothesis: If the trunk is the real bottleneck, reducing `head_hidden_dim` from `96` to `64` should only weakly harm the benchmark read.
   anchor_delta: Keep the compact hybrid control fixed and change only `head_hidden_dim` from `96` to `64`.
   parameter_adequacy_plan:
-  - Execute only after the first sandwich-specific sensitivity screen is interpreted.
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
   - Compare directly against the locked compact control before treating readout-head width as a scaling axis.
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-021B knob-sensitivity screen before executing this width-capacity follow-up.
+  next_action: Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up.
   notes: []
 - order: 4
   delta_ref: delta_tf_rd_021b_sandwich_headhidden128_v1
-  status: blocked_on_knob_sensitivity
+  status: ready
   rationale: Use the larger head-hidden bracket to test whether the compact control is readout-limited even if the trunk stays fixed.
   hypothesis: If the hybrid control is readout-limited, increasing `head_hidden_dim` from `96` to `128` should improve the final benchmark metrics without changing trunk width.
   anchor_delta: Keep the compact hybrid control fixed and change only `head_hidden_dim` from `96` to `128`.
   parameter_adequacy_plan:
-  - Execute only after the first sandwich-specific sensitivity screen is interpreted.
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
   - Compare directly against the locked compact control before the later sandwich-local power-curve phase opens.
   run_id: null
   followup_run_ids: []
   decision: null
-  interpretation_status: blocked
+  interpretation_status: pending
   confounders: []
-  next_action: Wait for the TF-RD-021B knob-sensitivity screen before executing this width-capacity follow-up.
+  next_action: Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up.
   notes: []
