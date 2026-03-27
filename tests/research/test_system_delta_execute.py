@@ -522,53 +522,24 @@ def test_select_queue_rows_requires_include_completed_for_explicit_screened_rows
         _ = select_queue_rows(queue, orders=[1])
 
 
-def test_execute_sweep_defaults_to_active_sweep_and_ready_rows(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
-    index = _load_yaml(paths.index_path)
-    index['active_sweep_id'] = sweep_id
-    _write_yaml(paths.index_path, index)
+def test_execute_sweep_requires_explicit_sweep_id(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    _sweep_id, paths, queue_path = _make_exec_sweep(tmp_path)
     queue = _load_yaml(queue_path)
     queue['rows'][0]['status'] = 'ready'
     queue['rows'][1]['status'] = 'completed'
     queue['rows'][1]['run_id'] = 'historical_run_v1'
     _write_yaml(queue_path, queue)
-
-    calls: list[dict[str, Any]] = []
-
-    def fake_run_row(**kwargs: Any) -> str:
-        calls.append(
-            {
-                'order': int(kwargs['queue_row']['order']),
-                'sweep_id': kwargs['sweep_id'],
-                'prior_dump': kwargs['prior_dump'],
-                'reuse_nanotabpfn_only': kwargs['reuse_nanotabpfn_only'],
-            }
-        )
-        return f"run_{kwargs['queue_row']['order']}"
-
-    monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
     monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
-    monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
-    executed = execute_sweep(
-        sweep_id=None,
-        prior_dump=None,
-        nanotabpfn_root=Path('/tmp/nanotabpfn'),
-        device='cuda',
-        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
-        paths=paths,
-    )
-
-    assert executed == ['run_1']
-    assert calls == [
-        {
-            'order': 1,
-            'sweep_id': sweep_id,
-            'prior_dump': None,
-            'reuse_nanotabpfn_only': False,
-        }
-    ]
+    with pytest.raises(RuntimeError, match='sweep_id is required'):
+        _ = execute_sweep(
+            sweep_id=None,
+            prior_dump=None,
+            nanotabpfn_root=Path('/tmp/nanotabpfn'),
+            device='cuda',
+            fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+            paths=paths,
+        )
 
 
 def test_execute_sweep_rejects_mps_device_programmatically(tmp_path: Path) -> None:
@@ -604,7 +575,6 @@ def test_execute_sweep_passes_resolved_auto_device_to_run_row(
     monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cpu')
     monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
     monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -652,7 +622,6 @@ def test_execute_sweep_applies_overrides_and_promotes_first_row(monkeypatch: pyt
     monkeypatch.setattr(sweep_execute_module, 'promote_anchor', fake_promote_anchor)
     monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
     monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -712,7 +681,6 @@ def test_execute_sweep_uses_completed_parent_delta_ref(monkeypatch: pytest.Monke
     monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
     monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
     monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,
@@ -762,7 +730,6 @@ def test_execute_sweep_uses_same_invocation_parent_delta_ref(
     monkeypatch.setattr(sweep_execute_module, 'run_row', fake_run_row)
     monkeypatch.setattr(sweep_execute_module, 'resolve_sweep_execution_device', lambda _device: 'cuda')
     monkeypatch.setattr(row_sync_module, 'sync_sweep_matrix', lambda **_: None)
-    monkeypatch.setattr(row_sync_module, 'sync_active_aliases_if_active', lambda **_: None)
 
     executed = execute_sweep(
         sweep_id=sweep_id,

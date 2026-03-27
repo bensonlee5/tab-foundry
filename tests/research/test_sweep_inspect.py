@@ -162,8 +162,7 @@ def _mini_sweep_workspace(
     _write_yaml(
         index_path,
         {
-            "schema": "tab-foundry-system-delta-sweep-index-v1",
-            "active_sweep_id": sweep_id,
+            "schema": "tab-foundry-system-delta-sweep-index-v2",
             "sweeps": {
                 sweep_id: {
                     "parent_sweep_id": None,

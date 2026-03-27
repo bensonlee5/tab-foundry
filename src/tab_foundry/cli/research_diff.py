@@ -18,7 +18,7 @@ from tab_foundry.research.sweep.paths_io import (
 
 def configure_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     parser.add_argument("--order", type=int, required=True, help="Row order to diff")
-    parser.add_argument("--sweep-id", default=None, help="Sweep id to inspect; defaults to the active sweep")
+    parser.add_argument("--sweep-id", required=True, help="Sweep id to inspect")
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
     parser.add_argument(
         "--against",
@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
 def run_from_args(args: argparse.Namespace) -> int:
     payload = diff_sweep_row(
         order=int(args.order),
-        sweep_id=None if args.sweep_id is None else str(args.sweep_id),
+        sweep_id=str(args.sweep_id),
         against=str(args.against),
         against_order=None if args.against_order is None else int(args.against_order),
         index_path=Path(str(args.index_path)).expanduser().resolve(),

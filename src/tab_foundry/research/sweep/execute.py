@@ -113,7 +113,6 @@ def execute_sweep(
             _ = promote_anchor(
                 sweep_id=resolved_sweep_id,
                 anchor_run_id=run_id,
-                set_active=False,
                 paths=resolved_paths.promotion_paths(),
             )
             active_anchor = run_id
@@ -123,10 +122,6 @@ def execute_sweep(
                 sweeps_root=resolved_paths.sweeps_root,
             )
         _row_sync.sync_sweep_matrix(sweep_id=resolved_sweep_id, paths=resolved_paths)
-        _row_sync.sync_active_aliases_if_active(
-            sweep_id=resolved_sweep_id,
-            paths=resolved_paths,
-        )
         executed_run_ids.append(run_id)
 
     return executed_run_ids

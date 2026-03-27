@@ -777,18 +777,16 @@ Canonical sources of truth:
 - `reference/system_delta_sweeps/index.yaml`
 - `reference/system_delta_sweeps/<sweep_id>/queue.yaml`
 - `reference/system_delta_sweeps/<sweep_id>/matrix.md`
-- `reference/system_delta_queue.yaml` and `reference/system_delta_matrix.md`
-  as generated active-sweep aliases
 
 Recommended loop:
 
-1. Inspect the active sweep and the next runnable row:
+1. Inspect the selected sweep and the next runnable row:
 
    ```bash
    tab-foundry research sweep list-sweeps
    tab-foundry research sweep list --sweep-id <sweep_id>
-   tab-foundry research sweep next
-   tab-foundry research sweep summarize --include-screened
+   tab-foundry research sweep next --sweep-id <sweep_id>
+   tab-foundry research sweep summarize --sweep-id <sweep_id> --include-screened
    ```
 
 1. Render architecture graphs for the anchor or selected rows when you need a
@@ -797,7 +795,7 @@ Recommended loop:
    ```bash
    uv sync
    brew install graphviz
-   tab-foundry research sweep graph --anchor
+   tab-foundry research sweep graph --sweep-id <sweep_id> --anchor
    tab-foundry research sweep graph --sweep-id <sweep_id> --order <order>
    ```
 
@@ -814,10 +812,10 @@ Recommended loop:
    tab-foundry research sweep summarize --sweep-id <sweep_id> --include-screened
    ```
 
-1. Execute the active sweep's `ready` rows with the generic executor:
+1. Execute the selected sweep's `ready` rows with the generic executor:
 
    ```bash
-   tab-foundry research sweep execute
+   tab-foundry research sweep execute --sweep-id <sweep_id>
    ```
 
 1. Re-run explicit rows, including already completed rows, when you need a fresh
@@ -908,8 +906,8 @@ Historical note:
 
 - The legacy 3-task bundle and older staged-ladder run ids remain in the repo
   for historical reproduction and registry interpretation only.
-- New staged research should use the active sweep queue/matrix and the current
-  canonical binary benchmark surface.
+- New staged research should use the selected sweep queue/matrix and the
+  current canonical binary benchmark surface.
 
 ## Research Review Loop
 

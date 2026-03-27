@@ -46,7 +46,7 @@ Use the canon this way:
   what the current model surface is
 - [docs/workflows.md](workflows.md): how to run commands and what artifacts to
   expect
-- [program.md](../program.md): how the active sweep is allowed to change
+- [program.md](../program.md): how the selected sweep is allowed to change
 - [docs/development/roadmap.md](development/roadmap.md): which architectural
   or capability questions are actually next
 - [reference/README.md](../reference/README.md): where literature and evidence
@@ -98,7 +98,7 @@ Common mistakes:
 
 Use this path when the question is:
 
-- what is the active sweep?
+- what sweep am I looking at?
 - what row should run next?
 - what artifacts make a row interpretable?
 
@@ -114,14 +114,14 @@ Inspect-first commands:
 ```bash
 .venv/bin/tab-foundry research sweep list-sweeps
 .venv/bin/tab-foundry research sweep list --sweep-id <sweep_id>
-.venv/bin/tab-foundry research sweep next
-.venv/bin/tab-foundry research sweep summarize --include-screened
+.venv/bin/tab-foundry research sweep next --sweep-id <sweep_id>
+.venv/bin/tab-foundry research sweep summarize --sweep-id <sweep_id> --include-screened
 .venv/bin/tab-foundry research sweep inspect --order <order> --sweep-id <sweep_id>
 .venv/bin/tab-foundry research sweep diff \
   --order <order> \
   --against-order <anchor_order> \
   --sweep-id <sweep_id>
-.venv/bin/tab-foundry research sweep graph --anchor
+.venv/bin/tab-foundry research sweep graph --sweep-id <sweep_id> --anchor
 ```
 
 Expected research-package artifacts:
@@ -236,6 +236,6 @@ the least churn:
 1. Read [docs/development/design-decisions.md](development/design-decisions.md).
 1. Read [docs/development/model-architecture.md](development/model-architecture.md).
 1. Run one config resolve and one forward-check command.
-1. Read [program.md](../program.md) and inspect the active sweep.
+1. Read [program.md](../program.md) and inspect the selected sweep.
 1. Read [CONTRIBUTING.md](../CONTRIBUTING.md) before editing code or sweep
    state.

@@ -68,16 +68,9 @@ def test_promote_anchor_updates_sweep_and_index_without_touching_program_for_ina
 ) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
     paths = _build_paths(tmp_path, sweeps_root, reference_root)
-    program_before = paths.program_path.read_text(encoding='utf-8')
     rendered: list[str] = []
-    synced: list[str] = []
 
     monkeypatch.setattr(promote_module, '_render_sweep_matrix', lambda **kwargs: rendered.append(kwargs['sweep_id']))
-    monkeypatch.setattr(
-        promote_module,
-        'sync_active_sweep_aliases',
-        lambda **kwargs: synced.append(kwargs['sweep_id']) or {},
-    )
 
     _ = promote_anchor(
         sweep_id='input_norm_followup',
@@ -87,46 +80,33 @@ def test_promote_anchor_updates_sweep_and_index_without_touching_program_for_ina
 
     sweep = _load_yaml(sweeps_root / 'input_norm_followup' / 'sweep.yaml')
     index = _load_yaml(sweeps_root / 'index.yaml')
-    program_text = paths.program_path.read_text(encoding='utf-8')
 
     assert sweep['anchor_run_id'] == 'sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1'
     assert sweep['anchor_context']['run_id'] == 'sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1'
     assert index['sweeps']['input_norm_followup']['anchor_run_id'] == 'sd_input_norm_followup_09_dpnb_input_norm_zscore_tanh_batch64_sqrt_v1'
     assert rendered == ['input_norm_followup']
-    assert synced == []
-    assert program_text == program_before
 
 
-def test_promote_anchor_updates_program_for_active_sweep(
+def test_promote_anchor_updates_selected_sweep_without_global_active_side_effects(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
     paths = _build_paths(tmp_path, sweeps_root, reference_root)
-    index = _load_yaml(sweeps_root / 'index.yaml')
-    active_sweep_id = str(index['active_sweep_id'])
-    active_sweep = _load_yaml(sweeps_root / active_sweep_id / 'sweep.yaml')
-    active_anchor_run_id = str(active_sweep['anchor_run_id'])
     rendered: list[str] = []
-    synced: list[str] = []
 
     monkeypatch.setattr(promote_module, '_render_sweep_matrix', lambda **kwargs: rendered.append(kwargs['sweep_id']))
-    monkeypatch.setattr(
-        promote_module,
-        'sync_active_sweep_aliases',
-        lambda **kwargs: synced.append(kwargs['sweep_id']) or {},
-    )
 
     _ = promote_anchor(
-        sweep_id=active_sweep_id,
-        anchor_run_id=active_anchor_run_id,
+        sweep_id='tf_rd_021b_sandwich_feature_removal_v1',
+        anchor_run_id='tf_rd_021b_hybrid_full_cell_compact_prior_v1',
         paths=paths,
     )
 
-    program_text = paths.program_path.read_text(encoding='utf-8')
+    sweep = _load_yaml(sweeps_root / 'tf_rd_021b_sandwich_feature_removal_v1' / 'sweep.yaml')
+    index = _load_yaml(sweeps_root / 'index.yaml')
 
-    assert rendered == [active_sweep_id]
-    assert synced == [active_sweep_id]
-    assert active_anchor_run_id in program_text
-    assert f'- active sweep id: `{active_sweep_id}`' in program_text
-    assert f'- canonical sweep queue: `reference/system_delta_sweeps/{active_sweep_id}/queue.yaml`' in program_text
+    assert rendered == ['tf_rd_021b_sandwich_feature_removal_v1']
+    assert index['schema'] == 'tab-foundry-system-delta-sweep-index-v2'
+    assert 'active_sweep_id' not in index
+    assert sweep['anchor_run_id'] == 'tf_rd_021b_hybrid_full_cell_compact_prior_v1'

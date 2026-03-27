@@ -1,0 +1,99 @@
+schema: tab-foundry-system-delta-sweep-v1
+sweep_id: tf_rd_021b_sandwich_feature_removal_v1
+parent_sweep_id: tf_rd_021b_sandwich_width_capacity_sensitivity_v1
+status: draft
+complexity_level: binary_md
+anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
+benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+control_baseline_id: cls_benchmark_linear_v2
+external_benchmarks: []
+training_experiment: cls_benchmark_sandwich_hybrid_prior
+training_config_profile: cls_benchmark_sandwich_hybrid_prior
+surface_role: architecture_screen
+comparison_policy: anchor_only
+upstream_reference:
+  name: PerceiverIO
+  model_source: https://openreview.net/forum?id=fILj7WpI-g
+anchor_surface:
+  notes:
+  - 'This draft `#184` sweep starts the removal-first TF-RD-021B follow-up on top of the locked compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1`.'
+  - 'Recast the earlier self-attention simplification to full removal: this sweep tests `sandwich_self_attention_per_cross=0`, not the earlier `=1` shrink step.'
+  - 'Reuse `sandwich_ff_expansion=1` and `sandwich_summary_tokens_per_axis=1` as the minimal retained nonzero forms; this pass does not add support for `0` on either axis.'
+  - 'Do not rerun `sandwich_pre_row_attention_layers=0` or `sandwich_pre_column_attention_layers=0`; the completed TF-RD-021B knob screen already supplied negative evidence for those removals.'
+  - Keep the medium binary bundle, prior-dump data surface, `runtime_default` preprocessing, `prior_cosine_warmup` recipe, and `2500`-step budget fixed across all rows.
+  - This sweep stays in draft and ready state only in this pass: no `run_id`, no decisions, no canonical promotion, and no repo-default freeze.
+  - Once a winner is manually chosen, the follow-up freeze must update repo-wide sandwich defaults, the benchmark and workstation sandwich profiles, and the architecture or config docs together.
+  - When evidence is close, the later freeze should prefer removing features or collapsing knobs entirely over preserving reduced-but-still-live settings.
+  dimension_table:
+  - dimension: feature encoder
+    upstream: Scalar feature linear encoder with internal train/test z-score+clip
+      handling.
+    anchor: Staged feature encoder `unknown` from the benchmark registry surface.
+    interpretation: Feature encoder changes alter the per-cell representation and
+      should be interpreted explicitly.
+  - dimension: target conditioning
+    upstream: Mean-padded linear target encoder on the direct binary path.
+    anchor: Target conditioner `unknown` from the staged surface.
+    interpretation: Target-conditioning changes should be interpreted separately from
+      encoder or context changes.
+  - dimension: cell transformer block
+    upstream: Post-norm nanoTabPFN block with feature attention then row attention.
+    anchor: Cell transformer block `unknown` from the staged surface.
+    interpretation: Cell-block changes affect the core table computation and should
+      be isolated carefully.
+  - dimension: tokenizer
+    upstream: One scalar token per feature.
+    anchor: Tokenizer `unknown` from the staged surface.
+    interpretation: Tokenizer changes alter the token sequence presented to the transformer
+      stack.
+  - dimension: column encoder
+    upstream: None on the upstream direct path.
+    anchor: Column encoder `unknown` from the staged surface.
+    interpretation: Column-encoder changes should be read separately from row pooling
+      or context changes.
+  - dimension: row readout
+    upstream: Target-column readout from the final cell tensor.
+    anchor: Row pool `unknown` from the staged surface.
+    interpretation: Row-pool changes alter the readout contract and require their
+      own interpretation.
+  - dimension: context encoder
+    upstream: None on the upstream direct path.
+    anchor: Context encoder `unknown` from the staged surface.
+    interpretation: Context-encoder changes alter how training rows condition test
+      rows.
+  - dimension: prediction head
+    upstream: Direct binary logits head.
+    anchor: Prediction head `unknown` from the staged surface.
+    interpretation: Head changes alter the task contract and output semantics.
+  - dimension: training data surface
+    upstream: OpenML notebook tasks only for benchmarking; no repo-local prior-training
+      manifest contract.
+    anchor: Benchmark bundle `nanotabpfn_openml_binary_medium` (10 tasks) with data
+      surface label `prior_dump`.
+    interpretation: Bundle and training-data changes are first-class sweep rows and
+      should not be inherited from parent sweep prose.
+  - dimension: preprocessing
+    upstream: Notebook preprocessing inside the benchmark helper.
+    anchor: Benchmark preprocessing surface label `runtime_default`.
+    interpretation: Preprocessing changes can alter the effective task definition
+      and must be tracked explicitly.
+  - dimension: training recipe
+    upstream: No repo-local prior-dump training-surface contract.
+    anchor: Training surface label `prior_cosine_warmup`.
+    interpretation: Optimizer and schedule changes are first-class sweep rows, not
+      background recipe assumptions.
+anchor_context:
+  run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
+  experiment: cls_benchmark_sandwich_hybrid_prior
+  config_profile: cls_benchmark_sandwich_hybrid_prior
+  model:
+    arch: tabfoundry_sandwich
+    benchmark_profile: null
+    stage: null
+    stage_label: null
+    module_selection: null
+  surface_labels:
+    data: prior_dump
+    model: tabfoundry_sandwich
+    preprocessing: runtime_default
+    training: prior_cosine_warmup

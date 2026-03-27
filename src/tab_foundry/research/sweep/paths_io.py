@@ -44,14 +44,6 @@ def default_sweep_index_path() -> Path:
     return default_sweeps_root() / "index.yaml"
 
 
-def default_queue_path() -> Path:
-    return repo_root() / "reference" / "system_delta_queue.yaml"
-
-
-def default_matrix_path() -> Path:
-    return repo_root() / "reference" / "system_delta_matrix.md"
-
-
 def default_registry_path() -> Path:
     return default_benchmark_run_registry_path()
 

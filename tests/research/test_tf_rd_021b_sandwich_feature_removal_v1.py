@@ -9,17 +9,13 @@ from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SWEEP_ID = "tf_rd_021b_sandwich_knob_sensitivity_v1"
+SWEEP_ID = "tf_rd_021b_sandwich_feature_removal_v1"
 ANCHOR_RUN_ID = "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
 EXPECTED_ROWS = [
-    "delta_tf_rd_021b_sandwich_latents12_v1",
-    "delta_tf_rd_021b_sandwich_layers1_v1",
-    "delta_tf_rd_021b_sandwich_heads2_v1",
+    "delta_tf_rd_021b_sandwich_selfattn0_v1",
     "delta_tf_rd_021b_sandwich_ffexp1_v1",
-    "delta_tf_rd_021b_sandwich_summarytokens1_v1",
-    "delta_tf_rd_021b_sandwich_selfattn1_v1",
-    "delta_tf_rd_021b_sandwich_prerow0_v1",
-    "delta_tf_rd_021b_sandwich_precol0_v1",
+    "delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1",
+    "delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1",
 ]
 
 
@@ -35,7 +31,7 @@ def _row_by_ref(queue: dict[str, Any], delta_ref: str) -> dict[str, Any]:
     return next(row for row in rows if row["delta_ref"] == delta_ref)
 
 
-def test_tf_rd_021b_sandwich_knob_sensitivity_v1_is_registered_but_not_active() -> None:
+def test_tf_rd_021b_sandwich_feature_removal_v1_is_registered_without_global_active_sweep() -> None:
     index = _load_yaml(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml")
 
     assert index["schema"] == "tab-foundry-system-delta-sweep-index-v2"
@@ -44,8 +40,8 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_is_registered_but_not_active() 
     sweeps = index["sweeps"]
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
-        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
-        "status": "completed",
+        "parent_sweep_id": "tf_rd_021b_sandwich_width_capacity_sensitivity_v1",
+        "status": "draft",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -54,14 +50,14 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_is_registered_but_not_active() 
     }
 
 
-def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matches_the_screen_plan() -> None:
+def test_tf_rd_021b_sandwich_feature_removal_v1_matches_the_removal_first_plan() -> None:
     sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID
     sweep = _load_yaml(sweep_root / "sweep.yaml")
     queue = _load_yaml(sweep_root / "queue.yaml")
 
     assert sweep["sweep_id"] == SWEEP_ID
-    assert sweep["parent_sweep_id"] == "tf_rd_021a_sandwich_nanotabpfn_screen_v1"
-    assert sweep["status"] == "completed"
+    assert sweep["parent_sweep_id"] == "tf_rd_021b_sandwich_width_capacity_sensitivity_v1"
+    assert sweep["status"] == "draft"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["external_benchmarks"] == []
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_hybrid_prior"
@@ -73,13 +69,6 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matches_the_screen_plan() -> No
         "model_source": "https://openreview.net/forum?id=fILj7WpI-g",
     }
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
-    assert sweep["anchor_context"]["model"] == {
-        "arch": "tabfoundry_sandwich",
-        "benchmark_profile": "sandwich_hybrid_compact_prior",
-        "stage": None,
-        "stage_label": "sandwich_hybrid_compact_prior",
-        "module_selection": None,
-    }
     assert sweep["anchor_context"]["surface_labels"] == {
         "data": "prior_dump",
         "model": "tabfoundry_sandwich",
@@ -89,31 +78,40 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matches_the_screen_plan() -> No
 
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
-    assert any("#178" in note for note in notes)
-    assert any("does not run any external comparator" in note for note in notes)
-    assert any("All eight stage-1 ablations underperformed" in note for note in notes)
+    assert any("#184" in note for note in notes)
+    assert any("`sandwich_self_attention_per_cross=0`" in note for note in notes)
+    assert any("Do not rerun `sandwich_pre_row_attention_layers=0`" in note for note in notes)
+    assert any("benchmark and workstation sandwich profiles" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
-    assert [row["interpretation_status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
+    assert [row["status"] for row in rows] == ["ready"] * len(EXPECTED_ROWS)
+    assert [row["interpretation_status"] for row in rows] == ["pending"] * len(EXPECTED_ROWS)
+    assert all(row["run_id"] is None for row in rows)
+    assert all(row["decision"] is None for row in rows)
 
-    latents = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_latents12_v1")
-    assert latents["run_id"] == "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1"
-    assert "sandwich_latents" in latents["anchor_delta"]
-    assert "2500" in " ".join(latents["parameter_adequacy_plan"])
-    assert latents["decision"] == "defer"
-    assert latents["benchmark_metrics"]["delta_final_log_loss"] > 0.0
+    selfattn0 = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_selfattn0_v1")
+    assert selfattn0["model"]["sandwich_self_attention_per_cross"] == 0
+    assert selfattn0["model"]["sandwich_ff_expansion"] == 2
+    assert "replacement for the earlier self-attention-depth ablation" in " ".join(
+        selfattn0["parameter_adequacy_plan"]
+    )
+    assert "do not execute or promote in this pass" in selfattn0["next_action"]
 
-    summary_tokens = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_summarytokens1_v1")
-    assert "sandwich_summary_tokens_per_axis" in summary_tokens["anchor_delta"]
-    assert "raw-cell bypass" in summary_tokens["hypothesis"]
-    assert summary_tokens["benchmark_metrics"]["delta_final_log_loss"] > 0.0
+    ffexp1 = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_ffexp1_v1")
+    assert ffexp1["model"]["sandwich_ff_expansion"] == 1
+    assert ffexp1["model"]["sandwich_self_attention_per_cross"] == 4
+    assert "`sandwich_ff_expansion=0`" in " ".join(ffexp1["parameter_adequacy_plan"])
 
-    pre_row = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_prerow0_v1")
-    assert "sandwich_pre_row_attention_layers" in pre_row["anchor_delta"]
-    assert pre_row["status"] == "completed"
+    compound = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1")
+    assert compound["model"]["sandwich_self_attention_per_cross"] == 0
+    assert compound["model"]["sandwich_ff_expansion"] == 1
+
+    smallest = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1")
+    assert smallest["model"]["sandwich_self_attention_per_cross"] == 0
+    assert smallest["model"]["sandwich_ff_expansion"] == 1
+    assert smallest["model"]["sandwich_summary_tokens_per_axis"] == 1
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
@@ -126,14 +124,8 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matches_the_screen_plan() -> No
     assert materialized["external_benchmarks"] == []
     assert [row["delta_id"] for row in materialized["rows"]] == EXPECTED_ROWS
 
-    materialized_latents = next(
-        row for row in materialized["rows"] if row["delta_id"] == "delta_tf_rd_021b_sandwich_latents12_v1"
-    )
-    assert materialized_latents["model"]["sandwich_latents"] == 12
-    assert materialized_latents["training"]["surface_label"] == "prior_cosine_warmup"
 
-
-def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matrix_records_local_only_benchmarking() -> None:
+def test_tf_rd_021b_sandwich_feature_removal_v1_matrix_records_the_draft_queue() -> None:
     matrix = (
         REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "matrix.md"
     ).read_text(encoding="utf-8")
@@ -141,10 +133,8 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matrix_records_local_only_bench
     assert "# System Delta Matrix" in matrix
     assert SWEEP_ID in matrix
     assert ANCHOR_RUN_ID in matrix
-    assert "PerceiverIO" in matrix
     assert "External benchmarks: `none`" in matrix
-    assert "cls_benchmark_sandwich_hybrid_prior" in matrix
-    assert "delta_tf_rd_021b_sandwich_latents12_v1" in matrix
-    assert "delta_tf_rd_021b_sandwich_precol0_v1" in matrix
-    assert "Locked medium binary bundle with no external comparator." in matrix
-    assert "Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1`" in matrix
+    assert "delta_tf_rd_021b_sandwich_selfattn0_v1" in matrix
+    assert "delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1" in matrix
+    assert "Remove latent self-attention refinement entirely" in matrix
+    assert "do not execute or promote in this pass" in matrix

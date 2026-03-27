@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import tomllib
 
@@ -9,22 +8,6 @@ from tab_foundry.benchmark_registry import default_benchmark_run_registry_path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-
-
-def _active_sweep_payload() -> tuple[str, dict[str, object]]:
-    index_payload = OmegaConf.to_container(
-        OmegaConf.load(REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml"),
-        resolve=True,
-    )
-    assert isinstance(index_payload, dict)
-    active_sweep_id = index_payload.get("active_sweep_id")
-    assert isinstance(active_sweep_id, str) and active_sweep_id.strip()
-    sweep_payload = OmegaConf.to_container(
-        OmegaConf.load(REPO_ROOT / "reference" / "system_delta_sweeps" / active_sweep_id / "sweep.yaml"),
-        resolve=True,
-    )
-    assert isinstance(sweep_payload, dict)
-    return active_sweep_id, sweep_payload
 
 
 def test_program_contract_has_required_policy_sections() -> None:
@@ -46,7 +29,7 @@ def test_program_contract_has_required_policy_sections() -> None:
         "`final_log_loss`",
         "`final_brier_score`",
         "`final_roc_auc`",
-        "The primary score remains `final_log_loss` on the canonical binary benchmark",
+        "The primary score remains `final_log_loss` on the canonical benchmark bundle",
         "- multiclass classification: `final_log_loss`",
         "The benchmark registry is the historical system of record.",
         "Underperformance alone is not enough for `reject`.",
@@ -54,7 +37,7 @@ def test_program_contract_has_required_policy_sections() -> None:
         "`best_roc_auc` remains a tie-breaker and diagnostic for classification sweeps,",
         "`training_surface_record.json`",
         "Agents should use optional sibling-workspace sources when available, but must",
-        "generated compatibility aliases for the active sweep only",
+        "There is no repo-global active sweep",
         "Every benchmark-facing run belongs to exactly one `sweep_id`.",
         "PFN control lane",
         "hybrid diagnostic lane",
@@ -68,47 +51,38 @@ def test_program_contract_has_required_policy_sections() -> None:
 
 def test_program_contract_required_repo_paths_exist() -> None:
     contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
-    active_sweep_id, _ = _active_sweep_payload()
     benchmark_registry_relative_path = default_benchmark_run_registry_path().relative_to(REPO_ROOT).as_posix()
-    required_repo_paths = [
+    required_path_references = [
         "reference/system_delta_catalog.yaml",
         "reference/system_delta_sweeps/index.yaml",
-        f"reference/system_delta_sweeps/{active_sweep_id}/queue.yaml",
-        f"reference/system_delta_sweeps/{active_sweep_id}/matrix.md",
-        "reference/system_delta_queue.yaml",
-        "reference/system_delta_matrix.md",
+        "reference/system_delta_sweeps/<sweep_id>/sweep.yaml",
+        "reference/system_delta_sweeps/<sweep_id>/queue.yaml",
+        "reference/system_delta_sweeps/<sweep_id>/matrix.md",
         "reference/system_delta_campaign_template.md",
         "reference/stage_research_sources.yaml",
-        "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         benchmark_registry_relative_path,
     ]
-    for relative_path in required_repo_paths:
+    for relative_path in required_path_references:
         assert f"`{relative_path}`" in contents
+
+    existing_repo_paths = [
+        "reference/system_delta_catalog.yaml",
+        "reference/system_delta_sweeps/index.yaml",
+        "reference/system_delta_campaign_template.md",
+        "reference/stage_research_sources.yaml",
+        benchmark_registry_relative_path,
+    ]
+    for relative_path in existing_repo_paths:
         assert (REPO_ROOT / relative_path).exists()
 
 
-def test_program_contract_anchor_is_resolved_via_registry() -> None:
+def test_program_contract_describes_registry_resolved_anchor_identity() -> None:
     contents = (REPO_ROOT / "program.md").read_text(encoding="utf-8")
-    registry_path = default_benchmark_run_registry_path()
-    registry = json.loads(registry_path.read_text(encoding="utf-8"))
-    _, sweep_payload = _active_sweep_payload()
-
-    anchor_run_id = sweep_payload.get("anchor_run_id")
-    assert isinstance(anchor_run_id, str) and anchor_run_id.strip()
-
-    assert f"`{anchor_run_id}`" in contents
+    assert "selected anchor run id: `anchor_run_id` from the chosen `sweep.yaml`" in contents
     assert "Resolve canonical identity through" in contents
-    assert "They may be absent in a fresh clone or CI" in contents
-
-    runs = registry["runs"]
-    assert anchor_run_id in runs
-    artifacts = runs[anchor_run_id]["artifacts"]
-    expected_run_dir = artifacts["run_dir"]
-    expected_benchmark_dir = artifacts["benchmark_dir"]
-    assert f"`{expected_run_dir}`" in contents
-    assert f"`{expected_benchmark_dir}`" in contents
-    assert artifacts["run_dir"] == expected_run_dir
-    assert artifacts["benchmark_dir"] == expected_benchmark_dir
+    assert "They may be absent in a fresh clone or" in contents
+    assert "CI checkout." in contents
+    assert "`src/tab_foundry/bench/benchmark_run_registry_v1.json`" in contents
 
 
 def test_system_delta_campaign_template_has_required_fields() -> None:
@@ -143,14 +117,15 @@ def test_workflows_runbook_reflects_system_delta_surface() -> None:
     required_statements = [
         "### System-Delta Sweep Runbook",
         "`reference/system_delta_sweeps/index.yaml`",
-        "`reference/system_delta_queue.yaml` and `reference/system_delta_matrix.md`",
         "`cls_benchmark_linear_v2`",
         "`src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json`",
         "`training_surface_record.json`",
         "`tab-foundry train legacy-prior staged`",
         "`outputs/staged_ladder/01_nano_exact_md/prior_parity_fix`",
         "`outputs/staged_ladder/01_nano_exact_md/prior_benchmark_binary_medium_v1/comparison_summary.json`",
-        "`tab-foundry research sweep graph --anchor`",
+        "tab-foundry research sweep next --sweep-id <sweep_id>",
+        "tab-foundry research sweep execute --sweep-id <sweep_id>",
+        "tab-foundry research sweep graph --sweep-id <sweep_id> --anchor",
         "Graphviz `dot`",
         "PFN control lane",
         "Hybrid diagnostic lane",
@@ -164,6 +139,8 @@ def test_workflows_runbook_reflects_system_delta_surface() -> None:
         "### Staged Ladder Runbook",
         "canonical promotion gate",
         "promotes forward by overriding",
+        "show-active",
+        "set-active",
     ]
     for statement in forbidden_statements:
         assert statement not in contents
@@ -337,11 +314,14 @@ def test_reference_index_covers_system_delta_surfaces_and_legacy_stage_template_
         "`system_delta_campaign_template.md`",
         "`stage_research_sources.yaml`",
         "`system_delta_sweeps/`",
-        "`system_delta_queue.yaml`",
-        "`system_delta_matrix.md`",
     ]
     for entry in required_entries:
         assert entry in reference_index
+
+    assert "`system_delta_queue.yaml`" not in reference_index
+    assert "`system_delta_matrix.md`" not in reference_index
+    assert not (REPO_ROOT / "reference" / "system_delta_queue.yaml").exists()
+    assert not (REPO_ROOT / "reference" / "system_delta_matrix.md").exists()
 
     legacy_template = REPO_ROOT / "reference" / "stage_campaign_template.md"
     assert not legacy_template.exists()

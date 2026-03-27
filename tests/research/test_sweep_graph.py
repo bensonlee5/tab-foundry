@@ -223,16 +223,20 @@ def test_graph_main_parses_cli_selectors(
     tmp_path: Path,
 ) -> None:
     captured: dict[str, object] = {}
+    sweep_id = "input_norm_followup"
 
     def _fake_render_sweep_graphs(**kwargs):
         captured.update(kwargs)
-        return {"sweep_id": "cuda_stability_followup", "graphs": [], "index_path": str(tmp_path / "index.md")}
+        return {"sweep_id": sweep_id, "graphs": [], "index_path": str(tmp_path / "index.md")}
 
     monkeypatch.setattr(research_graph_cli_module, "render_sweep_graphs", _fake_render_sweep_graphs)
 
-    exit_code = research_graph_cli_module.main([*argv, "--out-dir", str(tmp_path)])
+    exit_code = research_graph_cli_module.main(
+        ["--sweep-id", sweep_id, *argv, "--out-dir", str(tmp_path)]
+    )
 
     assert exit_code == 0
+    assert captured["sweep_id"] == sweep_id
     assert captured["anchor"] == expected["anchor"]
     assert captured["all_rows"] == expected["all_rows"]
     assert captured["orders"] == expected["orders"]

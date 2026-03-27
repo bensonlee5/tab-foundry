@@ -1,5 +1,4 @@
-schema: tab-foundry-system-delta-sweep-index-v1
-active_sweep_id: tf_rd_018_lr_warmup_shape_v1
+schema: tab-foundry-system-delta-sweep-index-v2
 sweeps:
   binary_md_v1:
     parent_sweep_id: null
@@ -221,6 +220,14 @@ sweeps:
   tf_rd_021b_sandwich_width_capacity_sensitivity_v1:
     parent_sweep_id: tf_rd_021b_sandwich_knob_sensitivity_v1
     status: completed
+    anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
+    complexity_level: binary_md
+    benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+    control_baseline_id: cls_benchmark_linear_v2
+    external_benchmarks: []
+  tf_rd_021b_sandwich_feature_removal_v1:
+    parent_sweep_id: tf_rd_021b_sandwich_width_capacity_sensitivity_v1
+    status: draft
     anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
     complexity_level: binary_md
     benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
