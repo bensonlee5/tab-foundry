@@ -288,7 +288,7 @@ tab-foundry train run \
   experiment=cls_benchmark_linear_simple \
   data.manifest_path=<binary_manifest.parquet>
 tab-foundry train run \
-  experiment=cls_benchmark_staged_corpus \
+  experiment=cls_workstation_sandwich \
   data.corpus_ref=tf_rd_013_current_corpus_default_v1
 ```
 
@@ -297,21 +297,16 @@ debug model. It is benchmark-focused rather than a general small-class
 classifier, so it requires binary tasks, internal train-split z-score clipping,
 and `many_class_base=2`.
 
-`cls_benchmark_staged_corpus` is the canonical staged architecture-screen
-surface. It inherits the staged `nano_exact` starting point but expects the
-public data handle, `data.corpus_ref`, rather than teaching a raw manifest path
-as the default. The intended architecture path is the public staged ladder in
-`docs/development/roadmap.md` and
-`docs/development/model-architecture.md`. The system-delta sweep records
-isolated evidence for that ladder using `model.stage_label` and
-`model.module_overrides`, including bounded control rows when a public stage
-bundles more than one mechanism. It now enables activation tracing by default
-so architecture-screen runs emit `gradient_history.jsonl` and `telemetry.json`
-without extra runtime overrides.
+`cls_workstation_sandwich` is the default sandwich training surface for new
+development work. It uses the public data handle, `data.corpus_ref`, rather
+than teaching a raw manifest path as the default. Historical staged sweeps and
+reference runs still remain in the repo for comparison, and those rows still
+use `model.stage_label` plus `model.module_overrides` where the staged surface
+needs explicit attribution.
 
 Regression is intentionally removed in the current repo state. Future
-regression work will be rebuilt on top of `tabfoundry_staged`, not the retired
-legacy `tabfoundry` family.
+regression work will be rebuilt on top of the promoted post-sandwich
+architecture line, not the retired legacy `tabfoundry` family.
 
 Prior-dump training for the staged family uses the same harness with the staged
 experiment default:

@@ -52,11 +52,12 @@ into the canonical library modules.
   forward-check batches now live here too.
 - `src/tab_foundry/model/components/`: reusable blocks, QASS primitives, and
   many-class helpers shared across families.
-- `src/tab_foundry/model/architectures/`: the current two-family model
-  surface:
+- `src/tab_foundry/model/architectures/`: the current active-plus-reference
+  model surface:
   - `tabfoundry_simple`: the frozen exact nanoTabPFN-style benchmark anchor
-  - `tabfoundry_staged`: the staged classification family and the only active
-    architecture-development surface
+  - `tabfoundry_sandwich`: the primary classification architecture target
+  - `tabfoundry_staged`: the historical staged reference family retained for
+    compatibility and comparison
 - `src/tab_foundry/training/`: family-agnostic training loops, batching,
   schedules, optimizers, runtime policy, evaluation helpers, telemetry health
   summaries, and the canonical exact-prior training surface under
@@ -205,7 +206,7 @@ not absorb new orchestration logic.
   `anchor.py`) instead of recreating a barrel module, and row-level helper
   logic should stay factored under the dedicated sweep helper modules instead
   of regrowing a monolithic `row_execution.py`.
-- `tabfoundry_staged` is the only active architecture surface. Shared logic
+- `tabfoundry_sandwich` is the only active architecture surface. Shared logic
   should continue to move into `model/components/`, `model/spec.py`, and
   family-neutral helpers instead of reintroducing parallel model pathways.
 - The active system-delta aliases are generated views. Docs and scripts should

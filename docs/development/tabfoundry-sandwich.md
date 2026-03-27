@@ -5,9 +5,9 @@ architecture, its runtime contract, and its public tuning surface.
 
 Current repo role:
 
-- primary long-term architecture candidate for ongoing model iteration
+- active development family for ongoing model iteration
 - separate from the staged recipe ladder
-- not yet the canonical benchmark/reference default
+- now the canonical repo default for new model work
 - currently constrained to small-class classification
 
 Keep these roles straight:

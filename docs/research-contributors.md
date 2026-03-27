@@ -36,8 +36,9 @@ Use these alongside this guide:
   - `tabfoundry_staged` with `stage=nano_exact`
   - used for benchmark trust and PFN-style comparison
 - Active development lane:
-  - `tabfoundry_staged`
-  - row-first classification target inspired by TabICLv2
+  - `tabfoundry_sandwich`
+  - fixed-latent classification target used for current architecture work
+  - `tabfoundry_staged` remains only as historical comparison context
   - the only live surface for new architecture work
 
 Use the canon this way:
@@ -83,7 +84,7 @@ Artifacts and files to read:
 
 - resolved configs
 - forward-check summaries
-- [src/tab_foundry/model/architectures/tabfoundry_staged/model.py](../src/tab_foundry/model/architectures/tabfoundry_staged/model.py)
+- [src/tab_foundry/model/architectures/tabfoundry_sandwich/model.py](../src/tab_foundry/model/architectures/tabfoundry_sandwich/model.py)
 - [src/tab_foundry/model/architectures/tabfoundry_staged/resolved.py](../src/tab_foundry/model/architectures/tabfoundry_staged/resolved.py)
 
 Common mistakes:

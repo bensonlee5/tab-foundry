@@ -3,15 +3,20 @@ from __future__ import annotations
 import pytest
 import torch
 
-from tab_foundry.model.factory import build_model
+from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.architectures.tabfoundry_sandwich import TabFoundrySandwichClassifier
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
 from tab_foundry.model.spec import (
-    STAGED_MODEL_ARCH,
+    SANDWICH_MODEL_ARCH,
     ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
     model_build_spec_from_mappings,
 )
+
+
+def _build_model(*, task: str = "classification", **model_overrides: object) -> torch.nn.Module:
+    spec = model_build_spec_from_mappings(task=task, primary=model_overrides)
+    return build_model_from_spec(spec)
 
 
 def test_model_build_spec_defaults_feature_group_size_to_one() -> None:
@@ -20,23 +25,23 @@ def test_model_build_spec_defaults_feature_group_size_to_one() -> None:
         primary={},
     )
 
-    assert spec.arch == STAGED_MODEL_ARCH
+    assert spec.arch == SANDWICH_MODEL_ARCH
     assert spec.feature_group_size == 1
 
 
 def test_build_model_defaults_feature_group_size_to_one() -> None:
-    cls_model = build_model(task="classification")
+    cls_model = _build_model(task="classification")
 
     assert int(cls_model.model_spec.feature_group_size) == 1
 
 
 def test_build_model_rejects_regression() -> None:
-    with pytest.raises(ValueError, match="classification"):
-        _ = build_model(task="regression")
+    with pytest.raises(ValueError, match="Unsupported task"):
+        _ = model_build_spec_from_mappings(task="regression", primary={})
 
 
 def test_build_model_supports_tabfoundry_simple_classification() -> None:
-    model = build_model(
+    model = _build_model(
         task="classification",
         arch="tabfoundry_simple",
         d_icl=96,
@@ -51,7 +56,7 @@ def test_build_model_supports_tabfoundry_simple_classification() -> None:
 
 
 def test_build_model_supports_tabfoundry_sandwich_classification() -> None:
-    model = build_model(
+    model = _build_model(
         task="classification",
         arch="tabfoundry_sandwich",
         d_icl=96,
@@ -73,7 +78,7 @@ def test_build_model_supports_tabfoundry_sandwich_classification() -> None:
 
 def test_sandwich_constructor_defaults_match_factory_defaults() -> None:
     constructor_model = TabFoundrySandwichClassifier()
-    factory_model = build_model(task="classification", arch="tabfoundry_sandwich")
+    factory_model = _build_model(task="classification", arch="tabfoundry_sandwich")
 
     constructor_params = sum(int(parameter.numel()) for parameter in constructor_model.parameters())
     factory_params = sum(int(parameter.numel()) for parameter in factory_model.parameters())
@@ -169,8 +174,8 @@ def test_sandwich_model_spec_rejects_legacy_dual_bank_fields() -> None:
 
 
 def test_build_model_rejects_legacy_tabfoundry_arch() -> None:
-    with pytest.raises(ValueError, match="Legacy model arch"):
-        _ = build_model(task="classification", arch="tabfoundry")
+    with pytest.raises(ValueError, match="Unsupported model arch"):
+        _ = model_build_spec_from_mappings(task="classification", primary={"arch": "tabfoundry"})
 
 
 def test_staged_model_defaults_stage_to_nano_exact() -> None:

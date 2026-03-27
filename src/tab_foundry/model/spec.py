@@ -2,58 +2,24 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any, Mapping
+from typing import Annotated, Any, Final, Literal, cast
+
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, field_validator
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.components.normalization import SUPPORTED_NORM_TYPES
 
 
 SUPPORTED_MODEL_TASKS = ("classification",)
-STAGED_MODEL_ARCH = "tabfoundry_staged"
-SANDWICH_MODEL_ARCH = "tabfoundry_sandwich"
-SUPPORTED_MODEL_ARCHES = ("tabfoundry_simple", STAGED_MODEL_ARCH, SANDWICH_MODEL_ARCH)
+SIMPLE_MODEL_ARCH: Final = "tabfoundry_simple"
+STAGED_MODEL_ARCH: Final = "tabfoundry_staged"
+SANDWICH_MODEL_ARCH: Final = "tabfoundry_sandwich"
+SUPPORTED_MODEL_ARCHES = (SIMPLE_MODEL_ARCH, STAGED_MODEL_ARCH, SANDWICH_MODEL_ARCH)
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
-DEFAULT_MODEL_ARCH = STAGED_MODEL_ARCH
-DEFAULT_MODEL_STAGE: str | None = None
-DEFAULT_MODEL_STAGE_LABEL: str | None = None
-DEFAULT_MODEL_MODULE_OVERRIDES: dict[str, Any] | None = None
-DEFAULT_MODEL_D_COL = 128
-DEFAULT_MODEL_D_ICL = 512
-DEFAULT_MODEL_INPUT_NORMALIZATION = "none"
-DEFAULT_MODEL_FEATURE_GROUP_SIZE = 1
-DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE = "path_nll"
-DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS = 64
-DEFAULT_MODEL_NORM_TYPE = "layernorm"
-DEFAULT_MODEL_TFCOL_N_HEADS = 8
-DEFAULT_MODEL_TFCOL_N_LAYERS = 3
-DEFAULT_MODEL_TFCOL_N_INDUCING = 128
-DEFAULT_MODEL_TFROW_N_HEADS = 8
-DEFAULT_MODEL_TFROW_N_LAYERS = 3
-DEFAULT_MODEL_TFROW_CLS_TOKENS = 4
-DEFAULT_MODEL_TFROW_NORM = "layernorm"
-DEFAULT_MODEL_TFICL_N_HEADS = 8
-DEFAULT_MODEL_TFICL_N_LAYERS = 12
-DEFAULT_MODEL_TFICL_FF_EXPANSION = 2
-DEFAULT_MODEL_MANY_CLASS_BASE = 10
-DEFAULT_MODEL_HEAD_HIDDEN_DIM = 1024
-DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED = True
-DEFAULT_MODEL_STAGED_DROPOUT = 0.0
-DEFAULT_MODEL_PRE_ENCODER_CLIP: float | None = None
-DEFAULT_SANDWICH_MODEL_D_ICL = 60
-DEFAULT_SANDWICH_MODEL_HEAD_HIDDEN_DIM = 96
-DEFAULT_MODEL_SANDWICH_LATENTS = 24
-DEFAULT_MODEL_SANDWICH_LAYERS = 2
-DEFAULT_MODEL_SANDWICH_HEADS = 4
-DEFAULT_MODEL_SANDWICH_FF_EXPANSION = 2
-DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS = 4
-DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS = 4
-DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS = 1
-DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS = 1
-DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS = 16
 MAX_MODEL_STAGED_DROPOUT = 0.5
 MIN_MODEL_MANY_CLASS_BASE = 2
 _LINEAR_WEIGHT_TENSOR_RANK = 2
@@ -114,10 +80,7 @@ def _normalize_jsonable_mapping(value: Any, *, context: str) -> dict[str, Any] |
         if not key:
             raise ValueError(f"{context} keys must be non-empty strings")
         if isinstance(raw_value, Mapping):
-            normalized[key] = _normalize_jsonable_mapping(
-                raw_value,
-                context=f"{context}.{key}",
-            )
+            normalized[key] = _normalize_jsonable_mapping(raw_value, context=f"{context}.{key}")
             continue
         if isinstance(raw_value, list):
             normalized[key] = [
@@ -182,177 +145,485 @@ def _reject_legacy_sandwich_fields(
     )
 
 
-@dataclass(slots=True, frozen=True)
+class _SpecModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class _SimpleModelParams(_SpecModel):
+    d_col: int = Field(default=128, gt=0)
+    d_icl: int = Field(default=512, gt=0)
+    tfcol_n_heads: int = Field(default=8, gt=0)
+    tfcol_n_layers: int = Field(default=3, gt=0)
+    tfcol_n_inducing: int = Field(default=128, gt=0)
+    tfrow_n_heads: int = Field(default=8, gt=0)
+    tfrow_n_layers: int = Field(default=3, gt=0)
+    tfrow_cls_tokens: int = Field(default=4, gt=0)
+    tfrow_norm: str = "layernorm"
+    tficl_n_heads: int = Field(default=8, gt=0)
+    tficl_n_layers: int = Field(default=12, gt=0)
+    tficl_ff_expansion: int = Field(default=2, gt=0)
+    head_hidden_dim: int = Field(default=1024, gt=0)
+    use_digit_position_embed: bool = True
+
+    @field_validator("tfrow_norm", mode="before")
+    @classmethod
+    def _validate_tfrow_norm(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_NORM_TYPES:
+            raise ValueError(f"tfrow_norm must be one of {SUPPORTED_NORM_TYPES}, got {value!r}")
+        return normalized
+
+    @field_validator("use_digit_position_embed", mode="before")
+    @classmethod
+    def _coerce_use_digit_position_embed(cls, value: Any) -> bool:
+        return _coerce_bool(value, context="use_digit_position_embed")
+
+
+class _StagedModelParams(_SimpleModelParams):
+    stage: str | None = ModelStage.NANO_EXACT.value
+    stage_label: str | None = None
+    module_overrides: dict[str, Any] | None = None
+    staged_dropout: float = Field(default=0.0, ge=0.0, le=MAX_MODEL_STAGED_DROPOUT)
+    pre_encoder_clip: float | None = Field(default=None, gt=0.0)
+
+    @field_validator("stage", mode="before")
+    @classmethod
+    def _resolve_stage(cls, value: Any) -> str | None:
+        return resolve_model_stage(arch=STAGED_MODEL_ARCH, stage=value)
+
+    @field_validator("stage_label", mode="before")
+    @classmethod
+    def _normalize_stage_label(cls, value: Any) -> str | None:
+        return _normalize_optional_label(value, context="model.stage_label")
+
+    @field_validator("module_overrides", mode="before")
+    @classmethod
+    def _normalize_module_overrides(cls, value: Any) -> dict[str, Any] | None:
+        return _normalize_jsonable_mapping(value, context="model.module_overrides")
+
+    @field_validator("pre_encoder_clip", mode="before")
+    @classmethod
+    def _validate_pre_encoder_clip(cls, value: Any) -> float | None:
+        if value is None:
+            return None
+        clip = float(value)
+        if clip <= 0.0:
+            raise ValueError("pre_encoder_clip must be > 0")
+        return clip
+
+
+class _SandwichModelParams(_SpecModel):
+    d_col: int = Field(default=128, gt=0)
+    d_icl: int = Field(default=60, gt=0)
+    head_hidden_dim: int = Field(default=96, gt=0)
+    pre_encoder_clip: float | None = Field(default=None, gt=0.0)
+    sandwich_latents: int = Field(default=24, gt=0)
+    sandwich_layers: int = Field(default=2, gt=0)
+    sandwich_heads: int = Field(default=4, gt=0)
+    sandwich_ff_expansion: int = Field(default=2, gt=0)
+    sandwich_summary_tokens_per_axis: int = Field(default=4, gt=0)
+    sandwich_self_attention_per_cross: int = Field(default=4, ge=0)
+    sandwich_pre_row_attention_layers: int = Field(default=1, ge=0)
+    sandwich_pre_column_attention_layers: int = Field(default=1, ge=0)
+    sandwich_pre_column_inducing_tokens: int = Field(default=16, gt=0)
+
+    @field_validator("pre_encoder_clip", mode="before")
+    @classmethod
+    def _validate_pre_encoder_clip(cls, value: Any) -> float | None:
+        if value is None:
+            return None
+        clip = float(value)
+        if clip <= 0.0:
+            raise ValueError("pre_encoder_clip must be > 0")
+        return clip
+
+
+class _BaseModelBuildSpecPayload(_SpecModel):
+    task: str
+    arch: str
+    input_normalization: str = "none"
+    feature_group_size: int = Field(default=1, gt=0)
+    many_class_train_mode: str = "path_nll"
+    max_mixed_radix_digits: int = Field(default=64, gt=0)
+    norm_type: str = "layernorm"
+    many_class_base: int = Field(default=10, ge=MIN_MODEL_MANY_CLASS_BASE)
+
+    @field_validator("task", mode="before")
+    @classmethod
+    def _validate_task(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_MODEL_TASKS:
+            raise ValueError(f"Unsupported task: {normalized!r}")
+        return normalized
+
+    @field_validator("input_normalization", mode="before")
+    @classmethod
+    def _validate_input_normalization(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_INPUT_NORMALIZATION_MODES:
+            raise ValueError(
+                "input_normalization must be "
+                f"{SUPPORTED_INPUT_NORMALIZATION_MODES}, got {normalized!r}"
+            )
+        return normalized
+
+    @field_validator("norm_type", mode="before")
+    @classmethod
+    def _validate_norm_type(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_NORM_TYPES:
+            raise ValueError(f"norm_type must be one of {SUPPORTED_NORM_TYPES}, got {value!r}")
+        return normalized
+
+    @field_validator("many_class_train_mode", mode="before")
+    @classmethod
+    def _validate_many_class_train_mode(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_MANY_CLASS_TRAIN_MODES:
+            raise ValueError(
+                "many_class_train_mode must be "
+                f"{SUPPORTED_MANY_CLASS_TRAIN_MODES}, got {normalized!r}"
+            )
+        return normalized
+
+    def _common_flat_dict(self) -> dict[str, Any]:
+        payload = self.model_dump(exclude={"params"})
+        return {str(key): value for key, value in payload.items()}
+
+
+class _SimpleModelBuildSpecPayload(_BaseModelBuildSpecPayload):
+    arch: Literal["tabfoundry_simple"] = SIMPLE_MODEL_ARCH
+    params: _SimpleModelParams = Field(default_factory=_SimpleModelParams)
+
+
+class _StagedModelBuildSpecPayload(_BaseModelBuildSpecPayload):
+    arch: Literal["tabfoundry_staged"] = STAGED_MODEL_ARCH
+    params: _StagedModelParams = Field(default_factory=_StagedModelParams)
+
+
+class _SandwichModelBuildSpecPayload(_BaseModelBuildSpecPayload):
+    arch: Literal["tabfoundry_sandwich"] = SANDWICH_MODEL_ARCH
+    params: _SandwichModelParams = Field(default_factory=_SandwichModelParams)
+
+
+_ModelBuildSpecPayload = Annotated[
+    _SimpleModelBuildSpecPayload | _StagedModelBuildSpecPayload | _SandwichModelBuildSpecPayload,
+    Field(discriminator="arch"),
+]
+_MODEL_BUILD_SPEC_PAYLOAD_ADAPTER: TypeAdapter[_ModelBuildSpecPayload] = TypeAdapter(
+    _ModelBuildSpecPayload
+)
+
+
+DEFAULT_MODEL_ARCH = cast(str, _SandwichModelBuildSpecPayload.model_fields["arch"].default)
+DEFAULT_MODEL_STAGE: str | None = None
+DEFAULT_MODEL_STAGE_LABEL: str | None = None
+DEFAULT_MODEL_MODULE_OVERRIDES: dict[str, Any] | None = None
+DEFAULT_MODEL_D_COL = cast(int, _SimpleModelParams.model_fields["d_col"].default)
+DEFAULT_MODEL_D_ICL = cast(int, _SimpleModelParams.model_fields["d_icl"].default)
+DEFAULT_MODEL_INPUT_NORMALIZATION = cast(
+    str,
+    _BaseModelBuildSpecPayload.model_fields["input_normalization"].default,
+)
+DEFAULT_MODEL_FEATURE_GROUP_SIZE = cast(
+    int,
+    _BaseModelBuildSpecPayload.model_fields["feature_group_size"].default,
+)
+DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE = cast(
+    str,
+    _BaseModelBuildSpecPayload.model_fields["many_class_train_mode"].default,
+)
+DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS = cast(
+    int,
+    _BaseModelBuildSpecPayload.model_fields["max_mixed_radix_digits"].default,
+)
+DEFAULT_MODEL_NORM_TYPE = cast(str, _BaseModelBuildSpecPayload.model_fields["norm_type"].default)
+DEFAULT_MODEL_TFCOL_N_HEADS = cast(int, _SimpleModelParams.model_fields["tfcol_n_heads"].default)
+DEFAULT_MODEL_TFCOL_N_LAYERS = cast(int, _SimpleModelParams.model_fields["tfcol_n_layers"].default)
+DEFAULT_MODEL_TFCOL_N_INDUCING = cast(
+    int,
+    _SimpleModelParams.model_fields["tfcol_n_inducing"].default,
+)
+DEFAULT_MODEL_TFROW_N_HEADS = cast(int, _SimpleModelParams.model_fields["tfrow_n_heads"].default)
+DEFAULT_MODEL_TFROW_N_LAYERS = cast(int, _SimpleModelParams.model_fields["tfrow_n_layers"].default)
+DEFAULT_MODEL_TFROW_CLS_TOKENS = cast(
+    int,
+    _SimpleModelParams.model_fields["tfrow_cls_tokens"].default,
+)
+DEFAULT_MODEL_TFROW_NORM = cast(str, _SimpleModelParams.model_fields["tfrow_norm"].default)
+DEFAULT_MODEL_TFICL_N_HEADS = cast(int, _SimpleModelParams.model_fields["tficl_n_heads"].default)
+DEFAULT_MODEL_TFICL_N_LAYERS = cast(int, _SimpleModelParams.model_fields["tficl_n_layers"].default)
+DEFAULT_MODEL_TFICL_FF_EXPANSION = cast(
+    int,
+    _SimpleModelParams.model_fields["tficl_ff_expansion"].default,
+)
+DEFAULT_MODEL_MANY_CLASS_BASE = cast(
+    int,
+    _BaseModelBuildSpecPayload.model_fields["many_class_base"].default,
+)
+DEFAULT_MODEL_HEAD_HIDDEN_DIM = cast(
+    int,
+    _SimpleModelParams.model_fields["head_hidden_dim"].default,
+)
+DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED = cast(
+    bool,
+    _SimpleModelParams.model_fields["use_digit_position_embed"].default,
+)
+DEFAULT_MODEL_STAGED_DROPOUT = cast(
+    float,
+    _StagedModelParams.model_fields["staged_dropout"].default,
+)
+DEFAULT_MODEL_PRE_ENCODER_CLIP: float | None = cast(
+    float | None,
+    _SandwichModelParams.model_fields["pre_encoder_clip"].default,
+)
+DEFAULT_SANDWICH_MODEL_D_ICL = cast(
+    int,
+    _SandwichModelParams.model_fields["d_icl"].default,
+)
+DEFAULT_SANDWICH_MODEL_HEAD_HIDDEN_DIM = cast(
+    int,
+    _SandwichModelParams.model_fields["head_hidden_dim"].default,
+)
+DEFAULT_MODEL_SANDWICH_LATENTS = cast(
+    int,
+    _SandwichModelParams.model_fields["sandwich_latents"].default,
+)
+DEFAULT_MODEL_SANDWICH_LAYERS = cast(
+    int,
+    _SandwichModelParams.model_fields["sandwich_layers"].default,
+)
+DEFAULT_MODEL_SANDWICH_HEADS = cast(
+    int,
+    _SandwichModelParams.model_fields["sandwich_heads"].default,
+)
+DEFAULT_MODEL_SANDWICH_FF_EXPANSION = cast(
+    int,
+    _SandwichModelParams.model_fields["sandwich_ff_expansion"].default,
+)
+DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS = cast(
+    int,
+    _SandwichModelParams.model_fields["sandwich_summary_tokens_per_axis"].default,
+)
+DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS = cast(
+    int,
+    _SandwichModelParams.model_fields["sandwich_self_attention_per_cross"].default,
+)
+DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS = cast(
+    int,
+    _SandwichModelParams.model_fields["sandwich_pre_row_attention_layers"].default,
+)
+DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS = cast(
+    int,
+    _SandwichModelParams.model_fields["sandwich_pre_column_attention_layers"].default,
+)
+DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS = cast(
+    int,
+    _SandwichModelParams.model_fields["sandwich_pre_column_inducing_tokens"].default,
+)
+
+
+_FLAT_COMPAT_DEFAULTS: dict[str, Any] = {
+    "stage": DEFAULT_MODEL_STAGE,
+    "stage_label": DEFAULT_MODEL_STAGE_LABEL,
+    "module_overrides": DEFAULT_MODEL_MODULE_OVERRIDES,
+    "d_col": DEFAULT_MODEL_D_COL,
+    "d_icl": DEFAULT_MODEL_D_ICL,
+    "input_normalization": DEFAULT_MODEL_INPUT_NORMALIZATION,
+    "feature_group_size": DEFAULT_MODEL_FEATURE_GROUP_SIZE,
+    "many_class_train_mode": DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE,
+    "max_mixed_radix_digits": DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS,
+    "norm_type": DEFAULT_MODEL_NORM_TYPE,
+    "tfcol_n_heads": DEFAULT_MODEL_TFCOL_N_HEADS,
+    "tfcol_n_layers": DEFAULT_MODEL_TFCOL_N_LAYERS,
+    "tfcol_n_inducing": DEFAULT_MODEL_TFCOL_N_INDUCING,
+    "tfrow_n_heads": DEFAULT_MODEL_TFROW_N_HEADS,
+    "tfrow_n_layers": DEFAULT_MODEL_TFROW_N_LAYERS,
+    "tfrow_cls_tokens": DEFAULT_MODEL_TFROW_CLS_TOKENS,
+    "tfrow_norm": DEFAULT_MODEL_TFROW_NORM,
+    "tficl_n_heads": DEFAULT_MODEL_TFICL_N_HEADS,
+    "tficl_n_layers": DEFAULT_MODEL_TFICL_N_LAYERS,
+    "tficl_ff_expansion": DEFAULT_MODEL_TFICL_FF_EXPANSION,
+    "many_class_base": DEFAULT_MODEL_MANY_CLASS_BASE,
+    "head_hidden_dim": DEFAULT_MODEL_HEAD_HIDDEN_DIM,
+    "use_digit_position_embed": DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED,
+    "staged_dropout": DEFAULT_MODEL_STAGED_DROPOUT,
+    "pre_encoder_clip": DEFAULT_MODEL_PRE_ENCODER_CLIP,
+    "sandwich_latents": DEFAULT_MODEL_SANDWICH_LATENTS,
+    "sandwich_layers": DEFAULT_MODEL_SANDWICH_LAYERS,
+    "sandwich_heads": DEFAULT_MODEL_SANDWICH_HEADS,
+    "sandwich_ff_expansion": DEFAULT_MODEL_SANDWICH_FF_EXPANSION,
+    "sandwich_summary_tokens_per_axis": DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS,
+    "sandwich_self_attention_per_cross": DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS,
+    "sandwich_pre_row_attention_layers": DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS,
+    "sandwich_pre_column_attention_layers": DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
+    "sandwich_pre_column_inducing_tokens": DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS,
+}
+
+
+_COMMON_MODEL_KEYS = (
+    "task",
+    "arch",
+    "input_normalization",
+    "feature_group_size",
+    "many_class_train_mode",
+    "max_mixed_radix_digits",
+    "norm_type",
+    "many_class_base",
+)
+_SIMPLE_PARAM_KEYS = (
+    "d_col",
+    "d_icl",
+    "tfcol_n_heads",
+    "tfcol_n_layers",
+    "tfcol_n_inducing",
+    "tfrow_n_heads",
+    "tfrow_n_layers",
+    "tfrow_cls_tokens",
+    "tfrow_norm",
+    "tficl_n_heads",
+    "tficl_n_layers",
+    "tficl_ff_expansion",
+    "head_hidden_dim",
+    "use_digit_position_embed",
+)
+_STAGED_PARAM_KEYS = _SIMPLE_PARAM_KEYS + (
+    "stage",
+    "stage_label",
+    "module_overrides",
+    "staged_dropout",
+    "pre_encoder_clip",
+)
+_SANDWICH_PARAM_KEYS = (
+    "d_col",
+    "d_icl",
+    "head_hidden_dim",
+    "pre_encoder_clip",
+    "sandwich_latents",
+    "sandwich_layers",
+    "sandwich_heads",
+    "sandwich_ff_expansion",
+    "sandwich_summary_tokens_per_axis",
+    "sandwich_self_attention_per_cross",
+    "sandwich_pre_row_attention_layers",
+    "sandwich_pre_column_attention_layers",
+    "sandwich_pre_column_inducing_tokens",
+)
+_STAGED_COMPAT_KEYS = ("stage", "stage_label", "module_overrides")
+
+
+def _resolved_arch(value: Any) -> str:
+    normalized = str(value).strip().lower()
+    if normalized not in SUPPORTED_MODEL_ARCHES:
+        raise ValueError(f"Unsupported model arch: {normalized!r}")
+    return normalized
+
+
+def _with_staged_arch_compat(mapping: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = {str(key): value for key, value in mapping.items()}
+    if normalized.get("arch") is None and any(normalized.get(key) is not None for key in _STAGED_COMPAT_KEYS):
+        normalized["arch"] = STAGED_MODEL_ARCH
+    return normalized
+
+
+def _payload_mapping_from_flat_mapping(mapping: Mapping[str, Any]) -> dict[str, Any]:
+    mapping = _with_staged_arch_compat(mapping)
+    task = str(mapping.get("task", "classification")).strip().lower()
+    arch = _resolved_arch(mapping.get("arch", DEFAULT_MODEL_ARCH))
+    if arch != STAGED_MODEL_ARCH and mapping.get("stage") is not None:
+        _ = resolve_model_stage(arch=arch, stage=mapping.get("stage"))
+    if arch != STAGED_MODEL_ARCH and mapping.get("stage_label") is not None:
+        raise ValueError(
+            "model.stage_label is only supported when model.arch='tabfoundry_staged'; "
+            f"got arch={arch!r}"
+        )
+    if arch != STAGED_MODEL_ARCH and mapping.get("module_overrides") is not None:
+        raise ValueError(
+            "model.module_overrides is only supported when model.arch='tabfoundry_staged'; "
+            f"got arch={arch!r}"
+        )
+    payload: dict[str, Any] = {"task": task, "arch": arch}
+    for key in _COMMON_MODEL_KEYS[2:]:
+        if mapping.get(key) is not None:
+            payload[key] = mapping[key]
+    if arch == SIMPLE_MODEL_ARCH:
+        params = {key: mapping[key] for key in _SIMPLE_PARAM_KEYS if mapping.get(key) is not None}
+    elif arch == STAGED_MODEL_ARCH:
+        params = {key: mapping[key] for key in _STAGED_PARAM_KEYS if mapping.get(key) is not None}
+    else:
+        params = {key: mapping[key] for key in _SANDWICH_PARAM_KEYS if mapping.get(key) is not None}
+    if params:
+        payload["params"] = params
+    return payload
+
+
+def _validate_payload(payload: Any) -> _ModelBuildSpecPayload:
+    if isinstance(
+        payload,
+        (_SimpleModelBuildSpecPayload, _StagedModelBuildSpecPayload, _SandwichModelBuildSpecPayload),
+    ):
+        return payload
+    candidate = payload
+    if isinstance(candidate, ModelBuildSpec):
+        return candidate.payload
+    if isinstance(candidate, Mapping):
+        candidate = _payload_mapping_from_flat_mapping(candidate)
+    try:
+        return _MODEL_BUILD_SPEC_PAYLOAD_ADAPTER.validate_python(candidate)
+    except ValidationError as exc:
+        raise ValueError(str(exc)) from exc
+
+
+def _flat_dict_from_payload(payload: _ModelBuildSpecPayload) -> dict[str, Any]:
+    flat = dict(_FLAT_COMPAT_DEFAULTS)
+    flat.update(payload._common_flat_dict())
+    flat.update(payload.params.model_dump(exclude_none=False))
+    flat["arch"] = payload.arch
+    flat["task"] = payload.task
+    if payload.arch != STAGED_MODEL_ARCH:
+        flat["stage"] = None
+        flat["stage_label"] = None
+        flat["module_overrides"] = None
+        if payload.arch != SANDWICH_MODEL_ARCH:
+            flat["pre_encoder_clip"] = DEFAULT_MODEL_PRE_ENCODER_CLIP
+    return flat
+
+
 class ModelBuildSpec:
     """Canonical model-construction settings shared across train/eval/export/load."""
 
-    task: str
-    arch: str = DEFAULT_MODEL_ARCH
-    stage: str | None = DEFAULT_MODEL_STAGE
-    stage_label: str | None = DEFAULT_MODEL_STAGE_LABEL
-    module_overrides: dict[str, Any] | None = DEFAULT_MODEL_MODULE_OVERRIDES
-    d_col: int = DEFAULT_MODEL_D_COL
-    d_icl: int = DEFAULT_MODEL_D_ICL
-    input_normalization: str = DEFAULT_MODEL_INPUT_NORMALIZATION
-    feature_group_size: int = DEFAULT_MODEL_FEATURE_GROUP_SIZE
-    many_class_train_mode: str = DEFAULT_MODEL_MANY_CLASS_TRAIN_MODE
-    max_mixed_radix_digits: int = DEFAULT_MODEL_MAX_MIXED_RADIX_DIGITS
-    norm_type: str = DEFAULT_MODEL_NORM_TYPE
-    tfcol_n_heads: int = DEFAULT_MODEL_TFCOL_N_HEADS
-    tfcol_n_layers: int = DEFAULT_MODEL_TFCOL_N_LAYERS
-    tfcol_n_inducing: int = DEFAULT_MODEL_TFCOL_N_INDUCING
-    tfrow_n_heads: int = DEFAULT_MODEL_TFROW_N_HEADS
-    tfrow_n_layers: int = DEFAULT_MODEL_TFROW_N_LAYERS
-    tfrow_cls_tokens: int = DEFAULT_MODEL_TFROW_CLS_TOKENS
-    tfrow_norm: str = DEFAULT_MODEL_TFROW_NORM
-    tficl_n_heads: int = DEFAULT_MODEL_TFICL_N_HEADS
-    tficl_n_layers: int = DEFAULT_MODEL_TFICL_N_LAYERS
-    tficl_ff_expansion: int = DEFAULT_MODEL_TFICL_FF_EXPANSION
-    many_class_base: int = DEFAULT_MODEL_MANY_CLASS_BASE
-    head_hidden_dim: int = DEFAULT_MODEL_HEAD_HIDDEN_DIM
-    use_digit_position_embed: bool = DEFAULT_MODEL_USE_DIGIT_POSITION_EMBED
-    staged_dropout: float = DEFAULT_MODEL_STAGED_DROPOUT
-    pre_encoder_clip: float | None = DEFAULT_MODEL_PRE_ENCODER_CLIP
-    sandwich_latents: int = DEFAULT_MODEL_SANDWICH_LATENTS
-    sandwich_layers: int = DEFAULT_MODEL_SANDWICH_LAYERS
-    sandwich_heads: int = DEFAULT_MODEL_SANDWICH_HEADS
-    sandwich_ff_expansion: int = DEFAULT_MODEL_SANDWICH_FF_EXPANSION
-    sandwich_summary_tokens_per_axis: int = DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS
-    sandwich_self_attention_per_cross: int = DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS
-    sandwich_pre_row_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS
-    sandwich_pre_column_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS
-    sandwich_pre_column_inducing_tokens: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS
+    __slots__ = ("payload", "_flat")
 
-    def __post_init__(self) -> None:
-        task = str(self.task).strip().lower()
-        if task not in SUPPORTED_MODEL_TASKS:
-            raise ValueError(f"Unsupported task: {task!r}")
-        object.__setattr__(self, "task", task)
+    payload: _ModelBuildSpecPayload
+    _flat: dict[str, Any]
 
-        arch = str(self.arch).strip().lower()
-        if arch not in SUPPORTED_MODEL_ARCHES:
-            raise ValueError(f"Unsupported model arch: {arch!r}")
-        object.__setattr__(self, "arch", arch)
-        object.__setattr__(self, "stage", resolve_model_stage(arch=arch, stage=self.stage))
-        object.__setattr__(
-            self,
-            "stage_label",
-            _normalize_optional_label(self.stage_label, context="model.stage_label"),
-        )
-        object.__setattr__(
-            self,
-            "module_overrides",
-            _normalize_jsonable_mapping(
-                self.module_overrides,
-                context="model.module_overrides",
-            ),
-        )
-        if arch != STAGED_MODEL_ARCH:
-            if self.stage_label is not None:
-                raise ValueError(
-                    "model.stage_label is only supported when model.arch='tabfoundry_staged'; "
-                    f"got arch={arch!r}"
-                )
-            if self.module_overrides is not None:
-                raise ValueError(
-                    "model.module_overrides is only supported when model.arch='tabfoundry_staged'; "
-                    f"got arch={arch!r}"
-                )
+    def __init__(self, **data: Any) -> None:
+        raw_payload: Any
+        if len(data) == 1 and "payload" in data:
+            raw_payload = data["payload"]
+        else:
+            raw_payload = data
+        payload = _validate_payload(raw_payload)
+        object.__setattr__(self, "payload", payload)
+        object.__setattr__(self, "_flat", _flat_dict_from_payload(payload))
 
-        input_normalization = str(self.input_normalization).strip().lower()
-        if input_normalization not in SUPPORTED_INPUT_NORMALIZATION_MODES:
-            raise ValueError(
-                "input_normalization must be "
-                f"{SUPPORTED_INPUT_NORMALIZATION_MODES}, got {input_normalization!r}"
-            )
-        object.__setattr__(self, "input_normalization", input_normalization)
+    def __setattr__(self, name: str, value: Any) -> None:  # pragma: no cover - defensive immutability
+        raise AttributeError(f"{self.__class__.__name__} is immutable")
 
-        norm_type = str(self.norm_type).strip().lower()
-        if norm_type not in SUPPORTED_NORM_TYPES:
-            raise ValueError(
-                f"norm_type must be one of {SUPPORTED_NORM_TYPES}, got {norm_type!r}"
-            )
-        object.__setattr__(self, "norm_type", norm_type)
+    def __getattr__(self, name: str) -> Any:
+        flat = object.__getattribute__(self, "_flat")
+        if name in flat:
+            return flat[name]
+        raise AttributeError(name)
 
-        tfrow_norm = str(self.tfrow_norm).strip().lower()
-        if tfrow_norm not in SUPPORTED_NORM_TYPES:
-            raise ValueError(
-                f"tfrow_norm must be one of {SUPPORTED_NORM_TYPES}, got {tfrow_norm!r}"
-            )
-        object.__setattr__(self, "tfrow_norm", tfrow_norm)
+    def __repr__(self) -> str:
+        return f"ModelBuildSpec({self._flat!r})"
 
-        many_class_train_mode = str(self.many_class_train_mode).strip().lower()
-        if many_class_train_mode not in SUPPORTED_MANY_CLASS_TRAIN_MODES:
-            raise ValueError(
-                "many_class_train_mode must be "
-                f"{SUPPORTED_MANY_CLASS_TRAIN_MODES}, got {many_class_train_mode!r}"
-            )
-        object.__setattr__(self, "many_class_train_mode", many_class_train_mode)
-
-        for field_name in (
-            "d_col",
-            "d_icl",
-            "feature_group_size",
-            "max_mixed_radix_digits",
-            "tfcol_n_heads",
-            "tfcol_n_layers",
-            "tfcol_n_inducing",
-            "tfrow_n_heads",
-            "tfrow_n_layers",
-            "tfrow_cls_tokens",
-            "tficl_n_heads",
-            "tficl_n_layers",
-            "tficl_ff_expansion",
-            "many_class_base",
-            "head_hidden_dim",
-            "sandwich_latents",
-            "sandwich_layers",
-            "sandwich_heads",
-            "sandwich_ff_expansion",
-            "sandwich_summary_tokens_per_axis",
-            "sandwich_pre_column_inducing_tokens",
-        ):
-            value = int(getattr(self, field_name))
-            object.__setattr__(self, field_name, value)
-            if value <= 0:
-                raise ValueError(f"{field_name} must be positive, got {value}")
-        for field_name in (
-            "sandwich_self_attention_per_cross",
-            "sandwich_pre_row_attention_layers",
-            "sandwich_pre_column_attention_layers",
-        ):
-            value = int(getattr(self, field_name))
-            object.__setattr__(self, field_name, value)
-            if value < 0:
-                raise ValueError(f"{field_name} must be non-negative, got {value}")
-        if self.many_class_base < MIN_MODEL_MANY_CLASS_BASE:
-            raise ValueError(
-                f"many_class_base must be >= {MIN_MODEL_MANY_CLASS_BASE}, got {self.many_class_base}"
-            )
-
-        use_digit_position_embed = _coerce_bool(
-            self.use_digit_position_embed,
-            context="use_digit_position_embed",
-        )
-        object.__setattr__(self, "use_digit_position_embed", use_digit_position_embed)
-
-        staged_dropout = float(self.staged_dropout)
-        if not 0.0 <= staged_dropout <= MAX_MODEL_STAGED_DROPOUT:
-            raise ValueError(
-                f"staged_dropout must be in [0.0, {MAX_MODEL_STAGED_DROPOUT}], "
-                f"got {staged_dropout}"
-            )
-        object.__setattr__(self, "staged_dropout", staged_dropout)
-
-        pre_encoder_clip = self.pre_encoder_clip
-        if pre_encoder_clip is not None:
-            pre_encoder_clip = float(pre_encoder_clip)
-            if pre_encoder_clip <= 0:
-                raise ValueError(f"pre_encoder_clip must be > 0 when set, got {pre_encoder_clip}")
-            object.__setattr__(self, "pre_encoder_clip", pre_encoder_clip)
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, ModelBuildSpec) and self._flat == other._flat
 
     def to_dict(self) -> dict[str, Any]:
-        return dict(asdict(self))
+        return dict(self._flat)
 
 
 def model_build_spec_from_mappings(
@@ -363,8 +634,8 @@ def model_build_spec_from_mappings(
 ) -> ModelBuildSpec:
     """Resolve a canonical model spec from a primary mapping with optional fallback."""
 
-    primary_map = primary if primary is not None else {}
-    fallback_map = fallback if fallback is not None else {}
+    primary_map = _with_staged_arch_compat(primary) if primary is not None else {}
+    fallback_map = _with_staged_arch_compat(fallback) if fallback is not None else {}
 
     def _pick(name: str, default: Any) -> Any:
         if name in primary_map and primary_map[name] is not None:
@@ -373,7 +644,7 @@ def model_build_spec_from_mappings(
             return fallback_map[name]
         return default
 
-    arch_value = str(_pick("arch", DEFAULT_MODEL_ARCH)).strip().lower()
+    arch_value = _resolved_arch(_pick("arch", DEFAULT_MODEL_ARCH))
     _reject_legacy_sandwich_fields(
         arch=arch_value,
         primary_map=primary_map,
@@ -534,8 +805,8 @@ def checkpoint_model_build_spec_from_mappings(
 ) -> ModelBuildSpec:
     """Resolve a checkpoint-backed model spec and validate weight compatibility."""
 
-    primary_map = dict(primary) if primary is not None else {}
-    fallback_map = fallback if fallback is not None else {}
+    primary_map = _with_staged_arch_compat(primary) if primary is not None else {}
+    fallback_map = _with_staged_arch_compat(fallback) if fallback is not None else {}
     for source_name, mapping in (("primary", primary_map), ("fallback", fallback_map)):
         raw_arch = mapping.get("arch")
         if raw_arch is None:

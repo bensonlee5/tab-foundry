@@ -16,7 +16,7 @@ def _compose(*overrides: str):
 def test_cls_workstation_task_resolution() -> None:
     cfg = _compose("experiment=cls_workstation")
     assert str(cfg.task) == "classification"
-    assert str(cfg.model.arch) == "tabfoundry_staged"
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
     assert cfg.model.stage is None
     assert int(cfg.model.feature_group_size) == 1
     assert bool(cfg.preprocessing.impute_missing) is True
@@ -63,7 +63,7 @@ def test_generic_sandwich_compose_accepts_pre_perceiver_override_without_plus() 
 
 def test_cls_smoke_optimizer_resolution() -> None:
     cfg = _compose("experiment=cls_smoke")
-    assert str(cfg.model.arch) == "tabfoundry_staged"
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
     assert cfg.model.stage is None
     assert str(cfg.optimizer.name) == "muon"
     assert bool(cfg.optimizer.require_requested) is True
@@ -87,7 +87,7 @@ def test_cls_smoke_adamw_override_resolution() -> None:
 def test_cls_benchmark_linear_resolution() -> None:
     cfg = _compose("experiment=cls_benchmark_linear")
     assert str(cfg.task) == "classification"
-    assert str(cfg.model.arch) == "tabfoundry_staged"
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
     assert cfg.model.stage is None
     assert int(cfg.model.feature_group_size) == 1
     assert str(cfg.optimizer.name) == "adamw"

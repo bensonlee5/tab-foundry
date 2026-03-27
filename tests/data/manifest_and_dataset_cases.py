@@ -17,7 +17,8 @@ from tab_foundry.data.dataset import PackedParquetTaskDataset
 from tab_foundry.data.manifest import _stable_split, build_manifest
 from tab_foundry.export.exporter import export_checkpoint
 from tab_foundry.export.loader_ref import run_reference_consumer
-from tab_foundry.model.factory import build_model
+from tab_foundry.model.factory import build_model_from_spec
+from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.preprocessing import apply_fitted_preprocessor, fit_fitted_preprocessor
 
 
@@ -701,7 +702,9 @@ def test_dataset_and_reference_consumer_share_runtime_preprocessing_semantics(
         },
     }
     torch.manual_seed(0)
-    model = build_model(task="classification", **cfg["model"])
+    model = build_model_from_spec(
+        model_build_spec_from_mappings(task="classification", primary=cfg["model"])
+    )
     torch.save({"model": model.state_dict(), "global_step": 1, "config": cfg}, checkpoint)
 
     bundle_dir = tmp_path / "bundle"
@@ -711,6 +714,7 @@ def test_dataset_and_reference_consumer_share_runtime_preprocessing_semantics(
         x_train=dataset["x_train"],
         y_train=dataset["y_train"],
         x_test=dataset["x_test"],
+        feature_types=dataset["feature_types"],
     )
 
     assert torch.equal(output.batch.y_train, sample.y_train)

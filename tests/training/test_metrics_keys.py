@@ -3,10 +3,16 @@ from __future__ import annotations
 import pytest
 import torch
 
+from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.outputs import ClassificationOutput
+from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.training.trainer import _compute_loss_and_metrics
-from tab_foundry.model.factory import build_model
 from tab_foundry.types import TaskBatch
+
+
+def _build_model(*, task: str = "classification", **model_overrides: object) -> torch.nn.Module:
+    spec = model_build_spec_from_mappings(task=task, primary=model_overrides)
+    return build_model_from_spec(spec)
 
 
 def _classification_batch(*, n_test: int = 6, num_classes: int = 32) -> TaskBatch:
@@ -60,7 +66,7 @@ def test_manyclass_path_metrics_do_not_require_acc() -> None:
 
 
 def test_manyclass_path_loss_is_finite_with_sparse_train_labels() -> None:
-    model = build_model(task="classification", arch="tabfoundry_staged", stage="many_class")
+    model = _build_model(task="classification", arch="tabfoundry_staged", stage="many_class")
     model.train()
     batch = TaskBatch(
         x_train=torch.randn(24, 12),
