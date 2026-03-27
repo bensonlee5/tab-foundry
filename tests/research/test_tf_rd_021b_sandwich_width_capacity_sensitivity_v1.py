@@ -40,7 +40,7 @@ def test_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_is_registered_but_not
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1",
-        "status": "blocked_on_knob_sensitivity",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -56,7 +56,7 @@ def test_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_matches_the_followup_
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] == "tf_rd_021b_sandwich_knob_sensitivity_v1"
-    assert sweep["status"] == "blocked_on_knob_sensitivity"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["external_benchmarks"] == []
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_hybrid_prior"
@@ -71,25 +71,32 @@ def test_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_matches_the_followup_
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert any("external comparator" in note for note in notes)
+    assert any("did not identify a simpler winning topology setting" in note for note in notes)
+    assert any("least harmful row was `d_icl=96`" in note for note in notes)
     assert any("The empirical power-curve phase comes after" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["blocked_on_knob_sensitivity"] * len(EXPECTED_ROWS)
-    assert [row["interpretation_status"] for row in rows] == ["blocked"] * len(EXPECTED_ROWS)
+    assert [row["status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
+    assert [row["interpretation_status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
 
     width_low = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_dicl48_v1")
     assert "d_icl" in width_low["anchor_delta"]
-    assert "power-curve work opens" in " ".join(width_low["parameter_adequacy_plan"])
+    assert "now ready to execute" in " ".join(width_low["parameter_adequacy_plan"])
+    assert width_low["run_id"] == "sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1"
+    assert width_low["decision"] == "defer"
+    assert width_low["benchmark_metrics"]["delta_final_log_loss"] > 0.0
 
     width_high = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_dicl96_v1")
     assert "d_icl" in width_high["anchor_delta"]
     assert "first live post-topology capacity axis" in width_high["hypothesis"]
+    assert width_high["benchmark_metrics"]["delta_final_log_loss"] < width_low["benchmark_metrics"]["delta_final_log_loss"]
 
     head_high = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_headhidden128_v1")
     assert "head_hidden_dim" in head_high["anchor_delta"]
     assert "power-curve phase opens" in " ".join(head_high["parameter_adequacy_plan"])
+    assert head_high["benchmark_metrics"]["delta_final_log_loss"] > 0.0
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
@@ -109,7 +116,7 @@ def test_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_matches_the_followup_
     assert materialized_width_high["model"]["sandwich_heads"] == 4
 
 
-def test_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_matrix_records_the_blocked_followup() -> None:
+def test_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_matrix_records_the_completed_followup() -> None:
     matrix = (
         REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "matrix.md"
     ).read_text(encoding="utf-8")
@@ -118,7 +125,9 @@ def test_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_matrix_records_the_bl
     assert SWEEP_ID in matrix
     assert ANCHOR_RUN_ID in matrix
     assert "External benchmarks: `none`" in matrix
-    assert "blocked_on_knob_sensitivity" in matrix
+    assert "Status | Recipe alias | Effective change | Next action" in matrix
+    assert "| 1 | `delta_tf_rd_021b_sandwich_dicl48_v1` | width_capacity | yes | completed |" in matrix
     assert "delta_tf_rd_021b_sandwich_dicl96_v1" in matrix
     assert "delta_tf_rd_021b_sandwich_headhidden128_v1" in matrix
     assert "before the later power-curve phase." in matrix
+    assert "Registered run: `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1`" in matrix

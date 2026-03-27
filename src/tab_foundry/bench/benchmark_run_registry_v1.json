@@ -16961,6 +16961,1590 @@
         "wall_elapsed_seconds": 664.4608874170808
       }
     },
+    "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1/train/checkpoints/step_002475.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_latents12_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.023758888068776685,
+          "best_training_time_delta": -386.80612615845166,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.022122560945295577,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.027879660838341813,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.022926851046496388,
+          "final_training_time_delta": -385.93935417733155,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.023758888068776685,
+          "best_training_time_delta": -386.80612615845166,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.022122560945295577,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.027879660838341813,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.022926851046496388,
+          "final_training_time_delta": -385.93935417733155,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:10:02Z",
+      "run_id": "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_latents12_v1",
+        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.3293394653415733,
+        "best_crps": null,
+        "best_log_loss": 0.49504852724480647,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7132824280719947,
+        "best_step": 2475.0,
+        "best_training_time": 83.64586759824306,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.32935042665770164,
+        "final_crps": null,
+        "final_log_loss": 0.49507251039676603,
+        "final_picp_90": null,
+        "final_roc_auc": 0.714114465094275,
+        "final_step": 2500.0,
+        "final_training_time": 84.51263957936317
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.4351174831390381,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958600044250488,
+        "mean_grad_norm": 0.2786043173849583,
+        "post_warmup_train_loss_var": 0.001331140460672271,
+        "train_elapsed_seconds": 84.51263957936317,
+        "wall_elapsed_seconds": 128.62862515402958
+      }
+    },
+    "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1/train/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_layers1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.031212390923086808,
+          "best_training_time_delta": -386.4215613466222,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.019667701902558954,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.022787818942677895,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.031212390923086808,
+          "final_training_time_delta": -386.4215613466222,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.031212390923086808,
+          "best_training_time_delta": -386.4215613466222,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.019667701902558954,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.022787818942677895,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.031212390923086808,
+          "final_training_time_delta": -386.4215613466222,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:12:56Z",
+      "run_id": "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_02_delta_tf_rd_021b_sandwich_layers1_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_layers1_v1",
+        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.326895567614965,
+        "best_crps": null,
+        "best_log_loss": 0.4899806685011021,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7058289252176846,
+        "best_step": 2500.0,
+        "best_training_time": 84.03043241007254,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.326895567614965,
+        "final_crps": null,
+        "final_log_loss": 0.4899806685011021,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7058289252176846,
+        "final_step": 2500.0,
+        "final_training_time": 84.03043241007254
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.45911353826522827,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958596229553223,
+        "mean_grad_norm": 0.279566153383255,
+        "post_warmup_train_loss_var": 0.0013038485468525797,
+        "train_elapsed_seconds": 84.03043241007254,
+        "wall_elapsed_seconds": 123.16855384991504
+      }
+    },
+    "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1/train/checkpoints/step_001225.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_heads2_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.03411063044116258,
+          "best_training_time_delta": -429.3462481312454,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.03606588256553733,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.04414566940690012,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.033513197696275365,
+          "final_training_time_delta": -385.76279223849997,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.03411063044116258,
+          "best_training_time_delta": -429.3462481312454,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.03606588256553733,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.04414566940690012,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.033513197696275365,
+          "final_training_time_delta": -385.76279223849997,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:15:51Z",
+      "run_id": "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_03_delta_tf_rd_021b_sandwich_heads2_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_heads2_v1",
+        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.3314050903765475,
+        "best_crps": null,
+        "best_log_loss": 0.4963505298403021,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7029306856996088,
+        "best_step": 1225.0,
+        "best_training_time": 41.105745625449345,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.3432937482779434,
+        "final_crps": null,
+        "final_log_loss": 0.5113385189653243,
+        "final_picp_90": null,
+        "final_roc_auc": 0.703528118444496,
+        "final_step": 2500.0,
+        "final_training_time": 84.68920151819475
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.44744816422462463,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958599090576172,
+        "mean_grad_norm": 0.27845941735953095,
+        "post_warmup_train_loss_var": 0.0013349241850737388,
+        "train_elapsed_seconds": 84.68920151819475,
+        "wall_elapsed_seconds": 123.41472582309507
+      }
+    },
+    "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/train/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.018051237183436264,
+          "best_training_time_delta": -384.0856967938598,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.00868998820048028,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.00958168668487247,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.018051237183436264,
+          "final_training_time_delta": -384.0856967938598,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.018051237183436264,
+          "best_training_time_delta": -384.0856967938598,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.00868998820048028,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.00958168668487247,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.018051237183436264,
+          "final_training_time_delta": -384.0856967938598,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:18:47Z",
+      "run_id": "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_04_delta_tf_rd_021b_sandwich_ffexp1_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_ffexp1_v1",
+        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
+        "queue_order": 4,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.31591785391288635,
+        "best_crps": null,
+        "best_log_loss": 0.4767745362432967,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7189900789573351,
+        "best_step": 2500.0,
+        "best_training_time": 86.3662969628349,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.31591785391288635,
+        "final_crps": null,
+        "final_log_loss": 0.4767745362432967,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7189900789573351,
+        "final_step": 2500.0,
+        "final_training_time": 86.3662969628349
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.4727480411529541,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958599090576172,
+        "mean_grad_norm": 0.2799608942642808,
+        "post_warmup_train_loss_var": 0.0013072628872488664,
+        "train_elapsed_seconds": 86.3662969628349,
+        "wall_elapsed_seconds": 126.08158513205126
+      }
+    },
+    "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1/train/checkpoints/step_001750.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_summarytokens1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.015438474682236913,
+          "best_training_time_delta": -411.1075636802707,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.01024986990439486,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.014683587637942974,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.01050630395257901,
+          "final_training_time_delta": -385.08498113858514,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.015438474682236913,
+          "best_training_time_delta": -411.1075636802707,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.01024986990439486,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.014683587637942974,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.01050630395257901,
+          "final_training_time_delta": -385.08498113858514,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:21:43Z",
+      "run_id": "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_05_delta_tf_rd_021b_sandwich_summarytokens1_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_summarytokens1_v1",
+        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
+        "queue_order": 5,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.3157191563122761,
+        "best_crps": null,
+        "best_log_loss": 0.4787136886557959,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7216028414585345,
+        "best_step": 1750.0,
+        "best_training_time": 59.34443007642403,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.3174777356168009,
+        "final_crps": null,
+        "final_log_loss": 0.4818764371963672,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7265350121881924,
+        "final_step": 2500.0,
+        "final_training_time": 85.36701261810958
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.4309180974960327,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958595275878906,
+        "mean_grad_norm": 0.27851926128715276,
+        "post_warmup_train_loss_var": 0.0013555353051654042,
+        "train_elapsed_seconds": 85.36701261810958,
+        "wall_elapsed_seconds": 125.17252921196632
+      }
+    },
+    "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1/train/checkpoints/step_002425.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_selfattn1_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.01322444106016707,
+          "best_training_time_delta": -393.5068867094815,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0056620691840956194,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.005519974297246488,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.015350998210881928,
+          "final_training_time_delta": -390.87255642097443,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.01322444106016707,
+          "best_training_time_delta": -393.5068867094815,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.0056620691840956194,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.005519974297246488,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.015350998210881928,
+          "final_training_time_delta": -390.87255642097443,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:24:31Z",
+      "run_id": "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_selfattn1_v1",
+        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
+        "queue_order": 6,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.31157885163405585,
+        "best_crps": null,
+        "best_log_loss": 0.4711650928595309,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7238168750806043,
+        "best_step": 2425.0,
+        "best_training_time": 76.94510704721324,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.3128899348965017,
+        "final_crps": null,
+        "final_log_loss": 0.4727128238556707,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7216903179298895,
+        "final_step": 2500.0,
+        "final_training_time": 79.57943733572029
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.43903976678848267,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958597183227539,
+        "mean_grad_norm": 0.28393884440511463,
+        "post_warmup_train_loss_var": 0.00133052093590959,
+        "train_elapsed_seconds": 79.57943733572029,
+        "wall_elapsed_seconds": 117.73527420894243
+      }
+    },
+    "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1/train/checkpoints/step_002475.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_prerow0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.03388936900541506,
+          "best_training_time_delta": -385.01330321864225,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.029541408808452685,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.03437419675909592,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.034353305447632154,
+          "final_training_time_delta": -384.01984021579847,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.03388936900541506,
+          "best_training_time_delta": -385.01330321864225,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.029541408808452685,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.03437419675909592,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.034353305447632154,
+          "final_training_time_delta": -384.01984021579847,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:27:29Z",
+      "run_id": "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_07_delta_tf_rd_021b_sandwich_prerow0_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_prerow0_v1",
+        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
+        "queue_order": 7,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.3365358028985906,
+        "best_crps": null,
+        "best_log_loss": 0.5012611134013718,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7031519471353563,
+        "best_step": 2475.0,
+        "best_training_time": 85.43869053805247,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.33676927452085875,
+        "final_crps": null,
+        "final_log_loss": 0.5015670463175201,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7026880106931392,
+        "final_step": 2500.0,
+        "final_training_time": 86.43215354089625
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.4082811772823334,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958596229553223,
+        "mean_grad_norm": 0.2804255598142743,
+        "post_warmup_train_loss_var": 0.0013406985285305286,
+        "train_elapsed_seconds": 86.43215354089625,
+        "wall_elapsed_seconds": 126.5499274819158
+      }
+    },
+    "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1/train/checkpoints/step_002375.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_knob_sensitivity_v1/delta_tf_rd_021b_sandwich_precol0_v1/sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.029502683729420665,
+          "best_training_time_delta": -391.7616306566633,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.019949060874708713,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.024123801749154516,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.029941230388719098,
+          "final_training_time_delta": -387.4990185999777,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.029502683729420665,
+          "best_training_time_delta": -391.7616306566633,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.019949060874708713,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.024123801749154516,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.029941230388719098,
+          "final_training_time_delta": -387.4990185999777,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:30:21Z",
+      "run_id": "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_08_delta_tf_rd_021b_sandwich_precol0_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_precol0_v1",
+        "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
+        "queue_order": 8,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.32543216308084405,
+        "best_crps": null,
+        "best_log_loss": 0.4885236032280929,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7075386324113507,
+        "best_step": 2375.0,
+        "best_training_time": 78.69036310003139,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.3271769265871148,
+        "final_crps": null,
+        "final_log_loss": 0.49131665130757873,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7071000857520523,
+        "final_step": 2500.0,
+        "final_training_time": 82.952975156717
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.434370756149292,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958597183227539,
+        "mean_grad_norm": 0.2813382739380002,
+        "post_warmup_train_loss_var": 0.0013233019200896198,
+        "train_elapsed_seconds": 82.952975156717,
+        "wall_elapsed_seconds": 121.89313958608545
+      }
+    },
+    "sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1/train/checkpoints/step_002325.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.036599452459959325,
+          "best_training_time_delta": -396.5747793901246,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.03272736014621308,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.038120215339168095,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.03547547106754323,
+          "final_training_time_delta": -390.49460023944266,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.036599452459959325,
+          "best_training_time_delta": -396.5747793901246,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.03272736014621308,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.038120215339168095,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.03547547106754323,
+          "final_training_time_delta": -390.49460023944266,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:41:15Z",
+      "run_id": "sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_dicl48_v1",
+        "parent_sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_width_capacity_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.33899190262896817,
+        "best_crps": null,
+        "best_log_loss": 0.50336109986764,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7004418636808121,
+        "best_step": 2325.0,
+        "best_training_time": 73.87721436657012,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.33995522585861915,
+        "final_crps": null,
+        "final_log_loss": 0.5053130648975923,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7015658450732282,
+        "final_step": 2500.0,
+        "final_training_time": 79.95739351725206
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.3840979337692261,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958599090576172,
+        "mean_grad_norm": 0.2759004210352898,
+        "post_warmup_train_loss_var": 0.001335703718545571,
+        "train_elapsed_seconds": 79.95739351725206,
+        "wall_elapsed_seconds": 122.68635086389259
+      }
+    },
+    "sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1/train/checkpoints/step_002400.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.014826498976283409,
+          "best_training_time_delta": -387.45511028310284,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.011729236321327441,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.016588059843405945,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.015923152287178555,
+          "final_training_time_delta": -383.9900347648654,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.014826498976283409,
+          "best_training_time_delta": -387.45511028310284,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.011729236321327441,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.016588059843405945,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.015923152287178555,
+          "final_training_time_delta": -383.9900347648654,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:44:12Z",
+      "run_id": "sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_dicl96_v1",
+        "parent_sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_width_capacity_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.3178197584566623,
+        "best_crps": null,
+        "best_log_loss": 0.4825123246387383,
+        "best_picp_90": null,
+        "best_roc_auc": 0.722214817164488,
+        "best_step": 2400.0,
+        "best_training_time": 82.99688347359188,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.3189571020337335,
+        "final_crps": null,
+        "final_log_loss": 0.48378090940183016,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7211181638535928,
+        "final_step": 2500.0,
+        "final_training_time": 86.4619589918293
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.4537873864173889,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958596229553223,
+        "mean_grad_norm": 0.28029316604882476,
+        "post_warmup_train_loss_var": 0.0013481501256766915,
+        "train_elapsed_seconds": 86.4619589918293,
+        "wall_elapsed_seconds": 126.6137411990203
+      }
+    },
+    "sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1/train/checkpoints/step_000800.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.05470291532912497,
+          "best_training_time_delta": -446.80571084213443,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.038819528391881464,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.0474666129742598,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.03698761280222551,
+          "final_training_time_delta": -395.63146373676136,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.05470291532912497,
+          "best_training_time_delta": -446.80571084213443,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.038819528391881464,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.0474666129742598,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.03698761280222551,
+          "final_training_time_delta": -395.63146373676136,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:46:53Z",
+      "run_id": "sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_headhidden64_v1",
+        "parent_sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1",
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_width_capacity_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.3378395781713894,
+        "best_crps": null,
+        "best_log_loss": 0.5064593484159176,
+        "best_picp_90": null,
+        "best_roc_auc": 0.6823384008116464,
+        "best_step": 800.0,
+        "best_training_time": 23.646282914560288,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.34604739410428753,
+        "final_crps": null,
+        "final_log_loss": 0.514659462532684,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7000537033385459,
+        "final_step": 2500.0,
+        "final_training_time": 74.82053001993336
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.37944966554641724,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958596229553223,
+        "mean_grad_norm": 0.2747919296607375,
+        "post_warmup_train_loss_var": 0.0013348629886711985,
+        "train_elapsed_seconds": 74.82053001993336,
+        "wall_elapsed_seconds": 110.66470225178637
+      }
+    },
+    "sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1/train/checkpoints/step_002325.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.03463127410050282,
+          "best_training_time_delta": -391.6866657224018,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.03273269494882591,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.03851563636975264,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.036027661642249686,
+          "final_training_time_delta": -385.7828250043094,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.03463127410050282,
+          "best_training_time_delta": -391.6866657224018,
+          "final_avg_pinball_loss_delta": null,
+          "final_brier_score_delta": 0.03273269494882591,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.03851563636975264,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.036027661642249686,
+          "final_training_time_delta": -385.7828250043094,
+          "reference_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1"
+      },
+      "manifest_path": "/workspace/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 570830,
+        "trainable_params": 570830
+      },
+      "registered_at_utc": "2026-03-27T06:49:47Z",
+      "run_id": "sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_tf_rd_021b_sandwich_headhidden128_v1",
+        "parent_sweep_id": "tf_rd_021b_sandwich_knob_sensitivity_v1",
+        "queue_order": 4,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_021b_sandwich_width_capacity_sensitivity_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.33838628368281043,
+        "best_crps": null,
+        "best_log_loss": 0.5034209944158874,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7024100420402686,
+        "best_step": 2325.0,
+        "best_training_time": 78.7653280342929,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.339960560661232,
+        "final_crps": null,
+        "final_log_loss": 0.5057084859281769,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7010136544985217,
+        "final_step": 2500.0,
+        "final_training_time": 84.6691687523853
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.3929598927497864,
+        "final_val_loss": null,
+        "max_grad_norm": 11.958596229553223,
+        "mean_grad_norm": 0.279780925744772,
+        "post_warmup_train_loss_var": 0.0013432824493045529,
+        "train_elapsed_seconds": 84.6691687523853,
+        "wall_elapsed_seconds": 124.30286215106025
+      }
+    },
     "sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v1": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/research/tokenization_migration_v1/delta_architecture_screen_grouped_tokens/sd_tokenization_migration_v1_01_delta_architecture_screen_grouped_tokens_v1/benchmark",

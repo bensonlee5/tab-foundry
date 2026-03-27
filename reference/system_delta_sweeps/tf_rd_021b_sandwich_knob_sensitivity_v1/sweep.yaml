@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_021b_sandwich_knob_sensitivity_v1
 parent_sweep_id: tf_rd_021a_sandwich_nanotabpfn_screen_v1
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -16,11 +16,12 @@ upstream_reference:
   model_source: https://openreview.net/forum?id=fILj7WpI-g
 anchor_surface:
   notes:
-  - This sweep treats the registered compact hybrid sandwich run `tf_rd_021b_hybrid_full_cell_compact_prior_v1` as the locked local control under the broader [#178](https://github.com/bensonlee5/tab-foundry/issues/178) umbrella.
+  - This completed sweep treats the registered compact hybrid sandwich run `tf_rd_021b_hybrid_full_cell_compact_prior_v1` as the locked local control under the broader [#178](https://github.com/bensonlee5/tab-foundry/issues/178) umbrella.
   - The control is the current small hybrid `tabfoundry_sandwich` surface: stage `0` reads full cells plus summary tokens, later stages reuse the compact summary stream, and the readout attends to latents and then raw cells.
   - Keep the prior-dump surface, `runtime_default` preprocessing, `prior_cosine_warmup` recipe, and the fixed `2500`-step budget frozen across all rows.
   - This is an architecture-only screen. The benchmark compares each row against the locked control on the pinned medium binary bundle and does not run any external comparator.
-  - The purpose is to learn which sandwich-specific knobs are materially sensitive before the immediate width or head-capacity follow-up opens.
+  - The purpose was to learn which sandwich-specific knobs are materially sensitive before the immediate width or head-capacity follow-up opens.
+  - All eight stage-1 ablations underperformed the locked control on final log loss and final ROC AUC. The least harmful degradations came from `sandwich_self_attention_per_cross=1` (`+0.0055` delta final log loss), `sandwich_ff_expansion=1` (`+0.0096`), and `sandwich_summary_tokens_per_axis=1` (`+0.0147`).
   - Even if this screen identifies low-sensitivity knobs, do not collapse to a one-toggle scale law yet; a sandwich-local empirical power-curve phase follows the sensitivity passes before any single-toggle recipe is authored.
   dimension_table:
   - dimension: latent bank size

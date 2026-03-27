@@ -41,6 +41,7 @@ def test_cls_workstation_sandwich_resolution() -> None:
     assert int(cfg.model.sandwich_self_attention_per_cross) == 4
     assert int(cfg.model.sandwich_pre_row_attention_layers) == 1
     assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
+    assert int(cfg.model.sandwich_pre_column_inducing_tokens) == 16
     assert str(cfg.runtime.output_dir) == "outputs/cls_workstation_sandwich"
     assert bool(cfg.runtime.trace_activations) is False
     assert str(cfg.logging.run_name) == "cls-workstation-sandwich"
@@ -51,11 +52,13 @@ def test_generic_sandwich_compose_accepts_pre_perceiver_override_without_plus() 
         "model.arch=tabfoundry_sandwich",
         "model.sandwich_pre_row_attention_layers=2",
         "model.sandwich_pre_column_attention_layers=0",
+        "model.sandwich_pre_column_inducing_tokens=8",
     )
 
     assert str(cfg.model.arch) == "tabfoundry_sandwich"
     assert int(cfg.model.sandwich_pre_row_attention_layers) == 2
     assert int(cfg.model.sandwich_pre_column_attention_layers) == 0
+    assert int(cfg.model.sandwich_pre_column_inducing_tokens) == 8
 
 
 def test_cls_smoke_optimizer_resolution() -> None:
@@ -157,6 +160,7 @@ def test_cls_benchmark_sandwich_hybrid_prior_resolution() -> None:
     assert int(cfg.model.sandwich_self_attention_per_cross) == 4
     assert int(cfg.model.sandwich_pre_row_attention_layers) == 1
     assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
+    assert int(cfg.model.sandwich_pre_column_inducing_tokens) == 16
     assert int(cfg.runtime.max_steps) == 2500
     assert int(cfg.runtime.eval_every) == 25
     assert int(cfg.runtime.checkpoint_every) == 25

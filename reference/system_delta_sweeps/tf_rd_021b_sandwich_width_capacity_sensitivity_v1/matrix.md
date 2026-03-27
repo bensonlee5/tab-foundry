@@ -5,7 +5,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_021b_sandwich_wi
 ## Sweep
 
 - Sweep id: `tf_rd_021b_sandwich_width_capacity_sensitivity_v1`
-- Sweep status: `blocked_on_knob_sensitivity`
+- Sweep status: `completed`
 - Parent sweep id: `tf_rd_021b_sandwich_knob_sensitivity_v1`
 - Complexity level: `binary_md`
 
@@ -37,17 +37,17 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_021b_sandwich_dicl48_v1` | width_capacity | yes | blocked_on_knob_sensitivity | none | Reduce hybrid sandwich width from 60 to 48 while keeping head count fixed at 4 and the rest of the compact control unchanged. | Wait for the TF-RD-021B knob-sensitivity screen before executing this width-capacity follow-up. |
-| 2 | `delta_tf_rd_021b_sandwich_dicl96_v1` | width_capacity | yes | blocked_on_knob_sensitivity | none | Increase hybrid sandwich width from 60 to 96 while keeping head count fixed at 4 and the rest of the compact control unchanged. | Wait for the TF-RD-021B knob-sensitivity screen before executing this width-capacity follow-up. |
-| 3 | `delta_tf_rd_021b_sandwich_headhidden64_v1` | width_capacity | yes | blocked_on_knob_sensitivity | none | Reduce the prediction head hidden size from 96 to 64 while keeping the hybrid trunk fixed at the compact control. | Wait for the TF-RD-021B knob-sensitivity screen before executing this width-capacity follow-up. |
-| 4 | `delta_tf_rd_021b_sandwich_headhidden128_v1` | width_capacity | yes | blocked_on_knob_sensitivity | none | Increase the prediction head hidden size from 96 to 128 while keeping the hybrid trunk fixed at the compact control. | Wait for the TF-RD-021B knob-sensitivity screen before executing this width-capacity follow-up. |
+| 1 | `delta_tf_rd_021b_sandwich_dicl48_v1` | width_capacity | yes | completed | none | Reduce hybrid sandwich width from 60 to 48 while keeping head count fixed at 4 and the rest of the compact control unchanged. | Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up. |
+| 2 | `delta_tf_rd_021b_sandwich_dicl96_v1` | width_capacity | yes | completed | none | Increase hybrid sandwich width from 60 to 96 while keeping head count fixed at 4 and the rest of the compact control unchanged. | Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up. |
+| 3 | `delta_tf_rd_021b_sandwich_headhidden64_v1` | width_capacity | yes | completed | none | Reduce the prediction head hidden size from 96 to 64 while keeping the hybrid trunk fixed at the compact control. | Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up. |
+| 4 | `delta_tf_rd_021b_sandwich_headhidden128_v1` | width_capacity | yes | completed | none | Increase the prediction head hidden size from 96 to 128 while keeping the hybrid trunk fixed at the compact control. | Execute as one factor in the TF-RD-021B sandwich width-capacity follow-up. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_021b_sandwich_dicl48_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_knob_sensitivity`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Reduce hybrid sandwich width from 60 to 48 while keeping head count fixed at 4 and the rest of the compact control unchanged.
@@ -59,22 +59,25 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 48, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
-  - Execute only after the first sandwich-specific sensitivity screen is interpreted.
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
   - Compare directly against the locked compact control before any longer-budget power-curve work opens.
 - Adequacy knobs to dimension explicitly:
   - Keep `sandwich_heads=4` fixed so this row isolates channel width rather than attention partitioning.
   - Execute only after the stage-1 knob screen is interpreted.
 - Execution policy: `benchmark_full`
-- Interpretation status: `blocked`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl48_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_01_delta_tf_rd_021b_sandwich_dicl48_v1_v1` with final log loss `0.5053`, delta final log loss `+0.0381`, final Brier score `0.3400`, delta final Brier score `+0.0327`, best ROC AUC `0.7004`, final ROC AUC `0.7016`, final-minus-best `+0.0011`, delta final ROC AUC `-0.0355`, delta drift `+0.0011`, delta final training time `-390.5s`
 
 ### 2. `delta_tf_rd_021b_sandwich_dicl96_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_knob_sensitivity`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Increase hybrid sandwich width from 60 to 96 while keeping head count fixed at 4 and the rest of the compact control unchanged.
@@ -86,22 +89,25 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 96, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 96, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
-  - Execute only after the first sandwich-specific sensitivity screen is interpreted.
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
   - Compare directly against the locked compact control before any multi-rung scaling program is authored.
 - Adequacy knobs to dimension explicitly:
   - Keep `sandwich_heads=4` fixed so the width read is not confounded by head-factor changes.
   - Execute only after the stage-1 knob screen is interpreted.
 - Execution policy: `benchmark_full`
-- Interpretation status: `blocked`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_dicl96_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_02_delta_tf_rd_021b_sandwich_dicl96_v1_v1` with final log loss `0.4838`, delta final log loss `+0.0166`, final Brier score `0.3190`, delta final Brier score `+0.0117`, best ROC AUC `0.7222`, final ROC AUC `0.7211`, final-minus-best `-0.0011`, delta final ROC AUC `-0.0159`, delta drift `-0.0011`, delta final training time `-384.0s`
 
 ### 3. `delta_tf_rd_021b_sandwich_headhidden64_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_knob_sensitivity`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Reduce the prediction head hidden size from 96 to 64 while keeping the hybrid trunk fixed at the compact control.
@@ -113,22 +119,25 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 64, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
-  - Execute only after the first sandwich-specific sensitivity screen is interpreted.
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
   - Compare directly against the locked compact control before treating readout-head width as a scaling axis.
 - Adequacy knobs to dimension explicitly:
   - Keep `d_icl=60` and all sandwich-specific knobs fixed so this row isolates readout-head capacity.
   - Execute only after the stage-1 knob screen is interpreted.
 - Execution policy: `benchmark_full`
-- Interpretation status: `blocked`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden64_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_03_delta_tf_rd_021b_sandwich_headhidden64_v1_v1` with final log loss `0.5147`, delta final log loss `+0.0475`, final Brier score `0.3460`, delta final Brier score `+0.0388`, best ROC AUC `0.6823`, final ROC AUC `0.7001`, final-minus-best `+0.0177`, delta final ROC AUC `-0.0370`, delta drift `+0.0177`, delta final training time `-395.6s`
 
 ### 4. `delta_tf_rd_021b_sandwich_headhidden128_v1`
 
 - Dimension family: `model`
-- Status: `blocked_on_knob_sensitivity`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Increase the prediction head hidden size from 96 to 128 while keeping the hybrid trunk fixed at the compact control.
@@ -140,14 +149,17 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 - Effective labels: model=`cls_benchmark_sandwich_hybrid_prior`, data=`prior_dump`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Model overrides: `{'arch': 'tabfoundry_sandwich', 'd_icl': 60, 'input_normalization': 'train_zscore_clip', 'many_class_base': 2, 'head_hidden_dim': 128, 'norm_type': 'layernorm', 'sandwich_latents': 24, 'sandwich_layers': 2, 'sandwich_heads': 4, 'sandwich_ff_expansion': 2, 'sandwich_summary_tokens_per_axis': 4, 'sandwich_self_attention_per_cross': 4, 'sandwich_pre_row_attention_layers': 1, 'sandwich_pre_column_attention_layers': 1}`
 - Parameter adequacy plan:
-  - Execute only after the first sandwich-specific sensitivity screen is interpreted.
+  - The completed TF-RD-021B knob-sensitivity screen did not replace the compact hybrid anchor, so this row is now ready to execute on that unchanged control.
   - Compare directly against the locked compact control before the later sandwich-local power-curve phase opens.
 - Adequacy knobs to dimension explicitly:
   - Keep `d_icl=60` and all sandwich-specific knobs fixed so this row isolates head capacity.
   - Execute only after the stage-1 knob screen is interpreted.
 - Execution policy: `benchmark_full`
-- Interpretation status: `blocked`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_width_capacity_sensitivity_v1/delta_tf_rd_021b_sandwich_headhidden128_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_width_capacity_sensitivity_v1_04_delta_tf_rd_021b_sandwich_headhidden128_v1_v1` with final log loss `0.5057`, delta final log loss `+0.0385`, final Brier score `0.3400`, delta final Brier score `+0.0327`, best ROC AUC `0.7024`, final ROC AUC `0.7010`, final-minus-best `-0.0014`, delta final ROC AUC `-0.0360`, delta drift `-0.0014`, delta final training time `-385.8s`

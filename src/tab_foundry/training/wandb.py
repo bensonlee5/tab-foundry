@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 import json
 import math
+from netrc import NetrcParseError, netrc
 import os
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -92,6 +93,32 @@ def _wandb_run_value(run: Any | None, *names: str) -> Any | None:
     return None
 
 
+def _read_wandb_api_key_file(candidate: Path) -> str | None:
+    try:
+        normalized = candidate.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return normalized or None
+
+
+def _read_wandb_api_key_netrc(candidate: Path) -> str | None:
+    try:
+        auth_file = netrc(str(candidate))
+    except (FileNotFoundError, NetrcParseError, OSError):
+        return None
+    for machine in ("api.wandb.ai", "wandb.ai"):
+        credentials = auth_file.authenticators(machine)
+        if credentials is None:
+            continue
+        _login, _account, password = credentials
+        if password is None:
+            continue
+        normalized = str(password).strip()
+        if normalized:
+            return normalized
+    return None
+
+
 def resolve_wandb_api_key() -> str | None:
     value = os.getenv("WANDB_API_KEY")
     if value is not None:
@@ -105,14 +132,13 @@ def resolve_wandb_api_key() -> str | None:
         if file_override
         else Path("~/.wandb/wandb_api_key.txt").expanduser()
     )
-    try:
-        normalized = candidate.read_text(encoding="utf-8").strip()
-    except OSError:
+    resolved_key = _read_wandb_api_key_file(candidate)
+    if resolved_key is None:
+        resolved_key = _read_wandb_api_key_netrc(Path("~/.netrc").expanduser())
+    if resolved_key is None:
         return None
-    if not normalized:
-        return None
-    os.environ["WANDB_API_KEY"] = normalized
-    return normalized
+    os.environ["WANDB_API_KEY"] = resolved_key
+    return resolved_key
 
 
 def init_wandb_run(cfg: DictConfig, *, enabled: bool) -> Any | None:

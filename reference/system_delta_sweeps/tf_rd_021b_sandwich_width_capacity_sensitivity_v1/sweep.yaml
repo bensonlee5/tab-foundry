@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_021b_sandwich_width_capacity_sensitivity_v1
 parent_sweep_id: tf_rd_021b_sandwich_knob_sensitivity_v1
-status: blocked_on_knob_sensitivity
+status: completed
 complexity_level: binary_md
 anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -16,8 +16,9 @@ upstream_reference:
   model_source: https://openreview.net/forum?id=fILj7WpI-g
 anchor_surface:
   notes:
-  - This blocked follow-up reuses the same registered compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1` that anchors the first TF-RD-021B knob-sensitivity screen.
-  - The purpose is to read width and readout-head capacity only after the stage-1 sandwich-specific ablations establish which topology knobs can be frozen lower.
+  - This completed follow-up reuses the same registered compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1` that anchored the first TF-RD-021B knob-sensitivity screen.
+  - The completed stage-1 screen did not identify a simpler winning topology setting, so this width and readout-head follow-up kept the compact hybrid control unchanged and executed directly on that locked anchor.
+  - None of the bounded width or head-capacity rows beat the compact control on final log loss or final ROC AUC. The least harmful row was `d_icl=96` (`+0.0166` delta final log loss), while both head-width changes and the `d_icl=48` contraction were materially worse.
   - Keep the medium binary bundle, prior-dump surface, `runtime_default` preprocessing, `prior_cosine_warmup` recipe, and `2500`-step budget fixed across all rows.
   - This follow-up remains local-only; compare every row against the locked control on the pinned bundle without running any external comparator.
   - If the stage-1 screen finds a clearly better simpler topology setting, update the control and respin this package before execution rather than silently interpreting these rows against the wrong anchor.

@@ -32,3 +32,4 @@ sandwich_summary_tokens_per_axis: 4
 sandwich_self_attention_per_cross: 4
 sandwich_pre_row_attention_layers: 1
 sandwich_pre_column_attention_layers: 1
+sandwich_pre_column_inducing_tokens: 16

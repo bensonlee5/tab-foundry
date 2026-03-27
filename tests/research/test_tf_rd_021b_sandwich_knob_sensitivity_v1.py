@@ -44,7 +44,7 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_is_registered_but_not_active() 
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_021a_sandwich_nanotabpfn_screen_v1",
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -60,7 +60,7 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matches_the_screen_plan() -> No
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] == "tf_rd_021a_sandwich_nanotabpfn_screen_v1"
-    assert sweep["status"] == "draft"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["external_benchmarks"] == []
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_hybrid_prior"
@@ -90,26 +90,29 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matches_the_screen_plan() -> No
     assert isinstance(notes, list)
     assert any("#178" in note for note in notes)
     assert any("does not run any external comparator" in note for note in notes)
-    assert any("power-curve phase follows" in note for note in notes)
+    assert any("All eight stage-1 ablations underperformed" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready"] * len(EXPECTED_ROWS)
-    assert [row["interpretation_status"] for row in rows] == ["pending"] * len(EXPECTED_ROWS)
+    assert [row["status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
+    assert [row["interpretation_status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
 
     latents = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_latents12_v1")
-    assert latents["run_id"] is None
+    assert latents["run_id"] == "sd_tf_rd_021b_sandwich_knob_sensitivity_v1_01_delta_tf_rd_021b_sandwich_latents12_v1_v1"
     assert "sandwich_latents" in latents["anchor_delta"]
     assert "2500" in " ".join(latents["parameter_adequacy_plan"])
+    assert latents["decision"] == "defer"
+    assert latents["benchmark_metrics"]["delta_final_log_loss"] > 0.0
 
     summary_tokens = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_summarytokens1_v1")
     assert "sandwich_summary_tokens_per_axis" in summary_tokens["anchor_delta"]
     assert "raw-cell bypass" in summary_tokens["hypothesis"]
+    assert summary_tokens["benchmark_metrics"]["delta_final_log_loss"] > 0.0
 
     pre_row = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_prerow0_v1")
     assert "sandwich_pre_row_attention_layers" in pre_row["anchor_delta"]
-    assert pre_row["status"] == "ready"
+    assert pre_row["status"] == "completed"
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
@@ -143,3 +146,4 @@ def test_tf_rd_021b_sandwich_knob_sensitivity_v1_matrix_records_local_only_bench
     assert "delta_tf_rd_021b_sandwich_latents12_v1" in matrix
     assert "delta_tf_rd_021b_sandwich_precol0_v1" in matrix
     assert "Locked medium binary bundle with no external comparator." in matrix
+    assert "Registered run: `sd_tf_rd_021b_sandwich_knob_sensitivity_v1_06_delta_tf_rd_021b_sandwich_selfattn1_v1_v1`" in matrix

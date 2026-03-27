@@ -31,6 +31,7 @@ from tab_foundry.model.spec import (
     DEFAULT_MODEL_SANDWICH_LATENTS,
     DEFAULT_MODEL_SANDWICH_LAYERS,
     DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
+    DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS,
     DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS,
     DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS,
     DEFAULT_MODEL_SANDWICH_SUMMARY_TOKENS_PER_AXIS,
@@ -164,6 +165,41 @@ class _PerceiverStage(nn.Module):
         )
 
 
+class _InducedSetAttentionBlock(nn.Module):
+    """ISAB-style induced set mixer with learned inducing points."""
+
+    def __init__(
+        self,
+        *,
+        embedding_size: int,
+        n_heads: int,
+        ff_expansion: int,
+        norm_type: str,
+        num_inducing: int,
+    ) -> None:
+        super().__init__()
+        self.inducing_seed = nn.Parameter(torch.empty(1, num_inducing, embedding_size))
+        _init_truncated_normal_(self.inducing_seed, mean=0.0, std=0.02, a=-2.0, b=2.0)
+        self.rows_to_inducing = _CrossAttentionBlock(
+            embedding_size=embedding_size,
+            n_heads=n_heads,
+            ff_expansion=ff_expansion,
+            norm_type=norm_type,
+        )
+        self.inducing_self = _SelfAttentionBlock(
+            embedding_size=embedding_size,
+            n_heads=n_heads,
+            ff_expansion=ff_expansion,
+            norm_type=norm_type,
+        )
+        self.rows_from_inducing = _CrossAttentionBlock(
+            embedding_size=embedding_size,
+            n_heads=n_heads,
+            ff_expansion=ff_expansion,
+            norm_type=norm_type,
+        )
+
+
 class TabFoundrySandwichClassifier(nn.Module):
     """Small-class hybrid full-cell / summary-stream Perceiver-style classifier."""
 
@@ -184,6 +220,7 @@ class TabFoundrySandwichClassifier(nn.Module):
         sandwich_self_attention_per_cross: int = DEFAULT_MODEL_SANDWICH_SELF_ATTENTION_PER_CROSS,
         sandwich_pre_row_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_ROW_ATTENTION_LAYERS,
         sandwich_pre_column_attention_layers: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_ATTENTION_LAYERS,
+        sandwich_pre_column_inducing_tokens: int = DEFAULT_MODEL_SANDWICH_PRE_COLUMN_INDUCING_TOKENS,
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
@@ -203,6 +240,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             sandwich_self_attention_per_cross=sandwich_self_attention_per_cross,
             sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
             sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
+            sandwich_pre_column_inducing_tokens=sandwich_pre_column_inducing_tokens,
         )
         self.arch = "tabfoundry_sandwich"
         self.d_icl = int(self.model_spec.d_icl)
@@ -219,6 +257,9 @@ class TabFoundrySandwichClassifier(nn.Module):
         self.self_attention_per_cross = int(self.model_spec.sandwich_self_attention_per_cross)
         self.pre_row_attention_layers = int(self.model_spec.sandwich_pre_row_attention_layers)
         self.pre_column_attention_layers = int(self.model_spec.sandwich_pre_column_attention_layers)
+        self.pre_column_inducing_tokens = int(
+            self.model_spec.sandwich_pre_column_inducing_tokens
+        )
         if self.norm_type != "layernorm":
             raise ValueError(
                 "tabfoundry_sandwich currently requires norm_type='layernorm', "
@@ -236,6 +277,7 @@ class TabFoundrySandwichClassifier(nn.Module):
         self.column_summary_query = nn.Parameter(
             torch.randn(1, self.summary_tokens_per_axis, self.d_icl) * 0.02
         )
+        self.test_row_pool_query = nn.Parameter(torch.randn(1, 1, self.d_icl) * 0.02)
         self.row_summary_builder = _CrossAttentionBlock(
             embedding_size=self.d_icl,
             n_heads=self.sandwich_heads,
@@ -261,11 +303,12 @@ class TabFoundrySandwichClassifier(nn.Module):
         )
         self.pre_column_attention_blocks = nn.ModuleList(
             [
-                _SelfAttentionBlock(
+                _InducedSetAttentionBlock(
                     embedding_size=self.d_icl,
                     n_heads=self.sandwich_heads,
                     ff_expansion=self.sandwich_ff_expansion,
                     norm_type=self.norm_type,
+                    num_inducing=self.pre_column_inducing_tokens,
                 )
                 for _ in range(self.pre_column_attention_layers)
             ]
@@ -294,6 +337,12 @@ class TabFoundrySandwichClassifier(nn.Module):
             norm_type=self.norm_type,
         )
         self.cell_readout = _CrossAttentionBlock(
+            embedding_size=self.d_icl,
+            n_heads=self.sandwich_heads,
+            ff_expansion=self.sandwich_ff_expansion,
+            norm_type=self.norm_type,
+        )
+        self.test_row_pool = _CrossAttentionBlock(
             embedding_size=self.d_icl,
             n_heads=self.sandwich_heads,
             ff_expansion=self.sandwich_ff_expansion,
@@ -664,9 +713,9 @@ class TabFoundrySandwichClassifier(nn.Module):
         mixed = self._self_block(block, row_major)
         return mixed.reshape(batch_size, num_rows, num_features, embedding_size)
 
-    def _column_row_self_attention(
+    def _column_row_isab(
         self,
-        block: _SelfAttentionBlock,
+        block: _InducedSetAttentionBlock,
         feature_cells: torch.Tensor,
     ) -> torch.Tensor:
         batch_size, num_rows, num_features, embedding_size = (
@@ -677,7 +726,13 @@ class TabFoundrySandwichClassifier(nn.Module):
         )
         column_major = feature_cells.transpose(1, 2).contiguous()
         column_major = column_major.reshape(batch_size * num_features, num_rows, embedding_size)
-        mixed = self._self_block(block, column_major)
+        inducing = block.inducing_seed.expand(batch_size * num_features, -1, -1).to(
+            device=column_major.device,
+            dtype=column_major.dtype,
+        )
+        inducing = self._cross_block(block.rows_to_inducing, inducing, column_major)
+        inducing = self._self_block(block.inducing_self, inducing)
+        mixed = self._cross_block(block.rows_from_inducing, column_major, inducing)
         mixed = mixed.reshape(batch_size, num_features, num_rows, embedding_size)
         return mixed.transpose(1, 2).contiguous()
 
@@ -688,8 +743,8 @@ class TabFoundrySandwichClassifier(nn.Module):
             mixed_cells = self._row_feature_self_attention(block, mixed_cells)
             self.trace_activation(f"post_pre_row_attention_{index}", mixed_cells)
         for index, block in enumerate(self.pre_column_attention_blocks):
-            block = cast(_SelfAttentionBlock, block)
-            mixed_cells = self._column_row_self_attention(block, mixed_cells)
+            block = cast(_InducedSetAttentionBlock, block)
+            mixed_cells = self._column_row_isab(block, mixed_cells)
             self.trace_activation(f"post_pre_column_attention_{index}", mixed_cells)
         self.trace_activation("post_pre_perceiver_cells", mixed_cells)
         return mixed_cells
@@ -716,6 +771,28 @@ class TabFoundrySandwichClassifier(nn.Module):
         )
         summaries = self._cross_block(block, flat_query, flat_kv)
         return summaries.reshape(batch_size, outer_count, query_count, embedding_size)
+
+    def _pool_test_rows(
+        self,
+        *,
+        latent_readout_rows: torch.Tensor,
+        cell_readout_rows: torch.Tensor,
+    ) -> torch.Tensor:
+        batch_size, num_test_rows, facet_count, embedding_size = (
+            int(cell_readout_rows.shape[0]),
+            int(cell_readout_rows.shape[1]),
+            int(cell_readout_rows.shape[2]),
+            int(cell_readout_rows.shape[3]),
+        )
+        pool_query = latent_readout_rows.mean(dim=2, keepdim=True)
+        pool_query = pool_query + self.test_row_pool_query.view(1, 1, 1, self.d_icl).to(
+            device=cell_readout_rows.device,
+            dtype=cell_readout_rows.dtype,
+        )
+        flat_query = pool_query.reshape(batch_size * num_test_rows, 1, embedding_size)
+        flat_kv = cell_readout_rows.reshape(batch_size * num_test_rows, facet_count, embedding_size)
+        pooled = self._cross_block(self.test_row_pool, flat_query, flat_kv)
+        return pooled.reshape(batch_size, num_test_rows, embedding_size)
 
     def _row_summary_bytes(self, feature_cells: torch.Tensor) -> torch.Tensor:
         summaries = self._summary_query_attention(
@@ -896,16 +973,26 @@ class TabFoundrySandwichClassifier(nn.Module):
         )
         test_rows = self._cross_block(self.latent_readout, test_queries, latents)
         self.trace_activation("post_latent_readout", test_rows)
-        test_rows = self._cross_block(self.cell_readout, test_rows, full_cell_stream)
-        self.trace_activation("post_test_readout", test_rows)
-        test_rows = test_rows.reshape(
+        latent_readout_rows = test_rows.reshape(
             batch_size,
             num_test_rows,
             self.summary_tokens_per_axis,
             self.d_icl,
-        ).mean(dim=2)
-        self.trace_activation("post_test_row_pool", test_rows)
-        return self.direct_head(test_rows)
+        )
+        test_rows = self._cross_block(self.cell_readout, test_rows, full_cell_stream)
+        self.trace_activation("post_test_readout", test_rows)
+        cell_readout_rows = test_rows.reshape(
+            batch_size,
+            num_test_rows,
+            self.summary_tokens_per_axis,
+            self.d_icl,
+        )
+        pooled_test_rows = self._pool_test_rows(
+            latent_readout_rows=latent_readout_rows,
+            cell_readout_rows=cell_readout_rows,
+        )
+        self.trace_activation("post_test_row_pool", pooled_test_rows)
+        return self.direct_head(pooled_test_rows)
 
     def forward_batched(
         self,

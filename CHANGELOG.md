@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-03-27
+
+### Changed
+
+- User-facing note: `tabfoundry_sandwich` now replaces the pre-Perceiver
+  column-row exact self-attention mixer with an ISAB-style inducing bottleneck.
+  The new public knob `model.sandwich_pre_column_inducing_tokens` controls the
+  per-block inducing-token count and keeps the mixer cost linear in row count
+  for fixed inducing width.
+
+### Fixed
+
+- User-facing note: W&B auth now also checks `~/.netrc` for `api.wandb.ai`
+  or `wandb.ai` credentials when `WANDB_API_KEY`, `WANDB_API_KEY_FILE`, and
+  `~/.wandb/wandb_api_key.txt` are unset, so train and sweep runs can stay in
+  online mode on hosts that rely on the standard netrc layout.
+
 ## [0.12.0] - 2026-03-26
 
 ### Changed

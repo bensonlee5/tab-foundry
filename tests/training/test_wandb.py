@@ -87,6 +87,38 @@ def test_init_wandb_run_uses_api_key_file_when_env_missing(
     assert os.environ["WANDB_API_KEY"] == "secret-key"
 
 
+def test_init_wandb_run_uses_netrc_when_env_and_file_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cfg = _wandb_cfg(tmp_path)
+    netrc_path = tmp_path / ".netrc"
+    netrc_path.write_text(
+        "machine api.wandb.ai\n"
+        "  login user\n"
+        "  password secret-key\n",
+        encoding="utf-8",
+    )
+    netrc_path.chmod(0o600)
+
+    calls: list[dict[str, object]] = []
+
+    def _fake_init(**kwargs: object) -> dict[str, object]:
+        calls.append(dict(kwargs))
+        return dict(kwargs)
+
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)
+    monkeypatch.delenv("WANDB_API_KEY_FILE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setitem(sys.modules, "wandb", SimpleNamespace(init=_fake_init))
+
+    run = wandb_module.init_wandb_run(cfg, enabled=True)
+
+    assert run is not None
+    assert calls[0]["mode"] == "online"
+    assert os.environ["WANDB_API_KEY"] == "secret-key"
+
+
 def test_init_wandb_run_falls_back_to_offline_without_any_api_key(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -131,6 +163,48 @@ def test_init_wandb_run_forwards_group_when_present(
 
     assert run is not None
     assert calls[0]["group"] == "row_embedding_attribution_v1"
+
+
+def test_resolve_wandb_api_key_prefers_env_and_file_over_netrc(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    netrc_path = tmp_path / ".netrc"
+    netrc_path.write_text(
+        "machine api.wandb.ai\n"
+        "  login user\n"
+        "  password netrc-key\n",
+        encoding="utf-8",
+    )
+    netrc_path.chmod(0o600)
+    key_path = tmp_path / "wandb_api_key.txt"
+    key_path.write_text("file-key\n", encoding="utf-8")
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("WANDB_API_KEY", "env-key")
+    monkeypatch.setenv("WANDB_API_KEY_FILE", str(key_path))
+
+    assert wandb_module.resolve_wandb_api_key() == "env-key"
+
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)
+
+    assert wandb_module.resolve_wandb_api_key() == "file-key"
+    assert os.environ["WANDB_API_KEY"] == "file-key"
+
+
+def test_resolve_wandb_api_key_ignores_malformed_netrc(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    netrc_path = tmp_path / ".netrc"
+    netrc_path.write_text("machine api.wandb.ai\n  password\n", encoding="utf-8")
+    netrc_path.chmod(0o600)
+
+    monkeypatch.delenv("WANDB_API_KEY", raising=False)
+    monkeypatch.delenv("WANDB_API_KEY_FILE", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    assert wandb_module.resolve_wandb_api_key() is None
 
 
 def test_wandb_helpers_normalize_metrics_and_summary() -> None:
