@@ -3,23 +3,19 @@
 This is the canonical long-form evidence note for
 [TF-RD-018](../../docs/development/roadmap.md#tf-rd-018-training-surface-adequacy-on-the-promoted-anchor).
 
-- Status: `research`
-- Milestone: `Next`
-- Dependency position: follows TF-RD-013, now carries the settled batch-ladder
-  recipe into [TF-RD-020](tf_rd_020_harder_dagzoo_corpus_fronts.md), which now
-  records three synthetic harder-front family winners before the remaining
-  optimizer or LR or clipping continuation, and then sets the default training
-  surface for
-  [TF-RD-010](tf_rd_010_many_class_promotion.md), later robustness lanes such
-  as [TF-RD-014](tf_rd_014_missingness_robustness.md) and
-  [TF-RD-017](tf_rd_017_class_imbalance_robustness.md), and the scaling handoff
-  into [TF-RD-009](tf_rd_009_scaling_law_measurement.md)
+- Status: `closed incomplete`
+- Milestone: `Historical`
+- Dependency position: follows TF-RD-013 and records partial staged-control
+  training-surface evidence that now remains historical input rather than an
+  active blocker for sandwich dagzoo, many-class, steering, runtime, or
+  scaling work
 
 ## External Evidence
 
 - [Training-Surface Adequacy And Batch/LR Scaling](../papers.md#training-surface-adequacy-and-batchlr-scaling):
   the current TF-RD-018 bibliography for batch-size saturation, LR coupling,
-  conservative optimizer baselines, and large-batch failure modes
+  conservative optimizer baselines, and large-batch failure modes, now kept as
+  historical context rather than the next execution lane
 - [Compact Transformers And Training Recipes](../papers.md#compact-transformers-and-training-recipes):
   shared schedule and optimizer context that remains relevant once the batch
   rung is fixed
@@ -64,81 +60,38 @@ This is the canonical long-form evidence note for
 - `tf_rd_020_noise_mixture_v1` remains documented fallback context, but the
   completed optimizer-family read on `tf_rd_020_shift_noise_drift_v1` was not
   close or unstable enough to activate that surface
-- [#138](https://github.com/bensonlee5/tab-foundry/issues/138) now executes as
-  active sweep
-  [tf_rd_018_lr_warmup_shape_v1](../system_delta_sweeps/tf_rd_018_lr_warmup_shape_v1/matrix.md)
-  with bounded LR and warmup-shape comparisons on the inherited noise-drift
-  runtime, now corrected to a real `400`-step schedule horizon rather than the
-  inherited parent `2500`-step setting
 - the TF-RD-020 noise-drift winner is now both the data-surface handoff and
   the locked optimizer anchor for issue `#137`, carrying forward the uncapped
   `task_batch_size=1`, `grad_accum_steps=4`, `max_steps=400` runtime
 
 ## Current Interpretation
 
-- `task_batch_size=4` is the current default training-surface rung on the
-  settled medium surface because it satisfied the runtime gate that stopped the
-  first ladder
-- the inherited harder-surface optimizer anchor now comes from TF-RD-020 row
-  `06`, so issue `#137` no longer replays schedulefree on top of
-  `tf_rd_020_shift_noise_drift_v1`
-- the optimizer-family read is now closed: keep `schedulefree_adamw` as the
-  default optimizer family, leave `adamw` and `muon` deferred, and do not
-  retain an optimizer fallback family
-- `task_batch_size=8` is now negative gate evidence rather than the new default:
-  it preserved clean batching, reused the row-1 nanoTabPFN curve, but still
-  missed the `<=900s` gate and regressed final benchmark-facing metrics
-- treat the completed batch ladder as the settled first adequacy spine rather
-  than as the next open TF-RD-018 question
-- carry that settled batch rung onto TF-RD-020 before reopening optimizer or
-  schedule-family follow-up
-- use the recorded `tf_rd_020_harder_dagzoo_ladder_v1` ladder as the fixed
-  harder-front handoff for issues `#148`, `#149`, and `#150` rather than
-  reopening harder-front design inside TF-RD-018
-- use `tf_rd_020_shift_noise_drift_v1` as the default harder carry-forward
-  surface for issues `#137`, `#138`, and `#139`
-- use the completed `tf_rd_018_optimizer_family_v1` sweep to keep
-  `schedulefree_adamw` as the carried optimizer family after issue `#137`,
-  interpreting its completed rows as shared-condition optimizer evidence on the
-  inherited `2500`-step schedule horizon plus `400`-step runtime
-- use `tf_rd_018_lr_warmup_shape_v1` as the active execution sweep for issue
-  `#138`: compare the corrected short-run warmup-decay baseline against warmup-zero,
-  lower-ceiling, lower-floor, and warmup-20 variants on the locked TF-RD-020
-  row `06` noise-drift runtime
-- do not activate `tf_rd_020_noise_mixture_v1` as a fallback harder surface
-  after the completed optimizer-family read because the noise-drift result was
-  not a near-tie or ambiguous wash
-- after the full uncapped harder dagzoo blocker closed, retune LR and schedule
-  on the settled rung rather than jointly searching batch and LR across the
-  whole ladder
-- issues `#137`, `#138`, and `#139` should now rebase onto the inherited
-  TF-RD-020 noise-drift runtime (`task_batch_size=1`, `grad_accum_steps=4`,
-  `max_steps=400`) plus `tf_rd_020_shift_noise_drift_v1` instead of reopening
-  singleton updates or leaving the harder surface implicit
-- compare strong Adam-family baselines before treating `muon` or other
-  specialized optimizers as necessary
-- keep architecture changes out of TF-RD-018; they belong later under
-  [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md)
+- keep the completed batch ladder and optimizer-family read as historical
+  staged-control evidence rather than as the next open TF-RD-018 question
+- retain `task_batch_size=4` on the medium surface and
+  `schedulefree_adamw` on the inherited TF-RD-020 noise-drift control as the
+  explicit partial closeout record for this lane
+- do not continue TF-RD-018 into LR, clipping, or step-budget follow-up while
+  the roadmap is prioritizing the sandwich family
+- keep architecture, steering, runtime, and scaling work on the sandwich path
+  under [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md),
+  [TF-RD-010](tf_rd_010_many_class_promotion.md),
+  [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md),
+  [TF-RD-022](tf_rd_022_training_runtime_vram_efficiency.md), and
+  [TF-RD-009](tf_rd_009_scaling_law_measurement.md) instead of reopening
+  TF-RD-018
 
 ## Open Evidence Gaps
 
-- LR-shape, clipping, and step-budget evidence are still open, but they should
-  now be read on top of the inherited TF-RD-020 noise-drift runtime, the
-  documented `tf_rd_020_shift_noise_drift_v1` carry-forward surface, and the
-  kept `schedulefree_adamw` optimizer family
-- the repo still needs an explicit handoff rule for how much of the TF-RD-018
-  recipe should stay fixed when TF-RD-020 closes and
-  [TF-RD-009](tf_rd_009_scaling_law_measurement.md) starts
-- the repo still needs an explicit stop rule for whether a later TF-RD-018
-  adequacy read should ever fall back from `tf_rd_020_shift_noise_drift_v1`
-  to `tf_rd_020_noise_mixture_v1`
-- the current medium-surface record still lacks evidence that larger manifest
-  task batches are worth reopening without separate runtime work
+- no further TF-RD-018 evidence is blocking the active roadmap path
+- if later optimizer or runtime tuning becomes necessary, it should be reopened
+  on the carried sandwich classification family rather than on this staged
+  control note
 
 ## Exit Signals
 
-- one explicit default training surface exists for the promoted row-first
-  anchor, starting from the completed dataset-batch ladder on the TF-RD-013
+- one explicit partial training-surface record exists for the staged-control
+  line, starting from the completed dataset-batch ladder on the TF-RD-013
   medium surface and the carried harder dagzoo winners from TF-RD-020
-- the repo has a clear rule for when optimizer or schedule adequacy must be
-  resolved before interpreting harder-surface or scaling outcomes
+- the repo has a clear closeout rule: unfinished TF-RD-018 LR or clipping work
+  is not a blocker for the sandwich-first classification path

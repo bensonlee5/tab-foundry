@@ -5,18 +5,12 @@ This is the canonical long-form evidence note for
 
 - Status: `planned`
 - Milestone: `Next`
-- Dependency position: follows completed
-  [TF-RD-020](tf_rd_020_harder_dagzoo_corpus_fronts.md) and the remaining
-  TF-RD-018 recipe-closure work under
-  [#138](https://github.com/bensonlee5/tab-foundry/issues/138) and
-  [#139](https://github.com/bensonlee5/tab-foundry/issues/139); depends on
+- Dependency position: follows the first carried many-class plus missingness
+  dagzoo slice under [TF-RD-010](tf_rd_010_many_class_promotion.md), depends on
   dagzoo RD-008 steering landing under
-  [bensonlee5/dagzoo#246](https://github.com/bensonlee5/dagzoo/issues/246)
-  before
-  [TF-RD-010](tf_rd_010_many_class_promotion.md) establishes the first carried
-  many-class plus missingness slice, and before later robustness lanes such as
-  [TF-RD-014](tf_rd_014_missingness_robustness.md) and
-  [TF-RD-017](tf_rd_017_class_imbalance_robustness.md)
+  [bensonlee5/dagzoo#246](https://github.com/bensonlee5/dagzoo/issues/246),
+  and runs before later kernel/runtime tuning under
+  [TF-RD-022](tf_rd_022_training_runtime_vram_efficiency.md)
 
 ## External Evidence
 
@@ -35,16 +29,10 @@ This is the canonical long-form evidence note for
 
 - TF-RD-020 closed under
   [#146](https://github.com/bensonlee5/tab-foundry/issues/146) with explicit
-  kept rows for missingness, shift or drift, and mechanism or noise, and the
-  current default carried surface is `tf_rd_020_shift_noise_drift_v1`
-- TF-RD-018 issue
-  [#137](https://github.com/bensonlee5/tab-foundry/issues/137) compared
-  `schedulefree_adamw`, `adamw`, and `muon` on that inherited control and left
-  Muon deferred rather than kept as an optimizer fallback
-- TF-RD-018 still needs issues
-  [#138](https://github.com/bensonlee5/tab-foundry/issues/138) and
-  [#139](https://github.com/bensonlee5/tab-foundry/issues/139) to finish one
-  explicit default LR, clipping, and step-budget recipe
+  staged-control harder-front winners that now serve as historical dagzoo
+  context rather than the active sandwich carried slice
+- TF-RD-010 now owns the first explicit carried sandwich dagzoo many-class plus
+  missingness slice that steering will attempt to improve
 - Dagzoo issue
   [bensonlee5/dagzoo#246](https://github.com/bensonlee5/dagzoo/issues/246)
   plus its child chain now define the upstream steering implementation,
@@ -52,29 +40,21 @@ This is the canonical long-form evidence note for
 - Tab-foundry now tracks the local steering-derived continuation under
   [#165](https://github.com/bensonlee5/tab-foundry/issues/165), with first
   sweep contract issue
-  [#167](https://github.com/bensonlee5/tab-foundry/issues/167) and conditional
-  optimizer retry issue
-  [#166](https://github.com/bensonlee5/tab-foundry/issues/166)
+  [#167](https://github.com/bensonlee5/tab-foundry/issues/167)
 
 ## Current Interpretation
 
-- Treat TF-RD-020 as settled v1 harder-front evidence rather than the place to
-  reopen curriculum-steered corpora
-- Finish TF-RD-018 recipe closure first so any later corpus comparison reads as
-  a surface change rather than unresolved LR, clipping, or budget noise
-- Use TF-RD-021 to test whether the earlier Muon miss was partly a
-  corpus-front mismatch instead of retrying Muon inside TF-RD-018
+- Treat TF-RD-020 as settled historical harder-front evidence rather than the
+  place to reopen curriculum-steered corpora
 - Keep the first steering-derived read small and explicit: one control row on
-  `tf_rd_020_shift_noise_drift_v1` plus `3-4` steering-derived corpus rows from
-  named steering policies or presets
-- Interpret rows by final log loss first, then final Brier score, with runtime,
-  clipped-step fraction, and stability telemetry as guardrails
+  the carried sandwich dagzoo slice plus `3-4` steering-derived corpus rows
+  from named steering policies or presets
+- Interpret rows by multiclass log loss first, with runtime, clipped-step
+  fraction, and stability telemetry as guardrails
 - Keep exactly one steering-derived carry-forward surface only if it clearly
-  beats the incumbent control; otherwise retain `tf_rd_020_shift_noise_drift_v1`
-- Only if a steering-derived front wins should tab-foundry run the bounded
-  `schedulefree_adamw` versus `muon` retry tracked by issue `#166`
-- Feed the kept steering decision into TF-RD-010 as carried dagzoo-slice
-  selection rather than treating this note as a benchmark-front conclusion
+  beats the incumbent control; otherwise retain the original carried slice
+- Feed the kept steering decision into TF-RD-022 and TF-RD-009 rather than
+  reopening TF-RD-010 or TF-RD-018
 
 ## Open Evidence Gaps
 
@@ -90,7 +70,5 @@ This is the canonical long-form evidence note for
 
 - The repo has one explicit keep/defer decision on whether any steering-derived
   corpus front replaces `tf_rd_020_shift_noise_drift_v1`
-- If a steering-derived front wins, the repo has one bounded optimizer-family
-  follow-up on that new front; otherwise the retry is explicitly skipped
-- TF-RD-010 can inherit a documented synthetic carry-forward decision without
-  reopening TF-RD-018 or blurring the completed TF-RD-020 ladder
+- TF-RD-022 can inherit a documented synthetic carry-forward decision without
+  reopening TF-RD-010 or blurring the completed TF-RD-020 ladder

@@ -100,6 +100,8 @@ This is the canonical long-form evidence note for
   on the same simplified sandwich trunk
 - the runtime policy is not yet finalized as a hard inherited precondition for
   the scaling ladder
+- the steering-derived corpus-front keep/defer decision is not yet finalized on
+  the carried dagzoo slice
 - sweep/result summaries still need compact presentation of the new
   runtime-summary and regime-budget fields
 

@@ -5,10 +5,11 @@ This is the canonical long-form evidence note for
 
 - Status: `planned`
 - Milestone: `Next`
-- Dependency position: runs after the carried TF-RD-018 recipe is explicit and
-  before TF-RD-009 scaling fits; it should not reopen optimizer or LR adequacy,
-  but it should hand one explicit runtime policy back to later dagzoo,
-  missingness, and scaling work
+- Dependency position: runs after the first carried sandwich dagzoo many-class
+  slice and the steering-derived corpus decision are explicit, and before
+  TF-RD-009 scaling fits; it should not reopen sandwich-parent or regime-choice
+  work, but it should hand one explicit kernel/runtime policy back to later
+  scaling work
 
 ## External Evidence
 
@@ -63,12 +64,14 @@ This is the canonical long-form evidence note for
   and measurable before chasing larger architecture or optimizer changes for
   speed
 - the runtime ladder should stay classification-only and should inherit one
-  frozen carried recipe rather than reopening optimizer-family or schedule
-  search
+  frozen carried recipe rather than reopening sandwich-parent selection,
+  steering, or law design
 - the bounded runtime knobs remain:
   - `bf16`
   - benchmark-facing activation-trace policy
   - activation checkpointing
+- include low-level kernel tuning only to the extent needed to keep the
+  carried sandwich dagzoo slice reliable and efficient enough for scaling
 - batching reopens only after those reads and only under an explicit 80 GB A100
   guardrail
 
@@ -90,6 +93,6 @@ This is the canonical long-form evidence note for
   scaling target, justified by repo-local time and VRAM evidence
 - artifacts and summaries expose runtime and VRAM metrics compactly enough to
   compare future runs without manual log inspection
-- later dagzoo, missingness, deferred CUDA-capacity follow-up, and TF-RD-009
-  can inherit the same runtime policy and batching keep/stop rule without
+- later scaling, deferred CUDA-capacity follow-up, and TF-RD-009 can inherit
+  the same runtime policy and batching keep/stop rule without
   re-deriving them

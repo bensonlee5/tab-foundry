@@ -25,7 +25,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 [`reference/roadmap_evidence/`](roadmap_evidence/README.md).
 
 - [`TF-RD-018`](roadmap_evidence/tf_rd_018_training_surface_adequacy.md):
-  training-surface adequacy, batch ladder, LR, and optimizer sequencing
+  historical staged-control training-surface closeout and partial adequacy
+  evidence
 - [`TF-RD-020`](roadmap_evidence/tf_rd_020_harder_dagzoo_corpus_fronts.md):
   harder dagzoo corpus-front evidence and v1 carry-forward decisions
 - [`TF-RD-021`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
@@ -247,9 +248,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     the scaling-specific handoff recorded in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:
-  - the repo identifies a default batch and training-recipe starting point on
-    the promoted row-first anchor before optimizer-family or scaling-law work
-    is treated as the main next decision surface
+  - the repo retains a clear partial closeout record for the staged-control
+    training-surface lane without treating the unfinished LR or clipping work
+    as a blocker for sandwich-first planning
 
 ### TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Promoted Anchor
 
@@ -269,8 +270,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     `reference/roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md`
 - Success signal:
   - the repo records one explicit keep/defer decision on whether a
-    steering-derived corpus front changes the carried synthetic control, and it
-    retries Muon only on a genuinely new promoted front
+    steering-derived corpus front changes the carried sandwich dagzoo slice
 
 ### TF-RD-022: Training Runtime And VRAM Efficiency Before Classification Scaling
 
@@ -293,9 +293,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     summaries and regime-budget metadata needed for later runtime-policy and
     scaling comparisons
 - Success signal:
-  - the repo records one explicit runtime policy with peak-memory and
-    throughput evidence, and later batching, missingness, or scaling work can
-    inherit it
+  - the repo records one explicit kernel/runtime policy with peak-memory and
+    throughput evidence, and later scaling work can inherit it
 
 ### TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
 
@@ -351,16 +350,17 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - μP is the strongest width-transfer prior, while newer width-depth work
     should be treated as theory-informed but still empirical for sandwich
   - the TF-RD-018 batch/LR literature and newer optimizer-budget scaling work
-    imply scaling reads should begin only after one default training recipe and
-    one runtime policy are fixed
+    remain useful historical context, but the active scaling path now depends on
+    sandwich-specific dagzoo, steering, and runtime decisions
 - Repo-local evidence:
   - tuning and comparison tooling are already present
   - runtime-summary and regime-budget artifacts now exist, but scaling-law
     artifacts are not yet canonical on the carried dagzoo classification slice
-  - TF-RD-018 still needs to settle the default batch and LR starting point on
-    the representative medium post-008 surface before scaling curves become
-    interpretable
+  - TF-RD-018 is now historical closeout evidence only and is no longer a
+    blocker for the first sandwich scaling fit
   - TF-RD-022 must still hand back one measured runtime policy
+  - TF-RD-021 must still hand back one keep/defer steering decision on the
+    carried dagzoo slice
   - TF-RD-021B simplification under `#184` is the precursor for the hybrid
     sandwich family and does not close TF-RD-009 by itself
   - the canonical long-form note now lives in
@@ -377,8 +377,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     is coherent
 - Repo-local evidence:
   - the staged family already includes `many_class`
-  - many-class should inherit the promoted row-first backbone rather than become
-    its own architecture lane
+  - many-class should inherit the frozen sandwich dagzoo backbone rather than
+    become its own architecture lane
 - Success signal:
   - many-class is evaluated as an extension of the promoted anchor
 
