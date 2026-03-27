@@ -66,7 +66,14 @@ class PriorTrainingDeps:
     gradient_history_record: Any
     append_jsonl_record: Any
     save_eval_mode_checkpoint: Any
+    build_runtime_summary: Any
+    build_regime_budget_summary: Any
     build_training_telemetry: Any
+    objective_metric_for_task: Any
+    peak_device_memory_summary: Any
+    reset_peak_device_memory_stats: Any
+    tensor_batch_examples_seen: Any
+    tensor_batch_token_count: Any
     write_training_telemetry: Any
 
 
@@ -303,6 +310,8 @@ def run_prior_training(
     nan_skip_count = 0
     train_start = time.perf_counter()
     train_elapsed_seconds = 0.0
+    examples_seen = 0
+    tokens_seen = 0
     previous_train_loss: float | None = None
     loss_ema: float | None = None
     prior_missingness_generator = None
@@ -334,6 +343,7 @@ def run_prior_training(
             run,
             deps.training_surface_wandb_summary_payload(training_surface_payload),
         )
+        deps.reset_peak_device_memory_stats(device)
         missingness_summary = deps.initial_missingness_summary(
             prior_dump_path,
             prior_missingness_config=prior_missingness_config,
@@ -405,6 +415,8 @@ def run_prior_training(
                 prior_step,
                 device=device,
             )
+            step_examples_seen = deps.tensor_batch_examples_seen(x_batch)
+            step_tokens_seen = deps.tensor_batch_token_count(x_batch)
             x_batch, synthetic_missingness = deps.apply_prior_missingness(
                 x_batch,
                 prior_step=prior_step,
@@ -436,6 +448,8 @@ def run_prior_training(
             step_train_duration = time.perf_counter() - step_train_start
             train_elapsed_seconds += step_train_duration
             global_step = int(prior_step.step_index)
+            examples_seen += step_examples_seen
+            tokens_seen += step_tokens_seen
             if not math.isfinite(history_step_loss):
                 nan_skip_count += 1
                 optimizer.zero_grad(set_to_none=True)
@@ -643,13 +657,30 @@ def run_prior_training(
         )
         artifacts["latest_checkpoint"] = str(latest_checkpoint.resolve())
         wall_elapsed_seconds = time.perf_counter() - train_start
+        runtime_summary = deps.build_runtime_summary(
+            train_elapsed_seconds=train_elapsed_seconds,
+            wall_elapsed_seconds=wall_elapsed_seconds,
+            examples_seen=examples_seen,
+            tokens_seen=tokens_seen,
+            peak_memory_summary=deps.peak_device_memory_summary(device),
+        )
+        regime_budget = deps.build_regime_budget_summary(
+            task=str(cfg.task),
+            training_surface_record=training_surface_payload,
+            global_step=global_step,
+            tokens_seen=tokens_seen,
+        )
         telemetry_payload = deps.build_training_telemetry(
             run_dir=output_dir,
+            task=str(cfg.task),
+            global_step=global_step,
             success=True,
             artifacts=artifacts,
             checkpoint_snapshots=checkpoint_snapshots,
             history_records=history_records,
             gradient_records=gradient_records,
+            runtime_summary=runtime_summary,
+            regime_budget=regime_budget,
             missingness=missingness_summary,
             training_surface_record=training_surface_payload,
             wandb=deps.wandb_identity_payload(run, cfg=cfg),
@@ -681,13 +712,31 @@ def run_prior_training(
             },
         )
     except Exception as exc:
+        wall_elapsed_seconds = time.perf_counter() - train_start
+        runtime_summary = deps.build_runtime_summary(
+            train_elapsed_seconds=train_elapsed_seconds,
+            wall_elapsed_seconds=wall_elapsed_seconds,
+            examples_seen=examples_seen,
+            tokens_seen=tokens_seen,
+            peak_memory_summary=deps.peak_device_memory_summary(device),
+        )
+        regime_budget = deps.build_regime_budget_summary(
+            task=str(cfg.task),
+            training_surface_record=training_surface_payload,
+            global_step=global_step,
+            tokens_seen=tokens_seen,
+        )
         telemetry_payload = deps.build_training_telemetry(
             run_dir=output_dir,
+            task=str(cfg.task),
+            global_step=global_step,
             success=False,
             artifacts=artifacts,
             checkpoint_snapshots=checkpoint_snapshots,
             history_records=history_records,
             gradient_records=gradient_records,
+            runtime_summary=runtime_summary,
+            regime_budget=regime_budget,
             missingness=missingness_summary,
             training_surface_record=training_surface_payload,
             wandb=deps.wandb_identity_payload(run, cfg=cfg),

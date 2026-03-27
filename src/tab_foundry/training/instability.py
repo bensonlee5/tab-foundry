@@ -11,10 +11,13 @@ import torch
 from torch import nn
 
 from tab_foundry.timestamps import utc_now as _shared_utc_now
+from tab_foundry.types import TaskBatch
 
 
 LOSS_EMA_ALPHA = 0.1
-TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v3"
+TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v4"
+CLASSIFICATION_OBJECTIVE_METRIC = "final_log_loss_at_matched_regime_budget"
+_TASK_BATCH_NDIM = 3
 _WINDOW_EARLY = "early_1_25"
 _WINDOW_POST_WARMUP = "post_warmup_100"
 _WINDOW_FINAL = "final_10pct"
@@ -68,6 +71,92 @@ def telemetry_path(output_dir: Path) -> Path:
     """Return the canonical telemetry path for one run."""
 
     return output_dir.expanduser().resolve() / "telemetry.json"
+
+
+def reset_peak_device_memory_stats(device: torch.device | None) -> None:
+    """Reset peak CUDA memory stats for one device when available."""
+
+    if device is None or device.type != "cuda" or not torch.cuda.is_available():
+        return
+    try:
+        torch.cuda.reset_peak_memory_stats(device)
+    except RuntimeError:
+        return
+
+
+def peak_device_memory_summary(device: torch.device | None) -> dict[str, int | None]:
+    """Return peak CUDA allocated and reserved memory in bytes."""
+
+    if device is None or device.type != "cuda" or not torch.cuda.is_available():
+        return {
+            "peak_vram_allocated": None,
+            "peak_vram_reserved": None,
+        }
+    try:
+        return {
+            "peak_vram_allocated": int(torch.cuda.max_memory_allocated(device)),
+            "peak_vram_reserved": int(torch.cuda.max_memory_reserved(device)),
+        }
+    except RuntimeError:
+        return {
+            "peak_vram_allocated": None,
+            "peak_vram_reserved": None,
+        }
+
+
+def task_batch_examples_seen(batch: TaskBatch) -> int:
+    """Return the number of logical tasks contained in one task batch."""
+
+    if batch.x_train.ndim == _TASK_BATCH_NDIM:
+        return int(batch.x_train.shape[0])
+    return 1
+
+
+def task_batch_token_count(batch: TaskBatch) -> int:
+    """Return the logical cell-token count for one task batch."""
+
+    if batch.x_train.ndim == _TASK_BATCH_NDIM:
+        task_count = int(batch.x_train.shape[0])
+        n_train = int(batch.x_train.shape[1])
+        n_test = int(batch.x_test.shape[1])
+        n_features = int(batch.x_train.shape[2])
+    else:
+        task_count = 1
+        n_train = int(batch.x_train.shape[0])
+        n_test = int(batch.x_test.shape[0])
+        n_features = int(batch.x_train.shape[1])
+    return int(task_count * (n_train + n_test) * n_features)
+
+
+def tensor_batch_examples_seen(x_batch: torch.Tensor) -> int:
+    """Return the number of logical tasks in one prior-dump tensor batch."""
+
+    if x_batch.ndim != _TASK_BATCH_NDIM:
+        raise RuntimeError(
+            "prior-dump runtime summaries require x_batch with shape "
+            f"(tasks, rows, features), got {tuple(int(dim) for dim in x_batch.shape)}"
+        )
+    return int(x_batch.shape[0])
+
+
+def tensor_batch_token_count(x_batch: torch.Tensor) -> int:
+    """Return the logical cell-token count for one prior-dump tensor batch."""
+
+    if x_batch.ndim != _TASK_BATCH_NDIM:
+        raise RuntimeError(
+            "prior-dump runtime summaries require x_batch with shape "
+            f"(tasks, rows, features), got {tuple(int(dim) for dim in x_batch.shape)}"
+        )
+    return int(x_batch.shape[0] * x_batch.shape[1] * x_batch.shape[2])
+
+
+def objective_metric_for_task(task: str | None) -> str | None:
+    """Return the default objective metric for one supported task."""
+
+    normalized = "" if task is None else str(task).strip().lower()
+    if normalized == "classification":
+        return CLASSIFICATION_OBJECTIVE_METRIC
+    return None
 
 
 def total_grad_norm(parameters) -> float:
@@ -730,6 +819,215 @@ def _normalize_payload_values(payload: Mapping[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _training_surface_data_payload(
+    training_surface_record: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(training_surface_record, Mapping):
+        return None
+    raw_data = training_surface_record.get("data")
+    if not isinstance(raw_data, Mapping):
+        return None
+    return raw_data
+
+
+def _manifest_characteristics_payload(
+    training_surface_record: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    data_payload = _training_surface_data_payload(training_surface_record)
+    if not isinstance(data_payload, Mapping):
+        return None
+    raw_manifest = data_payload.get("manifest")
+    if not isinstance(raw_manifest, Mapping):
+        return None
+    raw_characteristics = raw_manifest.get("characteristics")
+    if not isinstance(raw_characteristics, Mapping):
+        return None
+    return raw_characteristics
+
+
+def _curriculum_summary(
+    training_surface_record: Mapping[str, Any] | None,
+) -> tuple[str | None, dict[str, Any] | None]:
+    data_payload = _training_surface_data_payload(training_surface_record)
+    if data_payload is None:
+        return None, None
+    raw_provenance = data_payload.get("dagzoo_provenance")
+    if not isinstance(raw_provenance, Mapping):
+        corpus_variant = data_payload.get("surface_label")
+        return (
+            None if corpus_variant is None else str(corpus_variant),
+            None,
+        )
+
+    invocations_payload = raw_provenance.get("invocations")
+    invocations = invocations_payload if isinstance(invocations_payload, list) else []
+    generate_run_ids: list[str] = []
+    invocation_mix: list[dict[str, Any]] = []
+    source_families: set[str] = set()
+    for raw_invocation in invocations:
+        if not isinstance(raw_invocation, Mapping):
+            continue
+        raw_handoff = raw_invocation.get("handoff")
+        handoff = raw_handoff if isinstance(raw_handoff, Mapping) else {}
+        generate_run_id = handoff.get("generate_run_id")
+        if isinstance(generate_run_id, str) and generate_run_id.strip():
+            generate_run_ids.append(str(generate_run_id))
+        source_family = handoff.get("source_family")
+        if isinstance(source_family, str) and source_family.strip():
+            source_families.add(str(source_family))
+        invocation_mix.append(
+            {
+                "invocation_id": raw_invocation.get("invocation_id"),
+                "requested_config_ref": raw_invocation.get("requested_config_ref"),
+                "num_datasets": raw_invocation.get("num_datasets"),
+                "rows": raw_invocation.get("rows"),
+                "source_family": source_family,
+                "generate_run_id": generate_run_id,
+                "generated_corpus_id": handoff.get("generated_corpus_id"),
+            }
+        )
+    corpus_variant = raw_provenance.get("corpus_variant")
+    curriculum_id: str | None = None
+    unique_generate_run_ids = sorted({run_id for run_id in generate_run_ids if run_id})
+    if len(unique_generate_run_ids) == 1:
+        curriculum_id = unique_generate_run_ids[0]
+    elif isinstance(corpus_variant, str) and corpus_variant.strip():
+        curriculum_id = str(corpus_variant)
+    else:
+        raw_recipe_id = data_payload.get("recipe_id")
+        if isinstance(raw_recipe_id, str) and raw_recipe_id.strip():
+            curriculum_id = str(raw_recipe_id)
+    summary = {
+        "corpus_variant": raw_provenance.get("corpus_variant"),
+        "config_refs": raw_provenance.get("config_refs"),
+        "source_families": sorted(source_families),
+        "invocation_mix": invocation_mix,
+    }
+    return curriculum_id, summary
+
+
+def _scm_complexity_summary(
+    training_surface_record: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    characteristics = _manifest_characteristics_payload(training_surface_record)
+    data_payload = _training_surface_data_payload(training_surface_record)
+    raw_provenance = (
+        data_payload.get("dagzoo_provenance")
+        if isinstance(data_payload, Mapping)
+        else None
+    )
+    summary: dict[str, Any] = {}
+    if isinstance(characteristics, Mapping):
+        for key in (
+            "row_count_distribution",
+            "feature_count_distribution",
+            "class_count_distribution",
+        ):
+            if key in characteristics:
+                summary[key] = characteristics[key]
+    if isinstance(raw_provenance, Mapping):
+        invocations_payload = raw_provenance.get("invocations")
+        invocations = invocations_payload if isinstance(invocations_payload, list) else []
+        source_families = sorted(
+            {
+                str(handoff.get("source_family"))
+                for raw_invocation in invocations
+                if isinstance(raw_invocation, Mapping)
+                and isinstance(
+                    (handoff := raw_invocation.get("handoff")),
+                    Mapping,
+                )
+                and isinstance(handoff.get("source_family"), str)
+                and str(handoff.get("source_family")).strip()
+            }
+        )
+        if source_families:
+            summary["source_families"] = source_families
+        rows = [
+            int(raw_invocation["rows"])
+            for raw_invocation in invocations
+            if isinstance(raw_invocation, Mapping)
+            and raw_invocation.get("rows") is not None
+        ]
+        if rows:
+            summary["curriculum_rows"] = {
+                "min": int(min(rows)),
+                "max": int(max(rows)),
+                "count": int(len(rows)),
+            }
+    return summary or None
+
+
+def build_runtime_summary(
+    *,
+    train_elapsed_seconds: float,
+    wall_elapsed_seconds: float,
+    examples_seen: int,
+    tokens_seen: int,
+    peak_memory_summary: Mapping[str, int | None] | None,
+) -> dict[str, Any]:
+    """Build runtime telemetry derived from loop counters."""
+
+    train_elapsed = float(train_elapsed_seconds)
+    wall_elapsed = float(wall_elapsed_seconds)
+    throughput_examples = None
+    throughput_tokens = None
+    if train_elapsed > 0.0:
+        throughput_examples = float(examples_seen) / train_elapsed
+        throughput_tokens = float(tokens_seen) / train_elapsed
+    peak_allocated = None
+    peak_reserved = None
+    if isinstance(peak_memory_summary, Mapping):
+        raw_allocated = peak_memory_summary.get("peak_vram_allocated")
+        raw_reserved = peak_memory_summary.get("peak_vram_reserved")
+        peak_allocated = None if raw_allocated is None else int(raw_allocated)
+        peak_reserved = None if raw_reserved is None else int(raw_reserved)
+    return {
+        "peak_vram_allocated": peak_allocated,
+        "peak_vram_reserved": peak_reserved,
+        "throughput_examples_per_second": throughput_examples,
+        "throughput_tokens_per_second": throughput_tokens,
+        "non_train_overhead_seconds": max(0.0, wall_elapsed - train_elapsed),
+    }
+
+
+def build_regime_budget_summary(
+    *,
+    task: str | None,
+    training_surface_record: Mapping[str, Any] | None,
+    global_step: int,
+    tokens_seen: int,
+) -> dict[str, Any]:
+    """Build data-regime budget metadata from persisted surface context."""
+
+    characteristics = _manifest_characteristics_payload(training_surface_record)
+    split_counts = (
+        characteristics.get("split_counts")
+        if isinstance(characteristics, Mapping)
+        else None
+    )
+    unique_task_budget = None
+    if isinstance(split_counts, Mapping) and split_counts.get("train") is not None:
+        unique_task_budget = int(split_counts["train"])
+    elif isinstance(characteristics, Mapping) and characteristics.get("record_count") is not None:
+        unique_task_budget = int(characteristics["record_count"])
+    curriculum_id, curriculum_mix = _curriculum_summary(training_surface_record)
+    objective_metric = objective_metric_for_task(task)
+    tokens_per_step = None
+    if int(global_step) > 0:
+        tokens_per_step = float(tokens_seen) / float(global_step)
+    return {
+        "tokens_per_step": tokens_per_step,
+        "tokens_seen": int(tokens_seen),
+        "token_budget": int(tokens_seen),
+        "unique_task_budget": unique_task_budget,
+        "objective_metric": objective_metric,
+        "curriculum_id": curriculum_id,
+        "curriculum_mix": curriculum_mix,
+        "scm_complexity_summary": _scm_complexity_summary(training_surface_record),
+    }
+
+
 def build_training_telemetry(
     *,
     run_dir: Path,
@@ -738,6 +1036,10 @@ def build_training_telemetry(
     checkpoint_snapshots: Sequence[Mapping[str, Any]],
     history_records: Sequence[Mapping[str, Any]],
     gradient_records: Sequence[Mapping[str, Any]],
+    task: str | None = None,
+    global_step: int | None = None,
+    runtime_summary: Mapping[str, Any] | None = None,
+    regime_budget: Mapping[str, Any] | None = None,
     missingness: Mapping[str, Any] | None = None,
     training_surface_record: Mapping[str, Any] | None = None,
     wandb: Mapping[str, Any] | None = None,
@@ -772,6 +1074,8 @@ def build_training_telemetry(
         "generated_at_utc": _utc_now(),
         "success": bool(success),
         "run_dir": str(run_dir.expanduser().resolve()),
+        "task": None if task is None else str(task),
+        "global_step": None if global_step is None else int(global_step),
         "artifacts": _normalize_payload_values(artifacts),
         "checkpoint_snapshots": [
             _normalize_payload_values(snapshot) for snapshot in checkpoint_snapshots
@@ -781,6 +1085,12 @@ def build_training_telemetry(
         "diagnostics": diagnostics_summary(
             gradient_records,
             training_surface_record=training_surface_record,
+        ),
+        "runtime_summary": (
+            None if runtime_summary is None else _normalize_payload_values(runtime_summary)
+        ),
+        "regime_budget": (
+            None if regime_budget is None else _normalize_payload_values(regime_budget)
         ),
         "missingness": None if missingness is None else _normalize_payload_values(missingness),
         "training_surface_context": training_surface_context,

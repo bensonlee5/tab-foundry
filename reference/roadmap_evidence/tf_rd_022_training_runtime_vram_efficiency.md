@@ -1,90 +1,95 @@
-# TF-RD-022: Training Runtime And VRAM Efficiency On The Promoted Anchor
+# TF-RD-022: Training Runtime And VRAM Efficiency Before Classification Scaling
 
 This is the canonical long-form evidence note for
-[TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-training-runtime-and-vram-efficiency-on-the-promoted-anchor).
+[TF-RD-022](../../docs/development/roadmap.md#tf-rd-022-training-runtime-and-vram-efficiency-before-classification-scaling).
 
 - Status: `planned`
 - Milestone: `Next`
-- Dependency position: runs as a sibling to
-  [TF-RD-018](tf_rd_018_training_surface_adequacy.md); it should not reopen
-  optimizer or LR adequacy, but it should hand one explicit runtime policy back
-  to TF-RD-018, the deferred CUDA-capacity line, and later
-  [TF-RD-009](tf_rd_009_scaling_law_measurement.md) preparation
+- Dependency position: runs after the carried TF-RD-018 recipe is explicit and
+  before TF-RD-009 scaling fits; it should not reopen optimizer or LR adequacy,
+  but it should hand one explicit runtime policy back to later dagzoo,
+  missingness, and scaling work
 
 ## External Evidence
 
-- Dedicated external literature is not yet curated for this epic.
-- Sources to curate next:
-  - PyTorch AMP and activation-checkpointing guidance for bf16 and memory-speed
-    tradeoffs on A100-class hardware
+- Dedicated runtime-policy literature is still lighter than the scaling-law
+  note, but the main references to curate next are:
+  - PyTorch AMP guidance for bf16 on A100-class hardware
+  - activation-checkpointing references for memory-speed tradeoffs
   - reproducibility references for throughput and CUDA-memory telemetry in
     training loops
   - any tabular-model case studies where runtime-policy changes altered the
-    practical batch or scaling frontier without changing architecture
+    practical batch frontier without changing architecture
 
 ## Repo-Local Evidence
 
-- [#58](https://github.com/bensonlee5/tab-foundry/issues/58) already exists as
+- [#58](https://github.com/bensonlee5/tab-foundry/issues/58) already existed as
   the deferred runtime or VRAM measurement follow-up, but it stayed attached to
-  the closed TF-RD-002 measurement epic and never expanded into a full runtime
-  tuning lane
-- new epic [#168](https://github.com/bensonlee5/tab-foundry/issues/168) now
-  tracks runtime and VRAM efficiency end to end, with child issues
+  the closed TF-RD-002 measurement epic and never became a full runtime lane
+- epic [#168](https://github.com/bensonlee5/tab-foundry/issues/168) tracks
+  runtime and VRAM efficiency end to end, with child issues
   [#169](https://github.com/bensonlee5/tab-foundry/issues/169),
   [#170](https://github.com/bensonlee5/tab-foundry/issues/170), and
   [#171](https://github.com/bensonlee5/tab-foundry/issues/171)
-- sandwich architecture work now lives under implementation issue
-  [#174](https://github.com/bensonlee5/tab-foundry/issues/174), umbrella issue
-  [#178](https://github.com/bensonlee5/tab-foundry/issues/178), and immediate
-  nanoTabPFN screen issue
-  [#179](https://github.com/bensonlee5/tab-foundry/issues/179); the companion
-  architecture note is [TF-RD-021A](tf_rd_021a_latent_bank_sandwich_prototype.md)
+- sandwich architecture work still lives under implementation issue
+  [#174](https://github.com/bensonlee5/tab-foundry/issues/174) and umbrella
+  issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178); TF-RD-022
+  is a dependency surface for later classification work, not the owner of
+  sandwich planning
+- training telemetry and benchmark-registry records now preserve:
+  - `peak_vram_allocated`
+  - `peak_vram_reserved`
+  - `throughput_examples_per_second`
+  - `throughput_tokens_per_second`
+  - `tokens_per_step`
+  - `tokens_seen`
+  - `token_budget`
+  - `unique_task_budget`
+  - `objective_metric`
+  - `curriculum_id`
+  - `curriculum_mix`
+  - `scm_complexity_summary`
 - canonical benchmark prior configs still inherit `runtime.mixed_precision: "no"` from `configs/experiment/_shared/compact_binary_prior.yaml` unless a
   higher-level experiment overrides it
-- canonical training telemetry records loss, gradient, and instability
-  summaries, but it does not yet expose peak CUDA memory or throughput
-  summaries
 - `tabfoundry_staged` already supports `runtime.activation_checkpointing`, and
-  the benchmark-facing runtime defaults currently keep it disabled
-- benchmark-facing exact-prior experiments still enable
-  `runtime.trace_activations: true`, which is useful for diagnostics but not yet
-  separated cleanly from ordinary benchmark-facing execution
+  benchmark-facing exact-prior runs still default to
+  `runtime.trace_activations: true`
 
 ## Current Interpretation
 
-- the highest-probability low-risk win is to make runtime policy explicit and
-  measurable before chasing larger architecture or optimizer changes for speed
-- the hard-surface decision anchor for this epic must stay CUDA-only; MPS OOMs
-  are useful for local iteration but should not be mixed into A100 memory
-  conclusions
-- TF-RD-022 should treat `bf16`, benchmark-facing activation-trace policy, and
-  activation checkpointing as the first bounded runtime knobs on the current
-  harder-surface training path
-- TF-RD-021A now runs in parallel as an architecture lane under TF-RD-016, and
-  it does not replace the runtime-telemetry prerequisite for CUDA decisions
-- activation checkpointing is primarily a headroom tool, not a default speed
-  tool; prefer it only if the non-checkpointed rows still leave inadequate VRAM
-  margin
-- once runtime policy is explicit, the next decision-relevant read is not a new
-  architecture sweep but a bounded reopen of harder-surface batching under a
-  conservative OOM guardrail
+- TF-RD-022 is now a hard pre-scaling gate rather than an optional adjacent
+  runtime-cleanup lane
+- the highest-probability low-risk win is still to make runtime policy explicit
+  and measurable before chasing larger architecture or optimizer changes for
+  speed
+- the runtime ladder should stay classification-only and should inherit one
+  frozen carried recipe rather than reopening optimizer-family or schedule
+  search
+- the bounded runtime knobs remain:
+  - `bf16`
+  - benchmark-facing activation-trace policy
+  - activation checkpointing
+- batching reopens only after those reads and only under an explicit 80 GB A100
+  guardrail
 
 ## Open Evidence Gaps
 
-- the repo still lacks canonical peak-VRAM and throughput summaries in
-  `telemetry.json`, sweep summaries, and result cards
-- the repo still lacks one explicit keep or defer decision on whether bf16 is
-  benchmark-safe on the current harder-surface carried recipe
-- the repo still lacks one explicit keep or defer decision on benchmark-facing
+- sweep and result summaries still need compact presentation of the new runtime
+  and regime-budget fields
+- the repo still lacks one explicit keep/defer decision on whether bf16 is
+  benchmark-safe on the carried classification recipe
+- the repo still lacks one explicit keep/defer decision on benchmark-facing
   activation tracing versus screen-only tracing
 - the repo still lacks one measured reopen rule for `task_batch_size=2` or `4`
-  on the harder carry-forward surface under an 80 GB A100 memory budget
+  on the carried harder-surface classification recipe under an 80 GB A100
+  budget
 
 ## Exit Signals
 
-- one explicit runtime policy exists for the promoted-anchor harder surface,
-  justified by repo-local time and VRAM evidence
-- sweep artifacts expose runtime and VRAM summaries compactly enough to compare
-  future runs without manual log inspection
-- TF-RD-018, the deferred CUDA-capacity line, and TF-RD-009 can inherit the
-  same runtime policy and batching keep or stop rule without re-deriving them
+- one explicit benchmark-safe runtime policy exists for the classification
+  scaling target, justified by repo-local time and VRAM evidence
+- artifacts and summaries expose runtime and VRAM metrics compactly enough to
+  compare future runs without manual log inspection
+- later dagzoo, missingness, deferred CUDA-capacity follow-up, and TF-RD-009
+  can inherit the same runtime policy and batching keep/stop rule without
+  re-deriving them

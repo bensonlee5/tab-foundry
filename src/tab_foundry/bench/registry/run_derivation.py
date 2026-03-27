@@ -12,10 +12,13 @@ from tab_foundry.bench.artifacts import load_history
 from tab_foundry.bench.nanotabpfn import resolve_tab_foundry_run_artifact_paths
 from tab_foundry.bench.registry.record_helpers import (
     _count_parameters_from_cfg,
+    _load_training_telemetry,
     _model_payload_from_cfg,
+    _regime_budget_from_artifacts,
     _resolve_record_checkpoint_path,
     _training_diagnostics_from_history,
     _training_surface_record,
+    _runtime_summary_from_telemetry,
 )
 from tab_foundry.bench.registry.schema import (
     _BenchmarkRunEntryPayload,
@@ -274,6 +277,7 @@ def derive_benchmark_run_record(
         raw_state_dict=raw_state_dict,
         benchmark_run_record_path=benchmark_run_record_path,
     )
+    telemetry_payload = _load_training_telemetry(resolved_run_dir)
 
     record = {
         "manifest_path": normalize_path_value_fn(manifest_path),
@@ -306,6 +310,13 @@ def derive_benchmark_run_record(
         },
         "tab_foundry_metrics": tab_foundry_metrics_from_summary(tab_foundry),
         "training_diagnostics": _training_diagnostics_from_history(history, raw_cfg=raw_cfg),
+        "runtime_summary": _runtime_summary_from_telemetry(telemetry_payload),
+        "regime_budget": _regime_budget_from_artifacts(
+            raw_cfg=raw_cfg,
+            history=history,
+            training_surface_record=training_surface_payload,
+            telemetry_payload=telemetry_payload,
+        ),
         "model_size": _count_parameters_from_cfg(raw_cfg, state_dict=raw_state_dict),
         "surface_labels": None
         if training_surface_payload is None
@@ -415,6 +426,8 @@ def derive_benchmark_run_entry(
         "artifacts": record["artifacts"],
         "tab_foundry_metrics": record["tab_foundry_metrics"],
         "training_diagnostics": record["training_diagnostics"],
+        "runtime_summary": record.get("runtime_summary"),
+        "regime_budget": record.get("regime_budget"),
         "model_size": record["model_size"],
         "surface_labels": record.get("surface_labels"),
         "sweep": record.get("sweep"),

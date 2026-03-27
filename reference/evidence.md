@@ -33,9 +33,11 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - [`TF-RD-021A`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
   fixed-latent sandwich candidate note and closed immediate nanoTabPFN screen
 - [`TF-RD-021B`](roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md):
-  hybrid full-cell sandwich successor note and locked-prior replay handoff
+  hybrid full-cell sandwich successor note plus simplified-parent and
+  classification-scaling-prep handoff
 - [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
-  runtime and VRAM efficiency evidence plus the measured-policy handoff
+  runtime and VRAM efficiency evidence plus the measured-policy pre-scaling
+  handoff
 - [`TF-RD-019`](roadmap_evidence/tf_rd_019_dagzoo_filtering_policy.md):
   dagzoo filtering-policy evidence and open curation questions
 - [`TF-RD-014`](roadmap_evidence/tf_rd_014_missingness_robustness.md):
@@ -47,11 +49,13 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - [`TF-RD-010`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
   many-class promotion evidence on the row-first base
 - [`TF-RD-015`](roadmap_evidence/tf_rd_015_regression_rebuild.md):
-  regression rebuild evidence on the staged family
+  deferred regression rebuild evidence after the classification-first scaling
+  program
 - [`TF-RD-012`](roadmap_evidence/tf_rd_012_inference_handoff_and_later_modalities.md):
   inference handoff and later-modality evidence
 - [`TF-RD-009`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
-  scaling-law evidence and the TF-RD-018 handoff
+  classification-first scaling-law design evidence and the runtime plus
+  harder-surface handoff
 
 ## Evidence-to-Roadmap Mapping
 
@@ -270,7 +274,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     steering-derived corpus front changes the carried synthetic control, and it
     retries Muon only on a genuinely new promoted front
 
-### TF-RD-022: Training Runtime And VRAM Efficiency On The Promoted Anchor
+### TF-RD-022: Training Runtime And VRAM Efficiency Before Classification Scaling
 
 - External evidence:
   - dedicated runtime-policy literature is not yet curated in this repo
@@ -287,9 +291,13 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     umbrella issue `#178`, and immediate nanoTabPFN screen issue `#179`; this
     runtime lane is now a dependency surface for later sandwich hard-surface
     reads rather than the owner of that architecture line
+  - training telemetry and benchmark-registry artifacts now preserve runtime
+    summaries and regime-budget metadata needed for later runtime-policy and
+    scaling comparisons
 - Success signal:
   - the repo records one explicit runtime policy with peak-memory and
-    throughput evidence, and later batching or scaling work can inherit it
+    throughput evidence, and later batching, missingness, or scaling work can
+    inherit it
 
 ### TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen
 
@@ -312,7 +320,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     and leaves the abandoned latent/width ladder as deferred backlog rather
     than pretending it is still the next execution target
 
-### TF-RD-021B: Hybrid Full-Cell Sandwich Successor And Locked Prior Replay
+### TF-RD-021B: Hybrid Full-Cell Sandwich Successor, Simplification, And Classification-First Scaling Prep
 
 - External evidence:
   - PerceiverIO-style query readout and latent-bottleneck references justify
@@ -328,37 +336,41 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     final Brier `0.3072` on the pinned medium binary bundle without an external
     comparator
   - child issues `#182`, `#183`, and `#184` now split the next work into the
-    9-run knob screen, bounded width or head follow-up, and later
-    sandwich-local empirical power-curve phase
+    completed 9-run knob screen, completed bounded width or head follow-up, and
+    the remaining simplified-parent plus scaling-prep follow-up
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md`
 - Success signal:
-  - the repo records the bounded TF-RD-021B sensitivity passes and later
-    sandwich-local empirical power curves before collapsing the family to any
-    single-toggle scaling recipe
+  - the repo records the bounded TF-RD-021B simplification package, chooses one
+    simplified sandwich parent, and carries it onto harder classification
+    surfaces before any single-toggle scaling recipe is considered
 
-### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
+### TF-RD-009: Scaling-Law Design And Measurement On The Classification-First Sandwich Target
 
 - External evidence:
   - Chinchilla, Kaplan, Power Lines, and Broken Neural Scaling Laws all require
     a stable family and comparable artifacts
-  - muP is only meaningfully useful once one anchor family exists
-  - the TF-RD-018 batch/LR literature implies scaling reads should begin only
-    after one default training recipe is fixed on the promoted anchor
+  - μP is the strongest width-transfer prior, while newer width-depth work
+    should be treated as theory-informed but still empirical for sandwich
+  - the TF-RD-018 batch/LR literature and newer optimizer-budget scaling work
+    imply scaling reads should begin only after one default training recipe and
+    one runtime policy are fixed
 - Repo-local evidence:
   - tuning and comparison tooling are already present
-  - scaling-law artifacts are not yet canonical on the right architecture
+  - runtime-summary and regime-budget artifacts now exist, but scaling-law
+    artifacts are not yet canonical on the carried dagzoo classification slice
   - TF-RD-018 still needs to settle the default batch and LR starting point on
     the representative medium post-008 surface before scaling curves become
     interpretable
-  - sandwich-local empirical power-curve work under `#184` is a precursor for
-    the hybrid sandwich family only and does not close TF-RD-009 on the
-    promoted row-first anchor
+  - TF-RD-022 must still hand back one measured runtime policy
+  - TF-RD-021B simplification under `#184` is the precursor for the hybrid
+    sandwich family and does not close TF-RD-009 by itself
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:
-  - scaling curves are fit on the promoted row-first anchor, not on transient
-    bridge rows, and they reuse one explicit TF-RD-018-derived training recipe
+  - the repo fits classification scaling laws on the simplified sandwich family
+    under one harder dagzoo slice, one inherited runtime policy, and one
+    matched regime-budget contract
 
 ### TF-RD-010: Many-Class Promotion On The Row-First Base
 

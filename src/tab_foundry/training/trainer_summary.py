@@ -114,4 +114,6 @@ def _training_telemetry_summary_payload(
         "loss_summary": telemetry_payload.get("loss_summary"),
         "gradient_summary": telemetry_payload.get("gradient_summary"),
         "diagnostics": telemetry_payload.get("diagnostics"),
+        "runtime_summary": telemetry_payload.get("runtime_summary"),
+        "regime_budget": telemetry_payload.get("regime_budget"),
     }

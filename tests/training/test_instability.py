@@ -4,7 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from tab_foundry.training.instability import build_training_telemetry, history_loss_summary
+from tab_foundry.training.instability import (
+    build_regime_budget_summary,
+    build_runtime_summary,
+    build_training_telemetry,
+    history_loss_summary,
+)
 
 
 def test_build_training_telemetry_adds_windowed_diagnostics(tmp_path: Path) -> None:
@@ -257,3 +262,74 @@ def test_build_training_telemetry_leaves_wandb_empty_when_unavailable(tmp_path: 
     )
 
     assert telemetry["wandb"] is None
+
+
+def test_build_training_telemetry_persists_runtime_and_regime_budget_metadata(
+    tmp_path: Path,
+) -> None:
+    training_surface_record = {
+        "data": {
+            "surface_label": "dagzoo_shape_aware_multi_invocation",
+            "dagzoo_provenance": {
+                "corpus_variant": "dagzoo_shape_aware_multi_invocation",
+                "config_refs": ["configs/dagzoo/binary.yaml"],
+                "invocations": [
+                    {
+                        "invocation_id": "shape_aware",
+                        "requested_config_ref": "configs/dagzoo/binary.yaml",
+                        "num_datasets": 48,
+                        "rows": 256,
+                        "handoff": {
+                            "source_family": "dagzoo.fixed_layout_scm",
+                            "generate_run_id": "1" * 32,
+                            "generated_corpus_id": "2" * 32,
+                        },
+                    }
+                ],
+            },
+            "manifest": {
+                "characteristics": {
+                    "split_counts": {"train": 96, "val": 12},
+                    "row_count_distribution": {"min": 24, "max": 40},
+                    "feature_count_distribution": {"min": 6, "max": 8},
+                    "class_count_distribution": {"min": 2, "max": 2},
+                }
+            },
+        }
+    }
+    telemetry = build_training_telemetry(
+        run_dir=tmp_path,
+        task="classification",
+        global_step=75,
+        success=True,
+        artifacts={},
+        checkpoint_snapshots=[],
+        history_records=[{"step": 75, "train_loss": 0.4, "train_loss_delta": -0.01}],
+        gradient_records=[],
+        runtime_summary=build_runtime_summary(
+            train_elapsed_seconds=3.0,
+            wall_elapsed_seconds=3.8,
+            examples_seen=96,
+            tokens_seen=38400,
+            peak_memory_summary={"peak_vram_allocated": 1024, "peak_vram_reserved": 2048},
+        ),
+        regime_budget=build_regime_budget_summary(
+            task="classification",
+            training_surface_record=training_surface_record,
+            global_step=75,
+            tokens_seen=38400,
+        ),
+        training_surface_record=training_surface_record,
+    )
+
+    assert telemetry["runtime_summary"] == {
+        "peak_vram_allocated": 1024,
+        "peak_vram_reserved": 2048,
+        "throughput_examples_per_second": 32.0,
+        "throughput_tokens_per_second": 12800.0,
+        "non_train_overhead_seconds": pytest.approx(0.8),
+    }
+    assert telemetry["regime_budget"]["tokens_per_step"] == pytest.approx(512.0)
+    assert telemetry["regime_budget"]["unique_task_budget"] == 96
+    assert telemetry["regime_budget"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"
+    assert telemetry["regime_budget"]["curriculum_id"] == "1" * 32

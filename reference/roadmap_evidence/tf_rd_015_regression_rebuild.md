@@ -1,51 +1,55 @@
-# TF-RD-015: Regression Rebuild On The Promoted Row-First Base
+# TF-RD-015: Regression Rebuild Deferred From The Classification-First Scaling Plan
 
 This is the canonical long-form evidence note for
-[TF-RD-015](../../docs/development/roadmap.md#tf-rd-015-regression-rebuild-on-the-promoted-row-first-base).
+[TF-RD-015](../../docs/development/roadmap.md#tf-rd-015-regression-rebuild-deferred-from-the-classification-first-scaling-plan).
 
-- Status: `planned`
-- Milestone: `Next`
-- Dependency position: follows
-  [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md) and rebuilds
-  regression on the same staged family rather than on a separate architecture
-  lane
+- Status: `research`
+- Milestone: `Later`
+- Dependency position: intentionally deferred until after the first
+  classification-first sandwich scaling program lands a stable runtime policy,
+  harder-surface evidence, and a usable scaling contract
 
 ## External Evidence
 
-- Shared bibliography: [reference/papers.md](../papers.md)
-- Current curated context is broad rather than regression-specific: general
-  tabular foundation-model references and the repo's existing data and contract
-  notes
-- Dedicated regression literature is not yet curated in this repo
-- External evidence to curate next: tabular-regression benchmark references,
-  regression-head and loss-function guidance, and normalization or calibration
-  work that fits a staged row-first model family
+- Current curated context is still broad rather than regression-specific:
+  general tabular references, calibration references, and compact-model papers
+  already exist in `reference/papers.md`
+- Dedicated regression literature is still not curated in this repo
+- External evidence to curate later:
+  - tabular-regression benchmark references
+  - regression-head and loss-function guidance
+  - normalization or calibration references specific to regression
 
 ## Repo-Local Evidence
 
 - regression support is intentionally removed from the active repo surface
 - regression metrics and benchmark-bundle normalization support still exist in
   parts of the repo
-- there is no active staged regression program, canonical regression bundle, or
-  staged regression head and loss contract
+- there is no active regression program, canonical regression bundle, or
+  regression head/loss contract
+- the roadmap now explicitly removes regression as a blocker for the first
+  classification scaling plan
 
 ## Current Interpretation
 
-- rebuild regression as a staged-family extension on top of the promoted
-  row-first base
-- keep one OpenML baseline where possible and use license-cleared
-  manifest-backed external datasets only as bounded augmentations
-- stay on the same staged family instead of reopening a second model lane
+- regression should not absorb roadmap attention before the repo settles the
+  classification-first sandwich family
+- the right time to rebuild regression is after the classification lane has:
+  - one inherited runtime policy
+  - one harder-surface classification contract
+  - one initial scaling-law contract
+- the eventual regression lane should be judged on its own benchmark-facing
+  evidence rather than being bundled into the first classification scaling gate
 
 ## Open Evidence Gaps
 
 - the repo does not yet have a canonical regression benchmark surface
 - the regression-specific literature set still needs to be curated
-- the staged regression head and loss contract are still undefined
+- the eventual regression head and loss contract remain undefined
 
 ## Exit Signals
 
-- regression has a benchmark-facing staged baseline and a bounded roadmap for
-  promotion or deferral
-- the rebuilt regression lane remains an extension of the promoted row-first
-  staged family
+- regression resumes only after the first classification scaling program is no
+  longer blocked on runtime, missingness, or scaling-law design work
+- the rebuilt regression lane has a benchmark-facing baseline and a bounded
+  roadmap for promotion or deferral

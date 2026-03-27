@@ -1,13 +1,14 @@
-# TF-RD-016: Architecture Surface Adequacy And Selective Expansion
+# TF-RD-016: Architecture Surface Adequacy, Sandwich Simplification, And Selective Expansion
 
 This is the canonical long-form evidence note for
-[TF-RD-016](../../docs/development/roadmap.md#tf-rd-016-architecture-surface-adequacy-and-selective-expansion).
+[TF-RD-016](../../docs/development/roadmap.md#tf-rd-016-architecture-surface-adequacy-sandwich-simplification-and-selective-expansion).
 
 - Status: `planned`
 - Milestone: `Next`
-- Dependency position: follows
-  [TF-RD-014](tf_rd_014_missingness_robustness.md) and
-  [TF-RD-017](tf_rd_017_class_imbalance_robustness.md), then gates
+- Dependency position: now includes an earlier simplified-parent phase before
+  the main harder-surface ladders, then gates
+  [TF-RD-014](tf_rd_014_missingness_robustness.md),
+  [TF-RD-017](tf_rd_017_class_imbalance_robustness.md),
   [TF-RD-010](tf_rd_010_many_class_promotion.md),
   [TF-RD-015](tf_rd_015_regression_rebuild.md),
   [TF-RD-012](tf_rd_012_inference_handoff_and_later_modalities.md), and
@@ -30,6 +31,8 @@ This is the canonical long-form evidence note for
 - the staged surface already exposes tokenization choice, `feature_group_size`,
   norm family and placement, widths, depths, row CLS count, TFCol inducing
   count, context FF expansion, dropout, and clipping
+- TF-RD-021B now makes sandwich-parent simplification the first explicit
+  architecture task before broader harder-surface adequacy work
 - learned special-token and inducing-token initialization scale remains
   hardcoded
 - optimizer adequacy work, including `muon`, is already scoped out of this epic
@@ -37,8 +40,10 @@ This is the canonical long-form evidence note for
 
 ## Current Interpretation
 
-- Phase 1 should read the existing surface on harder post-008 ladders before
-  adding new config fields
+- Phase 0 should choose and freeze a simplified sandwich parent before broader
+  harder-surface adequacy work
+- Phase 1 should then read the existing surface on harder post-008 ladders
+  before adding new config fields
 - tokenizer and norm-family or placement choices are the first explicit
   subtracks because they are already exposed and could matter across multiple
   future regimes

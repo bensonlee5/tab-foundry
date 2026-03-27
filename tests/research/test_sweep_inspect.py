@@ -407,6 +407,50 @@ def test_inspect_sweep_row_reports_resolved_surfaces(
     assert payload["target"]["resolved"]["data"]["surface_label"] == "anchor_manifest_default"
 
 
+def test_inspect_sweep_row_materializes_catalog_default_effective_surface(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_path, index_path, sweeps_root, registry_path, registry_payload = _mini_sweep_workspace(tmp_path)
+    _patch_registry(monkeypatch, registry_payload=registry_payload)
+
+    catalog_payload = OmegaConf.to_container(OmegaConf.load(catalog_path), resolve=True)
+    assert isinstance(catalog_payload, dict)
+    deltas = catalog_payload.get("deltas")
+    assert isinstance(deltas, dict)
+    row_cls_delta = deltas.get("delta_row_cls_pool")
+    assert isinstance(row_cls_delta, dict)
+    default_effective_surface = row_cls_delta.get("default_effective_surface")
+    assert isinstance(default_effective_surface, dict)
+    default_effective_surface["model"] = _row_model_payload(stage_label="catalog_default_row_cls_pool")
+    _write_yaml(catalog_path, catalog_payload)
+
+    queue_path = sweeps_root / "mini_sweep" / "queue.yaml"
+    queue_payload = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(queue_payload, dict)
+    rows = queue_payload.get("rows")
+    assert isinstance(rows, list)
+    rows[2].pop("model", None)
+    rows[2].pop("data", None)
+    rows[2].pop("preprocessing", None)
+    rows[2].pop("training", None)
+    _write_yaml(queue_path, queue_payload)
+
+    payload = inspect_module.inspect_sweep_row(
+        order=3,
+        sweep_id="mini_sweep",
+        index_path=index_path,
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+        registry_path=registry_path,
+    )
+
+    resolved = payload["target"]["resolved"]
+    assert resolved["model"]["stage_label"] == "catalog_default_row_cls_pool"
+    assert resolved["data"]["surface_label"] == "anchor_manifest_default"
+    assert resolved["training"]["surface_label"] == "training_default"
+
+
 def test_diff_sweep_row_reports_anchor_and_row_differences(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

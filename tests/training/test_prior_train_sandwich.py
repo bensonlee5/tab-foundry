@@ -117,6 +117,22 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     telemetry = json.loads((tmp_path / "train_out" / "telemetry.json").read_text(encoding="utf-8"))
     assert telemetry["success"] is True
     assert telemetry["artifacts"]["gradient_history_jsonl"].endswith("gradient_history.jsonl")
+    assert telemetry["runtime_summary"].keys() == {
+        "peak_vram_allocated",
+        "peak_vram_reserved",
+        "throughput_examples_per_second",
+        "throughput_tokens_per_second",
+        "non_train_overhead_seconds",
+    }
+    assert telemetry["runtime_summary"]["peak_vram_allocated"] is None
+    assert telemetry["runtime_summary"]["peak_vram_reserved"] is None
+    assert telemetry["runtime_summary"]["throughput_examples_per_second"] > 0.0
+    assert telemetry["runtime_summary"]["throughput_tokens_per_second"] > 0.0
+    assert telemetry["runtime_summary"]["non_train_overhead_seconds"] >= 0.0
+    assert telemetry["regime_budget"]["tokens_seen"] > 0
+    assert telemetry["regime_budget"]["token_budget"] == telemetry["regime_budget"]["tokens_seen"]
+    assert telemetry["regime_budget"]["tokens_per_step"] > 0.0
+    assert telemetry["regime_budget"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"
     training_surface = json.loads(
         (tmp_path / "train_out" / "training_surface_record.json").read_text(encoding="utf-8")
     )

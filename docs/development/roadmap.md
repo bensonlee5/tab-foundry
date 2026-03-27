@@ -8,12 +8,15 @@ The repo-wide plan is now architecture-first:
 - keep one frozen PFN-style control lane for trust and comparison
 - keep `tabfoundry_staged` as the incumbent row-first reference and benchmark
   line
-- evaluate `tabfoundry_sandwich` as the primary long-term architecture
-  candidate
+- treat `tabfoundry_sandwich` as the primary classification architecture target
+  and scaling-prep family
+- make runtime and VRAM optimization a hard prerequisite to later scaling so
+  every scale ladder inherits one measured runtime policy
 - stay free to borrow the best components from TabPFN and other tabular models
   rather than aiming for literal TabICLv2 parity
-- defer regression, extended modalities, and broader runtime handoff until the
-  next promoted classification anchor is coherent and documented
+- defer regression from the first classification scaling plan; many-class can
+  advance later as a non-blocking extension once the classification base is
+  coherent and documented
 
 Use these alongside this roadmap:
 
@@ -96,7 +99,8 @@ Important non-goals for this roadmap:
   embedding, column set reasoning, then row-level context.
 - After the binary anchor is coherent, the next deliberate fronts should make
   the research surface less saturating and more realistic: synthetic data,
-  training adequacy, missingness, class imbalance, many-class, and regression.
+  training adequacy, runtime policy, missingness, class imbalance, and later
+  many-class.
 - If those harder or broader surfaces still leave the model hard to separate or
   obviously underfit, open a later architecture-surface adequacy pass before
   relying on scaling-law work as the main next source of evidence.
@@ -123,21 +127,26 @@ Important non-goals for this roadmap:
   after TF-RD-018 settles one explicit default recipe and dagzoo RD-008
   steering lands, so the repo can test whether curriculum-steered corpora beat
   the TF-RD-020 control before benchmark-front ladders; TF-RD-022 runtime and
-  VRAM efficiency as the adjacent sibling lane that makes time and memory a
-  measured surface without reopening the carried recipe; TF-RD-014 missingness
-  and TF-RD-017 class-imbalance as the preferred next benchmark-backed
-  harder-surface ladders; then TF-RD-016 architecture-surface adequacy and
-  bounded low-level micro-decisions.
+  VRAM efficiency next as the hard pre-scaling gate that makes time and memory
+  a measured surface without reopening the carried recipe; TF-RD-021B
+  simplification work on `tabfoundry_sandwich` then narrows the classification
+  parent before broader law fitting; TF-RD-014 missingness and TF-RD-017
+  class-imbalance remain the preferred benchmark-backed harder-surface ladders;
+  then TF-RD-016 architecture-surface adequacy and bounded low-level
+  micro-decisions.
 - Low-level questions such as norm family or placement, learned special-token
   initialization scale, QASS scaler capacity, and activation family belong
   under TF-RD-016 after the earlier adequacy and harder-surface gates are in
   place, not as free-floating anchor-settlement work.
 - Many-class, regression, and runtime handoff should build on that
   deconfounded post-008 base rather than competing with the earlier gates.
-- Scaling-law work should follow once the promoted anchor has at least one
-  harder post-008 surface fixed well enough to make scaling conclusions
-  decision-relevant and any needed selective architecture-surface expansion is
-  scoped.
+- Runtime and VRAM optimization should finish before the first scaling fit so
+  classification ladders inherit one measured 80 GB A100-safe policy instead of
+  discovering memory limits during the scale study.
+- Scaling-law design should start only after the repo has a simplified sandwich
+  parent, one carried dagzoo curriculum slice, runtime telemetry and artifact
+  integrity, and at least one missingness read on the same classification
+  family.
 
 ## Canonical Priority Queue
 
@@ -160,14 +169,14 @@ retained for traceability.
 | 11 | TF-RD-018 | Training-surface adequacy on the promoted anchor | planned | Next |
 | 12 | TF-RD-020 | Harder dagzoo corpus fronts on the promoted anchor | completed | Completed |
 | 13 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the promoted anchor | planned | Next |
-| 14 | TF-RD-022 | Training runtime and VRAM efficiency on the promoted anchor | planned | Next |
+| 14 | TF-RD-022 | Training runtime and VRAM efficiency before classification scaling | planned | Next |
 | 15 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
 | 16 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
-| 17 | TF-RD-016 | Architecture surface adequacy and selective expansion | planned | Next |
+| 17 | TF-RD-016 | Architecture surface adequacy, sandwich simplification, and selective expansion | planned | Next |
 | 18 | TF-RD-010 | Many-class promotion on the row-first base | planned | Next |
-| 19 | TF-RD-015 | Regression rebuild on the promoted row-first base | planned | Next |
-| 20 | TF-RD-012 | Inference handoff and later modalities | research | Later |
-| 21 | TF-RD-009 | Scaling-law measurement on the promoted anchor | planned | Next |
+| 19 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | planned | Next |
+| 20 | TF-RD-015 | Regression rebuild deferred from the classification-first scaling plan | research | Later |
+| 21 | TF-RD-012 | Inference handoff and later modalities | research | Later |
 
 TF-RD-019 remains intentionally unranked in the canonical queue because it is a
 separate later filtering-policy lane, but it is included in the dependency
@@ -193,15 +202,15 @@ flowchart TD
     RD018["TF-RD-018<br/>Training-surface<br/>adequacy"]
     RD020["TF-RD-020<br/>Harder dagzoo<br/>corpus fronts"]
     RD021["TF-RD-021<br/>Steering-derived<br/>corpus fronts"]
-    RD022["TF-RD-022<br/>Runtime & VRAM<br/>efficiency"]
+    RD022["TF-RD-022<br/>Runtime & VRAM<br/>pre-scaling gate"]
     RD019["TF-RD-019<br/>Filtering policy"]
     RD014["TF-RD-014<br/>Missingness<br/>robustness"]
     RD017["TF-RD-017<br/>Class-imbalance<br/>robustness"]
     RD016["TF-RD-016<br/>Architecture surface<br/>adequacy"]
     RD010["TF-RD-010<br/>Many-class promotion"]
-    RD015["TF-RD-015<br/>Regression rebuild"]
+    RD015["TF-RD-015<br/>Regression rebuild<br/>(deferred)"]
     RD012["TF-RD-012<br/>Inference handoff &<br/>later modalities"]
-    RD009["TF-RD-009<br/>Scaling-law measurement"]
+    RD009["TF-RD-009<br/>Scaling-law design &<br/>measurement"]
 
     RD001 --> RD002
     RD001 --> RD003
@@ -221,13 +230,16 @@ flowchart TD
     RD020 -.-> RD019
     RD021 --> RD014
     RD021 --> RD017
+    RD021 --> RD009
+    RD022 -.-> RD014
     RD014 --> RD016
+    RD014 --> RD009
     RD017 --> RD016
     RD013 --> RD016
     RD016 --> RD010
     RD016 --> RD015
     RD016 --> RD012
-    RD022 -.-> RD009
+    RD022 --> RD009
     RD016 --> RD009
 
     classDef done fill:#d4edda,stroke:#28a745,color:#155724;
@@ -237,9 +249,9 @@ flowchart TD
     classDef later fill:#f3e8ff,stroke:#7c3aed,color:#3b1f6e;
 
     class RD000,RD001,RD002,RD003,RD004,RD005,RD006,RD007,RD008,RD011,RD013,RD020 done;
-    class RD009,RD018,RD021,RD022,RD014,RD017,RD010,RD015 readyNow;
+    class RD009,RD018,RD021,RD022,RD014,RD017,RD010 readyNow;
     class RD016 gate;
-    class RD012,RD019 later;
+    class RD012,RD015,RD019 later;
 ```
 
 Critical path: **003 → 004 → 005 → 006 → 007 → 008**. 000, 001, 002, 003, and
@@ -254,14 +266,12 @@ compare a small steering-derived corpus ladder against the incumbent
 `tf_rd_020_shift_noise_drift_v1` control before TF-RD-014 and TF-RD-017 start
 as the preferred benchmark-backed harder-surface ladders. `tf_rd_020_noise_mixture_v1`
 remains the named fallback harder surface if the first optimizer-family read on
-noise drift is too close or unstable to collapse cleanly. TF-RD-016 now follows
-as the bounded architecture-surface and low-level micro-decision track before
-TF-RD-010, TF-RD-015, TF-RD-012, or TF-RD-009 absorb the main roadmap
-attention. TF-RD-022 now runs as the adjacent runtime-efficiency lane: it
-should make time and VRAM a measured, reproducible surface without reopening
-TF-RD-018 recipe choices, then hand one explicit runtime policy back into
-later batching, blocked CUDA-capacity follow-up, and scaling preparation.
-Separately, TF-RD-021A now runs under the broader TF-RD-016 architecture lane:
+noise drift is too close or unstable to collapse cleanly. TF-RD-022 now runs
+as a hard pre-scaling gate rather than an optional sibling lane: it should make
+time and VRAM a measured, reproducible surface without reopening TF-RD-018
+recipe choices, then hand one explicit runtime policy back into later
+classification ladders. Separately, TF-RD-021A now runs under the broader
+TF-RD-016 architecture lane:
 issue [#174](https://github.com/bensonlee5/tab-foundry/issues/174) records the
 fixed-latent sandwich implementation, issue
 [#178](https://github.com/bensonlee5/tab-foundry/issues/178) owns long-running
@@ -274,11 +284,13 @@ first compact hybrid full-cell replay and benchmarked local control under the
 same umbrella. Child issues [#182](https://github.com/bensonlee5/tab-foundry/issues/182),
 [#183](https://github.com/bensonlee5/tab-foundry/issues/183), and
 [#184](https://github.com/bensonlee5/tab-foundry/issues/184) now split the
-next TF-RD-021B work into the 9-run knob-sensitivity screen, the bounded
-width or head follow-up, and a later sandwich-local empirical power-curve
-phase before any single-toggle scaling recipe is authored. TF-RD-022 remains a
-dependency surface for later sandwich hard-surface reads, not the owning frame
-for sandwich architecture planning.
+next TF-RD-021B work into the completed 9-run knob-sensitivity screen, the
+completed bounded width or head follow-up, and the remaining simplified-parent
+and classification-scaling-prep follow-up. That simplification lane should
+freeze most sandwich-local knobs before TF-RD-014 and TF-RD-009 consume the
+main roadmap attention. TF-RD-015 is now intentionally off the first
+classification scaling critical path and remains a later extension once the
+classification family is settled.
 TF-RD-019 remains a separate later filtering-policy lane off that main
 execution spine rather than a blocker on it.
 
@@ -290,15 +302,15 @@ execution spine rather than a blocker on it.
 | Coherent row-first migration ladder exists in code | `implemented` | The staged recipe ladder already encodes `shared_norm -> prenorm_block -> small_class_head -> test_self -> grouped_tokens -> row_cls_pool -> column_set -> qass_context -> many_class`; `sd_tokenization_migration_v1_02_delta_training_linear_warmup_decay_v1` locks the grouped-token replay, `sd_row_embedding_attribution_v2_01_delta_row_embeddings_no_context_v2_v1` closes the row-embedding unlock, `row_embedding_attribution_v3` completes the TFCol × QASS factorization, `sd_qass_tfcol_adequacy_v1_03_delta_qass_context_tfcol_heads4_v1_v1` wins the medium-bundle adequacy screen, `qass_tfcol_large_no_missing_validation_v1` passed its large no-missing validator narrowly, and `qass_tfcol_large_missing_validation_v1` closed the missing-permitting settlement sweep | The remaining work is no longer anchor coherence; it is harder and broader post-008 regime coverage on the settled row-first base | `TF-RD-003`, `TF-RD-004`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | Architecture comparisons are attributable | `partial` | Grouped-token replay, v2/v3 matched controls, the TFCol adequacy sweep, and both large-bundle validators now separate row embeddings, plain context, TFCol-only, QASS-only, the no-TFCol default line, and the retained `qass + tfcol_heads4` calibration variant | The next comparison gap is no longer anchor settlement; it is whether harder post-008 fronts provide more decisive regime separation before scaling work | `TF-RD-002`, `TF-RD-005`, `TF-RD-006`, `TF-RD-007`, `TF-RD-008` |
 | One promoted row-first classification anchor exists | `implemented` | `qass_tfcol_large_missing_validation_v1` closed on an explicit split: `row_cls + qass + no tfcol` is now the default row-first anchor, while `row_cls + qass + tfcol_heads4` is retained as a calibration-oriented alternative | Future work should treat the no-TFCol line as the default and reserve TFCol for explicit calibration-oriented follow-up rather than reopening anchor settlement | `TF-RD-008` |
-| Fixed-latent sandwich architecture is available as the primary long-term candidate line | `partial` | `model.arch=tabfoundry_sandwich` now exists with a hybrid stage-`0` full-cell-plus-summary read, later repeated summary-stream stages, latent-then-full-cell readout, schema-aware feature-type encoding, shared inspection/export/training-surface wiring, implementation issue [#174](https://github.com/bensonlee5/tab-foundry/issues/174), umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178), closed immediate screen issue [#179](https://github.com/bensonlee5/tab-foundry/issues/179), completed local-only replay issue [#181](https://github.com/bensonlee5/tab-foundry/issues/181), completed first knob-sensitivity screen issue [#182](https://github.com/bensonlee5/tab-foundry/issues/182), completed bounded width or head follow-up issue [#183](https://github.com/bensonlee5/tab-foundry/issues/183), and successor power-curve issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184). The compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1` is now benchmarked at final ROC AUC `0.7370`, final log loss `0.4672`, and final Brier `0.3072` on the pinned medium binary bundle without an external comparator, the completed `tf_rd_021b_sandwich_knob_sensitivity_v1` screen kept that control, and the completed `tf_rd_021b_sandwich_width_capacity_sensitivity_v1` follow-up also kept it: `d_icl=96` was the least harmful bounded capacity row (`+0.0166` delta final log loss), while `d_icl=48`, `head_hidden_dim=64`, and `head_hidden_dim=128` were all materially worse. | The next gaps are no longer the first sandwich sensitivity read or the bounded width/head read; they are sandwich-local empirical power-curve fits before any one-toggle recipe and later harder-surface confirmation for whether sandwich should displace the staged reference line | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B` |
+| Fixed-latent sandwich architecture is available as the primary long-term candidate line | `partial` | `model.arch=tabfoundry_sandwich` now exists with a hybrid stage-`0` full-cell-plus-summary read, later repeated summary-stream stages, latent-then-full-cell readout, schema-aware feature-type encoding, shared inspection/export/training-surface wiring, implementation issue [#174](https://github.com/bensonlee5/tab-foundry/issues/174), umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178), closed immediate screen issue [#179](https://github.com/bensonlee5/tab-foundry/issues/179), completed local-only replay issue [#181](https://github.com/bensonlee5/tab-foundry/issues/181), completed first knob-sensitivity screen issue [#182](https://github.com/bensonlee5/tab-foundry/issues/182), completed bounded width or head follow-up issue [#183](https://github.com/bensonlee5/tab-foundry/issues/183), and successor follow-up issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184). The compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1` is now benchmarked at final ROC AUC `0.7370`, final log loss `0.4672`, and final Brier `0.3072` on the pinned medium binary bundle without an external comparator, the completed `tf_rd_021b_sandwich_knob_sensitivity_v1` screen kept that control, and the completed `tf_rd_021b_sandwich_width_capacity_sensitivity_v1` follow-up also kept it: `d_icl=96` was the least harmful bounded capacity row (`+0.0166` delta final log loss), while `d_icl=48`, `head_hidden_dim=64`, and `head_hidden_dim=128` were all materially worse. | The next gaps are no longer the first sandwich sensitivity read or the bounded width/head read; they are choosing and freezing a simplified sandwich parent, then carrying that parent onto harder dagzoo and missingness classification surfaces before wider scaling fits | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B` |
 | Harder post-008 data surfaces can be exercised | `implemented` | Dagzoo CLI-to-manifest handoff, path-independent corpus identity, canonical no-missing versus allow-missing binary bundles, the completed TF-RD-013 size ladder under `#132`, the completed TF-RD-018 batch ladder under `#109`, the completed TF-RD-020 harder-front ladder under `#146/#148/#149/#150`, and the completed TF-RD-018 optimizer-family sweep under `#137` now exist on the current manifest backend | The next gap is no longer whether harder synthetic fronts can be executed or which optimizer family to carry; it is finishing TF-RD-018 LR, clipping, and budget continuation on top of `tf_rd_020_shift_noise_drift_v1` with locked `schedulefree_adamw`, then testing whether steering-derived corpus fronts under TF-RD-021 beat that incumbent carry-forward surface before benchmark-backed ladders open | `TF-RD-011`, `TF-RD-013`, `TF-RD-018`, `TF-RD-020`, `TF-RD-021`, `TF-RD-014`, `TF-RD-017` |
 | Class-imbalance robustness is meaningfully exercised | `partial` | Current benchmark bundles enforce `min_minority_class_pct = 2.5`, so the repo already excludes degenerate class-balance cases | There is no dedicated imbalance-focused bundle ladder, imbalance-oriented reporting contract, or explicit decision on the promoted anchor under materially skewed priors | `TF-RD-017` |
 | Training adequacy is handled coherently across fronts | `partial` | Sweep-local `parameter_adequacy_plan` notes exist throughout the research metadata, bounded adequacy sweeps such as `qass_tfcol_adequacy_v1` already exist, `row_first_training_adequacy_v1` completed the first TF-RD-018 dataset-batch ladder under `#109`, TF-RD-020 records kept harder-front winners for missingness, shift or drift, and mechanism or noise, `tf_rd_018_optimizer_family_v1` kept `schedulefree_adamw` on the inherited noise-drift runtime, and issue `#165` now gives steering-derived synthetic continuation a dedicated roadmap home | The repo still needs TF-RD-018 to resolve LR-shape, clipping, and step-budget adequacy on the inherited TF-RD-020 noise-drift runtime with `schedulefree_adamw` locked as the carried optimizer, then TF-RD-021 to decide whether any steering-derived corpus front changes the carried control enough to justify one fresh bounded Muon retry | `TF-RD-018`, `TF-RD-020`, `TF-RD-021` |
-| Runtime and VRAM efficiency are deliberate and measurable | `partial` | The repo already has deferred runtime or VRAM measurement issue [#58](https://github.com/bensonlee5/tab-foundry/issues/58), benchmark and sweep profiles, bf16-capable runtime plumbing, and `tabfoundry_staged` activation checkpointing support | Canonical telemetry still lacks peak CUDA memory and throughput summaries, the benchmark-facing runtime policy is not first-class yet, and the harder-surface batching lane still lacks a measured reopen rule under an explicit memory guardrail | `TF-RD-022`, `TF-RD-018`, `TF-RD-009` |
+| Runtime and VRAM efficiency are deliberate and measurable | `partial` | The repo already has deferred runtime or VRAM measurement issue [#58](https://github.com/bensonlee5/tab-foundry/issues/58), benchmark and sweep profiles, bf16-capable runtime plumbing, `tabfoundry_staged` activation checkpointing support, and training plus benchmark-registry payloads now preserve runtime-summary and regime-budget fields such as peak VRAM, throughput, tokens seen, token budget, objective metric, and curriculum or SCM metadata | The benchmark-facing runtime policy is not first-class yet, sweep/result summaries still need compact runtime presentation, and the harder-surface batching lane still lacks a measured reopen rule under an explicit 80 GB A100 guardrail | `TF-RD-022`, `TF-RD-018`, `TF-RD-009` |
 | Many-class evaluation can start on the row-first base | `partial` | The staged family already includes `many_class`, reusable machinery exists, and `nanotabpfn_openml_classification_small_v1.json` provides a benchmark-facing multiclass bundle | Many-class still lacks a promoted row-first benchmark ladder, adequacy sweeps, and a keep/defer decision | `TF-RD-010` |
-| Regression rebuild can start on the staged base | `research` | Regression metrics and benchmark-bundle normalization support already exist in the repo | There is no active staged regression program, canonical regression bundle, or staged regression head/loss contract | `TF-RD-015` |
+| Regression is intentionally deferred from the first classification scaling plan | `research` | Regression metrics and benchmark-bundle normalization support already exist in the repo | Regression is not a blocker for sandwich classification scaling; any rebuilt regression lane should resume only after the classification family, runtime policy, and scaling contract are settled | `TF-RD-015` |
 | The staged surface is broad enough for future adequacy work before adding new knobs | `partial` | Tokenization already includes `scalar_per_feature`, `scalar_per_feature_nan_mask`, and `shifted_grouped`; token count is already adjustable through `feature_group_size`; norms, widths, depths, row CLS count, TFCol inducing count, context FF expansion, dropout, and clipping are already exposed | The repo still needs a deliberate decision on whether the existing surface is sufficient on harder regimes and, only if not, whether low-level or hardcoded choices such as special-token init scale, activation family, row or column FF expansion, QASS scaler capacity, grouped shift recipe, or many-class threshold should be surfaced selectively | `TF-RD-016` |
-| Scaling-law work targets the right architecture and surface | `planned` | Tuning and benchmark-adjacent tooling already exist | Scaling on the current simple binary regime risks low-signal conclusions until the promoted anchor is paired with at least one harder post-008 surface | `TF-RD-009` |
+| Scaling-law work targets the right architecture and surface | `planned` | Tuning and benchmark-adjacent tooling already exist, and the artifact contract now preserves resolved sandwich specs plus runtime/regime-budget metadata needed for later fits | Scaling on the current simple binary regime still risks low-signal conclusions until the repo freezes a simplified sandwich parent, keeps one carried dagzoo curriculum slice, lands the runtime gate, and compares by matched regime budget rather than token budget alone | `TF-RD-009` |
 | Repo-wide data, preprocessing, and export surfaces can support the migration | `implemented` | The dagzoo CLI-to-manifest boundary, canonical dagzoo dataset identity, and export/reference preprocessing fidelity were completed under TF-RD-011 | New dagzoo work is now about efficacy on the promoted anchor, not about reopening the boundary layer | `TF-RD-011` |
 | Inference handoff and later modalities are ready | `research` | The repo has clear placeholders and partial bundle/runtime infrastructure | Inference handoff and later modalities should follow the promoted classification base and not absorb regression ownership again | `TF-RD-012` |
 
@@ -992,13 +1004,14 @@ This roadmap assumes the following repo truths:
   - the repo has a clear rule for when optimizer or schedule adequacy must be
     resolved before interpreting architecture outcomes
 
-### TF-RD-022: Training Runtime And VRAM Efficiency On The Promoted Anchor
+### TF-RD-022: Training Runtime And VRAM Efficiency Before Classification Scaling
 
 - Status: `planned`
 - Milestone: `Next`
-- Goal: make training time and VRAM headroom an explicit decision surface on
-  the promoted anchor so later batching, CUDA-capacity, and scaling work can
-  inherit one measured runtime policy instead of ad hoc host-specific tweaks
+- Goal: make training time and VRAM headroom an explicit decision surface for
+  the classification scaling target so later batching, CUDA-capacity, and
+  scaling work inherit one measured runtime policy instead of ad hoc
+  host-specific tweaks
 - Current state:
   - deferred issue [#58](https://github.com/bensonlee5/tab-foundry/issues/58)
     already exists for runtime or VRAM summaries, but it stayed attached to
@@ -1015,19 +1028,20 @@ This roadmap assumes the following repo truths:
     [#179](https://github.com/bensonlee5/tab-foundry/issues/179); runtime work
     is now a dependency surface for later sandwich hard-surface reads rather
     than the owner of sandwich planning
+  - training telemetry and benchmark-registry records now preserve
+    `runtime_summary` and `regime_budget` payloads, including peak VRAM,
+    throughput, token-budget fields, objective metric, and curriculum or SCM
+    metadata
   - canonical benchmark prior configs still inherit `runtime.mixed_precision: "no"` from `configs/experiment/_shared/compact_binary_prior.yaml` unless a
     higher-level experiment overrides it
-  - canonical telemetry still records loss, gradients, and instability
-    summaries without peak CUDA-memory or throughput summaries
   - `tabfoundry_staged` already supports
     `runtime.activation_checkpointing`, but the ordinary benchmark-facing
     defaults keep it disabled
   - benchmark-facing exact-prior runs still default to
     `runtime.trace_activations: true`, which is useful for diagnostics but is
     not yet separated cleanly from ordinary benchmark execution
-- this epic is a sibling to
-  [#107](https://github.com/bensonlee5/tab-foundry/issues/107), not a child of
-  it
+- this epic is now a hard prerequisite to TF-RD-009 rather than an optional
+  sibling lane; it should not reopen optimizer-family or LR adequacy work
 - Required work:
   - land the runtime and VRAM measurement dependency from issue
     [#58](https://github.com/bensonlee5/tab-foundry/issues/58) so sweep and
@@ -1035,7 +1049,7 @@ This roadmap assumes the following repo truths:
     breakdowns directly
   - run the bounded low-risk runtime ladder under issue
     [#169](https://github.com/bensonlee5/tab-foundry/issues/169) on one frozen
-    harder-surface training recipe: treat bf16, benchmark-facing
+    carried classification recipe: treat bf16, benchmark-facing
     activation-trace policy, and activation checkpointing as the first
     runtime-policy knobs
   - encode the winning runtime policy as a first-class config and sweep surface
@@ -1051,18 +1065,18 @@ This roadmap assumes the following repo truths:
     under issue [#171](https://github.com/bensonlee5/tab-foundry/issues/171)
     with a conservative 80 GB A100 memory guardrail and a fixed effective
     optimizer batch
-  - keep architecture, optimizer-family, LR or warmup, clipping, and budget
-    changes out of this epic except insofar as TF-RD-018 has already frozen
-    them for the runtime read
+  - keep architecture, optimizer-family, LR or warmup, clipping, budget, and
+    curriculum changes out of this epic except insofar as TF-RD-018 and
+    TF-RD-021 have already frozen them for the runtime read
 - Exit criteria:
-  - the repo has one explicit runtime policy for the promoted-anchor harder
-    surface, justified by repo-local time and VRAM evidence
+  - the repo has one explicit runtime policy for the classification scaling
+    target, justified by repo-local time and VRAM evidence
   - sweep outputs, inspect surfaces, and result summaries expose runtime and
     VRAM metrics compactly enough that future runs can be compared without
     manual log inspection
-  - later staged or sandwich hard-surface reads, deferred CUDA-capacity
-    follow-up, and TF-RD-009 preparation can inherit the same runtime policy
-    without re-deriving it from scratch
+  - later sandwich dagzoo, missingness, deferred CUDA-capacity follow-up, and
+    TF-RD-009 preparation can inherit the same runtime policy without
+    re-deriving it from scratch
 
 ### TF-RD-020: Harder Dagzoo Corpus Fronts On The Promoted Anchor
 
@@ -1246,41 +1260,40 @@ This roadmap assumes the following repo truths:
   - later filtered dagzoo surfaces can either be introduced under a defined
     contract or retired explicitly
 
-### TF-RD-015: Regression Rebuild On The Promoted Row-First Base
+### TF-RD-015: Regression Rebuild Deferred From The Classification-First Scaling Plan
 
-- Status: `planned`
-- Milestone: `Next`
-- Goal: rebuild regression as a staged-family extension on top of the promoted
-  row-first base
+- Status: `research`
+- Milestone: `Later`
+- Goal: resume regression only after the classification-first sandwich scaling
+  plan has landed a stable runtime policy, harder-surface classification
+  evidence, and a usable scaling contract
 - Current state:
   - regression support is intentionally removed from the active repo surface
   - regression metrics and bundle normalization support already exist in parts
     of the repo
-  - there is no active staged regression program, canonical regression bundle,
-    or staged regression head/loss contract
+  - there is no active regression program, canonical regression bundle, or
+    regression head/loss contract
+  - regression is intentionally out of scope as a blocker for the first
+    classification scaling program
 - Required work:
-  - define the canonical regression benchmark surface or surfaces for the staged
-    family
+  - define the canonical regression benchmark surface or surfaces only after
+    the classification-first scaling plan closes its core gates
   - if regression curation expands, keep one OpenML baseline where possible and
     use only license-cleared manifest-backed external datasets as augmentations
-  - define the staged regression head and loss contract on the promoted
-    row-first base
-  - build the first architecture and adequacy sweep ladder for regression while
-    staying on the same staged family rather than opening a second architecture
-    lane
+  - define the eventual regression head and loss contract on the chosen
+    post-classification family rather than reopening regression ownership now
 - Exit criteria:
-  - regression has a benchmark-facing staged baseline and a bounded roadmap for
-    promotion or deferral
+  - regression has a benchmark-facing baseline and a bounded roadmap for
+    promotion or deferral after the classification-first scaling plan is
+    complete
 
-### TF-RD-016: Architecture Surface Adequacy And Selective Expansion
+### TF-RD-016: Architecture Surface Adequacy, Sandwich Simplification, And Selective Expansion
 
 - Status: `planned`
 - Milestone: `Next`
-- Goal: once training adequacy and at least one harder post-008 ladder are in
-  place, and once TF-RD-013 has fixed the first representative data surface,
-  decide whether the incumbent staged reference line and the fixed-latent
-  sandwich candidate still prove hard to separate or obviously underpowered and
-  only then expose new knobs selectively
+- Goal: simplify the sandwich classification parent before broader harder-surface
+  work, then decide whether any additional architecture-surface expansion is
+  justified once harder classification surfaces are in place
 - Current state:
   - `tabfoundry_sandwich` now exists as a separate hybrid full-cell /
     summary-stream architecture with one public latent-count knob,
@@ -1305,8 +1318,8 @@ This roadmap assumes the following repo truths:
     result that none of the tested width or head changes beat the compact
     hybrid control
   - child issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184)
-    now owns the later sandwich-local empirical power-curve phase that should
-    precede any single-toggle scaling recipe for this family
+    now owns the post-screen simplified-parent and classification-scaling-prep
+    follow-up for this family
   - the staged surface is already broad enough to support meaningful future
     adequacy work without immediately adding more model fields
   - tokenization already includes `scalar_per_feature`,
@@ -1354,15 +1367,21 @@ This roadmap assumes the following repo truths:
     - keep the interpretation narrow: `sandwich_heads=4` stayed fixed, the
       least harmful bounded-capacity row was `d_icl=96`, and none of the tested
       width or head changes beat the compact hybrid control
-  - Phase 3: sandwich-local empirical power curves before a single-toggle recipe
-    - use [#184](https://github.com/bensonlee5/tab-foundry/issues/184) to fit
-      many-run sandwich-local power curves after the bounded sensitivity passes
-    - treat those curves as internal sandwich-family evidence only; they are a
-      precursor to later simplification and do not close TF-RD-009 on the
-      promoted row-first anchor
-    - do not author a one-toggle scaling recipe for `tabfoundry_sandwich`
-      until those sandwich-local curve fits exist
-  - Phase 4: existing-surface adequacy on harder post-008 surfaces
+  - Phase 3: simplify and freeze the sandwich parent before broader law fitting
+    - use [#184](https://github.com/bensonlee5/tab-foundry/issues/184) to run
+      the bounded simplification package on the locked compact control:
+      `sandwich_self_attention_per_cross=1`,
+      `sandwich_ff_expansion=1`, both together, and both together plus
+      `sandwich_summary_tokens_per_axis=1`
+    - choose the smallest parent that keeps final log-loss degradation within
+      the bounded tolerance and does not materially worsen clipped-step
+      fraction or late-training drift
+    - freeze the non-shape sandwich knobs on that chosen parent before harder
+      dagzoo, missingness, or scaling-law work reuses the family
+  - Phase 4: existing-surface adequacy on harder post-008 classification surfaces
+    - carry the simplified sandwich parent onto one curriculum-backed dagzoo
+      slice and then onto missingness before reopening broader architecture
+      adequacy
     - start the micro-architecture read with already-exposed norm family and
       norm placement choices such as `norm_type`, `tfrow_norm`,
       `post_encoder_norm`, and `post_stack_norm`
@@ -1375,7 +1394,8 @@ This roadmap assumes the following repo truths:
       knobs on harder post-008 surfaces before adding new model fields
     - record an explicit decision on whether the current staged surface is
       sufficient for future architecture-depth work
-  - Phase 2: selective surface expansion only if Phase 1 remains low-signal
+  - Phase 5: selective surface expansion only if the simplified-parent harder
+    surfaces remain low-signal
     - consider bounded additions such as `special_token_init_scale`,
       `special_token_init_family`, `activation_family`,
       `tfcol_ff_expansion`, `tfrow_ff_expansion`,
@@ -1388,58 +1408,71 @@ This roadmap assumes the following repo truths:
       surface, and can be represented with a small bounded option set
     - do not open a generic “everything configurable” program
 - Exit criteria:
+  - the repo has one explicit simplified sandwich parent for classification and
+    a frozen non-shape knob surface for follow-on harder-surface work
   - the repo has an explicit keep/defer decision on whether the current public
     architecture surfaces, including the fixed-latent sandwich candidate, are
     sufficient on harder post-008 regimes
   - any newly exposed architecture knobs are bounded, justified, and tied to a
     coherent comparison surface rather than broad config expansion
 
-### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
+### TF-RD-009: Scaling-Law Design And Measurement On The Classification-First Sandwich Target
 
 - Status: `planned`
 - Milestone: `Next`
-- Goal: move size, depth, width, and compute scaling work onto the promoted
-  row-first classification anchor only after the repo has at least one harder
-  post-008 research surface
+- Goal: fit classification scaling laws on the simplified sandwich family only
+  after the repo has one carried harder classification surface, one runtime
+  policy, and a literature-grounded law-design note
 - Current state:
   - tuning and benchmark-adjacent tooling already exist
   - scaling-law intent is clear, but scaling on the current simple binary regime
-    risks low-signal conclusions because recent architecture deltas are already
-    close on that surface
-  - there is no canonical scaling artifact path yet on a promoted row-first
-    anchor paired with a harder post-008 surface
-  - sandwich-local empirical power-curve work under
-    [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is now an
-    allowed precursor for the `tabfoundry_sandwich` family, but it does not
-    satisfy TF-RD-009 because TF-RD-009 still targets the promoted row-first
-    anchor on a harder or broader post-008 surface
+    still risks low-signal conclusions because recent architecture deltas are
+    already close on that surface
+  - training telemetry and benchmark-registry artifacts now preserve resolved
+    sandwich specs, runtime summaries, and regime-budget metadata needed for
+    later scaling comparisons
+  - there is still no canonical scaling artifact path on a fixed dagzoo slice
+    with matched runtime policy and matched regime budget
+  - sandwich-local simplification work under
+    [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is the
+    required precursor for this family, but it does not satisfy TF-RD-009 by
+    itself
 - Required work:
-  - use the settled TF-RD-008 default
-    `row_cls + qass + no tfcol` as the primary scaling parent, while keeping
-    any TFCol scaling work explicitly opt-in
-  - finish TF-RD-013, TF-RD-018, and at least one benchmark-backed harder
-    post-008 front before using scaling results as architecture evidence
-  - if those harder surfaces still leave architecture separation low-signal,
-    finish TF-RD-016 before treating scaling as the main next architecture
-    program
-  - run size sweeps on the promoted row-first anchor rather than the hybrid
-    diagnostic line, and do so on the chosen harder post-008 surface
-  - treat any sandwich-local power-curve fits as preparatory architecture-family
-    evidence only unless and until the promoted row-first anchor inherits the
-    same contract on the required harder-surface base
-  - emit comparable compute, parameter-count, and benchmark artifacts
-  - use these artifacts as the basis for future architecture decisions
+  - write the dedicated law-design note before any scaling fit, grounded in
+    μP, depth-aware μP follow-ups, optimizer-budget scaling work, Chinchilla,
+    and synthetic-data curriculum references
+  - separate theory-backed and empirical dimensions explicitly:
+    width via `d_icl`, depth via `sandwich_layers`, optimizer transfer via LR,
+    momentum, and batch, and curriculum or SCM mixture as an empirical
+    higher-order term
+  - treat matched token budget as necessary but not sufficient; compare by
+    matched regime budget using token budget, unique-task budget, fixed
+    curriculum or SCM-mixture slice, and fixed task-complexity band
+  - finish TF-RD-021, TF-RD-022, TF-RD-014, and the simplified-parent phase of
+    TF-RD-016 before using scaling results as architecture evidence
+  - keep the other sandwich knobs frozen at the chosen simplified-parent values
+    while fitting the first width-depth classification laws
+  - run optimizer-transfer and model-size scaling together rather than as
+    separate programs
+  - keep the eventual `sandwich_scale` interface internal-only until the law is
+    validated on dagzoo classification and missingness
 - Exit criteria:
-  - the repo can fit scaling trends on the promoted architecture under a
-    post-008 surface that is harder or broader than the current simple binary
-    no-missing regime
+  - the repo can fit width-depth classification laws on the simplified sandwich
+    architecture under a carried dagzoo slice that is harder or broader than
+    the current simple binary no-missing regime
+  - scaling artifacts compare runs by matched regime budget with final
+    classification log loss as the primary objective and Brier, ROC AUC,
+    clipped-step fraction, drift, and runtime as guardrails
+  - any later single-knob scaling interface is explicitly derived from those
+    law fits and remains internal until cross-surface validation is complete
 
 ## Acceptance Gates For Architecture Promotion
 
 The architecture target lane should promote rows only when all of the following
 hold:
 
-- the row is coherent as a staged surface rather than an ad hoc override pile
+- the row is coherent as a named architecture surface rather than an ad hoc
+  override pile
 - the row is stable on training telemetry, not only acceptable on final metrics
 - the row is benchmark-neutral-or-better against the relevant control surface
 - added runtime and memory cost are justified by the gain
@@ -1453,8 +1486,9 @@ hold:
 - TabPFN remains the control lineage and a legitimate donor for specific
   components.
 - QASS remains optional.
-- Classification remains the anchor workload while the settled row-first
-  default is tested on harder post-008 surfaces.
+- Classification remains the anchor workload while the simplified sandwich
+  parent is tested against the incumbent staged reference on harder post-008
+  surfaces.
 - After TF-RD-008, harder or broader surfaces should come before large scaling
   passes whenever the current binary regime risks saturation.
 - Dagzoo synthetic-data efficacy is the first post-008 gate for training-surface

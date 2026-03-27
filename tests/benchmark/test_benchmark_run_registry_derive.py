@@ -23,6 +23,7 @@ def _export(names: list[str]) -> None:
 _export(
     [
         "test_derive_benchmark_run_record_extracts_diagnostics_and_model_size",
+        "test_derive_benchmark_run_record_includes_runtime_budget_and_full_sandwich_spec",
         "test_derive_benchmark_run_record_captures_optional_training_surface_label",
         "test_derive_benchmark_run_record_includes_optional_sweep_metadata",
         "test_derive_benchmark_run_record_uses_manifest_path_from_resolved_data_surface",

@@ -23,6 +23,7 @@ def _write_checkpoint(
     seed: int = 1,
     arch: str | None = "tabfoundry_staged",
     stage: str | None = "nano_exact",
+    model_cfg_override: dict[str, object] | None = None,
     training_cfg: dict[str, object] | None = None,
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -38,6 +39,8 @@ def _write_checkpoint(
         model_cfg["arch"] = arch
     if stage is not None:
         model_cfg["stage"] = stage
+    if model_cfg_override is not None:
+        model_cfg.update(model_cfg_override)
     checkpoint_data_cfg: dict[str, object] = {"manifest_path": manifest_path}
     if data_cfg is not None:
         checkpoint_data_cfg.update(data_cfg)
@@ -115,7 +118,12 @@ def _write_history(path: Path) -> Path:
     return path
 
 
-def _write_telemetry(path: Path, *, prior_dump_path: str | None = None) -> Path:
+def _write_telemetry(
+    path: Path,
+    *,
+    prior_dump_path: str | None = None,
+    extra_payload: dict[str, object] | None = None,
+) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload: dict[str, object] = {}
     if prior_dump_path is not None:
@@ -124,6 +132,8 @@ def _write_telemetry(path: Path, *, prior_dump_path: str | None = None) -> Path:
                 "path": str(prior_dump_path),
             }
         }
+    if extra_payload is not None:
+        payload.update(extra_payload)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
 
@@ -135,6 +145,9 @@ def _write_comparison_summary(
     source_bundle_path: str,
     final_roc_auc: float = 0.83,
     final_log_loss: float = 0.42,
+    model_arch: str = "tabfoundry_staged",
+    model_stage: str | None = "nano_exact",
+    benchmark_profile: str | None = "nano_exact",
 ) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -155,9 +168,9 @@ def _write_comparison_summary(
             "final_roc_auc": float(final_roc_auc),
             "final_log_loss": float(final_log_loss),
             "run_dir": str(run_dir.resolve()),
-            "model_arch": "tabfoundry_staged",
-            "model_stage": "nano_exact",
-            "benchmark_profile": "nano_exact",
+            "model_arch": model_arch,
+            "model_stage": model_stage,
+            "benchmark_profile": benchmark_profile,
         },
         "nanotabpfn": {
             "best_step": 25.0,
@@ -187,6 +200,10 @@ def _prepare_run(
     seed: int = 1,
     final_roc_auc: float = 0.83,
     final_log_loss: float = 0.42,
+    arch: str = "tabfoundry_staged",
+    stage: str | None = "nano_exact",
+    model_cfg_override: dict[str, object] | None = None,
+    telemetry_extra_payload: dict[str, object] | None = None,
     training_cfg: dict[str, object] | None = None,
 ) -> tuple[Path, Path]:
     manifest_path = repo_root / "data" / "manifests" / "default.parquet"
@@ -203,16 +220,22 @@ def _prepare_run(
         manifest_path="data/manifests/default.parquet",
         data_cfg=checkpoint_data_cfg,
         seed=seed,
+        arch=arch,
+        stage=stage,
+        model_cfg_override=model_cfg_override,
         training_cfg=training_cfg,
     )
     _write_history(run_dir / "train_history.jsonl")
-    _write_telemetry(run_dir / "telemetry.json")
+    _write_telemetry(run_dir / "telemetry.json", extra_payload=telemetry_extra_payload)
     _write_comparison_summary(
         summary_path,
         run_dir=run_dir,
         source_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
         final_roc_auc=final_roc_auc,
         final_log_loss=final_log_loss,
+        model_arch=arch,
+        model_stage=stage,
+        benchmark_profile=None if arch == "tabfoundry_sandwich" else stage,
     )
     return run_dir, summary_path
 
@@ -302,6 +325,74 @@ def test_derive_benchmark_run_record_extracts_diagnostics_and_model_size(
         "src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json"
     )
     assert record["tab_foundry_metrics"]["final_log_loss"] == pytest.approx(0.42)
+
+
+def test_derive_benchmark_run_record_includes_runtime_budget_and_full_sandwich_spec(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    run_dir, summary_path = _prepare_run(
+        repo_root,
+        run_name="sandwich_runtime",
+        arch="tabfoundry_sandwich",
+        stage=None,
+        model_cfg_override={
+            "d_icl": 72,
+            "head_hidden_dim": 128,
+            "sandwich_latents": 20,
+            "sandwich_layers": 3,
+            "sandwich_heads": 4,
+            "sandwich_ff_expansion": 1,
+            "sandwich_summary_tokens_per_axis": 1,
+            "sandwich_self_attention_per_cross": 1,
+            "sandwich_pre_row_attention_layers": 1,
+            "sandwich_pre_column_attention_layers": 1,
+            "sandwich_pre_column_inducing_tokens": 8,
+        },
+        telemetry_extra_payload={
+            "runtime_summary": {
+                "peak_vram_allocated": 1024,
+                "peak_vram_reserved": 2048,
+                "throughput_examples_per_second": 12.5,
+                "throughput_tokens_per_second": 6400.0,
+                "non_train_overhead_seconds": 0.8,
+            },
+            "regime_budget": {
+                "tokens_per_step": 512.0,
+                "tokens_seen": 38400,
+                "token_budget": 38400,
+                "unique_task_budget": 96,
+                "objective_metric": "final_log_loss_at_matched_regime_budget",
+                "curriculum_id": "dagzoo_shape_aware_multi_invocation",
+                "curriculum_mix": {
+                    "corpus_variant": "dagzoo_shape_aware_multi_invocation",
+                    "config_refs": ["configs/dagzoo/binary.yaml"],
+                },
+                "scm_complexity_summary": {
+                    "row_count_distribution": {"min": 24, "max": 40},
+                    "feature_count_distribution": {"min": 6, "max": 8},
+                },
+            },
+        },
+    )
+    monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
+
+    record = registry_module.derive_benchmark_run_record(
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        benchmark_run_record_path=summary_path.parent / "benchmark_run_record.json",
+    )
+
+    assert record["model"]["arch"] == "tabfoundry_sandwich"
+    assert record["model"]["build_spec"]["sandwich_ff_expansion"] == 1
+    assert record["model"]["build_spec"]["sandwich_summary_tokens_per_axis"] == 1
+    assert record["model"]["architecture"]["latents"] == 20
+    assert record["runtime_summary"]["peak_vram_allocated"] == 1024
+    assert record["runtime_summary"]["throughput_tokens_per_second"] == pytest.approx(6400.0)
+    assert record["regime_budget"]["tokens_seen"] == 38400
+    assert record["regime_budget"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"
+    assert record["regime_budget"]["curriculum_id"] == "dagzoo_shape_aware_multi_invocation"
 
 
 def test_derive_benchmark_run_record_captures_optional_training_surface_label(
