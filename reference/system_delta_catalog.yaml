@@ -844,6 +844,894 @@ deltas:
     default_next_action: Leave blocked until the 96-latent row earns a width follow-up.
     applicability_guards: []
 
+  delta_tf_rd_021b_sandwich_latents12_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Halve the hybrid sandwich latent bank from 24 to 12 while keeping the compact control otherwise fixed.
+    upstream_delta: Perceiver-style latent banks make latent count the first memory-vs-fidelity ablation on the hybrid sandwich line.
+    expected_effect: If the compact hybrid control is overprovisioned on latent tokens, quality should move only slightly while parameter count and compute fall.
+    adequacy_knobs:
+      - Keep the locked medium bundle, prior-dump surface, and 2500-step cosine budget fixed.
+      - Interpret directly against the registered compact hybrid control before width or head-MLP changes.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as one factor in the bounded TF-RD-021B knob-sensitivity screen.
+        - Use final ROC AUC and final log loss together when deciding whether the latent bank remains a live scaling axis.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 12
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the eight-row TF-RD-021B knob-sensitivity screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_layers1_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Reduce the hybrid sandwich repeated cross-attend stack from 2 stages to 1 while keeping the compact control otherwise fixed.
+    upstream_delta: Perceiver-style models expose repeated latent-read depth as a distinct capacity knob after the first full-input read.
+    expected_effect: If one repeated stage is already enough on this surface, the compact control may be deeper than necessary.
+    adequacy_knobs:
+      - Keep the stage-0 full-cell read, summary-token count, and train budget fixed.
+      - Read this as repeated-stage sensitivity, not as a general model-size change.
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the compact control before changing width, heads, or budget.
+        - If the drop is weak, treat repeated depth as a candidate knob to freeze at the simpler value.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 1
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the eight-row TF-RD-021B knob-sensitivity screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_heads2_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Reduce hybrid sandwich attention heads from 4 to 2 while keeping width and all other compact-control settings fixed.
+    upstream_delta: Attention head factorization is a standard transformer capacity axis that may be overprovisioned on compact tabular models.
+    expected_effect: If the hybrid control mostly needs width rather than head factorization, dropping to two heads should be only mildly harmful.
+    adequacy_knobs:
+      - Keep `d_icl=60` fixed so this row isolates attention partitioning rather than total width.
+      - Compare directly against the compact control before opening any width ladder.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as the head-factorization read within the first bounded sandwich screen.
+        - If the ablation is close, prefer the simpler head count when later defining a compound scaling recipe.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 2
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the eight-row TF-RD-021B knob-sensitivity screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_ffexp1_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Reduce the hybrid sandwich feed-forward expansion from 2x to 1x while keeping the compact control otherwise fixed.
+    upstream_delta: FF expansion is one of the simplest capacity axes to simplify before introducing broader scaling laws.
+    expected_effect: If most of the current gain comes from attention structure rather than trunk MLP capacity, shrinking FF expansion should only weakly degrade performance.
+    adequacy_knobs:
+      - Keep latent count, stage count, and summary-token count fixed so this row isolates FF capacity.
+      - Compare directly against the compact control before treating FF expansion as a live scaling axis.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as the FF-capacity ablation in the first bounded sandwich screen.
+        - Freeze FF expansion to the simpler value if the ablation is clearly low-impact.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 1
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the eight-row TF-RD-021B knob-sensitivity screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_summarytokens1_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Reduce row and column summary token multiplicity from 4 tokens per axis position to 1 while keeping the compact control otherwise fixed.
+    upstream_delta: The hybrid successor deliberately widened the summary stream with `K=4`; this row tests whether that extra summary bandwidth actually matters.
+    expected_effect: If the gain comes mostly from stage-0 raw cells and the final cell readout, collapsing summary multiplicity back to 1 should only weakly hurt.
+    adequacy_knobs:
+      - Keep the stage-0 full-cell path and final full-cell readout fixed.
+      - Read this as summary-stream bandwidth sensitivity, not as a generic width ablation.
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare directly against the compact control before reopening any larger summary-token ladder.
+        - If the drop is weak, freeze `sandwich_summary_tokens_per_axis` to `1` before later scaling work.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 1
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the eight-row TF-RD-021B knob-sensitivity screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_selfattn1_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Reduce latent self-attention refinement between cross-attention reads from 4 blocks to 1 while keeping the compact control otherwise fixed.
+    upstream_delta: The hybrid successor increased self-refinement depth between cross-attention segments; this row tests whether that extra latent processing is carrying quality.
+    expected_effect: If repeated latent self-processing is not the bottleneck, dropping to one self-attention block should preserve most of the fit.
+    adequacy_knobs:
+      - Keep stage count and latent count fixed so this row isolates self-refinement depth.
+      - Compare directly against the compact control before turning self-attention depth into a future scaling axis.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as the cross-segment self-attention ablation within the first bounded sandwich screen.
+        - Freeze this knob lower if the ablation is clearly low-impact.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 1
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the eight-row TF-RD-021B knob-sensitivity screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_prerow0_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Remove the pre-Perceiver per-row feature self-attention mixer while keeping the compact control otherwise fixed.
+    upstream_delta: The hybrid successor added a row-wise feature mixer before the first latent read; this row asks whether that axial pre-mixer is materially useful.
+    expected_effect: If most of the recovery comes from raw-cell access alone, removing the row-wise feature mixer may be only weakly harmful.
+    adequacy_knobs:
+      - Keep the column-wise pre-mixer on so the ablation isolates row-wise feature mixing.
+      - Compare directly against the compact control before adding deeper axial pre-mixers.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as the row-axis pre-mixer ablation inside the first bounded sandwich screen.
+        - If the drop is strong, keep row-wise feature mixing live in the later compound scaling recipe.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 0
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the eight-row TF-RD-021B knob-sensitivity screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_precol0_v1:
+    dimension_family: model
+    family: architecture_sensitivity
+    binary_applicable: true
+    description: Remove the pre-Perceiver per-column row self-attention mixer while keeping the compact control otherwise fixed.
+    upstream_delta: The hybrid successor added a column-wise row mixer before the first latent read; this row tests whether that second axial pass is necessary.
+    expected_effect: If the row-wise feature mixer already captures most of the useful pre-latent structure, removing the column-wise row mixer may be low-impact.
+    adequacy_knobs:
+      - Keep the row-wise feature mixer on so the ablation isolates column-wise row mixing.
+      - Compare directly against the compact control before deeper axial-mixer changes are considered.
+    parameter_adequacy_policy:
+      default_plan:
+        - Treat this as the column-axis pre-mixer ablation inside the first bounded sandwich screen.
+        - Freeze this knob lower if the drop is weak enough to simplify the later compound recipe.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: ready
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 0
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Run as part of the eight-row TF-RD-021B knob-sensitivity screen.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_dicl48_v1:
+    dimension_family: model
+    family: width_capacity
+    binary_applicable: true
+    description: Reduce hybrid sandwich width from 60 to 48 while keeping head count fixed at 4 and the rest of the compact control unchanged.
+    upstream_delta: Width is the first direct channel-capacity probe once sandwich-specific topology sensitivity is known.
+    expected_effect: If the compact control is width-overprovisioned, dropping to `d_icl=48` should preserve most of the benchmark fit.
+    adequacy_knobs:
+      - Keep `sandwich_heads=4` fixed so this row isolates channel width rather than attention partitioning.
+      - Execute only after the stage-1 knob screen is interpreted.
+    parameter_adequacy_policy:
+      default_plan:
+        - Use this row as the lower width bracket in the post-sensitivity follow-up.
+        - Promote a smaller width only if the benchmark loss is clearly negligible relative to the compact control.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked_on_knob_sensitivity
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 48
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Wait for the stage-1 knob-sensitivity read before executing the width or head-capacity follow-up.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_dicl96_v1:
+    dimension_family: model
+    family: width_capacity
+    binary_applicable: true
+    description: Increase hybrid sandwich width from 60 to 96 while keeping head count fixed at 4 and the rest of the compact control unchanged.
+    upstream_delta: Width is the primary candidate scaling axis if sandwich-specific topology knobs prove low-sensitivity.
+    expected_effect: If the compact control is width-limited, increasing `d_icl` to `96` should improve fit enough to justify later power-curve work.
+    adequacy_knobs:
+      - Keep `sandwich_heads=4` fixed so the width read is not confounded by head-factor changes.
+      - Execute only after the stage-1 knob screen is interpreted.
+    parameter_adequacy_policy:
+      default_plan:
+        - Use this row as the upper width bracket in the post-sensitivity follow-up.
+        - If this row wins, note whether the benchmark curve is still improving at final step before collapsing width into a later scaling toggle.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked_on_knob_sensitivity
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 96
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 96
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Wait for the stage-1 knob-sensitivity read before executing the width or head-capacity follow-up.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_headhidden64_v1:
+    dimension_family: model
+    family: width_capacity
+    binary_applicable: true
+    description: Reduce the prediction head hidden size from 96 to 64 while keeping the hybrid trunk fixed at the compact control.
+    upstream_delta: Head MLP size is a narrower capacity axis than trunk width and may be unnecessary if the trunk is the real bottleneck.
+    expected_effect: If the compact control is trunk-limited rather than head-limited, shrinking the head hidden size should have little effect.
+    adequacy_knobs:
+      - Keep `d_icl=60` and all sandwich-specific knobs fixed so this row isolates readout-head capacity.
+      - Execute only after the stage-1 knob screen is interpreted.
+    parameter_adequacy_policy:
+      default_plan:
+        - Use this row as the lower head-capacity bracket after the stage-1 sensitivity read.
+        - Freeze the head lower if the quality drop is negligible relative to the compact control.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked_on_knob_sensitivity
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 64
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Wait for the stage-1 knob-sensitivity read before executing the width or head-capacity follow-up.
+    applicability_guards: []
+
+  delta_tf_rd_021b_sandwich_headhidden128_v1:
+    dimension_family: model
+    family: width_capacity
+    binary_applicable: true
+    description: Increase the prediction head hidden size from 96 to 128 while keeping the hybrid trunk fixed at the compact control.
+    upstream_delta: Head hidden size is the bounded readout-capacity follow-up once sandwich-specific topology sensitivity is understood.
+    expected_effect: If the compact control is head-limited at readout time, increasing the head hidden size may improve fit even when trunk width stays fixed.
+    adequacy_knobs:
+      - Keep `d_icl=60` and all sandwich-specific knobs fixed so this row isolates head capacity.
+      - Execute only after the stage-1 knob screen is interpreted.
+    parameter_adequacy_policy:
+      default_plan:
+        - Use this row as the upper head-capacity bracket in the immediate post-sensitivity follow-up.
+        - Keep head hidden size as a live axis only if it matters independently of trunk width.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    default_initial_status: blocked_on_knob_sensitivity
+    default_initial_interpretation_status: blocked
+    default_effective_surface:
+      model:
+        arch: tabfoundry_sandwich
+        d_icl: 60
+        input_normalization: train_zscore_clip
+        many_class_base: 2
+        head_hidden_dim: 128
+        norm_type: layernorm
+        sandwich_latents: 24
+        sandwich_layers: 2
+        sandwich_heads: 4
+        sandwich_ff_expansion: 2
+        sandwich_summary_tokens_per_axis: 4
+        sandwich_self_attention_per_cross: 4
+        sandwich_pre_row_attention_layers: 1
+        sandwich_pre_column_attention_layers: 1
+      data:
+        source: prior_dump
+        surface_label: prior_dump
+      preprocessing:
+        surface_label: runtime_default
+      training:
+        surface_label: prior_cosine_warmup
+        task_batch_size: 1
+        prior_dump_non_finite_policy: error
+        prior_dump_batch_size: 32
+        prior_dump_lr_scale_rule: none
+        prior_dump_batch_reference_size: 32
+        overrides:
+          apply_schedule: true
+          optimizer:
+            name: schedulefree_adamw
+            require_requested: true
+            weight_decay: 0.0
+            betas: [0.9, 0.999]
+            min_lr: 0.004
+            muon_per_parameter_lr: false
+          runtime:
+            grad_clip: 1.0
+            max_steps: 2500
+            eval_every: 25
+            checkpoint_every: 25
+            trace_activations: false
+          schedule:
+            stages:
+              - name: prior_dump
+                steps: 2500
+                lr_max: 0.004
+                lr_schedule: cosine
+                warmup_ratio: 0.05
+    default_next_action: Wait for the stage-1 knob-sensitivity read before executing the width or head-capacity follow-up.
+    applicability_guards: []
+
   delta_shifted_grouped_tokenizer:
     dimension_family: model
     family: tokenization

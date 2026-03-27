@@ -998,6 +998,40 @@ def test_create_sweep_preserves_explicit_external_benchmarks_override(tmp_path: 
     assert materialized["external_benchmarks"] == ["tabiclv2", "nanotabpfn"]
 
 
+def test_create_sweep_preserves_explicit_empty_external_benchmarks_override(tmp_path: Path) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+
+    _ = create_sweep(
+        sweep_id="input_norm_local_only_benchmark",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id="input_norm_followup",
+        complexity_level="binary_md",
+        benchmark_bundle_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        external_benchmarks=[],
+        delta_refs=["delta_anchor_activation_trace_baseline"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    created_sweep = load_system_delta_sweep(
+        "input_norm_local_only_benchmark",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    materialized = load_system_delta_queue(
+        sweep_id="input_norm_local_only_benchmark",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=reference_root / "system_delta_catalog.yaml",
+        sweeps_root=sweeps_root,
+    )
+
+    assert created_sweep["external_benchmarks"] == []
+    assert materialized["external_benchmarks"] == []
+
+
 def test_create_sweep_preserves_explicit_lane_contract_overrides(tmp_path: Path) -> None:
     reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
 

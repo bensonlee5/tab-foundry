@@ -1,4 +1,4 @@
-# TF-RD-021B: Hybrid Full-Cell Sandwich Successor And Locked Prior Replay
+# TF-RD-021B: Hybrid Full-Cell Sandwich Successor, Sensitivity Screens, And Power-Curve Preparation
 
 This is the long-form evidence note for the hybrid full-cell / summary-stream
 successor to the original `tabfoundry_sandwich` summary-bottleneck replay.
@@ -34,9 +34,16 @@ architecture-adequacy workstream.
   underperformed badly on the benchmark surface
 - umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178)
   still owns long-running sandwich stabilization and iteration
-- successor issue [#181](https://github.com/bensonlee5/tab-foundry/issues/181)
-  now owns the first bounded replay and interpretation pass for the hybrid
+- successor replay issue [#181](https://github.com/bensonlee5/tab-foundry/issues/181)
+  now records the first bounded replay and interpretation pass for the hybrid
   full-cell sandwich
+- child issue [#182](https://github.com/bensonlee5/tab-foundry/issues/182)
+  now owns the 9-run architecture-only sandwich knob-sensitivity screen
+- child issue [#183](https://github.com/bensonlee5/tab-foundry/issues/183)
+  now owns the bounded width and head-capacity follow-up
+- child issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184)
+  now owns the later sandwich-local empirical power-curve phase before any
+  single-toggle scaling recipe is authored
 - `tabfoundry_sandwich` now uses:
   - one fixed learned latent bank
   - a stage-`0` hybrid input stream of `full cells + row summaries + column summaries`
@@ -49,33 +56,51 @@ architecture-adequacy workstream.
 - a successor benchmark preset
   `configs/experiment/cls_benchmark_sandwich_hybrid_prior.yaml`
   now exists for the first locked prior replay
+- the compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1`
+  is now canonically benchmarked on the pinned medium binary bundle with no
+  external comparator:
+  - final ROC AUC `0.7370`
+  - final log loss `0.4672`
+  - final Brier `0.3072`
+  - best checkpoint = final checkpoint at `step_002500`
 
 ## Current Interpretation
 
 - TF-RD-021A answered the first important question already: the summary-only
   bottleneck can train, but it loses too much signal to justify more latent or
   width tuning on the same topology
-- the next useful question is whether letting stage `0` and the final readout
-  see the full cell stream recovers enough fidelity to reopen a capacity ladder
-- the immediate target is still the locked nanoTabPFN prior surface because it
-  gives the fastest feedback on whether the topology move matters at all
-- latent-count and width sweeps should stay closed until one successor replay
-  exists on this same locked surface
+- the hybrid full-cell successor already answers the next question at a coarse
+  level: letting stage `0` and the final readout see the full cell stream does
+  recover enough signal to justify more architecture work
+- the immediate target is no longer “does one replay exist”; it is “which
+  sandwich knobs are actually sensitive enough to survive into a later compound
+  scaling recipe”
+- the next bounded read is the 9-run local-only knob screen, then the width or
+  head-capacity follow-up, both on the same locked prior surface and fixed
+  `2500`-step budget
+- after those bounded passes, the repo should fit sandwich-local empirical
+  power curves before collapsing the family into any single-toggle scaling
+  interface
+- these sandwich-local curve fits are internal architecture-family evidence;
+  they do not close TF-RD-009 on the promoted row-first anchor
 
 ## Open Evidence Gaps
 
-- no completed benchmark replay is recorded yet for the successor preset
-- no explicit comparison is recorded yet between the successor replay and the
-  closed TF-RD-021A replay row
+- the 9-run sandwich knob-sensitivity screen is authored but not yet executed
+- the bounded width or head-capacity follow-up is authored but intentionally
+  blocked on the knob screen interpretation
+- no sandwich-local empirical power-curve artifacts exist yet
 - no harder-surface or longer-budget read exists yet for the successor
-  architecture
-- the fit floor that would justify reopening latent or width sweeps remains
-  implicit until the first successor replay lands
+  architecture beyond the compact control replay
+- the later one-toggle scaling recipe is still unjustified until the bounded
+  sensitivity passes and sandwich-local power-curve fits exist
 
 ## Exit Signals
 
-- the repo records one explicit benchmark replay for the hybrid successor on
-  the locked nanoTabPFN prior surface
-- that replay is clearly interpreted against the closed TF-RD-021A replay row
-- the next sandwich sweep, if any, is authored from the successor replay rather
-  than from the abandoned TF-RD-021A latent or width ladder
+- the repo records and interprets the 9-run sandwich knob-sensitivity screen
+- the immediate width or head-capacity follow-up lands on the same locked local
+  control contract
+- sandwich-local empirical power curves exist for the hybrid family before any
+  single-toggle scaling recipe is authored
+- any later one-toggle scaling surface is explicitly derived from those bounded
+  sensitivity reads and curve fits rather than from ad hoc knob guesses

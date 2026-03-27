@@ -319,15 +319,23 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     reopening the input and readout path after the summary-bottleneck replay
     underfit
 - Repo-local evidence:
-  - successor issue `#181` now owns the first bounded replay for the hybrid
-    full-cell sandwich successor under umbrella issue `#178`
+  - successor replay issue `#181` now records the first bounded replay for the
+    hybrid full-cell sandwich successor under umbrella issue `#178`
   - `tabfoundry_sandwich` now uses a hybrid stage-`0` full-cell-plus-summary
     read, later summary-only repeated stages, and latent-then-full-cell readout
+  - the compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1`
+    is now benchmarked at final ROC AUC `0.7370`, final log loss `0.4672`, and
+    final Brier `0.3072` on the pinned medium binary bundle without an external
+    comparator
+  - child issues `#182`, `#183`, and `#184` now split the next work into the
+    9-run knob screen, bounded width or head follow-up, and later
+    sandwich-local empirical power-curve phase
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md`
 - Success signal:
-  - the repo records one explicit locked-prior replay for the successor
-    topology before authoring any new latent-count or width sweep
+  - the repo records the bounded TF-RD-021B sensitivity passes and later
+    sandwich-local empirical power curves before collapsing the family to any
+    single-toggle scaling recipe
 
 ### TF-RD-009: Scaling-Law Measurement On The Promoted Anchor
 
@@ -343,6 +351,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - TF-RD-018 still needs to settle the default batch and LR starting point on
     the representative medium post-008 surface before scaling curves become
     interpretable
+  - sandwich-local empirical power-curve work under `#184` is a precursor for
+    the hybrid sandwich family only and does not close TF-RD-009 on the
+    promoted row-first anchor
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:

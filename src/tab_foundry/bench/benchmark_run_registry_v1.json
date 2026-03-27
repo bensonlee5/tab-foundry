@@ -17527,6 +17527,110 @@
         "train_elapsed_seconds": 421.9473605758103,
         "wall_elapsed_seconds": 431.8746543750167
       }
+    },
+    "tf_rd_021b_hybrid_full_cell_compact_prior_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/cls_benchmark_sandwich_hybrid_prior/benchmark_tab_foundry_only",
+        "benchmark_run_record_path": "outputs/cls_benchmark_sandwich_hybrid_prior/benchmark_tab_foundry_only/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/cls_benchmark_sandwich_hybrid_prior/checkpoints/step_002500.pt",
+        "comparison_curve_path": "outputs/cls_benchmark_sandwich_hybrid_prior/benchmark_tab_foundry_only/comparison_curve.png",
+        "comparison_summary_path": "outputs/cls_benchmark_sandwich_hybrid_prior/benchmark_tab_foundry_only/comparison_summary.json",
+        "history_path": "outputs/cls_benchmark_sandwich_hybrid_prior/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/cls_benchmark_sandwich_hybrid_prior",
+        "training_surface_record_path": "outputs/cls_benchmark_sandwich_hybrid_prior/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_binary_medium",
+        "source_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "task_count": 10,
+        "task_ids": [
+          42,
+          3638,
+          3777,
+          9958,
+          10091,
+          10093,
+          146230,
+          363613,
+          363621,
+          363629
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "Hybrid full-cell sandwich compact prior benchmark establishes the TF-RD-021B local control before knob-sensitivity sweeps.",
+      "config_profile": "cls_benchmark_sandwich_hybrid_prior",
+      "decision": "keep",
+      "experiment": "cls_benchmark_sandwich_hybrid_prior",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": "cls_benchmark_linear_v2",
+        "parent_run_id": null
+      },
+      "manifest_path": "/Users/bensonlee/dev/nanoTabPFN/300k_150x5_2.h5",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "benchmark_profile": null,
+        "d_icl": 60,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 2,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 4,
+        "tficl_n_layers": 3
+      },
+      "model_size": {
+        "total_params": 481070,
+        "trainable_params": 481070
+      },
+      "registered_at_utc": "2026-03-27T03:30:32Z",
+      "run_id": "tf_rd_021b_hybrid_full_cell_compact_prior_v1",
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "prior_dump",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": null,
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_brier_score": 0.30722786571240607,
+        "best_crps": null,
+        "best_log_loss": 0.4671928495584242,
+        "best_picp_90": null,
+        "best_roc_auc": 0.7370413161407714,
+        "best_step": 2500.0,
+        "best_training_time": 470.4519937566947,
+        "final_avg_pinball_loss": null,
+        "final_brier_score": 0.30722786571240607,
+        "final_crps": null,
+        "final_log_loss": 0.4671928495584242,
+        "final_picp_90": null,
+        "final_roc_auc": 0.7370413161407714,
+        "final_step": 2500.0,
+        "final_training_time": 470.4519937566947
+      },
+      "track": "sandwich_hybrid_locked_prior_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 0.4007498621940613,
+        "final_val_loss": null,
+        "max_grad_norm": 7.769808769226074,
+        "mean_grad_norm": 0.24329446733742952,
+        "post_warmup_train_loss_var": 0.0013743808793917616,
+        "train_elapsed_seconds": 470.4519937566947,
+        "wall_elapsed_seconds": 504.953790999949
+      }
     }
   },
   "schema": "tab-foundry-benchmark-runs-v1",

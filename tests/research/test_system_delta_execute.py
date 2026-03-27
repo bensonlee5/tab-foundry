@@ -2092,6 +2092,156 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
     assert queue_row['interpretation_status'] == 'completed'
 
 
+def test_run_row_benchmark_full_supports_local_only_benchmark(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    sweep_id = 'tf_rd_021b_sandwich_knob_sensitivity_v1'
+    delta_ref = 'delta_tf_rd_021b_sandwich_summarytokens1_v1'
+    run_id = f'sd_{sweep_id}_01_{delta_ref}_v1'
+    train_dir = (
+        tmp_path
+        / 'outputs'
+        / 'staged_ladder'
+        / 'research'
+        / sweep_id
+        / delta_ref
+        / run_id
+        / 'train'
+    )
+    benchmark_dir = train_dir.parent / 'benchmark'
+    (train_dir / 'checkpoints').mkdir(parents=True, exist_ok=True)
+    (train_dir / 'train_history.jsonl').write_text('', encoding='utf-8')
+    (train_dir / 'gradient_history.jsonl').write_text('{}\n', encoding='utf-8')
+    _write_training_telemetry(train_dir / 'telemetry.json', success=True)
+    _write_training_surface_record(train_dir / 'training_surface_record.json', backend='legacy_prior')
+    (train_dir / 'checkpoints' / 'latest.pt').write_text('stub', encoding='utf-8')
+    benchmark_dir.mkdir(parents=True, exist_ok=True)
+
+    queue_row = {
+        'order': 1,
+        'delta_ref': delta_ref,
+        'model': {'stage_label': delta_ref},
+        'training': {},
+        'execution_policy': 'benchmark_full',
+        'notes': [],
+    }
+    materialized_row = {
+        'delta_id': delta_ref,
+        'dimension_family': 'model',
+        'family': 'architecture_capacity',
+        'description': 'Reduce summary tokens per axis from 4 to 1.',
+        'anchor_delta': 'Keep the compact hybrid control fixed and ablate only summary-token multiplicity.',
+        'parameter_adequacy_plan': [],
+        'adequacy_knobs': [],
+        'model': {'stage_label': delta_ref},
+        'notes': [],
+    }
+    queue = {'rows': [queue_row]}
+    paths = ExecutionPaths(
+        repo_root=tmp_path,
+        index_path=tmp_path / 'reference' / 'system_delta_sweeps' / 'index.yaml',
+        catalog_path=tmp_path / 'reference' / 'system_delta_catalog.yaml',
+        sweeps_root=tmp_path / 'reference' / 'system_delta_sweeps',
+        registry_path=REGISTRY_PATH,
+        program_path=tmp_path / 'program.md',
+        control_baseline_registry_path=CONTROL_BASELINE_REGISTRY_PATH,
+    )
+
+    captured_benchmark: dict[str, Any] = {}
+    captured_bootstrap = {'called': False}
+
+    monkeypatch.setattr(runner_module, 'write_research_package', lambda **_: None)
+    monkeypatch.setattr(
+        runner_module,
+        'ensure_nanotabpfn_python',
+        lambda **_: captured_bootstrap.update({'called': True}) or Path('/tmp/unused'),
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'posthoc_update_wandb_summary',
+        lambda **_kwargs: True,
+    )
+
+    def fake_benchmark(config: Any) -> dict[str, Any]:
+        captured_benchmark['external_benchmarks'] = config.external_benchmarks
+        return {
+            'external_benchmarks': [],
+            'tab_foundry': {
+                'best_step': 100.0,
+                'best_log_loss': 0.46,
+                'final_log_loss': 0.47,
+                'best_to_final_log_loss_delta': 0.01,
+                'best_brier_score': 0.30,
+                'final_brier_score': 0.31,
+                'best_to_final_brier_score_delta': 0.01,
+                'best_roc_auc': 0.74,
+                'final_roc_auc': 0.73,
+                'best_to_final_roc_auc_delta': -0.01,
+                'training_diagnostics': {'max_grad_norm': 5.0},
+            },
+        }
+
+    monkeypatch.setattr(runner_module, 'run_nanotabpfn_benchmark', fake_benchmark)
+    monkeypatch.setattr(
+        runner_module,
+        'queue_metrics',
+        lambda *_args, **_kwargs: {
+            'best_step': 100,
+            'final_log_loss': 0.47,
+            'delta_final_log_loss': -0.01,
+            'final_roc_auc': 0.73,
+            'delta_final_roc_auc': -0.01,
+            'max_grad_norm': 5.0,
+            'clipped_step_fraction': 0.01,
+        },
+    )
+    monkeypatch.setattr(
+        runner_module,
+        'register_benchmark_run',
+        lambda **_kwargs: {
+            'run': {
+                'comparisons': {
+                    'vs_anchor': {
+                        'final_log_loss_delta': -0.01,
+                        'final_roc_auc_delta': -0.01,
+                    }
+                }
+            }
+        },
+    )
+
+    observed_run_id = runner_module.run_row(
+        sweep_id=sweep_id,
+        sweep_meta={
+            'control_baseline_id': 'cls_benchmark_linear_v2',
+            'benchmark_bundle_path': 'bundle.json',
+            'external_benchmarks': [],
+            'training_experiment': 'cls_benchmark_sandwich_hybrid_prior',
+            'training_config_profile': 'cls_benchmark_sandwich_hybrid_prior',
+            'surface_role': 'architecture_screen',
+        },
+        queue_row=queue_row,
+        materialized_row=materialized_row,
+        anchor_run_id='tf_rd_021b_hybrid_full_cell_compact_prior_v1',
+        parent_run_id=None,
+        queue=queue,
+        prior_dump=Path('/tmp/prior.h5'),
+        nanotabpfn_root=Path('/tmp/nanotabpfn'),
+        device='cpu',
+        fallback_python=REPO_ROOT / '.venv' / 'bin' / 'python',
+        decision='defer',
+        conclusion='Use the local-only hybrid benchmark against the locked compact control.',
+        paths=paths,
+    )
+
+    assert observed_run_id == run_id
+    assert captured_benchmark['external_benchmarks'] == ()
+    assert captured_bootstrap['called'] is False
+    assert queue_row['status'] == 'completed'
+    assert queue_row['interpretation_status'] == 'completed'
+
+
 def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanotabpfn_env(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

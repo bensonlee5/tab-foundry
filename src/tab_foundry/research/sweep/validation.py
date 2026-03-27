@@ -57,12 +57,25 @@ def ensure_external_benchmarks(
     *,
     context: str,
     default: tuple[str, ...],
+    allow_empty: bool = False,
 ) -> list[str]:
     if value is None:
-        return list(_normalize_external_benchmarks(default, context=context))
+        return list(
+            _normalize_external_benchmarks(
+                default,
+                context=context,
+                allow_empty=allow_empty,
+            )
+        )
     if not isinstance(value, list):
         raise RuntimeError(f"{context} must be a list")
-    return list(_normalize_external_benchmarks(value, context=context))
+    return list(
+        _normalize_external_benchmarks(
+            value,
+            context=context,
+            allow_empty=allow_empty,
+        )
+    )
 
 
 def resolve_sweep_external_benchmarks(sweep: Mapping[str, Any]) -> list[str]:
@@ -70,6 +83,7 @@ def resolve_sweep_external_benchmarks(sweep: Mapping[str, Any]) -> list[str]:
         sweep.get("external_benchmarks"),
         context="sweep.external_benchmarks",
         default=DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
+        allow_empty=True,
     )
 
 

@@ -495,6 +495,7 @@ def run_nanotabpfn_benchmark(config: NanoTabPFNBenchmarkConfig) -> dict[str, Any
     requested_external_benchmarks = normalize_external_benchmarks(
         config.external_benchmarks,
         context="config.external_benchmarks",
+        allow_empty=True,
     )
     benchmark_bundle, allow_missing_values = load_benchmark_bundle_for_execution(
         benchmark_bundle_path

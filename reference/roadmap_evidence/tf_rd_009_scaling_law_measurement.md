@@ -30,6 +30,10 @@ This is the canonical long-form evidence note for
   still explicitly opt-in
 - tuning and benchmark-adjacent tooling already exist, but there is no
   canonical scaling artifact path yet on the promoted row-first anchor
+- sandwich-local empirical power-curve work under
+  [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is now allowed
+  as a precursor for the hybrid `tabfoundry_sandwich` family, but that work is
+  explicitly pre-anchor and does not satisfy TF-RD-009 by itself
 
 ## Current Interpretation
 
@@ -40,6 +44,9 @@ This is the canonical long-form evidence note for
 - use scaling as architecture evidence only after the promoted row-first family
   has a harder post-008 surface and a stable-enough recipe to make compute and
   quality tradeoffs interpretable
+- allow sandwich-local power-curve fitting only as preparatory evidence for a
+  later sandwich compound-scaling recipe; do not treat those fits as closure of
+  promoted-anchor scaling on the row-first line
 
 ## Open Evidence Gaps
 
@@ -49,6 +56,8 @@ This is the canonical long-form evidence note for
   should be assumed before rerunning adequacy work
 - the harder-surface prerequisite is still unresolved, so current simple-binary
   scaling would remain low-signal
+- even if sandwich-local power curves land first, the repo still lacks the
+  promoted-anchor harder-surface contract that TF-RD-009 requires
 
 ## Exit Signals
 
