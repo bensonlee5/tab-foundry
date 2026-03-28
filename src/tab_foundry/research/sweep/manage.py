@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
+from tab_foundry.external_benchmarks import normalize_external_benchmarks
 from tab_foundry.research.lane_contract import (
     PFN_CONTROL_SURFACES,
     resolve_surface_role,
@@ -20,17 +21,22 @@ from .catalog import (
 )
 from .materialize import guarded_initial_state, materialize_system_delta_queue
 from .matrix import render_and_write_system_delta_matrix
-from .models import SWEEP_INDEX_SCHEMA, SWEEP_QUEUE_SCHEMA, SWEEP_SCHEMA, QueueRowPayload, SweepIndexPayload, SweepPayload, SweepQueuePayload
+from .models import (
+    DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
+    SWEEP_INDEX_SCHEMA,
+    SWEEP_QUEUE_SCHEMA,
+    SWEEP_SCHEMA,
+    QueueRowPayload,
+    SweepIndexPayload,
+    SweepPayload,
+    SweepQueuePayload,
+)
 from .paths_io import (
     _copy_jsonable,
     default_sweep_index_path,
     sweep_metadata_path,
     sweep_queue_path,
     write_yaml,
-)
-from .validation import (
-    DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
-    ensure_external_benchmarks,
 )
 
 
@@ -178,17 +184,21 @@ def create_sweep(
         if template_sweep is not None and external_benchmarks is None
         else None
     )
-    resolved_external_benchmarks = ensure_external_benchmarks(
-        list(external_benchmarks)
-        if external_benchmarks is not None
-        else (
-            list(inherited_external_benchmarks)
-            if isinstance(inherited_external_benchmarks, Sequence)
-            else None
-        ),
-        context="external_benchmarks",
-        default=DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
-        allow_empty=True,
+    resolved_external_benchmarks = list(
+        normalize_external_benchmarks(
+            (
+                list(external_benchmarks)
+                if external_benchmarks is not None
+                else (
+                    list(inherited_external_benchmarks)
+                    if isinstance(inherited_external_benchmarks, Sequence)
+                    else None
+                )
+            ),
+            context="external_benchmarks",
+            default=DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS,
+            allow_empty=True,
+        )
     )
     if (
         template_sweep is None

@@ -8,6 +8,7 @@ from typing import Any, Literal, Mapping, cast
 from pydantic import ValidationError
 
 from tab_foundry.data.corpus_materialization import materialize_corpus_ref
+from tab_foundry.external_benchmarks import normalize_external_benchmarks
 from tab_foundry.repo_paths import repo_root_from_catalog_path, repo_root_from_sweeps_root
 from tab_foundry.research.lane_contract import (
     resolve_surface_role,
@@ -22,6 +23,7 @@ from .catalog import (
     load_system_delta_sweep_payload,
 )
 from .models import (
+    DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
     MATERIALIZED_QUEUE_SCHEMA,
     CatalogDeltaPayload,
     CatalogPayload,
@@ -42,11 +44,18 @@ from .paths_io import (
     sweep_metadata_path,
     sweep_queue_path,
 )
-from .validation import (
-    ensure_string_list,
-    resolve_sweep_external_benchmarks,
-    validate_prose_fields,
-)
+
+
+def _resolved_external_benchmarks(sweep: SweepPayload) -> list[str]:
+    values = sweep.external_benchmarks
+    return list(
+        normalize_external_benchmarks(
+            values,
+            default=DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
+            context="sweep.external_benchmarks",
+            allow_empty=True,
+        )
+    )
 
 
 def _inspection_surface_payload(
@@ -123,18 +132,7 @@ def inspection_row(
     queue_row: QueueRowPayload,
     anchor_context: Mapping[str, Any],
 ) -> MaterializedQueueRowPayload:
-    validate_prose_fields(
-        queue_row.to_payload_dict(),
-        context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}",
-        field_names=("notes", "confounders", "parameter_adequacy_plan"),
-    )
-    parameter_plan = queue_row.get("parameter_adequacy_plan")
-    if not isinstance(parameter_plan, list):
-        parameter_plan = []
-    _ = ensure_string_list(
-        parameter_plan,
-        context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}.parameter_adequacy_plan",
-    )
+    parameter_plan = queue_row.parameter_adequacy_plan
     raw_model = queue_row.get("model")
     model_payload = (
         cast(dict[str, Any], _copy_jsonable(raw_model))
@@ -202,8 +200,6 @@ def inspection_system_delta_queue(
         inspection_row(queue_row=queue_row, anchor_context=anchor_context)
         for queue_row in sorted(queue_instance.rows, key=lambda row: (int(row.order), str(row.delta_ref)))
     ]
-    for index, row in enumerate(rows):
-        validate_prose_fields(row.to_payload_dict(), context=f"inspection queue rows[{index}]")
     resolved_sweeps_root = sweeps_root or default_sweeps_root()
     return MaterializedQueuePayload.model_validate(
         {
@@ -220,7 +216,7 @@ def inspection_system_delta_queue(
             "anchor_run_id": sweep.anchor_run_id,
             "benchmark_bundle_path": sweep.benchmark_bundle_path,
             "control_baseline_id": sweep.control_baseline_id,
-            "external_benchmarks": resolve_sweep_external_benchmarks(sweep.to_payload_dict()),
+            "external_benchmarks": _resolved_external_benchmarks(sweep),
             "training_experiment": resolve_training_experiment(sweep),
             "training_config_profile": resolve_training_config_profile(sweep),
             "surface_role": resolve_surface_role(sweep),
@@ -305,23 +301,7 @@ def materialize_row(
         dict[str, Any],
         _copy_jsonable(cast(dict[str, Any], delta_entry.get("parameter_adequacy_policy", {}))),
     )
-    validate_prose_fields(
-        queue_row.to_payload_dict(),
-        context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}",
-        field_names=("notes", "confounders", "parameter_adequacy_plan"),
-    )
-    validate_prose_fields(
-        delta_entry.to_payload_dict(),
-        context=f"delta entry {queue_row.get('delta_ref', '<missing>')!r}",
-        field_names=("adequacy_knobs",),
-    )
-    parameter_plan = queue_row.get("parameter_adequacy_plan")
-    if not isinstance(parameter_plan, list):
-        parameter_plan = parameter_policy.get("default_plan", [])
-    _ = ensure_string_list(
-        parameter_plan,
-        context=f"queue row {queue_row.get('delta_ref', '<missing>')!r}.parameter_adequacy_plan",
-    )
+    parameter_plan = queue_row.parameter_adequacy_plan
     payload = {
         "order": int(queue_row["order"]),
         "delta_id": str(queue_row.delta_ref),
@@ -438,8 +418,6 @@ def materialize_system_delta_queue(
                 anchor_context=cast(dict[str, Any], sweep.anchor_context),
             )
         )
-    for index, row in enumerate(rows):
-        validate_prose_fields(row.to_payload_dict(), context=f"materialized queue rows[{index}]")
     resolved_sweeps_root = sweeps_root or default_sweeps_root()
     return MaterializedQueuePayload.model_validate(
         {
@@ -456,7 +434,7 @@ def materialize_system_delta_queue(
             "anchor_run_id": sweep.anchor_run_id,
             "benchmark_bundle_path": sweep.benchmark_bundle_path,
             "control_baseline_id": sweep.control_baseline_id,
-            "external_benchmarks": resolve_sweep_external_benchmarks(sweep.to_payload_dict()),
+            "external_benchmarks": _resolved_external_benchmarks(sweep),
             "training_experiment": resolve_training_experiment(sweep),
             "training_config_profile": resolve_training_config_profile(sweep),
             "surface_role": resolve_surface_role(sweep),
@@ -542,11 +520,6 @@ def _load_system_delta_queue_common(
         materialized = MaterializedQueuePayload.model_validate(payload)
     except ValidationError as exc:
         raise RuntimeError(f"system delta queue is invalid: {exc}") from exc
-    for index, row in enumerate(materialized.rows):
-        validate_prose_fields(
-            row.to_payload_dict(),
-            context=f"materialized system delta queue rows[{index}]",
-        )
     return materialized
 
 

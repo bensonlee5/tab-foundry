@@ -5,7 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from pydantic import ValidationError
+
 from tab_foundry.benchmark_registry import resolve_registry_path_value
+from tab_foundry.external_benchmarks import (
+    EXTERNAL_BENCHMARK_NANOTABPFN,
+    normalize_external_benchmarks,
+)
 from tab_foundry.bench.comparison_contract import (
     DEFAULT_NANOTABPFN_BATCH_SIZE as _DEFAULT_NANOTABPFN_BATCH_SIZE,
     DEFAULT_NANOTABPFN_EVAL_EVERY as _DEFAULT_NANOTABPFN_EVAL_EVERY,
@@ -18,7 +24,6 @@ from tab_foundry.bench.comparison_runtime import (
     run_nanotabpfn_benchmark,
 )
 from tab_foundry.bench.run_registration import register_benchmark_run
-from tab_foundry.external_benchmarks import EXTERNAL_BENCHMARK_NANOTABPFN
 from tab_foundry.research.lane_contract import (
     resolve_surface_role,
     resolve_training_config_profile,
@@ -37,10 +42,10 @@ from . import row_dependencies as _row_dependencies
 from . import training_state as _training_state
 from .artifacts import ExecutionPaths, result_card_text, write_research_package
 from .configuration import compose_cfg, resolve_training_backend, row_id_for_order
+from .models import DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS, SweepPayload
 from .queue_updates import optional_metric, queue_metrics, update_queue_row, update_screened_queue_row
 from .runtime_env import ensure_nanotabpfn_python
 from .screening import screen_metrics
-from .validation import resolve_sweep_external_benchmarks
 
 
 DEFAULT_PRIOR_DUMP = Path("/workspace/nanoTabPFN/300k_150x5_2.h5")
@@ -135,6 +140,29 @@ def _normalize_execution_policy(queue_row: Mapping[str, Any]) -> str:
     return policy
 
 
+def _optional_typed_sweep(sweep_meta: Mapping[str, Any]) -> SweepPayload | None:
+    try:
+        return SweepPayload.model_validate(sweep_meta)
+    except ValidationError:
+        return None
+
+
+def _sweep_external_benchmarks(
+    sweep: SweepPayload | None,
+    *,
+    sweep_meta: Mapping[str, Any],
+) -> tuple[str, ...]:
+    raw_values = sweep.external_benchmarks if sweep is not None else sweep_meta.get("external_benchmarks")
+    return tuple(
+        normalize_external_benchmarks(
+            raw_values,
+            default=DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS,
+            context="sweep.external_benchmarks",
+            allow_empty=True,
+        )
+    )
+
+
 def run_row(
     *,
     sweep_id: str,
@@ -154,15 +182,17 @@ def run_row(
     reuse_nanotabpfn_only: bool = False,
 ) -> str:
     execution_policy = _normalize_execution_policy(queue_row)
+    sweep = _optional_typed_sweep(sweep_meta)
     _row_dependencies.resolve_dynamic_model_overrides(
         queue=queue,
         queue_row=queue_row,
         materialized_row=materialized_row,
     )
-    training_experiment = resolve_training_experiment(sweep_meta)
-    training_config_profile = resolve_training_config_profile(sweep_meta)
-    surface_role = resolve_surface_role(sweep_meta)
-    external_benchmarks = tuple(resolve_sweep_external_benchmarks(sweep_meta))
+    resolved_sweep_meta = sweep if sweep is not None else sweep_meta
+    training_experiment = resolve_training_experiment(resolved_sweep_meta)
+    training_config_profile = resolve_training_config_profile(resolved_sweep_meta)
+    surface_role = resolve_surface_role(resolved_sweep_meta)
+    external_benchmarks = _sweep_external_benchmarks(sweep, sweep_meta=sweep_meta)
     existing_run_id = queue_row.get("run_id")
     run_id = row_id_for_order(
         sweep_id,
@@ -359,16 +389,20 @@ def run_row(
             nanotabpfn_root=nanotabpfn_root,
             nanotab_prior_dump=prior_dump,
             device=device,
-            control_baseline_id=str(sweep_meta["control_baseline_id"]),
+            control_baseline_id=str(
+                sweep.control_baseline_id if sweep is not None else sweep_meta["control_baseline_id"]
+            ),
             control_baseline_registry=paths.control_baseline_registry_path,
-            benchmark_bundle_path=resolve_registry_path_value(str(sweep_meta["benchmark_bundle_path"])),
+            benchmark_bundle_path=resolve_registry_path_value(
+                str(sweep.benchmark_bundle_path if sweep is not None else sweep_meta["benchmark_bundle_path"])
+            ),
             external_benchmarks=external_benchmarks,
             reuse_nanotabpfn_curve_path=reuse_curve_path,
             reuse_nanotabpfn_error=reuse_nanotabpfn_error,
             reuse_nanotabpfn_metadata=(None if reuse_selection is None else reuse_selection.metadata),
         )
     )
-    parent_sweep_id = sweep_meta.get("parent_sweep_id")
+    parent_sweep_id = sweep.parent_sweep_id if sweep is not None else sweep_meta.get("parent_sweep_id")
     registration = register_benchmark_run(
         run_id=run_id,
         track=DEFAULT_TRACK,
@@ -382,12 +416,14 @@ def run_row(
         parent_run_id=parent_run_id,
         anchor_run_id=anchor_run_id,
         prior_dir=None,
-        control_baseline_id=str(sweep_meta["control_baseline_id"]),
+        control_baseline_id=str(
+            sweep.control_baseline_id if sweep is not None else sweep_meta["control_baseline_id"]
+        ),
         sweep_id=sweep_id,
         delta_id=str(queue_row["delta_ref"]),
         parent_sweep_id=(
             None
-            if not isinstance(parent_sweep_id, str) or not parent_sweep_id.strip()
+            if parent_sweep_id is None or not parent_sweep_id.strip()
             else str(parent_sweep_id)
         ),
         queue_order=int(queue_row["order"]),
