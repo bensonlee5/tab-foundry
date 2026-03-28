@@ -52,15 +52,15 @@ flowchart LR
 
     task["Observed task<br/>train rows, test rows, labels"]:::state
     evidence["Cell evidence<br/>preserve what each feature says"]:::state
-    context["Shared context<br/>summarize reusable row and column patterns"]:::state
-    memory["Task memory<br/>refine a fixed-size view of the whole table"]:::state
-    queries["Test-row questions<br/>ask what each held-out row needs"]:::state
+    context["Shared context<br/>repeat K summaries per row and per column"]:::state
+    memory["Task memory<br/>refine L reusable latent slots for the whole table"]:::state
+    queries["Test-row questions<br/>repeat K query slots for each test row"]:::state
     logits["Row decisions<br/>emit class logits for each test row"]:::state
 
     task -->|normalize and encode raw cells| evidence
-    evidence -->|compress repeated structure| context
-    context -->|store reusable task-level context| memory
-    context -->|form one question bundle per test row| queries
+    evidence -->|compress repeated structure into reusable summaries| context
+    context -->|store task-level context in repeated latent slots| memory
+    context -->|form one repeated query bundle per test row| queries
     evidence -->|keep direct access to detailed cell evidence| logits
     memory -->|supply reusable context| logits
     queries -->|ask for a per-row decision| logits
@@ -85,9 +85,9 @@ The current forward path is:
    - per-column ISAB-style row mixing over rows
 1. build three conditioned token streams from the same encoded cell table:
    - full-cell stream over all `R * C` cells
-   - row-summary stream with `K = sandwich_summary_tokens_per_axis` learned
+   - row-summary stream with `$K = \texttt{sandwich\_summary\_tokens\_per\_axis}$` learned
      summary tokens per row
-   - column-summary stream with `K` learned summary tokens per column
+   - column-summary stream with `$K$` learned summary tokens per column
 1. let stage `0` of the latent array read from `full-cell + summary`
 1. let later Perceiver stages read only from the compact summary stream
 1. form test-row readout queries from the test-row summary tokens
@@ -109,13 +109,13 @@ Mental model:
 
 Notation:
 
-- `B` = task batch size
-- `N_tr` = train-row count
-- `N_te` = test-row count
-- `R = N_tr + N_te`
-- `C` = feature count
-- `K = sandwich_summary_tokens_per_axis`
-- `L = sandwich_latents`
+- $B$ = task batch size
+- $N_{\mathrm{tr}}$ = train-row count
+- $N_{\mathrm{te}}$ = test-row count
+- $R = N_{\mathrm{tr}} + N_{\mathrm{te}}$
+- $C$ = feature count
+- $K = \texttt{sandwich_summary_tokens_per_axis}$
+- $L = \texttt{sandwich_latents}$
 
 ```mermaid
 flowchart LR
@@ -128,12 +128,12 @@ flowchart LR
     xtok["tokenized cells<br/>[B, R, C, 4]"]:::tensor
     cells["cell tokens<br/>[B, R, C, d_icl]"]:::tensor
     full["full-cell stream<br/>[B, R * C, d_icl]"]:::tensor
-    rowsum["row summary tokens<br/>[B, R * K, d_icl]"]:::tensor
-    colsum["column summary tokens<br/>[B, C * K, d_icl]"]:::tensor
+    rowsum["row summary tokens<br/>[B, R * K, d_icl]<br/>K repeated summary slots per row"]:::tensor
+    colsum["column summary tokens<br/>[B, C * K, d_icl]<br/>K repeated summary slots per column"]:::tensor
     summary["summary stream<br/>[B, K * (R + C), d_icl]"]:::tensor
-    lat0["latent seed<br/>[B, L, d_icl]"]:::tensor
-    latf["final latents<br/>[B, L, d_icl]"]:::tensor
-    testq["test-row query bank<br/>[B, N_te * K, d_icl]"]:::tensor
+    lat0["latent seed<br/>[B, L, d_icl]<br/>L repeated latent slots"]:::tensor
+    latf["final latents<br/>[B, L, d_icl]<br/>L refined latent slots"]:::tensor
+    testq["test-row query bank<br/>[B, N_te * K, d_icl]<br/>K repeated query slots per test row"]:::tensor
     rows["test-row states<br/>[B, N_te, d_icl]"]:::tensor
     logits["logits<br/>[B, N_te, many_class_base]"]:::tensor
 
@@ -145,10 +145,10 @@ flowchart LR
     cells -->|flatten + train-label/test-query + role + token-type conditioning| full
     ytrain -->|train-label conditioning for train rows| full
 
-    cells -->|learned row-summary queries + row conditioning| rowsum
+    cells -->|learned row-summary queries repeated K times per row + row conditioning| rowsum
     ytrain -->|train-label conditioning for train rows| rowsum
 
-    cells -->|learned column-summary queries + column token typing| colsum
+    cells -->|learned column-summary queries repeated K times per column + column token typing| colsum
     rowsum -->|concatenate row summaries| summary
     colsum -->|concatenate column summaries| summary
 
@@ -156,8 +156,8 @@ flowchart LR
     full -->|stage 0 KV| latf
     summary -->|stage 0 + later-stage KV| latf
 
-    rowsum -->|slice test rows| testq
-    testq -->|latent readout + full-cell readout + pool K queries per row| rows
+    rowsum -->|slice test rows and keep K repeated query slots per row| testq
+    testq -->|latent readout + full-cell readout + pool K repeated queries per row| rows
     latf -->|readout memory| rows
     full -->|raw cell evidence| rows
 
@@ -168,23 +168,23 @@ flowchart LR
 
 | Component | Input Shape | Output Shape | Notes |
 | --- | --- | --- | --- |
-| Task ingestion | `x_train [B,N_tr,C]`, `x_test [B,N_te,C]`, `y_train [B,N_tr]` | `x_all [B,R,C]` | `B=1` for single-task forward; task batching is also supported |
-| Shared normalization | `[B,R,C]` | `[B,R,C]` | uses `input_normalization`; preserves non-finite markers |
-| Missingness tokenizer | `[B,R,C]` | `[B,R,C,4]` | channels are `value`, `is_nan`, `is_posinf`, `is_neginf` |
-| Shared feature encoder | `[B,R,C,4]` | `[B,R,C,d_icl]` | linear projection only |
-| Positional/type enrichment | `[B,R,C,d_icl]` | `[B,R,C,d_icl]` | adds row Fourier, column Fourier, and feature-type embeddings |
-| Pre-Perceiver mixer | `[B,R,C,d_icl]` | `[B,R,C,d_icl]` | row self-attn then column ISAB row mixing |
-| Full-cell stream | `[B,R,C,d_icl]` | `[B,R*C,d_icl]` | adds train/test role, label/query conditioning, and cell token type |
-| Row summary stream | `[B,R,C,d_icl]` | `[B,R*K,d_icl]` | learned row-summary queries plus label/query and role conditioning |
-| Column summary stream | `[B,R,C,d_icl]` | `[B,C*K,d_icl]` | learned column-summary queries plus token type |
-| Summary stream | row + column summaries | `[B,K*(R+C),d_icl]` | compact repeated context |
-| Latent seed | none | `[B,L,d_icl]` | learned latent bank, expanded per task |
-| Perceiver stages | latents + input stream | `[B,L,d_icl]` | stage `0` reads full-cell + summary; later stages read summary only |
-| Test query bank | test-row summary tokens | `[B,N_te*K,d_icl]` | derived from the row-summary stream |
-| Latent readout | queries + final latents | `[B,N_te*K,d_icl]` | first readout pass |
-| Full-cell readout | updated queries + full-cell stream | `[B,N_te,K,d_icl]` | second readout pass |
-| Test-row pool | `[B,N_te,K,d_icl]` | `[B,N_te,d_icl]` | one state per test row |
-| Direct head | `[B,N_te,d_icl]` | `[B,N_te,many_class_base]` | small-class classifier head |
+| Task ingestion | `x_train` [$B$, $N_{\mathrm{tr}}$, $C$], `x_test` [$B$, $N_{\mathrm{te}}$, $C$], `y_train` [$B$, $N_{\mathrm{tr}}$] | `x_all` [$B$, $R$, $C$] | $B = 1$ for single-task forward; task batching is also supported |
+| Shared normalization | [$B$, $R$, $C$] | [$B$, $R$, $C$] | uses `input_normalization`; preserves non-finite markers |
+| Missingness tokenizer | [$B$, $R$, $C$] | [$B$, $R$, $C$, 4] | channels are `value`, `is_nan`, `is_posinf`, `is_neginf` |
+| Shared feature encoder | [$B$, $R$, $C$, 4] | [$B$, $R$, $C$, `d_icl`] | linear projection only |
+| Positional/type enrichment | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | adds row Fourier, column Fourier, and feature-type embeddings |
+| Pre-Perceiver mixer | [$B$, $R$, $C$, `d_icl`] | [$B$, $R$, $C$, `d_icl`] | row self-attn then column ISAB row mixing |
+| Full-cell stream | [$B$, $R$, $C$, `d_icl`] | [$B$, $R * C$, `d_icl`] | adds train/test role, label/query conditioning, and cell token type |
+| Row summary stream | [$B$, $R$, $C$, `d_icl`] | [$B$, $R * K$, `d_icl`] | learned row-summary queries with $K$ repeated slots per row plus label/query and role conditioning |
+| Column summary stream | [$B$, $R$, $C$, `d_icl`] | [$B$, $C * K$, `d_icl`] | learned column-summary queries with $K$ repeated slots per column plus token type |
+| Summary stream | row + column summaries | [$B$, $K * (R + C)$, `d_icl`] | compact repeated context |
+| Latent seed | none | [$B$, $L$, `d_icl`] | learned latent bank with $L$ repeated slots, expanded per task |
+| Perceiver stages | latents + input stream | [$B$, $L$, `d_icl`] | stage `0` reads full-cell + summary; later stages read summary only |
+| Test query bank | test-row summary tokens | [$B$, $N_{\mathrm{te}} * K$, `d_icl`] | derived from the row-summary stream with $K$ repeated query slots per test row |
+| Latent readout | queries + final latents | [$B$, $N_{\mathrm{te}} * K$, `d_icl`] | first readout pass |
+| Full-cell readout | updated queries + full-cell stream | [$B$, $N_{\mathrm{te}}$, $K$, `d_icl`] | second readout pass |
+| Test-row pool | [$B$, $N_{\mathrm{te}}$, $K$, `d_icl`] | [$B$, $N_{\mathrm{te}}$, `d_icl`] | pool the $K$ repeated query slots down to one state per test row |
+| Direct head | [$B$, $N_{\mathrm{te}}$, `d_icl`] | [$B$, $N_{\mathrm{te}}$, `many_class_base`] | small-class classifier head |
 
 ## Current Sandwich Defaults
 

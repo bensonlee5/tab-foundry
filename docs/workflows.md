@@ -109,7 +109,7 @@ tab-foundry research sweep diff --order 7 --against-order 6 --sweep-id binary_md
 Format markdown directly:
 
 ```bash
-./.venv/bin/mdformat AGENTS.md README.md CHANGELOG.md program.md docs reference
+./.venv/bin/mdformat --exclude docs/development/model-architecture.md AGENTS.md README.md CHANGELOG.md program.md docs reference
 ```
 
 CI workflow `test` runs two required jobs on pull requests and `main`:
