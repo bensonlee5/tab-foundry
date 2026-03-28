@@ -29,9 +29,9 @@ This is the canonical long-form evidence note for
 
 ## Repo-Local Evidence
 
-- the staged surface already exposes tokenization choice, `feature_group_size`,
-  norm family and placement, widths, depths, row CLS count, TFCol inducing
-  count, context FF expansion, dropout, and clipping
+- the current public architecture surface already exposes tokenization choice,
+  `feature_group_size`, norm family and placement, widths, depths, row CLS
+  count, TFCol inducing count, context FF expansion, dropout, and clipping
 - TF-RD-021B now makes sandwich-parent simplification the first explicit
   architecture task before broader harder-surface adequacy work
 - TF-RD-010 is now the first carried harder regime after that simplification:
@@ -57,8 +57,8 @@ This is the canonical long-form evidence note for
 
 ## Open Evidence Gaps
 
-- there is no explicit keep or defer decision yet on whether the current staged
-  surface is sufficient on harder post-008 regimes
+- there is no explicit keep or defer decision yet on whether the current
+  sandwich surface is sufficient on harder post-008 regimes
 - the repo has not yet shown whether the remaining hardcoded choices are
   decision-relevant enough to expose
 - the knob-specific literature set is intentionally deferred until Phase 1 says
@@ -66,7 +66,7 @@ This is the canonical long-form evidence note for
 
 ## Exit Signals
 
-- the repo has an explicit keep or defer decision on whether the current staged
-  architecture surface is sufficient on harder post-008 regimes
+- the repo has an explicit keep or defer decision on whether the current
+  sandwich architecture surface is sufficient on harder post-008 regimes
 - any newly exposed architecture knobs are bounded, justified, and tied to one
-  coherent staged comparison surface
+  coherent sandwich comparison surface

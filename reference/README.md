@@ -48,17 +48,24 @@ cross-epic map.
 - [`roadmap_evidence/tf_rd_018_training_surface_adequacy.md`](roadmap_evidence/tf_rd_018_training_surface_adequacy.md):
   canonical TF-RD-018 batch-size, LR, optimizer, and training-surface note
 - [`roadmap_evidence/tf_rd_020_harder_dagzoo_corpus_fronts.md`](roadmap_evidence/tf_rd_020_harder_dagzoo_corpus_fronts.md):
-  canonical TF-RD-020 harder-front handoff note on the promoted anchor
+  canonical TF-RD-020 harder-front handoff note on the historical
+  staged-control line
 - [`roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
-  canonical TF-RD-021 steering-derived synthetic follow-on note
+  canonical TF-RD-021 steering-derived synthetic follow-on note on the carried
+  sandwich dagzoo slice
 - [`roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
-  canonical TF-RD-022 runtime-and-VRAM efficiency note on the promoted anchor
+  canonical TF-RD-022 runtime-and-VRAM efficiency note for the carried
+  sandwich classification family before scaling
 - [`roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
   fixed-latent sandwich candidate note and closed immediate nanoTabPFN screen
 - [`roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md`](roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md):
-  hybrid full-cell sandwich successor note and locked-prior replay handoff
+  hybrid full-cell sandwich successor note and simplified-parent handoff
+- [`roadmap_evidence/tf_rd_010_many_class_promotion.md`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
+  canonical TF-RD-010 carried-slice note for the first sandwich many-class plus
+  missingness gate
 - [`roadmap_evidence/tf_rd_009_scaling_law_measurement.md`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
-  canonical TF-RD-009 scaling-specific note and TF-RD-018 handoff target
+  canonical TF-RD-009 scaling-specific note and classification-first sandwich
+  handoff target
 
 Keeping this material under one indexed home gives architecture and benchmark
 work a stable citation surface without mixing research notes into the

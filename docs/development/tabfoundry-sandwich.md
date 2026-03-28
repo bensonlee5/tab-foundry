@@ -222,7 +222,7 @@ architecture.
 
 | Name | Default | What it controls | Notes |
 | ---- | ------- | ---------------- | ----- |
-| `model.arch` | global model default is `tabfoundry_staged` | Selects the model family. Set this to `tabfoundry_sandwich` to build the sandwich architecture. | Required to use this model. |
+| `model.arch` | global model default is `tabfoundry_sandwich` | Selects the model family. Set this to `tabfoundry_sandwich` to build the sandwich architecture. | Required to use this model. |
 | `d_icl` | `512` | Shared working width for cell tokens, summary tokens, latent blocks, and head input. | The current sandwich experiment presets override this to `60`. |
 | `input_normalization` | `none` | Shared train/test feature normalization mode before tokenization. | Accepted values are `none`, `train_zscore`, `train_zscore_clip`, `train_rankgauss`, `train_robust`, `train_winsorize_zscore`, `train_zscore_tanh`, and `train_robust_tanh`. Common sandwich presets use `train_zscore_clip`. |
 | `many_class_base` | `10` | Output width of the direct classifier head. | This also sets the small-class limit, so sandwich requires `2 <= num_classes <= many_class_base`. |

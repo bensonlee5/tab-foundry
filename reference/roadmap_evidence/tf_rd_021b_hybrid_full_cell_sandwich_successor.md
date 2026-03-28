@@ -42,6 +42,10 @@ architecture-adequacy workstream.
 - child issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184)
   now owns the post-screen simplified-parent and classification-scaling-prep
   follow-up
+- the queued TF-RD-021B removal-first follow-up is
+  `tf_rd_021b_sandwich_feature_removal_v1`, which recasts the earlier
+  self-attention shrink idea as full removal and keeps the follow-up package
+  bounded
 - `tabfoundry_sandwich` now uses:
   - one fixed learned latent bank
   - a stage-`0` hybrid input stream of `full cells + row summaries + column summaries`
@@ -71,8 +75,9 @@ architecture-adequacy workstream.
   sandwich alive as the primary classification architecture target
 - the completed bounded sensitivity screens argue for simplification first, not
   for keeping many free architecture knobs alive during scaling
-- the next bounded read is therefore a simplification package centered on:
-  - `sandwich_self_attention_per_cross=1`
+- the next bounded read is therefore a removal-first simplification package
+  centered on:
+  - `sandwich_self_attention_per_cross=0`
   - `sandwich_ff_expansion=1`
   - the combined row
   - the combined row plus `sandwich_summary_tokens_per_axis=1`

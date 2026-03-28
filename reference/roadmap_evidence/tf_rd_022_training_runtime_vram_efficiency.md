@@ -32,11 +32,13 @@ This is the canonical long-form evidence note for
   [#169](https://github.com/bensonlee5/tab-foundry/issues/169),
   [#170](https://github.com/bensonlee5/tab-foundry/issues/170), and
   [#171](https://github.com/bensonlee5/tab-foundry/issues/171)
-- sandwich architecture work still lives under implementation issue
-  [#174](https://github.com/bensonlee5/tab-foundry/issues/174) and umbrella
-  issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178); TF-RD-022
-  is a dependency surface for later classification work, not the owner of
-  sandwich planning
+- sandwich architecture ownership now lives under the historical
+  implementation record [#174](https://github.com/bensonlee5/tab-foundry/issues/174),
+  umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178),
+  and active simplification follow-up
+  [#184](https://github.com/bensonlee5/tab-foundry/issues/184); TF-RD-022 is a
+  dependency surface for later classification work, not the owner of sandwich
+  planning
 - training telemetry and benchmark-registry records now preserve:
   - `peak_vram_allocated`
   - `peak_vram_reserved`
@@ -52,8 +54,8 @@ This is the canonical long-form evidence note for
   - `scm_complexity_summary`
 - canonical benchmark prior configs still inherit `runtime.mixed_precision: "no"` from `configs/experiment/_shared/compact_binary_prior.yaml` unless a
   higher-level experiment overrides it
-- `tabfoundry_staged` already supports `runtime.activation_checkpointing`, and
-  benchmark-facing exact-prior runs still default to
+- the shared runtime surface already supports `runtime.activation_checkpointing`,
+  and benchmark-facing exact-prior runs still default to
   `runtime.trace_activations: true`
 
 ## Current Interpretation

@@ -42,3 +42,6 @@ Notes:
 - Earlier implemented and completed roadmap items remain summarized in
   [reference/evidence.md](../evidence.md); this directory starts at the current
   epic and continues forward.
+- Some note titles still mirror legacy roadmap labels for stable cross-links;
+  the dependency text inside each note is authoritative about the carried
+  sandwich family and the current sandwich-first queue.

@@ -138,15 +138,15 @@ Default filter for this section:
 |----------|-------|-------------------------------|--------|
 | 2203.15556 | Training Compute-Optimal Large Language Models (Chinchilla) | Core reference for the repo's primary goal of scaling predictability. Defines the methodology for fitting compute-optimal curves across model sizes. | https://arxiv.org/abs/2203.15556 |
 | 2001.08361 | Scaling Laws for Neural Language Models | Foundational scaling law methodology; establishes the power-law relationships between compute, data, and model size that this repo aims to replicate for tabular models. | https://arxiv.org/abs/2001.08361 |
-| 2203.03466 | Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer (muP) | Width-independent hyperparameter transfer across model sizes. Directly relevant to scaling-law measurement on the promoted anchor (`TF-RD-009`). | https://arxiv.org/abs/2203.03466 |
-| 1608.03983 | SGDR: Stochastic Gradient Descent with Warm Restarts | Cosine annealing with warm restarts; relevant to training-recipe work that supports the promoted anchor rather than replacing architecture migration (`TF-RD-009`). | https://arxiv.org/abs/1608.03983 |
+| 2203.03466 | Tensor Programs V: Tuning Large Neural Networks via Zero-Shot Hyperparameter Transfer (muP) | Width-independent hyperparameter transfer across model sizes. Directly relevant to scaling-law measurement on the classification-first sandwich target (`TF-RD-009`). | https://arxiv.org/abs/2203.03466 |
+| 1608.03983 | SGDR: Stochastic Gradient Descent with Warm Restarts | Cosine annealing with warm restarts; relevant to training-recipe work that supports the classification-first sandwich target rather than replacing architecture migration (`TF-RD-009`). | https://arxiv.org/abs/1608.03983 |
 | 2412.19437 | DeepSeek-V3 Technical Report | Multi-token prediction and modern training recipe details for compact transformers. Informs architecture choices for cross-feature dependency modeling. | https://arxiv.org/abs/2412.19437 |
 
 ## Training-Surface Adequacy And Batch/LR Scaling
 
 These references anchor the TF-RD-018 literature note and the later handoff
-from training-surface adequacy into scaling work on the promoted row-first
-anchor.
+from historical training-surface adequacy into scaling work on the
+classification-first sandwich target.
 
 | arXiv ID | Title | Why it matters for tab-foundry | Source |
 |----------|-------|-------------------------------|--------|
@@ -179,7 +179,7 @@ Adjacent repo references that inform architecture and training decisions. Detail
 |------|------|---------------|
 | nanoTabPFN | https://github.com/automl/nanoTabPFN | Benchmark comparison target; training recipe choices and model sizing decisions provide direct baseline for tab-foundry. |
 | nanochat | https://github.com/karpathy/nanochat | Optimizer, LR schedule, model sizing, and clean training loop patterns. Reference for compact transformer training infrastructure. |
-| Muon optimizer | https://github.com/KellerJordan/Muon | Modern optimizer treating weights as orthogonal matrices. Relevant to later training-recipe work on the promoted anchor (`TF-RD-009`). |
+| Muon optimizer | https://github.com/KellerJordan/Muon | Modern optimizer treating weights as orthogonal matrices. Relevant to later training-recipe work on the classification-first sandwich target (`TF-RD-009`). |
 
 ## External Baseline Borrowing Rules
 
@@ -214,7 +214,7 @@ Success signal:
 ### nanochat
 
 - **URL:** https://github.com/karpathy/nanochat
-- **Roadmap relevance:** TF-RD-002 (measurement surfaces), TF-RD-007 (QASS attribution), TF-RD-009 (training and scaling work on the promoted anchor)
+- **Roadmap relevance:** TF-RD-002 (measurement surfaces), TF-RD-007 (QASS attribution), TF-RD-009 (training and scaling work on the classification-first sandwich target)
 
 What it does well:
 
@@ -272,7 +272,7 @@ Success signal:
 ### Muon Optimizer
 
 - **URL:** https://github.com/KellerJordan/Muon
-- **Roadmap relevance:** TF-RD-009 (training work on the promoted anchor)
+- **Roadmap relevance:** TF-RD-009 (training work on the classification-first sandwich target)
 
 What it does well:
 

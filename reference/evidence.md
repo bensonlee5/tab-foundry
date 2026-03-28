@@ -30,7 +30,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - [`TF-RD-020`](roadmap_evidence/tf_rd_020_harder_dagzoo_corpus_fronts.md):
   harder dagzoo corpus-front evidence and v1 carry-forward decisions
 - [`TF-RD-021`](roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md):
-  steering-derived corpus-front evidence and conditional Muon retry framing
+  steering-derived corpus-front evidence and carried-slice handoff
 - [`TF-RD-021A`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
   fixed-latent sandwich candidate note and closed immediate nanoTabPFN screen
 - [`TF-RD-021B`](roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md):
@@ -42,7 +42,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - [`TF-RD-016`](roadmap_evidence/tf_rd_016_architecture_surface_adequacy.md):
   existing-surface adequacy and selective expansion evidence
 - [`TF-RD-010`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
-  first many-class plus missingness dagzoo gate evidence on the row-first base
+  first many-class plus missingness dagzoo gate evidence on the
+  classification-first sandwich target
 - [`TF-RD-009`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
   classification-first scaling-law design evidence and the runtime plus
   harder-surface handoff
@@ -79,13 +80,13 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 | Islamov et al. (2603.21191) | Recent theory and experiments reinforce regime-dependent batch-size gains and diminishing returns under a fixed-budget lens | `TF-RD-018` | Next | medium |
 | SGDR (1608.03983) | Schedule work remains relevant, but should support the promoted architecture rather than substitute for it | `TF-RD-001`, `TF-RD-009` | Next | medium-high |
 | muP (2203.03466) | Hyperparameter transfer across model sizes matters once one coherent row-first anchor exists | `TF-RD-009` | Next | high |
-| Chinchilla (2203.15556) | Compute-optimal reasoning belongs on the promoted anchor, not on transient hybrid bridge surfaces | `TF-RD-009` | Next | high |
+| Chinchilla (2203.15556) | Compute-optimal reasoning belongs on the classification-first sandwich target, not on transient hybrid bridge surfaces | `TF-RD-009` | Next | high |
 | Kaplan et al. (2001.08361) | Scaling trends should be measured on one coherent family rather than across mixed architectural lines | `TF-RD-009` | Next | high |
 | Power Lines (2505.13738) | Small-scale scaling fits need explicit artifact paths and careful interpretation | `TF-RD-009` | Next | medium-high |
 | Broken Neural Scaling Laws (2210.14891) | Knees and plateaus must be treated as expected outcomes when the architecture target is still moving | `TF-RD-009` | Next | medium |
 | SAINT (2106.01342) | Row/column interaction changes should be benchmarked as explicit structural choices rather than imported as defaults | `TF-RD-005`, `TF-RD-006` | Next | medium |
 | Perceiver (2103.03206) | Latent bottlenecks remain a later alternative if row/column token count becomes the limiting factor | `TF-RD-006`, `TF-RD-012` | Later | medium |
-| EquiTabPFN (2502.06684) | Label-conditioning choices should stay modular so target handling can evolve after the row-first base stabilizes | `TF-RD-010`, `TF-RD-012` | Next | medium |
+| EquiTabPFN (2502.06684) | Label-conditioning choices should stay modular so target handling can evolve after the classification-first sandwich family stabilizes | `TF-RD-010`, `TF-RD-012` | Next | medium |
 | TabDPT (2410.18164) | Prior/source changes are a later scaling lever and should not displace the core architecture migration prematurely | `TF-RD-011`, `TF-RD-012` | Later | medium |
 | Sentence-BERT (D19-1410) | Text-conditioned columns should remain an external-embedding later lane rather than a distraction from the classification-first backbone plan | `TF-RD-012` | Later | high |
 | nanochat (repo) | Compact-transformer training and residual-layout ideas are valid donors, but only when they preserve the tabular set-structured goal | `TF-RD-002`, `TF-RD-007`, `TF-RD-009` | Now | high |
@@ -260,12 +261,14 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the existing TabPFN-v2 analysis note implies that meta-feature sensitivity
     should be tested structurally rather than inferred from one frozen surface
 - Repo-local evidence:
-  - TF-RD-020 kept `tf_rd_020_shift_noise_drift_v1` as the current synthetic
-    harder-surface control under `#146/#149`
-  - TF-RD-018 issue `#137` deferred Muon on that inherited control rather than
-    keeping it as an optimizer fallback
+  - TF-RD-020 closed as historical staged-control harder-front context under
+    `#146/#149`; it is no longer the active carried classification slice
+  - TF-RD-010 now owns the first carried sandwich dagzoo many-class plus
+    missingness slice that steering will attempt to improve
   - dagzoo issue `bensonlee5/dagzoo#246` now defines the upstream steering
     implementation, metadata, and diagnostics lane
+  - tab-foundry issues `#165` and `#167` now own the local steering-derived
+    continuation and first sweep contract
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_021_steering_derived_dagzoo_corpus_fronts.md`
 - Success signal:
@@ -285,10 +288,10 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     runtime lane an explicit roadmap home
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`
-  - sandwich architecture work now lives under implementation issue `#174`,
-    umbrella issue `#178`, and immediate nanoTabPFN screen issue `#179`; this
-    runtime lane is now a dependency surface for later sandwich hard-surface
-    reads rather than the owner of that architecture line
+  - sandwich architecture ownership now lives under the historical
+    implementation record `#174`, active umbrella `#178`, and current
+    simplification follow-up `#184`; this runtime lane is a dependency surface
+    for later classification work rather than the owner of sandwich planning
   - training telemetry and benchmark-registry artifacts now preserve runtime
     summaries and regime-budget metadata needed for later runtime-policy and
     scaling comparisons
@@ -370,7 +373,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     under one harder dagzoo slice, one inherited runtime policy, and one
     matched regime-budget contract
 
-### TF-RD-010: Many-Class Promotion On The Row-First Base
+### TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Classification-First Sandwich Target
 
 - External evidence:
   - label-conditioning work such as EquiTabPFN matters more after the backbone
@@ -380,7 +383,7 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - many-class should inherit the frozen sandwich dagzoo backbone rather than
     become its own architecture lane
 - Success signal:
-  - many-class is evaluated as an extension of the promoted anchor
+  - many-class is evaluated as an extension of the frozen sandwich parent
 
 ### TF-RD-011: Repo-Wide Enablers And Contract Fidelity
 
@@ -395,17 +398,19 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the architecture program can rely on data and contract surfaces that are
     trustworthy enough for promotion decisions
 
-### TF-RD-012: Regression, Inference Handoff, And Later Modalities
+### TF-RD-012: Inference Handoff And Later Modalities
 
 - External evidence:
   - text-conditioning references and later modality papers belong to a later
     lane once the classification anchor is stable
 - Repo-local evidence:
   - regression is intentionally removed today
-  - runtime handoff remains partial and should follow the promoted staged base
+  - runtime handoff remains partial and should follow the classification-first
+    sandwich base
 - Success signal:
-  - later prediction modes and downstream handoff build on the promoted
-    row-first base instead of competing with the main architecture program
+  - later prediction modes and downstream handoff build on the
+    classification-first sandwich base instead of competing with the main
+    architecture program
 
 ## Evidence Limits And Assumptions
 

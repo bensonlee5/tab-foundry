@@ -1,4 +1,4 @@
-# TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Promoted Anchor
+# TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Classification-First Sandwich Target
 
 This is the canonical long-form evidence note for
 [TF-RD-021](../../docs/development/roadmap.md#tf-rd-021-steering-derived-dagzoo-corpus-fronts-on-the-promoted-anchor).
@@ -64,11 +64,11 @@ This is the canonical long-form evidence note for
   tab-foundry
 - The repo still needs a practical stop rule for how much steering movement and
   metric gain counts as a genuinely new carry-forward surface rather than a
-  noisy variant of TF-RD-020 row `06`
+  noisy variant of the incumbent carried control slice
 
 ## Exit Signals
 
 - The repo has one explicit keep/defer decision on whether any steering-derived
-  corpus front replaces `tf_rd_020_shift_noise_drift_v1`
+  corpus front replaces the incumbent carried sandwich control slice
 - TF-RD-022 can inherit a documented synthetic carry-forward decision without
   reopening TF-RD-010 or blurring the completed TF-RD-020 ladder
