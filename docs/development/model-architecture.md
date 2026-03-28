@@ -85,9 +85,9 @@ The current forward path is:
    - per-column ISAB-style row mixing over rows
 1. build three conditioned token streams from the same encoded cell table:
    - full-cell stream over all `R * C` cells
-   - row-summary stream with `$K = \texttt{sandwich\_summary\_tokens\_per\_axis}$` learned
+   - row-summary stream with $K$ = `sandwich_summary_tokens_per_axis` learned
      summary tokens per row
-   - column-summary stream with `$K$` learned summary tokens per column
+   - column-summary stream with $K$ learned summary tokens per column
 1. let stage `0` of the latent array read from `full-cell + summary`
 1. let later Perceiver stages read only from the compact summary stream
 1. form test-row readout queries from the test-row summary tokens
@@ -110,32 +110,32 @@ Mental model:
 Notation:
 
 - $B$ = task batch size
-- $N_{\mathrm{tr}}$ = train-row count
-- $N_{\mathrm{te}}$ = test-row count
-- $R = N_{\mathrm{tr}} + N_{\mathrm{te}}$
+- $N_{tr}$ = train-row count
+- $N_{te}$ = test-row count
+- $R = N_{tr} + N_{te}$
 - $C$ = feature count
-- $K = \texttt{sandwich_summary_tokens_per_axis}$
-- $L = \texttt{sandwich_latents}$
+- $K$ = `sandwich_summary_tokens_per_axis`
+- $L$ = `sandwich_latents`
 
 ```mermaid
 flowchart LR
     classDef tensor fill:#eef5ff,stroke:#3567a6,color:#10233a,stroke-width:1px;
 
-    xtrain["x_train<br/>[B, N_tr, C]"]:::tensor
-    xtest["x_test<br/>[B, N_te, C]"]:::tensor
-    ytrain["y_train<br/>[B, N_tr]"]:::tensor
-    xall["normalized x_all<br/>[B, R, C]"]:::tensor
-    xtok["tokenized cells<br/>[B, R, C, 4]"]:::tensor
-    cells["cell tokens<br/>[B, R, C, d_icl]"]:::tensor
-    full["full-cell stream<br/>[B, R * C, d_icl]"]:::tensor
-    rowsum["row summary tokens<br/>[B, R * K, d_icl]<br/>K repeated summary slots per row"]:::tensor
-    colsum["column summary tokens<br/>[B, C * K, d_icl]<br/>K repeated summary slots per column"]:::tensor
-    summary["summary stream<br/>[B, K * (R + C), d_icl]"]:::tensor
-    lat0["latent seed<br/>[B, L, d_icl]<br/>L repeated latent slots"]:::tensor
-    latf["final latents<br/>[B, L, d_icl]<br/>L refined latent slots"]:::tensor
-    testq["test-row query bank<br/>[B, N_te * K, d_icl]<br/>K repeated query slots per test row"]:::tensor
-    rows["test-row states<br/>[B, N_te, d_icl]"]:::tensor
-    logits["logits<br/>[B, N_te, many_class_base]"]:::tensor
+    xtrain["x_train<br/>[$$B$$, $$N_{tr}$$, $$C$$]"]:::tensor
+    xtest["x_test<br/>[$$B$$, $$N_{te}$$, $$C$$]"]:::tensor
+    ytrain["y_train<br/>[$$B$$, $$N_{tr}$$]"]:::tensor
+    xall["normalized x_all<br/>[$$B$$, $$R$$, $$C$$]"]:::tensor
+    xtok["tokenized cells<br/>[$$B$$, $$R$$, $$C$$, 4]"]:::tensor
+    cells["cell tokens<br/>[$$B$$, $$R$$, $$C$$, d_icl]"]:::tensor
+    full["full-cell stream<br/>[$$B$$, $$R \\cdot C$$, d_icl]"]:::tensor
+    rowsum["row summary tokens<br/>[$$B$$, $$R \\cdot K$$, d_icl]<br/>$$K$$ repeated summary slots per row"]:::tensor
+    colsum["column summary tokens<br/>[$$B$$, $$C \\cdot K$$, d_icl]<br/>$$K$$ repeated summary slots per column"]:::tensor
+    summary["summary stream<br/>[$$B$$, $$K \\cdot (R + C)$$, d_icl]"]:::tensor
+    lat0["latent seed<br/>[$$B$$, $$L$$, d_icl]<br/>$$L$$ repeated latent slots"]:::tensor
+    latf["final latents<br/>[$$B$$, $$L$$, d_icl]<br/>$$L$$ refined latent slots"]:::tensor
+    testq["test-row query bank<br/>[$$B$$, $$N_{te} \\cdot K$$, d_icl]<br/>$$K$$ repeated query slots per test row"]:::tensor
+    rows["test-row states<br/>[$$B$$, $$N_{te}$$, d_icl]"]:::tensor
+    logits["logits<br/>[$$B$$, $$N_{te}$$, many_class_base]"]:::tensor
 
     xtrain -->|shared train/test normalization + concatenate train/test rows| xall
     xtest -->|shared train/test normalization + concatenate train/test rows| xall
@@ -168,7 +168,7 @@ flowchart LR
 
 | Component | Input Shape | Output Shape | Notes |
 | --- | --- | --- | --- |
-| Task ingestion | `x_train` [$B$, $N_{\mathrm{tr}}$, $C$], `x_test` [$B$, $N_{\mathrm{te}}$, $C$], `y_train` [$B$, $N_{\mathrm{tr}}$] | `x_all` [$B$, $R$, $C$] | $B = 1$ for single-task forward; task batching is also supported |
+| Task ingestion | `x_train` [$B$, $N_{tr}$, $C$], `x_test` [$B$, $N_{te}$, $C$], `y_train` [$B$, $N_{tr}$] | `x_all` [$B$, $R$, $C$] | $B = 1$ for single-task forward; task batching is also supported |
 | Shared normalization | [$B$, $R$, $C$] | [$B$, $R$, $C$] | uses `input_normalization`; preserves non-finite markers |
 | Missingness tokenizer | [$B$, $R$, $C$] | [$B$, $R$, $C$, 4] | channels are `value`, `is_nan`, `is_posinf`, `is_neginf` |
 | Shared feature encoder | [$B$, $R$, $C$, 4] | [$B$, $R$, $C$, `d_icl`] | linear projection only |
@@ -180,11 +180,11 @@ flowchart LR
 | Summary stream | row + column summaries | [$B$, $K * (R + C)$, `d_icl`] | compact repeated context |
 | Latent seed | none | [$B$, $L$, `d_icl`] | learned latent bank with $L$ repeated slots, expanded per task |
 | Perceiver stages | latents + input stream | [$B$, $L$, `d_icl`] | stage `0` reads full-cell + summary; later stages read summary only |
-| Test query bank | test-row summary tokens | [$B$, $N_{\mathrm{te}} * K$, `d_icl`] | derived from the row-summary stream with $K$ repeated query slots per test row |
-| Latent readout | queries + final latents | [$B$, $N_{\mathrm{te}} * K$, `d_icl`] | first readout pass |
-| Full-cell readout | updated queries + full-cell stream | [$B$, $N_{\mathrm{te}}$, $K$, `d_icl`] | second readout pass |
-| Test-row pool | [$B$, $N_{\mathrm{te}}$, $K$, `d_icl`] | [$B$, $N_{\mathrm{te}}$, `d_icl`] | pool the $K$ repeated query slots down to one state per test row |
-| Direct head | [$B$, $N_{\mathrm{te}}$, `d_icl`] | [$B$, $N_{\mathrm{te}}$, `many_class_base`] | small-class classifier head |
+| Test query bank | test-row summary tokens | [$B$, $N_{te} * K$, `d_icl`] | derived from the row-summary stream with $K$ repeated query slots per test row |
+| Latent readout | queries + final latents | [$B$, $N_{te} * K$, `d_icl`] | first readout pass |
+| Full-cell readout | updated queries + full-cell stream | [$B$, $N_{te}$, $K$, `d_icl`] | second readout pass |
+| Test-row pool | [$B$, $N_{te}$, $K$, `d_icl`] | [$B$, $N_{te}$, `d_icl`] | pool the $K$ repeated query slots down to one state per test row |
+| Direct head | [$B$, $N_{te}$, `d_icl`] | [$B$, $N_{te}$, `many_class_base`] | small-class classifier head |
 
 ## Current Sandwich Defaults
 
