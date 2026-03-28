@@ -8,7 +8,6 @@ Use these alongside this map:
 - Canonical roadmap: `docs/development/roadmap.md`
 - Design decisions and repo structure: `docs/development/design-decisions.md`
 - Architecture reference: `docs/development/model-architecture.md`
-- Architecture deltas: `docs/development/architecture-deltas.md`
 - Paper index: `reference/papers.md`
 - Detailed research-epic notes: `reference/roadmap_evidence/README.md`
 
@@ -34,8 +33,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - [`TF-RD-021A`](roadmap_evidence/tf_rd_021a_latent_bank_sandwich_prototype.md):
   fixed-latent sandwich candidate note and closed immediate nanoTabPFN screen
 - [`TF-RD-021B`](roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md):
-  hybrid full-cell sandwich successor note plus simplified-parent and
-  classification-scaling-prep handoff
+  hybrid full-cell sandwich successor note plus keep-current-anchor decision
+  and classification-scaling-prep handoff
 - [`TF-RD-022`](roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md):
   runtime and VRAM efficiency evidence plus the measured-policy pre-scaling
   handoff
@@ -289,8 +288,8 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_022_training_runtime_vram_efficiency.md`
   - sandwich architecture ownership now lives under the historical
-    implementation record `#174`, active umbrella `#178`, and current
-    simplification follow-up `#184`; this runtime lane is a dependency surface
+    implementation record `#174`, active umbrella `#178`, and completed
+    anchor-retention decision `#184`; this runtime lane is a dependency surface
     for later classification work rather than the owner of sandwich planning
   - training telemetry and benchmark-registry artifacts now preserve runtime
     summaries and regime-budget metadata needed for later runtime-policy and
@@ -335,15 +334,16 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     is now benchmarked at final ROC AUC `0.7370`, final log loss `0.4672`, and
     final Brier `0.3072` on the pinned medium binary bundle without an external
     comparator
-  - child issues `#182`, `#183`, and `#184` now split the next work into the
-    completed 9-run knob screen, completed bounded width or head follow-up, and
-    the remaining simplified-parent plus scaling-prep follow-up
+  - child issues `#182` and `#183` closed the 9-run knob screen and bounded
+    width or head follow-up, while `#184` completed the four-row removal-first
+    package and kept the compact hybrid control as the carry-forward parent
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_021b_hybrid_full_cell_sandwich_successor.md`
 - Success signal:
-  - the repo records the bounded TF-RD-021B simplification package, chooses one
-    simplified sandwich parent, and carries it onto harder classification
-    surfaces before any single-toggle scaling recipe is considered
+  - the repo records the bounded TF-RD-021B simplification package, explicitly
+    keeps the compact hybrid control as the sandwich parent, and carries that
+    parent onto harder classification surfaces before any single-toggle scaling
+    recipe is considered
 
 ### TF-RD-009: Scaling-Law Design And Measurement On The Classification-First Sandwich Target
 
@@ -364,8 +364,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   - TF-RD-022 must still hand back one measured runtime policy
   - TF-RD-021 must still hand back one keep/defer steering decision on the
     carried dagzoo slice
-  - TF-RD-021B simplification under `#184` is the precursor for the hybrid
-    sandwich family and does not close TF-RD-009 by itself
+  - the completed TF-RD-021B keep-current-anchor decision under `#184` is the
+    precursor for the hybrid sandwich family and does not close TF-RD-009 by
+    itself
   - the canonical long-form note now lives in
     `reference/roadmap_evidence/tf_rd_009_scaling_law_measurement.md`
 - Success signal:

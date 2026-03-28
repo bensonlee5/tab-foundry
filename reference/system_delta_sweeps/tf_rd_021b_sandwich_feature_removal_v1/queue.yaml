@@ -71,12 +71,12 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen; do
-    not execute or promote in this pass.
+  next_action: Completed in the four-row TF-RD-021B feature-removal screen; keep
+    the compact hybrid anchor and do not promote this row.
   notes:
   - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
+  - This row underperformed the locked sweep anchor on final log loss and final
+    ROC AUC; keep the compact hybrid anchor and do not promote this row.
   benchmark_metrics:
     best_step: 2375
     max_grad_norm: 4.0695672035217285
@@ -163,12 +163,12 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen; do
-    not execute or promote in this pass.
+  next_action: Completed in the four-row TF-RD-021B feature-removal screen; keep
+    the compact hybrid anchor and do not promote this row.
   notes:
   - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
+  - This row underperformed the locked sweep anchor on final log loss and final
+    ROC AUC; keep the compact hybrid anchor and do not promote this row.
   benchmark_metrics:
     best_step: 2475
     max_grad_norm: 13.200143814086914
@@ -256,12 +256,12 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen; do
-    not execute or promote in this pass.
+  next_action: Completed in the four-row TF-RD-021B feature-removal screen; keep
+    the compact hybrid anchor and do not promote this row.
   notes:
   - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
+  - This row underperformed the locked sweep anchor on final log loss and final
+    ROC AUC; keep the compact hybrid anchor and do not promote this row.
   benchmark_metrics:
     best_step: 2475
     max_grad_norm: 9.189810752868652
@@ -351,12 +351,13 @@ rows:
   decision: defer
   interpretation_status: completed
   confounders: []
-  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen; do
-    not execute or promote in this pass.
+  next_action: Completed in the four-row TF-RD-021B feature-removal screen; keep
+    the compact hybrid anchor and do not promote this row.
   notes:
   - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1`.
-  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
-    this row in the full sweep context.
+  - This was the smallest simplification package and the fastest row in the sweep,
+    but it still underperformed the locked sweep anchor; keep the compact hybrid
+    anchor and do not promote this row.
   benchmark_metrics:
     best_step: 2450
     max_grad_norm: 4.532970905303955

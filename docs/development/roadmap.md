@@ -23,7 +23,6 @@ Use these alongside this roadmap:
 - dataset curation and license gate: `docs/development/dataset-curation.md`
 - architecture reference: `docs/development/model-architecture.md`
 - sandwich architecture: `docs/development/tabfoundry-sandwich.md`
-- architecture deltas: `docs/development/architecture-deltas.md`
 - workflow runbooks: `docs/workflows.md`
 - inference/export contract: `docs/inference.md`
 - reference index: `reference/README.md`
@@ -214,13 +213,13 @@ Parallel/later lanes are intentionally off that main path:
 | Objective / Claim | Current State | Evidence In Repo | Current Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, and the prior-trained PFN-facing benchmark lane are all stable | Keep that lane clearly separate from the architecture target | `TF-RD-001` |
-| Sandwich is the primary classification candidate | `partial` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, and the first knob screen plus bounded width/head follow-up both kept the compact control; [#184](https://github.com/bensonlee5/tab-foundry/issues/184) now owns simplified-parent follow-up | Choose and freeze one simplified sandwich parent before harder-surface or scaling work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B` |
+| Sandwich is the primary classification candidate | `partial` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, the first knob screen plus bounded width/head follow-up both kept the compact control, and the completed removal-first package under [#184](https://github.com/bensonlee5/tab-foundry/issues/184) also retained that anchor | Carry the retained compact hybrid anchor onto harder-surface and scaling-prep work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B` |
 | Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, and TF-RD-020 settled harder-front winners that can seed sandwich-on-dagzoo carry-forward work | Carry the frozen sandwich parent onto dagzoo, then choose whether steering improves that first carried slice | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
 | Runtime and VRAM are measurable | `partial` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, and the repo already has bf16/checkpointing-capable runtime plumbing | TF-RD-022 still needs to turn that into one explicit 80 GB A100-safe kernel/runtime policy on the carried sandwich dagzoo slice | `TF-RD-022` |
 | Many-class + missingness is now the first anti-saturation carried slice | `partial` | `many_class` is implemented, the small multiclass bundle already exists, and the roadmap now treats a dagzoo-backed many-class plus missingness slice as the first harder classification gate | The repo still needs one explicit carried many-class plus missingness dagzoo slice on the frozen sandwich parent | `TF-RD-010` |
 | Follow-on missingness and imbalance robustness remain open | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 remains later missingness follow-up, while TF-RD-017 still needs an explicit side-lane imbalance ladder on the same sandwich family | `TF-RD-014`, `TF-RD-017` |
 | Regression and later modalities are deferred | `research` | Partial bundle/runtime scaffolding exists | They should not absorb attention from the classification-first path | `TF-RD-015`, `TF-RD-012` |
-| Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata | TF-RD-009 still waits on the simplified parent, one fixed dagzoo many-class plus missingness slice, one steering decision, and the runtime gate | `TF-RD-009` |
+| Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata | TF-RD-009 still waits on one fixed dagzoo many-class plus missingness slice, one steering decision, and the runtime gate | `TF-RD-009` |
 
 ## Current Implementation Baseline
 
@@ -229,9 +228,9 @@ This roadmap assumes the following repo truths:
 - `tabfoundry_simple` and `tabfoundry_staged` with `stage=nano_exact` remain
   the frozen PFN-style control lane.
 - `tabfoundry_sandwich` exists as the primary classification architecture
-  candidate; the initial replay, knob screen, and bounded width/head follow-up
-  are complete, and the next sandwich step is simplified-parent selection under
-  [#184](https://github.com/bensonlee5/tab-foundry/issues/184).
+  candidate; the initial replay, knob screen, bounded width/head follow-up,
+  and removal-first package are complete, and the compact hybrid anchor remains
+  the kept parent after [#184](https://github.com/bensonlee5/tab-foundry/issues/184).
 - dagzoo manifest identity, export/reference preprocessing fidelity, and the
   one-way data boundary are part of the baseline rather than active blockers.
 - the representative post-008 synthetic training-data surface is
@@ -445,8 +444,8 @@ Legacy wording note:
     [#171](https://github.com/bensonlee5/tab-foundry/issues/171)
   - the sandwich architecture lane now lives under issue
     [#178](https://github.com/bensonlee5/tab-foundry/issues/178), with issue
-    [#184](https://github.com/bensonlee5/tab-foundry/issues/184) owning the
-    simplified-parent freeze before dagzoo carry-forward
+    [#184](https://github.com/bensonlee5/tab-foundry/issues/184) recording the
+    keep-current-anchor decision before dagzoo carry-forward
   - training telemetry and benchmark-registry records now preserve
     `runtime_summary` and `regime_budget` payloads, including peak VRAM,
     throughput, token-budget fields, objective metric, and curriculum or SCM
@@ -478,8 +477,9 @@ Legacy wording note:
     under issue [#170](https://github.com/bensonlee5/tab-foundry/issues/170)
     rather than relying on per-run overrides
   - keep sandwich architecture ownership under historical implementation issue
-    [#174](https://github.com/bensonlee5/tab-foundry/issues/174) and active
-    issues [#178](https://github.com/bensonlee5/tab-foundry/issues/178) and
+    [#174](https://github.com/bensonlee5/tab-foundry/issues/174), active
+    umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178),
+    and the completed anchor-retention decision in
     [#184](https://github.com/bensonlee5/tab-foundry/issues/184) rather than
     reopening this runtime epic as the sandwich owner; MPS OOMs should not be
     part of the quantitative CUDA decision record
@@ -611,24 +611,22 @@ Legacy wording note:
     [#182](https://github.com/bensonlee5/tab-foundry/issues/182), and
     [#183](https://github.com/bensonlee5/tab-foundry/issues/183) all kept the
     compact hybrid control unchanged.
-  - Issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184) now owns
-    the simplified-parent decision and scaling prep.
+  - Issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184) ran the
+    four-row removal-first package and kept the compact hybrid control
+    unchanged as the carry-forward parent.
   - The existing public staged/sandwich surface is already broad enough that
-    the next step should be simplification and freeze, not immediate new-knob
-    expansion.
+    the next step should be carry-forward on the retained anchor, not immediate
+    new-knob expansion.
 - Required work:
-  - Run the bounded simplification package under
-    [#184](https://github.com/bensonlee5/tab-foundry/issues/184) on the locked
-    compact control:
-    `sandwich_self_attention_per_cross=0`,
-    `sandwich_ff_expansion=1`, both together, and both together plus
-    `sandwich_summary_tokens_per_axis=1`.
-  - Choose the smallest parent that stays inside the bounded final-log-loss,
-    clipped-step-fraction, and late-drift tolerances, then freeze the
-    non-shape sandwich knobs on that parent.
-  - Carry that frozen parent onto dagzoo immediately after the simplification
-    decision so later many-class, steering, runtime, and scaling work all reuse
-    the same sandwich family.
+  - Record the compact hybrid control as the kept parent from
+    [#184](https://github.com/bensonlee5/tab-foundry/issues/184), and carry
+    that unchanged non-shape sandwich surface onto dagzoo immediately so later
+    many-class, steering, runtime, and scaling work all reuse the same
+    sandwich family.
+  - Keep the retained compact hybrid non-shape values fixed for follow-on work:
+    `sandwich_self_attention_per_cross=4`,
+    `sandwich_ff_expansion=2`, and
+    `sandwich_summary_tokens_per_axis=4`.
   - Then use that dagzoo-backed sandwich family on one many-class plus
     missingness slice under
     [#52](https://github.com/bensonlee5/tab-foundry/issues/52) and
@@ -640,8 +638,8 @@ Legacy wording note:
     small bounded set of new architecture knobs rather than a general
     “everything configurable” expansion.
 - Exit criteria:
-  - the repo has one explicit simplified sandwich parent for classification and
-    a frozen non-shape knob surface for follow-on harder-surface work
+  - the repo has one explicit kept sandwich parent for classification and a
+    frozen non-shape knob surface for follow-on harder-surface work
   - the repo has an explicit keep/defer decision on whether the current public
     architecture surfaces, including the fixed-latent sandwich candidate, are
     sufficient on harder post-008 regimes
@@ -667,7 +665,7 @@ Legacy wording note:
   - there is still no canonical scaling artifact path on a fixed dagzoo
     many-class plus missingness slice with matched runtime policy and matched
     regime budget
-  - sandwich-local simplification work under
+  - the keep-current-anchor decision under
     [#184](https://github.com/bensonlee5/tab-foundry/issues/184) is the
     required precursor for this family, but it does not satisfy TF-RD-009 by
     itself
@@ -682,12 +680,11 @@ Legacy wording note:
   - treat matched token budget as necessary but not sufficient; compare by
     matched regime budget using token budget, unique-task budget, fixed
     curriculum or SCM-mixture slice, and fixed task-complexity band
-  - finish the simplified-parent phase of TF-RD-016, the first sandwich-on-dagzoo
-    many-class gate under TF-RD-010, the steering decision under TF-RD-021,
-    and the runtime policy under TF-RD-022 before using scaling results as
-    architecture evidence
-  - keep the other sandwich knobs frozen at the chosen simplified-parent values
-    while fitting the first width-depth classification laws
+  - finish the first sandwich-on-dagzoo many-class gate under TF-RD-010, the
+    steering decision under TF-RD-021, and the runtime policy under TF-RD-022
+    before using scaling results as architecture evidence
+  - keep the other sandwich knobs frozen at the retained compact hybrid anchor
+    values while fitting the first width-depth classification laws
   - use multiclass log loss as the primary ranking objective on the carried
     many-class plus missingness slice
   - run optimizer-transfer and model-size scaling together rather than as
@@ -723,7 +720,7 @@ hold:
 - TabICLv2 is the strongest directional reference for the active architecture
   target, but not a literal reproduction target.
 - Dagzoo synthetic-data efficacy is already established historically; the
-  active sandwich path now runs: simplified-parent freeze, sandwich-on-dagzoo
+  active sandwich path now runs: keep-current-anchor decision, sandwich-on-dagzoo
   carry-forward, first many-class plus missingness gate, steering-derived
   corpus fronts, bounded kernel/runtime tuning, then scaling-law work.
 - The current large-anchor hybrid line is diagnostic evidence, not the intended

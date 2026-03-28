@@ -20,7 +20,6 @@ Use these alongside this page:
 
 - `docs/development/model-config.md`
 - `docs/development/tabfoundry-sandwich.md`
-- `docs/development/architecture-deltas.md`
 - `docs/development/roadmap.md`
 - `docs/inference.md`
 
@@ -42,6 +41,30 @@ Key code paths:
   Use it when you need the exact nanoTabPFN-style control.
 - `tabfoundry_staged` is still useful as a historical comparison surface, but
   it is no longer the center of the roadmap or architecture docs.
+
+## Intent Map
+
+Start here if you want the model's job before its tensor mechanics.
+
+```mermaid
+flowchart LR
+    classDef state fill:#eef5ff,stroke:#3567a6,color:#10233a,stroke-width:1px;
+
+    task["Observed task<br/>train rows, test rows, labels"]:::state
+    evidence["Cell evidence<br/>preserve what each feature says"]:::state
+    context["Shared context<br/>summarize reusable row and column patterns"]:::state
+    memory["Task memory<br/>refine a fixed-size view of the whole table"]:::state
+    queries["Test-row questions<br/>ask what each held-out row needs"]:::state
+    logits["Row decisions<br/>emit class logits for each test row"]:::state
+
+    task -->|normalize and encode raw cells| evidence
+    evidence -->|compress repeated structure| context
+    context -->|store reusable task-level context| memory
+    context -->|form one question bundle per test row| queries
+    evidence -->|keep direct access to detailed cell evidence| logits
+    memory -->|supply reusable context| logits
+    queries -->|ask for a per-row decision| logits
+```
 
 ## Current Sandwich Model
 
@@ -82,7 +105,7 @@ Mental model:
 - readout = test-row summary queries with both latent memory access and a
   full-cell bypass
 
-## High-Level Structure
+## Tensor-Level Structure
 
 Notation:
 
@@ -95,60 +118,50 @@ Notation:
 - `L = sandwich_latents`
 
 ```mermaid
-flowchart TB
+flowchart LR
     classDef tensor fill:#eef5ff,stroke:#3567a6,color:#10233a,stroke-width:1px;
-    classDef embed fill:#fff3db,stroke:#b87316,color:#3b2500,stroke-width:1px;
-    classDef attn fill:#e9f7ef,stroke:#2e8b57,color:#123524,stroke-width:1px;
-    classDef head fill:#f5ebff,stroke:#7a4db3,color:#2c1548,stroke-width:1px;
 
     xtrain["x_train<br/>[B, N_tr, C]"]:::tensor
     xtest["x_test<br/>[B, N_te, C]"]:::tensor
     ytrain["y_train<br/>[B, N_tr]"]:::tensor
-
-    norm["shared train/test normalization"]:::embed
-    tok["missingness-aware tokenizer<br/>[value, is_nan, is_posinf, is_neginf]"]:::embed
-    enc["shared projection + row/col Fourier + feature-type embedding"]:::embed
-    mixed["optional pre-Perceiver row/column mixing"]:::attn
+    xall["normalized x_all<br/>[B, R, C]"]:::tensor
+    xtok["tokenized cells<br/>[B, R, C, 4]"]:::tensor
     cells["cell tokens<br/>[B, R, C, d_icl]"]:::tensor
-
     full["full-cell stream<br/>[B, R * C, d_icl]"]:::tensor
     rowsum["row summary tokens<br/>[B, R * K, d_icl]"]:::tensor
     colsum["column summary tokens<br/>[B, C * K, d_icl]"]:::tensor
     summary["summary stream<br/>[B, K * (R + C), d_icl]"]:::tensor
-
     lat0["latent seed<br/>[B, L, d_icl]"]:::tensor
-    stage0["stage 0 cross-read<br/>KV = full + summary"]:::attn
-    stagen["later cross-reads<br/>KV = summary only"]:::attn
-    self["latent self-attention stacks"]:::attn
     latf["final latents<br/>[B, L, d_icl]"]:::tensor
-
     testq["test-row query bank<br/>[B, N_te * K, d_icl]"]:::tensor
-    lread["latent readout"]:::attn
-    cread["full-cell readout"]:::attn
-    pool["pool K queries to one row state"]:::embed
     rows["test-row states<br/>[B, N_te, d_icl]"]:::tensor
     logits["logits<br/>[B, N_te, many_class_base]"]:::tensor
 
-    xtrain --> norm
-    xtest --> norm
-    norm --> tok --> enc --> mixed --> cells
-    ytrain --> full
-    ytrain --> rowsum
+    xtrain -->|shared train/test normalization + concatenate train/test rows| xall
+    xtest -->|shared train/test normalization + concatenate train/test rows| xall
+    xall -->|missingness-aware tokenization| xtok
+    xtok -->|shared projection + row/col Fourier + feature-type embedding + optional pre-Perceiver mixing| cells
 
-    cells --> full
-    cells --> rowsum
-    cells --> colsum
-    rowsum --> summary
-    colsum --> summary
+    cells -->|flatten + train-label/test-query + role + token-type conditioning| full
+    ytrain -->|train-label conditioning for train rows| full
 
-    lat0 --> stage0 --> self --> stagen --> self --> latf
-    full --> stage0
-    summary --> stage0
-    summary --> stagen
+    cells -->|learned row-summary queries + row conditioning| rowsum
+    ytrain -->|train-label conditioning for train rows| rowsum
 
-    rowsum --> testq --> lread --> cread --> pool --> rows --> logits
-    latf --> lread
-    full --> cread
+    cells -->|learned column-summary queries + column token typing| colsum
+    rowsum -->|concatenate row summaries| summary
+    colsum -->|concatenate column summaries| summary
+
+    lat0 -->|stage 0 reads full + summary; later stages read summary only with latent self-refinement| latf
+    full -->|stage 0 KV| latf
+    summary -->|stage 0 + later-stage KV| latf
+
+    rowsum -->|slice test rows| testq
+    testq -->|latent readout + full-cell readout + pool K queries per row| rows
+    latf -->|readout memory| rows
+    full -->|raw cell evidence| rows
+
+    rows -->|direct classifier head| logits
 ```
 
 ## Forward-Pass Shape Trace

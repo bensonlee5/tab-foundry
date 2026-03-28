@@ -41,7 +41,7 @@ def test_tf_rd_021b_sandwich_feature_removal_v1_is_registered_without_global_act
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_021b_sandwich_width_capacity_sensitivity_v1",
-        "status": "draft",
+        "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
         "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
@@ -50,14 +50,14 @@ def test_tf_rd_021b_sandwich_feature_removal_v1_is_registered_without_global_act
     }
 
 
-def test_tf_rd_021b_sandwich_feature_removal_v1_matches_the_removal_first_plan() -> None:
+def test_tf_rd_021b_sandwich_feature_removal_v1_records_the_completed_removal_first_package() -> None:
     sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID
     sweep = _load_yaml(sweep_root / "sweep.yaml")
     queue = _load_yaml(sweep_root / "queue.yaml")
 
     assert sweep["sweep_id"] == SWEEP_ID
     assert sweep["parent_sweep_id"] == "tf_rd_021b_sandwich_width_capacity_sensitivity_v1"
-    assert sweep["status"] == "draft"
+    assert sweep["status"] == "completed"
     assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["external_benchmarks"] == []
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_hybrid_prior"
@@ -81,15 +81,16 @@ def test_tf_rd_021b_sandwich_feature_removal_v1_matches_the_removal_first_plan()
     assert any("#184" in note for note in notes)
     assert any("`sandwich_self_attention_per_cross=0`" in note for note in notes)
     assert any("Do not rerun `sandwich_pre_row_attention_layers=0`" in note for note in notes)
-    assert any("benchmark and workstation sandwich profiles" in note for note in notes)
+    assert any("keeps the current compact hybrid anchor" in note for note in notes)
+    assert any("underperformed the locked compact hybrid control" in note for note in notes)
 
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == ["ready"] * len(EXPECTED_ROWS)
-    assert [row["interpretation_status"] for row in rows] == ["pending"] * len(EXPECTED_ROWS)
-    assert all(row["run_id"] is None for row in rows)
-    assert all(row["decision"] is None for row in rows)
+    assert [row["status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
+    assert [row["interpretation_status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
+    assert all(isinstance(row["run_id"], str) and row["run_id"] for row in rows)
+    assert all(row["decision"] == "defer" for row in rows)
 
     selfattn0 = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_selfattn0_v1")
     assert selfattn0["model"]["sandwich_self_attention_per_cross"] == 0
@@ -97,7 +98,7 @@ def test_tf_rd_021b_sandwich_feature_removal_v1_matches_the_removal_first_plan()
     assert "replacement for the earlier self-attention-depth ablation" in " ".join(
         selfattn0["parameter_adequacy_plan"]
     )
-    assert "do not execute or promote in this pass" in selfattn0["next_action"]
+    assert "keep the compact hybrid anchor and do not promote this row" in selfattn0["next_action"]
 
     ffexp1 = _row_by_ref(queue, "delta_tf_rd_021b_sandwich_ffexp1_v1")
     assert ffexp1["model"]["sandwich_ff_expansion"] == 1
@@ -125,7 +126,7 @@ def test_tf_rd_021b_sandwich_feature_removal_v1_matches_the_removal_first_plan()
     assert [row["delta_id"] for row in materialized["rows"]] == EXPECTED_ROWS
 
 
-def test_tf_rd_021b_sandwich_feature_removal_v1_matrix_records_the_draft_queue() -> None:
+def test_tf_rd_021b_sandwich_feature_removal_v1_matrix_records_completed_anchor_retention() -> None:
     matrix = (
         REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID / "matrix.md"
     ).read_text(encoding="utf-8")
@@ -133,8 +134,10 @@ def test_tf_rd_021b_sandwich_feature_removal_v1_matrix_records_the_draft_queue()
     assert "# System Delta Matrix" in matrix
     assert SWEEP_ID in matrix
     assert ANCHOR_RUN_ID in matrix
+    assert "Sweep status: `completed`" in matrix
     assert "External benchmarks: `none`" in matrix
     assert "delta_tf_rd_021b_sandwich_selfattn0_v1" in matrix
     assert "delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1" in matrix
     assert "Remove latent self-attention refinement entirely" in matrix
-    assert "do not execute or promote in this pass" in matrix
+    assert "keep the compact hybrid anchor and do not promote this row" in matrix
+    assert "Registered run:" in matrix
