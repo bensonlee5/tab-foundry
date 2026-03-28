@@ -22,7 +22,6 @@ Use these alongside this roadmap:
 - codebase navigation: `docs/development/codebase-navigation.md`
 - dataset curation and license gate: `docs/development/dataset-curation.md`
 - architecture reference: `docs/development/model-architecture.md`
-- sandwich architecture: `docs/development/tabfoundry-sandwich.md`
 - workflow runbooks: `docs/workflows.md`
 - inference/export contract: `docs/inference.md`
 - reference index: `reference/README.md`

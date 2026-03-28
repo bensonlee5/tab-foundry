@@ -1,7 +1,7 @@
 # Model Architecture
 
-Use this reference when you need the current model surface, the active
-architecture target, and the live sandwich forward path.
+Use this reference when you need the live architecture surface, the active
+model family, and the current sandwich forward path.
 
 The repo now has one active architecture-development lane:
 
@@ -19,7 +19,6 @@ Regression is still deferred. The active model surface is classification-only.
 Use these alongside this page:
 
 - `docs/development/model-config.md`
-- `docs/development/tabfoundry-sandwich.md`
 - `docs/development/roadmap.md`
 - `docs/inference.md`
 
@@ -44,7 +43,7 @@ Key code paths:
 
 ## Intent Map
 
-Start here if you want the model's job before its tensor mechanics.
+This diagram summarizes the design intent behind the current sandwich architecture.
 
 ```mermaid
 flowchart LR
@@ -66,36 +65,27 @@ flowchart LR
     queries -->|ask for a per-row decision| logits
 ```
 
-## Current Sandwich Model
+## Sandwich Design Summary
 
-`tabfoundry_sandwich` is a small-class, classification-only hybrid full-cell /
-summary-stream Perceiver-style model.
+`tabfoundry_sandwich` is the active small-class, classification-only
+hybrid full-cell / summary-stream Perceiver-style classifier.
 
-The current forward path is:
+The live design combines:
 
-1. normalize `x_train` and `x_test` with one shared train/test normalization
-   path
-1. tokenize each scalar cell into four missingness-aware channels:
-   `value`, `is_nan`, `is_posinf`, `is_neginf`
-1. project those channels to `d_icl`
-1. add row Fourier positions, column Fourier positions, and learned
-   feature-type embeddings
-1. optionally mix cells before the Perceiver using:
-   - per-row self-attention over feature cells
-   - per-column ISAB-style row mixing over rows
-1. build three conditioned token streams from the same encoded cell table:
-   - full-cell stream over all `R * C` cells
-   - row-summary stream with $K$ = `sandwich_summary_tokens_per_axis` learned
-     summary tokens per row
-   - column-summary stream with $K$ learned summary tokens per column
-1. let stage `0` of the latent array read from `full-cell + summary`
-1. let later Perceiver stages read only from the compact summary stream
-1. form test-row readout queries from the test-row summary tokens
-1. read those queries against:
-   - final latents
-   - then the full-cell stream
-1. pool the `K` updated query tokens back to one state per test row
-1. emit logits through the direct classifier head
+- one shared train/test normalization path and a missingness-aware scalar
+  tokenizer
+- shared value projection plus row Fourier, column Fourier, and feature-type
+  embeddings
+- an optional axial pre-Perceiver mixer with row-wise feature attention and
+  column-wise ISAB row mixing
+- two context surfaces built from the same encoded cell table:
+  - a high-bandwidth full-cell stream over all observed cells
+  - a compact repeated summary stream with $K$ learned summaries per row and
+    per column
+- a fixed latent bank where stage `0` reads the full cell stream plus
+  summaries, and later stages refine against the summary stream only
+- a dual-source readout where $K$ test-row queries read final latents first
+  and then the full cell stream before the direct classifier head
 
 Mental model:
 
@@ -105,7 +95,10 @@ Mental model:
 - readout = test-row summary queries with both latent memory access and a
   full-cell bypass
 
-## Tensor-Level Structure
+## Sandwich Forward Path
+
+The implementation lives in
+`src/tab_foundry/model/architectures/tabfoundry_sandwich/model.py`.
 
 Notation:
 
@@ -118,51 +111,100 @@ Notation:
 - $L$ = `sandwich_latents`
 
 ```mermaid
-flowchart LR
+flowchart TB
     classDef tensor fill:#eef5ff,stroke:#3567a6,color:#10233a,stroke-width:1px;
+    classDef embed fill:#fff3db,stroke:#b87316,color:#3b2500,stroke-width:1px;
+    classDef attn fill:#e9f7ef,stroke:#2e8b57,color:#123524,stroke-width:1px;
+    classDef head fill:#f5ebff,stroke:#7a4db3,color:#2c1548,stroke-width:1px;
 
-    xtrain["x_train<br/>[$$B$$, $$N_{tr}$$, $$C$$]"]:::tensor
-    xtest["x_test<br/>[$$B$$, $$N_{te}$$, $$C$$]"]:::tensor
-    ytrain["y_train<br/>[$$B$$, $$N_{tr}$$]"]:::tensor
-    xall["normalized x_all<br/>[$$B$$, $$R$$, $$C$$]"]:::tensor
-    xtok["tokenized cells<br/>[$$B$$, $$R$$, $$C$$, 4]"]:::tensor
-    cells["cell tokens<br/>[$$B$$, $$R$$, $$C$$, d_icl]"]:::tensor
-    full["full-cell stream<br/>[$$B$$, $$R \\cdot C$$, d_icl]"]:::tensor
-    rowsum["row summary tokens<br/>[$$B$$, $$R \\cdot K$$, d_icl]<br/>$$K$$ repeated summary slots per row"]:::tensor
-    colsum["column summary tokens<br/>[$$B$$, $$C \\cdot K$$, d_icl]<br/>$$K$$ repeated summary slots per column"]:::tensor
-    summary["summary stream<br/>[$$B$$, $$K \\cdot (R + C)$$, d_icl]"]:::tensor
-    lat0["latent seed<br/>[$$B$$, $$L$$, d_icl]<br/>$$L$$ repeated latent slots"]:::tensor
-    latf["final latents<br/>[$$B$$, $$L$$, d_icl]<br/>$$L$$ refined latent slots"]:::tensor
-    testq["test-row query bank<br/>[$$B$$, $$N_{te} \\cdot K$$, d_icl]<br/>$$K$$ repeated query slots per test row"]:::tensor
-    rows["test-row states<br/>[$$B$$, $$N_{te}$$, d_icl]"]:::tensor
-    logits["logits<br/>[$$B$$, $$N_{te}$$, many_class_base]"]:::tensor
+    xtrain["x_train<br/>[<i>B</i>, <i>N</i><sub>tr</sub>, <i>C</i>]"]:::tensor
+    xtest["x_test<br/>[<i>B</i>, <i>N</i><sub>te</sub>, <i>C</i>]"]:::tensor
+    ytrain["y_train<br/>[<i>B</i>, <i>N</i><sub>tr</sub>]"]:::tensor
 
-    xtrain -->|shared train/test normalization + concatenate train/test rows| xall
-    xtest -->|shared train/test normalization + concatenate train/test rows| xall
-    xall -->|missingness-aware tokenization| xtok
-    xtok -->|shared projection + row/col Fourier + feature-type embedding + optional pre-Perceiver mixing| cells
+    norm(["Shared train/test normalization"]):::embed
+    xall["normalized x_all<br/>[<i>B</i>, <i>R</i>, <i>C</i>]"]:::tensor
+    tok(["Missingness-aware tokenizer<br/>[value, is_nan, is_posinf, is_neginf]"]):::embed
+    xtok["tokenized cells<br/>[<i>B</i>, <i>R</i>, <i>C</i>, 4]"]:::tensor
+    enc(["Shared value projection + Fourier row/col + feature-type embedding"]):::embed
+    cells["cell tokens<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
+    pre_row[[Per-row feature self-attention<br/>× sandwich_pre_row_attention_layers]]:::attn
+    pre_col[[Per-column ISAB row mixing<br/>× sandwich_pre_column_attention_layers]]:::attn
+    mixed_cells["mixed cell tokens<br/>[<i>B</i>, <i>R</i>, <i>C</i>, d_icl]"]:::tensor
 
-    cells -->|flatten + train-label/test-query + role + token-type conditioning| full
-    ytrain -->|train-label conditioning for train rows| full
+    full_cell(["Broadcast label/query + role + cell token type"]):::embed
+    full_stream["full cell stream<br/>[<i>B</i>, <i>R</i> × <i>C</i>, d_icl]"]:::tensor
 
-    cells -->|learned row-summary queries repeated K times per row + row conditioning| rowsum
-    ytrain -->|train-label conditioning for train rows| rowsum
+    row_attn[[Row-summary query attention<br/>PreNorm + residual]]:::attn
+    row_tokens["row summary stream<br/>[<i>B</i>, <i>R</i> × <i>K</i>, d_icl]<br/><i>K</i> repeated summary slots per row"]:::tensor
 
-    cells -->|learned column-summary queries repeated K times per column + column token typing| colsum
-    rowsum -->|concatenate row summaries| summary
-    colsum -->|concatenate column summaries| summary
+    col_attn[[Column-summary query attention<br/>PreNorm + residual]]:::attn
+    col_tokens["column summary stream<br/>[<i>B</i>, <i>C</i> × <i>K</i>, d_icl]<br/><i>K</i> repeated summary slots per column"]:::tensor
 
-    lat0 -->|stage 0 reads full + summary; later stages read summary only with latent self-refinement| latf
-    full -->|stage 0 KV| latf
-    summary -->|stage 0 + later-stage KV| latf
+    summary_stream["summary stream<br/>[<i>B</i>, <i>K</i> × (<i>R</i> + <i>C</i>), d_icl]"]:::tensor
+    stage0_stream["stage-0 input stream<br/>[<i>B</i>, <i>R</i> × <i>C</i> + <i>K</i> × (<i>R</i> + <i>C</i>), d_icl]"]:::tensor
 
-    rowsum -->|slice test rows and keep K repeated query slots per row| testq
-    testq -->|latent readout + full-cell readout + pool K repeated queries per row| rows
-    latf -->|readout memory| rows
-    full -->|raw cell evidence| rows
+    latent_seed["latent seed<br/>[<i>B</i>, <i>L</i>, d_icl]<br/><i>L</i> repeated latent slots"]:::tensor
 
-    rows -->|direct classifier head| logits
+    subgraph stages["Repeated Perceiver stages × sandwich_layers"]
+        lat_in["latents in<br/>[<i>B</i>, <i>L</i>, d_icl]"]:::tensor
+        cross0[[Stage 0 cross-attention<br/>Q = latents, KV = full cells + summaries]]:::attn
+        lat_mid0["after stage 0 read<br/>[<i>B</i>, <i>L</i>, d_icl]"]:::tensor
+        self0[[Latent self-attention stack<br/>× sandwich_self_attention_per_cross]]:::attn
+        lat_out0["after stage 0 self<br/>[<i>B</i>, <i>L</i>, d_icl]"]:::tensor
+        crossn[[Later-stage cross-attention<br/>Q = latents, KV = summary stream]]:::attn
+        selfn[[Later latent self-attention stacks<br/>× sandwich_self_attention_per_cross]]:::attn
+        lat_final["final latents<br/>[<i>B</i>, <i>L</i>, d_icl]<br/><i>L</i> refined latent slots"]:::tensor
+
+        lat_in --> cross0 --> lat_mid0 --> self0 --> lat_out0 --> crossn --> selfn --> lat_final
+    end
+
+    test_queries["test-row query bank<br/>[<i>B</i>, <i>N</i><sub>te</sub> × <i>K</i>, d_icl]<br/><i>K</i> repeated query slots per test row"]:::tensor
+    latent_readout[[Readout 1<br/>Q = test rows, KV = final latents]]:::attn
+    cell_readout[[Readout 2<br/>Q = updated test rows, KV = full cell stream]]:::attn
+    pool(["Pool K repeated queries per test row"]):::embed
+    test_rows["test-row states<br/>[<i>B</i>, <i>N</i><sub>te</sub>, d_icl]"]:::tensor
+    head([DirectClassifierHead]):::head
+    logits["logits<br/>[<i>B</i>, <i>N</i><sub>te</sub>, many_class_base]"]:::tensor
+
+    xtrain --> norm
+    xtest --> norm
+    norm --> xall
+    xall --> tok --> xtok --> enc --> cells --> pre_row --> pre_col --> mixed_cells
+
+    mixed_cells --> full_cell --> full_stream
+    ytrain --> full_cell
+
+    mixed_cells --> row_attn --> row_tokens
+    ytrain --> row_tokens
+
+    mixed_cells --> col_attn --> col_tokens
+    row_tokens --> summary_stream
+    col_tokens --> summary_stream
+
+    full_stream --> stage0_stream
+    summary_stream --> stage0_stream
+    latent_seed --> lat_in
+    stage0_stream --> cross0
+    summary_stream --> crossn
+
+    row_tokens -->|slice test rows| test_queries
+    test_queries --> latent_readout --> cell_readout --> pool --> test_rows --> head --> logits
+    lat_final --> latent_readout
+    full_stream --> cell_readout
 ```
+
+Read the diagram as:
+
+- cell encoding happens once, before any latent stage
+- the axial pre-Perceiver mixer is separate from the later latent refinement
+- row and column summaries each repeat $K$ learned query slots per row or
+  column
+- stage `0` gets the expensive high-bandwidth read from full cells plus
+  summaries
+- later stages reuse only the cheaper repeated summary stream
+- readout uses the repeated $K$ test-row queries twice:
+  - first against final latents
+  - then against the full cell stream
 
 ## Forward-Pass Shape Trace
 
@@ -209,6 +251,34 @@ Resolved sandwich defaults come from `src/tab_foundry/model/spec.py`.
 | `sandwich_pre_column_attention_layers` | `1` | pre-Perceiver column-wise ISAB row mixers |
 | `sandwich_pre_column_inducing_tokens` | `16` | inducing-token count in each pre-column ISAB block |
 
+## Feature-Type Metadata Contract
+
+`tabfoundry_sandwich` consumes per-feature type metadata through
+`TaskBatch.metadata["feature_types"]`.
+
+Vocabulary:
+
+- `bool`
+- `integer`
+- `floating`
+- `string_binary`
+- `unknown`
+
+Interpretation:
+
+- these are collapsed Parquet or Arrow physical groups, not exact logical type
+  strings
+- sandwich requires explicit feature types at runtime; it does not fall back
+  to all `floating`
+- manifest-backed tasks must persist `feature_types`; the shared dataset loader
+  no longer infers an all-`floating` default when the metadata is absent
+- `run_reference_consumer(..., feature_types=[...])` requires a per-request
+  list for exported-bundle execution
+- `forward_batched(..., feature_types=[...])` also requires explicit feature
+  types; task-batched calls must pass one list per task
+- export-bundle `manifest.preprocessor` payloads are policy-only and must not
+  include `feature_types`
+
 ## Runtime And Input Contract
 
 The current sandwich implementation has a tighter contract than the older
@@ -216,7 +286,8 @@ staged family.
 
 - task: classification only
 - class count: `2 <= num_classes <= many_class_base`
-- feature metadata: explicit `feature_types` are required
+- feature metadata: explicit `feature_types` are required; see
+  `Feature-Type Metadata Contract`
 - supported tensor layouts:
   - single-task: `x_train [N_tr,C]`, `x_test [N_te,C]`, `y_train [N_tr]`
   - task-batched: `x_train [B,N_tr,C]`, `x_test [B,N_te,C]`,
@@ -232,6 +303,40 @@ Rejected staged-only fields:
 - `stage`
 - `stage_label`
 - `module_overrides`
+
+## Parameterization Notes
+
+- the fixed latent array is stored as `latent_seed` with shape
+  `[1, sandwich_latents, d_icl]`
+- `latent_seed` is initialized from a truncated normal with mean `0.0`,
+  standard deviation `0.02`, and literal truncation bounds `[-2.0, 2.0]`
+- row-summary and column-summary query parameters are separate learned tensors
+  of shape `[1, 1, d_icl]`
+- the full cell encoder pass still happens only once; later repeated stages
+  reuse the summary-token stream rather than recomputing cell summaries
+
+## How It Differs From Perceiver And PerceiverIO
+
+`tabfoundry_sandwich` is closer to PerceiverIO than the earlier
+summary-only sandwich, but it is still not a literal PerceiverIO port.
+
+Shared ideas:
+
+- fixed learned latent array
+- repeated latent cross-attention reads from a shared input stream
+- latent-only self-attention after each read
+- query-style readout from the final latent state
+
+Important differences:
+
+- only stage `0` reads the raw flattened cell tokens; later stages use the
+  cheaper repeated `R + C` summary stream
+- the output query is specialized for PFN-style tabular ICL semantics rather
+  than a generic IO adapter family
+- the model keeps dedicated row-summary and column-summary builders rather than
+  relying on raw cells alone
+- output is a direct small-class classifier head, not a general output-query
+  adapter family
 
 ## Other Model Families
 

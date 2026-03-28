@@ -99,7 +99,7 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         source_rel="docs/development/model-architecture.md",
         route="development/model-architecture",
         weight=20,
-        description="Reference for the active model surface, subsystem roles, and settled row-first target.",
+        description="Reference for the active model surface, subsystem roles, and current sandwich forward path.",
         extra_params={"mermaid": True, "katex": True},
     ),
     PageSpec(
@@ -127,16 +127,9 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         description="How model settings resolve across training, evaluation, export, and bundle loading.",
     ),
     PageSpec(
-        source_rel="docs/development/architecture-deltas.md",
-        route="development/architecture-deltas",
-        weight=70,
-        description="Decision-focused comparison between the settled row-first line and key reference architectures.",
-        extra_params={"mermaid": True},
-    ),
-    PageSpec(
         source_rel="docs/development/dataset-curation.md",
         route="development/dataset-curation",
-        weight=80,
+        weight=70,
         description="Policy for admitting real-data datasets into curated benchmark and comparator surfaces.",
     ),
     PageSpec(
