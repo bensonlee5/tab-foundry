@@ -75,6 +75,30 @@ def resolve_queue_row_cfg_mapping(
     return {str(key): value for key, value in payload.items()}
 
 
+def inspection_raw_cfg_mapping(
+    *,
+    row: Mapping[str, Any],
+    training_experiment: str,
+    sweep_id: str | None = None,
+    sweeps_root: Path | None = None,
+) -> dict[str, Any]:
+    target_sweep_id = sweep_id if sweep_id is not None else "inspection"
+    return resolve_queue_row_cfg_mapping(
+        row,
+        run_dir=repo_root()
+        / "outputs"
+        / ".inspection"
+        / "research"
+        / target_sweep_id
+        / "row"
+        / "raw_cfg"
+        / "train",
+        training_experiment=training_experiment,
+        sweep_id=sweep_id,
+        sweeps_root=sweeps_root,
+    )
+
+
 def resolve_queue_row_model_spec(
     queue_row: Mapping[str, Any],
     *,

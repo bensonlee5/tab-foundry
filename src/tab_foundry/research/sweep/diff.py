@@ -6,13 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, cast
 
-from .inspect import (
-    _find_row,
-    _queue_metadata_payload,
-    resolve_anchor_target,
-    resolve_row_target,
-)
-from .materialize import load_system_delta_queue_for_inspection
+from .inspection_queue import find_row, load_inspection_queue, queue_metadata_payload
+from .inspection_targets import resolve_anchor_target, resolve_row_target
 from .paths_io import (
     default_registry_path,
 )
@@ -51,13 +46,13 @@ def diff_sweep_row(
     registry_path: Path | None = None,
 ) -> dict[str, Any]:
     resolved_registry_path = registry_path or default_registry_path()
-    queue = load_system_delta_queue_for_inspection(
+    queue = load_inspection_queue(
         sweep_id=sweep_id,
         index_path=index_path,
         catalog_path=catalog_path,
         sweeps_root=sweeps_root,
     )
-    row = _find_row(queue, order=int(order))
+    row = find_row(queue, order=int(order))
     target = resolve_row_target(
         queue=queue,
         row=row,
@@ -66,7 +61,7 @@ def diff_sweep_row(
     )
 
     if against_order is not None:
-        baseline_row = _find_row(queue, order=int(against_order))
+        baseline_row = find_row(queue, order=int(against_order))
         baseline = resolve_row_target(
             queue=queue,
             row=baseline_row,
@@ -97,7 +92,7 @@ def diff_sweep_row(
         differences=differences,
     )
     return {
-        "queue": _queue_metadata_payload(queue),
+        "queue": queue_metadata_payload(queue),
         "target": target["identity"],
         "against": baseline["identity"],
         "difference_count": len(differences),
