@@ -11,19 +11,17 @@ from tab_foundry.training.prior.config import (
     _model_spec_from_cfg,
     _optimizer_kwargs,
     _resolve_lr,
-    _resolve_positive_int,
     _resolve_prior_dump_batch_config,
     _resolve_prior_dump_non_finite_policy,
-    _resolve_prior_missingness_config,
     _resolve_prior_schedule,
     _resolve_prior_wandb_run_name,
-    _resolve_runtime_bool,
     _validate_prior_training_model_spec,
     DEFAULT_BATCH_SIZE as _CONFIG_DEFAULT_BATCH_SIZE,
 )
 from tab_foundry.training.prior.io import save_eval_mode_checkpoint as _save_eval_mode_checkpoint_impl
 from tab_foundry.training.prior.io import stack_prior_step as _stack_prior_step
 from tab_foundry.training.prior.loop import PriorTrainingDeps, run_prior_training
+from tab_foundry.training.prior.settings import PriorMissingnessConfig, PriorRuntimeConfig
 from tab_foundry.training.prior.missingness import (
     _accumulate_missingness,
     _accumulate_synthetic_missingness,
@@ -200,23 +198,22 @@ def train_tabfoundry_simple_prior(
 
     seed_prior_training(int(cfg.runtime.seed))
 
-    max_steps = _resolve_positive_int(getattr(cfg.runtime, "max_steps", None), name="runtime.max_steps")
-    eval_every = _resolve_positive_int(getattr(cfg.runtime, "eval_every", None), name="runtime.eval_every")
-    checkpoint_every = _resolve_positive_int(
-        getattr(cfg.runtime, "checkpoint_every", None),
-        name="runtime.checkpoint_every",
-    )
+    runtime_config = PriorRuntimeConfig.from_runtime_cfg(getattr(cfg, "runtime", None))
+    max_steps = int(runtime_config.max_steps)
+    eval_every = int(runtime_config.eval_every)
+    checkpoint_every = int(runtime_config.checkpoint_every)
     grad_clip = float(cfg.runtime.grad_clip)
-    trace_activations = _resolve_runtime_bool(
-        getattr(cfg.runtime, "trace_activations", False),
-        name="runtime.trace_activations",
-    )
+    trace_activations = bool(runtime_config.trace_activations)
     if grad_clip <= 0:
         raise ValueError(f"runtime.grad_clip must be > 0 for prior-dump training, got {grad_clip}")
 
     prior_batch_config = _resolve_prior_dump_batch_config(cfg, batch_size_override=batch_size)
     lr_min = _resolve_lr(cfg) * prior_batch_config.effective_lr_scale_factor
-    prior_missingness_config = _resolve_prior_missingness_config(cfg)
+    training_cfg = getattr(cfg, "training", None)
+    prior_missingness = PriorMissingnessConfig.from_training_overrides(
+        None if training_cfg is None else getattr(training_cfg, "overrides", None)
+    )
+    prior_missingness_config = None if prior_missingness is None else prior_missingness.to_runtime_dict()
     prior_dump_non_finite_policy = _resolve_prior_dump_non_finite_policy(cfg)
     prior_stage = _resolve_prior_schedule(
         cfg,

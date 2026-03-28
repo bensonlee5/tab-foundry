@@ -5,9 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 from omegaconf import DictConfig, OmegaConf
+from pydantic import ValidationError
 
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
     ResolvedStageSurface,
@@ -34,89 +35,10 @@ class _PriorDumpBatchConfig:
     effective_lr_scale_factor: float
 
 
-def _resolve_positive_int(value: object, *, name: str) -> int:
-    if not isinstance(value, (int, float, str)):
-        raise ValueError(f"{name} must be int-compatible, got {value!r}")
-    resolved = int(value)
-    if resolved <= 0:
-        raise ValueError(f"{name} must be >= 1, got {resolved}")
-    return resolved
-
-
-def _resolve_runtime_bool(value: object, *, name: str) -> bool:
-    if value is None:
-        return False
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, int) and value in {0, 1}:
-        return bool(value)
-    if isinstance(value, str):
-        normalized = value.strip().lower()
-        if normalized in {"1", "true", "yes", "on"}:
-            return True
-        if normalized in {"0", "false", "no", "off", ""}:
-            return False
-    raise ValueError(f"{name} must be boolean-compatible, got {value!r}")
-
-
-def _resolve_mapping(value: object, *, name: str) -> dict[str, Any]:
-    if value is None:
-        return {}
-    resolved = OmegaConf.to_container(value, resolve=True)
-    if resolved is None:
-        return {}
-    if not isinstance(resolved, dict):
-        raise ValueError(f"{name} must resolve to a mapping, got {resolved!r}")
-    return {str(key): item for key, item in resolved.items()}
-
-
-def _resolve_prior_missingness_config(cfg: DictConfig) -> dict[str, Any] | None:
-    training_cfg = getattr(cfg, "training", None)
-    overrides = _resolve_mapping(
-        None if training_cfg is None else getattr(training_cfg, "overrides", None),
-        name="training.overrides",
-    )
-    raw = overrides.get("prior_missingness")
-    if raw is None:
-        return None
-    if not isinstance(raw, dict):
-        raise ValueError(
-            "training.overrides.prior_missingness must resolve to a mapping"
-        )
-    enabled = _resolve_runtime_bool(
-        raw.get("enabled", False),
-        name="training.overrides.prior_missingness.enabled",
-    )
-    min_rate = float(raw.get("min_rate", 0.0))
-    max_rate = float(raw.get("max_rate", min_rate))
-    if not 0.0 <= min_rate <= 1.0:
-        raise ValueError(
-            "training.overrides.prior_missingness.min_rate must be in [0, 1], "
-            f"got {min_rate}"
-        )
-    if not 0.0 <= max_rate <= 1.0:
-        raise ValueError(
-            "training.overrides.prior_missingness.max_rate must be in [0, 1], "
-            f"got {max_rate}"
-        )
-    if min_rate > max_rate:
-        raise ValueError(
-            "training.overrides.prior_missingness.min_rate must be <= max_rate, "
-            f"got min_rate={min_rate}, max_rate={max_rate}"
-        )
-    if not enabled:
-        return None
-    return {
-        "enabled": True,
-        "min_rate": min_rate,
-        "max_rate": max_rate,
-    }
-
-
 def _prior_backend_surface_config(cfg: DictConfig) -> PriorBackendSurfaceConfig:
     return resolve_prior_backend_surface_config(
-        training_cfg=_resolve_mapping(getattr(cfg, "training", None), name="training"),
-        legacy_prior_cfg=_resolve_mapping(getattr(cfg, "legacy_prior", None), name="legacy_prior"),
+        training_cfg=getattr(cfg, "training", None),
+        legacy_prior_cfg=getattr(cfg, "legacy_prior", None),
     )
 
 
@@ -179,7 +101,12 @@ def _resolve_prior_dump_batch_size(
     override: int | None = None,
 ) -> int:
     if override is not None:
-        return _resolve_positive_int(override, name="batch_size")
+        try:
+            resolved_override = PriorBackendSurfaceConfig.model_validate({"batch_size": override}).batch_size
+        except ValidationError as exc:
+            raise ValueError(str(exc)) from exc
+        assert resolved_override is not None
+        return int(resolved_override)
     return int(_prior_backend_surface_config(cfg).batch_size or DEFAULT_BATCH_SIZE)
 
 

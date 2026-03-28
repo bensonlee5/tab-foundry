@@ -6,7 +6,11 @@ from typing import Any, Final, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, ValidationInfo, field_validator
 
-from tab_foundry.external_benchmarks import normalize_external_benchmarks
+from tab_foundry.external_benchmarks import (
+    EXTERNAL_BENCHMARK_NANOTABPFN,
+    EXTERNAL_BENCHMARK_TABICLV2,
+    normalize_external_benchmarks,
+)
 
 
 CATALOG_SCHEMA: Final = "tab-foundry-system-delta-catalog-v1"
@@ -14,6 +18,8 @@ SWEEP_INDEX_SCHEMA: Final = "tab-foundry-system-delta-sweep-index-v2"
 SWEEP_SCHEMA: Final = "tab-foundry-system-delta-sweep-v1"
 SWEEP_QUEUE_SCHEMA: Final = "tab-foundry-system-delta-sweep-queue-v1"
 MATERIALIZED_QUEUE_SCHEMA: Final = "tab-foundry-system-delta-queue-v1"
+DEFAULT_LEGACY_SWEEP_EXTERNAL_BENCHMARKS: Final = (EXTERNAL_BENCHMARK_NANOTABPFN,)
+DEFAULT_NEW_SWEEP_EXTERNAL_BENCHMARKS: Final = (EXTERNAL_BENCHMARK_TABICLV2,)
 
 
 def _require_non_empty_string(value: str, *, context: str) -> str:

@@ -12,7 +12,10 @@ import tab_foundry.data.corpus_materialization as corpus_materialization_module
 from tab_foundry.data.corpus_materialization import materialize_corpus_recipe
 import tab_foundry.research.sweep.diff as diff_module
 import tab_foundry.research.sweep.graph as graph_module
+import tab_foundry.research.sweep.inspection_artifacts as inspection_artifacts_module
+import tab_foundry.research.sweep.inspection_targets as inspection_targets_module
 import tab_foundry.research.sweep.inspect as inspect_module
+import tab_foundry.research.sweep.surface_resolution as surface_resolution_module
 from tab_foundry.config import compose_config
 from tab_foundry.model.spec import model_build_spec_from_mappings
 from tests.data.test_corpus import (
@@ -340,8 +343,10 @@ def _patch_registry(
     *,
     registry_payload: dict[str, Any],
 ) -> None:
-    monkeypatch.setattr(inspect_module, "load_benchmark_run_registry", lambda _path: registry_payload)
-    monkeypatch.setattr(inspect_module, "resolve_registry_path_value", lambda value: Path(value))
+    monkeypatch.setattr(inspection_artifacts_module, "load_benchmark_run_registry", lambda _path: registry_payload)
+    monkeypatch.setattr(inspection_artifacts_module, "resolve_registry_path_value", lambda value: Path(value))
+    monkeypatch.setattr(inspection_targets_module, "load_benchmark_run_registry", lambda _path: registry_payload)
+    monkeypatch.setattr(inspection_targets_module, "resolve_registry_path_value", lambda value: Path(value))
     monkeypatch.setattr(graph_module, "load_benchmark_run_registry", lambda _path: registry_payload)
     monkeypatch.setattr(graph_module, "resolve_registry_path_value", lambda value: Path(value))
 
@@ -609,7 +614,7 @@ def test_inspect_sweep_row_reports_unmaterialized_corpus_refs_for_ready_rows(
 
 def test_inspection_raw_cfg_adds_corpus_lookup_context_for_sweep_rows(tmp_path: Path) -> None:
     sweeps_root = tmp_path / "reference" / "system_delta_sweeps"
-    raw_cfg = inspect_module._inspection_raw_cfg(
+    raw_cfg = surface_resolution_module.inspection_raw_cfg_mapping(
         row={
             "data": {
                 "surface_label": "fresh_current_corpus",

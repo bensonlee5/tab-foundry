@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-03-27
+
+### Changed
+
+- Internal architecture note: `research/sweep.inspect` is now split into
+  shared queue, artifact, target-resolution, and render modules while
+  preserving the current inspect and diff CLI surfaces and payload shapes.
+- Internal architecture note: sweep diffing now consumes the shared
+  inspection helpers directly, and the inspection raw-config helper now lives
+  in `research/sweep.surface_resolution`.
+
 ## [0.14.0] - 2026-03-27
 
 ### Changed
