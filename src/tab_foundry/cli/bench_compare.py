@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 import sys
 
-from tab_foundry.bench.compare import _default_out_root, _optional_non_empty_string
-from tab_foundry.bench.comparison_runtime import (
+from tab_foundry.bench.comparison_contract import (
     DEFAULT_NANOTABPFN_SEEDS,
     DEFAULT_NANOTABPFN_STEPS,
     DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION,
     DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION,
-    NanoTabPFNBenchmarkConfig,
+    BenchmarkComparisonConfig,
+)
+from tab_foundry.bench.comparison_reporting import optional_non_empty_string
+from tab_foundry.bench.comparison_runtime import (
     run_nanotabpfn_benchmark,
 )
 from tab_foundry.control_baseline_registry import default_control_baseline_registry_path
@@ -22,6 +25,19 @@ from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_TABICLV2,
     normalize_external_benchmarks,
 )
+
+__all__ = [
+    "EXTERNAL_BENCHMARK_TABICLV2",
+    "build_parser",
+    "configure_parser",
+    "main",
+    "run_from_args",
+]
+
+
+def _default_out_root() -> Path:
+    stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    return Path("/tmp") / f"tab_foundry_benchmark_{stamp}"
 
 
 def configure_parser(parser: argparse.ArgumentParser) -> None:
@@ -42,11 +58,6 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
         choices=ALLOWED_EXTERNAL_BENCHMARKS,
         default=None,
         help="Ordered external benchmark to run; repeat to add a secondary comparator. Defaults to tabiclv2.",
-    )
-    parser.add_argument(
-        "--with-tabiclv2",
-        action="store_true",
-        help="Deprecated alias that appends tabiclv2 to --external-benchmark for one release.",
     )
     parser.add_argument(
         "--tabicl-root",
@@ -113,15 +124,8 @@ def run_from_args(args: argparse.Namespace) -> int:
         if args.external_benchmark is None
         else [str(value) for value in args.external_benchmark]
     )
-    if bool(args.with_tabiclv2):
-        print(
-            "warning: --with-tabiclv2 is deprecated; use --external-benchmark tabiclv2 instead",
-            file=sys.stderr,
-        )
-        if EXTERNAL_BENCHMARK_TABICLV2 not in external_benchmarks:
-            external_benchmarks.append(EXTERNAL_BENCHMARK_TABICLV2)
     summary = run_nanotabpfn_benchmark(
-        NanoTabPFNBenchmarkConfig(
+        BenchmarkComparisonConfig(
             tab_foundry_run_dir=Path(str(args.tab_foundry_run_dir)),
             out_root=_default_out_root() if args.out_root is None else Path(str(args.out_root)),
             nanotabpfn_root=Path(str(args.nanotabpfn_root)),
@@ -151,7 +155,6 @@ def run_from_args(args: argparse.Namespace) -> int:
                 default=DEFAULT_CLI_EXTERNAL_BENCHMARKS,
                 context="CLI external benchmarks",
             ),
-            with_tabiclv2=bool(args.with_tabiclv2),
             tabicl_root=Path(str(args.tabicl_root)),
             tabicl_classifier_checkpoint_version=str(args.tabicl_classifier_checkpoint_version),
             tabicl_regressor_checkpoint_version=str(args.tabicl_regressor_checkpoint_version),
@@ -160,7 +163,7 @@ def run_from_args(args: argparse.Namespace) -> int:
     print("benchmark comparison complete:")
     print(f"  dataset_count={summary['dataset_count']}")
     print(f"  tab_foundry={summary['tab_foundry']}")
-    primary_external_benchmark = _optional_non_empty_string(summary.get("primary_external_benchmark"))
+    primary_external_benchmark = optional_non_empty_string(summary.get("primary_external_benchmark"))
     if primary_external_benchmark is not None:
         print(f"  primary_external_benchmark={primary_external_benchmark}")
     if "nanotabpfn" in summary:

@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
 import re
 from typing import Any, Mapping, Sequence, cast
 
-from omegaconf import OmegaConf
 import torch
 
 from tab_foundry.benchmark_registry import (
@@ -18,17 +16,12 @@ from tab_foundry.benchmark_registry import (
 )
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.inspection import synthetic_forward_batch
-from tab_foundry.model.spec import (
-    ModelBuildSpec,
-    checkpoint_model_build_spec_from_mappings,
-    model_build_spec_from_mappings,
-)
+from tab_foundry.model.spec import ModelBuildSpec
 
 from tab_foundry.research.lane_contract import resolve_training_experiment
 
 from .materialize import (
     load_system_delta_queue,
-    load_system_delta_queue_for_inspection,
     ordered_rows,
 )
 from .paths_io import (
@@ -39,8 +32,11 @@ from .paths_io import (
     repo_root,
     write_text,
 )
-from .configuration import compose_cfg
-from .validation import ensure_mapping, ensure_non_empty_string
+from .surface_resolution import (
+    resolve_anchor_model_spec as _resolve_anchor_model_spec,
+    resolve_anchor_originating_queue_row as _resolve_anchor_originating_queue_row,
+    resolve_queue_row_model_spec as _resolve_queue_row_model_spec,
+)
 
 
 _SAFE_FILENAME_CHARS_RE = re.compile(r"[^A-Za-z0-9._-]+")
@@ -109,20 +105,10 @@ def _sanitize_filename_component(value: str) -> str:
     return sanitized.strip("._") or "graph"
 
 
-def _load_json_mapping(path: Path, *, context: str) -> dict[str, Any]:
-    with path.expanduser().resolve().open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"{context} must decode to a JSON object: {path.expanduser().resolve()}")
-    return cast(dict[str, Any], payload)
-
-
-def _queue_row_run_dir(queue_row: Mapping[str, Any]) -> Path:
-    delta_id = ensure_non_empty_string(
-        queue_row.get("delta_id", queue_row.get("delta_ref")),
-        context="queue row delta_id",
-    )
-    return repo_root() / "outputs" / ".graph_spec_resolution" / delta_id / "train"
+def _require_non_empty_string(value: Any, *, context: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise RuntimeError(f"{context} must be a non-empty string")
+    return str(value)
 
 
 def resolve_queue_row_model_spec(
@@ -130,70 +116,10 @@ def resolve_queue_row_model_spec(
     *,
     training_experiment: str,
 ) -> ModelBuildSpec:
-    cfg = compose_cfg(
-        row=queue_row,
-        run_dir=_queue_row_run_dir(queue_row),
-        device="cpu",
+    return _resolve_queue_row_model_spec(
+        queue_row,
         training_experiment=training_experiment,
     )
-    task = str(getattr(cfg, "task", "classification")).strip().lower()
-    raw_model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
-    if not isinstance(raw_model_cfg, dict):
-        raise RuntimeError("resolved queue-row cfg.model must be a mapping")
-    normalized_model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
-    return model_build_spec_from_mappings(task=task, primary=normalized_model_cfg)
-
-
-def _training_surface_record_model_spec(training_surface_record_path: Path) -> ModelBuildSpec:
-    payload = _load_json_mapping(
-        training_surface_record_path,
-        context="training surface record",
-    )
-    model_payload = ensure_mapping(payload.get("model"), context="training surface record model")
-    build_spec_payload = ensure_mapping(
-        model_payload.get("build_spec"),
-        context="training surface record model.build_spec",
-    )
-    normalized_build_spec = {str(key): value for key, value in build_spec_payload.items()}
-    task = str(normalized_build_spec.get("task", "classification")).strip().lower()
-    return model_build_spec_from_mappings(task=task, primary=normalized_build_spec)
-
-
-def _checkpoint_model_spec_from_path(checkpoint_path: Path) -> ModelBuildSpec:
-    payload = torch.load(
-        checkpoint_path.expanduser().resolve(),
-        map_location="cpu",
-        weights_only=False,
-    )
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"checkpoint payload must be a mapping: {checkpoint_path.expanduser().resolve()}")
-    raw_cfg = payload.get("config")
-    checkpoint_cfg = raw_cfg if isinstance(raw_cfg, dict) else {}
-    task = str(checkpoint_cfg.get("task", "classification")).strip().lower()
-    raw_model_cfg = checkpoint_cfg.get("model")
-    model_cfg = raw_model_cfg if isinstance(raw_model_cfg, dict) else {}
-    raw_state_dict = payload.get("model")
-    state_dict = raw_state_dict if isinstance(raw_state_dict, dict) else None
-    return checkpoint_model_build_spec_from_mappings(
-        task=task,
-        primary=model_cfg,
-        state_dict=state_dict,
-    )
-
-
-def _optional_int(value: Any) -> int | None:
-    if value is None or isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return int(value)
-    if isinstance(value, str):
-        stripped = value.strip()
-        if stripped:
-            try:
-                return int(stripped)
-            except ValueError:
-                return None
-    return None
 
 
 def resolve_anchor_originating_queue_row(
@@ -203,71 +129,13 @@ def resolve_anchor_originating_queue_row(
     index_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
-    anchor_run_id = ensure_non_empty_string(queue.get("anchor_run_id"), context="anchor_run_id")
-    registry = load_benchmark_run_registry(registry_path or default_registry_path())
-    runs = ensure_mapping(registry.get("runs"), context="benchmark registry runs")
-    raw_run = runs.get(anchor_run_id)
-    if not isinstance(raw_run, dict):
-        return None
-    run = cast(dict[str, Any], raw_run)
-    sweep_payload = run.get("sweep")
-    if not isinstance(sweep_payload, Mapping):
-        return None
-    raw_sweep_id = sweep_payload.get("sweep_id")
-    if not isinstance(raw_sweep_id, str) or not raw_sweep_id.strip():
-        return None
-
-    source_queue = load_system_delta_queue_for_inspection(
-        sweep_id=str(raw_sweep_id),
+    return _resolve_anchor_originating_queue_row(
+        queue=queue,
+        registry_path=registry_path,
         index_path=index_path,
         sweeps_root=sweeps_root,
+        load_registry=load_benchmark_run_registry,
     )
-    source_training_experiment = resolve_training_experiment(source_queue)
-    queue_order = _optional_int(sweep_payload.get("queue_order"))
-    delta_id = sweep_payload.get("delta_id")
-    normalized_delta_id = str(delta_id).strip() if isinstance(delta_id, str) and delta_id.strip() else None
-
-    for row in ordered_rows(source_queue):
-        row_run_id = row.get("run_id")
-        if isinstance(row_run_id, str) and row_run_id == anchor_run_id:
-            return row, {
-                "source": "originating_sweep_row",
-                "run_id": anchor_run_id,
-                "sweep_id": str(raw_sweep_id),
-                "order": int(row["order"]),
-                "delta_id": str(row["delta_id"]),
-                "training_experiment": source_training_experiment,
-            }
-
-    if queue_order is not None:
-        for row in ordered_rows(source_queue):
-            if int(row["order"]) != queue_order:
-                continue
-            if normalized_delta_id is not None and str(row["delta_id"]) != normalized_delta_id:
-                continue
-            return row, {
-                "source": "originating_sweep_row",
-                "run_id": anchor_run_id,
-                "sweep_id": str(raw_sweep_id),
-                "order": int(row["order"]),
-                "delta_id": str(row["delta_id"]),
-                "training_experiment": source_training_experiment,
-            }
-
-    if normalized_delta_id is not None:
-        for row in ordered_rows(source_queue):
-            if str(row["delta_id"]) != normalized_delta_id:
-                continue
-            return row, {
-                "source": "originating_sweep_row",
-                "run_id": anchor_run_id,
-                "sweep_id": str(raw_sweep_id),
-                "order": int(row["order"]),
-                "delta_id": str(row["delta_id"]),
-                "training_experiment": source_training_experiment,
-            }
-
-    return None
 
 
 def resolve_anchor_model_spec(
@@ -277,67 +145,13 @@ def resolve_anchor_model_spec(
     index_path: Path | None = None,
     sweeps_root: Path | None = None,
 ) -> tuple[ModelBuildSpec, dict[str, Any]]:
-    anchor_run_id = ensure_non_empty_string(queue.get("anchor_run_id"), context="anchor_run_id")
-    training_experiment = resolve_training_experiment(queue)
-    for row in ordered_rows(queue):
-        row_run_id = row.get("run_id")
-        if isinstance(row_run_id, str) and row_run_id == anchor_run_id:
-            return resolve_queue_row_model_spec(
-                row,
-                training_experiment=training_experiment,
-            ), {
-                "source": "queue_row",
-                "run_id": anchor_run_id,
-                "order": int(row["order"]),
-                "delta_id": str(row["delta_id"]),
-            }
-
-    registry = load_benchmark_run_registry(registry_path or default_registry_path())
-    runs = ensure_mapping(registry.get("runs"), context="benchmark registry runs")
-    raw_run = runs.get(anchor_run_id)
-    if not isinstance(raw_run, dict):
-        raise RuntimeError(f"anchor_run_id {anchor_run_id!r} is missing from the benchmark registry")
-    run = cast(dict[str, Any], raw_run)
-    artifacts = ensure_mapping(run.get("artifacts"), context=f"benchmark registry run {anchor_run_id}.artifacts")
-
-    raw_training_surface_path = artifacts.get("training_surface_record_path")
-    if isinstance(raw_training_surface_path, str) and raw_training_surface_path.strip():
-        training_surface_path = resolve_registry_path_value(raw_training_surface_path)
-        if training_surface_path.exists():
-            return _training_surface_record_model_spec(training_surface_path), {
-                "source": "training_surface_record",
-                "run_id": anchor_run_id,
-                "training_surface_record_path": str(training_surface_path),
-            }
-
-    raw_checkpoint_path = artifacts.get("best_checkpoint_path")
-    if isinstance(raw_checkpoint_path, str) and raw_checkpoint_path.strip():
-        checkpoint_path = resolve_registry_path_value(raw_checkpoint_path)
-        if checkpoint_path.exists():
-            return _checkpoint_model_spec_from_path(checkpoint_path), {
-                "source": "checkpoint",
-                "run_id": anchor_run_id,
-                "checkpoint_path": str(checkpoint_path),
-            }
-
-    originating_row = resolve_anchor_originating_queue_row(
+    return _resolve_anchor_model_spec(
         queue=queue,
         registry_path=registry_path,
         index_path=index_path,
         sweeps_root=sweeps_root,
-    )
-    if originating_row is not None:
-        row, metadata = originating_row
-        return resolve_queue_row_model_spec(
-            row,
-            training_experiment=str(metadata["training_experiment"]),
-        ), metadata
-
-    raise RuntimeError(
-        "unable to resolve anchor model spec for "
-        f"{anchor_run_id!r}: no matching completed sweep row, readable "
-        "`training_surface_record.json`, readable best checkpoint config, or "
-        "originating sweep row"
+        load_registry=load_benchmark_run_registry,
+        resolve_registry_path=resolve_registry_path_value,
     )
 
 
@@ -558,7 +372,7 @@ def render_sweep_graphs(
         catalog_path=resolved_paths.catalog_path,
         sweeps_root=resolved_paths.sweeps_root,
     )
-    resolved_sweep_id = ensure_non_empty_string(queue.get("sweep_id"), context="sweep_id")
+    resolved_sweep_id = _require_non_empty_string(queue.get("sweep_id"), context="sweep_id")
     targets = _build_targets(
         queue=queue,
         anchor=anchor,

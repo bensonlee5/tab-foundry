@@ -202,14 +202,13 @@ def test_compare_main_parses_cli_invocation(
     assert config.control_baseline_registry == tmp_path / "control_baselines.json"
     assert config.benchmark_bundle_path == tmp_path / "bundle.json"
     assert config.external_benchmarks == (compare_cli_module.EXTERNAL_BENCHMARK_TABICLV2,)
-    assert config.with_tabiclv2 is False
     assert config.tabicl_root == Path("~/dev/tabicl")
     stdout = capsys.readouterr().out
     assert "benchmark comparison complete:" in stdout
     assert "primary_external_benchmark=" in stdout
 
 
-def test_compare_main_parses_cli_invocation_with_tabiclv2(
+def test_compare_main_parses_cli_invocation_with_explicit_tabiclv2(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -235,7 +234,8 @@ def test_compare_main_parses_cli_invocation_with_tabiclv2(
             str(tmp_path / "run"),
             "--out-root",
             str(tmp_path / "bench"),
-            "--with-tabiclv2",
+            "--external-benchmark",
+            compare_cli_module.EXTERNAL_BENCHMARK_TABICLV2,
             "--tabicl-root",
             str(tmp_path / "tabicl"),
             "--tabicl-classifier-checkpoint-version",
@@ -247,16 +247,13 @@ def test_compare_main_parses_cli_invocation_with_tabiclv2(
 
     assert exit_code == 0
     config = captured["config"]
-    assert config.with_tabiclv2 is True
     assert config.external_benchmarks == (compare_cli_module.EXTERNAL_BENCHMARK_TABICLV2,)
     assert config.tabicl_root == tmp_path / "tabicl"
     assert config.tabicl_classifier_checkpoint_version == "classifier.ckpt"
     assert config.tabicl_regressor_checkpoint_version == "regressor.ckpt"
-    captured_io = capsys.readouterr()
-    stdout = captured_io.out
+    stdout = capsys.readouterr().out
     assert "benchmark comparison complete:" in stdout
     assert "tabiclv2=" in stdout
-    assert "--with-tabiclv2 is deprecated" in captured_io.err
 
 
 def test_compare_main_parses_cli_invocation_with_explicit_nanotabpfn(
@@ -705,7 +702,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     )
 
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
@@ -990,7 +987,7 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     )
 
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
@@ -999,7 +996,6 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
                 compare_module.EXTERNAL_BENCHMARK_NANOTABPFN,
                 compare_module.EXTERNAL_BENCHMARK_TABICLV2,
             ),
-            with_tabiclv2=True,
             tabicl_root=tabicl_root,
             tabicl_classifier_checkpoint_version="classifier.ckpt",
         )
@@ -1039,7 +1035,7 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     assert (out_root / "tabiclv2_curve.jsonl").exists()
 
 
-def test_run_nanotabpfn_benchmark_with_tabiclv2_fails_clear_when_env_missing(
+def test_run_nanotabpfn_benchmark_with_tabiclv2_selected_fails_clear_when_env_missing(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -1073,13 +1069,12 @@ def test_run_nanotabpfn_benchmark_with_tabiclv2_fails_clear_when_env_missing(
 
     with pytest.raises(RuntimeError, match="TabICLv2 root does not exist"):
         compare_module.run_nanotabpfn_benchmark(
-            compare_module.NanoTabPFNBenchmarkConfig(
+            compare_module.BenchmarkComparisonConfig(
                 tab_foundry_run_dir=smoke_run_dir,
                 out_root=tmp_path / "benchmark_out",
                 nanotabpfn_root=nanotab_root,
                 nanotab_prior_dump=prior_dump,
                 external_benchmarks=(compare_module.EXTERNAL_BENCHMARK_TABICLV2,),
-                with_tabiclv2=True,
                 tabicl_root=tmp_path / "missing_tabicl",
             )
         )
@@ -1205,7 +1200,7 @@ def test_run_nanotabpfn_benchmark_explicit_large_bundle_allows_missing_inputs(
     monkeypatch.setattr(compare_module, "benchmark_host_fingerprint", lambda: "host-a")
 
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
@@ -1349,7 +1344,7 @@ def test_run_nanotabpfn_benchmark_forwards_missing_bundle_policy_to_helper(
     )
 
     _ = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
@@ -1465,7 +1460,7 @@ def test_run_nanotabpfn_benchmark_tolerates_missing_bundle_helper_failure(
     )
 
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
@@ -1604,7 +1599,7 @@ def test_run_nanotabpfn_benchmark_falls_back_to_successful_primary_external_benc
     )
 
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
@@ -1739,7 +1734,7 @@ def test_run_nanotabpfn_benchmark_reuses_curve_without_local_nanotabpfn_env(
     )
 
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=tmp_path / "missing_nano",
@@ -1875,7 +1870,7 @@ def test_run_nanotabpfn_benchmark_reuses_error_without_local_nanotabpfn_env(
         "returncode": 1,
     }
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=tmp_path / "missing_nano",
@@ -2068,7 +2063,7 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
     monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
 
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
@@ -2199,7 +2194,7 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     )
 
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
@@ -2497,7 +2492,7 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
     monkeypatch.setattr(compare_module, "subprocess", SimpleNamespace(run=_fake_run))
 
     summary = compare_module.run_nanotabpfn_benchmark(
-        compare_module.NanoTabPFNBenchmarkConfig(
+        compare_module.BenchmarkComparisonConfig(
             tab_foundry_run_dir=smoke_run_dir,
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
@@ -2544,7 +2539,7 @@ def test_run_nanotabpfn_benchmark_rejects_unknown_control_baseline(tmp_path: Pat
 
     with pytest.raises(RuntimeError, match="unknown control baseline id"):
         compare_module.run_nanotabpfn_benchmark(
-            compare_module.NanoTabPFNBenchmarkConfig(
+            compare_module.BenchmarkComparisonConfig(
                 tab_foundry_run_dir=smoke_run_dir,
                 out_root=tmp_path / "benchmark_out",
                 nanotabpfn_root=nanotab_root,

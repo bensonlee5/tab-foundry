@@ -180,7 +180,7 @@ def test_verify_affected_plan_covers_each_rule_minimum_checks() -> None:
         "model": "src/tab_foundry/model/factory.py",
         "training": "src/tab_foundry/training/trainer.py",
         "export": "src/tab_foundry/export/exporter.py",
-        "bench": "src/tab_foundry/bench/compare.py",
+        "bench": "src/tab_foundry/bench/comparison_runtime.py",
         "research": "src/tab_foundry/research/sweep/execute.py",
         "cli-config": "configs/config.yaml",
     }

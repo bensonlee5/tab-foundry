@@ -7,9 +7,6 @@ from typing import Final
 
 import torch
 
-from tab_foundry.model.spec import DEFAULT_MODEL_HEAD_HIDDEN_DIM
-
-DEFAULT_HEAD_HIDDEN_DIM = DEFAULT_MODEL_HEAD_HIDDEN_DIM
 _CLASSIFICATION_TENSOR_DIMENSIONS: Final[int] = 2
 _TASK_BATCH_CLASSIFICATION_TENSOR_DIMENSIONS: Final[int] = 3
 

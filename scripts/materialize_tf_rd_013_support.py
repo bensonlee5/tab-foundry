@@ -37,9 +37,11 @@ from tab_foundry.bench.nanotabpfn.datasets import (  # noqa: E402
     PreparedOpenMLBenchmarkTask,
     prepare_openml_benchmark_task,
 )
-from tab_foundry.data.corpus import (  # noqa: E402
-    corpus_compare_payload,
+from tab_foundry.data.corpus_materialization import (  # noqa: E402
     materialize_corpus_recipe,
+)
+from tab_foundry.data.corpus_reporting import (  # noqa: E402
+    corpus_compare_payload,
 )
 from tab_foundry.data.inspection import compare_jsonlike_payloads  # noqa: E402
 from tab_foundry.data.manifest import build_manifest  # noqa: E402

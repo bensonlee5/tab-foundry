@@ -7,7 +7,7 @@ import torch
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.spec import (
-    _coerce_bool,
+    ModelBuildSpec,
     checkpoint_model_build_spec_from_mappings,
     model_build_spec_from_mappings,
     resolve_model_stage,
@@ -59,7 +59,8 @@ def test_coerce_bool_accepts_supported_boolean_tokens(value: bool | int | str) -
     expected = value
     if isinstance(value, str):
         expected = value.strip().lower() in {"1", "true", "yes", "on"}
-    assert _coerce_bool(value, context="value") is bool(expected)
+    spec = ModelBuildSpec(task="classification", arch="tabfoundry_staged", use_digit_position_embed=value)
+    assert spec.use_digit_position_embed is bool(expected)
 
 
 @given(
@@ -73,7 +74,7 @@ def test_coerce_bool_accepts_supported_boolean_tokens(value: bool | int | str) -
 )
 def test_coerce_bool_rejects_non_boolean_compatible_values(value: object) -> None:
     with pytest.raises(ValueError, match="must be boolean-compatible"):
-        _ = _coerce_bool(value, context="value")
+        _ = ModelBuildSpec(task="classification", arch="tabfoundry_staged", use_digit_position_embed=value)
 
 
 @given(

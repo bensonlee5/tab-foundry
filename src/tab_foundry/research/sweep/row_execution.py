@@ -6,13 +6,15 @@ from pathlib import Path
 from typing import Any, Mapping, cast
 
 from tab_foundry.benchmark_registry import resolve_registry_path_value
-from tab_foundry.bench.comparison_runtime import (
+from tab_foundry.bench.comparison_contract import (
     DEFAULT_NANOTABPFN_BATCH_SIZE as _DEFAULT_NANOTABPFN_BATCH_SIZE,
     DEFAULT_NANOTABPFN_EVAL_EVERY as _DEFAULT_NANOTABPFN_EVAL_EVERY,
     DEFAULT_NANOTABPFN_LR as _DEFAULT_NANOTABPFN_LR,
     DEFAULT_NANOTABPFN_SEEDS as _DEFAULT_NANOTABPFN_SEEDS,
     DEFAULT_NANOTABPFN_STEPS as _DEFAULT_NANOTABPFN_STEPS,
-    NanoTabPFNBenchmarkConfig,
+    BenchmarkComparisonConfig,
+)
+from tab_foundry.bench.comparison_runtime import (
     run_nanotabpfn_benchmark,
 )
 from tab_foundry.bench.run_registration import register_benchmark_run
@@ -351,7 +353,7 @@ def run_row(
             flush=True,
         )
     summary = run_nanotabpfn_benchmark(
-        NanoTabPFNBenchmarkConfig(
+        BenchmarkComparisonConfig(
             tab_foundry_run_dir=train_dir,
             out_root=benchmark_dir,
             nanotabpfn_root=nanotabpfn_root,

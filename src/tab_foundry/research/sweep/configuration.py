@@ -12,6 +12,26 @@ from tab_foundry.config import compose_config
 from tab_foundry.training.prior.settings import resolve_prior_backend_surface_config
 from tab_foundry.training.surface import resolve_training_backend_from_data_cfg
 
+_DATA_SURFACE_OVERRIDE_KEYS = frozenset(
+    {
+        "allow_missing_values",
+        "corpus_ref",
+        "dagzoo_provenance",
+        "filter_policy",
+        "manifest_path",
+        "source",
+        "surface_label",
+        "test_row_cap",
+        "train_row_cap",
+    }
+)
+
+
+def _surface_override_merge_mode(*, key: str, value: Any) -> bool:
+    if key == "dagzoo_provenance" and isinstance(value, Mapping):
+        return False
+    return True
+
 
 def row_id_for_order(sweep_id: str, order: int, delta_ref: str, existing_run_id: str | None) -> str:
     base = f"sd_{sweep_id}_{order:02d}_{delta_ref}"
@@ -31,9 +51,15 @@ def apply_mapping(cfg: DictConfig, prefix: str, payload: Mapping[str, Any]) -> N
     ):
         OmegaConf.update(cfg, "model.arch", "tabfoundry_staged", merge=False)
     for key, value in payload.items():
-        if prefix == "data" and key == "corpus_ref":
-            OmegaConf.update(cfg, f"{prefix}.surface_overrides.{key}", value, merge=True)
-            continue
+        if prefix == "data" and key in _DATA_SURFACE_OVERRIDE_KEYS:
+            OmegaConf.update(
+                cfg,
+                f"{prefix}.surface_overrides.{key}",
+                value,
+                merge=_surface_override_merge_mode(key=key, value=value),
+            )
+            if key == "corpus_ref":
+                continue
         merge = not (
             prefix == "model"
             and key == "module_overrides"

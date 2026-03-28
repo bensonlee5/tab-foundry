@@ -9,7 +9,9 @@ import torch
 import tab_foundry.benchmark_registry as benchmark_registry
 import tab_foundry.bench.run_registration as registry_module
 import tab_foundry.cli.bench_run_registration as registry_cli_module
-import tab_foundry.data.corpus as corpus_module
+import tab_foundry.data.corpus_loading as corpus_loading_module
+import tab_foundry.data.corpus_lookup as corpus_lookup_module
+from tab_foundry.data.corpus_loading import CORPUS_LATEST_SCHEMA, CORPUS_RECORD_SCHEMA
 from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.spec import model_build_spec_from_mappings
 
@@ -255,7 +257,7 @@ def _write_corpus_record(
     corpus_record_path = corpus_root / "corpus_record.json"
     corpus_ref = f"{recipe_id}/{corpus_id}"
     corpus_record = {
-        "schema": corpus_module.CORPUS_RECORD_SCHEMA,
+        "schema": CORPUS_RECORD_SCHEMA,
         "generated_at_utc": "2026-03-23T00:00:00Z",
         "recipe_id": recipe_id,
         "corpus_id": corpus_id,
@@ -277,7 +279,7 @@ def _write_corpus_record(
     latest_pointer_path.write_text(
         json.dumps(
             {
-                "schema": corpus_module.CORPUS_LATEST_SCHEMA,
+                "schema": CORPUS_LATEST_SCHEMA,
                 "generated_at_utc": "2026-03-23T00:00:00Z",
                 "recipe_id": recipe_id,
                 "corpus_id": corpus_id,
@@ -511,7 +513,8 @@ def test_derive_benchmark_run_record_uses_materialized_corpus_manifest_path(
         },
     )
     monkeypatch.setattr(registry_module, "repo_root", lambda: repo_root)
-    monkeypatch.setattr(corpus_module, "_repo_root", lambda: repo_root)
+    monkeypatch.setattr(corpus_loading_module, "_repo_root", lambda: repo_root)
+    monkeypatch.setattr(corpus_lookup_module, "_repo_root", lambda: repo_root)
 
     record = registry_module.derive_benchmark_run_record(
         run_dir=run_dir,
