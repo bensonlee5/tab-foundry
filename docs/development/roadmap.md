@@ -136,12 +136,12 @@ summarized later instead of occupying the active queue.
 | Rank | Roadmap ID | Item | Status | Milestone |
 | ---- | ---------- | ---- | ------ | --------- |
 | 1 | TF-RD-016 | Architecture surface adequacy, sandwich simplification, and selective expansion | planned | Next |
-| 2 | TF-RD-010 | First many-class + missingness dagzoo gate on the row-first base | planned | Next |
-| 3 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the promoted anchor | planned | Next |
-| 4 | TF-RD-017 | Class-imbalance robustness on the promoted anchor | planned | Next |
+| 2 | TF-RD-010 | First many-class + missingness dagzoo gate on the classification-first sandwich target | planned | Next |
+| 3 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the classification-first sandwich target | planned | Next |
+| 4 | TF-RD-017 | Class-imbalance robustness on the classification-first sandwich target | planned | Next |
 | 5 | TF-RD-022 | Training runtime and VRAM efficiency before classification scaling | planned | Next |
 | 6 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | planned | Next |
-| 7 | TF-RD-014 | Missingness robustness on the promoted anchor | planned | Next |
+| 7 | TF-RD-014 | Missingness robustness on the classification-first sandwich target | planned | Next |
 | 8 | TF-RD-015 | Regression rebuild deferred from the classification-first scaling plan | research | Later |
 | 9 | TF-RD-012 | Inference handoff and later modalities | research | Later |
 
@@ -254,7 +254,14 @@ This roadmap assumes the following repo truths:
   and [reference/evidence.md](../../reference/evidence.md); the sections below
   focus on active sandwich development and later follow-up lanes.
 
-### TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Row-First Base
+Legacy wording note:
+
+- some TF-RD item titles still use earlier row-first or promoted-anchor
+  phrasing so existing roadmap links remain stable
+- the dependency order, current-state bullets, and required-work bullets below
+  are the authoritative description of the active sandwich-first path
+
+### TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Classification-First Sandwich Target
 
 - Status: `planned`
 - Milestone: `Next`
@@ -274,8 +281,9 @@ This roadmap assumes the following repo truths:
     simplified-parent phase of TF-RD-016 rather than as a later extension
 - Required work:
   - confirm one carried dagzoo-backed many-class plus missingness slice and the
-    promoted backbone that will read it
-  - keep the lane on the same promoted family rather than opening a separate
+    frozen sandwich parent that will read it
+  - keep the lane on the same carried sandwich family rather than opening a
+    separate
     architecture track
   - evaluate this first gate by multiclass log loss first, with runtime,
     stability, and calibration-oriented metrics as guardrails
@@ -283,7 +291,7 @@ This roadmap assumes the following repo truths:
     missingness slice before TF-RD-009 starts
 - Exit criteria:
   - the repo has one explicit carried dagzoo many-class plus missingness slice
-    on the promoted backbone
+    on the frozen sandwich parent
   - multiclass is no longer only untested scaffolding on the first scaling path
 
 ### TF-RD-012: Inference Handoff And Later Modalities
@@ -291,7 +299,7 @@ This roadmap assumes the following repo truths:
 - Status: `research`
 - Milestone: `Later`
 - Goal: advance separate-runtime handoff and genuinely later modalities only
-  after the promoted row-first classification base is stable
+  after the classification-first sandwich base is stable
 - Current state:
   - classification remains the only active supported prediction mode
   - runtime handoff and later modalities remain deferred
@@ -300,18 +308,19 @@ This roadmap assumes the following repo truths:
   - keep time series, text-conditioned inputs, and other later modalities out
     of the current path
 - Exit criteria:
-  - inference handoff and later modalities build on the promoted staged base
+  - inference handoff and later modalities build on the classification-first
+    sandwich base
     rather than running ahead of it
 
-### TF-RD-014: Missingness Robustness On The Promoted Anchor
+### TF-RD-014: Missingness Robustness On The Classification-First Sandwich Target
 
 - Status: `planned`
 - Milestone: `Next`
 - Goal: deepen missingness robustness after the first many-class plus
-  missingness gate is established on the promoted family
+  missingness gate is established on the carried sandwich family
 - Current state:
   - `missingness_followup` exists, but it is anchored on the older stabilized
-    prenorm hybrid surface rather than the row-first line
+    prenorm hybrid surface rather than the carried sandwich family
   - the repo already has separate no-missing and allow-missing benchmark bundle
     contracts
   - issue [#97](https://github.com/bensonlee5/tab-foundry/issues/97) remains
@@ -320,11 +329,10 @@ This roadmap assumes the following repo truths:
   - issue [#146](https://github.com/bensonlee5/tab-foundry/issues/146) now
     occupies the adjacent synthetic harder-dagzoo slot and does not replace
     this benchmark-front missingness lane
-  - there is no explicit row-first missingness-mechanism recommendation yet;
-    TF-RD-008 only settled the default row-first anchor on the allow-missing
-    benchmark surface
+  - there is no explicit carried-sandwich missingness recommendation yet; the
+    older TF-RD-008 row-first settlement remains historical context only
 - Required work:
-  - re-anchor missingness work on the promoted row-first base after the carried
+  - re-anchor missingness work on the carried sandwich family after the carried
     many-class plus missingness slice is established under TF-RD-010
   - keep one pinned OpenML missingness ladder as the canonical benchmark
     baseline and allow license-cleared manifest-backed external augmentations
@@ -336,17 +344,18 @@ This roadmap assumes the following repo truths:
     pass
   - focus this lane on deeper missingness mechanism, severity, and benchmark
     coverage rather than on establishing the first anti-saturation regime
-  - decide whether explicit missingness handling belongs in the default
-    promoted line or remains an optional robustness variant after TF-RD-010
+  - decide whether explicit missingness handling belongs in the default carried
+    sandwich family or remains an optional robustness variant after TF-RD-010
 - Exit criteria:
   - the repo has a benchmark-backed follow-on missingness recommendation for
-    the promoted family beyond the first many-class plus missingness gate
+    the carried sandwich family beyond the first many-class plus missingness
+    gate
 
-### TF-RD-017: Class-Imbalance Robustness On The Promoted Anchor
+### TF-RD-017: Class-Imbalance Robustness On The Classification-First Sandwich Target
 
 - Status: `planned`
 - Milestone: `Next`
-- Goal: decide how the promoted row-first family behaves under materially
+- Goal: decide how the carried sandwich family behaves under materially
   skewed class priors
 - Current state:
   - current benchmark bundles only enforce `min_minority_class_pct = 2.5`
@@ -360,7 +369,7 @@ This roadmap assumes the following repo truths:
     Brier score
 - Required work:
   - define the canonical imbalance-focused binary bundle or bundle-selection
-    ladder on the promoted row-first anchor
+    ladder on the carried sandwich family
   - keep one pinned OpenML imbalance ladder as the canonical benchmark
     baseline and allow license-cleared manifest-backed external augmentations
     when they add skew regimes OpenML does not cover cleanly
@@ -371,13 +380,13 @@ This roadmap assumes the following repo truths:
     pass
   - define benchmark-facing comparison and reporting that includes PR AUC,
     average precision, and balanced accuracy alongside ROC/log loss/Brier
-  - measure the promoted anchor first without class reweighting or focal-style
-    loss changes
+  - measure the carried sandwich family first without class reweighting or
+    focal-style loss changes
   - only if the baseline read is weak, run bounded weighted-loss or focal-loss
     follow-up work
 - Exit criteria:
   - the repo has a benchmark-backed keep/defer decision on the promoted
-    row-first line under class imbalance
+    sandwich family under class imbalance
   - the repo has an explicit imbalance metric and reporting contract rather
     than relying only on the current general binary bundle metrics
 
@@ -468,10 +477,10 @@ This roadmap assumes the following repo truths:
   - encode the winning runtime policy as a first-class config and sweep surface
     under issue [#170](https://github.com/bensonlee5/tab-foundry/issues/170)
     rather than relying on per-run overrides
-  - keep sandwich architecture work on
-    [#174](https://github.com/bensonlee5/tab-foundry/issues/174),
-    [#178](https://github.com/bensonlee5/tab-foundry/issues/178), and
-    [#179](https://github.com/bensonlee5/tab-foundry/issues/179) rather than
+  - keep sandwich architecture ownership under historical implementation issue
+    [#174](https://github.com/bensonlee5/tab-foundry/issues/174) and active
+    issues [#178](https://github.com/bensonlee5/tab-foundry/issues/178) and
+    [#184](https://github.com/bensonlee5/tab-foundry/issues/184) rather than
     reopening this runtime epic as the sandwich owner; MPS OOMs should not be
     part of the quantitative CUDA decision record
   - only after the runtime policy is explicit, reopen harder-surface batching
@@ -497,7 +506,7 @@ This roadmap assumes the following repo truths:
 - Milestone: `Completed`
 - Goal: once the first TF-RD-018 dataset-batch ladder is complete, turn harder
   dagzoo-generated corpus fronts into the next explicit synthetic harder-surface
-  decision lane on the promoted row-first anchor
+  decision lane on the historical staged-control line
 - Current state:
   - TF-RD-020 is now historical handoff material rather than an active lane.
   - It closed on one kept harder-front winner in each family, with
@@ -519,7 +528,7 @@ This roadmap assumes the following repo truths:
   - satisfied: the relationship to TF-RD-010, TF-RD-017, and TF-RD-021 is
     explicit and non-overlapping
 
-### TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Promoted Anchor
+### TF-RD-021: Steering-Derived Dagzoo Corpus Fronts On The Classification-First Sandwich Target
 
 - Status: `planned`
 - Milestone: `Next`
@@ -611,7 +620,7 @@ This roadmap assumes the following repo truths:
   - Run the bounded simplification package under
     [#184](https://github.com/bensonlee5/tab-foundry/issues/184) on the locked
     compact control:
-    `sandwich_self_attention_per_cross=1`,
+    `sandwich_self_attention_per_cross=0`,
     `sandwich_ff_expansion=1`, both together, and both together plus
     `sandwich_summary_tokens_per_axis=1`.
   - Choose the smallest parent that stays inside the bounded final-log-loss,

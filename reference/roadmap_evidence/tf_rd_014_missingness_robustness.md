@@ -1,4 +1,4 @@
-# TF-RD-014: Missingness Robustness On The Promoted Anchor
+# TF-RD-014: Missingness Robustness On The Classification-First Sandwich Target
 
 This is the canonical long-form evidence note for
 [TF-RD-014](../../docs/development/roadmap.md#tf-rd-014-missingness-robustness-on-the-promoted-anchor).
@@ -24,7 +24,7 @@ This is the canonical long-form evidence note for
 ## Repo-Local Evidence
 
 - `missingness_followup` already exists, but it is anchored on the older
-  stabilized prenorm hybrid surface rather than the promoted row-first base
+  stabilized prenorm hybrid surface rather than the carried sandwich family
 - the repo already maintains separate no-missing and allow-missing benchmark
   bundle contracts
 - TF-RD-008 settled the row-first default on the allow-missing benchmark
@@ -34,7 +34,7 @@ This is the canonical long-form evidence note for
 
 ## Current Interpretation
 
-- re-anchor missingness work on the promoted row-first base rather than
+- re-anchor missingness work on the carried sandwich family rather than
   reopening hybrid diagnostic lines
 - treat this as deeper missingness robustness after the first carried
   many-class plus missingness slice is established
@@ -47,7 +47,7 @@ This is the canonical long-form evidence note for
 ## Open Evidence Gaps
 
 - the repo still lacks a benchmark-backed missingness recommendation for the
-  promoted family beyond the first many-class plus missingness gate
+  carried sandwich family beyond the first many-class plus missingness gate
 - there is no curated missingness-specific literature set yet
 - review-ledger coverage for any future external missingness augmentations is
   still prospective rather than settled
@@ -55,6 +55,6 @@ This is the canonical long-form evidence note for
 ## Exit Signals
 
 - the repo has a benchmark-backed follow-on missingness recommendation for the
-  promoted row-first family after TF-RD-010
+  carried sandwich family after TF-RD-010
 - regime identity remains explicit in task-source, bundle, manifest, and
   curation artifacts instead of being hidden inside benchmark schema changes

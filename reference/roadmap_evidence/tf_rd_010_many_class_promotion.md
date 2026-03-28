@@ -1,4 +1,4 @@
-# TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Row-First Base
+# TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Classification-First Sandwich Target
 
 This is the canonical long-form evidence note for
 [TF-RD-010](../../docs/development/roadmap.md).
@@ -37,7 +37,8 @@ This is the canonical long-form evidence note for
 
 ## Current Interpretation
 
-- keep this lane on the promoted classification family rather than opening a
+- keep this lane on the classification-first sandwich family rather than
+  opening a
   separate multiclass model track
 - use one dagzoo-backed many-class plus missingness slice as the first carried
   harder classification regime
@@ -56,7 +57,7 @@ This is the canonical long-form evidence note for
 ## Exit Signals
 
 - the repo has one explicit carried dagzoo many-class plus missingness slice on
-  the promoted backbone
+  the frozen sandwich parent
 - multiclass is no longer only untested scaffolding on the first scaling path
 - TF-RD-009 can inherit a fixed anti-saturation classification target instead
   of reopening regime selection

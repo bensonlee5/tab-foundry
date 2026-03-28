@@ -6,9 +6,13 @@ This is the canonical long-form evidence note for
 - Status: `research`
 - Milestone: `Later`
 - Dependency position: follows
-  [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md) and the earlier
-  post-008 training-surface gates, and stays behind the classification-first
-  roadmap
+  [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md) plus the later
+  classification-first gates under
+  [TF-RD-010](tf_rd_010_many_class_promotion.md),
+  [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md),
+  [TF-RD-022](tf_rd_022_training_runtime_vram_efficiency.md), and
+  [TF-RD-009](tf_rd_009_scaling_law_measurement.md), and stays behind the
+  classification-first roadmap
 
 ## External Evidence
 
@@ -25,16 +29,17 @@ This is the canonical long-form evidence note for
 
 - classification remains the only active supported prediction mode
 - runtime handoff and later modalities remain deferred
-- the roadmap requires TF-RD-013, TF-RD-018, at least one harder post-008
-  ladder, and TF-RD-016 before runtime feedback should become a clean
-  architecture constraint
+- the roadmap now requires a frozen simplified sandwich parent plus the first
+  carried dagzoo, steering, runtime-policy, and scaling-law decisions before
+  runtime feedback should become a clean architecture constraint
 
 ## Current Interpretation
 
 - advance separate-runtime handoff only after classification and export
   contracts settle
 - keep time series, text-conditioned inputs, and other later modalities off the
-  critical path while the promoted classification base is still stabilizing
+  critical path while the classification-first sandwich base is still
+  stabilizing
 - treat runtime feedback as a later constraint on a settled classification base,
   not as an early driver of architecture shape
 
@@ -47,7 +52,8 @@ This is the canonical long-form evidence note for
 
 ## Exit Signals
 
-- inference handoff and later modalities build on the promoted staged base
+- inference handoff and later modalities build on the classification-first
+  sandwich base
   rather than running ahead of it
 - runtime or modality expansion decisions are made only after the classification
   base is stable enough to interpret cost tradeoffs cleanly
