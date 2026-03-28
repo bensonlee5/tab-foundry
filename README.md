@@ -68,15 +68,13 @@ assumes a repo-local `.venv`.
 
 `tab-foundry` is the canonical packaged CLI. Use `./scripts/dev` as the fast
 repo-local path for bootstrap, verification, and Iris smoke; keep
-`scripts/bench/` and `scripts/materialize_tf_rd_013_support.py` reserved for
-their narrow internal helper workflows.
+`scripts/bench/` reserved for narrow internal benchmark helper workflows.
 
 | Surface | Use it for |
 | --- | --- |
 | `tab-foundry` | Canonical packaged CLI for data, training, evaluation, export, benchmark, and research workflows. |
 | `./scripts/dev` | Fast repo-local bootstrap, doctor, review, verification, and Iris smoke flows. |
 | `scripts/bench/` | Standalone internal benchmark helper entrypoints that stay outside the packaged CLI. |
-| `scripts/materialize_tf_rd_013_support.py` | Narrow TF-RD-013 support materialization workflow. |
 
 Use `--help` in this order:
 

@@ -104,8 +104,7 @@ The repo uses three stable workflow layers:
 - Shell helpers under `scripts/` such as `scripts/build_manifest.sh` and
   `scripts/configure_repo_protection.sh`, plus `scripts/audit/`, as repo-local
   convenience and verification surfaces, along with the small set of
-  standalone internal Python entrypoints under `scripts/bench/` and
-  `scripts/materialize_tf_rd_013_support.py`.
+  standalone internal Python entrypoints under `scripts/bench/`.
 - `scripts/dev` as the canonical repo-local entrypoint for bootstrap checks,
   branch review, affected-scope verification, explicit-path verification, full
   verification, and Iris smoke delegation.

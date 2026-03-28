@@ -34,6 +34,7 @@ dependencies = [
   "PyYAML>=6.0",
   "safetensors>=0.4",
   "schedulefree>=1.4",
+  "tab-realdata-hub>=0.1.0",
   "torch>=2.8",
   "torchview>=0.2.7",
   "wandb>=0.20",
@@ -88,6 +89,9 @@ packages = ["src/tab_foundry"]
 [tool.uv]
 package = true
 default-groups = ["dev"]
+
+[tool.uv.sources]
+tab-realdata-hub = { path = "../tab-realdata-hub", editable = true }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

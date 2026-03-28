@@ -119,20 +119,15 @@ Observed cycle status:
 - Standalone internal benchmark helper entrypoints should live under
   `scripts/bench/`; their corresponding `src/tab_foundry/bench/` modules
   should stay parser-free and should not regrow local `argparse` surfaces.
-- Reference-support materializers such as
-  `scripts/materialize_tf_rd_013_support.py` may remain standalone Python
-  entrypoints when they are tied to one committed support bundle rather than a
-  general packaged workflow surface.
 - Sweep row execution should stay decomposed across dedicated helper modules
   such as `curve_reuse`, `training_state`, `row_dependencies`, and `row_sync`
   instead of regrowing helper logic inside `row_execution.py`.
 - User-facing workflow entrypoints should live under the packaged nested CLI
   rather than being duplicated under `scripts/`.
 - `scripts/` should stay limited to shell convenience helpers, audit tooling,
-  the small set of standalone internal benchmark helper entrypoints under
-  `scripts/bench/`, and narrowly scoped reference-support materializers such
-  as `scripts/materialize_tf_rd_013_support.py`; it should not regrow parallel
-  user-facing Python workflow surfaces.
+  and the small set of standalone internal benchmark helper entrypoints under
+  `scripts/bench/`; it should not regrow parallel user-facing Python workflow
+  surfaces.
 
 ## Change-Impact Hotspots
 

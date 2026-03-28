@@ -1758,6 +1758,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "safetensors" },
     { name = "schedulefree" },
+    { name = "tab-realdata-hub" },
     { name = "torch" },
     { name = "torchview" },
     { name = "wandb" },
@@ -1816,6 +1817,7 @@ requires-dist = [
     { name = "safetensors", specifier = ">=0.4" },
     { name = "schedulefree", specifier = ">=1.4" },
     { name = "scikit-learn", marker = "extra == 'benchmark'", specifier = ">=1.6" },
+    { name = "tab-realdata-hub", editable = "../tab-realdata-hub" },
     { name = "torch", specifier = ">=2.8" },
     { name = "torchview", specifier = ">=0.2.7" },
     { name = "wandb", specifier = ">=0.20" },
@@ -1843,6 +1845,33 @@ dev = [
     { name = "torchinfo", specifier = ">=1.8" },
     { name = "types-pyyaml", specifier = ">=6.0" },
     { name = "vulture", specifier = ">=2.14" },
+]
+
+[[package]]
+name = "tab-realdata-hub"
+version = "0.1.0"
+source = { editable = "../tab-realdata-hub" }
+dependencies = [
+    { name = "numpy" },
+    { name = "openml" },
+    { name = "pandas" },
+    { name = "pyarrow" },
+    { name = "scikit-learn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = ">=2.1" },
+    { name = "openml", specifier = ">=0.15" },
+    { name = "pandas", specifier = ">=2.2" },
+    { name = "pyarrow", specifier = ">=23.0" },
+    { name = "scikit-learn", specifier = ">=1.6" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "ruff", specifier = ">=0.6" },
 ]
 
 [[package]]
