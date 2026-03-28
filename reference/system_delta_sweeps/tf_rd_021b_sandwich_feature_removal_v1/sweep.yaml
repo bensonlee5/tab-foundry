@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_021b_sandwich_feature_removal_v1
 parent_sweep_id: tf_rd_021b_sandwich_width_capacity_sensitivity_v1
-status: draft
+status: completed
 complexity_level: binary_md
 anchor_run_id: tf_rd_021b_hybrid_full_cell_compact_prior_v1
 benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
@@ -16,14 +16,14 @@ upstream_reference:
   model_source: https://openreview.net/forum?id=fILj7WpI-g
 anchor_surface:
   notes:
-  - 'This draft `#184` sweep starts the removal-first TF-RD-021B follow-up on top of the locked compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1`.'
-  - 'Recast the earlier self-attention simplification to full removal: this sweep tests `sandwich_self_attention_per_cross=0`, not the earlier `=1` shrink step.'
-  - 'Reuse `sandwich_ff_expansion=1` and `sandwich_summary_tokens_per_axis=1` as the minimal retained nonzero forms; this pass does not add support for `0` on either axis.'
+  - 'This completed `#184` sweep ran the four-row TF-RD-021B removal-first follow-up on top of the locked compact hybrid control `tf_rd_021b_hybrid_full_cell_compact_prior_v1`.'
+  - 'The package tested `sandwich_self_attention_per_cross=0`, `sandwich_ff_expansion=1`, both together, and both together plus `sandwich_summary_tokens_per_axis=1` without adding new zero-valued FF or summary semantics.'
   - 'Do not rerun `sandwich_pre_row_attention_layers=0` or `sandwich_pre_column_attention_layers=0`; the completed TF-RD-021B knob screen already supplied negative evidence for those removals.'
   - Keep the medium binary bundle, prior-dump data surface, `runtime_default` preprocessing, `prior_cosine_warmup` recipe, and `2500`-step budget fixed across all rows.
-  - This sweep stays in draft and ready state only in this pass: no `run_id`, no decisions, no canonical promotion, and no repo-default freeze.
-  - Once a winner is manually chosen, the follow-up freeze must update repo-wide sandwich defaults, the benchmark and workstation sandwich profiles, and the architecture or config docs together.
-  - When evidence is close, the later freeze should prefer removing features or collapsing knobs entirely over preserving reduced-but-still-live settings.
+  - All four completed rows underperformed the locked compact hybrid control on final log loss and final ROC AUC, so this pass did not promote a simplified variant.
+  - The smallest removal-first package (`sandwich_self_attention_per_cross=0`, `sandwich_ff_expansion=1`, `sandwich_summary_tokens_per_axis=1`) recovered meaningful training-time savings, but not enough quality to replace the anchor.
+  - The repo therefore keeps the current compact hybrid anchor and its existing non-shape defaults for follow-on dagzoo, missingness, and scaling-prep work.
+  - Only reopen local sandwich simplification if harder-surface evidence justifies it; this pass closes the bounded removal-first package without promotion.
   dimension_table:
   - dimension: feature encoder
     upstream: Scalar feature linear encoder with internal train/test z-score+clip

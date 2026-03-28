@@ -20,5 +20,4 @@ If you are not already comfortable with the repo vocabulary, start with
 - [Codebase Navigation]({{< relref "/docs/development/codebase-navigation.md" >}})
 - [Module Dependency Map]({{< relref "/docs/development/module-dependency-map.md" >}})
 - [Model Config]({{< relref "/docs/development/model-config.md" >}})
-- [Architecture Deltas]({{< relref "/docs/development/architecture-deltas.md" >}})
 - [Dataset Curation]({{< relref "/docs/development/dataset-curation.md" >}})

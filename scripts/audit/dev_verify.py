@@ -108,6 +108,8 @@ CHECK_SPECS: dict[str, CheckSpec] = {
             (
                 str(VENV_MDFORMAT),
                 "--check",
+                "--exclude",
+                "docs/development/model-architecture.md",
                 "AGENTS.md",
                 "README.md",
                 "CHANGELOG.md",

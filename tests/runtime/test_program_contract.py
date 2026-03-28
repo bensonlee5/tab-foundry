@@ -251,18 +251,20 @@ def test_model_config_documents_staged_override_surface() -> None:
         assert statement in contents
 
 
-def test_tabfoundry_sandwich_doc_covers_current_surface() -> None:
-    contents = (REPO_ROOT / "docs" / "development" / "tabfoundry-sandwich.md").read_text(
+def test_model_architecture_doc_covers_current_sandwich_surface() -> None:
+    contents = (REPO_ROOT / "docs" / "development" / "model-architecture.md").read_text(
         encoding="utf-8"
     )
 
     required_statements = [
-        "`tabfoundry_sandwich` is a fixed-latent hybrid full-cell / summary-stream",
-        "`R * C`",
-        "`K * (R + C)`",
+        "`tabfoundry_sandwich` is the active small-class, classification-only",
+        "hybrid full-cell / summary-stream",
+        "full-cell stream",
+        "summary stream",
         "stage `0`",
-        "latent-then-full-cell",
-        "per-row self-attention",
+        "read final latents first",
+        "the full cell stream",
+        "row-wise feature attention",
         "ISAB",
         "`model.arch`",
         "`d_icl`",
@@ -285,7 +287,7 @@ def test_tabfoundry_sandwich_doc_covers_current_surface() -> None:
         "`forward_batched(..., feature_types=[...])`",
         "`latent_seed`",
         "truncated normal",
-        "repeated Perceiver stages",
+        "Repeated Perceiver stages",
         "`2 <= num_classes <= many_class_base`",
     ]
     for statement in required_statements:

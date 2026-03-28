@@ -7,7 +7,6 @@ bundle loading.
 Use these alongside this reference:
 
 - architecture reference: `docs/development/model-architecture.md`
-- sandwich architecture: `docs/development/tabfoundry-sandwich.md`
 - inference contract: `docs/inference.md`
 - canonical model spec: `src/tab_foundry/model/spec.py`
 - config defaults: `configs/model/default.yaml`
@@ -221,14 +220,10 @@ removed legacy family.
   `model.stage` defaults to `nano_exact`, and non-null `model.stage` is
   rejected for `tabfoundry_simple` and `tabfoundry_sandwich`.
 - `tabfoundry_sandwich` is the classification-only fixed-latent candidate
-  family.
-  It uses a fixed learned latent array, a hybrid stage-`0` input stream built
-  from full cell tokens plus row/column summary tokens, later repeated
-  Perceiver stages over the compact `K * (R + C)` summary stream, configurable
-  `K`-token row/column summary banks, fused row-label or query conditioning in
-  both row summaries and feature cells, an axial row/column pre-Perceiver cell
-  mixer, and a dual-source latent-then-full-cell test-row readout path.
-  It rejects `stage`, `stage_label`, and `module_overrides`.
+  family. The live forward-path walkthrough, runtime contract, feature-type
+  metadata contract, and technical diagram now live in
+  `docs/development/model-architecture.md`. It rejects `stage`,
+  `stage_label`, and `module_overrides`.
   It currently requires:
   - `task=classification`
   - `norm_type=layernorm`
@@ -239,18 +234,13 @@ removed legacy family.
     `sandwich_pre_row_attention_layers`,
     `sandwich_pre_column_attention_layers`,
     `sandwich_pre_column_inducing_tokens`, `d_icl`, `head_hidden_dim`,
-    `input_normalization`, and `pre_encoder_clip`. `sandwich_layers` now means
-    repeated Perceiver stages, not a tail-only latent depth, while
-    `sandwich_self_attention_per_cross` controls the number of latent
-    self-attention blocks between cross-attention reads. The pre-column mixer
-    uses an ISAB-style learned inducing bottleneck rather than exact row
-    self-attention. The runtime task
-    metadata contract also supports `feature_types` with the collapsed
-    parquet-group vocabulary `bool`, `integer`, `floating`, `string_binary`,
-    or `unknown`. `tabfoundry_sandwich` requires this metadata explicitly at
-    runtime and on `forward_batched(..., feature_types=...)`. Export-bundle
-    `preprocessor` payloads stay policy-only and do not serialize this list.
-    Only `sandwich_latents` is accepted. `sandwich_row_latents` and
+    `input_normalization`, and `pre_encoder_clip`. `sandwich_layers` counts
+    repeated Perceiver stages, while `sandwich_self_attention_per_cross`
+    controls the number of latent self-attention blocks between cross-attention
+    reads. `feature_types` are required at runtime and on
+    `forward_batched(..., feature_types=...)`. Export-bundle `preprocessor`
+    payloads stay policy-only and do not serialize this list. Only
+    `sandwich_latents` is accepted. `sandwich_row_latents` and
     `sandwich_col_latents` are invalid for `tabfoundry_sandwich`.
 - `model.stage` remains the stable public recipe selector and compatibility
   surface for the staged family.
@@ -411,6 +401,5 @@ If you add, remove, or rename a model config field, update all of these:
 - `src/tab_foundry/model/architectures/tabfoundry_staged/model.py`
 - `src/tab_foundry/model/architectures/tabfoundry_simple.py`
 - `docs/development/model-architecture.md`
-- `docs/development/tabfoundry-sandwich.md`
 - `docs/inference.md` if the field is serialized into export bundles
 - tests that validate config resolution, export manifests, or checkpoint loading

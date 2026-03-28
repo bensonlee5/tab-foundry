@@ -40,9 +40,9 @@ architecture-adequacy workstream.
 - child issue [#183](https://github.com/bensonlee5/tab-foundry/issues/183)
   records the completed bounded width and head-capacity follow-up
 - child issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184)
-  now owns the post-screen simplified-parent and classification-scaling-prep
-  follow-up
-- the queued TF-RD-021B removal-first follow-up is
+  records the completed removal-first package and keeps the compact hybrid
+  control as the carry-forward parent
+- the completed TF-RD-021B removal-first follow-up is
   `tf_rd_021b_sandwich_feature_removal_v1`, which recasts the earlier
   self-attention shrink idea as full removal and keeps the follow-up package
   bounded
@@ -75,31 +75,32 @@ architecture-adequacy workstream.
   sandwich alive as the primary classification architecture target
 - the completed bounded sensitivity screens argue for simplification first, not
   for keeping many free architecture knobs alive during scaling
-- the next bounded read is therefore a removal-first simplification package
-  centered on:
-  - `sandwich_self_attention_per_cross=0`
-  - `sandwich_ff_expansion=1`
-  - the combined row
-  - the combined row plus `sandwich_summary_tokens_per_axis=1`
-- after that choice, the non-shape sandwich knobs should be frozen while the
-  simplified parent is carried onto dagzoo classification and then missingness
+- the completed removal-first simplification package kept the compact hybrid
+  anchor: all four rows underperformed the locked control on final log loss and
+  final ROC AUC
+- the smallest simplification package (`sandwich_self_attention_per_cross=0`,
+  `sandwich_ff_expansion=1`, and `sandwich_summary_tokens_per_axis=1`) recovered
+  meaningful training-time savings, but not enough quality to replace the
+  anchor
+- the non-shape sandwich knobs should therefore remain at the current compact
+  hybrid anchor values while that kept parent is carried onto dagzoo
+  classification and then missingness
 - any later width-depth scaling fits belong under TF-RD-009 and should inherit
-  the simplified parent, not reopen the local sandwich knob screen
+  the kept compact hybrid parent, not reopen the local sandwich knob screen
 
 ## Open Evidence Gaps
 
-- the confirmatory simplification package is not yet executed
-- the repo does not yet have one explicit kept simplified sandwich parent
-- the simplified parent has not yet been carried onto one curriculum-backed
-  dagzoo slice or onto missingness
-- there is still no justification for a public single-knob scaling surface
+- the retained compact hybrid parent has not yet been carried onto one
+  curriculum-backed dagzoo slice
+- the retained compact hybrid parent has not yet been carried onto missingness
+- the repo still has not justified any public single-knob scaling surface from
+  the local sandwich screen
 
 ## Exit Signals
 
-- the repo records and interprets the bounded simplification package
-- one explicit simplified sandwich parent is chosen and its non-shape knobs are
-  frozen for follow-on classification work
-- the simplified parent is carried onto one dagzoo curriculum slice and then
-  onto missingness before the first main scaling fit
+- the repo records and interprets the bounded simplification package and keeps
+  one explicit sandwich parent for follow-on classification work
+- that kept parent is carried onto one dagzoo curriculum slice and then onto
+  missingness before the first main scaling fit
 - any later scale-control interface is explicitly derived from the later
   TF-RD-009 law fits rather than from ad hoc sandwich-local knob guesses

@@ -157,8 +157,7 @@ graph TD
 A frozen nanoTabPFN control lane (`tabfoundry_simple`) preserves benchmark
 comparability, and `tabfoundry_staged` remains loadable as the historical
 reference family. For the full architecture reference, see
-[docs/development/model-architecture.md](docs/development/model-architecture.md)
-and [docs/development/tabfoundry-sandwich.md](docs/development/tabfoundry-sandwich.md).
+[docs/development/model-architecture.md](docs/development/model-architecture.md).
 
 ## Find Your Path
 

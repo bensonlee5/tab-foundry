@@ -11,6 +11,7 @@
 - For fast agent triage, prefer the existing narrow inspection surfaces before broad greps or full-suite runs: `tab-foundry dev resolve-config ...`, `tab-foundry dev forward-check ...`, `tab-foundry dev diff-config ...`, `tab-foundry dev export-check --checkpoint ...`, `tab-foundry data manifest-inspect --manifest ...`, `tab-foundry dev run-inspect --run-dir ...`, `tab-foundry research sweep inspect ...`, `tab-foundry research sweep diff ...`, and `./scripts/dev verify paths <PATH...>`.
 - Only fall back to broader greps, full verification, or codebase-wide exploration after those surfaces do not answer the question.
 - Prior to declaring a branch ready for review, compare branch to main and verify that all intended changes are included and no unintended changes are included.
+- When you commit and push, watch for failing CI and address it and push a fix if needed.
 
 ## Architecture and Implementation
 
