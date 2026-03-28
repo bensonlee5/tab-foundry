@@ -43,17 +43,17 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_tf_rd_021b_sandwich_selfattn0_v1` | architecture_sensitivity | yes | ready | none | Remove latent self-attention refinement entirely between cross-attention reads while keeping the compact control otherwise fixed. | Leave queued for the four-row TF-RD-021B feature-removal screen; do not execute or promote in this pass. |
-| 2 | `delta_tf_rd_021b_sandwich_ffexp1_v1` | architecture_sensitivity | yes | ready | none | Reduce the hybrid sandwich feed-forward expansion from 2x to 1x while keeping the compact control otherwise fixed. | Leave queued for the four-row TF-RD-021B feature-removal screen; do not execute or promote in this pass. |
-| 3 | `delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1` | architecture_sensitivity | yes | ready | none | Remove latent self-attention refinement and collapse feed-forward expansion to 1x while keeping the compact control otherwise fixed. | Leave queued for the four-row TF-RD-021B feature-removal screen; do not execute or promote in this pass. |
-| 4 | `delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1` | architecture_sensitivity | yes | ready | none | Remove latent self-attention refinement, collapse feed-forward expansion to 1x, and reduce summary-token multiplicity to 1 while keeping the compact control otherwise fixed. | Leave queued for the four-row TF-RD-021B feature-removal screen; do not execute or promote in this pass. |
+| 1 | `delta_tf_rd_021b_sandwich_selfattn0_v1` | architecture_sensitivity | yes | completed | none | Remove latent self-attention refinement entirely between cross-attention reads while keeping the compact control otherwise fixed. | Leave queued for the four-row TF-RD-021B feature-removal screen; do not execute or promote in this pass. |
+| 2 | `delta_tf_rd_021b_sandwich_ffexp1_v1` | architecture_sensitivity | yes | completed | none | Reduce the hybrid sandwich feed-forward expansion from 2x to 1x while keeping the compact control otherwise fixed. | Leave queued for the four-row TF-RD-021B feature-removal screen; do not execute or promote in this pass. |
+| 3 | `delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1` | architecture_sensitivity | yes | completed | none | Remove latent self-attention refinement and collapse feed-forward expansion to 1x while keeping the compact control otherwise fixed. | Leave queued for the four-row TF-RD-021B feature-removal screen; do not execute or promote in this pass. |
+| 4 | `delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1` | architecture_sensitivity | yes | completed | none | Remove latent self-attention refinement, collapse feed-forward expansion to 1x, and reduce summary-token multiplicity to 1 while keeping the compact control otherwise fixed. | Leave queued for the four-row TF-RD-021B feature-removal screen; do not execute or promote in this pass. |
 
 ## Detailed Rows
 
 ### 1. `delta_tf_rd_021b_sandwich_selfattn0_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Remove latent self-attention refinement entirely between cross-attention reads while keeping the compact control otherwise fixed.
@@ -71,16 +71,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep stage count, latent count, and FF expansion fixed so this row isolates removal of the latent self-refinement feature.
   - Compare directly against the compact control before collapsing self-attention depth into later frozen defaults.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_selfattn0_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1` with final log loss `0.4865`, delta final log loss `+0.0193`, final Brier score `0.3220`, delta final Brier score `+0.0148`, best ROC AUC `0.7078`, final ROC AUC `0.7043`, final-minus-best `-0.0035`, delta final ROC AUC `-0.0328`, delta drift `-0.0035`, delta final training time `-53.2s`
 
 ### 2. `delta_tf_rd_021b_sandwich_ffexp1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Reduce the hybrid sandwich feed-forward expansion from 2x to 1x while keeping the compact control otherwise fixed.
@@ -98,16 +101,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep latent count, stage count, and summary-token count fixed so this row isolates FF capacity.
   - Compare directly against the compact control before treating FF expansion as a live scaling axis.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_ffexp1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1` with final log loss `0.4932`, delta final log loss `+0.0260`, final Brier score `0.3289`, delta final Brier score `+0.0217`, best ROC AUC `0.7084`, final ROC AUC `0.7082`, final-minus-best `-0.0001`, delta final ROC AUC `-0.0288`, delta drift `-0.0001`, delta final training time `-8.7s`
 
 ### 3. `delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Remove latent self-attention refinement and collapse feed-forward expansion to 1x while keeping the compact control otherwise fixed.
@@ -125,16 +131,19 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Keep summary-token multiplicity fixed so this row reads removal of latent refinement plus minimal FF capacity only.
   - Compare directly against the compact control before carrying this compound simplification into harder-surface work.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1` with final log loss `0.5194`, delta final log loss `+0.0522`, final Brier score `0.3492`, delta final Brier score `+0.0420`, best ROC AUC `0.6832`, final ROC AUC `0.6828`, final-minus-best `-0.0004`, delta final ROC AUC `-0.0542`, delta drift `-0.0004`, delta final training time `-64.5s`
 
 ### 4. `delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1`
 
 - Dimension family: `model`
-- Status: `ready`
+- Status: `completed`
 - Binary applicable: `True`
 - Recipe alias: `none`
 - Description: Remove latent self-attention refinement, collapse feed-forward expansion to 1x, and reduce summary-token multiplicity to 1 while keeping the compact control otherwise fixed.
@@ -152,8 +161,11 @@ Upstream reference: `PerceiverIO` from `https://openreview.net/forum?id=fILj7WpI
   - Treat this as the lower bound of the current expressible removal-first simplification package.
   - Compare directly against both the anchor and the simpler compound row before freezing any defaults.
 - Execution policy: `benchmark_full`
-- Interpretation status: `pending`
-- Decision: `None`
+- Interpretation status: `completed`
+- Decision: `defer`
+- Notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
 - Follow-up run ids: `[]`
 - Result card path: `outputs/staged_ladder/research/tf_rd_021b_sandwich_feature_removal_v1/delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1/result_card.md`
-- Benchmark metrics: pending
+- Registered run: `sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1` with final log loss `0.4947`, delta final log loss `+0.0275`, final Brier score `0.3269`, delta final Brier score `+0.0197`, best ROC AUC `0.7042`, final ROC AUC `0.7053`, final-minus-best `+0.0011`, delta final ROC AUC `-0.0318`, delta drift `+0.0011`, delta final training time `-155.5s`

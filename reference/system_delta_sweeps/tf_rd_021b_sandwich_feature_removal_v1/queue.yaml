@@ -3,7 +3,7 @@ sweep_id: tf_rd_021b_sandwich_feature_removal_v1
 rows:
 - order: 1
   delta_ref: delta_tf_rd_021b_sandwich_selfattn0_v1
-  status: ready
+  status: completed
   rationale: Replace the earlier self-attention-depth shrink row with a true removal-first
     read on the locked compact hybrid control.
   hypothesis: If stage-0 full-cell access and the final readout carry most of the
@@ -66,17 +66,37 @@ rows:
     ablation.
   - If the drop is weak, prefer removing this feature entirely rather than retaining
     a reduced nonzero count.
-  run_id: null
+  run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen;
-    do not execute or promote in this pass.
-  notes: []
+  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen; do
+    not execute or promote in this pass.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_01_delta_tf_rd_021b_sandwich_selfattn0_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2375
+    max_grad_norm: 4.0695672035217285
+    clipped_step_fraction: 0.0124
+    best_log_loss: 0.48520637486441826
+    final_log_loss: 0.48645964753108917
+    best_brier_score: 0.32073816251754694
+    final_brier_score: 0.3220397636884507
+    best_roc_auc: 0.7077978703160934
+    final_roc_auc: 0.7042552494015691
+    final_minus_best_log_loss: 0.0012532726666709126
+    final_minus_best_brier_score: 0.0013016011709037767
+    final_minus_best_roc_auc: -0.003542620914524286
+    drift: -0.003542620914524286
+    delta_final_log_loss: 0.01926679797266495
+    delta_final_brier_score: 0.014811897976044652
+    delta_final_roc_auc: -0.03278606673920226
 - order: 2
   delta_ref: delta_tf_rd_021b_sandwich_ffexp1_v1
-  status: ready
+  status: completed
   rationale: Measure the smallest currently supported retained feed-forward setting
     before combining it with wider removal candidates.
   hypothesis: If extra trunk MLP capacity is mostly surplus on the compact hybrid
@@ -138,17 +158,37 @@ rows:
   - Treat this as the minimal retained FF form for the removal-first follow-up.
   - Do not add `sandwich_ff_expansion=0` in this pass; freeze work can only choose
     between the anchor and the supported `=1` contraction.
-  run_id: null
+  run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen;
-    do not execute or promote in this pass.
-  notes: []
+  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen; do
+    not execute or promote in this pass.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_02_delta_tf_rd_021b_sandwich_ffexp1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2475
+    max_grad_norm: 13.200143814086914
+    clipped_step_fraction: 0.0204
+    best_log_loss: 0.4928854618963777
+    final_log_loss: 0.4931857252487455
+    best_brier_score: 0.3286325601109759
+    final_brier_score: 0.328904300617587
+    best_roc_auc: 0.7083812008656195
+    final_roc_auc: 0.7082477454391822
+    final_minus_best_log_loss: 0.0003002633523677689
+    final_minus_best_brier_score: 0.0002717405066111067
+    final_minus_best_roc_auc: -0.00013345542643727892
+    drift: -0.00013345542643727892
+    delta_final_log_loss: 0.02599287569032127
+    delta_final_brier_score: 0.021676434905180952
+    delta_final_roc_auc: -0.028793570701589166
 - order: 3
   delta_ref: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1
-  status: ready
+  status: completed
   rationale: Test the first compound removal package after the isolated self-attention
     removal row while keeping summary-token multiplicity fixed.
   hypothesis: If the hybrid path is structurally adequate already, combining self-attention
@@ -211,22 +251,42 @@ rows:
   - Use this as the first compound removal candidate after the isolated removal row.
   - Prefer this row over the anchor only if the combined simplification remains bounded
     on final quality and stability.
-  run_id: null
+  run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen;
-    do not execute or promote in this pass.
-  notes: []
+  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen; do
+    not execute or promote in this pass.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_03_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2475
+    max_grad_norm: 9.189810752868652
+    clipped_step_fraction: 0.0212
+    best_log_loss: 0.5191782391798194
+    final_log_loss: 0.5193674811074734
+    best_brier_score: 0.3489958047535241
+    final_brier_score: 0.34920000281649255
+    best_roc_auc: 0.6832086755783016
+    final_roc_auc: 0.6828093800985633
+    final_minus_best_log_loss: 0.00018924192765401582
+    final_minus_best_brier_score: 0.00020419806296845255
+    final_minus_best_roc_auc: -0.00039929547973827084
+    drift: -0.00039929547973827084
+    delta_final_log_loss: 0.05217463154904922
+    delta_final_brier_score: 0.04197213710408648
+    delta_final_roc_auc: -0.054231936042208106
 - order: 4
   delta_ref: delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1
-  status: ready
+  status: completed
   rationale: Test the smallest currently supported removal-first parent before any
     manual freeze decision is made.
-  hypothesis: If the hybrid architecture mainly needs the stage-0 full-cell path
-    and the final cell-stream readout, this compound simplification may preserve
-    bounded quality with the smallest remaining nonzero summary and FF settings.
+  hypothesis: If the hybrid architecture mainly needs the stage-0 full-cell path and
+    the final cell-stream readout, this compound simplification may preserve bounded
+    quality with the smallest remaining nonzero summary and FF settings.
   anchor_delta: Keep the compact hybrid control fixed and change `sandwich_self_attention_per_cross`
     from `4` to `0`, `sandwich_ff_expansion` from `2` to `1`, and `sandwich_summary_tokens_per_axis`
     from `4` to `1`.
@@ -286,11 +346,31 @@ rows:
     screen.
   - If this row is close enough to the anchor, the later freeze should prefer it over
     larger retained-feature variants.
-  run_id: null
+  run_id: sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1
   followup_run_ids: []
-  decision: null
-  interpretation_status: pending
+  decision: defer
+  interpretation_status: completed
   confounders: []
-  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen;
-    do not execute or promote in this pass.
-  notes: []
+  next_action: Leave queued for the four-row TF-RD-021B feature-removal screen; do
+    not execute or promote in this pass.
+  notes:
+  - Canonical rerun registered as `sd_tf_rd_021b_sandwich_feature_removal_v1_04_delta_tf_rd_021b_sandwich_selfattn0_ffexp1_summarytokens1_v1_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  benchmark_metrics:
+    best_step: 2450
+    max_grad_norm: 4.532970905303955
+    clipped_step_fraction: 0.0188
+    best_log_loss: 0.4936636211257254
+    final_log_loss: 0.494719909828638
+    best_brier_score: 0.3258566902835209
+    final_brier_score: 0.3269346732654667
+    best_roc_auc: 0.704194139824862
+    final_roc_auc: 0.7052832467160178
+    final_minus_best_log_loss: 0.0010562887029125778
+    final_minus_best_brier_score: 0.0010779829819458353
+    final_minus_best_roc_auc: 0.0010891068911558222
+    drift: 0.0010891068911558222
+    delta_final_log_loss: 0.027527060270213788
+    delta_final_brier_score: 0.019706807553060646
+    delta_final_roc_auc: -0.031758069424753566
