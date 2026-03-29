@@ -50,11 +50,11 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
     assert installed == [
         (
             nano_root.resolve() / ".venv" / "bin" / "python",
-            env_module.TAB_REALDATA_HUB_GIT_INSTALL_SPEC,
+            env_module.TAB_REALDATA_HUB_INSTALL_SPEC,
         ),
         (
             tabicl_root.resolve() / ".venv" / "bin" / "python",
-            env_module.TAB_REALDATA_HUB_GIT_INSTALL_SPEC,
+            env_module.TAB_REALDATA_HUB_INSTALL_SPEC,
         ),
     ]
     assert len(validated) == 10

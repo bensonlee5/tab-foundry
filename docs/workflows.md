@@ -465,10 +465,10 @@ This bootstraps sibling envs for:
 - `~/dev/TabPFN`
 - `~/dev/tabicl`
 
-The helper bootstrap now installs the git-pinned `tab-realdata-hub` package
-from GitHub into the nanoTabPFN and TabICLv2 envs so manifest-backed benchmark
-loading no longer depends on a sibling source checkout or unpublished package
-state at runtime.
+The helper bootstrap now installs the published `tab-realdata-hub` package from
+PyPI into the nanoTabPFN and TabICLv2 envs so manifest-backed benchmark loading
+no longer depends on a sibling source checkout or a temporary git-pinned
+workaround at runtime.
 
 The benchmark and plotting helpers live under `src/tab_foundry/bench/`, but
 their third-party dependencies are modeled as the optional `benchmark` extra

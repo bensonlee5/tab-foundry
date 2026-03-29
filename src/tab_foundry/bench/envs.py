@@ -34,10 +34,7 @@ experiment = [
 package = false
 """
 
-TAB_REALDATA_HUB_GIT_INSTALL_SPEC = (
-    "tab-realdata-hub @ "
-    "git+https://github.com/bensonlee5/tab-realdata-hub.git@v0.1.0"
-)
+TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub==0.1.0"
 
 
 @dataclass(slots=True)
@@ -92,7 +89,7 @@ def _install_python_package(python_path: Path, package_spec: str) -> None:
 
 
 def _tab_realdata_hub_install_spec() -> str:
-    return TAB_REALDATA_HUB_GIT_INSTALL_SPEC
+    return TAB_REALDATA_HUB_INSTALL_SPEC
 
 
 def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:

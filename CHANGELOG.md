@@ -27,10 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   missing-valued benchmark surfaces when the persisted benchmark provenance
   explicitly marks them as allowed, instead of failing before the benchmark
   layer can apply that policy.
-- User-facing note: `tab-foundry` now depends on the git-tagged
-  `tab-realdata-hub` upstream package rather than an unpublished versioned
-  package assumption. Project installs and `tab-foundry bench env bootstrap`
-  both use the same GitHub-pinned `v0.1.0` package source.
+- User-facing note: `tab-foundry` now depends on the published
+  `tab-realdata-hub` upstream package rather than a temporary git-pinned
+  workaround. Project installs and `tab-foundry bench env bootstrap` now use
+  the PyPI `0.1.0` package source.
 
 ## [0.14.1] - 2026-03-27
 
