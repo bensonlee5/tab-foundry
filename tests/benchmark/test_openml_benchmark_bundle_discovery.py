@@ -139,8 +139,8 @@ def test_build_openml_benchmark_bundle_discovery_filters_dedupes_and_reports(
 
     assert result.bundle["task_ids"] == [102, 103]
     assert [task["dataset_name"] for task in result.bundle["tasks"]] == ["dup_dataset", "kept_dataset"]
-    assert captured["number_instances"] == "200.."
-    assert captured["number_features"] == "..50"
+    assert captured["number_instances"] == "200..1000000000"
+    assert captured["number_features"] == "0..50"
     assert captured["number_classes"] == 2
     assert captured["number_missing_values"] == 0
     report = bundle_module.render_openml_benchmark_candidate_report(result.report_entries)
@@ -257,8 +257,8 @@ def test_build_openml_benchmark_bundle_discovery_falls_back_when_filtered_listin
 
     assert bundle["task_ids"] == [10]
     assert len(calls) == 2
-    assert calls[0]["number_instances"] == "200.."
-    assert calls[0]["number_features"] == "..50"
+    assert calls[0]["number_instances"] == "200..1000000000"
+    assert calls[0]["number_features"] == "0..50"
     assert calls[0]["number_classes"] == 2
     assert calls[0]["number_missing_values"] == 0
     assert "number_instances" not in calls[1]

@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 
+from tab_realdata_hub.manifest import ManifestSummary, build_manifest
+
 from .dagzoo_handoff import DagzooHandoffInfo, load_dagzoo_handoff_info
-from .manifest import ManifestSummary, build_manifest
 
 
 @dataclass(slots=True, frozen=True)

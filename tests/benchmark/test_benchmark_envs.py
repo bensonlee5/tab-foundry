@@ -20,9 +20,15 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
         (root / ".venv" / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
 
     synced: list[Path] = []
+    installed: list[tuple[Path, str]] = []
     validated: list[tuple[Path, str]] = []
 
     monkeypatch.setattr(env_module, "_sync_repo", lambda root: synced.append(root))
+    monkeypatch.setattr(
+        env_module,
+        "_install_python_package",
+        lambda python_path, package_spec: installed.append((python_path, package_spec)),
+    )
     monkeypatch.setattr(
         env_module,
         "_validate_import",
@@ -41,5 +47,15 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
     assert pyproject_path.exists()
     assert "schedulefree" in pyproject_path.read_text(encoding="utf-8")
     assert synced == [nano_root.resolve(), tabpfn_root.resolve(), tabicl_root.resolve()]
-    assert len(validated) == 6
+    assert installed == [
+        (
+            nano_root.resolve() / ".venv" / "bin" / "python",
+            env_module.TAB_REALDATA_HUB_INSTALL_SPEC,
+        ),
+        (
+            tabicl_root.resolve() / ".venv" / "bin" / "python",
+            env_module.TAB_REALDATA_HUB_INSTALL_SPEC,
+        ),
+    ]
+    assert len(validated) == 10
     assert summary["nanotabpfn_python"].endswith("/nano/.venv/bin/python")

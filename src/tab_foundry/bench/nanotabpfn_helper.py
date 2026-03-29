@@ -12,7 +12,7 @@ import numpy as np
 def run_nanotabpfn_helper(
     *,
     tab_foundry_src: Path,
-    dataset_cache: Path,
+    benchmark_manifest: Path,
     prior_dump: Path,
     out_path: Path,
     device: str = "auto",
@@ -24,7 +24,7 @@ def run_nanotabpfn_helper(
     allow_missing_values: bool = False,
     helper_root: Path | None = None,
 ) -> int:
-    """Train and evaluate nanoTabPFN on cached benchmark datasets."""
+    """Train and evaluate nanoTabPFN on a manifest-backed benchmark surface."""
 
     src_root = tab_foundry_src.expanduser().resolve()
     nanotabpfn_root = Path.cwd().resolve() if helper_root is None else helper_root.expanduser().resolve()
@@ -34,23 +34,32 @@ def run_nanotabpfn_helper(
         sys.path.insert(0, str(src_root))
 
     from model import NanoTabPFNModel  # type: ignore[attr-defined]
+    try:
+        from tab_realdata_hub.manifest import load_manifest_datasets
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "tab-realdata-hub import unavailable in the nanoTabPFN helper env; "
+            "run `tab-foundry bench env bootstrap` first"
+        ) from exc
     from tab_foundry.bench.artifacts import write_jsonl
     from tab_foundry.bench.nanotabpfn import (
         dataset_brier_score_metrics,
         dataset_log_loss_metrics,
         dataset_roc_auc_metrics,
         evaluate_classifier,
-        load_dataset_cache,
     )
     from train import PriorDumpDataLoader, get_default_device, set_randomness_seed, train
 
     resolved_device = get_default_device() if str(device).strip().lower() == "auto" else str(device)
-    dataset_cache_path = dataset_cache.expanduser().resolve()
+    benchmark_manifest_path = benchmark_manifest.expanduser().resolve()
     prior_dump_path = prior_dump.expanduser().resolve()
     out_path = out_path.expanduser().resolve()
     if not prior_dump_path.exists():
         raise RuntimeError(f"nanoTabPFN prior dump does not exist: {prior_dump_path}")
-    datasets = load_dataset_cache(dataset_cache_path)
+    datasets = load_manifest_datasets(
+        benchmark_manifest_path,
+        allow_missing_values=bool(allow_missing_values),
+    ).datasets
 
     records: list[dict[str, object]] = []
     num_outputs = max(int(np.unique(np.asarray(y)).size) for _name, (_x, y) in datasets.items())

@@ -59,7 +59,7 @@ def _run_sweep_create(args: argparse.Namespace) -> int:
         anchor_run_id=str(args.anchor_run_id),
         parent_sweep_id=None if args.parent_sweep_id is None else str(args.parent_sweep_id),
         complexity_level=str(args.complexity_level),
-        benchmark_bundle_path=str(args.benchmark_bundle_path),
+        benchmark_manifest_path=str(args.benchmark_manifest_path),
         control_baseline_id=str(args.control_baseline_id),
         external_benchmarks=(
             None
@@ -238,9 +238,9 @@ def register_core_subparsers(
     create_parser.add_argument("--parent-sweep-id", default=None, help="Optional parent sweep id")
     create_parser.add_argument("--complexity-level", required=True, help="Complexity level label")
     create_parser.add_argument(
-        "--benchmark-bundle-path",
+        "--benchmark-manifest-path",
         required=True,
-        help="Benchmark bundle path for the new sweep",
+        help="Benchmark manifest path for the new sweep",
     )
     create_parser.add_argument(
         "--control-baseline-id",

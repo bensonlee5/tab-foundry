@@ -7,9 +7,9 @@ from pathlib import Path
 import sys
 
 import tab_foundry.bench.openml_benchmark_bundle as bundle_module
-from tab_foundry.bench.openml_bundle.config import parse_max_classes_arg
-from tab_foundry.bench.openml_task_source_registry import (
+from tab_realdata_hub.openml import (
     DEFAULT_OPENML_TASK_SOURCE,
+    parse_max_classes_arg,
     task_source_names,
 )
 

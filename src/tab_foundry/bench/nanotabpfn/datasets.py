@@ -1,109 +1,31 @@
-"""OpenML benchmark dataset preparation helpers."""
+"""Benchmark-surface dataset helpers."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Mapping
 
 import numpy as np
-import openml
-from openml.tasks import TaskType
-import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer, LabelEncoder, OrdinalEncoder
-
-from .bundle import (
-    _CLASSIFICATION_TASK_TYPE,
-    _REGRESSION_TASK_TYPE,
-    benchmark_bundle_task_type,
-    load_benchmark_bundle,
-)
-from .dataset_common import (
-    _assert_finite_benchmark_datasets,
+from tab_realdata_hub.manifest import LoadedManifestDatasets, load_manifest_datasets
+from tab_realdata_hub.openml import (
+    PreparedOpenMLTask as PreparedOpenMLBenchmarkTask,
+    get_feature_preprocessor,
+    prepare_task as _prepare_openml_task,
+    read_required_quality as read_required_openml_quality,
 )
 
+from .dataset_common import _assert_finite_benchmark_datasets
 
-@dataclass(slots=True)
-class PreparedOpenMLBenchmarkTask:
-    """Materialized OpenML benchmark task after notebook-style preprocessing."""
-
-    task_id: int
-    dataset_name: str
-    x: np.ndarray
-    y: np.ndarray
-    observed_task: dict[str, Any]
-    qualities: dict[str, float]
-    task_type: str = _CLASSIFICATION_TASK_TYPE
-
-
-def get_feature_preprocessor(x: np.ndarray | pd.DataFrame) -> ColumnTransformer:
-    """Replicate the nanoTabPFN notebook preprocessing logic."""
-
-    frame = pd.DataFrame(x)
-    num_mask: list[bool] = []
-    cat_mask: list[bool] = []
-    for column in frame:
-        unique_non_nan_entries = frame[column].dropna().unique()
-        if len(unique_non_nan_entries) <= 1:
-            num_mask.append(False)
-            cat_mask.append(False)
-            continue
-        non_nan_entries = frame[column].notna().sum()
-        numeric_entries = pd.to_numeric(frame[column], errors="coerce").notna().sum()
-        num_mask.append(bool(non_nan_entries == numeric_entries))
-        cat_mask.append(bool(non_nan_entries != numeric_entries))
-
-    num_transformer = Pipeline(
-        [
-            (
-                "to_pandas",
-                FunctionTransformer(
-                    lambda value: pd.DataFrame(value) if not isinstance(value, pd.DataFrame) else value
-                ),
-            ),
-            (
-                "to_numeric",
-                FunctionTransformer(lambda value: value.apply(pd.to_numeric, errors="coerce").to_numpy()),
-            ),
-        ]
-    )
-    cat_transformer = Pipeline(
-        [("encoder", OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=np.nan))]
-    )
-    return ColumnTransformer(
-        transformers=[
-            ("num", num_transformer, np.asarray(num_mask)),
-            ("cat", cat_transformer, np.asarray(cat_mask)),
-        ]
-    )
-
-
-def read_required_openml_quality(raw_qualities: Any, *, task_id: int, quality_name: str) -> float:
-    """Read a numeric OpenML quality and raise a drift error if it is missing."""
-
-    if not isinstance(raw_qualities, dict):
-        raise RuntimeError(f"benchmark bundle drift: task {task_id} dataset qualities are missing")
-    value = raw_qualities.get(quality_name)
-    if not isinstance(value, (int, float)):
-        raise RuntimeError(
-            f"benchmark bundle drift: task {task_id} missing numeric quality {quality_name!r}"
-        )
-    return float(value)
-
-
-def _task_type_value(task_type: TaskType | int) -> int:
-    return int(task_type.value) if isinstance(task_type, TaskType) else int(task_type)
-
-
-def _openml_task_type_for_bundle_task_type(task_type: str) -> int:
-    if task_type == _CLASSIFICATION_TASK_TYPE:
-        return _task_type_value(TaskType.SUPERVISED_CLASSIFICATION)
-    if task_type == _REGRESSION_TASK_TYPE:
-        return _task_type_value(TaskType.SUPERVISED_REGRESSION)
-    raise RuntimeError(f"unsupported benchmark bundle task_type: {task_type!r}")
+__all__ = [
+    "PreparedOpenMLBenchmarkTask",
+    "get_feature_preprocessor",
+    "benchmark_manifest_allows_missing_values",
+    "benchmark_manifest_bundle_summary",
+    "benchmark_manifest_task_type",
+    "load_benchmark_manifest_datasets",
+    "prepare_openml_benchmark_task",
+    "read_required_openml_quality",
+]
 
 
 def prepare_openml_benchmark_task(
@@ -112,172 +34,140 @@ def prepare_openml_benchmark_task(
     new_instances: int,
     task_type: str,
 ) -> PreparedOpenMLBenchmarkTask:
-    """Load and preprocess one OpenML task using the nanoTabPFN notebook logic."""
+    """Load and preprocess one OpenML task using the shared OpenML helper."""
 
-    task = openml.tasks.get_task(task_id, download_splits=False)
-    expected_task_type_id = _openml_task_type_for_bundle_task_type(task_type)
-    observed_task_type_id = _task_type_value(cast(TaskType | int, task.task_type_id))
-    if observed_task_type_id != expected_task_type_id:
+    return _prepare_openml_task(
+        task_id,
+        new_instances=new_instances,
+        task_type=task_type,
+    )
+
+
+def _task_record_metadata(record: Mapping[str, Any]) -> dict[str, Any]:
+    metadata = record.get("metadata")
+    if not isinstance(metadata, Mapping):
+        raise RuntimeError(f"benchmark task record omitted metadata: {record!r}")
+    return dict(metadata)
+
+
+def benchmark_manifest_task_type(task_records: list[dict[str, Any]]) -> str:
+    """Return the shared task type encoded by a manifest-backed benchmark surface."""
+
+    task_values = {str(record["task"]) for record in task_records}
+    if not task_values:
+        raise RuntimeError("manifest-backed benchmark surface has no task records")
+    if len(task_values) != 1:
         raise RuntimeError(
-            "benchmark bundle drift: "
-            f"task {task_id} is no longer {task_type}"
+            f"manifest-backed benchmark surface mixes task types: {sorted(task_values)!r}"
         )
-    task_any: Any = task
-    dataset = task_any.get_dataset(download_data=False)
-    dataset_any: Any = dataset
-    raw_qualities = dataset_any.qualities
-    number_of_features = read_required_openml_quality(
-        raw_qualities,
-        task_id=int(task_id),
-        quality_name="NumberOfFeatures",
-    )
-    missing_pct = read_required_openml_quality(
-        raw_qualities,
-        task_id=int(task_id),
-        quality_name="PercentageOfInstancesWithMissingValues",
-    )
-    number_of_classes = None
-    minority_class_pct = None
-    if task_type == _CLASSIFICATION_TASK_TYPE:
-        number_of_classes = read_required_openml_quality(
-            raw_qualities,
-            task_id=int(task_id),
-            quality_name="NumberOfClasses",
-        )
-        minority_class_pct = read_required_openml_quality(
-            raw_qualities,
-            task_id=int(task_id),
-            quality_name="MinorityClassPercentage",
-        )
+    task = next(iter(task_values))
+    if task == "classification":
+        return "supervised_classification"
+    if task == "regression":
+        return "supervised_regression"
+    raise RuntimeError(f"unsupported manifest-backed benchmark task type: {task!r}")
 
-    x_frame, y_raw, _categorical_indicator, _attribute_names = dataset_any.get_data(
-        target=str(task_any.target_name),
-        dataset_format="dataframe",
-    )
-    if new_instances < int(len(cast(Any, y_raw))):
-        train_test_split_kwargs: dict[str, Any] = {
-            "test_size": new_instances,
-            "random_state": 0,
-        }
-        if task_type == _CLASSIFICATION_TASK_TYPE:
-            train_test_split_kwargs["stratify"] = y_raw
-        _x_unused, x_sub, _y_unused, y_sub = train_test_split(x_frame, y_raw, **train_test_split_kwargs)
-    else:
-        x_sub = x_frame
-        y_sub = y_raw
 
-    preprocessor = get_feature_preprocessor(x_sub)
-    x = np.asarray(preprocessor.fit_transform(x_sub), dtype=np.float32)
-    observed_task = {
-        "task_id": int(task_id),
-        "dataset_name": str(dataset.name),
-        "n_rows": int(x.shape[0]),
-        "n_features": int(x.shape[1]),
+def benchmark_manifest_allows_missing_values(task_records: list[dict[str, Any]]) -> bool:
+    """Return whether the manifest-backed benchmark surface explicitly allows missing values."""
+
+    allow_flags: set[bool] = set()
+    for record in task_records:
+        benchmark_bundle = _task_record_metadata(record).get("benchmark_bundle")
+        if isinstance(benchmark_bundle, Mapping) and "allow_missing_values" in benchmark_bundle:
+            allow_flags.add(bool(benchmark_bundle["allow_missing_values"]))
+    if not allow_flags:
+        return False
+    if len(allow_flags) != 1:
+        raise RuntimeError(
+            "manifest-backed benchmark surface mixes allow_missing_values provenance"
+        )
+    return next(iter(allow_flags))
+
+
+def benchmark_manifest_bundle_summary(task_records: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Reconstruct compact source-bundle provenance when present in manifest metadata."""
+
+    benchmark_bundles: list[dict[str, Any]] = []
+    task_ids: list[int] = []
+    for record in task_records:
+        benchmark_bundle = _task_record_metadata(record).get("benchmark_bundle")
+        if not isinstance(benchmark_bundle, Mapping):
+            return None
+        payload = dict(benchmark_bundle)
+        benchmark_bundles.append(payload)
+        task_id = payload.get("task_id")
+        if not isinstance(task_id, int):
+            raise RuntimeError(f"benchmark bundle metadata omitted task_id: {payload!r}")
+        task_ids.append(int(task_id))
+    first = benchmark_bundles[0]
+    for payload in benchmark_bundles[1:]:
+        comparable = dict(payload)
+        comparable.pop("task_id", None)
+        baseline = dict(first)
+        baseline.pop("task_id", None)
+        if comparable != baseline:
+            raise RuntimeError(
+                "manifest-backed benchmark surface mixes source bundle provenance"
+            )
+    selection = first.get("selection")
+    return {
+        "name": str(first["name"]),
+        "version": int(first["version"]),
+        "source_path": str(first["source_path"]),
+        "task_count": int(len(task_ids)),
+        "task_ids": sorted(task_ids),
+        "selection": None if not isinstance(selection, Mapping) else dict(selection),
+        "allow_missing_values": bool(first.get("allow_missing_values", False)),
+        "all_tasks_no_missing": not bool(first.get("allow_missing_values", False)),
     }
-    if task_type == _CLASSIFICATION_TASK_TYPE:
-        label_encoder = LabelEncoder()
-        y = label_encoder.fit_transform(y_sub.to_numpy(copy=True)).astype(np.int64, copy=False)
-        observed_task["n_classes"] = int(np.unique(y).size)
-    else:
-        y = np.asarray(pd.to_numeric(y_sub, errors="raise"), dtype=np.float32)
-    return PreparedOpenMLBenchmarkTask(
-        task_id=int(task_id),
-        task_type=str(task_type),
-        dataset_name=str(dataset.name),
-        x=x,
-        y=y,
-        observed_task=observed_task,
-        qualities={
-            "NumberOfFeatures": float(number_of_features),
-            "PercentageOfInstancesWithMissingValues": float(missing_pct),
-            **(
-                {}
-                if number_of_classes is None
-                else {"NumberOfClasses": float(number_of_classes)}
-            ),
-            **(
-                {}
-                if minority_class_pct is None
-                else {"MinorityClassPercentage": float(minority_class_pct)}
-            ),
-        },
-    )
-def load_openml_benchmark_datasets(
+
+
+def load_benchmark_manifest_datasets(
     *,
-    new_instances: int = 200,
-    benchmark_bundle_path: Path | None = None,
-    allow_missing_values: bool = False,
-) -> tuple[dict[str, tuple[np.ndarray, np.ndarray]], list[dict[str, Any]]]:
-    """Load the nanoTabPFN OpenML benchmark suite."""
+    benchmark_manifest_path: Path,
+    allow_missing_values: bool | None = None,
+) -> tuple[dict[str, tuple[np.ndarray, np.ndarray]], list[dict[str, Any]], dict[str, Any]]:
+    """Load a manifest-backed benchmark surface."""
 
-    bundle = load_benchmark_bundle(
-        benchmark_bundle_path,
-        allow_missing_values=allow_missing_values,
+    resolved_manifest_path = benchmark_manifest_path.expanduser().resolve()
+    if resolved_manifest_path.suffix.lower() == ".json":
+        raise RuntimeError(
+            "benchmark execution now requires a materialized manifest parquet; "
+            "materialize the benchmark bundle first and pass `--benchmark-manifest-path` "
+            f"instead of the bundle JSON: {resolved_manifest_path}"
+        )
+    # Load first with missing values admitted, then enforce the benchmark-surface policy
+    # from persisted provenance below.
+    loaded: LoadedManifestDatasets = load_manifest_datasets(
+        resolved_manifest_path,
+        allow_missing_values=True,
     )
-    selection = cast(dict[str, Any], bundle["selection"])
-    selection_task_type = benchmark_bundle_task_type(bundle)
-    expected_new_instances = int(selection["new_instances"])
-    if new_instances != expected_new_instances:
+    task_records = [dict(record) for record in loaded.task_records]
+    if not task_records:
         raise RuntimeError(
-            "benchmark bundle selection mismatch: "
-            f"expected new_instances={expected_new_instances}, got {new_instances}"
+            f"manifest-backed benchmark surface produced no task records: {benchmark_manifest_path}"
         )
-    expected_tasks = cast(list[dict[str, Any]], bundle["tasks"])
-    expected_by_task_id = {int(task["task_id"]): task for task in expected_tasks}
-    datasets: dict[str, tuple[np.ndarray, np.ndarray]] = {}
-    benchmark_tasks: list[dict[str, Any]] = []
-    for task_id in cast(list[int], bundle["task_ids"]):
-        prepared = prepare_openml_benchmark_task(
-            int(task_id),
-            new_instances=new_instances,
-            task_type=selection_task_type,
-        )
-        number_of_features = prepared.qualities["NumberOfFeatures"]
-        missing_pct = prepared.qualities["PercentageOfInstancesWithMissingValues"]
-        if number_of_features > int(selection["max_features"]):
-            raise RuntimeError(
-                "benchmark bundle drift: "
-                f"task {task_id} exceeds max_features expected<={selection['max_features']}, actual={number_of_features}"
-            )
-        if missing_pct > float(selection["max_missing_pct"]):
-            raise RuntimeError(
-                "benchmark bundle drift: "
-                f"task {task_id} exceeds max_missing_pct expected<={selection['max_missing_pct']}, actual={missing_pct}"
-            )
-        if selection_task_type == _CLASSIFICATION_TASK_TYPE:
-            number_of_classes = prepared.qualities["NumberOfClasses"]
-            minority_class_pct = prepared.qualities["MinorityClassPercentage"]
-            if number_of_classes > int(selection["max_classes"]):
-                raise RuntimeError(
-                    "benchmark bundle drift: "
-                    f"task {task_id} exceeds max_classes expected<={selection['max_classes']}, actual={number_of_classes}"
-                )
-            if minority_class_pct < float(selection["min_minority_class_pct"]):
-                raise RuntimeError(
-                    "benchmark bundle drift: "
-                    "task "
-                    f"{task_id} violates min_minority_class_pct expected>={selection['min_minority_class_pct']}, "
-                    f"actual={minority_class_pct}"
-                )
-        expected_task = expected_by_task_id[int(task_id)]
-        if prepared.observed_task != expected_task:
-            raise RuntimeError(
-                "benchmark bundle drift: "
-                f"task {task_id} metadata mismatch expected={expected_task}, actual={prepared.observed_task}"
-            )
-
-        datasets[prepared.dataset_name] = (prepared.x, prepared.y)
-        benchmark_tasks.append(dict(prepared.observed_task))
-    if not datasets:
-        raise RuntimeError("OpenML benchmark produced no datasets after filtering")
-    if len(benchmark_tasks) != len(expected_tasks):
+    surface_allow_missing_values = benchmark_manifest_allows_missing_values(task_records)
+    if allow_missing_values is not None and bool(allow_missing_values) != surface_allow_missing_values:
         raise RuntimeError(
-            "benchmark bundle drift: "
-            f"task count mismatch expected={len(expected_tasks)}, actual={len(benchmark_tasks)}"
+            "benchmark manifest allow_missing_values mismatch: "
+            f"expected={bool(allow_missing_values)}, actual={surface_allow_missing_values}, "
+            f"path={benchmark_manifest_path}"
         )
-    if not allow_missing_values:
+    datasets = loaded.datasets
+    if not surface_allow_missing_values:
         _assert_finite_benchmark_datasets(
             datasets,
-            context=f"benchmark bundle {bundle['name']!r}",
+            context=f"benchmark manifest {benchmark_manifest_path!s}",
         )
-    return datasets, benchmark_tasks
+    bundle_summary = benchmark_manifest_bundle_summary(task_records)
+    return datasets, task_records, {
+        "manifest_path": str(loaded.manifest_path),
+        "contract_version": int(loaded.contract_version),
+        "manifest_sha256": str(loaded.manifest_sha256),
+        "task_type": benchmark_manifest_task_type(task_records),
+        "allow_missing_values": surface_allow_missing_values,
+        "benchmark_bundle": bundle_summary,
+        "persisted_summary": loaded.persisted_summary,
+    }

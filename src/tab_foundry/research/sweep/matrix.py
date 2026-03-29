@@ -301,7 +301,9 @@ def render_system_delta_matrix(
     lines.append("## Locked Surface")
     lines.append("")
     lines.append(f"- Anchor run id: `{anchor_run_id}`")
-    lines.append(f"- Benchmark bundle: `{queue['benchmark_bundle_path']}`")
+    benchmark_surface_path = str(queue["benchmark_manifest_path"])
+    benchmark_surface_label = "Benchmark bundle" if benchmark_surface_path.endswith(".json") else "Benchmark manifest"
+    lines.append(f"- {benchmark_surface_label}: `{benchmark_surface_path}`")
     lines.append(f"- Control baseline id: `{queue['control_baseline_id']}`")
     raw_external_benchmarks = queue.get("external_benchmarks", [])
     external_benchmarks = (

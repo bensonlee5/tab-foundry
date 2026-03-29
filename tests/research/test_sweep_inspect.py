@@ -172,7 +172,7 @@ def _mini_sweep_workspace(
                     "status": "draft",
                     "anchor_run_id": "anchor_run",
                     "complexity_level": "binary_md",
-                    "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+                    "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
                     "control_baseline_id": "cls_benchmark_linear_v2",
                     "external_benchmarks": ["tabiclv2"],
                 }
@@ -188,7 +188,7 @@ def _mini_sweep_workspace(
             "status": "draft",
             "complexity_level": "binary_md",
             "anchor_run_id": "anchor_run",
-            "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+            "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
             "control_baseline_id": "cls_benchmark_linear_v2",
             "external_benchmarks": ["tabiclv2"],
             "comparison_policy": "anchor_only",

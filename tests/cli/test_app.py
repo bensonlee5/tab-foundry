@@ -394,7 +394,7 @@ def test_nested_cli_research_sweep_create_sweep_dispatches_to_handler(
             "run_001",
             "--complexity-level",
             "medium",
-            "--benchmark-bundle-path",
+            "--benchmark-manifest-path",
             "/tmp/bundle.json",
             "--control-baseline-id",
             "baseline_v1",

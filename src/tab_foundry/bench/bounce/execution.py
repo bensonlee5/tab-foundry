@@ -16,31 +16,25 @@ from tab_foundry.bench.bounce.config import (
 def evaluate_one_bundle(
     *,
     run_dir: Path,
-    bundle_path: Path,
+    manifest_path: Path,
     device: str,
     out_path: Path,
     bootstrap_samples: int,
     bootstrap_confidence: float,
-    load_benchmark_bundle_for_execution_fn: Any,
-    load_openml_benchmark_datasets_fn: Any,
+    load_benchmark_manifest_datasets_fn: Any,
     evaluate_tab_foundry_run_fn: Any,
     summarize_checkpoint_curve_fn: Any,
-    benchmark_bundle_summary_fn: Any,
-    benchmark_bundle_task_type_fn: Any,
     curve_summary_fn: Any,
     write_jsonl_fn: Any,
 ) -> dict[str, Any]:
-    bundle, allow_missing_values = load_benchmark_bundle_for_execution_fn(bundle_path)
-    selection = cast(dict[str, Any], bundle["selection"])
-    datasets, benchmark_tasks = load_openml_benchmark_datasets_fn(
-        new_instances=int(selection["new_instances"]),
-        benchmark_bundle_path=bundle_path,
-        allow_missing_values=allow_missing_values,
+    datasets, benchmark_tasks, benchmark_surface = load_benchmark_manifest_datasets_fn(
+        benchmark_manifest_path=manifest_path,
     )
+    allow_missing_values = bool(benchmark_surface["allow_missing_values"])
     raw_records = evaluate_tab_foundry_run_fn(
         run_dir,
         datasets=datasets,
-        task_type=benchmark_bundle_task_type_fn(bundle),
+        task_type=str(benchmark_surface["task_type"]),
         device=device,
         allow_checkpoint_failures=True,
         allow_missing_values=allow_missing_values,
@@ -57,7 +51,8 @@ def evaluate_one_bundle(
         cast(list[dict[str, Any]], diagnostics["records"]),
     )
     return {
-        "bundle": benchmark_bundle_summary_fn(bundle, source_path=bundle_path),
+        "benchmark_manifest": dict(benchmark_surface),
+        "bundle": benchmark_surface["benchmark_bundle"],
         "benchmark_tasks": benchmark_tasks,
         "records": records,
         "records_path": str(out_path.resolve()),
@@ -70,7 +65,7 @@ def evaluate_one_bundle(
 def run_benchmark_bounce_diagnosis(
     config: BenchmarkBounceDiagnosisConfig,
     *,
-    default_benchmark_bundle_path_fn: Any,
+    default_benchmark_manifest_path_fn: Any,
     evaluate_one_bundle_fn: Any,
     run_dense_checkpoint_rerun_fn: Any,
     load_history_fn: Any,
@@ -95,25 +90,25 @@ def run_benchmark_bounce_diagnosis(
     if not run_dir.exists():
         raise RuntimeError(f"run_dir does not exist: {run_dir}")
 
-    benchmark_bundle_path = (
-        default_benchmark_bundle_path_fn()
-        if config.benchmark_bundle_path is None
-        else config.benchmark_bundle_path.expanduser().resolve()
+    benchmark_manifest_path = (
+        default_benchmark_manifest_path_fn()
+        if config.benchmark_manifest_path is None
+        else config.benchmark_manifest_path.expanduser().resolve()
     )
 
     primary = evaluate_one_bundle_fn(
         run_dir=run_dir,
-        bundle_path=benchmark_bundle_path,
+        manifest_path=benchmark_manifest_path,
         device=config.device,
         out_path=out_root / "primary_bundle_curve.jsonl",
         bootstrap_samples=bootstrap_samples,
         bootstrap_confidence=bootstrap_confidence,
     )
     confirmation: dict[str, Any] | None = None
-    if config.confirmation_benchmark_bundle_path is not None:
+    if config.confirmation_benchmark_manifest_path is not None:
         confirmation = evaluate_one_bundle_fn(
             run_dir=run_dir,
-            bundle_path=config.confirmation_benchmark_bundle_path.expanduser().resolve(),
+            manifest_path=config.confirmation_benchmark_manifest_path.expanduser().resolve(),
             device=config.device,
             out_path=out_root / "confirmation_bundle_curve.jsonl",
             bootstrap_samples=bootstrap_samples,
@@ -127,14 +122,14 @@ def run_benchmark_bounce_diagnosis(
     elif config.dense_checkpoint_every is not None:
         dense_run_dir = run_dense_checkpoint_rerun_fn(config)
     if dense_run_dir is not None:
-        dense_bundle_path = (
-            benchmark_bundle_path
+        dense_manifest_path = (
+            benchmark_manifest_path
             if confirmation is None
-            else Path(str(cast(dict[str, Any], confirmation["bundle"])["source_path"]))
+            else Path(str(cast(dict[str, Any], confirmation["benchmark_manifest"])["manifest_path"]))
         )
         dense_confirmation = evaluate_one_bundle_fn(
             run_dir=dense_run_dir,
-            bundle_path=dense_bundle_path,
+            manifest_path=dense_manifest_path,
             device=config.device,
             out_path=out_root / "dense_confirmation_bundle_curve.jsonl",
             bootstrap_samples=bootstrap_samples,
@@ -197,12 +192,14 @@ def run_benchmark_bounce_diagnosis(
         "bundles": {
             "primary": {
                 "benchmark_bundle": primary["bundle"],
+                "benchmark_manifest": primary["benchmark_manifest"],
                 "summary": primary["summary"],
             },
             "confirmation": None
             if confirmation is None
             else {
                 "benchmark_bundle": confirmation["bundle"],
+                "benchmark_manifest": confirmation["benchmark_manifest"],
                 "summary": confirmation["summary"],
             },
         },

@@ -50,7 +50,7 @@ def test_stability_followup_is_registered_but_not_active() -> None:
         "status": "completed",
         "anchor_run_id": None,
         "complexity_level": "binary_md",
-        "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         "control_baseline_id": "cls_benchmark_linear_v2",
     }
 

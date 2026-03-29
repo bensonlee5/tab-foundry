@@ -1,1 +1,1 @@
-"""Data namespace. Import from submodules such as ``tab_foundry.data.manifest``."""
+"""Data namespace for dataset abstractions, loaders, and materialization consumers."""

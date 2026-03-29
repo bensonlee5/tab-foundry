@@ -34,7 +34,7 @@ def queue_metadata_payload(queue: Mapping[str, Any]) -> dict[str, Any]:
         "training_config_profile": str(queue["training_config_profile"]),
         "surface_role": str(queue["surface_role"]),
         "comparison_policy": str(queue["comparison_policy"]),
-        "benchmark_bundle_path": str(queue["benchmark_bundle_path"]),
+        "benchmark_manifest_path": str(queue["benchmark_manifest_path"]),
         "control_baseline_id": str(queue["control_baseline_id"]),
         "external_benchmarks": list(cast(list[Any], queue.get("external_benchmarks", []))),
         "canonical_sweep_path": str(queue["canonical_sweep_path"]),

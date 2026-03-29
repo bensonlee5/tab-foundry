@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, ValidationInfo, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, StrictInt, StrictStr, ValidationInfo, field_validator
 
 from tab_foundry.external_benchmarks import (
     EXTERNAL_BENCHMARK_NANOTABPFN,
@@ -164,11 +164,13 @@ class SweepIndexEntryPayload(_SweepPayloadModel):
     status: StrictStr
     anchor_run_id: StrictStr | None = None
     complexity_level: StrictStr
-    benchmark_bundle_path: StrictStr
+    benchmark_manifest_path: StrictStr = Field(
+        validation_alias=AliasChoices("benchmark_manifest_path", "benchmark_bundle_path")
+    )
     control_baseline_id: StrictStr
     external_benchmarks: list[str] | None = None
 
-    @field_validator("status", "complexity_level", "benchmark_bundle_path", "control_baseline_id")
+    @field_validator("status", "complexity_level", "benchmark_manifest_path", "control_baseline_id")
     @classmethod
     def _validate_required_strings(cls, value: str, info: ValidationInfo) -> str:
         assert info.field_name is not None
@@ -198,7 +200,9 @@ class SweepPayload(_SweepPayloadModel):
     status: StrictStr
     complexity_level: StrictStr
     anchor_run_id: StrictStr | None = None
-    benchmark_bundle_path: StrictStr
+    benchmark_manifest_path: StrictStr = Field(
+        validation_alias=AliasChoices("benchmark_manifest_path", "benchmark_bundle_path")
+    )
     control_baseline_id: StrictStr
     external_benchmarks: list[str] | None = None
     training_experiment: StrictStr
@@ -213,7 +217,7 @@ class SweepPayload(_SweepPayloadModel):
         "sweep_id",
         "status",
         "complexity_level",
-        "benchmark_bundle_path",
+        "benchmark_manifest_path",
         "control_baseline_id",
         "training_experiment",
         "training_config_profile",
@@ -385,7 +389,9 @@ class MaterializedQueuePayload(_SweepPayloadModel):
     sweep_status: StrictStr | None = None
     complexity_level: StrictStr | None = None
     anchor_run_id: StrictStr | None = None
-    benchmark_bundle_path: StrictStr
+    benchmark_manifest_path: StrictStr = Field(
+        validation_alias=AliasChoices("benchmark_manifest_path", "benchmark_bundle_path")
+    )
     control_baseline_id: StrictStr
     external_benchmarks: list[str] = Field(default_factory=list)
     training_experiment: StrictStr
@@ -403,7 +409,7 @@ class MaterializedQueuePayload(_SweepPayloadModel):
         "canonical_queue_path",
         "canonical_matrix_path",
         "sweep_id",
-        "benchmark_bundle_path",
+        "benchmark_manifest_path",
         "control_baseline_id",
         "training_experiment",
         "training_config_profile",

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
+from tab_realdata_hub.manifest import manifest_sha256
 from tab_foundry.benchmark_registry import resolve_registry_path_value
 import tab_foundry.control_baseline_registry as control_baseline_registry
 from tab_foundry.bench.comparison_contract import (
@@ -17,7 +18,6 @@ from tab_foundry.bench.comparison_contract import (
     DEFAULT_NANOTABPFN_STEPS,
 )
 from tab_foundry.bench.nanotabpfn import benchmark_host_fingerprint, resolve_device
-from tab_foundry.bench.nanotabpfn.bundle import canonical_benchmark_bundle_source_path
 
 from .artifacts import ExecutionPaths
 from .device_policy import resolve_sweep_metadata_device
@@ -42,7 +42,8 @@ class NanoTabPFNCurveReuseSelection:
 
 @dataclass(frozen=True)
 class NanoTabPFNCandidatePayload:
-    benchmark_bundle_path: str
+    benchmark_manifest_path: str
+    benchmark_manifest_sha256: str
     control_baseline_id: str
     signature: dict[str, Any] | None
     metadata: dict[str, Any] | None
@@ -73,9 +74,13 @@ def _float_matches(left: float, right: float) -> bool:
     return abs(float(left) - float(right)) <= 1.0e-12
 
 
+def _normalized_manifest_path(path: Path | str) -> str:
+    return str(Path(path).expanduser().resolve())
+
+
 def _resolved_nanotabpfn_signature(
     *,
-    benchmark_bundle_path: Path,
+    benchmark_manifest_path: Path,
     control_baseline_id: str,
     nanotabpfn_root: Path,
     prior_dump: Path | None,
@@ -86,7 +91,8 @@ def _resolved_nanotabpfn_signature(
         auto_resolve_fn=resolve_device,
     )
     return {
-        "benchmark_bundle_path": canonical_benchmark_bundle_source_path(benchmark_bundle_path),
+        "benchmark_manifest_path": _normalized_manifest_path(benchmark_manifest_path),
+        "benchmark_manifest_sha256": manifest_sha256(benchmark_manifest_path),
         "control_baseline_id": str(control_baseline_id).strip(),
         "nanotabpfn_root": nanotabpfn_root.expanduser().resolve(),
         "nanotabpfn_python": planned_nanotabpfn_python_path(nanotabpfn_root),
@@ -107,6 +113,8 @@ def _signature_metadata(signature: Mapping[str, Any]) -> dict[str, Any]:
     nanotabpfn_python = signature.get("nanotabpfn_python")
     prior_dump_path = signature.get("prior_dump_path")
     return {
+        "benchmark_manifest_path": str(signature["benchmark_manifest_path"]),
+        "benchmark_manifest_sha256": str(signature["benchmark_manifest_sha256"]),
         "root": None if nanotabpfn_root is None else str(cast(Path, nanotabpfn_root)),
         "python": None if nanotabpfn_python is None else str(cast(Path, nanotabpfn_python)),
         "device": str(signature["device"]),
@@ -149,14 +157,22 @@ def _candidate_signature(
     except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
         return None
 
-    bundle = summary.get("benchmark_bundle")
+    benchmark_manifest = summary.get("benchmark_manifest")
     nanotabpfn = summary.get("nanotabpfn")
     nanotabpfn_error = summary.get("nanotabpfn_error")
-    if not isinstance(bundle, Mapping):
+    if not isinstance(benchmark_manifest, Mapping):
         return None
 
-    bundle_source = bundle.get("source_path")
-    if not isinstance(bundle_source, str) or not bundle_source.strip():
+    manifest_path_value = benchmark_manifest.get("path")
+    if not isinstance(manifest_path_value, str) or not manifest_path_value.strip():
+        return None
+    manifest_path = resolve_registry_path_value(manifest_path_value)
+    manifest_digest_value = benchmark_manifest.get("sha256")
+    if isinstance(manifest_digest_value, str) and manifest_digest_value.strip():
+        manifest_digest = str(manifest_digest_value).strip()
+    elif manifest_path.exists():
+        manifest_digest = manifest_sha256(manifest_path)
+    else:
         return None
 
     control_baseline_id = _candidate_control_baseline_id(summary=summary, candidate=candidate)
@@ -198,7 +214,8 @@ def _candidate_signature(
                 else None
             )
             signature = {
-                "benchmark_bundle_path": canonical_benchmark_bundle_source_path(str(bundle_source)),
+                "benchmark_manifest_path": _normalized_manifest_path(manifest_path),
+                "benchmark_manifest_sha256": manifest_digest,
                 "control_baseline_id": control_baseline_id,
                 "nanotabpfn_root": root,
                 "nanotabpfn_python": nanotabpfn_python,
@@ -224,7 +241,8 @@ def _candidate_signature(
     if curve_path is None and reusable_error is None:
         return None
     return NanoTabPFNCandidatePayload(
-        benchmark_bundle_path=canonical_benchmark_bundle_source_path(str(bundle_source)),
+        benchmark_manifest_path=_normalized_manifest_path(manifest_path),
+        benchmark_manifest_sha256=manifest_digest,
         control_baseline_id=control_baseline_id,
         signature=signature,
         metadata=metadata,
@@ -239,7 +257,8 @@ def _signatures_match(
     candidate_signature: Mapping[str, Any],
 ) -> bool:
     comparable_keys = (
-        "benchmark_bundle_path",
+        "benchmark_manifest_path",
+        "benchmark_manifest_sha256",
         "control_baseline_id",
         "benchmark_host_fingerprint",
         "steps",
@@ -305,7 +324,9 @@ def _matching_nanotabpfn_curve(
 
     if payload.reusable_error is None or not _allows_legacy_error_reuse(candidate.source_label):
         return None
-    if payload.benchmark_bundle_path != current_signature["benchmark_bundle_path"]:
+    if payload.benchmark_manifest_path != current_signature["benchmark_manifest_path"]:
+        return None
+    if payload.benchmark_manifest_sha256 != current_signature["benchmark_manifest_sha256"]:
         return None
     if payload.control_baseline_id != current_signature["control_baseline_id"]:
         return None
@@ -397,7 +418,7 @@ def resolve_reusable_nanotabpfn_curve(
 ) -> NanoTabPFNCurveReuseSelection | None:
     control_baseline_id = str(sweep_meta["control_baseline_id"]).strip()
     current_signature = _resolved_nanotabpfn_signature(
-        benchmark_bundle_path=resolve_registry_path_value(str(sweep_meta["benchmark_bundle_path"])),
+        benchmark_manifest_path=resolve_registry_path_value(str(sweep_meta["benchmark_manifest_path"])),
         control_baseline_id=control_baseline_id,
         nanotabpfn_root=nanotabpfn_root,
         prior_dump=prior_dump,

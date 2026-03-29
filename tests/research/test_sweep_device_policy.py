@@ -68,7 +68,7 @@ def test_resolved_nanotabpfn_signature_remaps_auto_mps_to_cpu(
     )
 
     signature = curve_reuse_module._resolved_nanotabpfn_signature(
-        benchmark_bundle_path=bundle_path,
+        benchmark_manifest_path=bundle_path,
         control_baseline_id='cls_benchmark_linear_v2',
         nanotabpfn_root=nanotabpfn_root,
         prior_dump=prior_dump,

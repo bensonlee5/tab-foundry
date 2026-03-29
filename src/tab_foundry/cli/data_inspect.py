@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence, cast
 
 from tab_foundry.config import compose_config
-from tab_foundry.data.inspection import inspect_manifest
+from tab_realdata_hub.manifest import inspect_manifest
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.model.inspection import model_surface_payload
 from tab_foundry.model.spec import model_build_spec_from_mappings

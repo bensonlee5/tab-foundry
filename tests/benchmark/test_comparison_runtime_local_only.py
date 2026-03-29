@@ -23,12 +23,13 @@ def test_run_nanotabpfn_benchmark_supports_local_only_mode(
         },
         "task_ids": [1],
         "tasks": [
-            {
-                "dataset_name": "dummy",
-                "task_id": 1,
-                "n_rows": 200,
-                "n_features": 1,
-                "n_classes": 2,
+                {
+                    "dataset_name": "dummy",
+                    "task_id": 1,
+                    "task": "classification",
+                    "n_rows": 200,
+                    "n_features": 1,
+                    "n_classes": 2,
             }
         ],
         "version": 1,
@@ -83,15 +84,30 @@ def test_run_nanotabpfn_benchmark_supports_local_only_mode(
     )
     monkeypatch.setattr(
         compare_module,
-        "load_benchmark_bundle_for_execution",
-        lambda _path: (bundle, False),
+        "load_benchmark_manifest_datasets",
+        lambda **_kwargs: (
+            {"dummy": ([0.0], [0])},
+            list(bundle["tasks"]),
+            {
+                "manifest_path": str(bundle_path.resolve()),
+                "contract_version": 1,
+                "manifest_sha256": "0" * 64,
+                "task_type": "supervised_classification",
+                "allow_missing_values": False,
+                "benchmark_bundle": {
+                    "name": str(bundle["name"]),
+                    "version": int(bundle["version"]),
+                    "source_path": str(bundle_path.resolve()),
+                    "task_count": 1,
+                    "task_ids": [1],
+                    "selection": dict(bundle["selection"]),
+                    "allow_missing_values": False,
+                    "all_tasks_no_missing": True,
+                },
+                "persisted_summary": None,
+            },
+        ),
     )
-    monkeypatch.setattr(
-        compare_module,
-        "load_openml_benchmark_datasets",
-        lambda **_kwargs: ([object()], list(bundle["tasks"])),
-    )
-    monkeypatch.setattr(compare_module, "save_dataset_cache", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(compare_module, "evaluate_tab_foundry_run", lambda *_args, **_kwargs: [record])
     monkeypatch.setattr(compare_module, "summarize_checkpoint_curve", lambda *_args, **_kwargs: summarized_curve)
     monkeypatch.setattr(compare_module, "plot_comparison_curve", lambda **_kwargs: None)
@@ -115,7 +131,7 @@ def test_run_nanotabpfn_benchmark_supports_local_only_mode(
         BenchmarkComparisonConfig(
             tab_foundry_run_dir=run_dir,
             out_root=out_root,
-            benchmark_bundle_path=bundle_path,
+            benchmark_manifest_path=bundle_path,
             external_benchmarks=(),
         )
     )

@@ -8,7 +8,7 @@ from typing import Any, Mapping, Sequence
 from omegaconf import DictConfig
 
 from tab_foundry.config import compose_config
-from tab_foundry.data.manifest import ManifestSummary
+from tab_realdata_hub.manifest import ManifestSummary
 
 
 def _normalized_stage_dict(stage: Mapping[str, Any]) -> dict[str, Any]:

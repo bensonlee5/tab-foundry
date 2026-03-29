@@ -18,7 +18,7 @@ from tab_foundry.data.dagzoo_workflow import (
     DagzooGenerateManifestConfig,
     run_dagzoo_generate_manifest,
 )
-from tab_foundry.data.manifest import build_manifest
+from tab_realdata_hub.manifest import build_manifest
 
 from . import manifest_and_dataset_cases as cases
 

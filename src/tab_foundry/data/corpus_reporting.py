@@ -5,11 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping, cast
 
+from tab_realdata_hub.manifest import compare_jsonlike_payloads
+
 import tab_foundry.benchmark_registry as benchmark_registry
 
 from .corpus_loading import _ensure_mapping, _ensure_non_empty_string, _read_json_mapping
 from .corpus_lookup import load_corpus_record
-from .inspection import compare_jsonlike_payloads
 
 
 def corpus_compare_payload(

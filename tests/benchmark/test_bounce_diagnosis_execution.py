@@ -23,76 +23,13 @@ def test_run_benchmark_bounce_diagnosis_writes_summary_and_flags_benchmark_noise
     confirmation_bundle_path.write_text("{}", encoding="utf-8")
     policy_calls: list[tuple[str, bool]] = []
 
-    def _fake_load_bundle(path: Path | None = None) -> tuple[dict[str, Any], bool]:
-        resolved = None if path is None else Path(path).resolve()
-        if resolved == confirmation_bundle_path.resolve():
-            policy_calls.append(("load_confirmation", True))
-            return (
-                {
-                    "name": "large",
-                    "version": 1,
-                    "selection": {"new_instances": 4, "max_missing_pct": 5.0},
-                    "task_ids": list(range(1, 13)),
-                    "tasks": [
-                        {
-                            "task_id": task_id,
-                            "dataset_name": f"d{task_id}",
-                            "n_rows": 4,
-                            "n_features": 2,
-                            "n_classes": 2,
-                        }
-                        for task_id in range(1, 13)
-                    ],
-                },
-                True,
-            )
-        policy_calls.append(("load_primary", False))
-        return (
-            {
-                "name": "medium",
-                "version": 1,
-                "selection": {"new_instances": 4, "max_missing_pct": 0.0},
-                "task_ids": list(range(1, 11)),
-                "tasks": [
-                    {
-                        "task_id": task_id,
-                        "dataset_name": f"d{task_id}",
-                        "n_rows": 4,
-                        "n_features": 2,
-                        "n_classes": 2,
-                    }
-                    for task_id in range(1, 11)
-                ],
-            },
-            False,
-        )
-
     def _fake_load_datasets(
         *,
-        new_instances: int,
-        benchmark_bundle_path: Path | None = None,
-        allow_missing_values: bool = False,
-    ) -> tuple[dict[str, tuple[list[float], list[int]]], list[dict[str, Any]]]:
-        del new_instances
-        if benchmark_bundle_path is not None and Path(benchmark_bundle_path).resolve() == confirmation_bundle_path.resolve():
-            policy_calls.append(("datasets_confirmation", bool(allow_missing_values)))
-            return (
-                {f"d{task_id}": ([0.0], [0]) for task_id in range(1, 13)},
-                [
-                    {
-                        "task_id": task_id,
-                        "dataset_name": f"d{task_id}",
-                        "n_rows": 4,
-                        "n_features": 2,
-                        "n_classes": 2,
-                    }
-                    for task_id in range(1, 13)
-                ],
-            )
-        policy_calls.append(("datasets_primary", bool(allow_missing_values)))
-        return (
-            {f"d{task_id}": ([0.0], [0]) for task_id in range(1, 11)},
-            [
+        benchmark_manifest_path: Path | None = None,
+    ) -> tuple[dict[str, tuple[list[float], list[int]]], list[dict[str, Any]], dict[str, Any]]:
+        if benchmark_manifest_path is not None and Path(benchmark_manifest_path).resolve() == confirmation_bundle_path.resolve():
+            policy_calls.append(("datasets_confirmation", True))
+            benchmark_tasks = [
                 {
                     "task_id": task_id,
                     "dataset_name": f"d{task_id}",
@@ -100,8 +37,60 @@ def test_run_benchmark_bounce_diagnosis_writes_summary_and_flags_benchmark_noise
                     "n_features": 2,
                     "n_classes": 2,
                 }
-                for task_id in range(1, 11)
-            ],
+                for task_id in range(1, 13)
+            ]
+            return (
+                {f"d{task_id}": ([0.0], [0]) for task_id in range(1, 13)},
+                benchmark_tasks,
+                {
+                    "manifest_path": str(confirmation_bundle_path.resolve()),
+                    "contract_version": 1,
+                    "manifest_sha256": "confirmation",
+                    "task_type": "supervised_classification",
+                    "allow_missing_values": True,
+                    "benchmark_bundle": {
+                        "name": "large",
+                        "version": 1,
+                        "source_path": str(confirmation_bundle_path.resolve()),
+                        "task_count": len(benchmark_tasks),
+                        "task_ids": [task["task_id"] for task in benchmark_tasks],
+                        "selection": {"new_instances": 4, "max_missing_pct": 5.0},
+                        "allow_missing_values": True,
+                    },
+                    "persisted_summary": None,
+                },
+            )
+        policy_calls.append(("datasets_primary", False))
+        benchmark_tasks = [
+            {
+                "task_id": task_id,
+                "dataset_name": f"d{task_id}",
+                "n_rows": 4,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+            for task_id in range(1, 11)
+        ]
+        return (
+            {f"d{task_id}": ([0.0], [0]) for task_id in range(1, 11)},
+            benchmark_tasks,
+            {
+                "manifest_path": str(primary_bundle_path.resolve()),
+                "contract_version": 1,
+                "manifest_sha256": "primary",
+                "task_type": "supervised_classification",
+                "allow_missing_values": False,
+                "benchmark_bundle": {
+                    "name": "medium",
+                    "version": 1,
+                    "source_path": str(primary_bundle_path.resolve()),
+                    "task_count": len(benchmark_tasks),
+                    "task_ids": [task["task_id"] for task in benchmark_tasks],
+                    "selection": {"new_instances": 4, "max_missing_pct": 0.0},
+                    "allow_missing_values": False,
+                },
+                "persisted_summary": None,
+            },
         )
 
     def _fake_evaluate_run(
@@ -158,12 +147,7 @@ def test_run_benchmark_bounce_diagnosis_writes_summary_and_flags_benchmark_noise
             },
         ]
 
-    monkeypatch.setattr(
-        diagnosis_module,
-        "load_benchmark_bundle_for_execution",
-        _fake_load_bundle,
-    )
-    monkeypatch.setattr(diagnosis_module, "load_openml_benchmark_datasets", _fake_load_datasets)
+    monkeypatch.setattr(diagnosis_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
     monkeypatch.setattr(diagnosis_module, "evaluate_tab_foundry_run", _fake_evaluate_run)
     monkeypatch.setattr(
         diagnosis_module,
@@ -179,8 +163,8 @@ def test_run_benchmark_bounce_diagnosis_writes_summary_and_flags_benchmark_noise
             run_dir=run_dir,
             out_root=out_root,
             device="cpu",
-            benchmark_bundle_path=primary_bundle_path,
-            confirmation_benchmark_bundle_path=confirmation_bundle_path,
+            benchmark_manifest_path=primary_bundle_path,
+            confirmation_benchmark_manifest_path=confirmation_bundle_path,
             bootstrap_samples=64,
         )
     )
@@ -193,10 +177,8 @@ def test_run_benchmark_bounce_diagnosis_writes_summary_and_flags_benchmark_noise
     assert Path(written["artifacts"]["primary_bundle_curve_jsonl"]).exists()
     assert Path(written["artifacts"]["confirmation_bundle_curve_jsonl"]).exists()
     assert policy_calls == [
-        ("load_primary", False),
         ("datasets_primary", False),
         ("evaluate_primary", False),
-        ("load_confirmation", True),
         ("datasets_confirmation", True),
         ("evaluate_confirmation", True),
     ]
@@ -214,40 +196,37 @@ def test_run_benchmark_bounce_diagnosis_without_confirmation_uses_primary_bundle
     primary_bundle_path.write_text("{}", encoding="utf-8")
     policy_calls: list[tuple[str, bool]] = []
 
-    def _fake_load_bundle(path: Path | None = None) -> tuple[dict[str, Any], bool]:
-        assert path is not None
-        assert Path(path).resolve() == primary_bundle_path.resolve()
-        policy_calls.append(("load_primary", False))
-        return (
-            {
-                "name": "medium",
-                "version": 1,
-                "selection": {"new_instances": 4, "max_missing_pct": 0.0},
-                "task_ids": [1, 2],
-                "tasks": [
-                    {"task_id": 1, "dataset_name": "d1", "n_rows": 4, "n_features": 2, "n_classes": 2},
-                    {"task_id": 2, "dataset_name": "d2", "n_rows": 4, "n_features": 2, "n_classes": 2},
-                ],
-            },
-            False,
-        )
-
     def _fake_load_datasets(
         *,
-        new_instances: int,
-        benchmark_bundle_path: Path | None = None,
-        allow_missing_values: bool = False,
-    ) -> tuple[dict[str, tuple[list[float], list[int]]], list[dict[str, Any]]]:
-        assert new_instances == 4
-        assert benchmark_bundle_path is not None
-        assert Path(benchmark_bundle_path).resolve() == primary_bundle_path.resolve()
-        policy_calls.append(("datasets_primary", bool(allow_missing_values)))
+        benchmark_manifest_path: Path | None = None,
+    ) -> tuple[dict[str, tuple[list[float], list[int]]], list[dict[str, Any]], dict[str, Any]]:
+        assert benchmark_manifest_path is not None
+        assert Path(benchmark_manifest_path).resolve() == primary_bundle_path.resolve()
+        policy_calls.append(("datasets_primary", False))
+        benchmark_tasks = [
+            {"task_id": 1, "dataset_name": "d1", "n_rows": 4, "n_features": 2, "n_classes": 2},
+            {"task_id": 2, "dataset_name": "d2", "n_rows": 4, "n_features": 2, "n_classes": 2},
+        ]
         return (
             {"d1": ([0.0], [0]), "d2": ([0.0], [0])},
-            [
-                {"task_id": 1, "dataset_name": "d1", "n_rows": 4, "n_features": 2, "n_classes": 2},
-                {"task_id": 2, "dataset_name": "d2", "n_rows": 4, "n_features": 2, "n_classes": 2},
-            ],
+            benchmark_tasks,
+            {
+                "manifest_path": str(primary_bundle_path.resolve()),
+                "contract_version": 1,
+                "manifest_sha256": "primary",
+                "task_type": "supervised_classification",
+                "allow_missing_values": False,
+                "benchmark_bundle": {
+                    "name": "medium",
+                    "version": 1,
+                    "source_path": str(primary_bundle_path.resolve()),
+                    "task_count": len(benchmark_tasks),
+                    "task_ids": [task["task_id"] for task in benchmark_tasks],
+                    "selection": {"new_instances": 4, "max_missing_pct": 0.0},
+                    "allow_missing_values": False,
+                },
+                "persisted_summary": None,
+            },
         )
 
     def _fake_evaluate_run(
@@ -282,12 +261,7 @@ def test_run_benchmark_bounce_diagnosis_without_confirmation_uses_primary_bundle
             },
         ]
 
-    monkeypatch.setattr(
-        diagnosis_module,
-        "load_benchmark_bundle_for_execution",
-        _fake_load_bundle,
-    )
-    monkeypatch.setattr(diagnosis_module, "load_openml_benchmark_datasets", _fake_load_datasets)
+    monkeypatch.setattr(diagnosis_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
     monkeypatch.setattr(diagnosis_module, "evaluate_tab_foundry_run", _fake_evaluate_run)
     monkeypatch.setattr(
         diagnosis_module,
@@ -303,7 +277,7 @@ def test_run_benchmark_bounce_diagnosis_without_confirmation_uses_primary_bundle
             run_dir=run_dir,
             out_root=out_root,
             device="cpu",
-            benchmark_bundle_path=primary_bundle_path,
+            benchmark_manifest_path=primary_bundle_path,
             bootstrap_samples=64,
         )
     )
@@ -312,7 +286,6 @@ def test_run_benchmark_bounce_diagnosis_without_confirmation_uses_primary_bundle
     assert summary["artifacts"]["confirmation_bundle_curve_jsonl"] is None
     assert summary["bundle_analysis"]["confirmation"] is None
     assert policy_calls == [
-        ("load_primary", False),
         ("datasets_primary", False),
         ("evaluate_primary", False),
     ]

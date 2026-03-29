@@ -14,7 +14,7 @@ import torch
 
 from tab_foundry.cli import build_parser
 from tab_foundry.data.dataset import PackedParquetTaskDataset
-from tab_foundry.data.manifest import _stable_split, build_manifest
+from tab_realdata_hub.manifest import _stable_split, build_manifest
 from tab_foundry.export.exporter import export_checkpoint
 from tab_foundry.export.loader_ref import run_reference_consumer
 from tab_foundry.model.factory import build_model_from_spec

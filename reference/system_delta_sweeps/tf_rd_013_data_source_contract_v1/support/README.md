@@ -1,16 +1,11 @@
 # TF-RD-013 Support Bundle
 
-Use this support bundle when you need the committed assumptions, regeneration
-flow, and comparison surfaces behind TF-RD-013 issues `#120` and `#122`.
+Use this support bundle when you need the committed assumptions and comparison
+surfaces behind TF-RD-013 issues `#120` and `#122`.
 
-It is a reference-only support surface for that contract, not the main roadmap
-or sweep execution guide.
-
-The canonical local regeneration flow is:
-
-```bash
-.venv/bin/python scripts/materialize_tf_rd_013_support.py --force
-```
+It is a historical reference-only support surface for that contract, not the
+main roadmap or sweep execution guide. Reconstructing these local artifacts is
+no longer a supported workflow.
 
 Environment assumptions:
 
@@ -19,7 +14,7 @@ Environment assumptions:
 - The dagzoo config ref is the sibling repo's default config, `../dagzoo/configs/default.yaml`.
 - The curated comparator baseline is pinned to `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.
 
-Current support surface:
+Historical support surface:
 
 - materializes one large unfiltered dagzoo `generate` output under `outputs/staged_ladder_support/tf_rd_013/generated_source/`
 - keeps the initial promoted-anchor support surface pinned to dagzoo's `../dagzoo/configs/default.yaml` with a single `--num-datasets 8192` CPU generate call
@@ -36,7 +31,8 @@ Committed files:
 
 Local-only files:
 
-- Generated dagzoo shards, curated OpenML packed shards, and the local manifests live under `outputs/staged_ladder_support/tf_rd_013/`.
+- Generated dagzoo shards, curated OpenML packed shards, and the local manifests
+  lived under `outputs/staged_ladder_support/tf_rd_013/`.
 - `outputs/` stays ignored because the dagzoo artifacts are too large to commit as repo-tracked fixtures.
 
 Curated comparator policy:

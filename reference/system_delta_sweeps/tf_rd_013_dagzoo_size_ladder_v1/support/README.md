@@ -1,38 +1,11 @@
 # TF-RD-013 Dagzoo Size Ladder Support Bundle
 
-This directory is the committed reference-only support bundle for issue `#132`
+This directory is the committed historical support bundle for issue `#132`
 under reopened epic `#96`.
 
-The canonical local corpus regeneration flow is:
-
-```bash
-.venv/bin/tab-foundry data corpus materialize \
-  --recipe tf_rd_013_current_corpus_default_v1 \
-  --dagzoo-root ../dagzoo \
-  --force
-
-.venv/bin/tab-foundry data corpus materialize \
-  --recipe tf_rd_013_dagzoo_shape_aware_size_small_v1 \
-  --dagzoo-root ../dagzoo \
-  --force
-
-.venv/bin/tab-foundry data corpus materialize \
-  --recipe tf_rd_013_dagzoo_shape_aware_size_medium_v1 \
-  --dagzoo-root ../dagzoo \
-  --force
-
-.venv/bin/tab-foundry data corpus materialize \
-  --recipe tf_rd_013_dagzoo_shape_aware_size_large_v1 \
-  --dagzoo-root ../dagzoo \
-  --force
-```
-
-The TF-RD-013 support-summary wrapper can then be used to refresh the tracked
-support JSONs from those first-class corpus records:
-
-```bash
-.venv/bin/python scripts/materialize_tf_rd_013_support.py --variant size-ladder --force
-```
+This bundle is preserved as evidence only. Reconstructing the local corpus
+artifacts or refreshing the tracked support JSONs is no longer a supported
+workflow.
 
 Environment assumptions:
 
@@ -47,7 +20,7 @@ Environment assumptions:
   - `../dagzoo/configs/default.yaml`
   - `../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml`
 
-What the script does for this variant:
+What the historical workflow did for this variant:
 
 - materializes the four TF-RD-013 corpus recipes through the shared `tab-foundry data corpus materialize` pathway
 - reuses the resulting local `corpus_record.json` artifacts instead of owning dagzoo generation logic directly

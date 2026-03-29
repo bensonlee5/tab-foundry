@@ -1,16 +1,11 @@
 # TF-RD-013 Shape-Aware Support Bundle
 
-Use this support bundle when you need the committed assumptions, regeneration
-flow, and comparison surfaces behind TF-RD-013 issue `#127`.
+Use this support bundle when you need the committed assumptions and comparison
+surfaces behind TF-RD-013 issue `#127`.
 
-It is a reference-only support surface for that shape-aware follow-up, not the
-main roadmap or sweep execution guide.
-
-The canonical local regeneration flow is:
-
-```bash
-.venv/bin/python scripts/materialize_tf_rd_013_support.py --variant shape-aware --force
-```
+It is a historical reference-only support surface for that shape-aware
+follow-up, not the main roadmap or sweep execution guide. Reconstructing these
+local artifacts is no longer a supported workflow.
 
 Environment assumptions:
 
@@ -22,7 +17,7 @@ Environment assumptions:
   - `../dagzoo/configs/benchmark_cuda_h100_large_shape.yaml` with `128` datasets
 - The curated comparator baseline remains pinned to `src/tab_foundry/bench/nanotabpfn_openml_binary_large_v1.json`.
 
-Current support surface:
+Historical support surface:
 
 - materializes three explicit dagzoo generate runs under `outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/`
 - keeps each invocation's handoff manifest and identity separate for provenance review
@@ -37,7 +32,8 @@ Committed files:
 
 Local-only files:
 
-- Generated dagzoo shards, curated OpenML packed shards, and local manifests live under `outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/`.
+- Generated dagzoo shards, curated OpenML packed shards, and local manifests
+  lived under `outputs/staged_ladder_support/tf_rd_013_shape_aware_dagzoo_v1/`.
 - `outputs/` stays ignored because the dagzoo artifacts are too large to commit as repo-tracked fixtures.
 
 Policy notes:

@@ -167,7 +167,7 @@ The end state should support:
 | `src/tab_foundry/` | Stable top-level package namespace for CLI entrypoints, shared config resolution, and small cross-cutting helpers. |
 | `src/tab_foundry/cli/` and `src/tab_foundry/cli/groups/` | User-facing command surfaces and nested argument parsing. |
 | `src/tab_foundry/bench/` | Smoke harnesses, benchmark utilities, comparison flows, plotting helpers, env bootstrap, and internal research harnesses. |
-| `src/tab_foundry/data/` and `src/tab_foundry/data/sources/` | Data package namespaces for reusable dataset abstractions, loaders, and registered task sources. Direct imports should target modules such as `tab_foundry.data.manifest`, `tab_foundry.data.dataset`, and `tab_foundry.data.factory`. |
+| `src/tab_foundry/data/` and `src/tab_foundry/data/sources/` | Data package namespaces for reusable dataset abstractions, loaders, and registered task sources. Manifest build/inspect/read ownership lives upstream in `tab_realdata_hub.manifest`; direct imports in this repo should target consumer modules such as `tab_foundry.data.dataset`, `tab_foundry.data.factory`, and `tab_foundry.data.sources.*`. The parquet manifest is the stable index layer, while richer evolving dataset semantics belong in `metadata.ndjson`. |
 | `src/tab_foundry/model/` | Model package namespace. Direct imports should target submodules such as `tab_foundry.model.factory`, `tab_foundry.model.spec`, or family modules under `tab_foundry.model.architectures`. |
 | `src/tab_foundry/model/components/` | Reusable architectural pieces such as tokenization blocks, attention blocks, many-class helpers, and QASS primitives. |
 | `src/tab_foundry/model/architectures/` | Full model-family implementations assembled from reusable components. |

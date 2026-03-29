@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from tab_foundry.cli.data_inspect import manifest_inspect_payload
-from tab_foundry.data.manifest import build_manifest
+from tab_realdata_hub.manifest import build_manifest
 
 from . import manifest_and_dataset_cases as cases
 

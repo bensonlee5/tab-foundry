@@ -8,7 +8,7 @@ import pytest
 
 import tab_foundry.bench.iris_smoke as iris_smoke_module
 import tab_foundry.cli.bench_smoke_iris as iris_smoke_cli_module
-from tab_foundry.data.manifest import ManifestSummary
+from tab_realdata_hub.manifest import ManifestSummary
 from tab_foundry.types import EvalResult, TrainResult
 
 

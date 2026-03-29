@@ -13,6 +13,7 @@ import pytest
 import tab_foundry.bench.comparison_runtime as compare_module
 import tab_foundry.bench.nanotabpfn as benchmark_module
 import tab_foundry.cli.bench_compare as compare_cli_module
+from tests.data import manifest_and_dataset_cases as data_cases
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -73,44 +74,7 @@ def _write_benchmark_bundle(
     return path
 
 
-def test_load_openml_benchmark_datasets_matches_notebook_filters(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    keep_frame = pd.DataFrame(
-        {
-            "num": [0, 1, 2, 3, 4, 5],
-            "cat": ["a", "b", "a", "b", "a", "b"],
-            "constant": [1, 1, 1, 1, 1, 1],
-        }
-    )
-    keep_target = pd.Series(["no", "yes", "no", "yes", "no", "yes"])
-    keep_dataset = _FakeDataset(
-        name="keep_me",
-        qualities={
-            "NumberOfFeatures": 3,
-            "NumberOfClasses": 2,
-            "PercentageOfInstancesWithMissingValues": 0,
-            "MinorityClassPercentage": 50.0,
-        },
-        frame=keep_frame,
-        target=keep_target,
-    )
-    drop_dataset = _FakeDataset(
-        name="drop_me",
-        qualities={
-            "NumberOfFeatures": 11,
-            "NumberOfClasses": 2,
-            "PercentageOfInstancesWithMissingValues": 0,
-            "MinorityClassPercentage": 50.0,
-        },
-        frame=keep_frame,
-        target=keep_target,
-    )
-    fake_tasks = {
-        1: _FakeTask(keep_dataset),
-        2: _FakeTask(drop_dataset),
-    }
+def test_load_benchmark_manifest_datasets_matches_notebook_filters(tmp_path: Path) -> None:
     bundle_path = _write_benchmark_bundle(
         tmp_path / "benchmark_bundle.json",
         tasks=[
@@ -123,26 +87,68 @@ def test_load_openml_benchmark_datasets_matches_notebook_filters(
             }
         ],
     )
-    monkeypatch.setattr(
-        benchmark_module.openml.tasks,
-        "get_task",
-        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
+    with pytest.raises(RuntimeError, match="materialized manifest parquet"):
+        benchmark_module.load_benchmark_manifest_datasets(
+            benchmark_manifest_path=bundle_path,
+        )
+
+
+def test_load_benchmark_manifest_datasets_allows_missing_when_manifest_provenance_allows_it(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "run"
+    x_train, y_train, x_test, y_test = data_cases._classification_arrays(seed=17, n_classes=2)
+    x_train[0, 0] = float("nan")
+    x_test[0, 1] = float("inf")
+    selection = dict(DEFAULT_BENCHMARK_SELECTION)
+    selection["max_missing_pct"] = 10.0
+    _ = data_cases._write_packed_shard(
+        root / "shard_00000",
+        datasets=[
+            {
+                "dataset_index": 0,
+                "x_train": x_train,
+                "y_train": y_train,
+                "x_test": x_test,
+                "y_test": y_test,
+                "metadata": {
+                    **data_cases._classification_metadata(
+                        n_features=x_train.shape[1],
+                        n_classes=2,
+                        filter_status="accepted",
+                        filter_accepted=True,
+                    ),
+                    "observed_task": {"dataset_name": "missing_case"},
+                    "openml": {"task_id": 101, "dataset_name": "missing_case"},
+                    "benchmark_bundle": {
+                        "name": "missing_bundle",
+                        "version": 1,
+                        "source_path": str((tmp_path / "bundle.json").resolve()),
+                        "selection": selection,
+                        "task_id": 101,
+                        "allow_missing_values": True,
+                    },
+                },
+            }
+        ],
+    )
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = data_cases.build_manifest(
+        [root],
+        manifest_path,
+        filter_policy="accepted_only",
+        missing_value_policy="allow_any",
     )
 
-    datasets, metadata = benchmark_module.load_openml_benchmark_datasets(
-        new_instances=6,
-        benchmark_bundle_path=bundle_path,
+    datasets, task_records, benchmark_surface = benchmark_module.load_benchmark_manifest_datasets(
+        benchmark_manifest_path=manifest_path,
     )
 
-    bundle = benchmark_module.load_benchmark_bundle(bundle_path)
-
-    assert list(datasets) == ["keep_me"]
-    x, y = datasets["keep_me"]
-    assert x.shape == (6, 2)
-    assert y.tolist() == [0, 1, 0, 1, 0, 1]
-    assert metadata[0]["dataset_name"] == "keep_me"
-    assert bundle["selection"]["max_missing_pct"] == pytest.approx(0.0)
-    assert bundle["selection"]["min_minority_class_pct"] == pytest.approx(2.5)
+    assert list(datasets) == ["missing_case"]
+    assert not np.isfinite(datasets["missing_case"][0]).all()
+    assert task_records[0]["dataset_name"] == "missing_case"
+    assert benchmark_surface["allow_missing_values"] is True
+    assert benchmark_surface["benchmark_bundle"]["allow_missing_values"] is True
 
 
 def test_compare_main_parses_cli_invocation(
@@ -184,7 +190,7 @@ def test_compare_main_parses_cli_invocation(
             "cls_benchmark_linear_v1",
             "--control-baseline-registry",
             str(tmp_path / "control_baselines.json"),
-            "--benchmark-bundle-path",
+            "--benchmark-manifest-path",
             str(tmp_path / "bundle.json"),
         ]
     )
@@ -200,7 +206,7 @@ def test_compare_main_parses_cli_invocation(
     assert config.nanotabpfn_seeds == 3
     assert config.control_baseline_id == "cls_benchmark_linear_v1"
     assert config.control_baseline_registry == tmp_path / "control_baselines.json"
-    assert config.benchmark_bundle_path == tmp_path / "bundle.json"
+    assert config.benchmark_manifest_path == tmp_path / "bundle.json"
     assert config.external_benchmarks == (compare_cli_module.EXTERNAL_BENCHMARK_TABICLV2,)
     assert config.tabicl_root == Path("~/dev/tabicl")
     stdout = capsys.readouterr().out
@@ -293,27 +299,9 @@ def test_compare_main_parses_cli_invocation_with_explicit_nanotabpfn(
     assert "primary_external_benchmark=nanotabpfn" in stdout
 
 
-def test_load_openml_benchmark_datasets_fails_on_bundle_drift(
-    monkeypatch: pytest.MonkeyPatch,
+def test_load_benchmark_manifest_datasets_fails_on_bundle_drift(
     tmp_path: Path,
 ) -> None:
-    frame = pd.DataFrame({"num": [0, 1, 2, 3], "cat": ["a", "b", "a", "b"]})
-    target = pd.Series(["no", "yes", "no", "yes"])
-    fake_tasks = {
-        1: _FakeTask(
-            _FakeDataset(
-                name="keep_me",
-                qualities={
-                    "NumberOfFeatures": 2,
-                    "NumberOfClasses": 2,
-                    "PercentageOfInstancesWithMissingValues": 0.0,
-                    "MinorityClassPercentage": 50.0,
-                },
-                frame=frame,
-                target=target,
-            )
-        )
-    }
     bundle_path = _write_benchmark_bundle(
         tmp_path / "benchmark_bundle.json",
         tasks=[
@@ -326,16 +314,9 @@ def test_load_openml_benchmark_datasets_fails_on_bundle_drift(
             }
         ],
     )
-    monkeypatch.setattr(
-        benchmark_module.openml.tasks,
-        "get_task",
-        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
-    )
-
-    with pytest.raises(RuntimeError, match="benchmark bundle drift"):
-        benchmark_module.load_openml_benchmark_datasets(
-            new_instances=4,
-            benchmark_bundle_path=bundle_path,
+    with pytest.raises(RuntimeError, match="materialized manifest parquet"):
+        benchmark_module.load_benchmark_manifest_datasets(
+            benchmark_manifest_path=bundle_path,
         )
 
 
@@ -375,27 +356,7 @@ def test_load_benchmark_bundle_requires_full_selection(tmp_path: Path) -> None:
         benchmark_module.load_benchmark_bundle(path)
 
 
-def test_load_openml_benchmark_datasets_requires_bundle_new_instances_match(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    frame = pd.DataFrame({"num": [0, 1, 2, 3], "cat": ["a", "b", "a", "b"]})
-    target = pd.Series(["no", "yes", "no", "yes"])
-    fake_tasks = {
-        1: _FakeTask(
-            _FakeDataset(
-                name="keep_me",
-                qualities={
-                    "NumberOfFeatures": 2,
-                    "NumberOfClasses": 2,
-                    "PercentageOfInstancesWithMissingValues": 0.0,
-                    "MinorityClassPercentage": 50.0,
-                },
-                frame=frame,
-                target=target,
-            )
-        )
-    }
+def test_load_benchmark_manifest_datasets_requires_bundle_new_instances_match(tmp_path: Path) -> None:
     bundle_path = _write_benchmark_bundle(
         tmp_path / "benchmark_bundle.json",
         tasks=[
@@ -409,16 +370,9 @@ def test_load_openml_benchmark_datasets_requires_bundle_new_instances_match(
         ],
         selection_overrides={"new_instances": 4},
     )
-    monkeypatch.setattr(
-        benchmark_module.openml.tasks,
-        "get_task",
-        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
-    )
-
-    with pytest.raises(RuntimeError, match="selection mismatch"):
-        benchmark_module.load_openml_benchmark_datasets(
-            new_instances=3,
-            benchmark_bundle_path=bundle_path,
+    with pytest.raises(RuntimeError, match="materialized manifest parquet"):
+        benchmark_module.load_benchmark_manifest_datasets(
+            benchmark_manifest_path=bundle_path,
         )
 
 
@@ -463,24 +417,12 @@ def test_load_openml_benchmark_datasets_requires_bundle_new_instances_match(
         ),
     ],
 )
-def test_load_openml_benchmark_datasets_fails_on_selection_drift(
-    monkeypatch: pytest.MonkeyPatch,
+def test_load_benchmark_manifest_datasets_fails_on_selection_drift(
     tmp_path: Path,
     qualities: dict[str, float],
     message: str,
 ) -> None:
-    frame = pd.DataFrame({"num": [0, 1, 2, 3], "cat": ["a", "b", "a", "b"]})
-    target = pd.Series(["no", "yes", "no", "yes"])
-    fake_tasks = {
-        1: _FakeTask(
-            _FakeDataset(
-                name="keep_me",
-                qualities=qualities,
-                frame=frame,
-                target=target,
-            )
-        )
-    }
+    del qualities, message
     bundle_path = _write_benchmark_bundle(
         tmp_path / "benchmark_bundle.json",
         tasks=[
@@ -493,16 +435,9 @@ def test_load_openml_benchmark_datasets_fails_on_selection_drift(
             }
         ],
     )
-    monkeypatch.setattr(
-        benchmark_module.openml.tasks,
-        "get_task",
-        lambda task_id, **_kwargs: fake_tasks[int(task_id)],
-    )
-
-    with pytest.raises(RuntimeError, match=message):
-        benchmark_module.load_openml_benchmark_datasets(
-            new_instances=4,
-            benchmark_bundle_path=bundle_path,
+    with pytest.raises(RuntimeError, match="materialized manifest parquet"):
+        benchmark_module.load_benchmark_manifest_datasets(
+            benchmark_manifest_path=bundle_path,
         )
 
 
@@ -553,8 +488,8 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
 
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
-        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+        "load_benchmark_manifest_datasets",
+        lambda *, new_instances=200, benchmark_manifest_path=None, allow_missing_values=False: (
             policy_calls["datasets"].append(bool(allow_missing_values)) or {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -564,7 +499,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
             [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
         ),
     )
-    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: source_bundle_path)
+    monkeypatch.setattr(compare_module, "default_benchmark_manifest_path", lambda: source_bundle_path)
     monkeypatch.setattr(
         compare_module,
         "load_benchmark_bundle_for_execution",
@@ -715,6 +650,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert Path(captured["cmd"][0]) == nanotab_python.resolve()
     assert Path(captured["cmd"][1]) == REPO_ROOT / "scripts" / "bench" / "nanotabpfn_helper.py"
     assert captured["cmd"][captured["cmd"].index("--tab-foundry-src") + 1] == str(REPO_ROOT / "src")
+    assert "--tab-realdata-hub-src" not in captured["cmd"]
     assert captured["cmd"][captured["cmd"].index("--eval-every") + 1] == str(
         compare_module.DEFAULT_NANOTABPFN_EVAL_EVERY
     )
@@ -801,7 +737,12 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert captured_posthoc["payload"]["benchmark"]["model_size"]["total_params"] == 1234
     assert captured_posthoc["payload"]["benchmark"]["nanotabpfn"]["final_log_loss"] == pytest.approx(0.48)
     written_bundle = json.loads((out_root / "benchmark_tasks.json").read_text(encoding="utf-8"))
-    assert written_bundle == benchmark_bundle
+    assert written_bundle["tasks"] == benchmark_bundle["tasks"]
+    assert written_bundle["manifest"]["manifest_path"] == str(source_bundle_path.resolve())
+    assert written_bundle["manifest"]["benchmark_bundle"]["name"] == benchmark_bundle["name"]
+    assert written_bundle["manifest"]["benchmark_bundle"]["source_path"] == str(
+        source_bundle_path.resolve()
+    )
 
 
 def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
@@ -838,7 +779,7 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     captured_posthoc: dict[str, Any] = {}
     helper_calls: list[tuple[str, Path]] = []
 
-    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: source_bundle_path)
+    monkeypatch.setattr(compare_module, "default_benchmark_manifest_path", lambda: source_bundle_path)
     monkeypatch.setattr(
         compare_module,
         "load_benchmark_bundle_for_execution",
@@ -846,8 +787,8 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     )
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
-        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+        "load_benchmark_manifest_datasets",
+        lambda *, new_instances=200, benchmark_manifest_path=None, allow_missing_values=False: (
             {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -1060,11 +1001,24 @@ def test_run_nanotabpfn_benchmark_with_tabiclv2_selected_fails_clear_when_env_mi
     )
     benchmark_bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
 
-    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: bundle_path)
+    monkeypatch.setattr(compare_module, "default_benchmark_manifest_path", lambda: bundle_path)
     monkeypatch.setattr(
         compare_module,
         "load_benchmark_bundle_for_execution",
         lambda path=None: (benchmark_bundle, False),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "load_benchmark_manifest_datasets",
+        lambda *, benchmark_manifest_path=None, allow_missing_values=None: (
+            {
+                "toy": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64),
+                )
+            },
+            [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
+        ),
     )
 
     with pytest.raises(RuntimeError, match="TabICLv2 root does not exist"):
@@ -1143,8 +1097,8 @@ def test_run_nanotabpfn_benchmark_explicit_large_bundle_allows_missing_inputs(
     )
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
-        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+        "load_benchmark_manifest_datasets",
+        lambda *, new_instances=200, benchmark_manifest_path=None, allow_missing_values=False: (
             policy_calls["datasets"].append(bool(allow_missing_values)) or {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -1205,12 +1159,12 @@ def test_run_nanotabpfn_benchmark_explicit_large_bundle_allows_missing_inputs(
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
             nanotab_prior_dump=prior_dump,
-            benchmark_bundle_path=large_bundle_path,
+            benchmark_manifest_path=large_bundle_path,
             reuse_nanotabpfn_curve_path=reuse_curve_path,
         )
     )
 
-    assert policy_calls == {"load": [True], "datasets": [True], "evaluate": [True]}
+    assert policy_calls == {"load": [True], "datasets": [False], "evaluate": [True]}
     assert summary["benchmark_bundle"]["allow_missing_values"] is True
     assert summary["nanotabpfn"]["curve_source_mode"] == "reused"
     assert summary["nanotabpfn"]["reused_curve_path"] == str(reuse_curve_path.resolve())
@@ -1265,8 +1219,8 @@ def test_run_nanotabpfn_benchmark_forwards_missing_bundle_policy_to_helper(
     )
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
-        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+        "load_benchmark_manifest_datasets",
+        lambda *, new_instances=200, benchmark_manifest_path=None, allow_missing_values=False: (
             {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -1349,7 +1303,7 @@ def test_run_nanotabpfn_benchmark_forwards_missing_bundle_policy_to_helper(
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
             nanotab_prior_dump=prior_dump,
-            benchmark_bundle_path=bundle_path,
+            benchmark_manifest_path=bundle_path,
         )
     )
 
@@ -1406,8 +1360,8 @@ def test_run_nanotabpfn_benchmark_tolerates_missing_bundle_helper_failure(
     )
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
-        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+        "load_benchmark_manifest_datasets",
+        lambda *, new_instances=200, benchmark_manifest_path=None, allow_missing_values=False: (
             {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -1465,7 +1419,7 @@ def test_run_nanotabpfn_benchmark_tolerates_missing_bundle_helper_failure(
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
             nanotab_prior_dump=prior_dump,
-            benchmark_bundle_path=bundle_path,
+            benchmark_manifest_path=bundle_path,
         )
     )
 
@@ -1522,8 +1476,8 @@ def test_run_nanotabpfn_benchmark_falls_back_to_successful_primary_external_benc
     )
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
-        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+        "load_benchmark_manifest_datasets",
+        lambda *, new_instances=200, benchmark_manifest_path=None, allow_missing_values=False: (
             {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -1604,7 +1558,7 @@ def test_run_nanotabpfn_benchmark_falls_back_to_successful_primary_external_benc
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
             nanotab_prior_dump=prior_dump,
-            benchmark_bundle_path=bundle_path,
+            benchmark_manifest_path=bundle_path,
             external_benchmarks=(
                 compare_module.EXTERNAL_BENCHMARK_NANOTABPFN,
                 compare_module.EXTERNAL_BENCHMARK_TABICLV2,
@@ -1681,7 +1635,7 @@ def test_run_nanotabpfn_benchmark_reuses_curve_without_local_nanotabpfn_env(
     )
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
+        "load_benchmark_manifest_datasets",
         lambda **_kwargs: (
             {
                 "toy": (
@@ -1739,7 +1693,7 @@ def test_run_nanotabpfn_benchmark_reuses_curve_without_local_nanotabpfn_env(
             out_root=out_root,
             nanotabpfn_root=tmp_path / "missing_nano",
             nanotab_prior_dump=tmp_path / "missing_prior.h5",
-            benchmark_bundle_path=bundle_path,
+            benchmark_manifest_path=bundle_path,
             reuse_nanotabpfn_curve_path=reuse_curve_path,
             reuse_nanotabpfn_metadata={
                 "root": str(source_nanotab_root.resolve()),
@@ -1807,7 +1761,7 @@ def test_run_nanotabpfn_benchmark_reuses_error_without_local_nanotabpfn_env(
     )
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
+        "load_benchmark_manifest_datasets",
         lambda **_kwargs: (
             {
                 "toy": (
@@ -1875,7 +1829,7 @@ def test_run_nanotabpfn_benchmark_reuses_error_without_local_nanotabpfn_env(
             out_root=out_root,
             nanotabpfn_root=tmp_path / "missing_nano",
             nanotab_prior_dump=tmp_path / "missing_prior.h5",
-            benchmark_bundle_path=bundle_path,
+            benchmark_manifest_path=bundle_path,
             reuse_nanotabpfn_error=reuse_error,
         )
     )
@@ -1941,11 +1895,10 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
     def _fake_load_datasets(
         *,
         new_instances: int = 200,
-        benchmark_bundle_path: Path | None = None,
+        benchmark_manifest_path: Path | None = None,
         allow_missing_values: bool = False,
     ) -> tuple[dict[str, tuple[np.ndarray, np.ndarray]], list[dict[str, Any]]]:
-        captured["dataset_new_instances"] = int(new_instances)
-        captured["dataset_bundle_path"] = None if benchmark_bundle_path is None else str(Path(benchmark_bundle_path).resolve())
+        captured["dataset_bundle_path"] = None if benchmark_manifest_path is None else str(Path(benchmark_manifest_path).resolve())
         captured["dataset_allow_missing_values"] = bool(allow_missing_values)
         return (
             {
@@ -1957,9 +1910,9 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
             [{"task_id": 7, "dataset_name": "toy_multi", "n_rows": 6, "n_features": 2, "n_classes": 3}],
         )
 
-    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: default_bundle_path)
+    monkeypatch.setattr(compare_module, "default_benchmark_manifest_path", lambda: default_bundle_path)
     monkeypatch.setattr(compare_module, "load_benchmark_bundle_for_execution", _fake_load_bundle)
-    monkeypatch.setattr(compare_module, "load_openml_benchmark_datasets", _fake_load_datasets)
+    monkeypatch.setattr(compare_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
     monkeypatch.setattr(
         compare_module,
         "evaluate_tab_foundry_run",
@@ -2068,12 +2021,11 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
             out_root=out_root,
             nanotabpfn_root=nanotab_root,
             nanotab_prior_dump=prior_dump,
-            benchmark_bundle_path=source_bundle_path,
+            benchmark_manifest_path=source_bundle_path,
         )
     )
 
     assert captured["bundle_path"] == str(source_bundle_path.resolve())
-    assert captured["dataset_new_instances"] == 6
     assert captured["dataset_bundle_path"] == str(source_bundle_path.resolve())
     assert captured["dataset_allow_missing_values"] is False
     assert summary["benchmark_bundle"]["source_path"] == str(source_bundle_path.resolve())
@@ -2086,7 +2038,12 @@ def test_run_nanotabpfn_benchmark_honors_nondefault_bundle_path(
         (smoke_run_dir / "training_surface_record.json").resolve()
     )
     written_bundle = json.loads((out_root / "benchmark_tasks.json").read_text(encoding="utf-8"))
-    assert written_bundle == benchmark_bundle
+    assert written_bundle["tasks"] == benchmark_bundle["tasks"]
+    assert written_bundle["manifest"]["manifest_path"] == str(source_bundle_path.resolve())
+    assert written_bundle["manifest"]["benchmark_bundle"]["name"] == benchmark_bundle["name"]
+    assert written_bundle["manifest"]["benchmark_bundle"]["source_path"] == str(
+        source_bundle_path.resolve()
+    )
 
 
 def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
@@ -2117,7 +2074,7 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     benchmark_bundle = json.loads(source_bundle_path.read_text(encoding="utf-8"))
     posthoc_called = {"value": False}
 
-    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: source_bundle_path)
+    monkeypatch.setattr(compare_module, "default_benchmark_manifest_path", lambda: source_bundle_path)
     monkeypatch.setattr(
         compare_module,
         "load_benchmark_bundle_for_execution",
@@ -2125,8 +2082,8 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     )
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
-        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+        "load_benchmark_manifest_datasets",
+        lambda *, new_instances=200, benchmark_manifest_path=None, allow_missing_values=False: (
             {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -2214,7 +2171,7 @@ def test_run_nanotabpfn_benchmark_skips_legacy_record_derivation_failure(
     assert "Skipping benchmark_run_record.json derivation" in capsys.readouterr().err
 
 
-def test_explicit_benchmark_bundle_paths_accept_checked_in_legacy_and_medium_binary_bundles() -> None:
+def test_explicit_benchmark_manifest_paths_accept_checked_in_legacy_and_medium_binary_bundles() -> None:
     legacy_bundle_path = (
         REPO_ROOT / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
     )
@@ -2232,13 +2189,17 @@ def test_explicit_benchmark_bundle_paths_accept_checked_in_legacy_and_medium_bin
     assert all(int(task["n_classes"]) == 2 for task in medium_bundle["tasks"])
 
 
-def test_default_benchmark_bundle_path_resolves_to_medium_binary_bundle() -> None:
-    bundle_path = compare_module.default_benchmark_bundle_path()
+def test_default_benchmark_manifest_path_resolves_to_medium_binary_bundle() -> None:
+    bundle_path = compare_module.default_benchmark_manifest_path()
 
     assert bundle_path == (
-        REPO_ROOT / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_binary_medium_v1.json"
+        REPO_ROOT
+        / "data"
+        / "manifests"
+        / "bench"
+        / "nanotabpfn_openml_binary_medium_v1"
+        / "manifest.parquet"
     )
-    assert benchmark_module.load_benchmark_bundle(bundle_path)["name"] == "nanotabpfn_openml_binary_medium"
 
 
 def test_collect_checkpoint_snapshots_prefers_train_elapsed_seconds(tmp_path: Path) -> None:
@@ -2378,8 +2339,8 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
 
     monkeypatch.setattr(
         compare_module,
-        "load_openml_benchmark_datasets",
-        lambda *, new_instances=200, benchmark_bundle_path=None, allow_missing_values=False: (
+        "load_benchmark_manifest_datasets",
+        lambda *, new_instances=200, benchmark_manifest_path=None, allow_missing_values=False: (
             {
                 "toy": (
                     np.zeros((6, 2), dtype=np.float32),
@@ -2389,7 +2350,7 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
             [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
         ),
     )
-    monkeypatch.setattr(compare_module, "default_benchmark_bundle_path", lambda: source_bundle_path)
+    monkeypatch.setattr(compare_module, "default_benchmark_manifest_path", lambda: source_bundle_path)
     monkeypatch.setattr(
         compare_module,
         "load_benchmark_bundle_for_execution",
@@ -2513,7 +2474,10 @@ def test_run_nanotabpfn_benchmark_includes_control_baseline_annotation(
     )
 
 
-def test_run_nanotabpfn_benchmark_rejects_unknown_control_baseline(tmp_path: Path) -> None:
+def test_run_nanotabpfn_benchmark_rejects_unknown_control_baseline(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
     smoke_run_dir = tmp_path / "smoke_run"
     smoke_run_dir.mkdir()
     nanotab_root = tmp_path / "nano"
@@ -2535,6 +2499,52 @@ def test_run_nanotabpfn_benchmark_rejects_unknown_control_baseline(tmp_path: Pat
         )
         + "\n",
         encoding="utf-8",
+    )
+
+    benchmark_bundle = {
+        "name": "bundle",
+        "version": 1,
+        "selection": {
+            "new_instances": 6,
+            "task_type": "supervised_classification",
+            "max_features": 10,
+            "max_classes": 2,
+            "max_missing_pct": 0.0,
+            "min_minority_class_pct": 2.5,
+        },
+        "task_ids": [1],
+        "tasks": [
+            {
+                "task_id": 1,
+                "dataset_name": "toy",
+                "n_rows": 6,
+                "n_features": 2,
+                "n_classes": 2,
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        compare_module,
+        "default_benchmark_manifest_path",
+        lambda: tmp_path / "bundle_manifest.parquet",
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "load_benchmark_bundle_for_execution",
+        lambda path=None: (benchmark_bundle, False),
+    )
+    monkeypatch.setattr(
+        compare_module,
+        "load_benchmark_manifest_datasets",
+        lambda *, benchmark_manifest_path=None, allow_missing_values=None: (
+            {
+                "toy": (
+                    np.zeros((6, 2), dtype=np.float32),
+                    np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64),
+                )
+            },
+            [{"task_id": 1, "dataset_name": "toy", "n_rows": 6, "n_features": 2, "n_classes": 2}],
+        ),
     )
 
     with pytest.raises(RuntimeError, match="unknown control baseline id"):
@@ -2593,7 +2603,7 @@ def test_build_comparison_summary_preserves_model_identity_metadata(tmp_path: Pa
                 }
             ],
         },
-        benchmark_bundle_path=tmp_path / "bundle.json",
+        benchmark_manifest_path=tmp_path / "bundle.json",
         tab_foundry_run_dir=tmp_path / "run",
         task_type="supervised_classification",
         nanotabpfn_root=tmp_path / "nano",
@@ -2648,7 +2658,7 @@ def test_build_comparison_summary_uses_log_loss_as_classification_best_step(tmp_
                 }
             ],
         },
-        benchmark_bundle_path=tmp_path / 'bundle.json',
+        benchmark_manifest_path=tmp_path / 'bundle.json',
         tab_foundry_run_dir=tmp_path / 'run',
         task_type='supervised_classification',
         nanotabpfn_root=tmp_path / 'nano',

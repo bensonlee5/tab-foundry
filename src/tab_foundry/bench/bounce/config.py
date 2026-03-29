@@ -27,8 +27,8 @@ class BenchmarkBounceDiagnosisConfig:
     run_dir: Path
     out_root: Path
     device: str = "auto"
-    benchmark_bundle_path: Path | None = None
-    confirmation_benchmark_bundle_path: Path | None = None
+    benchmark_manifest_path: Path | None = None
+    confirmation_benchmark_manifest_path: Path | None = None
     bootstrap_samples: int = DEFAULT_BOUNCE_BOOTSTRAP_SAMPLES
     bootstrap_confidence: float = DEFAULT_BOUNCE_BOOTSTRAP_CONFIDENCE
     dense_checkpoint_every: int | None = None

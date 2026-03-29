@@ -16,7 +16,7 @@ into the canonical library modules.
   workflows.
 - `scripts/`: shell convenience helpers, audit tooling, and a small set of
   standalone internal Python entrypoints: benchmark helpers under
-  `scripts/bench/` plus the TF-RD-013 support materializer.
+  `scripts/bench/`.
 - `scripts/dev`: repo-local bootstrap, doctor, ready, verification, and smoke
   wrapper that delegates to the audit tooling and packaged CLI. Hook and audit
   tooling now resolve interpreters with a worktree-first `.venv` policy and
@@ -41,7 +41,9 @@ into the canonical library modules.
   for external benchmark ids, defaults, labels, and normalization.
 - `src/tab_foundry/data/` and `src/tab_foundry/data/sources/`: manifest-backed
   dataset abstractions, surface selection, source provenance wiring, and data
-  construction helpers.
+  construction helpers. Manifest contract ownership lives upstream in
+  `tab_realdata_hub.manifest`; the parquet manifest is the stable index layer,
+  while richer evolving dataset metadata lives in `metadata.ndjson`.
 - `src/tab_foundry/preprocessing/`: explicit preprocessing-surface resolution
   and fitted-state helpers. This is now a live first-class package area rather
   than an implicit training detail.
@@ -104,8 +106,7 @@ The repo uses three stable workflow layers:
 - Shell helpers under `scripts/` such as `scripts/build_manifest.sh` and
   `scripts/configure_repo_protection.sh`, plus `scripts/audit/`, as repo-local
   convenience and verification surfaces, along with the small set of
-  standalone internal Python entrypoints under `scripts/bench/` and
-  `scripts/materialize_tf_rd_013_support.py`.
+  standalone internal Python entrypoints under `scripts/bench/`.
 - `scripts/dev` as the canonical repo-local entrypoint for bootstrap checks,
   branch review, affected-scope verification, explicit-path verification, full
   verification, and Iris smoke delegation.
@@ -137,6 +138,7 @@ Current canonical CLI namespaces:
 - `tab-foundry bench smoke dagzoo`
 - `tab-foundry bench tune`
 - `tab-foundry bench compare`
+- `tab-foundry bench materialize-openml-bundle`
 - `tab-foundry bench env bootstrap`
 - `tab-foundry bench bundle build-openml`
 - `tab-foundry bench registry register-run`

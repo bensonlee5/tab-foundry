@@ -393,8 +393,8 @@ def run_row(
                 sweep.control_baseline_id if sweep is not None else sweep_meta["control_baseline_id"]
             ),
             control_baseline_registry=paths.control_baseline_registry_path,
-            benchmark_bundle_path=resolve_registry_path_value(
-                str(sweep.benchmark_bundle_path if sweep is not None else sweep_meta["benchmark_bundle_path"])
+            benchmark_manifest_path=resolve_registry_path_value(
+                str(sweep.benchmark_manifest_path if sweep is not None else sweep_meta["benchmark_manifest_path"])
             ),
             external_benchmarks=external_benchmarks,
             reuse_nanotabpfn_curve_path=reuse_curve_path,

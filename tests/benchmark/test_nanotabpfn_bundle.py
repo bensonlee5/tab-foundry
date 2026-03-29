@@ -29,8 +29,8 @@ def _export(names: list[str]) -> None:
 _export(
     [
         "test_load_benchmark_bundle_requires_full_selection",
-        "test_explicit_benchmark_bundle_paths_accept_checked_in_legacy_and_medium_binary_bundles",
-        "test_default_benchmark_bundle_path_resolves_to_medium_binary_bundle",
+        "test_explicit_benchmark_manifest_paths_accept_checked_in_legacy_and_medium_binary_bundles",
+        "test_default_benchmark_manifest_path_resolves_to_medium_binary_bundle",
     ]
 )
 

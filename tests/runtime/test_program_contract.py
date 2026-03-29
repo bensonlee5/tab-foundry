@@ -174,7 +174,6 @@ def test_readme_front_door_contract_matches_current_repo_shape() -> None:
         "`tab-foundry` is the canonical packaged CLI",
         "`./scripts/dev`",
         "`scripts/bench/`",
-        "`scripts/materialize_tf_rd_013_support.py`",
         "| Surface | Use it for |",
         "Use `--help` in this order:",
         "tab-foundry --help",

@@ -34,14 +34,14 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
         help="Benchmark device",
     )
     parser.add_argument(
-        "--benchmark-bundle-path",
+        "--benchmark-manifest-path",
         default=None,
-        help="Primary benchmark bundle path; defaults to the current medium bundle",
+        help="Primary benchmark manifest path; defaults to the canonical medium manifest location",
     )
     parser.add_argument(
-        "--confirmation-benchmark-bundle-path",
+        "--confirmation-benchmark-manifest-path",
         default=None,
-        help="Optional confirmation benchmark bundle path; omit to stay on the primary no-missing bundle only",
+        help="Optional confirmation benchmark manifest path; omit to stay on the primary no-missing surface only",
     )
     parser.add_argument(
         "--bootstrap-samples",
@@ -99,13 +99,13 @@ def run_from_args(args: argparse.Namespace) -> int:
             if args.out_root is None
             else Path(str(args.out_root)),
             device=str(args.device),
-            benchmark_bundle_path=(
-                None if args.benchmark_bundle_path is None else Path(str(args.benchmark_bundle_path))
+            benchmark_manifest_path=(
+                None if args.benchmark_manifest_path is None else Path(str(args.benchmark_manifest_path))
             ),
-            confirmation_benchmark_bundle_path=(
+            confirmation_benchmark_manifest_path=(
                 None
-                if args.confirmation_benchmark_bundle_path is None
-                else Path(str(args.confirmation_benchmark_bundle_path))
+                if args.confirmation_benchmark_manifest_path is None
+                else Path(str(args.confirmation_benchmark_manifest_path))
             ),
             bootstrap_samples=int(args.bootstrap_samples),
             bootstrap_confidence=float(args.bootstrap_confidence),

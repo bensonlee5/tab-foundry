@@ -77,7 +77,6 @@ STALE_REFERENCE_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
 )
 ALLOWED_STANDALONE_PYTHON_SCRIPTS = frozenset(
     {
-        "scripts/materialize_tf_rd_013_support.py",
         "scripts/bench/instability_audit.py",
         "scripts/bench/iris.py",
         "scripts/bench/nanotabpfn_helper.py",

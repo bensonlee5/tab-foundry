@@ -69,13 +69,13 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
     def _fake_evaluate_one_bundle(
         *,
         run_dir: Path,
-        bundle_path: Path,
+        manifest_path: Path,
         device: str,
         out_path: Path,
         bootstrap_samples: int,
         bootstrap_confidence: float,
     ) -> dict[str, Any]:
-        del bundle_path, device, bootstrap_samples, bootstrap_confidence
+        del manifest_path, device, bootstrap_samples, bootstrap_confidence
         if run_dir.name == "dense_checkpoint_run":
             records = [
                 {
@@ -121,6 +121,23 @@ def test_run_benchmark_bounce_diagnosis_dense_rerun_uses_prior_path_and_flags_al
         diagnosis_module.write_jsonl(out_path, records)
         return {
             "bundle": {"name": "bundle", "version": 1, "source_path": str(out_path), "task_count": 2, "task_ids": [1, 2]},
+            "benchmark_manifest": {
+                "manifest_path": str(out_path.resolve()),
+                "contract_version": 1,
+                "manifest_sha256": "synthetic",
+                "task_type": "supervised_classification",
+                "allow_missing_values": False,
+                "benchmark_bundle": {
+                    "name": "bundle",
+                    "version": 1,
+                    "source_path": str(out_path.resolve()),
+                    "task_count": 2,
+                    "task_ids": [1, 2],
+                    "selection": None,
+                    "allow_missing_values": False,
+                },
+                "persisted_summary": None,
+            },
             "benchmark_tasks": [],
             "records": records,
             "records_path": str(out_path.resolve()),
@@ -175,56 +192,39 @@ def test_run_benchmark_bounce_diagnosis_dense_confirmation_inherits_missing_valu
     confirmation_bundle_path.write_text("{}", encoding="utf-8")
     policy_calls: list[tuple[str, bool]] = []
 
-    def _fake_load_bundle(path: Path | None = None) -> tuple[dict[str, Any], bool]:
-        assert path is not None
-        resolved = Path(path).resolve()
-        if resolved == confirmation_bundle_path.resolve():
-            policy_calls.append(("load_large", True))
-            return (
-                {
-                    "name": "large",
-                    "version": 1,
-                    "selection": {"new_instances": 4, "max_missing_pct": 5.0},
-                    "task_ids": [1, 2],
-                    "tasks": [
-                        {"task_id": 1, "dataset_name": "d1", "n_rows": 4, "n_features": 2, "n_classes": 2},
-                        {"task_id": 2, "dataset_name": "d2", "n_rows": 4, "n_features": 2, "n_classes": 2},
-                    ],
-                },
-                True,
-            )
-        policy_calls.append(("load_medium", False))
-        return (
-            {
-                "name": "medium",
-                "version": 1,
-                "selection": {"new_instances": 4, "max_missing_pct": 0.0},
-                "task_ids": [1, 2],
-                "tasks": [
-                    {"task_id": 1, "dataset_name": "d1", "n_rows": 4, "n_features": 2, "n_classes": 2},
-                    {"task_id": 2, "dataset_name": "d2", "n_rows": 4, "n_features": 2, "n_classes": 2},
-                ],
-            },
-            False,
-        )
-
     def _fake_load_datasets(
         *,
-        new_instances: int,
-        benchmark_bundle_path: Path | None = None,
-        allow_missing_values: bool = False,
-    ) -> tuple[dict[str, tuple[list[float], list[int]]], list[dict[str, Any]]]:
-        assert new_instances == 4
-        assert benchmark_bundle_path is not None
-        resolved = Path(benchmark_bundle_path).resolve()
-        label = "datasets_large" if resolved == confirmation_bundle_path.resolve() else "datasets_medium"
-        policy_calls.append((label, bool(allow_missing_values)))
+        benchmark_manifest_path: Path | None = None,
+    ) -> tuple[dict[str, tuple[list[float], list[int]]], list[dict[str, Any]], dict[str, Any]]:
+        assert benchmark_manifest_path is not None
+        resolved = Path(benchmark_manifest_path).resolve()
+        is_large = resolved == confirmation_bundle_path.resolve()
+        label = "datasets_large" if is_large else "datasets_medium"
+        policy_calls.append((label, is_large))
+        benchmark_tasks = [
+            {"task_id": 1, "dataset_name": "d1", "n_rows": 4, "n_features": 2, "n_classes": 2},
+            {"task_id": 2, "dataset_name": "d2", "n_rows": 4, "n_features": 2, "n_classes": 2},
+        ]
         return (
             {"d1": ([0.0], [0]), "d2": ([0.0], [0])},
-            [
-                {"task_id": 1, "dataset_name": "d1", "n_rows": 4, "n_features": 2, "n_classes": 2},
-                {"task_id": 2, "dataset_name": "d2", "n_rows": 4, "n_features": 2, "n_classes": 2},
-            ],
+            benchmark_tasks,
+            {
+                "manifest_path": str(resolved),
+                "contract_version": 1,
+                "manifest_sha256": "large" if is_large else "medium",
+                "task_type": "supervised_classification",
+                "allow_missing_values": is_large,
+                "benchmark_bundle": {
+                    "name": "large" if is_large else "medium",
+                    "version": 1,
+                    "source_path": str(resolved),
+                    "task_count": len(benchmark_tasks),
+                    "task_ids": [task["task_id"] for task in benchmark_tasks],
+                    "selection": {"new_instances": 4, "max_missing_pct": 5.0 if is_large else 0.0},
+                    "allow_missing_values": is_large,
+                },
+                "persisted_summary": None,
+            },
         )
 
     def _fake_evaluate_run(
@@ -259,8 +259,7 @@ def test_run_benchmark_bounce_diagnosis_dense_confirmation_inherits_missing_valu
             },
         ]
 
-    monkeypatch.setattr(diagnosis_module, "load_benchmark_bundle_for_execution", _fake_load_bundle)
-    monkeypatch.setattr(diagnosis_module, "load_openml_benchmark_datasets", _fake_load_datasets)
+    monkeypatch.setattr(diagnosis_module, "load_benchmark_manifest_datasets", _fake_load_datasets)
     monkeypatch.setattr(diagnosis_module, "evaluate_tab_foundry_run", _fake_evaluate_run)
     monkeypatch.setattr(diagnosis_module, "_run_dense_checkpoint_rerun", lambda _config: dense_run_dir)
     monkeypatch.setattr(
@@ -277,21 +276,18 @@ def test_run_benchmark_bounce_diagnosis_dense_confirmation_inherits_missing_valu
             run_dir=run_dir,
             out_root=out_root,
             device="cpu",
-            benchmark_bundle_path=primary_bundle_path,
-            confirmation_benchmark_bundle_path=confirmation_bundle_path,
+            benchmark_manifest_path=primary_bundle_path,
+            confirmation_benchmark_manifest_path=confirmation_bundle_path,
             dense_checkpoint_every=10,
         )
     )
 
     assert summary["bundles"]["confirmation"]["benchmark_bundle"]["allow_missing_values"] is True
     assert policy_calls == [
-        ("load_medium", False),
         ("datasets_medium", False),
         ("evaluate_run", False),
-        ("load_large", True),
         ("datasets_large", True),
         ("evaluate_run", True),
-        ("load_large", True),
         ("datasets_large", True),
         ("evaluate_dense", True),
     ]

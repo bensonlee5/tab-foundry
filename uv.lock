@@ -1745,7 +1745,7 @@ wheels = [
 
 [[package]]
 name = "tab-foundry"
-version = "0.14.1"
+version = "0.15.0"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
@@ -1758,6 +1758,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "safetensors" },
     { name = "schedulefree" },
+    { name = "tab-realdata-hub" },
     { name = "torch" },
     { name = "torchview" },
     { name = "wandb" },
@@ -1816,6 +1817,7 @@ requires-dist = [
     { name = "safetensors", specifier = ">=0.4" },
     { name = "schedulefree", specifier = ">=1.4" },
     { name = "scikit-learn", marker = "extra == 'benchmark'", specifier = ">=1.6" },
+    { name = "tab-realdata-hub", specifier = "==0.1.0" },
     { name = "torch", specifier = ">=2.8" },
     { name = "torchview", specifier = ">=0.2.7" },
     { name = "wandb", specifier = ">=0.20" },
@@ -1843,6 +1845,22 @@ dev = [
     { name = "torchinfo", specifier = ">=1.8" },
     { name = "types-pyyaml", specifier = ">=6.0" },
     { name = "vulture", specifier = ">=2.14" },
+]
+
+[[package]]
+name = "tab-realdata-hub"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "openml" },
+    { name = "pandas" },
+    { name = "pyarrow" },
+    { name = "scikit-learn" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ca/43/242bf887443beda3b7c5f9226d99bfd78f7611d4c56f513a118ceaec5d3e/tab_realdata_hub-0.1.0.tar.gz", hash = "sha256:19d14edac43f059f8e66aa3dbc90b8a9c4177d58ba91c704c52b6859be5e9324", size = 60437 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/7e/e9ec231449e07bb624b5e6a55c7bf8b4c72204a26c1ef45cf36226e2af67/tab_realdata_hub-0.1.0-py3-none-any.whl", hash = "sha256:8afcb7911f59343db64bde70393886a0a08f0dc9dde78be4b95d8f60558dd4c4", size = 33354 },
 ]
 
 [[package]]
