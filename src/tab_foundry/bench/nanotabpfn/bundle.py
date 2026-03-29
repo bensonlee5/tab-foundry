@@ -25,6 +25,13 @@ def default_benchmark_bundle_path() -> Path:
     return repo_root() / "src" / "tab_foundry" / "bench" / BENCHMARK_BUNDLE_FILENAME
 
 
+def default_benchmark_manifest_path() -> Path:
+    """Return the repo-local canonical materialized benchmark manifest path."""
+
+    bundle_stem = Path(BENCHMARK_BUNDLE_FILENAME).stem
+    return repo_root() / "data" / "manifests" / "bench" / bundle_stem / "manifest.parquet"
+
+
 def _default_repo_root() -> Path:
     return repo_root().expanduser().resolve()
 

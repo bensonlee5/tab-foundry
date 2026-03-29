@@ -34,7 +34,7 @@ from tab_foundry.data.dagzoo_handoff import (
     DAGZOO_HANDOFF_SCHEMA_VERSION,
     load_dagzoo_handoff_info,
 )
-from tab_foundry.data.manifest import build_manifest
+from tab_realdata_hub.manifest import build_manifest
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.hashing import sha256_path
 

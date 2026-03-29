@@ -27,7 +27,8 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.control_baseline_registry`, `tab_foundry.data`,
   `tab_foundry.device`, `tab_foundry.export`,
   `tab_foundry.external_benchmarks`, `tab_foundry.model`,
-  `tab_foundry.preprocessing`, `tab_foundry.research`,
+  `tab_foundry.preprocessing`, `tab_foundry.repo_paths`,
+  `tab_foundry.research`,
   `tab_foundry.task_batching`, and `tab_foundry.training`.
 - `tab_foundry.config` depends on `tab_foundry.repo_paths`.
 - `tab_foundry.control_baseline_registry` depends on `tab_foundry.bench`

@@ -19,9 +19,9 @@ import tab_foundry.bench.nanotabpfn_helper as helper_module  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Train and evaluate nanoTabPFN on cached benchmark datasets")
+    parser = argparse.ArgumentParser(description="Train and evaluate nanoTabPFN on a manifest-backed benchmark surface")
     parser.add_argument("--tab-foundry-src", required=True, help="tab-foundry src directory for shared helpers")
-    parser.add_argument("--dataset-cache", required=True, help="Path to cached benchmark datasets (.npz)")
+    parser.add_argument("--benchmark-manifest", required=True, help="Path to a manifest-backed benchmark surface")
     parser.add_argument("--prior-dump", required=True, help="Path to nanoTabPFN prior dump (.h5)")
     parser.add_argument("--out-path", required=True, help="Output JSONL path")
     parser.add_argument("--device", default="auto", help="Device override")
@@ -42,7 +42,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     return helper_module.run_nanotabpfn_helper(
         tab_foundry_src=Path(str(args.tab_foundry_src)),
-        dataset_cache=Path(str(args.dataset_cache)),
+        benchmark_manifest=Path(str(args.benchmark_manifest)),
         prior_dump=Path(str(args.prior_dump)),
         out_path=Path(str(args.out_path)),
         device=str(args.device),

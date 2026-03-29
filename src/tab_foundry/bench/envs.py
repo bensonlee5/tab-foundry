@@ -1,4 +1,4 @@
-"""Sibling-repo environment bootstrap helpers for benchmark workflows."""
+"""Benchmark environment bootstrap helpers for external comparator repos."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ description = "Local dependency metadata for nanoTabPFN benchmarking"
 requires-python = ">=3.10"
 dependencies = [
   "numpy",
+  "pyarrow",
   "torch",
   "schedulefree",
   "h5py",
@@ -32,6 +33,11 @@ experiment = [
 [tool.uv]
 package = false
 """
+
+TAB_REALDATA_HUB_GIT_INSTALL_SPEC = (
+    "tab-realdata-hub @ "
+    "git+https://github.com/bensonlee5/tab-realdata-hub.git@v0.1.0"
+)
 
 
 @dataclass(slots=True)
@@ -71,6 +77,24 @@ def _validate_import(python_path: Path, module_name: str) -> None:
     )
 
 
+def _install_python_package(python_path: Path, package_spec: str) -> None:
+    subprocess.run(
+        [
+            "uv",
+            "pip",
+            "install",
+            "--python",
+            str(python_path),
+            package_spec,
+        ],
+        check=True,
+    )
+
+
+def _tab_realdata_hub_install_spec() -> str:
+    return TAB_REALDATA_HUB_GIT_INSTALL_SPEC
+
+
 def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     """Create or refresh benchmark envs for sibling repos."""
 
@@ -94,12 +118,20 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     nanotabpfn_python = nanotabpfn_root / ".venv" / "bin" / "python"
     tabpfn_python = tabpfn_root / ".venv" / "bin" / "python"
     tabicl_python = tabicl_root / ".venv" / "bin" / "python"
+    tab_realdata_hub_spec = _tab_realdata_hub_install_spec()
+
+    _install_python_package(nanotabpfn_python, tab_realdata_hub_spec)
+    _install_python_package(tabicl_python, tab_realdata_hub_spec)
 
     _validate_import(nanotabpfn_python, "h5py")
+    _validate_import(nanotabpfn_python, "pyarrow")
     _validate_import(nanotabpfn_python, "schedulefree")
     _validate_import(nanotabpfn_python, "openml")
     _validate_import(nanotabpfn_python, "seaborn")
+    _validate_import(nanotabpfn_python, "tab_realdata_hub")
     _validate_import(tabpfn_python, "tabpfn")
+    _validate_import(tabicl_python, "pyarrow")
+    _validate_import(tabicl_python, "tab_realdata_hub")
     _validate_import(tabicl_python, "tabicl")
 
     return {

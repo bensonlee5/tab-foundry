@@ -4,7 +4,7 @@ parent_sweep_id: stability_ladder
 status: completed
 complexity_level: binary_md
 anchor_run_id: null
-benchmark_bundle_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+benchmark_manifest_path: src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
 control_baseline_id: cls_benchmark_linear_v2
 training_experiment: cls_benchmark_staged_prior
 training_config_profile: cls_benchmark_staged_prior

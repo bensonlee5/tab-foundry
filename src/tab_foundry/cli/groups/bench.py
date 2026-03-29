@@ -9,6 +9,7 @@ import tab_foundry.cli.bench_bundle_openml as bundle_openml_cli
 import tab_foundry.cli.bench_compare as compare_cli
 import tab_foundry.cli.bench_control_baseline_freeze as control_baseline_freeze_cli
 import tab_foundry.cli.bench_env_bootstrap as env_bootstrap_cli
+import tab_foundry.cli.bench_materialize_openml_bundle as materialize_openml_cli
 import tab_foundry.cli.bench_run_registration as run_registration_cli
 import tab_foundry.cli.bench_smoke_dagzoo as dagzoo_smoke_cli
 import tab_foundry.cli.bench_smoke_iris as iris_smoke_cli
@@ -39,6 +40,13 @@ def register(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) ->
     )
     compare_cli.configure_parser(compare_parser)
     compare_parser.set_defaults(func=compare_cli.run_from_args)
+
+    materialize_parser = nested.add_parser(
+        "materialize-openml-bundle",
+        help="Materialize an OpenML bundle into a manifest-backed benchmark surface",
+    )
+    materialize_openml_cli.configure_parser(materialize_parser)
+    materialize_parser.set_defaults(func=materialize_openml_cli.run_from_args)
 
     env_parser = nested.add_parser("env", help="Benchmark environment helpers")
     env_nested = env_parser.add_subparsers(dest="env_command", required=True)

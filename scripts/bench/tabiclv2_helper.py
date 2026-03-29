@@ -19,9 +19,9 @@ import tab_foundry.bench.tabiclv2_helper as helper_module  # noqa: E402
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Evaluate TabICLv2 on cached benchmark datasets")
+    parser = argparse.ArgumentParser(description="Evaluate TabICLv2 on a manifest-backed benchmark surface")
     parser.add_argument("--tab-foundry-src", required=True, help="tab-foundry src directory for shared helpers")
-    parser.add_argument("--dataset-cache", required=True, help="Path to cached benchmark datasets (.npz)")
+    parser.add_argument("--benchmark-manifest", required=True, help="Path to a manifest-backed benchmark surface")
     parser.add_argument("--out-path", required=True, help="Output JSONL path")
     parser.add_argument(
         "--task-type",
@@ -43,7 +43,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     return helper_module.run_tabiclv2_helper(
         tab_foundry_src=Path(str(args.tab_foundry_src)),
-        dataset_cache=Path(str(args.dataset_cache)),
+        benchmark_manifest=Path(str(args.benchmark_manifest)),
         out_path=Path(str(args.out_path)),
         task_type=str(args.task_type),
         checkpoint_version=str(args.checkpoint_version),

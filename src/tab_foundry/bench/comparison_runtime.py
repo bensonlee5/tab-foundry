@@ -29,16 +29,16 @@ from tab_foundry.bench.nanotabpfn import (
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_CONFIDENCE,
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES,
     DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SEED,
+    benchmark_bundle_summary,
     benchmark_bundle_task_type,
     benchmark_host_fingerprint,
     build_comparison_summary,
-    default_benchmark_bundle_path,
+    default_benchmark_manifest_path,
     evaluate_tab_foundry_run,
     load_benchmark_bundle_for_execution,
-    load_openml_benchmark_datasets,
+    load_benchmark_manifest_datasets,
     plot_comparison_curve,
     resolve_device,
-    save_dataset_cache,
     summarize_checkpoint_curve,
 )
 from tab_foundry.repo_paths import repo_root
@@ -59,6 +59,9 @@ __all__ = [
     "posthoc_update_wandb_summary",
     "run_nanotabpfn_benchmark",
 ]
+
+_RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE = 3
+_LEGACY_RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE = 2
 
 
 def _nanotabpfn_python(root: Path) -> Path:
@@ -102,7 +105,7 @@ def _resolve_primary_external_benchmark(
 def _nanotabpfn_helper_command(
     *,
     config: BenchmarkComparisonConfig,
-    dataset_cache: Path,
+    benchmark_manifest: Path,
     out_path: Path,
     allow_missing_values: bool,
 ) -> list[str]:
@@ -112,8 +115,8 @@ def _nanotabpfn_helper_command(
         str(_helper_script_path()),
         "--tab-foundry-src",
         str(_src_root()),
-        "--dataset-cache",
-        str(dataset_cache),
+        "--benchmark-manifest",
+        str(benchmark_manifest),
         "--prior-dump",
         str(_nanotabpfn_prior_dump(nanotab_root, config.nanotab_prior_dump)),
         "--out-path",
@@ -271,7 +274,7 @@ def _fresh_nanotabpfn_execution_metadata(
 def _tabiclv2_helper_command(
     *,
     config: BenchmarkComparisonConfig,
-    dataset_cache: Path,
+    benchmark_manifest: Path,
     out_path: Path,
     task_type: str,
     allow_missing_values: bool,
@@ -282,8 +285,8 @@ def _tabiclv2_helper_command(
         str(_tabiclv2_helper_script_path()),
         "--tab-foundry-src",
         str(_src_root()),
-        "--dataset-cache",
-        str(dataset_cache),
+        "--benchmark-manifest",
+        str(benchmark_manifest),
         "--out-path",
         str(out_path),
         "--task-type",
@@ -378,23 +381,73 @@ def _reused_nanotabpfn_execution_metadata(
     )
 
 
+def _load_runtime_benchmark_surface(
+    benchmark_manifest_path: Path,
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
+    loaded = load_benchmark_manifest_datasets(
+        benchmark_manifest_path=benchmark_manifest_path,
+    )
+    if not isinstance(loaded, tuple):
+        raise RuntimeError(
+            "load_benchmark_manifest_datasets must return a tuple of "
+            "(datasets, benchmark_tasks, benchmark_surface)"
+        )
+    if len(loaded) == _RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE:
+        datasets, benchmark_tasks, benchmark_surface = loaded
+        return (
+            cast(dict[str, Any], datasets),
+            cast(list[dict[str, Any]], benchmark_tasks),
+            cast(dict[str, Any], benchmark_surface),
+        )
+    if len(loaded) != _LEGACY_RUNTIME_BENCHMARK_SURFACE_TUPLE_SIZE:
+        raise RuntimeError(
+            "load_benchmark_manifest_datasets returned an unexpected tuple shape: "
+            f"{len(loaded)!r}"
+        )
+    datasets, benchmark_tasks = loaded
+    bundle, allow_missing_values = load_benchmark_bundle_for_execution(benchmark_manifest_path)
+    return (
+        cast(dict[str, Any], datasets),
+        cast(list[dict[str, Any]], benchmark_tasks),
+        {
+            "manifest_path": str(benchmark_manifest_path.expanduser().resolve()),
+            "contract_version": None,
+            "manifest_sha256": None,
+            "task_type": benchmark_bundle_task_type(bundle),
+            "allow_missing_values": bool(allow_missing_values),
+            "benchmark_bundle": benchmark_bundle_summary(
+                bundle,
+                source_path=benchmark_manifest_path,
+            ),
+            "persisted_summary": None,
+        },
+    )
+
+
 def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any]:
     """Run the manual tab-foundry benchmark comparison against external baselines."""
 
-    benchmark_bundle_path = (
-        default_benchmark_bundle_path()
-        if config.benchmark_bundle_path is None
-        else config.benchmark_bundle_path.expanduser().resolve()
+    benchmark_manifest_path = (
+        default_benchmark_manifest_path()
+        if config.benchmark_manifest_path is None
+        else config.benchmark_manifest_path.expanduser().resolve()
     )
     requested_external_benchmarks = normalize_external_benchmarks(
         config.external_benchmarks,
         context="config.external_benchmarks",
         allow_empty=True,
     )
-    benchmark_bundle, allow_missing_values = load_benchmark_bundle_for_execution(
-        benchmark_bundle_path
+    datasets, benchmark_tasks, benchmark_surface = _load_runtime_benchmark_surface(
+        benchmark_manifest_path,
     )
-    task_type = benchmark_bundle_task_type(benchmark_bundle)
+    task_type = str(benchmark_surface["task_type"])
+    allow_missing_values = bool(benchmark_surface["allow_missing_values"])
+    benchmark_bundle_summary = benchmark_surface.get("benchmark_bundle")
+    if not isinstance(benchmark_bundle_summary, Mapping):
+        raise RuntimeError(
+            "benchmark comparison requires source bundle provenance in the manifest metadata: "
+            f"{benchmark_manifest_path}"
+        )
     reuse_curve_path = _resolve_reuse_curve_path(config)
     reuse_nanotabpfn_error = _resolve_reuse_nanotabpfn_error(config)
     if reuse_curve_path is not None and reuse_nanotabpfn_error is not None:
@@ -446,7 +499,6 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
     out_root.mkdir(parents=True, exist_ok=True)
 
     benchmark_tasks_path = out_root / "benchmark_tasks.json"
-    dataset_cache_path = out_root / "benchmark_dataset_cache.npz"
     tab_foundry_curve_path = out_root / "tab_foundry_curve.jsonl"
     nanotabpfn_curve_path = out_root / "nanotabpfn_curve.jsonl"
     tabiclv2_curve_path = out_root / "tabiclv2_curve.jsonl"
@@ -454,8 +506,6 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
     comparison_summary_path = out_root / "comparison_summary.json"
     benchmark_run_record_path = out_root / "benchmark_run_record.json"
     training_surface_record_path = out_root / "training_surface_record.json"
-    benchmark_selection = cast(dict[str, Any], benchmark_bundle["selection"])
-    benchmark_new_instances = int(benchmark_selection["new_instances"])
     control_baseline = None
     if config.control_baseline_id is not None:
         control_baseline = load_control_baseline_entry(
@@ -463,13 +513,13 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
             registry_path=config.control_baseline_registry,
         )
 
-    datasets, benchmark_tasks = load_openml_benchmark_datasets(
-        new_instances=benchmark_new_instances,
-        benchmark_bundle_path=benchmark_bundle_path,
-        allow_missing_values=allow_missing_values,
+    write_json(
+        benchmark_tasks_path,
+        {
+            "manifest": benchmark_surface,
+            "tasks": benchmark_tasks,
+        },
     )
-    write_json(benchmark_tasks_path, benchmark_bundle)
-    save_dataset_cache(dataset_cache_path, datasets)
 
     tab_foundry_records = evaluate_tab_foundry_run(
         tab_foundry_run_dir,
@@ -508,7 +558,7 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
                 raise RuntimeError("nanoTabPFN environment validation did not resolve a root")
             helper_command = _nanotabpfn_helper_command(
                 config=config,
-                dataset_cache=dataset_cache_path,
+                benchmark_manifest=benchmark_manifest_path,
                 out_path=nanotabpfn_curve_path,
                 allow_missing_values=allow_missing_values,
             )
@@ -537,7 +587,7 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
                 raise RuntimeError("TabICLv2 environment validation did not resolve an interpreter")
             helper_command = _tabiclv2_helper_command(
                 config=config,
-                dataset_cache=dataset_cache_path,
+                benchmark_manifest=benchmark_manifest_path,
                 out_path=tabiclv2_curve_path,
                 task_type=task_type,
                 allow_missing_values=allow_missing_values,
@@ -572,8 +622,10 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
         nanotabpfn_records=nanotabpfn_records,
         tabiclv2_records=tabiclv2_records,
         benchmark_tasks=benchmark_tasks,
-        benchmark_bundle=benchmark_bundle,
-        benchmark_bundle_path=benchmark_bundle_path,
+        benchmark_bundle=cast(dict[str, Any], benchmark_bundle_summary),
+        benchmark_bundle_path=Path(str(benchmark_bundle_summary["source_path"])),
+        benchmark_manifest_path=benchmark_manifest_path,
+        benchmark_manifest=benchmark_surface,
         tab_foundry_run_dir=tab_foundry_run_dir,
         task_type=task_type,
         nanotabpfn_root=nanotabpfn_root,
@@ -639,7 +691,7 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
         nanotabpfn_curve_path=nanotabpfn_curve_path,
         tabiclv2_curve_path=tabiclv2_curve_path,
         comparison_curve_path=comparison_curve_path,
-        dataset_cache_path=dataset_cache_path,
+        benchmark_manifest_path=benchmark_manifest_path,
         comparison_summary_path=comparison_summary_path,
         benchmark_run_record_path=benchmark_run_record_path,
         training_surface_record_path=training_surface_record_path,

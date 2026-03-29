@@ -99,7 +99,7 @@ def _make_exec_sweep(tmp_path: Path) -> tuple[str, ExecutionPaths, Path]:
         anchor_run_id=ANCHOR_RUN_ID,
         parent_sweep_id='input_norm_followup',
         complexity_level='binary_md',
-        benchmark_bundle_path='src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json',
+        benchmark_manifest_path='src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json',
         control_baseline_id='cls_benchmark_linear_v2',
         delta_refs=['delta_anchor_activation_trace_baseline', 'delta_shared_feature_norm'],
         index_path=sweeps_root / 'index.yaml',
@@ -149,11 +149,16 @@ def _write_compare_summary(
     nanotabpfn_error: Mapping[str, Any] | None = None,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_bundle_path = bundle_path.resolve()
     payload: dict[str, Any] = {
+        'benchmark_manifest': {
+            'path': str(resolved_bundle_path),
+            'sha256': curve_reuse_module.manifest_sha256(resolved_bundle_path),
+        },
         'benchmark_bundle': {
             'name': 'bundle',
             'source_path': (
-                str(bundle_path.resolve())
+                str(resolved_bundle_path)
                 if bundle_source_path is None
                 else str(bundle_source_path).strip()
             ),
@@ -1360,7 +1365,7 @@ def test_run_row_screen_only_updates_queue_without_benchmark(monkeypatch: pytest
         sweep_id=sweep_id,
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': 'bundle.json',
+            'benchmark_manifest_path': 'bundle.json',
             'training_experiment': 'cls_benchmark_staged',
             'training_config_profile': 'cls_benchmark_staged',
             'surface_role': 'architecture_screen',
@@ -1554,7 +1559,7 @@ def test_run_row_uses_manifest_trainer_for_manifest_rows(
         sweep_id='backend_probe',
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': 'bundle.json',
+            'benchmark_manifest_path': 'bundle.json',
             'training_experiment': 'cls_benchmark_staged',
             'training_config_profile': 'cls_benchmark_staged',
             'surface_role': 'architecture_screen',
@@ -1651,7 +1656,7 @@ def test_run_row_uses_prior_dump_trainer_for_prior_dump_rows(
         sweep_id='backend_probe',
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': 'bundle.json',
+            'benchmark_manifest_path': 'bundle.json',
             'training_experiment': 'cls_benchmark_staged_prior',
             'training_config_profile': 'cls_benchmark_staged_prior',
             'surface_role': 'architecture_screen',
@@ -1722,7 +1727,7 @@ def test_run_row_requires_prior_dump_for_legacy_prior_rows(
             sweep_id='backend_probe',
             sweep_meta={
                 'control_baseline_id': 'cls_benchmark_linear_v2',
-                'benchmark_bundle_path': 'bundle.json',
+                'benchmark_manifest_path': 'bundle.json',
                 'training_experiment': 'cls_benchmark_staged_prior',
                 'training_config_profile': 'cls_benchmark_staged_prior',
                 'surface_role': 'architecture_screen',
@@ -1842,7 +1847,7 @@ def test_run_row_legacy_sweep_meta_ignores_synthetic_anchor_context_experiment(
         sweep_id=sweep_id,
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': 'bundle.json',
+            'benchmark_manifest_path': 'bundle.json',
             'anchor_context': {
                 'experiment': 'stability_followup',
                 'config_profile': 'stability_followup',
@@ -2016,7 +2021,7 @@ def test_run_row_benchmark_full_uses_sweep_training_contract_for_registration(
         sweep_id=sweep_id,
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': 'bundle.json',
+            'benchmark_manifest_path': 'bundle.json',
             'external_benchmarks': ['tabiclv2'],
             'training_experiment': 'cls_benchmark_staged',
             'training_config_profile': 'cls_benchmark_staged',
@@ -2186,7 +2191,7 @@ def test_run_row_benchmark_full_supports_local_only_benchmark(
         sweep_id=sweep_id,
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': 'bundle.json',
+            'benchmark_manifest_path': 'bundle.json',
             'external_benchmarks': [],
             'training_experiment': 'cls_benchmark_sandwich_hybrid_prior',
             'training_config_profile': 'cls_benchmark_sandwich_hybrid_prior',
@@ -2383,7 +2388,7 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
         sweep_id=sweep_id,
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'benchmark_manifest_path': str(bundle_path.resolve()),
             'training_experiment': 'cls_benchmark_staged',
             'training_config_profile': 'cls_benchmark_staged',
             'surface_role': 'architecture_screen',
@@ -2411,6 +2416,8 @@ def test_run_row_benchmark_full_reuses_anchor_curve_without_bootstrapping_nanota
         'device': 'auto',
         'resolved_device': 'cuda',
         'benchmark_host_fingerprint': 'runner-host',
+        'benchmark_manifest_path': str(bundle_path.resolve()),
+        'benchmark_manifest_sha256': curve_reuse_module.manifest_sha256(bundle_path.resolve()),
         'prior_dump_path': str(prior_dump.resolve()),
         'num_seeds': runner_module.DEFAULT_NANOTABPFN_SEEDS,
         'steps': runner_module.DEFAULT_NANOTABPFN_STEPS,
@@ -2608,7 +2615,7 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
         sweep_id=sweep_id,
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'benchmark_manifest_path': str(bundle_path.resolve()),
             'training_experiment': 'cls_benchmark_staged',
             'training_config_profile': 'cls_benchmark_staged',
             'surface_role': 'architecture_screen',
@@ -2636,6 +2643,8 @@ def test_run_row_reuses_prior_completed_sweep_row_curve_before_bootstrapping_hel
         'device': 'auto',
         'resolved_device': 'cuda',
         'benchmark_host_fingerprint': 'runner-host',
+        'benchmark_manifest_path': str(bundle_path.resolve()),
+        'benchmark_manifest_sha256': curve_reuse_module.manifest_sha256(bundle_path.resolve()),
         'prior_dump_path': str(prior_dump.resolve()),
         'num_seeds': runner_module.DEFAULT_NANOTABPFN_SEEDS,
         'steps': runner_module.DEFAULT_NANOTABPFN_STEPS,
@@ -2824,7 +2833,7 @@ def test_run_row_reuses_prior_completed_sweep_row_error_before_bootstrapping_hel
         sweep_id=sweep_id,
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'benchmark_manifest_path': str(bundle_path.resolve()),
             'training_experiment': 'cls_benchmark_staged',
             'training_config_profile': 'cls_benchmark_staged',
             'surface_role': 'architecture_screen',
@@ -2853,6 +2862,8 @@ def test_run_row_reuses_prior_completed_sweep_row_error_before_bootstrapping_hel
         'device': 'cuda',
         'resolved_device': 'cuda',
         'benchmark_host_fingerprint': 'runner-host',
+        'benchmark_manifest_path': str(bundle_path.resolve()),
+        'benchmark_manifest_sha256': curve_reuse_module.manifest_sha256(bundle_path.resolve()),
         'prior_dump_path': None,
         'num_seeds': runner_module.DEFAULT_NANOTABPFN_SEEDS,
         'steps': runner_module.DEFAULT_NANOTABPFN_STEPS,
@@ -2946,7 +2957,7 @@ def test_run_row_benchmark_full_without_reuse_fails_lazily_when_prior_dump_is_mi
             sweep_id=sweep_id,
             sweep_meta={
                 'control_baseline_id': 'cls_benchmark_linear_v2',
-                'benchmark_bundle_path': str(bundle_path.resolve()),
+                'benchmark_manifest_path': str(bundle_path.resolve()),
                 'training_experiment': 'cls_benchmark_staged',
                 'training_config_profile': 'cls_benchmark_staged',
                 'surface_role': 'architecture_screen',
@@ -3087,7 +3098,7 @@ def test_run_row_reuse_only_skips_fresh_nanotabpfn_helper_when_no_local_reuse_ex
         sweep_id=sweep_id,
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'benchmark_manifest_path': str(bundle_path.resolve()),
             'training_experiment': 'cls_benchmark_staged',
             'training_config_profile': 'cls_benchmark_staged',
             'surface_role': 'architecture_screen',
@@ -3212,7 +3223,7 @@ def test_resolve_reusable_nanotabpfn_curve_falls_back_to_control_baseline_when_a
     selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'benchmark_manifest_path': str(bundle_path.resolve()),
         },
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
@@ -3305,7 +3316,7 @@ def test_resolve_reusable_nanotabpfn_curve_matches_repo_tracked_bundle_across_ch
     selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': 'src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json',
+            'benchmark_manifest_path': 'src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json',
         },
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
@@ -3392,7 +3403,7 @@ def test_resolve_reusable_nanotabpfn_curve_allows_cross_device_reuse_on_the_same
     selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'benchmark_manifest_path': str(bundle_path.resolve()),
         },
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
@@ -3481,7 +3492,7 @@ def test_resolve_reusable_nanotabpfn_curve_requires_host_fingerprint_match(
     selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'benchmark_manifest_path': str(bundle_path.resolve()),
         },
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
@@ -3570,7 +3581,7 @@ def test_resolve_reusable_nanotabpfn_curve_rejects_legacy_summary_without_timing
     selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'benchmark_manifest_path': str(bundle_path.resolve()),
         },
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
@@ -3646,7 +3657,7 @@ def test_resolve_reusable_nanotabpfn_curve_skips_missing_summary_or_curve(
     selection = curve_reuse_module.resolve_reusable_nanotabpfn_curve(
         sweep_meta={
             'control_baseline_id': 'cls_benchmark_linear_v2',
-            'benchmark_bundle_path': str(bundle_path.resolve()),
+            'benchmark_manifest_path': str(bundle_path.resolve()),
         },
         anchor_run_id='anchor_v1',
         nanotabpfn_root=nanotab_root,
@@ -3676,7 +3687,7 @@ def test_write_research_package_uses_resolved_lane_contract_fields(tmp_path: Pat
         queue_row={"model": {}, "data": {}, "preprocessing": {}, "training": {}},
         sweep_meta={
             "control_baseline_id": "cls_benchmark_linear_v2",
-            "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+            "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         },
         sweep_id="legacy_sweep",
         anchor_run_id="anchor_v1",
@@ -3807,7 +3818,7 @@ def test_run_row_resolves_dynamic_post_stack_norm_from_screened_rows(
 
     _ = runner_module.run_row(
         sweep_id=sweep_id,
-        sweep_meta={'control_baseline_id': 'cls_benchmark_linear_v2', 'benchmark_bundle_path': 'bundle.json'},
+        sweep_meta={'control_baseline_id': 'cls_benchmark_linear_v2', 'benchmark_manifest_path': 'bundle.json'},
         queue_row=queue_row,
         materialized_row=materialized_row,
         anchor_run_id='anchor_v1',

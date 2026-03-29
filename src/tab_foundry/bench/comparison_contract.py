@@ -34,7 +34,7 @@ class BenchmarkComparisonConfig:
     nanotabpfn_lr: float = DEFAULT_NANOTABPFN_LR
     control_baseline_id: str | None = None
     control_baseline_registry: Path | None = None
-    benchmark_bundle_path: Path | None = None
+    benchmark_manifest_path: Path | None = None
     external_benchmarks: tuple[str, ...] = DEFAULT_EXTERNAL_BENCHMARKS
     reuse_nanotabpfn_curve_path: Path | None = None
     reuse_nanotabpfn_error: Mapping[str, Any] | None = None

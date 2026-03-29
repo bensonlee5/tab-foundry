@@ -104,9 +104,9 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
         help="Control baseline registry JSON path used with --control-baseline-id",
     )
     parser.add_argument(
-        "--benchmark-bundle-path",
+        "--benchmark-manifest-path",
         default=None,
-        help="Optional repo-tracked OpenML benchmark bundle JSON path",
+        help="Optional repo-local manifest-backed benchmark surface path",
     )
 
 
@@ -145,9 +145,9 @@ def run_from_args(args: argparse.Namespace) -> int:
                 if args.control_baseline_registry
                 else None
             ),
-            benchmark_bundle_path=(
-                Path(str(args.benchmark_bundle_path))
-                if args.benchmark_bundle_path
+            benchmark_manifest_path=(
+                Path(str(args.benchmark_manifest_path))
+                if args.benchmark_manifest_path
                 else None
             ),
             external_benchmarks=normalize_external_benchmarks(

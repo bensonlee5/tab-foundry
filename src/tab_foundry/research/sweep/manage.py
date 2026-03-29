@@ -128,7 +128,7 @@ def create_sweep(
     anchor_run_id: str,
     parent_sweep_id: str | None,
     complexity_level: str,
-    benchmark_bundle_path: str,
+    benchmark_manifest_path: str,
     control_baseline_id: str,
     external_benchmarks: Sequence[str] | None = None,
     training_experiment: str | None = None,
@@ -143,7 +143,7 @@ def create_sweep(
     normalized_sweep_id = _require_non_empty_string(sweep_id, context="sweep_id")
     normalized_anchor_run_id = _require_non_empty_string(anchor_run_id, context="anchor_run_id")
     normalized_complexity_level = _require_non_empty_string(complexity_level, context="complexity_level")
-    normalized_benchmark_bundle_path = _require_non_empty_string(benchmark_bundle_path, context="benchmark_bundle_path")
+    normalized_benchmark_manifest_path = _require_non_empty_string(benchmark_manifest_path, context="benchmark_manifest_path")
     normalized_control_baseline_id = _require_non_empty_string(control_baseline_id, context="control_baseline_id")
     resolved_index_path = (index_path or default_sweep_index_path()).expanduser().resolve()
     resolved_sweeps_root = sweeps_root or resolved_index_path.parent
@@ -244,7 +244,7 @@ def create_sweep(
         "status": DEFAULT_SWEEP_STATUS,
         "complexity_level": normalized_complexity_level,
         "anchor_run_id": normalized_anchor_run_id,
-        "benchmark_bundle_path": normalized_benchmark_bundle_path,
+        "benchmark_manifest_path": normalized_benchmark_manifest_path,
         "control_baseline_id": normalized_control_baseline_id,
         "external_benchmarks": resolved_external_benchmarks,
         "training_experiment": resolved_training_experiment,
@@ -266,7 +266,7 @@ def create_sweep(
         ),
         "anchor_surface": build_anchor_surface(
             anchor_run_id=normalized_anchor_run_id,
-            benchmark_bundle_path=normalized_benchmark_bundle_path,
+            benchmark_manifest_path=normalized_benchmark_manifest_path,
             anchor_context=anchor_context,
         ),
         "anchor_context": anchor_context,
@@ -314,7 +314,7 @@ def create_sweep(
         "status": DEFAULT_SWEEP_STATUS,
         "anchor_run_id": normalized_anchor_run_id,
         "complexity_level": normalized_complexity_level,
-        "benchmark_bundle_path": normalized_benchmark_bundle_path,
+        "benchmark_manifest_path": normalized_benchmark_manifest_path,
         "control_baseline_id": normalized_control_baseline_id,
         "external_benchmarks": resolved_external_benchmarks,
     }

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-03-28
+
+### Changed
+
+- User-facing break: benchmark comparison, bounce diagnosis, helper execution,
+  and sweep execution now consume materialized benchmark manifests rather than
+  bundle JSONs at runtime. `tab-foundry bench compare` and related flows now
+  use `--benchmark-manifest-path`; bundle JSONs remain definition assets and
+  must be materialized first.
+- User-facing note: added `tab-foundry bench materialize-openml-bundle` as the
+  explicit wrapper for materializing repo-tracked OpenML bundle definitions
+  into local manifest-backed benchmark surfaces under `data/manifests/bench/`.
+- User-facing break: manifest build/inspect/read ownership now lives entirely
+  in upstream `tab-realdata-hub`. `tab-foundry` no longer re-exports local
+  manifest wrapper modules, and the manifest contract is now documented as a
+  minimal parquet index plus richer `metadata.ndjson` payload.
+- User-facing note: manifest-backed benchmark loading now correctly admits
+  missing-valued benchmark surfaces when the persisted benchmark provenance
+  explicitly marks them as allowed, instead of failing before the benchmark
+  layer can apply that policy.
+- User-facing note: `tab-foundry` now depends on the git-tagged
+  `tab-realdata-hub` upstream package rather than an unpublished versioned
+  package assumption. Project installs and `tab-foundry bench env bootstrap`
+  both use the same GitHub-pinned `v0.1.0` package source.
+
 ## [0.14.1] - 2026-03-27
 
 ### Changed

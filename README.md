@@ -70,6 +70,12 @@ assumes a repo-local `.venv`.
 repo-local path for bootstrap, verification, and Iris smoke; keep
 `scripts/bench/` reserved for narrow internal benchmark helper workflows.
 
+Manifest build, inspect, and read ownership lives upstream in
+`tab-realdata-hub`. In this repo, the parquet manifest is treated as the
+stable index layer and the richer per-dataset semantics live in
+`metadata.ndjson`; `tab-foundry` consumes that contract and does not define a
+parallel manifest parser.
+
 | Surface | Use it for |
 | --- | --- |
 | `tab-foundry` | Canonical packaged CLI for data, training, evaluation, export, benchmark, and research workflows. |

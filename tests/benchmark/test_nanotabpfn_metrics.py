@@ -8,11 +8,13 @@ from types import ModuleType
 
 import numpy as np
 import pytest
+from tab_realdata_hub.manifest import build_manifest
 
 from tab_foundry.bench.artifacts import load_jsonl
 import tab_foundry.bench.nanotabpfn as benchmark_module
 import tab_foundry.bench.nanotabpfn.metrics as benchmark_metrics_module
 import tab_foundry.bench.tabiclv2_helper as tabiclv2_helper_module
+from tests.data import manifest_and_dataset_cases as manifest_cases
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TABICLV2_HELPER_SCRIPT_PATH = REPO_ROOT / "scripts" / "bench" / "tabiclv2_helper.py"
@@ -25,6 +27,40 @@ def _load_tabiclv2_helper_script():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _write_helper_manifest(tmp_path: Path) -> Path:
+    shard_dir = tmp_path / "run" / "shard_00000"
+    x_train = np.asarray([[0.0], [1.0], [0.0], [1.0], [0.0], [1.0]], dtype=np.float32)
+    y_train = np.asarray([0, 1, 0, 1, 0, 1], dtype=np.int64)
+    x_test = np.asarray([[0.0], [1.0], [0.0], [1.0]], dtype=np.float32)
+    y_test = np.asarray([0, 1, 0, 1], dtype=np.int64)
+    _ = manifest_cases._write_packed_shard(
+        shard_dir,
+        datasets=[
+            {
+                "dataset_index": 0,
+                "x_train": x_train,
+                "y_train": y_train,
+                "x_test": x_test,
+                "y_test": y_test,
+                "feature_types": ["floating"],
+                "metadata": {
+                    **manifest_cases._classification_metadata(
+                        n_features=1,
+                        n_classes=2,
+                        seed=7,
+                        filter_status="accepted",
+                        filter_accepted=True,
+                    ),
+                    "observed_task": {"dataset_name": "toy"},
+                },
+            }
+        ],
+    )
+    manifest_path = tmp_path / "manifest.parquet"
+    _ = build_manifest([tmp_path / "run"], manifest_path)
+    return manifest_path
 
 
 class _PerfectClassifier:
@@ -225,16 +261,7 @@ def test_tabiclv2_helper_main_runs_without_openml_or_pandas_imports(
     monkeypatch.setitem(sys.modules, "tabicl", fake_tabicl)
     monkeypatch.chdir(tmp_path)
 
-    dataset_cache_path = tmp_path / "benchmark_dataset_cache.npz"
-    benchmark_module.save_dataset_cache(
-        dataset_cache_path,
-        {
-            "toy": (
-                np.asarray([[0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0]], dtype=np.float32),
-                np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
-            )
-        },
-    )
+    manifest_path = _write_helper_manifest(tmp_path)
     for module_name in list(sys.modules):
         if module_name == "tab_foundry.bench.nanotabpfn" or module_name.startswith(
             "tab_foundry.bench.nanotabpfn."
@@ -261,8 +288,8 @@ def test_tabiclv2_helper_main_runs_without_openml_or_pandas_imports(
         [
             "--tab-foundry-src",
             str((REPO_ROOT / "src").resolve()),
-            "--dataset-cache",
-            str(dataset_cache_path),
+            "--benchmark-manifest",
+            str(manifest_path),
             "--out-path",
             str(out_path),
             "--task-type",
@@ -353,6 +380,7 @@ def test_build_comparison_summary_supports_regression_without_nanotabpfn(tmp_pat
             ],
         },
         benchmark_bundle_path=tmp_path / "bundle.json",
+        benchmark_manifest_path=tmp_path / "bundle.json",
         tab_foundry_run_dir=tmp_path / "run",
         task_type="supervised_regression",
         nanotabpfn_root=None,
@@ -415,6 +443,7 @@ def test_build_comparison_summary_supports_optional_tabiclv2(tmp_path) -> None:
             ],
         },
         benchmark_bundle_path=tmp_path / "bundle.json",
+        benchmark_manifest_path=tmp_path / "bundle.json",
         tab_foundry_run_dir=tmp_path / "run",
         task_type="supervised_classification",
         nanotabpfn_root=None,

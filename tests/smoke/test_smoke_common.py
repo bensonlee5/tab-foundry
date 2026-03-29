@@ -7,7 +7,7 @@ from tab_foundry.bench.smoke_common import (
     build_cls_smoke_train_config,
     build_manifest_payload,
 )
-from tab_foundry.data.manifest import ManifestSummary
+from tab_realdata_hub.manifest import ManifestSummary
 
 
 def test_build_manifest_payload_matches_existing_telemetry_shape() -> None:

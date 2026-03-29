@@ -121,7 +121,7 @@ def finalize_benchmark_summary(
     nanotabpfn_curve_path: Path,
     tabiclv2_curve_path: Path,
     comparison_curve_path: Path,
-    dataset_cache_path: Path,
+    benchmark_manifest_path: Path,
     comparison_summary_path: Path,
     benchmark_run_record_path: Path,
     training_surface_record_path: Path,
@@ -156,7 +156,7 @@ def finalize_benchmark_summary(
             else None
         ),
         "comparison_curve_png": str(comparison_curve_path),
-        "benchmark_dataset_cache": str(dataset_cache_path),
+        "benchmark_manifest": str(benchmark_manifest_path),
         "gradient_history_jsonl": (
             str(gradient_history_jsonl.resolve()) if gradient_history_jsonl.exists() else None
         ),

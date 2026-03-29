@@ -10,6 +10,8 @@ from typing import Any, Mapping
 
 import yaml
 
+from tab_realdata_hub.manifest import build_manifest, inspect_manifest, manifest_characteristics
+
 from tab_foundry.hashing import sha256_path
 from tab_foundry.timestamps import utc_now
 
@@ -32,8 +34,6 @@ from .corpus_loading import (
 from .corpus_lookup import _load_reusable_corpus_record, _record_matches_recipe
 from .dagzoo_handoff import load_dagzoo_handoff_info
 from .dagzoo_workflow import DagzooGenerateConfig, build_dagzoo_generate_argv, run_dagzoo_generate
-from .inspection import inspect_manifest, manifest_characteristics
-from .manifest import build_manifest
 
 
 def _git_info(root: Path) -> dict[str, Any] | None:

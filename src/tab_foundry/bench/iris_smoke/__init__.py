@@ -20,7 +20,7 @@ from tab_foundry.bench.smoke_common import (
     build_cls_smoke_train_config,
     build_manifest_payload,
 )
-from tab_foundry.data.manifest import build_manifest
+from tab_realdata_hub.manifest import build_manifest
 from tab_foundry.training.evaluate import evaluate_checkpoint
 from tab_foundry.training.trainer import train
 

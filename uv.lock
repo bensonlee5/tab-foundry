@@ -1745,7 +1745,7 @@ wheels = [
 
 [[package]]
 name = "tab-foundry"
-version = "0.14.1"
+version = "0.15.0"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },
@@ -1817,7 +1817,7 @@ requires-dist = [
     { name = "safetensors", specifier = ">=0.4" },
     { name = "schedulefree", specifier = ">=1.4" },
     { name = "scikit-learn", marker = "extra == 'benchmark'", specifier = ">=1.6" },
-    { name = "tab-realdata-hub", editable = "../tab-realdata-hub" },
+    { name = "tab-realdata-hub", git = "https://github.com/bensonlee5/tab-realdata-hub.git?rev=v0.1.0" },
     { name = "torch", specifier = ">=2.8" },
     { name = "torchview", specifier = ">=0.2.7" },
     { name = "wandb", specifier = ">=0.20" },
@@ -1850,28 +1850,13 @@ dev = [
 [[package]]
 name = "tab-realdata-hub"
 version = "0.1.0"
-source = { editable = "../tab-realdata-hub" }
+source = { git = "https://github.com/bensonlee5/tab-realdata-hub.git?rev=v0.1.0#950931d4f30cc6748215016b4700487e416baa21" }
 dependencies = [
     { name = "numpy" },
     { name = "openml" },
     { name = "pandas" },
     { name = "pyarrow" },
     { name = "scikit-learn" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "numpy", specifier = ">=2.1" },
-    { name = "openml", specifier = ">=0.15" },
-    { name = "pandas", specifier = ">=2.2" },
-    { name = "pyarrow", specifier = ">=23.0" },
-    { name = "scikit-learn", specifier = ">=1.6" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "ruff", specifier = ">=0.6" },
 ]
 
 [[package]]

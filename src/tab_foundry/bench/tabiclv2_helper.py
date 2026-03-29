@@ -45,7 +45,7 @@ class TabICLv2QuantileRegressorAdapter:
 def run_tabiclv2_helper(
     *,
     tab_foundry_src: Path,
-    dataset_cache: Path,
+    benchmark_manifest: Path,
     out_path: Path,
     task_type: str,
     checkpoint_version: str,
@@ -53,7 +53,7 @@ def run_tabiclv2_helper(
     allow_missing_values: bool = False,
     helper_root: Path | None = None,
 ) -> int:
-    """Evaluate TabICLv2 on cached benchmark datasets."""
+    """Evaluate TabICLv2 on a manifest-backed benchmark surface."""
 
     src_root = tab_foundry_src.expanduser().resolve()
     tabicl_root = Path.cwd().resolve() if helper_root is None else helper_root.expanduser().resolve()
@@ -70,8 +70,14 @@ def run_tabiclv2_helper(
             "ensure the sibling TabICLv2 environment is bootstrapped"
         ) from exc
 
+    try:
+        from tab_realdata_hub.manifest import load_manifest_datasets
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "tab-realdata-hub import unavailable in the TabICLv2 helper env; "
+            "run `tab-foundry bench env bootstrap` first"
+        ) from exc
     from tab_foundry.bench.artifacts import write_jsonl
-    from tab_foundry.bench.nanotabpfn.dataset_common import load_dataset_cache
     from tab_foundry.bench.nanotabpfn.metrics import (
         dataset_avg_pinball_loss_metrics,
         dataset_brier_score_metrics,
@@ -86,13 +92,16 @@ def run_tabiclv2_helper(
     resolved_device = None if str(device).strip().lower() == "auto" else str(device).strip()
     resolved_checkpoint_version = str(checkpoint_version).strip()
     resolved_task_type = str(task_type).strip()
-    dataset_cache_path = dataset_cache.expanduser().resolve()
+    benchmark_manifest_path = benchmark_manifest.expanduser().resolve()
     out_path = out_path.expanduser().resolve()
     if not resolved_checkpoint_version:
         raise RuntimeError("checkpoint_version must be a non-empty string")
     if resolved_task_type not in {"supervised_classification", "supervised_regression"}:
         raise RuntimeError(f"unsupported task_type: {resolved_task_type!r}")
-    datasets = load_dataset_cache(dataset_cache_path)
+    datasets = load_manifest_datasets(
+        benchmark_manifest_path,
+        allow_missing_values=bool(allow_missing_values),
+    ).datasets
     allow_missing_values = bool(allow_missing_values)
     started_at = time.perf_counter()
 

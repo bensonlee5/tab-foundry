@@ -6,7 +6,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 import pytest
 
-from tab_foundry.data.manifest import (
+from tab_realdata_hub.manifest import (
     _coerce_optional_int,
     _dataset_id,
     _is_record_selected,

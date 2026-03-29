@@ -44,7 +44,7 @@ def test_row_first_training_adequacy_v1_is_registered_on_the_tf_rd_013_medium_an
         "status": "completed",
         "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "binary_md",
-        "benchmark_bundle_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        "benchmark_manifest_path": "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
         "control_baseline_id": "cls_benchmark_linear_v2",
     }
 
@@ -60,7 +60,7 @@ def test_row_first_training_adequacy_v1_rebases_the_queue_on_task_batch_rungs() 
     assert sweep["anchor_context"]["run_id"] == ANCHOR_RUN_ID
     assert sweep["anchor_context"]["experiment"] == "cls_benchmark_staged"
     assert sweep["anchor_context"]["config_profile"] == "cls_benchmark_staged"
-    assert sweep["benchmark_bundle_path"] == "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
+    assert sweep["benchmark_manifest_path"] == "src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json"
     assert sweep["anchor_context"]["surface_labels"] == {
         "data": "tf_rd_013_dagzoo_shape_aware_size_medium",
         "model": "delta_qass_no_column_v3",

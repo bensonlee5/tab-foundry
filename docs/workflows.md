@@ -465,6 +465,11 @@ This bootstraps sibling envs for:
 - `~/dev/TabPFN`
 - `~/dev/tabicl`
 
+The helper bootstrap now installs the git-pinned `tab-realdata-hub` package
+from GitHub into the nanoTabPFN and TabICLv2 envs so manifest-backed benchmark
+loading no longer depends on a sibling source checkout or unpublished package
+state at runtime.
+
 The benchmark and plotting helpers live under `src/tab_foundry/bench/`, but
 their third-party dependencies are modeled as the optional `benchmark` extra
 for non-dev installs. Repo-local `uv sync` already includes them.
@@ -596,12 +601,27 @@ tab-foundry bench bundle build-openml \
   --min-minority-class-pct 2.5
 ```
 
-Benchmark against a non-default repo-tracked bundle with:
+Benchmark surfaces are now explicitly materialized before execution. Bundle
+JSON files remain repo-tracked benchmark-definition assets, but runtime
+benchmark commands consume manifest-backed benchmark surfaces only. The
+manifest contract is owned upstream by `tab-realdata-hub`: the parquet file is
+the stable index, and richer dataset/provenance fields live in
+`metadata.ndjson`.
+
+Materialize a repo-tracked bundle into a local benchmark manifest with:
+
+```bash
+tab-foundry bench materialize-openml-bundle \
+  --bundle-path src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json \
+  --out-root data/manifests/bench/nanotabpfn_openml_benchmark_v1
+```
+
+Benchmark against a non-default materialized surface with:
 
 ```bash
 tab-foundry bench compare \
   --tab-foundry-run-dir <run_dir> \
-  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json
+  --benchmark-manifest-path data/manifests/bench/nanotabpfn_openml_benchmark_v1/manifest.parquet
 ```
 
 The benchmark-profile training config now writes `train_history.jsonl` directly
@@ -652,7 +672,7 @@ tab-foundry train legacy-prior staged \
 tab-foundry bench compare \
   --tab-foundry-run-dir outputs/control_baselines/cls_benchmark_linear_v2/train \
   --out-root outputs/control_baselines/cls_benchmark_linear_v2/benchmark \
-  --benchmark-bundle-path src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json
+  --benchmark-manifest-path data/manifests/bench/nanotabpfn_openml_binary_medium_v1/manifest.parquet
 
 tab-foundry bench registry freeze-baseline \
   --baseline-id cls_benchmark_linear_v2 \

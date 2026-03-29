@@ -154,7 +154,9 @@ def build_comparison_summary(
     tabiclv2_records: list[dict[str, Any]] | None = None,
     benchmark_tasks: list[dict[str, Any]],
     benchmark_bundle: Mapping[str, Any],
-    benchmark_bundle_path: Path,
+    benchmark_bundle_path: Path | None = None,
+    benchmark_manifest_path: Path | None = None,
+    benchmark_manifest: Mapping[str, Any] | None = None,
     tab_foundry_run_dir: Path,
     task_type: str,
     nanotabpfn_root: Path | None = None,
@@ -313,6 +315,19 @@ def build_comparison_summary(
             if dataset_delta:
                 section[f"best_to_final_{record_key}_delta"] = dataset_delta
 
+    resolved_benchmark_bundle_path = benchmark_bundle_path
+    if resolved_benchmark_bundle_path is None:
+        source_path = benchmark_bundle.get("source_path")
+        if isinstance(source_path, str) and source_path.strip():
+            resolved_benchmark_bundle_path = Path(source_path)
+        elif benchmark_manifest_path is not None:
+            resolved_benchmark_bundle_path = benchmark_manifest_path
+        else:
+            raise RuntimeError(
+                "build_comparison_summary requires benchmark_bundle_path, benchmark_bundle.source_path, "
+                "or benchmark_manifest_path so source provenance can be recorded"
+            )
+
     tab_foundry_curve = summarize_checkpoint_curve(
         tab_foundry_records,
         bootstrap_samples=DEFAULT_CHECKPOINT_DIAGNOSTIC_BOOTSTRAP_SAMPLES,
@@ -328,7 +343,7 @@ def build_comparison_summary(
         "dataset_count": int(len(benchmark_tasks)),
         "benchmark_bundle": benchmark_bundle_summary(
             benchmark_bundle,
-            source_path=benchmark_bundle_path,
+            source_path=resolved_benchmark_bundle_path,
         ),
         "tab_foundry": {
             "best_step": float(tab_foundry_curve_summary["best_step"]),
@@ -347,6 +362,20 @@ def build_comparison_summary(
             **_identity(tab_foundry_successful_records),
         },
     }
+    if benchmark_manifest_path is not None:
+        summary["benchmark_manifest"] = {
+            "path": str(benchmark_manifest_path.expanduser().resolve()),
+            "sha256": (
+                None
+                if benchmark_manifest is None
+                else cast(Mapping[str, Any], benchmark_manifest).get("manifest_sha256")
+            ),
+            "summary": (
+                None
+                if benchmark_manifest is None
+                else json.loads(json.dumps(cast(Mapping[str, Any], benchmark_manifest), sort_keys=True))
+            ),
+        }
     tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
     _apply_metric_summaries(
         tab_foundry_summary,
