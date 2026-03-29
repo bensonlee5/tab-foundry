@@ -67,6 +67,14 @@ def tab_foundry_metrics_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str
     return {
         "best_step": float(tab_foundry["best_step"]),
         "best_training_time": float(tab_foundry["best_training_time"]),
+        "best_bpc": ensure_optional_finite_number(
+            tab_foundry.get("best_bpc"),
+            context="comparison_summary.tab_foundry.best_bpc",
+        ),
+        "best_bpf": ensure_optional_finite_number(
+            tab_foundry.get("best_bpf"),
+            context="comparison_summary.tab_foundry.best_bpf",
+        ),
         "best_roc_auc": ensure_optional_finite_number(
             tab_foundry.get("best_roc_auc"),
             context="comparison_summary.tab_foundry.best_roc_auc",
@@ -93,6 +101,14 @@ def tab_foundry_metrics_from_summary(tab_foundry: Mapping[str, Any]) -> dict[str
         ),
         "final_step": float(tab_foundry["final_step"]),
         "final_training_time": float(tab_foundry["final_training_time"]),
+        "final_bpc": ensure_optional_finite_number(
+            tab_foundry.get("final_bpc"),
+            context="comparison_summary.tab_foundry.final_bpc",
+        ),
+        "final_bpf": ensure_optional_finite_number(
+            tab_foundry.get("final_bpf"),
+            context="comparison_summary.tab_foundry.final_bpf",
+        ),
         "final_roc_auc": ensure_optional_finite_number(
             tab_foundry.get("final_roc_auc"),
             context="comparison_summary.tab_foundry.final_roc_auc",

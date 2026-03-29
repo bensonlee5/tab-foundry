@@ -9,7 +9,9 @@ import torch
 from torch.utils.data import DataLoader
 
 from tab_foundry.model.outputs import (
+    CellLikelihoodOutput,
     ClassificationOutput,
+    validate_cell_likelihood_output_contract,
     validate_classification_output_contract,
     validate_classification_path_terms_contract,
 )
@@ -19,6 +21,8 @@ from tab_foundry.types import TaskBatch
 from .distributed import _global_mean_from_local
 from .losses import classification_loss, hierarchical_nll_loss
 
+_TASK_BATCH_TENSOR_DIMENSIONS = 3
+
 
 def cycle_loader(loader: DataLoader[TaskBatch]) -> Iterator[TaskBatch]:
     while True:
@@ -26,7 +30,7 @@ def cycle_loader(loader: DataLoader[TaskBatch]) -> Iterator[TaskBatch]:
 
 
 def _compute_loss_and_metrics(
-    output: ClassificationOutput,
+    output: ClassificationOutput | CellLikelihoodOutput,
     batch: TaskBatch,
     *,
     task: str,
@@ -36,6 +40,29 @@ def _compute_loss_and_metrics(
             "Only classification training/evaluation is supported in this branch; "
             f"got task={task!r}."
         )
+    if isinstance(output, CellLikelihoodOutput):
+        expected_batch_size = (
+            1 if batch.x_train.ndim != _TASK_BATCH_TENSOR_DIMENSIONS else int(batch.x_train.shape[0])
+        )
+        expected_shape = (
+            expected_batch_size,
+            int(batch.x_train.shape[-2]) + int(batch.x_test.shape[-2]),
+            int(batch.x_train.shape[-1]),
+        )
+        validate_cell_likelihood_output_contract(
+            output,
+            expected_shape=expected_shape,
+            context="cell_bpc training/evaluation",
+        )
+        if output.bpc is None or output.bpf is None:
+            raise RuntimeError("cell_bpc training/evaluation requires output.bpc and output.bpf")
+        metrics = {
+            "bpc": float(output.bpc.detach().item()),
+            "bpf": float(output.bpf.detach().item()),
+        }
+        if output.aux_metrics is not None:
+            metrics.update(output.aux_metrics)
+        return output.bpc, metrics
     if not isinstance(output, ClassificationOutput):
         raise TypeError("classification run expected ClassificationOutput")
     target = batch.y_test.to(torch.int64).reshape(-1)
@@ -107,7 +134,6 @@ def _evaluate_loader(
 ) -> dict[str, float]:
     model.eval()
     loss_sum = 0.0
-    score_sum = 0.0
     count = 0
     tasks_seen = 0
     if task != "classification":
@@ -115,9 +141,10 @@ def _evaluate_loader(
             "Only classification evaluation is supported in this branch; "
             f"got task={task!r}."
         )
-    metric_name = "acc"
     if compute_loss_and_metrics is None:
         compute_loss_and_metrics = _compute_loss_and_metrics
+    metric_sums: dict[str, float] = {}
+    metric_counts: dict[str, int] = {}
 
     with torch.no_grad():
         for batch in loader:
@@ -133,7 +160,9 @@ def _evaluate_loader(
                 output = model(batch)
                 loss, metrics = compute_loss_and_metrics(output, batch, task=task)
             loss_sum += float(loss.detach().item()) * float(actual_task_count)
-            score_sum += float(metrics[metric_name]) * float(actual_task_count)
+            for key, value in metrics.items():
+                metric_sums[key] = metric_sums.get(key, 0.0) + (float(value) * float(actual_task_count))
+                metric_counts[key] = metric_counts.get(key, 0) + actual_task_count
             count += actual_task_count
             tasks_seen += actual_task_count
 
@@ -146,14 +175,16 @@ def _evaluate_loader(
         device=dev,
         default=float("inf"),
     )
-    val_score = _global_mean_from_local(
-        accelerator,
-        local_sum=score_sum,
-        local_count=count,
-        device=dev,
-        default=0.0,
-    )
-    return {"val_loss": val_loss, metric_name: val_score}
+    reduced_metrics = {"val_loss": val_loss}
+    for key, local_sum in metric_sums.items():
+        reduced_metrics[key] = _global_mean_from_local(
+            accelerator,
+            local_sum=local_sum,
+            local_count=metric_counts.get(key, 0),
+            device=dev,
+            default=0.0,
+        )
+    return reduced_metrics
 
 
 def _expected_metric_keys(task: str) -> set[str]:
@@ -164,6 +195,8 @@ def _expected_metric_keys(task: str) -> set[str]:
         )
     return {
         "acc",
+        "bpc",
+        "bpf",
         "grad_norm",
         "many_class_nodes_visited",
         "many_class_avg_path_depth",

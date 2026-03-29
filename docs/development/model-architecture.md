@@ -74,8 +74,8 @@ The live design combines:
 
 - one shared train/test normalization path and a missingness-aware scalar
   tokenizer
-- shared value projection plus row Fourier, column Fourier, and feature-type
-  embeddings
+- shared value projection followed by feature-type FiLM modulation, then row
+  Fourier and column Fourier position enrichment
 - an optional axial pre-Perceiver mixer with row-wise feature attention and
   column-wise ISAB row mixing
 - two context surfaces built from the same encoded cell table:
@@ -250,6 +250,9 @@ Resolved sandwich defaults come from `src/tab_foundry/model/spec.py`.
 | `sandwich_pre_row_attention_layers` | `1` | pre-Perceiver row-wise feature self-attention blocks |
 | `sandwich_pre_column_attention_layers` | `1` | pre-Perceiver column-wise ISAB row mixers |
 | `sandwich_pre_column_inducing_tokens` | `16` | inducing-token count in each pre-column ISAB block |
+| `feature_type_conditioning` | `film` | modulate encoded cell states by feature type after the shared feature encoder |
+| `floating_likelihood` | `single_gaussian` | floating-cell likelihood family for the cell-BPC lane |
+| `integer_likelihood` | `hybrid_mixture` | integer-cell learned discrete/Gaussian mixture for the cell-BPC lane |
 
 ## Feature-Type Metadata Contract
 
@@ -270,6 +273,10 @@ Interpretation:
   strings
 - sandwich requires explicit feature types at runtime; it does not fall back
   to all `floating`
+- feature types modulate encoded cells through FiLM after the shared feature
+  encoder and before row/column position enrichment
+- feature type metadata is conditioning only; it is not emitted as a standalone
+  token
 - manifest-backed tasks must persist `feature_types`; the shared dataset loader
   no longer infers an all-`floating` default when the metadata is absent
 - `run_reference_consumer(..., feature_types=[...])` requires a per-request
@@ -288,6 +295,11 @@ staged family.
 - class count: `2 <= num_classes <= many_class_base`
 - feature metadata: explicit `feature_types` are required; see
   `Feature-Type Metadata Contract`
+- loss surfaces: classification and sandwich-only `cell_bpc`
+- cell-BPC metric: row-major cell negative log-likelihood in bits with
+  `N_cells = rows * features`
+- integer likelihood: learned per-feature hybrid mixture of dynamic-support
+  discrete likelihood and single-Gaussian continuous likelihood
 - supported tensor layouts:
   - single-task: `x_train [N_tr,C]`, `x_test [N_te,C]`, `y_train [N_tr]`
   - task-batched: `x_train [B,N_tr,C]`, `x_test [B,N_te,C]`,
@@ -314,35 +326,3 @@ Rejected staged-only fields:
   of shape `[1, 1, d_icl]`
 - the full cell encoder pass still happens only once; later repeated stages
   reuse the summary-token stream rather than recomputing cell summaries
-
-## How It Differs From Perceiver And PerceiverIO
-
-`tabfoundry_sandwich` is closer to PerceiverIO than the earlier
-summary-only sandwich, but it is still not a literal PerceiverIO port.
-
-Shared ideas:
-
-- fixed learned latent array
-- repeated latent cross-attention reads from a shared input stream
-- latent-only self-attention after each read
-- query-style readout from the final latent state
-
-Important differences:
-
-- only stage `0` reads the raw flattened cell tokens; later stages use the
-  cheaper repeated `R + C` summary stream
-- the output query is specialized for PFN-style tabular ICL semantics rather
-  than a generic IO adapter family
-- the model keeps dedicated row-summary and column-summary builders rather than
-  relying on raw cells alone
-- output is a direct small-class classifier head, not a general output-query
-  adapter family
-
-## Other Model Families
-
-- `tabfoundry_simple` is still the frozen PFN-style control.
-  Keep it for exact control comparisons and benchmark trust.
-- `tabfoundry_staged` is still available, but it is now comparison context
-  rather than the center of architecture documentation.
-  Its settled row-first result remains useful background, but the live design
-  work is on the sandwich family.

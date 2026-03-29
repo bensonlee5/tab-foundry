@@ -5,6 +5,10 @@ import torch
 
 from tab_foundry.model.architectures.tabfoundry_sandwich import TabFoundrySandwichClassifier
 from tab_foundry.model.architectures.tabfoundry_sandwich import model as sandwich_model
+from tab_foundry.model.outputs import (
+    CellLikelihoodOutput,
+    validate_cell_likelihood_output_contract,
+)
 from tab_foundry.task_batching import collate_task_batch
 from tab_foundry.types import TaskBatch
 
@@ -84,6 +88,7 @@ def _model(
     sandwich_ff_expansion: int = 2,
     sandwich_summary_tokens_per_axis: int = 4,
     sandwich_self_attention_per_cross: int = 4,
+    feature_type_conditioning: str = "film",
 ) -> TabFoundrySandwichClassifier:
     return TabFoundrySandwichClassifier(
         d_icl=32,
@@ -98,6 +103,7 @@ def _model(
         sandwich_pre_row_attention_layers=1,
         sandwich_pre_column_attention_layers=1,
         sandwich_pre_column_inducing_tokens=8,
+        feature_type_conditioning=feature_type_conditioning,
     )
 
 
@@ -614,3 +620,75 @@ def test_tabfoundry_sandwich_rejects_true_many_class_batches() -> None:
 
     with pytest.raises(RuntimeError, match="small-class only"):
         _ = model(_batch(num_classes=5))
+
+
+def test_tabfoundry_sandwich_feature_type_film_changes_encoded_cells() -> None:
+    model = _model(feature_type_conditioning="film")
+    assert model.feature_type_film is not None
+    with torch.no_grad():
+        params = model.feature_type_film.params.weight
+        params.zero_()
+        params[0, 0] = 0.25
+        params[1, 1] = -0.5
+        params[2, 32 + 2] = 0.75
+        params[3, 32 + 3] = -1.0
+    batch = _batch()
+    x_all, _y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
+    default_ids = model._feature_type_ids_from_metadata(
+        batch.metadata,
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+    secondary_ids = model._feature_type_ids_from_metadata(
+        {"feature_types": list(_SECONDARY_FEATURE_TYPES)},
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+
+    default_cells = model._feature_cells(
+        x_all,
+        train_test_split_index=train_test_split_index,
+        feature_type_ids=default_ids,
+    )
+    secondary_cells = model._feature_cells(
+        x_all,
+        train_test_split_index=train_test_split_index,
+        feature_type_ids=secondary_ids,
+    )
+
+    assert not torch.allclose(default_cells, secondary_cells)
+
+
+def test_tabfoundry_sandwich_forward_cell_likelihood_emits_typed_payloads() -> None:
+    model = _model()
+
+    output = model.forward_cell_likelihood(_batch())
+
+    assert validate_cell_likelihood_output_contract(
+        output,
+        expected_shape=(1, 5, 4),
+        context="sandwich unit test",
+    ) == (1, 5, 4)
+    assert output.bpc is not None
+    assert output.bpf is not None
+    assert output.floating_predictions is not None
+    assert output.integer_predictions is not None
+    assert output.categorical_predictions is not None
+    assert len(output.floating_predictions) == 1
+    assert len(output.integer_predictions) == 1
+    assert len(output.categorical_predictions) == 2
+    integer_prediction = output.integer_predictions[0]
+    assert integer_prediction.feature_index == 1
+    assert tuple(integer_prediction.discrete_logits.shape) == (5, 4)
+    assert tuple(integer_prediction.support_values.shape) == (3,)
+
+
+def test_tabfoundry_sandwich_forward_dispatches_to_cell_bpc_surface() -> None:
+    model = _model()
+    model.set_loss_surface("cell_bpc")
+
+    output = model(_batch())
+
+    assert isinstance(output, CellLikelihoodOutput)

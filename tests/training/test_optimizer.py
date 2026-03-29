@@ -193,6 +193,163 @@ def test_muon_single_device_step_supports_per_parameter_lr_without_process_group
         optimizer.step(None)
 
 
+def test_muon_step_skips_inactive_2d_params(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _FakeMuon:
+        def __init__(self, params, lr: float, weight_decay: float) -> None:
+            del lr
+            self.param_groups: list[dict[str, object]] = []
+            self.state: dict[torch.nn.Parameter, dict[str, torch.Tensor]] = {}
+            self.seen_param_ids_per_step: list[list[int]] = []
+            raw_params = list(params)
+            if raw_params and isinstance(raw_params[0], dict):
+                for raw_group in raw_params:
+                    group = dict(raw_group)
+                    group["params"] = list(group["params"])
+                    group.setdefault("weight_decay", weight_decay)
+                    group.setdefault("momentum", 0.95)
+                    self.param_groups.append(group)
+            else:
+                self.param_groups.append(
+                    {
+                        "params": list(raw_params),
+                        "weight_decay": weight_decay,
+                        "momentum": 0.95,
+                    }
+                )
+
+        def step(self) -> None:
+            seen: list[int] = []
+            for group in self.param_groups:
+                for param in group["params"]:
+                    if param.grad is None:
+                        raise RuntimeError("Muon received a parameter with grad=None")
+                    if param not in self.state:
+                        self.state[param] = {"momentum_buffer": torch.zeros_like(param)}
+                    seen.append(id(param))
+            self.seen_param_ids_per_step.append(seen)
+
+    class _PartiallyUsed(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.used = nn.Linear(8, 4, bias=False)
+            self.unused = nn.Linear(8, 4, bias=False)
+            self.bias = nn.Parameter(torch.zeros(4))
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            return self.used(x) + self.bias
+
+    monkeypatch.setitem(
+        sys.modules,
+        "muon",
+        SimpleNamespace(Muon=_FakeMuon, SingleDeviceMuon=_FakeMuon),
+    )
+
+    model = _PartiallyUsed()
+    x = torch.randn(4, 8)
+    y = torch.randn(4, 4)
+    loss = ((model(x) - y) ** 2).mean()
+    loss.backward()
+
+    selection = build_optimizer(
+        model,
+        name="muon",
+        lr=1e-3,
+        weight_decay=0.0,
+        extra_kwargs={},
+        require_requested=True,
+        muon_per_parameter_lr=True,
+        muon_partition_non2d=True,
+    )
+
+    muon_opt = next(optimizer for name, optimizer in selection.optimizers if name == "muon")
+    for _name, optimizer in selection.optimizers:
+        optimizer.step(None)
+
+    assert selection.resolved_name == "muon+adamw"
+    assert muon_opt.seen_param_ids_per_step == [[id(model.used.weight)]]
+    assert model.used.weight in muon_opt.state
+    assert model.unused.weight not in muon_opt.state
+
+
+def test_muon_step_is_noop_when_all_muon_params_are_inactive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _FakeMuon:
+        def __init__(self, params, lr: float, weight_decay: float) -> None:
+            del lr
+            self.param_groups: list[dict[str, object]] = []
+            self.state: dict[torch.nn.Parameter, dict[str, torch.Tensor]] = {}
+            self.seen_param_ids_per_step: list[list[int]] = []
+            raw_params = list(params)
+            if raw_params and isinstance(raw_params[0], dict):
+                for raw_group in raw_params:
+                    group = dict(raw_group)
+                    group["params"] = list(group["params"])
+                    group.setdefault("weight_decay", weight_decay)
+                    group.setdefault("momentum", 0.95)
+                    self.param_groups.append(group)
+            else:
+                self.param_groups.append(
+                    {
+                        "params": list(raw_params),
+                        "weight_decay": weight_decay,
+                        "momentum": 0.95,
+                    }
+                )
+
+        def step(self) -> None:
+            seen: list[int] = []
+            for group in self.param_groups:
+                for param in group["params"]:
+                    if param.grad is None:
+                        raise RuntimeError("Muon received a parameter with grad=None")
+                    if param not in self.state:
+                        self.state[param] = {"momentum_buffer": torch.zeros_like(param)}
+                    seen.append(id(param))
+            self.seen_param_ids_per_step.append(seen)
+
+    class _InactiveMuonParams(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.unused = nn.Linear(8, 4, bias=False)
+            self.bias = nn.Parameter(torch.zeros(4))
+
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            return x.new_zeros((x.shape[0], 4)) + self.bias
+
+    monkeypatch.setitem(
+        sys.modules,
+        "muon",
+        SimpleNamespace(Muon=_FakeMuon, SingleDeviceMuon=_FakeMuon),
+    )
+
+    model = _InactiveMuonParams()
+    x = torch.randn(4, 8)
+    loss = model(x).pow(2).mean()
+    loss.backward()
+
+    selection = build_optimizer(
+        model,
+        name="muon",
+        lr=1e-3,
+        weight_decay=0.0,
+        extra_kwargs={},
+        require_requested=True,
+        muon_per_parameter_lr=True,
+        muon_partition_non2d=True,
+    )
+
+    muon_opt = next(optimizer for name, optimizer in selection.optimizers if name == "muon")
+    for _name, optimizer in selection.optimizers:
+        optimizer.step(None)
+
+    assert selection.resolved_name == "muon+adamw"
+    assert muon_opt.seen_param_ids_per_step == []
+    assert model.unused.weight not in muon_opt.state
+
+
 def test_partition_muon_params_excludes_embeddings_and_non_2d() -> None:
     class _Toy(nn.Module):
         def __init__(self) -> None:

@@ -204,7 +204,9 @@ def build_training_surface_record(
             "label_injection": "fused_into_row_summaries_and_feature_cells",
             "summary_builder": "summary_query_attention",
             "position_encoding": "shared_fourier_row_col",
-            "feature_type_encoding": "parquet_physical_group",
+            "feature_type_encoding": str(model_spec.feature_type_conditioning),
+            "floating_likelihood": str(model_spec.floating_likelihood),
+            "integer_likelihood": str(model_spec.integer_likelihood),
             "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
             "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
             "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
@@ -265,6 +267,7 @@ def build_training_surface_record(
             labels["training"] = training_label
             training_payload = {
                 "surface_label": training_label,
+                "loss_surface": str(training_cfg.get("loss_surface", "classification")),
                 "apply_schedule": bool(training_cfg.get("apply_schedule", False)),
                 "task_batch_size": int(training_cfg.get("task_batch_size", 1)),
                 "optimizer_name": None

@@ -132,11 +132,15 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     assert telemetry["regime_budget"]["tokens_seen"] > 0
     assert telemetry["regime_budget"]["token_budget"] == telemetry["regime_budget"]["tokens_seen"]
     assert telemetry["regime_budget"]["tokens_per_step"] > 0.0
-    assert telemetry["regime_budget"]["objective_metric"] == "final_log_loss_at_matched_regime_budget"
+    assert telemetry["regime_budget"]["objective_metric"] == "final_bpc_at_matched_regime_budget"
     training_surface = json.loads(
         (tmp_path / "train_out" / "training_surface_record.json").read_text(encoding="utf-8")
     )
     assert training_surface["model"]["arch"] == "tabfoundry_sandwich"
+    assert training_surface["training"]["loss_surface"] == "cell_bpc"
+    assert training_surface["model"]["architecture"]["feature_type_encoding"] == "film"
+    assert training_surface["model"]["architecture"]["floating_likelihood"] == "single_gaussian"
+    assert training_surface["model"]["architecture"]["integer_likelihood"] == "hybrid_mixture"
 
 
 def test_train_tabfoundry_sandwich_prior_materializes_feature_types_for_legacy_dump(

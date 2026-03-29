@@ -351,6 +351,9 @@ def result_card_text(
             return
         lines.append(f"- {label}: `{format_metric(value)}` at step `{int(float(best_step))}`")
 
+    has_bpc_metrics = (
+        queue_metrics.get("best_bpc") is not None or queue_metrics.get("final_bpc") is not None
+    )
     has_classification_metrics = (
         queue_metrics.get("best_log_loss") is not None
         or queue_metrics.get("final_log_loss") is not None
@@ -359,7 +362,98 @@ def result_card_text(
         queue_metrics.get("best_crps") is not None or queue_metrics.get("final_crps") is not None
     )
 
-    if has_classification_metrics:
+    if has_bpc_metrics:
+        _append_best_metric("Best BPC", "best_bpc")
+        append_metric_line(lines, label="Final BPC", value=queue_metrics.get("final_bpc"))
+        append_metric_line(
+            lines,
+            label="Final minus best BPC",
+            value=queue_metrics.get("final_minus_best_bpc"),
+            signed=True,
+        )
+        append_metric_line(
+            lines,
+            label="Delta final BPC vs anchor",
+            value=queue_metrics.get("delta_final_bpc"),
+            signed=True,
+        )
+        _append_best_metric("Best BPF", "best_bpf")
+        append_metric_line(lines, label="Final BPF", value=queue_metrics.get("final_bpf"))
+        append_metric_line(
+            lines,
+            label="Final minus best BPF",
+            value=queue_metrics.get("final_minus_best_bpf"),
+            signed=True,
+        )
+        append_metric_line(
+            lines,
+            label="Delta final BPF vs anchor",
+            value=queue_metrics.get("delta_final_bpf"),
+            signed=True,
+        )
+        if has_classification_metrics:
+            _append_best_metric("Best log loss", "best_log_loss")
+            append_metric_line(lines, label="Final log loss", value=queue_metrics.get("final_log_loss"))
+            append_metric_line(
+                lines,
+                label="Final minus best log loss",
+                value=queue_metrics.get("final_minus_best_log_loss"),
+                signed=True,
+            )
+            append_metric_line(
+                lines,
+                label="Delta final log loss vs anchor",
+                value=queue_metrics.get("delta_final_log_loss"),
+                signed=True,
+            )
+            append_metric_line(lines, label="Final Brier score", value=queue_metrics.get("final_brier_score"))
+            append_metric_line(
+                lines,
+                label="Final minus best Brier score",
+                value=queue_metrics.get("final_minus_best_brier_score"),
+                signed=True,
+            )
+            append_metric_line(
+                lines,
+                label="Delta final Brier score vs anchor",
+                value=queue_metrics.get("delta_final_brier_score"),
+                signed=True,
+            )
+            _append_best_metric("Best ROC AUC", "best_roc_auc")
+            append_metric_line(lines, label="Final ROC AUC", value=queue_metrics.get("final_roc_auc"))
+            append_metric_line(
+                lines,
+                label="Final minus best ROC AUC",
+                value=queue_metrics.get("final_minus_best_roc_auc"),
+                signed=True,
+            )
+            append_metric_line(
+                lines,
+                label="Delta final ROC AUC vs anchor",
+                value=queue_metrics.get("delta_final_roc_auc"),
+                signed=True,
+            )
+            append_metric_line(
+                lines,
+                label=f"{primary_external_label} best log loss",
+                value=queue_metrics.get("primary_external_best_log_loss"),
+            )
+            append_metric_line(
+                lines,
+                label=f"{primary_external_label} final log loss",
+                value=queue_metrics.get("primary_external_final_log_loss"),
+            )
+            append_metric_line(
+                lines,
+                label=f"{primary_external_label} best ROC AUC",
+                value=queue_metrics.get("primary_external_best_roc_auc"),
+            )
+            append_metric_line(
+                lines,
+                label=f"{primary_external_label} final ROC AUC",
+                value=queue_metrics.get("primary_external_final_roc_auc"),
+            )
+    elif has_classification_metrics:
         _append_best_metric("Best log loss", "best_log_loss")
         append_metric_line(lines, label="Final log loss", value=queue_metrics.get("final_log_loss"))
         append_metric_line(lines, label="Final minus best log loss", value=queue_metrics.get("final_minus_best_log_loss"), signed=True)

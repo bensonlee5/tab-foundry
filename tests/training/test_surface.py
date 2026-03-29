@@ -246,6 +246,9 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
                 "source": "manifest",
                 "manifest_path": str(manifest_path),
             },
+            "training": {
+                "loss_surface": "cell_bpc",
+            },
         },
         run_dir=tmp_path / "run_sandwich",
     )
@@ -264,7 +267,9 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
         "label_injection": "fused_into_row_summaries_and_feature_cells",
         "summary_builder": "summary_query_attention",
         "position_encoding": "shared_fourier_row_col",
-        "feature_type_encoding": "parquet_physical_group",
+        "feature_type_encoding": "film",
+        "floating_likelihood": "single_gaussian",
+        "integer_likelihood": "hybrid_mixture",
         "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
         "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
         "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
@@ -274,6 +279,7 @@ def test_build_training_surface_record_includes_sandwich_architecture_metadata(
         "ff_expansion": 2,
         "self_attention_per_cross": 4,
     }
+    assert record["training"]["loss_surface"] == "cell_bpc"
 
 
 def test_build_training_surface_record_keeps_manifest_path_when_file_is_missing(

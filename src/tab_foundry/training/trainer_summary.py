@@ -64,6 +64,12 @@ def _trainer_summary_payload(
         final_train_acc = _summary_float(last_train_metrics.get("acc"))
         if final_train_acc is not None:
             metrics_payload["final_train_acc"] = final_train_acc
+        final_train_bpc = _summary_float(last_train_metrics.get("bpc"))
+        if final_train_bpc is not None:
+            metrics_payload["final_train_bpc"] = final_train_bpc
+        final_train_bpf = _summary_float(last_train_metrics.get("bpf"))
+        if final_train_bpf is not None:
+            metrics_payload["final_train_bpf"] = final_train_bpf
         final_train_rmse = _summary_float(last_train_metrics.get("rmse"))
         if final_train_rmse is not None:
             metrics_payload["final_train_rmse"] = final_train_rmse

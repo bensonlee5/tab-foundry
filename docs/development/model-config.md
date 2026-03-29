@@ -131,10 +131,13 @@ did not yet serialize every reconstruction field.
 | `use_digit_position_embed` | `bool` | `true` | classification | Whether many-class mixed-radix views get a learned digit-position embedding. |
 | `staged_dropout` | `float` | `0.0` | staged | Dropout used by the staged family. |
 | `pre_encoder_clip` | `float \| null` | `null` | staged, sandwich | Optional finite-value clip applied before feature encoding. |
-| `sandwich_latents` | `int` | `48` | sandwich | Fixed latent-array size for `tabfoundry_sandwich`. This is the only accepted sandwich latent-count field. |
+| `sandwich_latents` | `int` | `24` | sandwich | Fixed latent-array size for `tabfoundry_sandwich`. This is the only accepted sandwich latent-count field. |
 | `sandwich_layers` | `int` | `2` | sandwich | Number of repeated Perceiver stages in `tabfoundry_sandwich`. |
 | `sandwich_heads` | `int` | `4` | sandwich | Attention heads used by the sandwich full-cell read, summary-query, latent-write, latent, and dual-readout blocks. |
 | `sandwich_ff_expansion` | `int` | `2` | sandwich | Feedforward expansion factor used inside the sandwich cross-attention and self-attention blocks. |
+| `feature_type_conditioning` | `str` | `"film"` | sandwich | Feature-type conditioning path for sandwich cell states. `film` modulates encoded cells after the shared feature encoder; `additive_embedding` is retained only for legacy checkpoint reconstruction. |
+| `floating_likelihood` | `str` | `"single_gaussian"` | sandwich | Floating-cell likelihood family for the sandwich `cell_bpc` lane. |
+| `integer_likelihood` | `str` | `"hybrid_mixture"` | sandwich | Integer-cell likelihood family for the sandwich `cell_bpc` lane. `hybrid_mixture` combines dynamic-support discrete likelihood with a single-Gaussian branch. |
 
 ## Configuration Groups
 

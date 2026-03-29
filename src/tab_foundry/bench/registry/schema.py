@@ -25,6 +25,8 @@ _TOP_LEVEL_KEYS = {"schema", "version", "runs"}
 _TAB_FOUNDRY_METRIC_KEYS = {
     "best_step",
     "best_training_time",
+    "best_bpc",
+    "best_bpf",
     "best_roc_auc",
     "best_log_loss",
     "best_brier_score",
@@ -33,6 +35,8 @@ _TAB_FOUNDRY_METRIC_KEYS = {
     "best_picp_90",
     "final_step",
     "final_training_time",
+    "final_bpc",
+    "final_bpf",
     "final_roc_auc",
     "final_log_loss",
     "final_brier_score",
@@ -97,6 +101,8 @@ class _BenchmarkArtifactsPayload(_RegistryPayloadModel):
 class _TabFoundryMetricsPayload(_RegistryPayloadModel):
     best_step: FiniteFloat | None = None
     best_training_time: FiniteFloat | None = None
+    best_bpc: FiniteFloat | None = None
+    best_bpf: FiniteFloat | None = None
     best_roc_auc: FiniteFloat | None = None
     best_log_loss: FiniteFloat | None = None
     best_brier_score: FiniteFloat | None = None
@@ -105,6 +111,8 @@ class _TabFoundryMetricsPayload(_RegistryPayloadModel):
     best_picp_90: FiniteFloat | None = None
     final_step: FiniteFloat | None = None
     final_training_time: FiniteFloat | None = None
+    final_bpc: FiniteFloat | None = None
+    final_bpf: FiniteFloat | None = None
     final_roc_auc: FiniteFloat | None = None
     final_log_loss: FiniteFloat | None = None
     final_brier_score: FiniteFloat | None = None
@@ -151,6 +159,8 @@ class _ModelSizePayload(_RegistryPayloadModel):
 
 class _ComparisonPayload(_RegistryPayloadModel):
     reference_run_id: StrictStr
+    final_bpc_delta: FiniteFloat | None = None
+    final_bpf_delta: FiniteFloat | None = None
     best_roc_auc_delta: FiniteFloat | None = None
     final_roc_auc_delta: FiniteFloat | None = None
     final_log_loss_delta: FiniteFloat | None = None

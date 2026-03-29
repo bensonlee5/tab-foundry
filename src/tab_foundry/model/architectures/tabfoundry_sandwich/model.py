@@ -9,18 +9,36 @@ import torch
 from torch import nn
 from torch.utils.checkpoint import checkpoint as activation_checkpoint
 
-from tab_foundry.feature_types import FEATURE_TYPE_VOCAB, normalize_feature_types
+from tab_foundry.feature_types import (
+    FEATURE_TYPE_BOOL,
+    FEATURE_TYPE_FLOATING,
+    FEATURE_TYPE_INTEGER,
+    FEATURE_TYPE_VOCAB,
+    normalize_feature_types,
+)
 from tab_foundry.input_normalization import InputNormalizationMode, normalize_train_test_tensors
-from tab_foundry.model.components.attention import multihead_attention_sdpa
+from tab_foundry.likelihoods import cross_entropy_bits, gaussian_nll_bits, mixture_bits
+from tab_foundry.model.components.attention import (
+    attention_bias_from_allowed_mask,
+    multihead_attention_sdpa,
+)
 from tab_foundry.model.components.non_finite import clip_finite_values
 from tab_foundry.model.components.normalization import build_norm
 from tab_foundry.model.components.tabular_primitives import (
     DirectClassifierHead,
+    FeatureTypeFiLM,
     LabelTokenTargetConditioner,
     ScalarPerFeatureMissingnessTokenizer,
     SharedLinearFeatureEncoder,
 )
-from tab_foundry.model.outputs import ClassificationOutput, flatten_classification_output_rows
+from tab_foundry.model.outputs import (
+    CategoricalCellPrediction,
+    CellLikelihoodOutput,
+    ClassificationOutput,
+    FloatingCellPrediction,
+    IntegerHybridCellPrediction,
+    flatten_classification_output_rows,
+)
 from tab_foundry.model.spec import (
     SANDWICH_DEFAULTS as _D,
     ModelBuildSpec,
@@ -36,6 +54,8 @@ _CELL_TOKEN_ID = 2
 _TRAIN_ROLE_ID = 0
 _TEST_ROLE_ID = 1
 _FEATURE_TYPE_TO_ID = {name: index for index, name in enumerate(FEATURE_TYPE_VOCAB)}
+_CLASSIFICATION_LOSS_SURFACE = "classification"
+_CELL_BPC_LOSS_SURFACE = "cell_bpc"
 
 
 def _init_truncated_normal_(
@@ -108,13 +128,19 @@ class _SelfAttentionBlock(nn.Module):
             nn.Linear(ff_hidden, embedding_size),
         )
 
-    def forward(self, hidden: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        hidden: torch.Tensor,
+        *,
+        attn_bias: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         hidden_norm = self.attn_norm(hidden)
         hidden = hidden + multihead_attention_sdpa(
             self.attn,
             hidden_norm,
             hidden_norm,
             hidden_norm,
+            attn_bias=attn_bias,
         )
         return hidden + self.ff(self.ff_norm(hidden))
 
@@ -207,6 +233,9 @@ class TabFoundrySandwichClassifier(nn.Module):
         sandwich_pre_row_attention_layers: int = _D["sandwich_pre_row_attention_layers"],
         sandwich_pre_column_attention_layers: int = _D["sandwich_pre_column_attention_layers"],
         sandwich_pre_column_inducing_tokens: int = _D["sandwich_pre_column_inducing_tokens"],
+        feature_type_conditioning: str = _D["feature_type_conditioning"],
+        floating_likelihood: str = _D["floating_likelihood"],
+        integer_likelihood: str = _D["integer_likelihood"],
     ) -> None:
         super().__init__()
         self.model_spec = ModelBuildSpec(
@@ -227,8 +256,12 @@ class TabFoundrySandwichClassifier(nn.Module):
             sandwich_pre_row_attention_layers=sandwich_pre_row_attention_layers,
             sandwich_pre_column_attention_layers=sandwich_pre_column_attention_layers,
             sandwich_pre_column_inducing_tokens=sandwich_pre_column_inducing_tokens,
+            feature_type_conditioning=feature_type_conditioning,
+            floating_likelihood=floating_likelihood,
+            integer_likelihood=integer_likelihood,
         )
         self.arch = "tabfoundry_sandwich"
+        self.loss_surface = _CLASSIFICATION_LOSS_SURFACE
         self.d_icl = int(self.model_spec.d_icl)
         self.input_normalization = str(self.model_spec.input_normalization).strip().lower()
         self.many_class_base = int(self.model_spec.many_class_base)
@@ -246,6 +279,9 @@ class TabFoundrySandwichClassifier(nn.Module):
         self.pre_column_inducing_tokens = int(
             self.model_spec.sandwich_pre_column_inducing_tokens
         )
+        self.feature_type_conditioning = str(self.model_spec.feature_type_conditioning).strip().lower()
+        self.floating_likelihood = str(self.model_spec.floating_likelihood).strip().lower()
+        self.integer_likelihood = str(self.model_spec.integer_likelihood).strip().lower()
         if self.norm_type != "layernorm":
             raise ValueError(
                 "tabfoundry_sandwich currently requires norm_type='layernorm', "
@@ -256,7 +292,14 @@ class TabFoundrySandwichClassifier(nn.Module):
             token_dim=int(self.tokenizer.token_dim),
             embedding_size=self.d_icl,
         )
-        self.feature_type_embedding = nn.Embedding(len(FEATURE_TYPE_VOCAB), self.d_icl)
+        self.feature_type_film: FeatureTypeFiLM | None
+        self.feature_type_embedding: nn.Embedding | None
+        if self.feature_type_conditioning == "film":
+            self.feature_type_film = FeatureTypeFiLM(len(FEATURE_TYPE_VOCAB), self.d_icl)
+            self.feature_type_embedding = None
+        else:
+            self.feature_type_film = None
+            self.feature_type_embedding = nn.Embedding(len(FEATURE_TYPE_VOCAB), self.d_icl)
         self.row_summary_query = nn.Parameter(
             torch.randn(1, self.summary_tokens_per_axis, self.d_icl) * 0.02
         )
@@ -339,6 +382,30 @@ class TabFoundrySandwichClassifier(nn.Module):
             self.head_hidden_dim,
             self.many_class_base,
         )
+        self.cell_bos = nn.Parameter(torch.randn(1, 1, self.d_icl) * 0.02)
+        self.cell_decoder_blocks = nn.ModuleList(
+            [
+                _SelfAttentionBlock(
+                    embedding_size=self.d_icl,
+                    n_heads=self.sandwich_heads,
+                    ff_expansion=self.sandwich_ff_expansion,
+                    norm_type=self.norm_type,
+                )
+                for _ in range(self.sandwich_layers)
+            ]
+        )
+        self.gaussian_head = nn.Sequential(
+            nn.Linear(self.d_icl, self.head_hidden_dim),
+            nn.GELU(),
+            nn.Linear(self.head_hidden_dim, 2),
+        )
+        self.discrete_query = nn.Linear(self.d_icl, self.d_icl)
+        self.discrete_oov = nn.Linear(self.d_icl, 1)
+        self.integer_gate = nn.Sequential(
+            nn.Linear(self.d_icl, self.head_hidden_dim),
+            nn.GELU(),
+            nn.Linear(self.head_hidden_dim, 1),
+        )
         self._activation_checkpointing_enabled = False
         self._activation_trace: dict[str, tuple[float, int]] | None = None
 
@@ -347,6 +414,12 @@ class TabFoundrySandwichClassifier(nn.Module):
 
     def disable_activation_checkpointing(self) -> None:
         self._activation_checkpointing_enabled = False
+
+    def set_loss_surface(self, loss_surface: str) -> None:
+        normalized = str(loss_surface).strip().lower()
+        if normalized not in {_CLASSIFICATION_LOSS_SURFACE, _CELL_BPC_LOSS_SURFACE}:
+            raise ValueError(f"unsupported sandwich loss_surface={loss_surface!r}")
+        self.loss_surface = normalized
 
     def _apply_activation_checkpoint(
         self,
@@ -618,16 +691,32 @@ class TabFoundrySandwichClassifier(nn.Module):
         *,
         train_test_split_index: int,
         feature_type_ids: torch.Tensor,
+        apply_input_normalization: bool = True,
     ) -> torch.Tensor:
-        normalized = self._normalize_x_all(x_all, train_test_split_index=train_test_split_index)
+        encoder_inputs = (
+            self._normalize_x_all(x_all, train_test_split_index=train_test_split_index)
+            if apply_input_normalization
+            else x_all.to(torch.float32)
+        )
         if self.pre_encoder_clip is not None:
-            normalized = clip_finite_values(
-                normalized,
+            encoder_inputs = clip_finite_values(
+                encoder_inputs,
                 clip_value=float(self.pre_encoder_clip),
             )
-        tokenized_x, _ = self.tokenizer(normalized)
+        tokenized_x, _ = self.tokenizer(encoder_inputs)
         feature_cells = self.feature_encoder(tokenized_x)
         self.trace_activation("post_feature_encoder", feature_cells)
+        if self.feature_type_film is not None:
+            feature_cells = self.feature_type_film(
+                feature_cells,
+                feature_type_ids=feature_type_ids,
+            )
+        elif self.feature_type_embedding is not None:
+            feature_type_embed = self.feature_type_embedding(feature_type_ids).unsqueeze(1)
+            feature_type_embed = feature_type_embed.to(dtype=feature_cells.dtype)
+            feature_cells = feature_cells + feature_type_embed
+        else:  # pragma: no cover - defensive invariant
+            raise RuntimeError("tabfoundry_sandwich requires one feature-type conditioning path")
         row_pos = self._fourier_positions(
             num_positions=int(feature_cells.shape[1]),
             embedding_size=int(feature_cells.shape[3]),
@@ -640,9 +729,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             device=feature_cells.device,
             dtype=feature_cells.dtype,
         ).unsqueeze(1)
-        feature_type_embed = self.feature_type_embedding(feature_type_ids).unsqueeze(1)
-        feature_type_embed = feature_type_embed.to(dtype=feature_cells.dtype)
-        feature_cells = feature_cells + row_pos + col_pos + feature_type_embed
+        feature_cells = feature_cells + row_pos + col_pos
         self.trace_activation("post_cell_encoding", feature_cells)
         return self._pre_perceiver_cell_mixer(feature_cells)
 
@@ -678,9 +765,11 @@ class TabFoundrySandwichClassifier(nn.Module):
         self,
         block: _SelfAttentionBlock,
         hidden: torch.Tensor,
+        *,
+        attn_bias: torch.Tensor | None = None,
     ) -> torch.Tensor:
         def _apply(current_hidden: torch.Tensor) -> torch.Tensor:
-            return block(current_hidden)
+            return block(current_hidden, attn_bias=attn_bias)
 
         return self._apply_activation_checkpoint(_apply, hidden)
 
@@ -914,6 +1003,261 @@ class TabFoundrySandwichClassifier(nn.Module):
                 f"num_classes <= many_class_base={self.many_class_base}, got {num_classes}"
             )
 
+    def _cell_decoder_hidden(
+        self,
+        *,
+        feature_cells: torch.Tensor,
+        y_train: torch.Tensor,
+    ) -> torch.Tensor:
+        batch_size = int(feature_cells.shape[0])
+        num_rows = int(feature_cells.shape[1])
+        num_features = int(feature_cells.shape[2])
+        cell_stream = self._full_cell_tokens(feature_cells, y_train=y_train)
+        shifted = torch.cat(
+            [
+                self.cell_bos.expand(batch_size, -1, -1).to(
+                    device=cell_stream.device,
+                    dtype=cell_stream.dtype,
+                ),
+                cell_stream[:, :-1, :],
+            ],
+            dim=1,
+        )
+        seq_len = int(shifted.shape[1])
+        allowed = torch.tril(
+            torch.ones((seq_len, seq_len), device=shifted.device, dtype=torch.bool)
+        )
+        attn_bias = attention_bias_from_allowed_mask(allowed, dtype=shifted.dtype)
+        hidden = shifted
+        for index, block in enumerate(self.cell_decoder_blocks):
+            block = cast(_SelfAttentionBlock, block)
+            hidden = self._self_block(block, hidden, attn_bias=attn_bias)
+            self.trace_activation(f"post_cell_decoder_{index}", hidden)
+        return hidden.reshape(batch_size, num_rows, num_features, self.d_icl)
+
+    def _support_values_for_feature(
+        self,
+        train_values: torch.Tensor,
+        *,
+        feature_type: str,
+    ) -> torch.Tensor:
+        if feature_type == FEATURE_TYPE_BOOL:
+            return torch.tensor([0.0, 1.0], device=train_values.device, dtype=train_values.dtype)
+        finite_values = train_values[torch.isfinite(train_values)]
+        if int(finite_values.numel()) <= 0:
+            return torch.empty((0,), device=train_values.device, dtype=train_values.dtype)
+        return torch.unique(finite_values, sorted=True)
+
+    def _support_embeddings(
+        self,
+        support_values: torch.Tensor,
+        *,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        if int(support_values.numel()) <= 0:
+            return torch.empty((0, self.d_icl), device=device, dtype=dtype)
+        tokenized, _ = self.tokenizer(support_values.to(torch.float32))
+        return self.feature_encoder(tokenized.to(device=device)).to(dtype=dtype)
+
+    def _dynamic_discrete_logits(
+        self,
+        feature_hidden: torch.Tensor,
+        *,
+        support_embeddings: torch.Tensor,
+    ) -> torch.Tensor:
+        query = self.discrete_query(feature_hidden)
+        if int(support_embeddings.shape[0]) <= 0:
+            support_logits = torch.empty(
+                (int(feature_hidden.shape[0]), 0),
+                device=feature_hidden.device,
+                dtype=feature_hidden.dtype,
+            )
+        else:
+            support_logits = query @ support_embeddings.transpose(0, 1)
+        oov_logits = self.discrete_oov(feature_hidden)
+        return torch.cat([support_logits, oov_logits], dim=-1)
+
+    @staticmethod
+    def _discrete_target_indices(
+        values: torch.Tensor,
+        *,
+        support_values: torch.Tensor,
+    ) -> torch.Tensor:
+        oov_index = int(support_values.shape[0])
+        if oov_index <= 0:
+            return torch.full(
+                (int(values.shape[0]),),
+                oov_index,
+                device=values.device,
+                dtype=torch.int64,
+            )
+        equality = values.unsqueeze(-1) == support_values.unsqueeze(0)
+        any_match = equality.any(dim=-1)
+        first_match = equality.to(torch.int64).argmax(dim=-1)
+        target_indices = torch.full(
+            (int(values.shape[0]),),
+            oov_index,
+            device=values.device,
+            dtype=torch.int64,
+        )
+        target_indices[any_match] = first_match[any_match]
+        target_indices[~torch.isfinite(values)] = oov_index
+        return target_indices
+
+    def _integer_gate_logit(
+        self,
+        support_embeddings: torch.Tensor,
+        *,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        if int(support_embeddings.shape[0]) <= 0:
+            summary = torch.zeros((self.d_icl,), device=device, dtype=dtype)
+        else:
+            summary = support_embeddings.mean(dim=0)
+        return self.integer_gate(summary).reshape(())
+
+    def _gaussian_params(self, feature_hidden: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        params = self.gaussian_head(feature_hidden)
+        mean = params[:, 0]
+        log_variance = params[:, 1].clamp(min=-10.0, max=10.0)
+        return mean, log_variance
+
+    def _feature_mean_bits(self, per_cell_bits: torch.Tensor) -> torch.Tensor:
+        return per_cell_bits.mean(dim=1)
+
+    def _forward_cell_likelihood_batched(
+        self,
+        *,
+        x_all: torch.Tensor,
+        y_train: torch.Tensor,
+        train_test_split_index: int,
+        feature_type_ids: torch.Tensor,
+    ) -> CellLikelihoodOutput:
+        self._validate_batched_inputs(x_all, y_train, train_test_split_index)
+        feature_cells = self._feature_cells(
+            x_all,
+            train_test_split_index=train_test_split_index,
+            feature_type_ids=feature_type_ids,
+            apply_input_normalization=False,
+        )
+        decoder_hidden = self._cell_decoder_hidden(feature_cells=feature_cells, y_train=y_train)
+        batch_size = int(x_all.shape[0])
+        num_rows = int(x_all.shape[1])
+        num_features = int(x_all.shape[2])
+        targets = x_all.to(torch.float32)
+        per_cell_bits = torch.zeros(
+            (batch_size, num_rows, num_features),
+            device=x_all.device,
+            dtype=torch.float32,
+        )
+        floating_predictions: list[FloatingCellPrediction] = []
+        categorical_predictions: list[CategoricalCellPrediction] = []
+        integer_predictions: list[IntegerHybridCellPrediction] = []
+        for task_index in range(batch_size):
+            for feature_index in range(num_features):
+                feature_type = FEATURE_TYPE_VOCAB[int(feature_type_ids[task_index, feature_index].item())]
+                feature_hidden = decoder_hidden[task_index, :, feature_index, :]
+                feature_targets = targets[task_index, :, feature_index]
+                train_values = targets[task_index, :train_test_split_index, feature_index]
+                support_values = self._support_values_for_feature(
+                    train_values,
+                    feature_type=feature_type,
+                )
+                support_embeddings = self._support_embeddings(
+                    support_values,
+                    device=feature_hidden.device,
+                    dtype=feature_hidden.dtype,
+                )
+                if feature_type == FEATURE_TYPE_FLOATING:
+                    mean, log_variance = self._gaussian_params(feature_hidden)
+                    per_cell_bits[task_index, :, feature_index] = gaussian_nll_bits(
+                        mean,
+                        log_variance,
+                        feature_targets,
+                    )
+                    floating_predictions.append(
+                        FloatingCellPrediction(
+                            task_index=task_index,
+                            feature_index=feature_index,
+                            mean=mean,
+                            log_variance=log_variance,
+                        )
+                    )
+                    continue
+                if feature_type == FEATURE_TYPE_INTEGER and self.integer_likelihood == "hybrid_mixture":
+                    gate_logit = self._integer_gate_logit(
+                        support_embeddings,
+                        device=feature_hidden.device,
+                        dtype=feature_hidden.dtype,
+                    )
+                    discrete_logits = self._dynamic_discrete_logits(
+                        feature_hidden,
+                        support_embeddings=support_embeddings,
+                    )
+                    target_indices = self._discrete_target_indices(
+                        feature_targets,
+                        support_values=support_values,
+                    )
+                    discrete_bits = cross_entropy_bits(discrete_logits, target_indices)
+                    mean, log_variance = self._gaussian_params(feature_hidden)
+                    continuous_bits = gaussian_nll_bits(mean, log_variance, feature_targets)
+                    per_cell_bits[task_index, :, feature_index] = mixture_bits(
+                        gate_logit=gate_logit,
+                        discrete_bits=discrete_bits,
+                        continuous_bits=continuous_bits,
+                    )
+                    integer_predictions.append(
+                        IntegerHybridCellPrediction(
+                            task_index=task_index,
+                            feature_index=feature_index,
+                            support_values=support_values,
+                            gate_logit=gate_logit,
+                            discrete_logits=discrete_logits,
+                            mean=mean,
+                            log_variance=log_variance,
+                        )
+                    )
+                    continue
+                discrete_logits = self._dynamic_discrete_logits(
+                    feature_hidden,
+                    support_embeddings=support_embeddings,
+                )
+                target_indices = self._discrete_target_indices(
+                    feature_targets,
+                    support_values=support_values,
+                )
+                per_cell_bits[task_index, :, feature_index] = cross_entropy_bits(
+                    discrete_logits,
+                    target_indices,
+                )
+                categorical_predictions.append(
+                    CategoricalCellPrediction(
+                        task_index=task_index,
+                        feature_index=feature_index,
+                        feature_type=feature_type,
+                        support_values=support_values,
+                        logits=discrete_logits,
+                    )
+                )
+
+        feature_mean_bits = self._feature_mean_bits(per_cell_bits)
+        bpc = per_cell_bits.mean()
+        bpf = feature_mean_bits.mean()
+        return CellLikelihoodOutput(
+            per_cell_bits=per_cell_bits,
+            bpc=bpc,
+            bpf=bpf,
+            floating_predictions=floating_predictions or None,
+            categorical_predictions=categorical_predictions or None,
+            integer_predictions=integer_predictions or None,
+            aux_metrics={
+                "bpc": float(bpc.detach().item()),
+                "bpf": float(bpf.detach().item()),
+            },
+        )
+
     def _forward_logits_batched(
         self,
         *,
@@ -1001,7 +1345,28 @@ class TabFoundrySandwichClassifier(nn.Module):
             feature_type_ids=feature_type_ids,
         )
 
-    def forward(self, batch: TaskBatch) -> ClassificationOutput:
+    def forward_batched_cell_likelihood(
+        self,
+        *,
+        x_all: torch.Tensor,
+        y_train: torch.Tensor,
+        train_test_split_index: int,
+        feature_types: list[str] | list[list[str]],
+    ) -> CellLikelihoodOutput:
+        feature_type_ids = self._feature_type_ids_from_forward_batched(
+            feature_types,
+            batch_size=int(x_all.shape[0]),
+            num_features=int(x_all.shape[2]),
+            device=x_all.device,
+        )
+        return self._forward_cell_likelihood_batched(
+            x_all=x_all,
+            y_train=y_train,
+            train_test_split_index=train_test_split_index,
+            feature_type_ids=feature_type_ids,
+        )
+
+    def forward_classification(self, batch: TaskBatch) -> ClassificationOutput:
         num_classes = self._task_num_classes(batch)
         self._validate_num_classes(num_classes)
         x_all, y_train, _y_test, train_test_split_index = self._prepare_task_inputs(batch)
@@ -1022,3 +1387,23 @@ class TabFoundrySandwichClassifier(nn.Module):
             num_classes=num_classes,
             class_probs=None,
         )
+
+    def forward_cell_likelihood(self, batch: TaskBatch) -> CellLikelihoodOutput:
+        x_all, y_train, _y_test, train_test_split_index = self._prepare_task_inputs(batch)
+        feature_type_ids = self._feature_type_ids_from_metadata(
+            batch.metadata,
+            batch_size=int(x_all.shape[0]),
+            num_features=int(x_all.shape[2]),
+            device=x_all.device,
+        )
+        return self._forward_cell_likelihood_batched(
+            x_all=x_all,
+            y_train=y_train,
+            train_test_split_index=train_test_split_index,
+            feature_type_ids=feature_type_ids,
+        )
+
+    def forward(self, batch: TaskBatch) -> ClassificationOutput | CellLikelihoodOutput:
+        if self.loss_surface == _CELL_BPC_LOSS_SURFACE:
+            return self.forward_cell_likelihood(batch)
+        return self.forward_classification(batch)

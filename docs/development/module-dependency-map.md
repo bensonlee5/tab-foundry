@@ -42,7 +42,8 @@ section factual and keep design intent in the policy section below it.
   `tab_foundry.hashing`, `tab_foundry.model`, `tab_foundry.preprocessing`,
   `tab_foundry.repo_paths`, and `tab_foundry.types`.
 - `tab_foundry.model` depends on `tab_foundry.feature_types`,
-  `tab_foundry.input_normalization`, and `tab_foundry.types`.
+  `tab_foundry.input_normalization`, `tab_foundry.likelihoods`, and
+  `tab_foundry.types`.
 - `tab_foundry.preprocessing` depends on `tab_foundry.feature_types`.
 - `tab_foundry.research` depends on `tab_foundry.bench`,
   `tab_foundry.benchmark_registry`, `tab_foundry.config`,
@@ -53,7 +54,7 @@ section factual and keep design intent in the policy section below it.
 - `tab_foundry.task_batching` depends on `tab_foundry.types`.
 - `tab_foundry.training` depends on `tab_foundry.data`,
   `tab_foundry.device`, `tab_foundry.feature_types`,
-  `tab_foundry.hashing`,
+  `tab_foundry.hashing`, `tab_foundry.likelihoods`,
   `tab_foundry.model`, `tab_foundry.preprocessing`,
   `tab_foundry.repo_paths`, `tab_foundry.task_batching`,
   `tab_foundry.timestamps`, and `tab_foundry.types`.
@@ -73,6 +74,7 @@ Observed cycle status:
   `tab_foundry.control_baseline_registry`,
   `tab_foundry.external_benchmarks`, `tab_foundry.hashing`,
   `tab_foundry.types`, `tab_foundry.input_normalization`,
+  `tab_foundry.likelihoods`,
   `tab_foundry.feature_types`, `tab_foundry.task_batching`, and
   `tab_foundry.timestamps` should remain dependency-light helpers.
 - `tab_foundry.model` should stay independent of `bench`, `research`,

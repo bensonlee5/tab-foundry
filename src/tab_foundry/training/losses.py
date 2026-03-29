@@ -5,6 +5,8 @@ from __future__ import annotations
 import torch
 import torch.nn.functional as F
 
+from tab_foundry.likelihoods import cross_entropy_bits, gaussian_nll_bits, mixture_bits
+
 
 MIN_CLASS_PROB = 1.0e-12
 
@@ -35,3 +37,13 @@ def quantile_pinball_loss(
     error = targets - pred_quantiles
     tau = quantile_levels[None, :].to(pred_quantiles.device, pred_quantiles.dtype)
     return torch.maximum(tau * error, (tau - 1.0) * error).mean()
+
+
+__all__ = [
+    "classification_loss",
+    "cross_entropy_bits",
+    "gaussian_nll_bits",
+    "hierarchical_nll_loss",
+    "mixture_bits",
+    "quantile_pinball_loss",
+]

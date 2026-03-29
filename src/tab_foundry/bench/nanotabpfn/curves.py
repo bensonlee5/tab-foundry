@@ -92,7 +92,7 @@ def _interval_overlap(interval_a: Mapping[str, Any], interval_b: Mapping[str, An
 
 
 def _is_successful_curve_record(record: Mapping[str, Any]) -> bool:
-    for key in ("roc_auc", "log_loss", "crps"):
+    for key in ("bpc", "bpf", "roc_auc", "log_loss", "crps"):
         raw_value = record.get(key)
         if raw_value is None:
             continue
@@ -105,6 +105,8 @@ def _is_successful_curve_record(record: Mapping[str, Any]) -> bool:
 
 
 def _curve_ranking_metric(records: list[dict[str, Any]]) -> tuple[str, str]:
+    if any(record.get("bpc") is not None for record in records):
+        return ("bpc", "min")
     if any(record.get("log_loss") is not None for record in records):
         return ("log_loss", "min")
     if any(record.get("crps") is not None for record in records):
@@ -146,14 +148,16 @@ def curve_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     if not successful_records:
         return {
             "checkpoint_count": 0,
-            "task_count": 0,
-            "best_step": 0,
-            "best_roc_auc": float("nan"),
-            "best_crps": None,
-            "final_step": 0,
-            "final_roc_auc": float("nan"),
-            "final_crps": None,
-            "adjacent_ci_overlap_fraction": None,
+        "task_count": 0,
+        "best_step": 0,
+        "best_bpc": None,
+        "best_roc_auc": float("nan"),
+        "best_crps": None,
+        "final_step": 0,
+        "final_bpc": None,
+        "final_roc_auc": float("nan"),
+        "final_crps": None,
+        "adjacent_ci_overlap_fraction": None,
         }
     ranking_key, ranking_direction = _curve_ranking_metric(successful_records)
     best_record = (
@@ -182,11 +186,13 @@ def curve_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
         "checkpoint_count": int(len(successful_records)),
         "task_count": int(task_count),
         "best_step": int(best_record["step"]),
+        "best_bpc": None if best_record.get("bpc") is None else float(best_record["bpc"]),
         "best_roc_auc": None
         if best_record.get("roc_auc") is None
         else float(best_record["roc_auc"]),
         "best_crps": None if best_record.get("crps") is None else float(best_record["crps"]),
         "final_step": int(final_record["step"]),
+        "final_bpc": None if final_record.get("bpc") is None else float(final_record["bpc"]),
         "final_roc_auc": None
         if final_record.get("roc_auc") is None
         else float(final_record["roc_auc"]),

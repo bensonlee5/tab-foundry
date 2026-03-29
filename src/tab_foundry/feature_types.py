@@ -20,6 +20,12 @@ FEATURE_TYPE_VOCAB = (
     FEATURE_TYPE_UNKNOWN,
 )
 _FEATURE_TYPE_SET = set(FEATURE_TYPE_VOCAB)
+_FEATURE_TYPE_ALIASES = {
+    "num": FEATURE_TYPE_FLOATING,
+    # Dagzoo emits generic categorical columns as "cat"; tab-foundry only needs
+    # a stable non-floating bucket for these manifest-backed features.
+    "cat": FEATURE_TYPE_UNKNOWN,
+}
 
 
 def normalize_feature_types(
@@ -42,6 +48,7 @@ def normalize_feature_types(
         if not isinstance(raw_value, str) or not raw_value.strip():
             raise ValueError(f"{context}[{index}] must be a non-empty string")
         value = raw_value.strip()
+        value = _FEATURE_TYPE_ALIASES.get(value, value)
         if value not in _FEATURE_TYPE_SET:
             raise ValueError(
                 f"{context}[{index}] must be one of {list(FEATURE_TYPE_VOCAB)}, got {value!r}"

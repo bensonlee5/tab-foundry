@@ -102,6 +102,19 @@ def test_sandwich_model_spec_defaults_to_small_v0_widths() -> None:
     assert spec.sandwich_pre_row_attention_layers == 1
     assert spec.sandwich_pre_column_attention_layers == 1
     assert spec.sandwich_pre_column_inducing_tokens == 16
+    assert spec.feature_type_conditioning == "film"
+    assert spec.floating_likelihood == "single_gaussian"
+    assert spec.integer_likelihood == "hybrid_mixture"
+
+
+def test_sandwich_checkpoint_spec_infers_legacy_additive_feature_type_conditioning() -> None:
+    spec = checkpoint_model_build_spec_from_mappings(
+        task="classification",
+        primary={"arch": "tabfoundry_sandwich"},
+        state_dict={"feature_type_embedding.weight": torch.zeros((5, 60))},
+    )
+
+    assert spec.feature_type_conditioning == "additive_embedding"
 
 
 @pytest.mark.parametrize(

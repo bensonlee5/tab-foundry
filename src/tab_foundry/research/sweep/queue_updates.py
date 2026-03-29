@@ -195,6 +195,10 @@ def queue_metrics(
         )
 
     metric_keys = (
+        "best_bpc",
+        "final_bpc",
+        "best_bpf",
+        "final_bpf",
         "best_log_loss",
         "final_log_loss",
         "best_brier_score",
@@ -221,6 +225,8 @@ def queue_metrics(
             metrics[f"nanotabpfn_{metric_key}"] = nanotabpfn_value
 
     delta_keys = {
+        "best_to_final_bpc_delta": "final_minus_best_bpc",
+        "best_to_final_bpf_delta": "final_minus_best_bpf",
         "best_to_final_log_loss_delta": "final_minus_best_log_loss",
         "best_to_final_brier_score_delta": "final_minus_best_brier_score",
         "best_to_final_roc_auc_delta": "final_minus_best_roc_auc",
@@ -233,7 +239,9 @@ def queue_metrics(
         if value is not None:
             metrics[queue_key] = value
 
-    if metrics.get("final_minus_best_roc_auc") is not None:
+    if metrics.get("final_minus_best_bpc") is not None:
+        metrics["drift"] = metrics["final_minus_best_bpc"]
+    elif metrics.get("final_minus_best_roc_auc") is not None:
         metrics["drift"] = metrics["final_minus_best_roc_auc"]
     if metrics.get("primary_external_best_roc_auc") is not None:
         metrics["primary_external_best"] = metrics["primary_external_best_roc_auc"]
@@ -246,6 +254,8 @@ def queue_metrics(
 
     if run_entry is not None:
         comparison_keys = {
+            "final_bpc_delta": "delta_final_bpc",
+            "final_bpf_delta": "delta_final_bpf",
             "final_log_loss_delta": "delta_final_log_loss",
             "final_brier_score_delta": "delta_final_brier_score",
             "final_roc_auc_delta": "delta_final_roc_auc",

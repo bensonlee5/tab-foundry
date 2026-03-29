@@ -2,3 +2,4 @@ surface_label: training_default
 apply_schedule: false
 overrides: {}
 task_batch_size: 1
+loss_surface: classification

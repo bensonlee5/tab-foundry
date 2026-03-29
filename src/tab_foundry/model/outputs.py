@@ -3,12 +3,60 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, cast
 
 import torch
 
 _CLASSIFICATION_TENSOR_DIMENSIONS: Final[int] = 2
 _TASK_BATCH_CLASSIFICATION_TENSOR_DIMENSIONS: Final[int] = 3
+_CELL_BITS_TENSOR_DIMENSIONS: Final[int] = 3
+
+
+@dataclass(slots=True)
+class FloatingCellPrediction:
+    """Continuous per-feature prediction payload."""
+
+    task_index: int
+    feature_index: int
+    mean: torch.Tensor
+    log_variance: torch.Tensor
+
+
+@dataclass(slots=True)
+class CategoricalCellPrediction:
+    """Dynamic-support categorical prediction payload."""
+
+    task_index: int
+    feature_index: int
+    feature_type: str
+    support_values: torch.Tensor
+    logits: torch.Tensor
+
+
+@dataclass(slots=True)
+class IntegerHybridCellPrediction:
+    """Integer hybrid discrete/continuous prediction payload."""
+
+    task_index: int
+    feature_index: int
+    support_values: torch.Tensor
+    gate_logit: torch.Tensor
+    discrete_logits: torch.Tensor
+    mean: torch.Tensor
+    log_variance: torch.Tensor
+
+
+@dataclass(slots=True)
+class CellLikelihoodOutput:
+    """Per-cell likelihood output for the sandwich BPC lane."""
+
+    per_cell_bits: torch.Tensor
+    bpc: torch.Tensor | None = None
+    bpf: torch.Tensor | None = None
+    floating_predictions: list[FloatingCellPrediction] | None = None
+    categorical_predictions: list[CategoricalCellPrediction] | None = None
+    integer_predictions: list[IntegerHybridCellPrediction] | None = None
+    aux_metrics: dict[str, float] | None = None
 
 
 @dataclass(slots=True)
@@ -180,3 +228,67 @@ def validate_classification_path_terms_contract(
             f"{context} produced path_sample_counts total={total_count}, expected at least {int(expected_rows)}"
         )
     return resolved_counts
+
+
+def validate_cell_likelihood_output_contract(
+    output: CellLikelihoodOutput,
+    *,
+    expected_shape: tuple[int, int, int] | None = None,
+    context: str,
+) -> tuple[int, int, int]:
+    """Validate one cell-likelihood output against the shared consumer contract."""
+
+    tensor = output.per_cell_bits
+    if tensor.ndim != _CELL_BITS_TENSOR_DIMENSIONS:
+        raise RuntimeError(
+            f"{context} requires per_cell_bits to be 3D, "
+            f"got shape={tuple(int(dim) for dim in tensor.shape)}"
+        )
+    resolved_shape = cast(tuple[int, int, int], tuple(int(dim) for dim in tensor.shape))
+    if expected_shape is not None and resolved_shape != tuple(int(dim) for dim in expected_shape):
+        raise RuntimeError(
+            f"{context} produced per_cell_bits shape={resolved_shape}, expected={expected_shape}"
+        )
+    if output.bpc is not None and output.bpc.ndim != 0:
+        raise RuntimeError(f"{context} requires bpc to be scalar when present")
+    if output.bpf is not None and output.bpf.ndim != 0:
+        raise RuntimeError(f"{context} requires bpf to be scalar when present")
+    for floating_prediction in output.floating_predictions or []:
+        if floating_prediction.mean.shape != floating_prediction.log_variance.shape:
+            raise RuntimeError(
+                f"{context} floating prediction feature_index={floating_prediction.feature_index} "
+                "mean/log_variance shape mismatch"
+            )
+    for categorical_prediction in output.categorical_predictions or []:
+        if categorical_prediction.logits.ndim != _CLASSIFICATION_TENSOR_DIMENSIONS:
+            raise RuntimeError(
+                f"{context} categorical prediction feature_index={categorical_prediction.feature_index} "
+                "requires logits to be 2D"
+            )
+        if categorical_prediction.support_values.ndim != 1:
+            raise RuntimeError(
+                f"{context} categorical prediction feature_index={categorical_prediction.feature_index} "
+                "requires support_values to be 1D"
+            )
+    for integer_prediction in output.integer_predictions or []:
+        if integer_prediction.gate_logit.ndim != 0:
+            raise RuntimeError(
+                f"{context} integer prediction feature_index={integer_prediction.feature_index} "
+                "requires gate_logit to be scalar"
+            )
+        if integer_prediction.discrete_logits.ndim != _CLASSIFICATION_TENSOR_DIMENSIONS:
+            raise RuntimeError(
+                f"{context} integer prediction feature_index={integer_prediction.feature_index} "
+                "requires discrete_logits to be 2D"
+            )
+        if integer_prediction.mean.shape != integer_prediction.log_variance.shape:
+            raise RuntimeError(
+                f"{context} integer prediction feature_index={integer_prediction.feature_index} "
+                "mean/log_variance shape mismatch"
+            )
+        if integer_prediction.support_values.ndim != 1:
+            raise RuntimeError(
+                f"{context} integer prediction feature_index={integer_prediction.feature_index} "
+                "requires support_values to be 1D"
+            )
+    return resolved_shape

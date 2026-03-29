@@ -64,6 +64,7 @@ from tab_foundry.training.instability import (
     update_loss_ema,
     write_training_telemetry,
 )
+from tab_foundry.training.loss_surface import configure_model_loss_surface, resolve_training_loss_surface
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import build_optimizer
 from tab_foundry.training.schedule import stage_base_lr
@@ -128,6 +129,8 @@ def _build_prior_training_deps() -> PriorTrainingDeps:
         gradient_history_path=gradient_history_path,
         telemetry_path=telemetry_path,
         build_model_from_spec=build_model_from_spec,
+        resolve_training_loss_surface=resolve_training_loss_surface,
+        configure_model_loss_surface=configure_model_loss_surface,
         write_training_surface_record=write_training_surface_record,
         init_wandb_run=init_wandb_run,
         finish_wandb_run=finish_wandb_run,

@@ -36,6 +36,8 @@ class PriorTrainingDeps:
     gradient_history_path: Any
     telemetry_path: Any
     build_model_from_spec: Any
+    resolve_training_loss_surface: Any
+    configure_model_loss_surface: Any
     write_training_surface_record: Any
     init_wandb_run: Any
     finish_wandb_run: Any
@@ -102,9 +104,10 @@ def _run_prior_step_with_microbatch_retry(
     y_all_batch: torch.Tensor,
     feature_types_batch: list[list[str]] | None,
     train_test_split_index: int,
+    loss_surface: str,
     trace_activations: bool,
     flush_activation_trace: object,
-) -> tuple[float, float, dict[str, float] | None, int, int]:
+) -> tuple[float, dict[str, float], dict[str, float] | None, int, int]:
     forward_batched = getattr(model, "forward_batched", None)
     if not callable(forward_batched):
         raise RuntimeError("prior-dump training requires a model with forward_batched()")
@@ -113,9 +116,9 @@ def _run_prior_step_with_microbatch_retry(
     if total_batch_size <= 0:
         raise RuntimeError("prior-dump training requires batch_size >= 1")
 
-    def _attempt(microbatch_size: int) -> tuple[float, float, dict[str, float] | None, int]:
+    def _attempt(microbatch_size: int) -> tuple[float, dict[str, float], dict[str, float] | None, int]:
         weighted_loss = 0.0
-        weighted_acc = 0.0
+        weighted_metrics: dict[str, float] = {}
         activation_weighted_sums: dict[str, float] = {}
         activation_weight_totals: dict[str, float] = {}
         microbatch_count = 0
@@ -135,33 +138,51 @@ def _run_prior_step_with_microbatch_retry(
                         "for every task in the batch"
                     )
                 batched_kwargs["feature_types"] = feature_types_batch[start:stop]
-            logits = forward_batched(**batched_kwargs)
-            if not isinstance(logits, torch.Tensor):
-                raise RuntimeError("prior-dump training requires tensor logits")
+            if loss_surface == "cell_bpc":
+                forward_batched_cell_likelihood = getattr(model, "forward_batched_cell_likelihood", None)
+                if not callable(forward_batched_cell_likelihood):
+                    raise RuntimeError(
+                        "cell_bpc prior-dump training requires a model with "
+                        "forward_batched_cell_likelihood()"
+                    )
+                output = forward_batched_cell_likelihood(**batched_kwargs)
+                if output.bpc is None or output.bpf is None:
+                    raise RuntimeError("cell_bpc prior-dump training requires output.bpc and output.bpf")
+                loss = output.bpc
+                weighted_metrics["bpc"] = weighted_metrics.get("bpc", 0.0) + (
+                    float(output.bpc.detach().item()) * weight
+                )
+                weighted_metrics["bpf"] = weighted_metrics.get("bpf", 0.0) + (
+                    float(output.bpf.detach().item()) * weight
+                )
+            else:
+                logits = forward_batched(**batched_kwargs)
+                if not isinstance(logits, torch.Tensor):
+                    raise RuntimeError("prior-dump training requires tensor logits")
+                targets = y_all_batch[start:stop, train_test_split_index:].reshape(-1).to(torch.int64)
+                loss = deps.classification_loss(
+                    logits.reshape(-1, int(logits.shape[-1])),
+                    targets,
+                )
+                weighted_metrics["acc"] = weighted_metrics.get("acc", 0.0) + (
+                    float(
+                        (
+                            logits.argmax(dim=-1)
+                            == y_all_batch[start:stop, train_test_split_index:].to(torch.int64)
+                        )
+                        .float()
+                        .mean()
+                        .item()
+                    )
+                    * weight
+                )
             activation_norms = (
                 flush_activation_trace()
                 if trace_activations and callable(flush_activation_trace)
                 else None
             )
-            targets = y_all_batch[start:stop, train_test_split_index:].reshape(-1).to(torch.int64)
-            loss = deps.classification_loss(
-                logits.reshape(-1, int(logits.shape[-1])),
-                targets,
-            )
             (loss * weight).backward()
             weighted_loss += float(loss.detach().item()) * weight
-            weighted_acc += (
-                float(
-                    (
-                        logits.argmax(dim=-1)
-                        == y_all_batch[start:stop, train_test_split_index:].to(torch.int64)
-                    )
-                    .float()
-                    .mean()
-                    .item()
-                )
-                * weight
-            )
             if activation_norms is not None:
                 for activation_name, activation_value in activation_norms.items():
                     activation_weighted_sums[activation_name] = (
@@ -173,7 +194,7 @@ def _run_prior_step_with_microbatch_retry(
                     )
         return (
             weighted_loss,
-            weighted_acc,
+            weighted_metrics,
             _merge_activation_norms(activation_weighted_sums, activation_weight_totals),
             microbatch_count,
         )
@@ -182,10 +203,10 @@ def _run_prior_step_with_microbatch_retry(
     while True:
         optimizer.zero_grad(set_to_none=True)
         try:
-            loss_value, acc_value, activation_norms, microbatch_count = _attempt(microbatch_size)
+            loss_value, metric_values, activation_norms, microbatch_count = _attempt(microbatch_size)
             return (
                 loss_value,
-                acc_value,
+                metric_values,
                 activation_norms,
                 microbatch_size,
                 microbatch_count,
@@ -244,6 +265,12 @@ def run_prior_training(
         )
     )
     model = deps.build_model_from_spec(spec)
+    loss_surface = deps.resolve_training_loss_surface(
+        getattr(cfg, "training", None),
+        model_spec=spec,
+        backend=TRAINING_BACKEND_LEGACY_PRIOR,
+    )
+    deps.configure_model_loss_surface(model, loss_surface=loss_surface)
     enable_activation_trace = getattr(model, "enable_activation_trace", None)
     flush_activation_trace = getattr(model, "flush_activation_trace", None)
     if trace_activations and callable(enable_activation_trace):
@@ -252,6 +279,11 @@ def run_prior_training(
     model.train()
 
     raw_cfg = cast(dict[str, object], OmegaConf.to_container(cfg, resolve=True))
+    raw_training_cfg = raw_cfg.get("training")
+    if not isinstance(raw_training_cfg, dict):
+        raw_training_cfg = {}
+        raw_cfg["training"] = raw_training_cfg
+    raw_training_cfg["loss_surface"] = loss_surface
     raw_legacy_prior_cfg = raw_cfg.get("legacy_prior")
     if not isinstance(raw_legacy_prior_cfg, dict):
         raw_legacy_prior_cfg = {}
@@ -297,9 +329,11 @@ def run_prior_training(
     lr_scales: list[float] = []
 
     history_step_loss = 0.0
-    history_step_acc = 0.0
+    history_step_metrics: dict[str, float] = {}
     final_train_loss: float | None = None
     final_train_acc: float | None = None
+    final_train_bpc: float | None = None
+    final_train_bpf: float | None = None
     global_step = 0
     latest_checkpoint: Path | None = None
     final_grad_norm = 0.0
@@ -429,7 +463,7 @@ def run_prior_training(
             )
             (
                 history_step_loss,
-                history_step_acc,
+                history_step_metrics,
                 activation_norms,
                 microbatch_size_used,
                 microbatch_count,
@@ -442,6 +476,7 @@ def run_prior_training(
                 y_all_batch=y_all_batch,
                 feature_types_batch=feature_types_batch,
                 train_test_split_index=prior_step.train_test_split_index,
+                loss_surface=loss_surface,
                 trace_activations=trace_activations,
                 flush_activation_trace=flush_activation_trace,
             )
@@ -536,7 +571,15 @@ def run_prior_training(
             optimizer.step()
 
             final_train_loss = float(history_step_loss)
-            final_train_acc = float(history_step_acc)
+            final_train_acc = (
+                None if history_step_metrics.get("acc") is None else float(history_step_metrics["acc"])
+            )
+            final_train_bpc = (
+                None if history_step_metrics.get("bpc") is None else float(history_step_metrics["bpc"])
+            )
+            final_train_bpf = (
+                None if history_step_metrics.get("bpf") is None else float(history_step_metrics["bpf"])
+            )
             final_grad_norm = float(local_grad_norm)
             grad_norm_sum += final_grad_norm
             grad_norm_count += 1
@@ -553,7 +596,6 @@ def run_prior_training(
             synthetic_prior_missingness = cast(dict[str, Any], missingness_summary["synthetic_prior"])
             train_log: dict[str, Any] = {
                 "train/loss": float(history_step_loss),
-                "train/acc": float(history_step_acc),
                 "train/lr": float(optimizer.param_groups[0]["lr"]),
                 "train/grad_norm": float(final_grad_norm),
                 "train/loss_delta": loss_delta_value,
@@ -572,6 +614,8 @@ def run_prior_training(
                 "train/prior_dump_microbatch_count": int(microbatch_count),
                 "train/stage": _PRIOR_STAGE_NAME,
             }
+            for metric_name, metric_value in history_step_metrics.items():
+                train_log[f"train/{metric_name}"] = float(metric_value)
             for module_name, module_value in pre_clip_module_grad_norms.items():
                 train_log[f"train/module_grad_norm/{module_name}"] = float(module_value)
             feature_grad = pre_clip_module_grad_norms.get("feature_encoder")
@@ -588,7 +632,7 @@ def run_prior_training(
                 global_step=global_step,
                 stage_name=_PRIOR_STAGE_NAME,
                 train_loss=history_step_loss,
-                train_metrics={"acc": history_step_acc},
+                train_metrics=history_step_metrics,
                 lr=float(optimizer.param_groups[0]["lr"]),
                 grad_norm=final_grad_norm,
                 elapsed_seconds=elapsed_seconds,
@@ -607,7 +651,7 @@ def run_prior_training(
                 global_step=global_step,
                 stage_name=_PRIOR_STAGE_NAME,
                 train_loss=history_step_loss,
-                train_acc=history_step_acc,
+                train_acc=None if history_step_metrics.get("acc") is None else history_step_metrics["acc"],
                 lr=float(optimizer.param_groups[0]["lr"]),
                 global_grad_norm=final_grad_norm,
                 module_grad_norms=pre_clip_module_grad_norms,
@@ -639,11 +683,17 @@ def run_prior_training(
                     }
                 )
             if global_step % eval_every == 0:
+                if history_step_metrics.get("bpc") is not None:
+                    primary_metric_fragment = f"bpc {history_step_metrics['bpc']:7.4f}"
+                elif history_step_metrics.get("acc") is not None:
+                    primary_metric_fragment = f"acc {history_step_metrics['acc']:7.4f}"
+                else:
+                    primary_metric_fragment = "metric     n/a"
                 print(
                     f"time {train_elapsed_seconds:7.1f}s | "
                     f"step {global_step:4d} | "
                     f"loss {history_step_loss:7.4f} | "
-                    f"acc {history_step_acc:7.4f}"
+                    f"{primary_metric_fragment}"
                 )
 
         latest_checkpoint = output_dir / "checkpoints" / "latest.pt"
@@ -666,6 +716,7 @@ def run_prior_training(
         )
         regime_budget = deps.build_regime_budget_summary(
             task=str(cfg.task),
+            loss_surface=loss_surface,
             training_surface_record=training_surface_payload,
             global_step=global_step,
             tokens_seen=tokens_seen,
@@ -700,6 +751,8 @@ def run_prior_training(
             metrics={
                 "final_train_loss": None if final_train_loss is None else float(final_train_loss),
                 "final_train_acc": None if final_train_acc is None else float(final_train_acc),
+                "final_train_bpc": None if final_train_bpc is None else float(final_train_bpc),
+                "final_train_bpf": None if final_train_bpf is None else float(final_train_bpf),
                 "train_elapsed_seconds": float(train_elapsed_seconds),
                 "wall_elapsed_seconds": float(wall_elapsed_seconds),
                 "nan_skip_count": float(nan_skip_count),
@@ -722,6 +775,7 @@ def run_prior_training(
         )
         regime_budget = deps.build_regime_budget_summary(
             task=str(cfg.task),
+            loss_surface=loss_surface,
             training_surface_record=training_surface_payload,
             global_step=global_step,
             tokens_seen=tokens_seen,
