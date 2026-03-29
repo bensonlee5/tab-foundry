@@ -25,7 +25,7 @@ from tab_foundry.model.components.attention import (
 from tab_foundry.model.components.non_finite import clip_finite_values
 from tab_foundry.model.components.normalization import build_norm
 from tab_foundry.model.components.tabular_primitives import (
-    DirectClassifierHead,
+    DirectMulticlassHead,
     FeatureTypeFiLM,
     LabelTokenTargetConditioner,
     ScalarPerFeatureMissingnessTokenizer,
@@ -377,7 +377,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             ff_expansion=self.sandwich_ff_expansion,
             norm_type=self.norm_type,
         )
-        self.direct_head = DirectClassifierHead(
+        self.direct_head = DirectMulticlassHead(
             self.d_icl,
             self.head_hidden_dim,
             self.many_class_base,
@@ -999,7 +999,7 @@ class TabFoundrySandwichClassifier(nn.Module):
             )
         if num_classes > self.many_class_base:
             raise RuntimeError(
-                "tabfoundry_sandwich is small-class only and requires "
+                "tabfoundry_sandwich uses a direct multiclass head and requires "
                 f"num_classes <= many_class_base={self.many_class_base}, got {num_classes}"
             )
 

@@ -175,6 +175,38 @@ def test_cls_benchmark_sandwich_hybrid_prior_resolution() -> None:
     )
 
 
+def test_cls_benchmark_sandwich_classification_evolution_v1_resolution() -> None:
+    cfg = _compose("experiment=cls_benchmark_sandwich_classification_evolution_v1")
+    assert str(cfg.task) == "classification"
+    assert str(cfg.model.arch) == "tabfoundry_sandwich"
+    assert cfg.model.stage is None
+    assert int(cfg.model.d_icl) == 60
+    assert str(cfg.model.input_normalization) == "train_zscore_clip"
+    assert str(cfg.model.feature_type_conditioning) == "film"
+    assert int(cfg.model.many_class_base) == 10
+    assert int(cfg.model.head_hidden_dim) == 96
+    assert int(cfg.model.sandwich_latents) == 24
+    assert int(cfg.model.sandwich_layers) == 2
+    assert int(cfg.model.sandwich_heads) == 4
+    assert int(cfg.model.sandwich_ff_expansion) == 2
+    assert int(cfg.model.sandwich_summary_tokens_per_axis) == 3
+    assert int(cfg.model.sandwich_self_attention_per_cross) == 4
+    assert int(cfg.model.sandwich_pre_row_attention_layers) == 1
+    assert int(cfg.model.sandwich_pre_column_attention_layers) == 1
+    assert int(cfg.model.sandwich_pre_column_inducing_tokens) == 16
+    assert str(cfg.training.loss_surface) == "cell_bpc"
+    assert int(cfg.runtime.max_steps) == 2500
+    assert int(cfg.runtime.eval_every) == 25
+    assert int(cfg.runtime.checkpoint_every) == 25
+    assert bool(cfg.runtime.trace_activations) is False
+    assert str(cfg.runtime.output_dir) == "outputs/cls_benchmark_sandwich_classification_evolution_v1"
+    assert str(cfg.logging.run_name) == "cls-benchmark-sandwich-classification-evolution-v1"
+    assert (
+        str(cfg.logging.history_jsonl_path)
+        == "outputs/cls_benchmark_sandwich_classification_evolution_v1/train_history.jsonl"
+    )
+
+
 def test_cls_benchmark_staged_resolution() -> None:
     cfg = _compose("experiment=cls_benchmark_staged")
     assert str(cfg.task) == "classification"

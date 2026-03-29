@@ -1,0 +1,155 @@
+schema: tab-foundry-system-delta-sweep-queue-v1
+sweep_id: tf_rd_010_classification_evolution_large_v1
+rows:
+- order: 1
+  delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
+  status: blocked_on_validation_manifests_and_control_baselines
+  rationale: Establish the clean multiclass dagzoo control front before reading any missingness harder-front effect on the large allow-missing benchmark rung.
+  hypothesis: The evolved sandwich family should first be judged on a clean multiclass dagzoo control corpus against the harder allow-missing large hub manifest.
+  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v1` while validating on the hub-owned large multiclass manifest.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_dagzoo_medium_control
+    source: manifest
+    corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+  parameter_adequacy_plan:
+  - Confirm `tab-realdata-hub#1` has materialized the allow-missing large multiclass manifest before execution.
+  - Freeze the multiclass large control baseline before treating any row outcome as a promotion or defer decision.
+  - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration, runtime, and stability as guardrails.
+  next_action: Wait for the hub-owned large manifest and the multiclass large control baseline freeze.
+  notes:
+  - "`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest."
+  - "This row is the clean multiclass reference for missingness transfer and class-imbalance reporting on the large rung."
+- order: 2
+  delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mcar
+  status: blocked_on_validation_manifests_and_control_baselines
+  rationale: Test whether moderate MCAR exposure improves robustness on the harder allow-missing large benchmark rung before structured missingness is considered.
+  hypothesis: MCAR may improve BPC/log-loss behavior on the evolved sandwich family under allow-missing validation without adding the stronger structure of MAR or MNAR.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_missingness_mcar
+    source: manifest
+    corpus_ref: tf_rd_010_missingness_mcar_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+  parameter_adequacy_plan:
+  - Compare directly against the clean control row before preferring missingness exposure.
+  - Treat the large allow-missing rung as the primary benchmark context for missingness transfer.
+  - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
+  next_action: Wait for the hub-owned large manifest and the multiclass large control baseline freeze.
+  notes:
+  - "`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest."
+  - "The large rung is explicitly allow-missing, so this row reads the cleanest first transfer case for synthetic MCAR training."
+- order: 3
+  delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mar
+  status: blocked_on_validation_manifests_and_control_baselines
+  rationale: Add a structured missingness row so TF-RD-010 can distinguish random masking from observed-feature-linked masking under the harder allow-missing benchmark contract.
+  hypothesis: MAR may provide a clearer harder front than MCAR while remaining more interpretable than MNAR on the large rung.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_missingness_mar
+    source: manifest
+    corpus_ref: tf_rd_010_missingness_mar_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+  parameter_adequacy_plan:
+  - Compare directly against the clean control plus MCAR and MNAR before preferring structured missingness.
+  - Treat the large allow-missing rung as the primary benchmark context for missingness transfer.
+  - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
+  next_action: Wait for the hub-owned large manifest and the multiclass large control baseline freeze.
+  notes:
+  - "`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest."
+  - "The large rung is explicitly allow-missing, so this row reads structured observed-feature missingness transfer directly."
+- order: 4
+  delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mnar
+  status: blocked_on_validation_manifests_and_control_baselines
+  rationale: Keep one strongest missingness row in the first draft package so TF-RD-010 can compare MCAR, MAR, and MNAR under the same allow-missing benchmark contract.
+  hypothesis: MNAR may be the hardest missingness front, but it may also be the least interpretable candidate for the first evolved benchmark package.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v1`.
+  model:
+    arch: tabfoundry_sandwich
+    d_icl: 60
+    input_normalization: train_zscore_clip
+    many_class_base: 10
+    head_hidden_dim: 96
+    sandwich_latents: 24
+    sandwich_layers: 2
+    sandwich_heads: 4
+    sandwich_ff_expansion: 2
+    sandwich_summary_tokens_per_axis: 3
+    sandwich_self_attention_per_cross: 4
+    sandwich_pre_row_attention_layers: 1
+    sandwich_pre_column_attention_layers: 1
+    feature_type_conditioning: film
+  data:
+    surface_label: tf_rd_010_missingness_mnar
+    source: manifest
+    corpus_ref: tf_rd_010_missingness_mnar_v1
+  preprocessing:
+    surface_label: runtime_default
+  training:
+    surface_label: prior_cosine_warmup
+    task_batch_size: 1
+  parameter_adequacy_plan:
+  - Compare directly against the clean control plus MCAR and MAR before preferring the strongest self-masking option.
+  - Treat the large allow-missing rung as the primary benchmark context for missingness transfer.
+  - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
+  next_action: Wait for the hub-owned large manifest and the multiclass large control baseline freeze.
+  notes:
+  - "`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest."
+  - "The large rung is explicitly allow-missing, so this row reads the strongest self-masking missingness transfer directly."

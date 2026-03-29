@@ -4707,6 +4707,150 @@ deltas:
     default_next_action: Run third under issue `#148`, then select exactly one missingness nominee for cross-front comparison.
     applicability_guards: []
 
+  delta_data_manifest_root_tf_rd_010_dagzoo_medium_control:
+    dimension_family: data
+    family: provenance
+    binary_applicable: false
+    description: Point training at the TF-RD-010 dagzoo multiclass control corpus while the evolved sandwich benchmark contract is defined against hub-owned validation manifests.
+    upstream_delta: Not applicable; this is a repo-local synthetic training-front contract tied to the first benchmark-evolution lane.
+    expected_effect: Establish the clean multiclass dagzoo control corpus that both the medium and large TF-RD-010 validation rungs will compare against.
+    adequacy_knobs:
+      - explicit dagzoo provenance for the multiclass control corpus
+      - medium and large real-data validation separation via `tab-realdata-hub` manifests
+      - class-count coverage, feature-count coverage, missingness policy, and minority-class floor on the validation side
+    parameter_adequacy_policy:
+      default_plan:
+        - Keep the evolved sandwich architecture fixed at FiLM plus `sandwich_summary_tokens_per_axis=3` with the direct multiclass head.
+        - Treat `dagzoo` as the synthetic training owner and `tab-realdata-hub` as the validation-manifest owner.
+        - Rank rows by `final_bpc_at_matched_regime_budget`, with raw log loss, calibration, runtime, and stability reported as guardrails.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_validation_manifests_and_control_baselines
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model: {}
+      data:
+        surface_label: tf_rd_010_dagzoo_medium_control
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Wait for `tab-realdata-hub#1` plus frozen multiclass control baselines before executing the first clean TF-RD-010 benchmark rung.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_010_missingness_mcar:
+    dimension_family: data
+    family: missingness
+    binary_applicable: false
+    description: Point training at the TF-RD-010 MCAR multiclass corpus while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
+    expected_effect: Moderate MCAR should test whether the evolved sandwich target benefits from missingness exposure before any larger benchmark-front escalation.
+    adequacy_knobs:
+      - explicit MCAR provenance in the dagzoo training front
+      - fixed medium and large hub-owned validation manifests
+      - BPC/log-loss ranking under the direct multiclass head contract
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare against the multiclass control corpus before preferring any missingness variant.
+        - Treat the large allow-missing validation rung as the primary benchmark context for missingness transfer, with the medium rung as the clean reference.
+        - Keep class-imbalance reporting explicit, but defer any dedicated skew ladder to TF-RD-017.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_validation_manifests_and_control_baselines
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model: {}
+      data:
+        surface_label: tf_rd_010_missingness_mcar
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_missingness_mcar_v1
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Wait for `tab-realdata-hub#1` and the multiclass baseline freeze, then compare directly against the control, MAR, and MNAR rows.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_010_missingness_mar:
+    dimension_family: data
+    family: missingness
+    binary_applicable: false
+    description: Point training at the TF-RD-010 MAR multiclass corpus while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
+    expected_effect: Structured MAR may provide a harder but still interpretable missingness front for the first multiclass benchmark program.
+    adequacy_knobs:
+      - explicit MAR provenance in the dagzoo training front
+      - fixed medium and large hub-owned validation manifests
+      - BPC/log-loss ranking under the direct multiclass head contract
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare against the multiclass control corpus plus the MCAR and MNAR rows before preferring structured missingness.
+        - Treat the large allow-missing validation rung as the primary benchmark context for missingness transfer, with the medium rung as the clean reference.
+        - Keep class-imbalance reporting explicit, but defer any dedicated skew ladder to TF-RD-017.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_validation_manifests_and_control_baselines
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model: {}
+      data:
+        surface_label: tf_rd_010_missingness_mar
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_missingness_mar_v1
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Wait for `tab-realdata-hub#1` and the multiclass baseline freeze, then compare directly against the control, MCAR, and MNAR rows.
+    applicability_guards: []
+
+  delta_data_manifest_root_tf_rd_010_missingness_mnar:
+    dimension_family: data
+    family: missingness
+    binary_applicable: false
+    description: Point training at the TF-RD-010 MNAR multiclass corpus while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
+    upstream_delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
+    expected_effect: Structured MNAR may be the strongest synthetic missingness perturbation, but it risks a less interpretable first benchmark-evolution read than MCAR or MAR.
+    adequacy_knobs:
+      - explicit MNAR provenance in the dagzoo training front
+      - fixed medium and large hub-owned validation manifests
+      - BPC/log-loss ranking under the direct multiclass head contract
+    parameter_adequacy_policy:
+      default_plan:
+        - Compare against the multiclass control corpus plus the MCAR and MAR rows before preferring the strongest self-masking option.
+        - Treat the large allow-missing validation rung as the primary benchmark context for missingness transfer, with the medium rung as the clean reference.
+        - Keep class-imbalance reporting explicit, but defer any dedicated skew ladder to TF-RD-017.
+      default_negative_decision: defer
+      reject_requires:
+        - isolated_change
+        - adequacy_plan_complete
+        - clearly_worse_without_offsetting_benefit
+    legacy_stage_alias: none
+    default_initial_status: blocked_on_validation_manifests_and_control_baselines
+    default_initial_interpretation_status: pending
+    default_effective_surface:
+      model: {}
+      data:
+        surface_label: tf_rd_010_missingness_mnar
+        surface_overrides:
+          source: manifest
+          corpus_ref: tf_rd_010_missingness_mnar_v1
+      preprocessing:
+        surface_label: runtime_default
+    default_next_action: Wait for `tab-realdata-hub#1` and the multiclass baseline freeze, then compare directly against the control, MCAR, and MAR rows.
+    applicability_guards: []
+
   delta_data_manifest_root_tf_rd_020_shift_graph_drift:
     dimension_family: data
     family: shift

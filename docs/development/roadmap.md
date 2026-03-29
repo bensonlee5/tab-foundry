@@ -85,33 +85,32 @@ Important non-goals for this roadmap:
   tested on harder post-008 regimes.
 - The next useful architecture evidence should come from coherent sandwich
   surfaces, not from extending the older staged line.
-- After sandwich-parent simplification, the next deliberate front should make
-  the research surface less saturating and more realistic: a dagzoo-backed
-  many-class plus missingness regime on the frozen sandwich parent, followed by
-  steering-derived corpus fronts, then bounded runtime/kernel tuning, then
-  scaling.
+- After TF-RD-016 closeout, the next deliberate front should make the research
+  surface less saturating and more realistic: a benchmark-defined multiclass
+  regime where `dagzoo` owns synthetic training fronts, `tab-realdata-hub`
+  owns medium and large validation manifests, and `tab-foundry` owns the
+  evolved sandwich model and sweep contracts.
 - If those harder or broader surfaces still leave the model hard to separate or
   obviously underfit, open a later architecture-surface adequacy pass before
   relying on scaling-law work as the main next source of evidence.
 - Class imbalance is still not sufficiently tested on the current benchmark
-  surfaces because the bundles only enforce `min_minority_class_pct = 2.5`
-  rather than defining an explicit skew ladder.
+  surfaces because the bundles still only enforce
+  `min_minority_class_pct = 2.5` rather than defining an explicit skew ladder.
 - Harder real-data ladders should keep one canonical OpenML baseline where the
-  benchmark tooling is already native, allow manifest-backed external
-  real-data augmentations when they add regimes OpenML does not cover cleanly,
-  and require completed review records before those datasets enter curated
-  bundles or manifests; `dagzoo` remains the synthetic-data lane under
-  TF-RD-013 rather than an external real-data source.
+  benchmark tooling is already native, but the validation-bundle source of
+  truth now lives in `tab-realdata-hub` rather than in local `tab-foundry`
+  fixtures. `dagzoo` remains the synthetic-data lane under TF-RD-013 rather
+  than an external real-data source.
 - The deliberate post-008 execution order is now:
-  TF-RD-021B under TF-RD-016 ablates and freezes one simplified sandwich
-  parent; that frozen parent is then carried onto dagzoo; TF-RD-010 uses that
-  dagzoo-backed sandwich family on the first many-class plus missingness slice
-  so the first scaling target does not saturate too early on binary data;
-  TF-RD-017 class-imbalance work proceeds as a side robustness lane on the same
-  family; TF-RD-021 then tests whether steering-derived dagzoo corpus fronts
-  improve that carried slice; TF-RD-022 performs the kernel, runtime, and VRAM
-  tuning needed for reliable scaling on the kept front; TF-RD-009 then fits the
-  first scaling law on that carried multiclass slice.
+  TF-RD-016 closes on the modest sandwich evolution and benchmark-definition
+  handoff; TF-RD-010 then freezes the first medium and large multiclass
+  validation program, with `dagzoo` synthetic training fronts feeding
+  `tab-realdata-hub` materialized manifests; TF-RD-017 class-imbalance work
+  proceeds as a side robustness lane on the same family; TF-RD-021 then tests
+  whether steering-derived dagzoo corpus fronts improve that benchmark-defined
+  slice; TF-RD-022 performs the kernel, runtime, and VRAM tuning needed for
+  reliable scaling on the kept front; TF-RD-009 then fits the first scaling law
+  on that carried multiclass slice.
 - Low-level questions such as norm family or placement, learned special-token
   initialization scale, QASS scaler capacity, and activation family belong
   under TF-RD-016 after the earlier adequacy and harder-surface gates are in
@@ -133,15 +132,14 @@ summarized later instead of occupying the active queue.
 
 | Rank | Roadmap ID | Item | Status | Milestone |
 | ---- | ---------- | ---- | ------ | --------- |
-| 1 | TF-RD-016 | Architecture surface adequacy, sandwich simplification, and selective expansion | planned | Next |
-| 2 | TF-RD-010 | First many-class + missingness dagzoo gate on the classification-first sandwich target | planned | Next |
-| 3 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the classification-first sandwich target | planned | Next |
-| 4 | TF-RD-017 | Class-imbalance robustness on the classification-first sandwich target | planned | Next |
-| 5 | TF-RD-022 | Training runtime and VRAM efficiency before classification scaling | planned | Next |
-| 6 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | planned | Next |
-| 7 | TF-RD-014 | Missingness robustness on the classification-first sandwich target | planned | Next |
-| 8 | TF-RD-015 | Regression rebuild deferred from the classification-first scaling plan | research | Later |
-| 9 | TF-RD-012 | Inference handoff and later modalities | research | Later |
+| 1 | TF-RD-010 | Benchmark-defined multiclass evolution on the classification-first sandwich target | planned | Next |
+| 2 | TF-RD-021 | Steering-derived dagzoo corpus fronts on the classification-first sandwich target | planned | Next |
+| 3 | TF-RD-017 | Class-imbalance robustness on the classification-first sandwich target | planned | Next |
+| 4 | TF-RD-022 | Training runtime and VRAM efficiency before classification scaling | planned | Next |
+| 5 | TF-RD-009 | Scaling-law design and measurement on the classification-first sandwich target | planned | Next |
+| 6 | TF-RD-014 | Missingness robustness on the classification-first sandwich target | planned | Next |
+| 7 | TF-RD-015 | Regression rebuild deferred from the classification-first scaling plan | research | Later |
+| 8 | TF-RD-012 | Inference handoff and later modalities | research | Later |
 
 ## Dependency Graph
 
@@ -181,17 +179,22 @@ flowchart TD
     class RD012,RD015 later;
 ```
 
-Current path: **TF-RD-016 / TF-RD-021B → sandwich-on-dagzoo carry-forward → TF-RD-010 → TF-RD-021 → TF-RD-022 → TF-RD-009**.
+Current path: **TF-RD-016 closeout → TF-RD-010 benchmark evolution → TF-RD-021 → TF-RD-022 → TF-RD-009**.
 
-- TF-RD-016, through TF-RD-021B, is the first active gate: finish the bounded
-  sandwich ablation package and freeze one simplified parent.
-- Then switch that frozen sandwich parent onto dagzoo as the carried synthetic
-  classification family rather than continuing to tune the staged-control lane.
-- TF-RD-010 then evaluates the first dagzoo-backed many-class plus missingness
-  classification slice on that frozen sandwich parent, with multiclass log
-  loss as the primary objective.
+- TF-RD-016 is now completed historical context: issue
+  [#178](https://github.com/bensonlee5/tab-foundry/issues/178) closes on the
+  decision to evaluate the next sandwich phase through benchmark definition and
+  modest head evolution rather than more simplification-only evidence.
+- TF-RD-010 now defines the first benchmark-backed multiclass program:
+  `dagzoo` training fronts, `tab-realdata-hub` validation manifests, and the
+  evolved sandwich architecture with FiLM, `sandwich_summary_tokens_per_axis=3`,
+  `many_class_base=10`, and a direct multiclass head.
+- TF-RD-010 ranks candidate rows by `final_bpc_at_matched_regime_budget`,
+  treating BPC as the normalized log-loss view while calibration, runtime, and
+  stability remain guardrails.
 - TF-RD-021 then decides whether any steering-derived dagzoo corpus front
-  replaces the carried sandwich dagzoo slice before runtime/kernel tuning.
+  replaces the carried sandwich dagzoo training front before runtime/kernel
+  tuning.
 - TF-RD-022 is the next hard pre-scaling gate after steering: it must hand back
   one measured kernel/runtime policy before broader scaling fits.
 - TF-RD-009 only starts after those gates are closed and fits the first law on
@@ -212,13 +215,13 @@ Parallel/later lanes are intentionally off that main path:
 | Objective / Claim | Current State | Evidence In Repo | Current Gap | Roadmap IDs |
 | --- | --- | --- | --- | --- |
 | Frozen PFN-style control exists | `implemented` | `tabfoundry_simple`, `stage=nano_exact`, and the prior-trained PFN-facing benchmark lane are all stable | Keep that lane clearly separate from the architecture target | `TF-RD-001` |
-| Sandwich is the primary classification candidate | `partial` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, the first knob screen plus bounded width/head follow-up both kept the compact control, and the completed removal-first package under [#184](https://github.com/bensonlee5/tab-foundry/issues/184) also retained that anchor | Carry the retained compact hybrid anchor onto harder-surface and scaling-prep work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B` |
-| Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, and TF-RD-020 settled harder-front winners that can seed sandwich-on-dagzoo carry-forward work | Carry the frozen sandwich parent onto dagzoo, then choose whether steering improves that first carried slice | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
+| Sandwich is the primary classification candidate | `implemented` | `tabfoundry_sandwich` is landed, the compact hybrid replay is benchmarked, the first knob screen plus bounded width/head follow-up both kept the compact control, the completed removal-first package under [#184](https://github.com/bensonlee5/tab-foundry/issues/184) retained that anchor, and TF-RD-016 now closes on a bounded direct-multiclass head evolution | Judge the evolved sandwich family on the TF-RD-010 benchmark program rather than reopening simplification-first work | `TF-RD-016`, `TF-RD-021A`, `TF-RD-021B`, `TF-RD-010` |
+| Harder synthetic classification fronts are runnable | `implemented` | Dagzoo manifest/export fidelity is complete, TF-RD-013 settled the representative medium surface, and TF-RD-020 settled harder-front winners that can seed the new sandwich benchmark program | Freeze the benchmark-defined dagzoo training fronts, then choose whether steering improves that first carried slice | `TF-RD-011`, `TF-RD-013`, `TF-RD-020`, `TF-RD-016`, `TF-RD-010`, `TF-RD-021` |
 | Runtime and VRAM are measurable | `partial` | Training and registry artifacts now preserve runtime-summary and regime-budget fields, and the repo already has bf16/checkpointing-capable runtime plumbing | TF-RD-022 still needs to turn that into one explicit 80 GB A100-safe kernel/runtime policy on the carried sandwich dagzoo slice | `TF-RD-022` |
-| Many-class + missingness is now the first anti-saturation carried slice | `partial` | `many_class` is implemented, the small multiclass bundle already exists, and the roadmap now treats a dagzoo-backed many-class plus missingness slice as the first harder classification gate | The repo still needs one explicit carried many-class plus missingness dagzoo slice on the frozen sandwich parent | `TF-RD-010` |
+| Benchmark-backed multiclass validation is the next anti-saturation slice | `partial` | `many_class` is implemented, the sandwich evolution config now fixes FiLM plus `sandwich_summary_tokens_per_axis=3`, and `tab-realdata-hub` issue [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) now tracks the medium and large multiclass validation manifests | The repo still needs the hub-owned medium/large manifests and frozen multiclass control baselines before the first TF-RD-010 runs execute | `TF-RD-010` |
 | Follow-on missingness and imbalance robustness remain open | `partial` | Missing-permitting binary bundles exist, and the current bundle policy already excludes degenerate minority-class cases | TF-RD-014 remains later missingness follow-up, while TF-RD-017 still needs an explicit side-lane imbalance ladder on the same sandwich family | `TF-RD-014`, `TF-RD-017` |
 | Regression and later modalities are deferred | `research` | Partial bundle/runtime scaffolding exists | They should not absorb attention from the classification-first path | `TF-RD-015`, `TF-RD-012` |
-| Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata | TF-RD-009 still waits on one fixed dagzoo many-class plus missingness slice, one steering decision, and the runtime gate | `TF-RD-009` |
+| Scaling-law work has the needed metadata path | `planned` | Artifacts now preserve resolved sandwich specs plus runtime/regime-budget metadata | TF-RD-009 still waits on one fixed benchmark-defined multiclass program, one steering decision, and the runtime gate | `TF-RD-009` |
 
 ## Current Implementation Baseline
 
@@ -259,38 +262,49 @@ Legacy wording note:
 - the dependency order, current-state bullets, and required-work bullets below
   are the authoritative description of the active sandwich-first path
 
-### TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Classification-First Sandwich Target
+### TF-RD-010: Benchmark-Defined Multiclass Evolution On The Classification-First Sandwich Target
 
 - Status: `planned`
 - Milestone: `Next`
-- Goal: use a dagzoo-backed many-class plus missingness regime as the first
-  harder post-simplification classification gate so the first scaling target
-  does not saturate too early on binary data
+- Goal: define the first benchmark-backed multiclass evaluation program for the
+  evolved sandwich family so the first scaling target does not saturate too
+  early on binary data
 - Current state:
-  - the staged family already contains `many_class`
-  - the hierarchical many-class machinery already exists
-  - `nanotabpfn_openml_classification_small_v1.json` already exists as a
-    benchmark-facing multiclass bundle
-  - issue [#52](https://github.com/bensonlee5/tab-foundry/issues/52) is now
-    the epic for this lane, and issue
+  - issue [#52](https://github.com/bensonlee5/tab-foundry/issues/52) is the
+    epic for this lane, and issue
     [#99](https://github.com/bensonlee5/tab-foundry/issues/99) is the first
     execution issue
-  - this lane now sits on the first classification-scaling path after the
-    simplified-parent phase of TF-RD-016 rather than as a later extension
+  - `tab-realdata-hub` issue
+    [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) is now the
+    upstream dependency for medium and large multiclass validation bundles and
+    materialized manifests
+  - the evolved sandwich benchmark config uses FiLM,
+    `sandwich_summary_tokens_per_axis=3`, `many_class_base=10`, and a direct
+    multiclass head
+  - this lane now sits on the first classification-scaling path after TF-RD-016
+    closes rather than as a later extension
 - Required work:
-  - confirm one carried dagzoo-backed many-class plus missingness slice and the
-    frozen sandwich parent that will read it
-  - keep the lane on the same carried sandwich family rather than opening a
-    separate
-    architecture track
-  - evaluate this first gate by multiclass log loss first, with runtime,
-    stability, and calibration-oriented metrics as guardrails
-  - record one explicit keep/defer decision on the carried many-class plus
-    missingness slice before TF-RD-009 starts
+  - keep the lane on the sandwich family rather than opening a separate
+    multiclass architecture program, but allow bounded head/output evolution
+    where the benchmark contract requires it
+  - define one clean medium validation rung and one harder large allow-missing
+    validation rung, both owned by `tab-realdata-hub`
+  - keep `dagzoo` as the synthetic training owner and use TF-RD-010-specific
+    control, MCAR, MAR, and MNAR fronts as the first benchmark rows
+  - freeze new explicit multiclass control baselines for the medium and large
+    rungs before execution
+  - rank by `final_bpc_at_matched_regime_budget`, treating BPC as the
+    normalized log-loss view while calibration, runtime, and stability remain
+    guardrails
+  - make class-count coverage, feature-count coverage, missingness allowance,
+    minority-class floor, and task diversity explicit parts of the benchmark
+    charter
 - Exit criteria:
-  - the repo has one explicit carried dagzoo many-class plus missingness slice
-    on the frozen sandwich parent
+  - the repo has one explicit medium-plus-large multiclass benchmark program on
+    the evolved sandwich family
   - multiclass is no longer only untested scaffolding on the first scaling path
+  - later lanes can inherit a fixed dagzoo-to-hub benchmark contract instead of
+    reopening regime definition
 
 ### TF-RD-012: Inference Handoff And Later Modalities
 
@@ -554,8 +568,8 @@ Legacy wording note:
     corpus rows produced from named steering policies or presets
   - hold architecture, many-class plus missingness regime definition, and
     benchmark contract fixed across every row
-  - interpret multiclass log loss first, with runtime, clipped-step fraction,
-    and stability telemetry as guardrails
+  - interpret `final_bpc_at_matched_regime_budget` first, with raw log loss,
+    runtime, clipped-step fraction, and stability telemetry as guardrails
   - keep exactly one steering-derived carry-forward surface only if it clearly
     beats the incumbent control; otherwise keep the original carried slice
   - keep this epic synthetic-data-only rather than absorbing imbalance,
@@ -595,55 +609,40 @@ Legacy wording note:
 
 ### TF-RD-016: Architecture Surface Adequacy, Sandwich Simplification, And Selective Expansion
 
-- Status: `planned`
-- Milestone: `Next`
-- Goal: simplify the sandwich classification parent before broader harder-surface
-  work, then decide whether any additional architecture-surface expansion is
-  justified once harder classification surfaces are in place
+- Status: `completed`
+- Milestone: `Completed`
+- Goal: determine whether the sandwich family needed more simplification-first
+  work before broader harder-surface evaluation
 - Current state:
-  - `tabfoundry_sandwich` is now the primary classification candidate under
-    umbrella issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178).
-  - The earlier summary-bottleneck replay is closed negative evidence under
+  - issue [#178](https://github.com/bensonlee5/tab-foundry/issues/178) now
+    closes as a historical handoff issue rather than an active lane
+  - the earlier summary-bottleneck replay is closed negative evidence under
     [#179](https://github.com/bensonlee5/tab-foundry/issues/179), while the
     compact hybrid replay and the first two follow-up screens under
     [#181](https://github.com/bensonlee5/tab-foundry/issues/181),
     [#182](https://github.com/bensonlee5/tab-foundry/issues/182), and
     [#183](https://github.com/bensonlee5/tab-foundry/issues/183) all kept the
-    compact hybrid control unchanged.
-  - Issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184) ran the
+    compact hybrid control unchanged
+  - issue [#184](https://github.com/bensonlee5/tab-foundry/issues/184) ran the
     four-row removal-first package and kept the compact hybrid control
-    unchanged as the carry-forward parent.
-  - The existing public staged/sandwich surface is already broad enough that
-    the next step should be carry-forward on the retained anchor, not immediate
-    new-knob expansion.
-- Required work:
-  - Record the compact hybrid control as the kept parent from
-    [#184](https://github.com/bensonlee5/tab-foundry/issues/184), and carry
-    that unchanged non-shape sandwich surface onto dagzoo immediately so later
-    many-class, steering, runtime, and scaling work all reuse the same
-    sandwich family.
-  - Keep the retained compact hybrid non-shape values fixed for follow-on work:
-    `sandwich_self_attention_per_cross=4`,
-    `sandwich_ff_expansion=2`, and
-    `sandwich_summary_tokens_per_axis=4`.
-  - Then use that dagzoo-backed sandwich family on one many-class plus
-    missingness slice under
-    [#52](https://github.com/bensonlee5/tab-foundry/issues/52) and
-    [#99](https://github.com/bensonlee5/tab-foundry/issues/99) before treating
-    deeper missingness or imbalance as follow-on robustness work.
-  - Prefer already-exposed choices such as norm placement, tokenizer/grouping,
-    and width/depth/capacity controls before adding new public fields.
-  - Only if the simplified harder-surface reads remain low-signal, consider a
-    small bounded set of new architecture knobs rather than a general
-    “everything configurable” expansion.
+    unchanged as the historical predecessor surface
+  - TF-RD-016 now records that the next useful evidence is benchmark definition
+    plus a modest head/output evolution, not more simplification-only replay
+- Completed outcomes:
+  - the repo now has a bounded decision that the sandwich backbone is coherent
+    enough to move into medium and large multiclass benchmark formulation
+  - the follow-on family is explicitly FiLM-conditioned, uses
+    `sandwich_summary_tokens_per_axis=3`, raises `many_class_base` to `10`, and
+    uses a direct multiclass head rather than reopening the staged line
+  - TF-RD-010 now owns the active benchmark program, with `dagzoo` synthetic
+    training fronts feeding `tab-realdata-hub` validation manifests before any
+    steering, runtime, or scaling work continues
 - Exit criteria:
-  - the repo has one explicit kept sandwich parent for classification and a
-    frozen non-shape knob surface for follow-on harder-surface work
-  - the repo has an explicit keep/defer decision on whether the current public
-    architecture surfaces, including the fixed-latent sandwich candidate, are
-    sufficient on harder post-008 regimes
-  - any newly exposed architecture knobs are bounded, justified, and tied to a
-    coherent comparison surface rather than broad config expansion
+  - satisfied: the repo has an explicit keep/defer decision that the sandwich
+    architecture surface is adequate enough to move into benchmark-defined
+    multiclass evaluation
+  - satisfied: later work now reuses one coherent sandwich family instead of
+    reopening general simplification or staged-family divergence
 
 ### TF-RD-009: Scaling-Law Design And Measurement On The Classification-First Sandwich Target
 
@@ -684,8 +683,9 @@ Legacy wording note:
     before using scaling results as architecture evidence
   - keep the other sandwich knobs frozen at the retained compact hybrid anchor
     values while fitting the first width-depth classification laws
-  - use multiclass log loss as the primary ranking objective on the carried
-    many-class plus missingness slice
+  - use `final_bpc_at_matched_regime_budget` as the primary ranking objective
+    on the carried multiclass slice, treating BPC as the normalized log-loss
+    view
   - run optimizer-transfer and model-size scaling together rather than as
     separate programs
   - keep the eventual `sandwich_scale` interface internal-only until the law is
@@ -695,9 +695,9 @@ Legacy wording note:
   - the repo can fit width-depth classification laws on the simplified sandwich
     architecture under a fixed dagzoo many-class plus missingness slice that is
     harder or broader than the current simple binary regime
-  - scaling artifacts compare runs by matched regime budget with final
-    multiclass log loss as the primary objective and stability, calibration,
-    and runtime as guardrails
+  - scaling artifacts compare runs by matched regime budget with final BPC as
+    the primary objective, raw log loss as supporting context, and stability,
+    calibration, and runtime as guardrails
   - any later single-knob scaling interface is explicitly derived from those
     law fits and remains internal until cross-surface validation is complete
 
