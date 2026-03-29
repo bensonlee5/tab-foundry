@@ -1,5 +1,94 @@
 {
   "baselines": {
+    "cls_benchmark_linear_multiclass_large_v1": {
+      "baseline_id": "cls_benchmark_linear_multiclass_large_v1",
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_large",
+        "source_path": "data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet",
+        "task_count": 3,
+        "task_ids": [
+          363685,
+          363699,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparison_summary_path": "outputs/control_baselines/cls_benchmark_linear_multiclass_large_v1/benchmark/comparison_summary.json",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "manifest_path": "outputs/corpora/tf_rd_010_dagzoo_medium_control_v1/tf_rd_010_dagzoo_medium_control_v1__271781b9bc0b/manifest.parquet",
+      "run_dir": "outputs/control_baselines/cls_benchmark_linear_multiclass_short_run_v1/train",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 273996.17510829336,
+        "best_bpf": 273996.1803987686,
+        "best_brier_score": 0.6579610447384457,
+        "best_crps": null,
+        "best_log_loss": 1.0859084588562145,
+        "best_picp_90": null,
+        "best_roc_auc": 0.5206938643078586,
+        "best_step": 350.0,
+        "best_training_time": 334.87942412437405,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 291295.7605317556,
+        "final_bpf": 291295.75524304097,
+        "final_brier_score": 0.6547105506124011,
+        "final_crps": null,
+        "final_log_loss": 1.0811921438556151,
+        "final_picp_90": null,
+        "final_roc_auc": 0.5339955904266945,
+        "final_step": 400.0,
+        "final_training_time": 383.90968879219145
+      }
+    },
+    "cls_benchmark_linear_multiclass_medium_v1": {
+      "baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_medium",
+        "source_path": "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet",
+        "task_count": 2,
+        "task_ids": [
+          363685,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparison_summary_path": "outputs/control_baselines/cls_benchmark_linear_multiclass_medium_v1/benchmark/comparison_summary.json",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "manifest_path": "outputs/corpora/tf_rd_010_dagzoo_medium_control_v1/tf_rd_010_dagzoo_medium_control_v1__271781b9bc0b/manifest.parquet",
+      "run_dir": "outputs/control_baselines/cls_benchmark_linear_multiclass_short_run_v1/train",
+      "seed_set": [
+        1
+      ],
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 44.093255043029785,
+        "best_bpf": 44.09325460433959,
+        "best_brier_score": 0.6705813454290511,
+        "best_crps": null,
+        "best_log_loss": 1.1045793217810176,
+        "best_picp_90": null,
+        "best_roc_auc": 0.5085887931347617,
+        "best_step": 400.0,
+        "best_training_time": 383.90968879219145,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 44.093255043029785,
+        "final_bpf": 44.09325460433959,
+        "final_brier_score": 0.6705813454290511,
+        "final_crps": null,
+        "final_log_loss": 1.1045793217810176,
+        "final_picp_90": null,
+        "final_roc_auc": 0.5085887931347617,
+        "final_step": 400.0,
+        "final_training_time": 383.90968879219145
+      }
+    },
     "cls_benchmark_linear_v1": {
       "baseline_id": "cls_benchmark_linear_v1",
       "benchmark_bundle": {

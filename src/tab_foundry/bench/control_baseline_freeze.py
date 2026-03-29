@@ -21,6 +21,7 @@ from tab_foundry.bench.registry.summary_metrics import (
     tab_foundry_metrics_from_summary as _tab_foundry_metrics_from_summary,
 )
 from tab_foundry.bench.registry_common import copy_jsonable as _copy_jsonable, load_comparison_summary as _load_comparison_summary
+from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.repo_paths import repo_root
 
 
@@ -49,6 +50,19 @@ def _ensure_repo_local_path_value(path_value: str, *, field_name: str) -> None:
             "canonical control baseline registry requires repo-local artifact paths: "
             f"field={field_name}, value={path_value!r}, resolved={resolved_path}"
         ) from exc
+
+
+def _is_repo_local_path_value(path_value: str) -> bool:
+    resolved_path = read_control_baseline_registry.resolve_registry_path_value(
+        path_value,
+        root=repo_root(),
+    )
+    resolved_root = repo_root().expanduser().resolve()
+    try:
+        resolved_path.relative_to(resolved_root)
+    except ValueError:
+        return False
+    return True
 
 
 def _enforce_canonical_registry_entry_paths(entry: Mapping[str, Any]) -> None:
@@ -152,14 +166,44 @@ def derive_control_baseline_entry(
     runtime_cfg = raw_cfg.get("runtime")
     if not isinstance(data_cfg, dict) or not isinstance(runtime_cfg, dict):
         raise RuntimeError(f"checkpoint config must include data/runtime mappings: {best_checkpoint}")
-    manifest_path = _resolve_config_path_impl(data_cfg.get("manifest_path"), root_fn=repo_root)
+    direct_manifest = data_cfg.get("manifest_path")
+    manifest_path = (
+        None
+        if direct_manifest is None
+        else _resolve_config_path_impl(direct_manifest, root_fn=repo_root)
+    )
+    if manifest_path is None:
+        resolved_data_surface = resolve_data_surface(data_cfg)
+        manifest_path = resolved_data_surface.manifest_path
+    if manifest_path is None:
+        raise RuntimeError(
+            "checkpoint config must resolve a manifest-backed training surface via "
+            "data.manifest_path or data.corpus_ref"
+        )
     seed_raw = runtime_cfg.get("seed")
     if not isinstance(seed_raw, int) or isinstance(seed_raw, bool):
         raise RuntimeError(f"checkpoint runtime.seed must be an int: {best_checkpoint}")
 
     benchmark_bundle = cast(dict[str, Any], summary["benchmark_bundle"])
+    benchmark_bundle_for_registry = dict(benchmark_bundle)
+    benchmark_bundle_source = benchmark_bundle_for_registry.get("source_path")
+    summary_artifacts = summary.get("artifacts")
+    if (
+        isinstance(benchmark_bundle_source, str)
+        and benchmark_bundle_source.strip()
+        and not _is_repo_local_path_value(benchmark_bundle_source)
+        and isinstance(summary_artifacts, Mapping)
+    ):
+        benchmark_manifest_path = summary_artifacts.get("benchmark_manifest")
+        if isinstance(benchmark_manifest_path, str) and benchmark_manifest_path.strip():
+            benchmark_manifest_value = read_control_baseline_registry.normalize_registry_path_value(
+                Path(benchmark_manifest_path),
+                root=repo_root(),
+            )
+            if _is_repo_local_path_value(benchmark_manifest_value):
+                benchmark_bundle_for_registry["source_path"] = benchmark_manifest_value
     benchmark_bundle_payload = _benchmark_bundle_payload_from_summary(
-        benchmark_bundle,
+        benchmark_bundle_for_registry,
         source_context="comparison summary benchmark_bundle.source_path",
         normalize_path_value_fn=(
             lambda path: read_control_baseline_registry.normalize_registry_path_value(

@@ -12666,6 +12666,2150 @@
         "wall_elapsed_seconds": 72.07819995799218
       }
     },
+    "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_large",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_large_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363685,
+          363699,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": "cls_benchmark_linear_multiclass_large_v1",
+        "parent_run_id": null
+      },
+      "manifest_path": "outputs/corpora/tf_rd_010_dagzoo_medium_control_v1/tf_rd_010_dagzoo_medium_control_v1__271781b9bc0b/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "architecture": {
+          "feature_type_encoding": "parquet_physical_group",
+          "ff_expansion": 2,
+          "heads": 4,
+          "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+          "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+          "label_injection": "fused_into_row_summaries_and_feature_cells",
+          "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+          "latents": 24,
+          "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+          "layers": 2,
+          "position_encoding": "shared_fourier_row_col",
+          "pre_column_attention_layers": 1,
+          "pre_column_inducing_tokens": 16,
+          "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+          "pre_row_attention_layers": 1,
+          "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+          "repeated_input_token_count": "K_times_(R_plus_C)",
+          "repeated_input_tokens": "row_col_summary_stream",
+          "self_attention_per_cross": 4,
+          "summary_builder": "summary_query_attention",
+          "summary_tokens_per_axis": 3
+        },
+        "build_spec": {
+          "arch": "tabfoundry_sandwich",
+          "d_col": 128,
+          "d_icl": 60,
+          "feature_group_size": 1,
+          "feature_type_conditioning": "film",
+          "floating_likelihood": "single_gaussian",
+          "head_hidden_dim": 96,
+          "input_normalization": "train_zscore_clip",
+          "integer_likelihood": "hybrid_mixture",
+          "many_class_base": 10,
+          "many_class_train_mode": "path_nll",
+          "max_mixed_radix_digits": 64,
+          "module_overrides": null,
+          "norm_type": "layernorm",
+          "pre_encoder_clip": null,
+          "sandwich_ff_expansion": 2,
+          "sandwich_heads": 4,
+          "sandwich_latents": 24,
+          "sandwich_layers": 2,
+          "sandwich_pre_column_attention_layers": 1,
+          "sandwich_pre_column_inducing_tokens": 16,
+          "sandwich_pre_row_attention_layers": 1,
+          "sandwich_self_attention_per_cross": 4,
+          "sandwich_summary_tokens_per_axis": 3,
+          "stage": null,
+          "stage_label": null,
+          "staged_dropout": 0.0,
+          "task": "classification",
+          "tfcol_n_heads": 8,
+          "tfcol_n_inducing": 128,
+          "tfcol_n_layers": 3,
+          "tficl_ff_expansion": 2,
+          "tficl_n_heads": 8,
+          "tficl_n_layers": 12,
+          "tfrow_cls_tokens": 4,
+          "tfrow_n_heads": 8,
+          "tfrow_n_layers": 3,
+          "tfrow_norm": "layernorm",
+          "use_digit_position_embed": true
+        },
+        "d_icl": 60,
+        "feature_group_size": 1,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 10,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12
+      },
+      "model_size": {
+        "total_params": 646970,
+        "trainable_params": 646970
+      },
+      "regime_budget": {
+        "curriculum_id": "tf_rd_010_dagzoo_medium_control",
+        "curriculum_mix": {
+          "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+            "configs/default.yaml"
+          ],
+          "corpus_variant": "tf_rd_010_dagzoo_medium_control",
+          "invocation_mix": [
+            {
+              "generate_run_id": "189d6f1c99222ee3ef97d7a5c704019e",
+              "generated_corpus_id": "69ea2c5e128e03667b0a86ca64a0a0bb",
+              "invocation_id": "benchmark_cpu",
+              "num_datasets": 8,
+              "requested_config_ref": "configs/benchmark_cpu.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "c7707b980a2e997aac973ce66d0be6cc",
+              "generated_corpus_id": "a6b5c94153c23856edcee301409bf9fc",
+              "invocation_id": "default_medium",
+              "num_datasets": 28,
+              "requested_config_ref": "configs/default.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "a192d89f9ccbaa607d723670e4b2a61a",
+              "generated_corpus_id": "e7cbe30066e6e039f74047904a2cab7b",
+              "invocation_id": "large_shape",
+              "num_datasets": 4,
+              "requested_config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            }
+          ],
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "objective_metric": "final_bpc_at_matched_regime_budget",
+        "scm_complexity_summary": {
+          "class_count_distribution": {
+            "count": 40,
+            "max": 3,
+            "mean": 3.0,
+            "min": 3
+          },
+          "feature_count_distribution": {
+            "count": 40,
+            "max": 146,
+            "mean": 42.3,
+            "min": 23
+          },
+          "row_count_distribution": {
+            "count": 40,
+            "max": 10240,
+            "mean": 1868.8,
+            "min": 640
+          },
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "token_budget": 1633248,
+        "tokens_per_step": 4083.12,
+        "tokens_seen": 1633248,
+        "unique_task_budget": 39
+      },
+      "registered_at_utc": "2026-03-29T22:47:54Z",
+      "run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1",
+      "runtime_summary": {
+        "non_train_overhead_seconds": 6.478547411854379,
+        "peak_vram_allocated": null,
+        "peak_vram_reserved": null,
+        "throughput_examples_per_second": 3.5943703985204336,
+        "throughput_tokens_per_second": 14676.245661606754
+      },
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_010_dagzoo_medium_control",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_010_dagzoo_medium_control",
+        "parent_sweep_id": "tf_rd_010_classification_evolution_medium_v1",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_010_classification_evolution_large_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 115233.19496123974,
+        "best_bpf": 115233.19628358622,
+        "best_brier_score": 0.6531033815388474,
+        "best_crps": null,
+        "best_log_loss": 1.0783014126880135,
+        "best_picp_90": null,
+        "best_roc_auc": 0.5396120403951801,
+        "best_step": 400.0,
+        "best_training_time": 111.28513638011646,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 115233.19496123974,
+        "final_bpf": 115233.19628358622,
+        "final_brier_score": 0.6531033815388474,
+        "final_crps": null,
+        "final_log_loss": 1.0783014126880135,
+        "final_picp_90": null,
+        "final_roc_auc": 0.5396120403951801,
+        "final_step": 400.0,
+        "final_training_time": 111.28513638011646
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 9.745909690856934,
+        "final_val_loss": null,
+        "max_grad_norm": 184.7556610107422,
+        "mean_grad_norm": 10.876371874511243,
+        "post_warmup_train_loss_var": 0.22064948471739457,
+        "train_elapsed_seconds": 111.28513638011646,
+        "wall_elapsed_seconds": 117.7107452499913
+      }
+    },
+    "sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_large",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_large_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363685,
+          363699,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.03974328606950178,
+          "best_training_time_delta": 0.2285309482831508,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": -62725.064017805686,
+          "final_bpf_delta": -62725.066662190526,
+          "final_brier_score_delta": 0.006199784245365381,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.009423174636719489,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.03974328606950178,
+          "final_training_time_delta": 0.2285309482831508,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.03974328606950178,
+          "best_training_time_delta": 0.2285309482831508,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": -62725.064017805686,
+          "final_bpf_delta": -62725.066662190526,
+          "final_brier_score_delta": 0.006199784245365381,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.009423174636719489,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.03974328606950178,
+          "final_training_time_delta": 0.2285309482831508,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "lineage": {
+        "anchor_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1",
+        "control_baseline_id": "cls_benchmark_linear_multiclass_large_v1",
+        "parent_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_010_missingness_mcar_v1/tf_rd_010_missingness_mcar_v1__eea1ad3449fb/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "architecture": {
+          "feature_type_encoding": "parquet_physical_group",
+          "ff_expansion": 2,
+          "heads": 4,
+          "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+          "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+          "label_injection": "fused_into_row_summaries_and_feature_cells",
+          "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+          "latents": 24,
+          "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+          "layers": 2,
+          "position_encoding": "shared_fourier_row_col",
+          "pre_column_attention_layers": 1,
+          "pre_column_inducing_tokens": 16,
+          "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+          "pre_row_attention_layers": 1,
+          "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+          "repeated_input_token_count": "K_times_(R_plus_C)",
+          "repeated_input_tokens": "row_col_summary_stream",
+          "self_attention_per_cross": 4,
+          "summary_builder": "summary_query_attention",
+          "summary_tokens_per_axis": 3
+        },
+        "build_spec": {
+          "arch": "tabfoundry_sandwich",
+          "d_col": 128,
+          "d_icl": 60,
+          "feature_group_size": 1,
+          "feature_type_conditioning": "film",
+          "floating_likelihood": "single_gaussian",
+          "head_hidden_dim": 96,
+          "input_normalization": "train_zscore_clip",
+          "integer_likelihood": "hybrid_mixture",
+          "many_class_base": 10,
+          "many_class_train_mode": "path_nll",
+          "max_mixed_radix_digits": 64,
+          "module_overrides": null,
+          "norm_type": "layernorm",
+          "pre_encoder_clip": null,
+          "sandwich_ff_expansion": 2,
+          "sandwich_heads": 4,
+          "sandwich_latents": 24,
+          "sandwich_layers": 2,
+          "sandwich_pre_column_attention_layers": 1,
+          "sandwich_pre_column_inducing_tokens": 16,
+          "sandwich_pre_row_attention_layers": 1,
+          "sandwich_self_attention_per_cross": 4,
+          "sandwich_summary_tokens_per_axis": 3,
+          "stage": null,
+          "stage_label": null,
+          "staged_dropout": 0.0,
+          "task": "classification",
+          "tfcol_n_heads": 8,
+          "tfcol_n_inducing": 128,
+          "tfcol_n_layers": 3,
+          "tficl_ff_expansion": 2,
+          "tficl_n_heads": 8,
+          "tficl_n_layers": 12,
+          "tfrow_cls_tokens": 4,
+          "tfrow_n_heads": 8,
+          "tfrow_n_layers": 3,
+          "tfrow_norm": "layernorm",
+          "use_digit_position_embed": true
+        },
+        "d_icl": 60,
+        "feature_group_size": 1,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 10,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12
+      },
+      "model_size": {
+        "total_params": 646970,
+        "trainable_params": 646970
+      },
+      "regime_budget": {
+        "curriculum_id": "tf_rd_010_missingness_mcar",
+        "curriculum_mix": {
+          "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+            "configs/default.yaml"
+          ],
+          "corpus_variant": "tf_rd_010_missingness_mcar",
+          "invocation_mix": [
+            {
+              "generate_run_id": "54b3865b5f145cf175fd052e0d7a3552",
+              "generated_corpus_id": "ce354a16270e6f6c5cabbdae4f5c9c77",
+              "invocation_id": "benchmark_cpu",
+              "num_datasets": 8,
+              "requested_config_ref": "configs/benchmark_cpu.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "a4b1880e425c8a5cf81e072a3326d1fa",
+              "generated_corpus_id": "f8e7ab3d18eca327a1c1ea22d2e304c7",
+              "invocation_id": "default_medium",
+              "num_datasets": 28,
+              "requested_config_ref": "configs/default.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "92e679577d37f784fe8cc73195d84407",
+              "generated_corpus_id": "2264f5ad60b67ee24bb0add9145f40b4",
+              "invocation_id": "large_shape",
+              "num_datasets": 4,
+              "requested_config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            }
+          ],
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "objective_metric": "final_bpc_at_matched_regime_budget",
+        "scm_complexity_summary": {
+          "class_count_distribution": {
+            "count": 40,
+            "max": 3,
+            "mean": 3.0,
+            "min": 3
+          },
+          "feature_count_distribution": {
+            "count": 40,
+            "max": 146,
+            "mean": 42.3,
+            "min": 23
+          },
+          "row_count_distribution": {
+            "count": 40,
+            "max": 10240,
+            "mean": 1868.8,
+            "min": 640
+          },
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "token_budget": 1650144,
+        "tokens_per_step": 4125.36,
+        "tokens_seen": 1650144,
+        "unique_task_budget": 37
+      },
+      "registered_at_utc": "2026-03-29T22:49:59Z",
+      "run_id": "sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1",
+      "runtime_summary": {
+        "non_train_overhead_seconds": 1.7959222556091845,
+        "peak_vram_allocated": null,
+        "peak_vram_reserved": null,
+        "throughput_examples_per_second": 3.5870042621953164,
+        "throughput_tokens_per_second": 14797.68390309007
+      },
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_010_missingness_mcar",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_010_missingness_mcar",
+        "parent_sweep_id": "tf_rd_010_classification_evolution_medium_v1",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_010_classification_evolution_large_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 52508.13094343406,
+        "best_bpf": 52508.129621395696,
+        "best_brier_score": 0.6593031657842128,
+        "best_crps": null,
+        "best_log_loss": 1.087724587324733,
+        "best_picp_90": null,
+        "best_roc_auc": 0.4998687543256783,
+        "best_step": 400.0,
+        "best_training_time": 111.5136673283996,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 52508.13094343406,
+        "final_bpf": 52508.129621395696,
+        "final_brier_score": 0.6593031657842128,
+        "final_crps": null,
+        "final_log_loss": 1.087724587324733,
+        "final_picp_90": null,
+        "final_roc_auc": 0.4998687543256783,
+        "final_step": 400.0,
+        "final_training_time": 111.5136673283996
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 15.889427185058594,
+        "final_val_loss": null,
+        "max_grad_norm": 249.59381103515625,
+        "mean_grad_norm": 11.389334347993135,
+        "post_warmup_train_loss_var": 0.1732911784789673,
+        "train_elapsed_seconds": 111.5136673283996,
+        "wall_elapsed_seconds": 113.26587687502615
+      }
+    },
+    "sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_large",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_large_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363685,
+          363699,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.04432231778724488,
+          "best_training_time_delta": -4.208370667533018,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": -35313.15633197932,
+          "final_bpf_delta": -35313.16294211609,
+          "final_brier_score_delta": 0.010494790961852019,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.015884448789553085,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.04432231778724488,
+          "final_training_time_delta": -4.208370667533018,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.04432231778724488,
+          "best_training_time_delta": -4.208370667533018,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": -35313.15633197932,
+          "final_bpf_delta": -35313.16294211609,
+          "final_brier_score_delta": 0.010494790961852019,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.015884448789553085,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.04432231778724488,
+          "final_training_time_delta": -4.208370667533018,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "lineage": {
+        "anchor_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1",
+        "control_baseline_id": "cls_benchmark_linear_multiclass_large_v1",
+        "parent_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_010_missingness_mar_v1/tf_rd_010_missingness_mar_v1__849a954f7271/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "architecture": {
+          "feature_type_encoding": "parquet_physical_group",
+          "ff_expansion": 2,
+          "heads": 4,
+          "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+          "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+          "label_injection": "fused_into_row_summaries_and_feature_cells",
+          "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+          "latents": 24,
+          "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+          "layers": 2,
+          "position_encoding": "shared_fourier_row_col",
+          "pre_column_attention_layers": 1,
+          "pre_column_inducing_tokens": 16,
+          "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+          "pre_row_attention_layers": 1,
+          "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+          "repeated_input_token_count": "K_times_(R_plus_C)",
+          "repeated_input_tokens": "row_col_summary_stream",
+          "self_attention_per_cross": 4,
+          "summary_builder": "summary_query_attention",
+          "summary_tokens_per_axis": 3
+        },
+        "build_spec": {
+          "arch": "tabfoundry_sandwich",
+          "d_col": 128,
+          "d_icl": 60,
+          "feature_group_size": 1,
+          "feature_type_conditioning": "film",
+          "floating_likelihood": "single_gaussian",
+          "head_hidden_dim": 96,
+          "input_normalization": "train_zscore_clip",
+          "integer_likelihood": "hybrid_mixture",
+          "many_class_base": 10,
+          "many_class_train_mode": "path_nll",
+          "max_mixed_radix_digits": 64,
+          "module_overrides": null,
+          "norm_type": "layernorm",
+          "pre_encoder_clip": null,
+          "sandwich_ff_expansion": 2,
+          "sandwich_heads": 4,
+          "sandwich_latents": 24,
+          "sandwich_layers": 2,
+          "sandwich_pre_column_attention_layers": 1,
+          "sandwich_pre_column_inducing_tokens": 16,
+          "sandwich_pre_row_attention_layers": 1,
+          "sandwich_self_attention_per_cross": 4,
+          "sandwich_summary_tokens_per_axis": 3,
+          "stage": null,
+          "stage_label": null,
+          "staged_dropout": 0.0,
+          "task": "classification",
+          "tfcol_n_heads": 8,
+          "tfcol_n_inducing": 128,
+          "tfcol_n_layers": 3,
+          "tficl_ff_expansion": 2,
+          "tficl_n_heads": 8,
+          "tficl_n_layers": 12,
+          "tfrow_cls_tokens": 4,
+          "tfrow_n_heads": 8,
+          "tfrow_n_layers": 3,
+          "tfrow_norm": "layernorm",
+          "use_digit_position_embed": true
+        },
+        "d_icl": 60,
+        "feature_group_size": 1,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 10,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12
+      },
+      "model_size": {
+        "total_params": 646970,
+        "trainable_params": 646970
+      },
+      "regime_budget": {
+        "curriculum_id": "tf_rd_010_missingness_mar",
+        "curriculum_mix": {
+          "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+            "configs/default.yaml"
+          ],
+          "corpus_variant": "tf_rd_010_missingness_mar",
+          "invocation_mix": [
+            {
+              "generate_run_id": "90f5630e4afd86b09808afa6b4375f7d",
+              "generated_corpus_id": "5d0f73de1492f21f3acb40c866366a91",
+              "invocation_id": "benchmark_cpu",
+              "num_datasets": 8,
+              "requested_config_ref": "configs/benchmark_cpu.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "ea559ef9893ac3f609e8970570e13a2d",
+              "generated_corpus_id": "d8087b5bf49acd793ef550f87a05e498",
+              "invocation_id": "default_medium",
+              "num_datasets": 28,
+              "requested_config_ref": "configs/default.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "443492677e2d70b76dbadcdc0020b882",
+              "generated_corpus_id": "3911f5c45f46aa78d2ab2ce03d60873c",
+              "invocation_id": "large_shape",
+              "num_datasets": 4,
+              "requested_config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            }
+          ],
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "objective_metric": "final_bpc_at_matched_regime_budget",
+        "scm_complexity_summary": {
+          "class_count_distribution": {
+            "count": 40,
+            "max": 3,
+            "mean": 3.0,
+            "min": 3
+          },
+          "feature_count_distribution": {
+            "count": 40,
+            "max": 146,
+            "mean": 42.3,
+            "min": 23
+          },
+          "row_count_distribution": {
+            "count": 40,
+            "max": 10240,
+            "mean": 1868.8,
+            "min": 640
+          },
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "token_budget": 1624320,
+        "tokens_per_step": 4060.8,
+        "tokens_seen": 1624320,
+        "unique_task_budget": 40
+      },
+      "registered_at_utc": "2026-03-29T22:51:59Z",
+      "run_id": "sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1",
+      "runtime_summary": {
+        "non_train_overhead_seconds": 1.8179499953985214,
+        "peak_vram_allocated": null,
+        "peak_vram_reserved": null,
+        "throughput_examples_per_second": 3.735637673943983,
+        "throughput_tokens_per_second": 15169.677466351724
+      },
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_010_missingness_mar",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_010_missingness_mar",
+        "parent_sweep_id": "tf_rd_010_classification_evolution_medium_v1",
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_010_classification_evolution_large_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 79920.03862926042,
+        "best_bpf": 79920.03334147013,
+        "best_brier_score": 0.6635981725006994,
+        "best_crps": null,
+        "best_log_loss": 1.0941858614775666,
+        "best_picp_90": null,
+        "best_roc_auc": 0.4952897226079352,
+        "best_step": 400.0,
+        "best_training_time": 107.07676571258344,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 79920.03862926042,
+        "final_bpf": 79920.03334147013,
+        "final_brier_score": 0.6635981725006994,
+        "final_crps": null,
+        "final_log_loss": 1.0941858614775666,
+        "final_picp_90": null,
+        "final_roc_auc": 0.4952897226079352,
+        "final_step": 400.0,
+        "final_training_time": 107.07676571258344
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 24.41268539428711,
+        "final_val_loss": null,
+        "max_grad_norm": 175.35076904296875,
+        "mean_grad_norm": 11.731677349954843,
+        "post_warmup_train_loss_var": 0.17810307959794394,
+        "train_elapsed_seconds": 107.07676571258344,
+        "wall_elapsed_seconds": 108.84033658297267
+      }
+    },
+    "sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_large",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_large_v1.json",
+        "task_count": 3,
+        "task_ids": [
+          363685,
+          363699,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.05847214025062336,
+          "best_training_time_delta": -22.002284260932356,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": 43735.628339415314,
+          "final_bpf_delta": 43735.632304826155,
+          "final_brier_score_delta": 0.00711778631845883,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.010676019732763997,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.05601140618002859,
+          "final_training_time_delta": -14.668581511941738,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.05847214025062336,
+          "best_training_time_delta": -22.002284260932356,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": 43735.628339415314,
+          "final_bpf_delta": 43735.632304826155,
+          "final_brier_score_delta": 0.00711778631845883,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.010676019732763997,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.05601140618002859,
+          "final_training_time_delta": -14.668581511941738,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "lineage": {
+        "anchor_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1",
+        "control_baseline_id": "cls_benchmark_linear_multiclass_large_v1",
+        "parent_run_id": "sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_010_missingness_mnar_v1/tf_rd_010_missingness_mnar_v1__b080da68127a/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "architecture": {
+          "feature_type_encoding": "parquet_physical_group",
+          "ff_expansion": 2,
+          "heads": 4,
+          "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+          "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+          "label_injection": "fused_into_row_summaries_and_feature_cells",
+          "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+          "latents": 24,
+          "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+          "layers": 2,
+          "position_encoding": "shared_fourier_row_col",
+          "pre_column_attention_layers": 1,
+          "pre_column_inducing_tokens": 16,
+          "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+          "pre_row_attention_layers": 1,
+          "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+          "repeated_input_token_count": "K_times_(R_plus_C)",
+          "repeated_input_tokens": "row_col_summary_stream",
+          "self_attention_per_cross": 4,
+          "summary_builder": "summary_query_attention",
+          "summary_tokens_per_axis": 3
+        },
+        "build_spec": {
+          "arch": "tabfoundry_sandwich",
+          "d_col": 128,
+          "d_icl": 60,
+          "feature_group_size": 1,
+          "feature_type_conditioning": "film",
+          "floating_likelihood": "single_gaussian",
+          "head_hidden_dim": 96,
+          "input_normalization": "train_zscore_clip",
+          "integer_likelihood": "hybrid_mixture",
+          "many_class_base": 10,
+          "many_class_train_mode": "path_nll",
+          "max_mixed_radix_digits": 64,
+          "module_overrides": null,
+          "norm_type": "layernorm",
+          "pre_encoder_clip": null,
+          "sandwich_ff_expansion": 2,
+          "sandwich_heads": 4,
+          "sandwich_latents": 24,
+          "sandwich_layers": 2,
+          "sandwich_pre_column_attention_layers": 1,
+          "sandwich_pre_column_inducing_tokens": 16,
+          "sandwich_pre_row_attention_layers": 1,
+          "sandwich_self_attention_per_cross": 4,
+          "sandwich_summary_tokens_per_axis": 3,
+          "stage": null,
+          "stage_label": null,
+          "staged_dropout": 0.0,
+          "task": "classification",
+          "tfcol_n_heads": 8,
+          "tfcol_n_inducing": 128,
+          "tfcol_n_layers": 3,
+          "tficl_ff_expansion": 2,
+          "tficl_n_heads": 8,
+          "tficl_n_layers": 12,
+          "tfrow_cls_tokens": 4,
+          "tfrow_n_heads": 8,
+          "tfrow_n_layers": 3,
+          "tfrow_norm": "layernorm",
+          "use_digit_position_embed": true
+        },
+        "d_icl": 60,
+        "feature_group_size": 1,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 10,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12
+      },
+      "model_size": {
+        "total_params": 646970,
+        "trainable_params": 646970
+      },
+      "regime_budget": {
+        "curriculum_id": "tf_rd_010_missingness_mnar",
+        "curriculum_mix": {
+          "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+            "configs/default.yaml"
+          ],
+          "corpus_variant": "tf_rd_010_missingness_mnar",
+          "invocation_mix": [
+            {
+              "generate_run_id": "f5e971edafc8fed2b7b7f94cd249dc76",
+              "generated_corpus_id": "cbafb9b25968aaaa4215972c20876d26",
+              "invocation_id": "benchmark_cpu",
+              "num_datasets": 8,
+              "requested_config_ref": "configs/benchmark_cpu.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "cb0fdd339e02bfcfcd48c92641a79156",
+              "generated_corpus_id": "b51e6241ea267d5d7fa3feaa31938249",
+              "invocation_id": "default_medium",
+              "num_datasets": 28,
+              "requested_config_ref": "configs/default.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "9feeef4527ec2919b0664ecfa5cf4a91",
+              "generated_corpus_id": "bd50829917a10988aef7a762ebc62fba",
+              "invocation_id": "large_shape",
+              "num_datasets": 4,
+              "requested_config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            }
+          ],
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "objective_metric": "final_bpc_at_matched_regime_budget",
+        "scm_complexity_summary": {
+          "class_count_distribution": {
+            "count": 40,
+            "max": 3,
+            "mean": 3.0,
+            "min": 3
+          },
+          "feature_count_distribution": {
+            "count": 40,
+            "max": 146,
+            "mean": 42.3,
+            "min": 23
+          },
+          "row_count_distribution": {
+            "count": 40,
+            "max": 10240,
+            "mean": 1868.8,
+            "min": 640
+          },
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "token_budget": 1541664,
+        "tokens_per_step": 3854.16,
+        "tokens_seen": 1541664,
+        "unique_task_budget": 37
+      },
+      "registered_at_utc": "2026-03-29T22:53:49Z",
+      "run_id": "sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1",
+      "runtime_summary": {
+        "non_train_overhead_seconds": 1.8205148408887908,
+        "peak_vram_allocated": null,
+        "peak_vram_reserved": null,
+        "throughput_examples_per_second": 4.1400772418946925,
+        "throughput_tokens_per_second": 15956.520102620847
+      },
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_010_missingness_mnar",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_010_missingness_mnar",
+        "parent_sweep_id": "tf_rd_010_classification_evolution_medium_v1",
+        "queue_order": 4,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_010_classification_evolution_large_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 71216.16283657367,
+        "best_bpf": 71216.16415917323,
+        "best_brier_score": 0.6610364414846633,
+        "best_crps": null,
+        "best_log_loss": 1.090147754912823,
+        "best_picp_90": null,
+        "best_roc_auc": 0.4811399001445567,
+        "best_step": 375.0,
+        "best_training_time": 89.2828521191841,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 158968.82330065506,
+        "final_bpf": 158968.82858841238,
+        "final_brier_score": 0.6602211678573062,
+        "final_crps": null,
+        "final_log_loss": 1.0889774324207775,
+        "final_picp_90": null,
+        "final_roc_auc": 0.4836006342151515,
+        "final_step": 400.0,
+        "final_training_time": 96.61655486817472
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 21.02783966064453,
+        "final_val_loss": null,
+        "max_grad_norm": 151.3732452392578,
+        "mean_grad_norm": 10.754344774335623,
+        "post_warmup_train_loss_var": 0.11767553350372918,
+        "train_elapsed_seconds": 96.61655486817472,
+        "wall_elapsed_seconds": 98.39187291706912
+      }
+    },
+    "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "task_count": 2,
+        "task_ids": [
+          363685,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": null,
+        "vs_parent": null
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "lineage": {
+        "anchor_run_id": null,
+        "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
+        "parent_run_id": null
+      },
+      "manifest_path": "outputs/corpora/tf_rd_010_dagzoo_medium_control_v1/tf_rd_010_dagzoo_medium_control_v1__271781b9bc0b/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "architecture": {
+          "feature_type_encoding": "parquet_physical_group",
+          "ff_expansion": 2,
+          "heads": 4,
+          "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+          "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+          "label_injection": "fused_into_row_summaries_and_feature_cells",
+          "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+          "latents": 24,
+          "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+          "layers": 2,
+          "position_encoding": "shared_fourier_row_col",
+          "pre_column_attention_layers": 1,
+          "pre_column_inducing_tokens": 16,
+          "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+          "pre_row_attention_layers": 1,
+          "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+          "repeated_input_token_count": "K_times_(R_plus_C)",
+          "repeated_input_tokens": "row_col_summary_stream",
+          "self_attention_per_cross": 4,
+          "summary_builder": "summary_query_attention",
+          "summary_tokens_per_axis": 3
+        },
+        "build_spec": {
+          "arch": "tabfoundry_sandwich",
+          "d_col": 128,
+          "d_icl": 60,
+          "feature_group_size": 1,
+          "feature_type_conditioning": "film",
+          "floating_likelihood": "single_gaussian",
+          "head_hidden_dim": 96,
+          "input_normalization": "train_zscore_clip",
+          "integer_likelihood": "hybrid_mixture",
+          "many_class_base": 10,
+          "many_class_train_mode": "path_nll",
+          "max_mixed_radix_digits": 64,
+          "module_overrides": null,
+          "norm_type": "layernorm",
+          "pre_encoder_clip": null,
+          "sandwich_ff_expansion": 2,
+          "sandwich_heads": 4,
+          "sandwich_latents": 24,
+          "sandwich_layers": 2,
+          "sandwich_pre_column_attention_layers": 1,
+          "sandwich_pre_column_inducing_tokens": 16,
+          "sandwich_pre_row_attention_layers": 1,
+          "sandwich_self_attention_per_cross": 4,
+          "sandwich_summary_tokens_per_axis": 3,
+          "stage": null,
+          "stage_label": null,
+          "staged_dropout": 0.0,
+          "task": "classification",
+          "tfcol_n_heads": 8,
+          "tfcol_n_inducing": 128,
+          "tfcol_n_layers": 3,
+          "tficl_ff_expansion": 2,
+          "tficl_n_heads": 8,
+          "tficl_n_layers": 12,
+          "tfrow_cls_tokens": 4,
+          "tfrow_n_heads": 8,
+          "tfrow_n_layers": 3,
+          "tfrow_norm": "layernorm",
+          "use_digit_position_embed": true
+        },
+        "d_icl": 60,
+        "feature_group_size": 1,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 10,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12
+      },
+      "model_size": {
+        "total_params": 646970,
+        "trainable_params": 646970
+      },
+      "regime_budget": {
+        "curriculum_id": "tf_rd_010_dagzoo_medium_control",
+        "curriculum_mix": {
+          "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+            "configs/default.yaml"
+          ],
+          "corpus_variant": "tf_rd_010_dagzoo_medium_control",
+          "invocation_mix": [
+            {
+              "generate_run_id": "189d6f1c99222ee3ef97d7a5c704019e",
+              "generated_corpus_id": "69ea2c5e128e03667b0a86ca64a0a0bb",
+              "invocation_id": "benchmark_cpu",
+              "num_datasets": 8,
+              "requested_config_ref": "configs/benchmark_cpu.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "c7707b980a2e997aac973ce66d0be6cc",
+              "generated_corpus_id": "a6b5c94153c23856edcee301409bf9fc",
+              "invocation_id": "default_medium",
+              "num_datasets": 28,
+              "requested_config_ref": "configs/default.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "a192d89f9ccbaa607d723670e4b2a61a",
+              "generated_corpus_id": "e7cbe30066e6e039f74047904a2cab7b",
+              "invocation_id": "large_shape",
+              "num_datasets": 4,
+              "requested_config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            }
+          ],
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "objective_metric": "final_bpc_at_matched_regime_budget",
+        "scm_complexity_summary": {
+          "class_count_distribution": {
+            "count": 40,
+            "max": 3,
+            "mean": 3.0,
+            "min": 3
+          },
+          "feature_count_distribution": {
+            "count": 40,
+            "max": 146,
+            "mean": 42.3,
+            "min": 23
+          },
+          "row_count_distribution": {
+            "count": 40,
+            "max": 10240,
+            "mean": 1868.8,
+            "min": 640
+          },
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "token_budget": 1633248,
+        "tokens_per_step": 4083.12,
+        "tokens_seen": 1633248,
+        "unique_task_budget": 39
+      },
+      "registered_at_utc": "2026-03-29T22:38:48Z",
+      "run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1",
+      "runtime_summary": {
+        "non_train_overhead_seconds": 6.475718501373194,
+        "peak_vram_allocated": null,
+        "peak_vram_reserved": null,
+        "throughput_examples_per_second": 3.5240499150266364,
+        "throughput_tokens_per_second": 14389.118689043558
+      },
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_010_dagzoo_medium_control",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_010_dagzoo_medium_control",
+        "parent_sweep_id": "tf_rd_021b_sandwich_feature_removal_v1",
+        "queue_order": 1,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_010_classification_evolution_medium_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 10.544807815551758,
+        "best_bpf": 10.544808216094971,
+        "best_brier_score": 0.6676038574829191,
+        "best_crps": null,
+        "best_log_loss": 1.0995553583156494,
+        "best_picp_90": null,
+        "best_roc_auc": 0.5045354578052786,
+        "best_step": 400.0,
+        "best_training_time": 113.50577024871018,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 10.544807815551758,
+        "final_bpf": 10.544808216094971,
+        "final_brier_score": 0.6676038574829191,
+        "final_crps": null,
+        "final_log_loss": 1.0995553583156494,
+        "final_picp_90": null,
+        "final_roc_auc": 0.5045354578052786,
+        "final_step": 400.0,
+        "final_training_time": 113.50577024871018
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 9.745909690856934,
+        "final_val_loss": null,
+        "max_grad_norm": 184.7556610107422,
+        "mean_grad_norm": 10.876371874511243,
+        "post_warmup_train_loss_var": 0.22064948471739457,
+        "train_elapsed_seconds": 113.50577024871018,
+        "wall_elapsed_seconds": 119.93254912504926
+      }
+    },
+    "sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "task_count": 2,
+        "task_ids": [
+          363685,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.050664671296575814,
+          "best_training_time_delta": 3.0185132088372484,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": -2.5701308631896973,
+          "final_bpf_delta": -2.570131130218506,
+          "final_brier_score_delta": 0.006630443347811932,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.009934722685692954,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.050664671296575814,
+          "final_training_time_delta": 3.0185132088372484,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.050664671296575814,
+          "best_training_time_delta": 3.0185132088372484,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": -2.5701308631896973,
+          "final_bpf_delta": -2.570131130218506,
+          "final_brier_score_delta": 0.006630443347811932,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.009934722685692954,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.050664671296575814,
+          "final_training_time_delta": 3.0185132088372484,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "lineage": {
+        "anchor_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1",
+        "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
+        "parent_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_010_missingness_mcar_v1/tf_rd_010_missingness_mcar_v1__eea1ad3449fb/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "architecture": {
+          "feature_type_encoding": "parquet_physical_group",
+          "ff_expansion": 2,
+          "heads": 4,
+          "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+          "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+          "label_injection": "fused_into_row_summaries_and_feature_cells",
+          "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+          "latents": 24,
+          "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+          "layers": 2,
+          "position_encoding": "shared_fourier_row_col",
+          "pre_column_attention_layers": 1,
+          "pre_column_inducing_tokens": 16,
+          "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+          "pre_row_attention_layers": 1,
+          "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+          "repeated_input_token_count": "K_times_(R_plus_C)",
+          "repeated_input_tokens": "row_col_summary_stream",
+          "self_attention_per_cross": 4,
+          "summary_builder": "summary_query_attention",
+          "summary_tokens_per_axis": 3
+        },
+        "build_spec": {
+          "arch": "tabfoundry_sandwich",
+          "d_col": 128,
+          "d_icl": 60,
+          "feature_group_size": 1,
+          "feature_type_conditioning": "film",
+          "floating_likelihood": "single_gaussian",
+          "head_hidden_dim": 96,
+          "input_normalization": "train_zscore_clip",
+          "integer_likelihood": "hybrid_mixture",
+          "many_class_base": 10,
+          "many_class_train_mode": "path_nll",
+          "max_mixed_radix_digits": 64,
+          "module_overrides": null,
+          "norm_type": "layernorm",
+          "pre_encoder_clip": null,
+          "sandwich_ff_expansion": 2,
+          "sandwich_heads": 4,
+          "sandwich_latents": 24,
+          "sandwich_layers": 2,
+          "sandwich_pre_column_attention_layers": 1,
+          "sandwich_pre_column_inducing_tokens": 16,
+          "sandwich_pre_row_attention_layers": 1,
+          "sandwich_self_attention_per_cross": 4,
+          "sandwich_summary_tokens_per_axis": 3,
+          "stage": null,
+          "stage_label": null,
+          "staged_dropout": 0.0,
+          "task": "classification",
+          "tfcol_n_heads": 8,
+          "tfcol_n_inducing": 128,
+          "tfcol_n_layers": 3,
+          "tficl_ff_expansion": 2,
+          "tficl_n_heads": 8,
+          "tficl_n_layers": 12,
+          "tfrow_cls_tokens": 4,
+          "tfrow_n_heads": 8,
+          "tfrow_n_layers": 3,
+          "tfrow_norm": "layernorm",
+          "use_digit_position_embed": true
+        },
+        "d_icl": 60,
+        "feature_group_size": 1,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 10,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12
+      },
+      "model_size": {
+        "total_params": 646970,
+        "trainable_params": 646970
+      },
+      "regime_budget": {
+        "curriculum_id": "tf_rd_010_missingness_mcar",
+        "curriculum_mix": {
+          "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+            "configs/default.yaml"
+          ],
+          "corpus_variant": "tf_rd_010_missingness_mcar",
+          "invocation_mix": [
+            {
+              "generate_run_id": "54b3865b5f145cf175fd052e0d7a3552",
+              "generated_corpus_id": "ce354a16270e6f6c5cabbdae4f5c9c77",
+              "invocation_id": "benchmark_cpu",
+              "num_datasets": 8,
+              "requested_config_ref": "configs/benchmark_cpu.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "a4b1880e425c8a5cf81e072a3326d1fa",
+              "generated_corpus_id": "f8e7ab3d18eca327a1c1ea22d2e304c7",
+              "invocation_id": "default_medium",
+              "num_datasets": 28,
+              "requested_config_ref": "configs/default.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "92e679577d37f784fe8cc73195d84407",
+              "generated_corpus_id": "2264f5ad60b67ee24bb0add9145f40b4",
+              "invocation_id": "large_shape",
+              "num_datasets": 4,
+              "requested_config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            }
+          ],
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "objective_metric": "final_bpc_at_matched_regime_budget",
+        "scm_complexity_summary": {
+          "class_count_distribution": {
+            "count": 40,
+            "max": 3,
+            "mean": 3.0,
+            "min": 3
+          },
+          "feature_count_distribution": {
+            "count": 40,
+            "max": 146,
+            "mean": 42.3,
+            "min": 23
+          },
+          "row_count_distribution": {
+            "count": 40,
+            "max": 10240,
+            "mean": 1868.8,
+            "min": 640
+          },
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "token_budget": 1650144,
+        "tokens_per_step": 4125.36,
+        "tokens_seen": 1650144,
+        "unique_task_budget": 37
+      },
+      "registered_at_utc": "2026-03-29T22:41:46Z",
+      "run_id": "sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1",
+      "runtime_summary": {
+        "non_train_overhead_seconds": 6.132127292454243,
+        "peak_vram_allocated": null,
+        "peak_vram_reserved": null,
+        "throughput_examples_per_second": 3.432760864354335,
+        "throughput_tokens_per_second": 14161.374359372798
+      },
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_010_missingness_mcar",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_010_missingness_mcar",
+        "parent_sweep_id": "tf_rd_021b_sandwich_feature_removal_v1",
+        "queue_order": 2,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_010_classification_evolution_medium_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 7.974676952362061,
+        "best_bpf": 7.974677085876465,
+        "best_brier_score": 0.674234300830731,
+        "best_crps": null,
+        "best_log_loss": 1.1094900810013424,
+        "best_picp_90": null,
+        "best_roc_auc": 0.45387078650870283,
+        "best_step": 400.0,
+        "best_training_time": 116.52428345754743,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 7.974676952362061,
+        "final_bpf": 7.974677085876465,
+        "final_brier_score": 0.674234300830731,
+        "final_crps": null,
+        "final_log_loss": 1.1094900810013424,
+        "final_picp_90": null,
+        "final_roc_auc": 0.45387078650870283,
+        "final_step": 400.0,
+        "final_training_time": 116.52428345754743
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 15.889427185058594,
+        "final_val_loss": null,
+        "max_grad_norm": 249.59381103515625,
+        "mean_grad_norm": 11.389334347993135,
+        "post_warmup_train_loss_var": 0.1732911784789673,
+        "train_elapsed_seconds": 116.52428345754743,
+        "wall_elapsed_seconds": 122.60477920796257
+      }
+    },
+    "sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "task_count": 2,
+        "task_ids": [
+          363685,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.05955121432102917,
+          "best_training_time_delta": -1.507328158360906,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": 14.003607902526854,
+          "final_bpf_delta": 14.003608665466313,
+          "final_brier_score_delta": 0.010386136930134238,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.015852767088168962,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.05955121432102917,
+          "final_training_time_delta": -1.507328158360906,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.05955121432102917,
+          "best_training_time_delta": -1.507328158360906,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": 14.003607902526854,
+          "final_bpf_delta": 14.003608665466313,
+          "final_brier_score_delta": 0.010386136930134238,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.015852767088168962,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.05955121432102917,
+          "final_training_time_delta": -1.507328158360906,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "lineage": {
+        "anchor_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1",
+        "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
+        "parent_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_010_missingness_mar_v1/tf_rd_010_missingness_mar_v1__849a954f7271/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "architecture": {
+          "feature_type_encoding": "parquet_physical_group",
+          "ff_expansion": 2,
+          "heads": 4,
+          "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+          "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+          "label_injection": "fused_into_row_summaries_and_feature_cells",
+          "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+          "latents": 24,
+          "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+          "layers": 2,
+          "position_encoding": "shared_fourier_row_col",
+          "pre_column_attention_layers": 1,
+          "pre_column_inducing_tokens": 16,
+          "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+          "pre_row_attention_layers": 1,
+          "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+          "repeated_input_token_count": "K_times_(R_plus_C)",
+          "repeated_input_tokens": "row_col_summary_stream",
+          "self_attention_per_cross": 4,
+          "summary_builder": "summary_query_attention",
+          "summary_tokens_per_axis": 3
+        },
+        "build_spec": {
+          "arch": "tabfoundry_sandwich",
+          "d_col": 128,
+          "d_icl": 60,
+          "feature_group_size": 1,
+          "feature_type_conditioning": "film",
+          "floating_likelihood": "single_gaussian",
+          "head_hidden_dim": 96,
+          "input_normalization": "train_zscore_clip",
+          "integer_likelihood": "hybrid_mixture",
+          "many_class_base": 10,
+          "many_class_train_mode": "path_nll",
+          "max_mixed_radix_digits": 64,
+          "module_overrides": null,
+          "norm_type": "layernorm",
+          "pre_encoder_clip": null,
+          "sandwich_ff_expansion": 2,
+          "sandwich_heads": 4,
+          "sandwich_latents": 24,
+          "sandwich_layers": 2,
+          "sandwich_pre_column_attention_layers": 1,
+          "sandwich_pre_column_inducing_tokens": 16,
+          "sandwich_pre_row_attention_layers": 1,
+          "sandwich_self_attention_per_cross": 4,
+          "sandwich_summary_tokens_per_axis": 3,
+          "stage": null,
+          "stage_label": null,
+          "staged_dropout": 0.0,
+          "task": "classification",
+          "tfcol_n_heads": 8,
+          "tfcol_n_inducing": 128,
+          "tfcol_n_layers": 3,
+          "tficl_ff_expansion": 2,
+          "tficl_n_heads": 8,
+          "tficl_n_layers": 12,
+          "tfrow_cls_tokens": 4,
+          "tfrow_n_heads": 8,
+          "tfrow_n_layers": 3,
+          "tfrow_norm": "layernorm",
+          "use_digit_position_embed": true
+        },
+        "d_icl": 60,
+        "feature_group_size": 1,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 10,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12
+      },
+      "model_size": {
+        "total_params": 646970,
+        "trainable_params": 646970
+      },
+      "regime_budget": {
+        "curriculum_id": "tf_rd_010_missingness_mar",
+        "curriculum_mix": {
+          "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+            "configs/default.yaml"
+          ],
+          "corpus_variant": "tf_rd_010_missingness_mar",
+          "invocation_mix": [
+            {
+              "generate_run_id": "90f5630e4afd86b09808afa6b4375f7d",
+              "generated_corpus_id": "5d0f73de1492f21f3acb40c866366a91",
+              "invocation_id": "benchmark_cpu",
+              "num_datasets": 8,
+              "requested_config_ref": "configs/benchmark_cpu.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "ea559ef9893ac3f609e8970570e13a2d",
+              "generated_corpus_id": "d8087b5bf49acd793ef550f87a05e498",
+              "invocation_id": "default_medium",
+              "num_datasets": 28,
+              "requested_config_ref": "configs/default.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "443492677e2d70b76dbadcdc0020b882",
+              "generated_corpus_id": "3911f5c45f46aa78d2ab2ce03d60873c",
+              "invocation_id": "large_shape",
+              "num_datasets": 4,
+              "requested_config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            }
+          ],
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "objective_metric": "final_bpc_at_matched_regime_budget",
+        "scm_complexity_summary": {
+          "class_count_distribution": {
+            "count": 40,
+            "max": 3,
+            "mean": 3.0,
+            "min": 3
+          },
+          "feature_count_distribution": {
+            "count": 40,
+            "max": 146,
+            "mean": 42.3,
+            "min": 23
+          },
+          "row_count_distribution": {
+            "count": 40,
+            "max": 10240,
+            "mean": 1868.8,
+            "min": 640
+          },
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "token_budget": 1624320,
+        "tokens_per_step": 4060.8,
+        "tokens_seen": 1624320,
+        "unique_task_budget": 40
+      },
+      "registered_at_utc": "2026-03-29T22:43:48Z",
+      "run_id": "sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1",
+      "runtime_summary": {
+        "non_train_overhead_seconds": 1.7167317005805671,
+        "peak_vram_allocated": null,
+        "peak_vram_reserved": null,
+        "throughput_examples_per_second": 3.5714782503610145,
+        "throughput_tokens_per_second": 14503.058879066008
+      },
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_010_missingness_mar",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_010_missingness_mar",
+        "parent_sweep_id": "tf_rd_021b_sandwich_feature_removal_v1",
+        "queue_order": 3,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_010_classification_evolution_medium_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 24.548415718078612,
+        "best_bpf": 24.548416881561284,
+        "best_brier_score": 0.6779899944130533,
+        "best_crps": null,
+        "best_log_loss": 1.1154081254038184,
+        "best_picp_90": null,
+        "best_roc_auc": 0.4449842434842495,
+        "best_step": 400.0,
+        "best_training_time": 111.99844209034927,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 24.548415718078612,
+        "final_bpf": 24.548416881561284,
+        "final_brier_score": 0.6779899944130533,
+        "final_crps": null,
+        "final_log_loss": 1.1154081254038184,
+        "final_picp_90": null,
+        "final_roc_auc": 0.4449842434842495,
+        "final_step": 400.0,
+        "final_training_time": 111.99844209034927
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 24.41268539428711,
+        "final_val_loss": null,
+        "max_grad_norm": 175.35076904296875,
+        "mean_grad_norm": 11.731677349954843,
+        "post_warmup_train_loss_var": 0.17810307959794394,
+        "train_elapsed_seconds": 111.99844209034927,
+        "wall_elapsed_seconds": 113.66249670798425
+      }
+    },
+    "sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1": {
+      "artifacts": {
+        "benchmark_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/benchmark",
+        "benchmark_run_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/benchmark/benchmark_run_record.json",
+        "best_checkpoint_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train/checkpoints/best.pt",
+        "comparison_curve_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/benchmark/comparison_curve.png",
+        "comparison_summary_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/benchmark/comparison_summary.json",
+        "history_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train/train_history.jsonl",
+        "prior_dir": null,
+        "run_dir": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train",
+        "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train/training_surface_record.json"
+      },
+      "benchmark_bundle": {
+        "name": "nanotabpfn_openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "task_count": 2,
+        "task_ids": [
+          363685,
+          363707
+        ],
+        "version": 1
+      },
+      "budget_class": "short-run",
+      "comparisons": {
+        "vs_anchor": {
+          "best_roc_auc_delta": -0.07892444180889624,
+          "best_training_time_delta": -24.195850915508345,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": 28.260579986572267,
+          "final_bpf_delta": 28.260578365325927,
+          "final_brier_score_delta": 0.013140223864142042,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.019176569579491654,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.07557213522491657,
+          "final_training_time_delta": -16.42584408109542,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        },
+        "vs_parent": {
+          "best_roc_auc_delta": -0.07892444180889624,
+          "best_training_time_delta": -24.195850915508345,
+          "final_avg_pinball_loss_delta": null,
+          "final_bpc_delta": 28.260579986572267,
+          "final_bpf_delta": 28.260578365325927,
+          "final_brier_score_delta": 0.013140223864142042,
+          "final_crps_delta": null,
+          "final_log_loss_delta": 0.019176569579491654,
+          "final_picp_90_delta": null,
+          "final_roc_auc_delta": -0.07557213522491657,
+          "final_training_time_delta": -16.42584408109542,
+          "reference_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+        }
+      },
+      "conclusion": "Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.",
+      "config_profile": "cls_benchmark_sandwich_classification_evolution_v1",
+      "decision": "defer",
+      "experiment": "cls_benchmark_sandwich_classification_evolution_v1",
+      "lineage": {
+        "anchor_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1",
+        "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
+        "parent_run_id": "sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+      },
+      "manifest_path": "outputs/corpora/tf_rd_010_missingness_mnar_v1/tf_rd_010_missingness_mnar_v1__b080da68127a/manifest.parquet",
+      "model": {
+        "arch": "tabfoundry_sandwich",
+        "architecture": {
+          "feature_type_encoding": "parquet_physical_group",
+          "ff_expansion": 2,
+          "heads": 4,
+          "initial_input_token_count": "R_times_C_plus_K_times_(R_plus_C)",
+          "initial_input_tokens": "full_cell_plus_row_col_summary_stream",
+          "label_injection": "fused_into_row_summaries_and_feature_cells",
+          "latent_core": "stage0_full_cell_plus_summary_then_summary_repeated_cross_self_stages",
+          "latents": 24,
+          "layer_semantics": "stage0_hybrid_then_summary_repeated_stages",
+          "layers": 2,
+          "position_encoding": "shared_fourier_row_col",
+          "pre_column_attention_layers": 1,
+          "pre_column_inducing_tokens": 16,
+          "pre_perceiver_cell_mixer": "row_feature_self_attention_then_column_row_isab",
+          "pre_row_attention_layers": 1,
+          "readout": "latent_then_full_cell_cross_attention_then_latent_conditioned_query_pool",
+          "repeated_input_token_count": "K_times_(R_plus_C)",
+          "repeated_input_tokens": "row_col_summary_stream",
+          "self_attention_per_cross": 4,
+          "summary_builder": "summary_query_attention",
+          "summary_tokens_per_axis": 3
+        },
+        "build_spec": {
+          "arch": "tabfoundry_sandwich",
+          "d_col": 128,
+          "d_icl": 60,
+          "feature_group_size": 1,
+          "feature_type_conditioning": "film",
+          "floating_likelihood": "single_gaussian",
+          "head_hidden_dim": 96,
+          "input_normalization": "train_zscore_clip",
+          "integer_likelihood": "hybrid_mixture",
+          "many_class_base": 10,
+          "many_class_train_mode": "path_nll",
+          "max_mixed_radix_digits": 64,
+          "module_overrides": null,
+          "norm_type": "layernorm",
+          "pre_encoder_clip": null,
+          "sandwich_ff_expansion": 2,
+          "sandwich_heads": 4,
+          "sandwich_latents": 24,
+          "sandwich_layers": 2,
+          "sandwich_pre_column_attention_layers": 1,
+          "sandwich_pre_column_inducing_tokens": 16,
+          "sandwich_pre_row_attention_layers": 1,
+          "sandwich_self_attention_per_cross": 4,
+          "sandwich_summary_tokens_per_axis": 3,
+          "stage": null,
+          "stage_label": null,
+          "staged_dropout": 0.0,
+          "task": "classification",
+          "tfcol_n_heads": 8,
+          "tfcol_n_inducing": 128,
+          "tfcol_n_layers": 3,
+          "tficl_ff_expansion": 2,
+          "tficl_n_heads": 8,
+          "tficl_n_layers": 12,
+          "tfrow_cls_tokens": 4,
+          "tfrow_n_heads": 8,
+          "tfrow_n_layers": 3,
+          "tfrow_norm": "layernorm",
+          "use_digit_position_embed": true
+        },
+        "d_icl": 60,
+        "feature_group_size": 1,
+        "head_hidden_dim": 96,
+        "input_normalization": "train_zscore_clip",
+        "many_class_base": 10,
+        "stage": null,
+        "stage_label": null,
+        "tficl_n_heads": 8,
+        "tficl_n_layers": 12
+      },
+      "model_size": {
+        "total_params": 646970,
+        "trainable_params": 646970
+      },
+      "regime_budget": {
+        "curriculum_id": "tf_rd_010_missingness_mnar",
+        "curriculum_mix": {
+          "config_refs": [
+            "configs/benchmark_cpu.yaml",
+            "configs/benchmark_cuda_h100_large_shape.yaml",
+            "configs/default.yaml"
+          ],
+          "corpus_variant": "tf_rd_010_missingness_mnar",
+          "invocation_mix": [
+            {
+              "generate_run_id": "f5e971edafc8fed2b7b7f94cd249dc76",
+              "generated_corpus_id": "cbafb9b25968aaaa4215972c20876d26",
+              "invocation_id": "benchmark_cpu",
+              "num_datasets": 8,
+              "requested_config_ref": "configs/benchmark_cpu.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "cb0fdd339e02bfcfcd48c92641a79156",
+              "generated_corpus_id": "b51e6241ea267d5d7fa3feaa31938249",
+              "invocation_id": "default_medium",
+              "num_datasets": 28,
+              "requested_config_ref": "configs/default.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            },
+            {
+              "generate_run_id": "9feeef4527ec2919b0664ecfa5cf4a91",
+              "generated_corpus_id": "bd50829917a10988aef7a762ebc62fba",
+              "invocation_id": "large_shape",
+              "num_datasets": 4,
+              "requested_config_ref": "configs/benchmark_cuda_h100_large_shape.yaml",
+              "rows": null,
+              "source_family": "dagzoo.fixed_layout_scm"
+            }
+          ],
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "objective_metric": "final_bpc_at_matched_regime_budget",
+        "scm_complexity_summary": {
+          "class_count_distribution": {
+            "count": 40,
+            "max": 3,
+            "mean": 3.0,
+            "min": 3
+          },
+          "feature_count_distribution": {
+            "count": 40,
+            "max": 146,
+            "mean": 42.3,
+            "min": 23
+          },
+          "row_count_distribution": {
+            "count": 40,
+            "max": 10240,
+            "mean": 1868.8,
+            "min": 640
+          },
+          "source_families": [
+            "dagzoo.fixed_layout_scm"
+          ]
+        },
+        "token_budget": 1541664,
+        "tokens_per_step": 3854.16,
+        "tokens_seen": 1541664,
+        "unique_task_budget": 37
+      },
+      "registered_at_utc": "2026-03-29T22:45:35Z",
+      "run_id": "sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1",
+      "runtime_summary": {
+        "non_train_overhead_seconds": 1.6784952483139932,
+        "peak_vram_allocated": null,
+        "peak_vram_reserved": null,
+        "throughput_examples_per_second": 4.120316277428706,
+        "throughput_tokens_per_second": 15880.358183814618
+      },
+      "seed_set": [
+        1
+      ],
+      "surface_labels": {
+        "data": "tf_rd_010_missingness_mnar",
+        "model": "tabfoundry_sandwich",
+        "preprocessing": "runtime_default",
+        "training": "prior_cosine_warmup"
+      },
+      "sweep": {
+        "delta_id": "delta_data_manifest_root_tf_rd_010_missingness_mnar",
+        "parent_sweep_id": "tf_rd_021b_sandwich_feature_removal_v1",
+        "queue_order": 4,
+        "run_kind": "primary",
+        "sweep_id": "tf_rd_010_classification_evolution_medium_v1"
+      },
+      "tab_foundry_metrics": {
+        "best_avg_pinball_loss": null,
+        "best_bpc": 30.174125061035156,
+        "best_bpf": 30.174125900268553,
+        "best_brier_score": 0.6805274421793827,
+        "best_crps": null,
+        "best_log_loss": 1.1184193559458953,
+        "best_picp_90": null,
+        "best_roc_auc": 0.4256110159963824,
+        "best_step": 375.0,
+        "best_training_time": 89.30991933320183,
+        "final_avg_pinball_loss": null,
+        "final_bpc": 38.805387802124024,
+        "final_bpf": 38.8053865814209,
+        "final_brier_score": 0.6807440813470611,
+        "final_crps": null,
+        "final_log_loss": 1.118731927895141,
+        "final_picp_90": null,
+        "final_roc_auc": 0.42896332258036207,
+        "final_step": 400.0,
+        "final_training_time": 97.07992616761476
+      },
+      "track": "system_delta_binary_medium_v1",
+      "training_diagnostics": {
+        "best_val_loss": null,
+        "best_val_step": null,
+        "final_grad_norm": 21.02783966064453,
+        "final_val_loss": null,
+        "max_grad_norm": 151.3732452392578,
+        "mean_grad_norm": 10.754344774335623,
+        "post_warmup_train_loss_var": 0.11767553350372918,
+        "train_elapsed_seconds": 97.07992616761476,
+        "wall_elapsed_seconds": 98.7162433329504
+      }
+    },
     "sd_tf_rd_013_dagzoo_size_ladder_v1_01_delta_training_current_corpus_uncapped_v1": {
       "artifacts": {
         "benchmark_dir": "outputs/staged_ladder/research/tf_rd_013_dagzoo_size_ladder_v1/delta_training_current_corpus_uncapped/sd_tf_rd_013_dagzoo_size_ladder_v1_01_delta_training_current_corpus_uncapped_v1/benchmark",

@@ -56,6 +56,10 @@ def _resolve_from_root(root: Path, raw_path: Path) -> Path:
     return expanded.resolve() if expanded.is_absolute() else (root / expanded).resolve()
 
 
+def _append_dagzoo_set_override(argv: list[str], *, key: str, value: object) -> None:
+    argv.extend(["--set", f"{key}={value}"])
+
+
 def build_dagzoo_generate_argv(config: DagzooGenerateConfig) -> list[str]:
     """Build the dagzoo CLI argv for one generate run."""
 
@@ -91,21 +95,38 @@ def build_dagzoo_generate_argv(config: DagzooGenerateConfig) -> list[str]:
                 str(_resolve_from_root(dagzoo_root, config.diagnostics_out_dir)),
             ]
         )
+    # dagzoo's explicit missingness flags were removed in favor of config-level
+    # overrides, so preserve the tab-foundry recipe contract through --set.
     if config.missing_rate is not None:
-        argv.extend(["--missing-rate", str(float(config.missing_rate))])
+        _append_dagzoo_set_override(
+            argv,
+            key="dataset.missing_rate",
+            value=float(config.missing_rate),
+        )
     if config.missing_mechanism is not None:
-        argv.extend(["--missing-mechanism", str(config.missing_mechanism)])
+        _append_dagzoo_set_override(
+            argv,
+            key="dataset.missing_mechanism",
+            value=str(config.missing_mechanism),
+        )
     if config.missing_mar_observed_fraction is not None:
-        argv.extend(
-            [
-                "--missing-mar-observed-fraction",
-                str(float(config.missing_mar_observed_fraction)),
-            ]
+        _append_dagzoo_set_override(
+            argv,
+            key="dataset.missing_mar_observed_fraction",
+            value=float(config.missing_mar_observed_fraction),
         )
     if config.missing_mar_logit_scale is not None:
-        argv.extend(["--missing-mar-logit-scale", str(float(config.missing_mar_logit_scale))])
+        _append_dagzoo_set_override(
+            argv,
+            key="dataset.missing_mar_logit_scale",
+            value=float(config.missing_mar_logit_scale),
+        )
     if config.missing_mnar_logit_scale is not None:
-        argv.extend(["--missing-mnar-logit-scale", str(float(config.missing_mnar_logit_scale))])
+        _append_dagzoo_set_override(
+            argv,
+            key="dataset.missing_mnar_logit_scale",
+            value=float(config.missing_mnar_logit_scale),
+        )
     return argv
 
 

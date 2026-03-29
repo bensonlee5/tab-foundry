@@ -11,6 +11,10 @@ from tab_foundry.research.sweep.materialize import load_system_delta_queue
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SWEEP_ID = "tf_rd_010_classification_evolution_medium_v1"
+ANCHOR_RUN_ID = (
+    "sd_tf_rd_010_classification_evolution_medium_v1_01_"
+    "delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1"
+)
 EXPECTED_ROWS = [
     "delta_data_manifest_root_tf_rd_010_dagzoo_medium_control",
     "delta_data_manifest_root_tf_rd_010_missingness_mcar",
@@ -33,8 +37,8 @@ def test_tf_rd_010_classification_evolution_medium_v1_is_registered() -> None:
     assert isinstance(sweeps, dict)
     assert sweeps[SWEEP_ID] == {
         "parent_sweep_id": "tf_rd_021b_sandwich_feature_removal_v1",
-        "status": "draft",
-        "anchor_run_id": None,
+        "status": "completed",
+        "anchor_run_id": ANCHOR_RUN_ID,
         "complexity_level": "classification_md",
         "benchmark_manifest_path": "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet",
         "control_baseline_id": "cls_benchmark_linear_multiclass_medium_v1",
@@ -42,14 +46,14 @@ def test_tf_rd_010_classification_evolution_medium_v1_is_registered() -> None:
     }
 
 
-def test_tf_rd_010_classification_evolution_medium_v1_records_the_draft_medium_contract() -> None:
+def test_tf_rd_010_classification_evolution_medium_v1_records_the_completed_medium_contract() -> None:
     sweep_root = REPO_ROOT / "reference" / "system_delta_sweeps" / SWEEP_ID
     sweep = _load_yaml(sweep_root / "sweep.yaml")
     queue = _load_yaml(sweep_root / "queue.yaml")
 
     assert sweep["sweep_id"] == SWEEP_ID
-    assert sweep["status"] == "draft"
-    assert sweep["anchor_run_id"] is None
+    assert sweep["status"] == "completed"
+    assert sweep["anchor_run_id"] == ANCHOR_RUN_ID
     assert sweep["training_experiment"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["training_config_profile"] == "cls_benchmark_sandwich_classification_evolution_v1"
     assert sweep["benchmark_manifest_path"] == (
@@ -66,16 +70,12 @@ def test_tf_rd_010_classification_evolution_medium_v1_records_the_draft_medium_c
     assert any("final_bpc_at_matched_regime_budget" in note for note in notes)
     assert any("class imbalance" in note.lower() for note in notes)
     assert any("medium rung is the clean no-missing multiclass benchmark surface" in note for note in notes)
+    assert any("All four completed rows deferred" in note for note in notes)
+    assert any("stability guardrail" in note for note in notes)
 
     anchor_model = sweep["anchor_context"]["model"]
     assert anchor_model["arch"] == "tabfoundry_sandwich"
-    assert anchor_model["module_selection"] == {
-        "feature_encoder": "shared",
-        "feature_type_conditioning": "film",
-        "head": "direct_multiclass",
-        "target_conditioner": "label_token",
-        "tokenizer": "scalar_per_feature_missingness",
-    }
+    assert anchor_model["module_selection"] is None
     assert sweep["anchor_context"]["surface_labels"] == {
         "data": "tf_rd_010_dagzoo_medium_control",
         "model": "tabfoundry_sandwich",
@@ -86,20 +86,28 @@ def test_tf_rd_010_classification_evolution_medium_v1_records_the_draft_medium_c
     rows = queue["rows"]
     assert isinstance(rows, list)
     assert [row["delta_ref"] for row in rows] == EXPECTED_ROWS
-    assert [row["status"] for row in rows] == [
-        "blocked_on_validation_manifests_and_control_baselines"
-    ] * len(EXPECTED_ROWS)
+    assert [row["status"] for row in rows] == ["completed"] * len(EXPECTED_ROWS)
+    assert [row["decision"] for row in rows] == ["defer"] * len(EXPECTED_ROWS)
+    assert all(row["run_id"] is not None for row in rows)
+    assert all(row["next_action"].startswith("Completed") for row in rows)
+    assert all(
+        any("stability=fail" in note for note in row["notes"]) for row in rows
+    )
     assert all(row["model"]["feature_type_conditioning"] == "film" for row in rows)
     assert all(row["model"]["sandwich_summary_tokens_per_axis"] == 3 for row in rows)
     assert all(row["model"]["many_class_base"] == 10 for row in rows)
     assert all(row["training"]["surface_label"] == "prior_cosine_warmup" for row in rows)
+    assert all(row["training"]["overrides"]["runtime"]["max_steps"] == 400 for row in rows)
+    assert all(row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400 for row in rows)
+    assert all(row["data"]["train_row_cap"] == 64 for row in rows)
+    assert all(row["data"]["test_row_cap"] == 32 for row in rows)
 
     materialized = load_system_delta_queue(
         sweep_id=SWEEP_ID,
         index_path=REPO_ROOT / "reference" / "system_delta_sweeps" / "index.yaml",
         catalog_path=REPO_ROOT / "reference" / "system_delta_catalog.yaml",
     )
-    assert materialized["anchor_run_id"] is None
+    assert materialized["anchor_run_id"] == ANCHOR_RUN_ID
     assert materialized["benchmark_manifest_path"] == (
         "data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet"
     )
@@ -115,13 +123,15 @@ def test_tf_rd_010_classification_evolution_medium_v1_matrix_links_dagzoo_and_hu
 
     assert "# System Delta Matrix" in matrix
     assert SWEEP_ID in matrix
-    assert "Sweep status: `draft`" in matrix
+    assert "Sweep status: `completed`" in matrix
     assert "final_bpc_at_matched_regime_budget" in matrix
     assert "tab-realdata-hub" in matrix
     assert "dagzoo" in matrix
     assert "sandwich_summary_tokens_per_axis=3" in matrix
     assert "direct multiclass head" in matrix
-    assert "class imbalance is addressed through explicit benchmark coverage and reporting" in matrix.lower()
+    assert "Completed as the locked medium control anchor" in matrix
+    assert "Completed as mixed negative evidence" in matrix
+    assert "stability=fail" in matrix
 
 
 def test_tf_rd_010_classification_evolution_medium_v1_inspection_resolves_sandwich_row() -> None:

@@ -1,0 +1,56 @@
+schema: tab-foundry-corpus-recipe-v1
+recipe_id: tf_rd_010_missingness_mnar_v1
+kind: dagzoo_multi_invocation_manifest
+description: TF-RD-010 multiclass MNAR missingness front for the evolved sandwich benchmark package.
+surface_label: tf_rd_010_missingness_mnar
+manifest:
+  train_ratio: 0.9
+  val_ratio: 0.05
+  filter_policy: include_all
+  missing_value_policy: allow_any
+provenance_labels:
+  corpus_variant: tf_rd_010_missingness_mnar
+  comparator_role: tf_rd_010_candidate
+  benchmark_family: tf_rd_010
+  downstream_issue: 99
+  missingness_mechanism: mnar
+invocations:
+  - invocation_id: benchmark_cpu
+    base_config_ref: configs/benchmark_cpu.yaml
+    config_overrides:
+      dataset:
+        n_classes_min: 3
+        n_classes_max: 10
+    num_datasets: 8
+    seed: 1
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mnar
+    missing_mnar_logit_scale: 1.4
+  - invocation_id: default_medium
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        n_classes_min: 3
+        n_classes_max: 10
+    num_datasets: 28
+    seed: 1
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mnar
+    missing_mnar_logit_scale: 1.4
+  - invocation_id: large_shape
+    base_config_ref: configs/benchmark_cuda_h100_large_shape.yaml
+    config_overrides:
+      dataset:
+        n_classes_min: 3
+        n_classes_max: 10
+    num_datasets: 4
+    seed: 1
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mnar
+    missing_mnar_logit_scale: 1.4

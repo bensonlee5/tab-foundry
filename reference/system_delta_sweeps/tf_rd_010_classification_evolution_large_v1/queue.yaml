@@ -3,10 +3,14 @@ sweep_id: tf_rd_010_classification_evolution_large_v1
 rows:
 - order: 1
   delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
-  status: blocked_on_validation_manifests_and_control_baselines
-  rationale: Establish the clean multiclass dagzoo control front before reading any missingness harder-front effect on the large allow-missing benchmark rung.
-  hypothesis: The evolved sandwich family should first be judged on a clean multiclass dagzoo control corpus against the harder allow-missing large hub manifest.
-  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v1` while validating on the hub-owned large multiclass manifest.
+  status: completed
+  rationale: Establish the clean multiclass dagzoo control front before reading any
+    missingness harder-front effect on the large allow-missing benchmark rung.
+  hypothesis: The evolved sandwich family should first be judged on a clean multiclass
+    dagzoo control corpus against the harder allow-missing large hub manifest.
+  anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train
+    on `tf_rd_010_dagzoo_medium_control_v1` while validating on the hub-owned large
+    multiclass manifest.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -26,25 +30,78 @@ rows:
     surface_label: tf_rd_010_dagzoo_medium_control
     source: manifest
     corpus_ref: tf_rd_010_dagzoo_medium_control_v1
+    train_row_cap: 64
+    test_row_cap: 32
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
     task_batch_size: 1
+    overrides:
+      runtime:
+        max_steps: 400
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 400
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Confirm `tab-realdata-hub#1` has materialized the allow-missing large multiclass manifest before execution.
-  - Freeze the multiclass large control baseline before treating any row outcome as a promotion or defer decision.
-  - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration, runtime, and stability as guardrails.
-  next_action: Wait for the hub-owned large manifest and the multiclass large control baseline freeze.
+  - Confirm `tab-realdata-hub#1` has materialized the allow-missing large multiclass
+    manifest before execution.
+  - Freeze the multiclass large control baseline before treating any row outcome as
+    a promotion or defer decision.
+  - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration,
+    runtime, and stability as guardrails.
+  next_action: Completed as the locked large control anchor; keep this row as the
+    fixed TF-RD-010 reference and move any improvement attempts to TF-RD-021 or
+    later higher-budget follow-up instead of reopening baseline definition.
   notes:
-  - "`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest."
-  - "This row is the clean multiclass reference for missingness transfer and class-imbalance reporting on the large rung."
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - This row is the clean multiclass reference for missingness transfer and class-imbalance
+    reporting on the large rung.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Sweep summary marked this row `stability=fail` at the 400-step short-run budget;
+    treat it as the fixed short-screen anchor rather than promotion evidence.
+  run_id: sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 184.7556610107422
+    clipped_step_fraction: 0.975
+    best_bpc: 115233.19496123974
+    final_bpc: 115233.19496123974
+    best_bpf: 115233.19628358622
+    final_bpf: 115233.19628358622
+    best_log_loss: 1.0783014126880135
+    final_log_loss: 1.0783014126880135
+    best_brier_score: 0.6531033815388474
+    final_brier_score: 0.6531033815388474
+    best_roc_auc: 0.5396120403951801
+    final_roc_auc: 0.5396120403951801
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+  confounders: []
 - order: 2
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mcar
-  status: blocked_on_validation_manifests_and_control_baselines
-  rationale: Test whether moderate MCAR exposure improves robustness on the harder allow-missing large benchmark rung before structured missingness is considered.
-  hypothesis: MCAR may improve BPC/log-loss behavior on the evolved sandwich family under allow-missing validation without adding the stronger structure of MAR or MNAR.
-  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v1`.
+  status: completed
+  rationale: Test whether moderate MCAR exposure improves robustness on the harder
+    allow-missing large benchmark rung before structured missingness is considered.
+  hypothesis: MCAR may improve BPC/log-loss behavior on the evolved sandwich family
+    under allow-missing validation without adding the stronger structure of MAR or
+    MNAR.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
+    and replace the control corpus with `tf_rd_010_missingness_mcar_v1`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -64,25 +121,83 @@ rows:
     surface_label: tf_rd_010_missingness_mcar
     source: manifest
     corpus_ref: tf_rd_010_missingness_mcar_v1
+    train_row_cap: 64
+    test_row_cap: 32
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
     task_batch_size: 1
+    overrides:
+      runtime:
+        max_steps: 400
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 400
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
   parameter_adequacy_plan:
   - Compare directly against the clean control row before preferring missingness exposure.
-  - Treat the large allow-missing rung as the primary benchmark context for missingness transfer.
-  - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
-  next_action: Wait for the hub-owned large manifest and the multiclass large control baseline freeze.
+  - Treat the large allow-missing rung as the primary benchmark context for missingness
+    transfer.
+  - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated
+    skew ladder to TF-RD-017.
+  next_action: Completed as mixed negative evidence; although final BPC improved
+    sharply versus the control anchor, this row failed stability guardrails and
+    degraded final ROC AUC, so keep the clean control anchor and do not promote
+    MCAR from this short-run pass.
   notes:
-  - "`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest."
-  - "The large rung is explicitly allow-missing, so this row reads the cleanest first transfer case for synthetic MCAR training."
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - The large rung is explicitly allow-missing, so this row reads the cleanest first
+    transfer case for synthetic MCAR training.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Sweep summary marked this row `stability=fail` at the 400-step short-run budget;
+    the better BPC read did not clear the promotion guardrails.
+  run_id: sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 249.59381103515625
+    clipped_step_fraction: 0.955
+    best_bpc: 52508.13094343406
+    final_bpc: 52508.13094343406
+    best_bpf: 52508.129621395696
+    final_bpf: 52508.129621395696
+    best_log_loss: 1.087724587324733
+    final_log_loss: 1.087724587324733
+    best_brier_score: 0.6593031657842128
+    final_brier_score: 0.6593031657842128
+    best_roc_auc: 0.4998687543256783
+    final_roc_auc: 0.4998687543256783
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    delta_final_bpc: -62725.064017805686
+    delta_final_bpf: -62725.066662190526
+    delta_final_log_loss: 0.009423174636719489
+    delta_final_brier_score: 0.006199784245365381
+    delta_final_roc_auc: -0.03974328606950178
+  confounders: []
 - order: 3
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mar
-  status: blocked_on_validation_manifests_and_control_baselines
-  rationale: Add a structured missingness row so TF-RD-010 can distinguish random masking from observed-feature-linked masking under the harder allow-missing benchmark contract.
-  hypothesis: MAR may provide a clearer harder front than MCAR while remaining more interpretable than MNAR on the large rung.
-  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v1`.
+  status: completed
+  rationale: Add a structured missingness row so TF-RD-010 can distinguish random
+    masking from observed-feature-linked masking under the harder allow-missing benchmark
+    contract.
+  hypothesis: MAR may provide a clearer harder front than MCAR while remaining more
+    interpretable than MNAR on the large rung.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
+    and replace the control corpus with `tf_rd_010_missingness_mar_v1`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -102,25 +217,82 @@ rows:
     surface_label: tf_rd_010_missingness_mar
     source: manifest
     corpus_ref: tf_rd_010_missingness_mar_v1
+    train_row_cap: 64
+    test_row_cap: 32
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
     task_batch_size: 1
+    overrides:
+      runtime:
+        max_steps: 400
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 400
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Compare directly against the clean control plus MCAR and MNAR before preferring structured missingness.
-  - Treat the large allow-missing rung as the primary benchmark context for missingness transfer.
-  - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
-  next_action: Wait for the hub-owned large manifest and the multiclass large control baseline freeze.
+  - Compare directly against the clean control plus MCAR and MNAR before preferring
+    structured missingness.
+  - Treat the large allow-missing rung as the primary benchmark context for missingness
+    transfer.
+  - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated
+    skew ladder to TF-RD-017.
+  next_action: Completed as mixed negative evidence; although final BPC improved
+    versus the control anchor, this row failed stability guardrails and degraded
+    final ROC AUC, so keep the clean control anchor and do not promote MAR on
+    the large rung.
   notes:
-  - "`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest."
-  - "The large rung is explicitly allow-missing, so this row reads structured observed-feature missingness transfer directly."
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - The large rung is explicitly allow-missing, so this row reads structured observed-feature
+    missingness transfer directly.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Sweep summary marked this row `stability=fail` at the 400-step short-run budget.
+  run_id: sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  benchmark_metrics:
+    best_step: 400
+    max_grad_norm: 175.35076904296875
+    clipped_step_fraction: 0.98
+    best_bpc: 79920.03862926042
+    final_bpc: 79920.03862926042
+    best_bpf: 79920.03334147013
+    final_bpf: 79920.03334147013
+    best_log_loss: 1.0941858614775666
+    final_log_loss: 1.0941858614775666
+    best_brier_score: 0.6635981725006994
+    final_brier_score: 0.6635981725006994
+    best_roc_auc: 0.4952897226079352
+    final_roc_auc: 0.4952897226079352
+    final_minus_best_bpc: 0.0
+    final_minus_best_bpf: 0.0
+    final_minus_best_log_loss: 0.0
+    final_minus_best_brier_score: 0.0
+    final_minus_best_roc_auc: 0.0
+    drift: 0.0
+    delta_final_bpc: -35313.15633197932
+    delta_final_bpf: -35313.16294211609
+    delta_final_log_loss: 0.015884448789553085
+    delta_final_brier_score: 0.010494790961852019
+    delta_final_roc_auc: -0.04432231778724488
+  confounders: []
 - order: 4
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mnar
-  status: blocked_on_validation_manifests_and_control_baselines
-  rationale: Keep one strongest missingness row in the first draft package so TF-RD-010 can compare MCAR, MAR, and MNAR under the same allow-missing benchmark contract.
-  hypothesis: MNAR may be the hardest missingness front, but it may also be the least interpretable candidate for the first evolved benchmark package.
-  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v1`.
+  status: completed
+  rationale: Keep one strongest missingness row in the first draft package so TF-RD-010
+    can compare MCAR, MAR, and MNAR under the same allow-missing benchmark contract.
+  hypothesis: MNAR may be the hardest missingness front, but it may also be the least
+    interpretable candidate for the first evolved benchmark package.
+  anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
+    and replace the control corpus with `tf_rd_010_missingness_mnar_v1`.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -140,16 +312,69 @@ rows:
     surface_label: tf_rd_010_missingness_mnar
     source: manifest
     corpus_ref: tf_rd_010_missingness_mnar_v1
+    train_row_cap: 64
+    test_row_cap: 32
   preprocessing:
     surface_label: runtime_default
   training:
     surface_label: prior_cosine_warmup
     task_batch_size: 1
+    overrides:
+      runtime:
+        max_steps: 400
+      schedule:
+        stages:
+        - name: prior_dump
+          steps: 400
+          lr_max: 0.004
+          lr_schedule: cosine
+          warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Compare directly against the clean control plus MCAR and MAR before preferring the strongest self-masking option.
-  - Treat the large allow-missing rung as the primary benchmark context for missingness transfer.
-  - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
-  next_action: Wait for the hub-owned large manifest and the multiclass large control baseline freeze.
+  - Compare directly against the clean control plus MCAR and MAR before preferring
+    the strongest self-masking option.
+  - Treat the large allow-missing rung as the primary benchmark context for missingness
+    transfer.
+  - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated
+    skew ladder to TF-RD-017.
+  next_action: Completed as negative evidence; this row produced the worst large-rung
+    BPC outcome and the largest drift signal, so keep the clean control anchor
+    and do not promote MNAR on the large rung.
   notes:
-  - "`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest."
-  - "The large rung is explicitly allow-missing, so this row reads the strongest self-masking missingness transfer directly."
+  - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
+    manifest.'
+  - The large rung is explicitly allow-missing, so this row reads the strongest self-masking
+    missingness transfer directly.
+  - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1`.
+  - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
+    this row in the full sweep context.
+  - Sweep summary marked this row `stability=fail` at the 400-step short-run budget.
+  run_id: sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1
+  followup_run_ids: []
+  decision: defer
+  interpretation_status: completed
+  benchmark_metrics:
+    best_step: 375
+    max_grad_norm: 151.3732452392578
+    clipped_step_fraction: 0.96
+    best_bpc: 71216.16283657367
+    final_bpc: 158968.82330065506
+    best_bpf: 71216.16415917323
+    final_bpf: 158968.82858841238
+    best_log_loss: 1.090147754912823
+    final_log_loss: 1.0889774324207775
+    best_brier_score: 0.6610364414846633
+    final_brier_score: 0.6602211678573062
+    best_roc_auc: 0.4811399001445567
+    final_roc_auc: 0.4836006342151515
+    final_minus_best_bpc: 87752.66046408139
+    final_minus_best_bpf: 87752.66442923914
+    final_minus_best_log_loss: -0.0011703224920454058
+    final_minus_best_brier_score: -0.000815273627357116
+    final_minus_best_roc_auc: 0.0024607340705947722
+    drift: 87752.66046408139
+    delta_final_bpc: 43735.628339415314
+    delta_final_bpf: 43735.632304826155
+    delta_final_log_loss: 0.010676019732763997
+    delta_final_brier_score: 0.00711778631845883
+    delta_final_roc_auc: -0.05601140618002859
+  confounders: []

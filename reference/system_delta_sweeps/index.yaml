@@ -235,16 +235,16 @@ sweeps:
     external_benchmarks: []
   tf_rd_010_classification_evolution_medium_v1:
     parent_sweep_id: tf_rd_021b_sandwich_feature_removal_v1
-    status: draft
-    anchor_run_id: null
+    status: completed
+    anchor_run_id: sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
     complexity_level: classification_md
     benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet
     control_baseline_id: cls_benchmark_linear_multiclass_medium_v1
     external_benchmarks: []
   tf_rd_010_classification_evolution_large_v1:
     parent_sweep_id: tf_rd_010_classification_evolution_medium_v1
-    status: draft
-    anchor_run_id: null
+    status: completed
+    anchor_run_id: sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
     complexity_level: classification_lg
     benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet
     control_baseline_id: cls_benchmark_linear_multiclass_large_v1

@@ -8,18 +8,26 @@ import torch
 
 import tab_foundry.bench.control_baseline_freeze as control_baseline_module
 import tab_foundry.control_baseline_registry as read_control_baseline_registry
+from tab_foundry.data.surface import DataSurfaceConfig
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def _write_checkpoint(checkpoint_path: Path, *, manifest_path: str, seed: int = 1) -> Path:
+def _write_checkpoint(
+    checkpoint_path: Path,
+    *,
+    manifest_path: str | None = None,
+    data_payload: dict[str, object] | None = None,
+    seed: int = 1,
+) -> Path:
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_data_payload = {"manifest_path": manifest_path} if data_payload is None else dict(data_payload)
     torch.save(
         {
             "model": {},
             "config": {
-                "data": {"manifest_path": manifest_path},
+                "data": resolved_data_payload,
                 "runtime": {"seed": int(seed)},
             },
         },
@@ -36,6 +44,7 @@ def _write_comparison_summary(
     final_roc_auc: float = 0.83,
     final_log_loss: float = 0.41,
     include_diagnostics: bool = False,
+    artifacts_benchmark_manifest: str | None = None,
 ) -> Path:
     payload = {
         "dataset_count": 1,
@@ -162,6 +171,10 @@ def _write_comparison_summary(
                 }
             ],
         }
+    if artifacts_benchmark_manifest is not None:
+        payload["artifacts"] = {
+            "benchmark_manifest": artifacts_benchmark_manifest,
+        }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
@@ -217,6 +230,117 @@ def test_freeze_control_baseline_writes_repo_relative_registry_entry(
     )
     registry = read_control_baseline_registry.load_control_baseline_registry(registry_path)
     assert registry["baselines"]["cls_benchmark_linear_v1"]["seed_set"] == [7]
+
+
+def test_freeze_control_baseline_resolves_manifest_from_corpus_backed_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    registry_path = repo_root / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
+    manifest_path = repo_root / "data" / "manifests" / "corpus_backed.parquet"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_bytes(b"manifest")
+    benchmark_bundle_path = (
+        repo_root / "src" / "tab_foundry" / "bench" / "nanotabpfn_openml_benchmark_v1.json"
+    )
+    benchmark_bundle_path.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_bundle_path.write_text("{}\n", encoding="utf-8")
+    run_dir = repo_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v1" / "train"
+    _ = _write_checkpoint(
+        run_dir / "checkpoints" / "best.pt",
+        data_payload={"corpus_ref": "toy_recipe/toy_corpus"},
+        seed=7,
+    )
+    summary_path = (
+        repo_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v1" / "benchmark" / "comparison_summary.json"
+    )
+    _ = _write_comparison_summary(
+        summary_path,
+        run_dir=run_dir,
+        benchmark_bundle_source_path="src/tab_foundry/bench/nanotabpfn_openml_benchmark_v1.json",
+    )
+    monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
+
+    captured: dict[str, object] = {}
+
+    def _fake_resolve_data_surface(data_cfg: object) -> DataSurfaceConfig:
+        assert isinstance(data_cfg, dict)
+        captured["data_cfg"] = data_cfg
+        return DataSurfaceConfig(
+            surface_label="toy_surface",
+            source="manifest",
+            manifest_path=manifest_path.resolve(),
+            filter_policy=None,
+            allow_missing_values=False,
+            train_row_cap=None,
+            test_row_cap=None,
+            dagzoo_provenance=None,
+            corpus_ref="toy_recipe/toy_corpus",
+            recipe_id="toy_recipe",
+            corpus_id="toy_corpus",
+            corpus_record_path=(repo_root / "outputs" / "corpora" / "toy_recipe" / "toy_corpus.json"),
+            overrides={},
+        )
+
+    monkeypatch.setattr(control_baseline_module, "resolve_data_surface", _fake_resolve_data_surface)
+
+    frozen = control_baseline_module.freeze_control_baseline(
+        baseline_id="cls_benchmark_linear_v1",
+        experiment="cls_benchmark_linear",
+        config_profile="cls_benchmark_linear",
+        budget_class="short-run",
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        registry_path=registry_path,
+    )
+
+    assert captured["data_cfg"] == {"corpus_ref": "toy_recipe/toy_corpus"}
+    assert frozen["baseline"]["manifest_path"] == "data/manifests/corpus_backed.parquet"
+
+
+def test_freeze_control_baseline_uses_repo_local_benchmark_manifest_when_source_path_is_external(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    repo_root = tmp_path / "repo"
+    registry_path = repo_root / "src" / "tab_foundry" / "bench" / "control_baselines_v1.json"
+    manifest_path = repo_root / "data" / "manifests" / "default.parquet"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_bytes(b"manifest")
+    benchmark_manifest_path = repo_root / "data" / "manifests" / "bench" / "medium" / "manifest.parquet"
+    benchmark_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    benchmark_manifest_path.write_bytes(b"benchmark-manifest")
+    run_dir = repo_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v1" / "train"
+    _ = _write_checkpoint(
+        run_dir / "checkpoints" / "best.pt",
+        manifest_path="data/manifests/default.parquet",
+        seed=7,
+    )
+    summary_path = (
+        repo_root / "outputs" / "control_baselines" / "cls_benchmark_linear_v1" / "benchmark" / "comparison_summary.json"
+    )
+    _ = _write_comparison_summary(
+        summary_path,
+        run_dir=run_dir,
+        benchmark_bundle_source_path="/tmp/external_bundle.json",
+        artifacts_benchmark_manifest=str(benchmark_manifest_path.resolve()),
+    )
+    monkeypatch.setattr(control_baseline_module, "repo_root", lambda: repo_root)
+
+    frozen = control_baseline_module.freeze_control_baseline(
+        baseline_id="cls_benchmark_linear_v1",
+        experiment="cls_benchmark_linear",
+        config_profile="cls_benchmark_linear",
+        budget_class="short-run",
+        run_dir=run_dir,
+        comparison_summary_path=summary_path,
+        registry_path=registry_path,
+    )
+
+    assert frozen["baseline"]["benchmark_bundle"]["source_path"] == (
+        "data/manifests/bench/medium/manifest.parquet"
+    )
 
 
 def test_freeze_control_baseline_upserts_existing_baseline(

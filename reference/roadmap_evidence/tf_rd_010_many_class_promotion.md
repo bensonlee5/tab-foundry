@@ -3,8 +3,8 @@
 This is the canonical long-form evidence note for
 [TF-RD-010](../../docs/development/roadmap.md#tf-rd-010-benchmark-defined-multiclass-evolution-on-the-classification-first-sandwich-target).
 
-- Status: `planned`
-- Milestone: `Next`
+- Status: `completed`
+- Milestone: `Completed`
 - Dependency position: follows
   [TF-RD-016](tf_rd_016_architecture_surface_adequacy.md), feeds
   [TF-RD-021](tf_rd_021_steering_derived_dagzoo_corpus_fronts.md),
@@ -27,12 +27,20 @@ This is the canonical long-form evidence note for
 - issue [#52](https://github.com/bensonlee5/tab-foundry/issues/52) is the
   umbrella for this lane, and issue
   [#99](https://github.com/bensonlee5/tab-foundry/issues/99) is the first
-  execution issue
+  execution issue; both now serve as historical handoff context for the
+  completed package
+- completed child issues
+  [#197](https://github.com/bensonlee5/tab-foundry/issues/197),
+  [#198](https://github.com/bensonlee5/tab-foundry/issues/198),
+  [#199](https://github.com/bensonlee5/tab-foundry/issues/199), and
+  [#200](https://github.com/bensonlee5/tab-foundry/issues/200) define the
+  multiclass corpora, freeze the missing baselines, and execute the medium and
+  large validation packages
 - `tab-realdata-hub` issue
   [#1](https://github.com/bensonlee5/tab-realdata-hub/issues/1) is the
   canonical upstream dependency for medium and large multiclass validation
   bundles and materialized manifests
-- the first draft sweep contracts now exist in
+- the completed sweep contracts now live in
   `reference/system_delta_sweeps/tf_rd_010_classification_evolution_medium_v1/`
   and
   `reference/system_delta_sweeps/tf_rd_010_classification_evolution_large_v1/`
@@ -47,6 +55,14 @@ This is the canonical long-form evidence note for
 - `tab-foundry` benchmark execution already expects materialized manifest
   parquet for validation surfaces, which makes the hub-owned manifest contract
   the right long-term boundary
+- medium and large validation manifests now exist at
+  `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`
+  and
+  `data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet`
+- `tab-foundry` froze
+  `cls_benchmark_linear_multiclass_medium_v1` and
+  `cls_benchmark_linear_multiclass_large_v1` against those manifests before
+  execution
 
 ## Current Interpretation
 
@@ -61,18 +77,27 @@ This is the canonical long-form evidence note for
     `final_bpc_at_matched_regime_budget`
 - BPC is the normalized log-loss view for the first expanded multiclass regime;
   raw log loss, calibration, runtime, and stability remain supporting guardrails
+- The completed short-run package established the benchmark contract without
+  promoting a new carried front: all medium and large rows deferred, and every
+  row failed the short-run stability guardrail
+- MCAR gave the best BPC deltas on both rungs (`-2.5701` medium and
+  `-62725.0640` large), but it still degraded final ROC AUC and did not clear
+  the guardrails needed for promotion
 - Missingness should be addressed in both places:
   - synthetic training fronts via control, MCAR, MAR, and MNAR corpora
   - validation via the large allow-missing benchmark rung
 - Class imbalance should be made explicit in benchmark coverage and reporting,
   but a dedicated imbalance ladder remains TF-RD-017 follow-on work
 
-## Open Evidence Gaps
+## Closed Evidence Gaps
 
-- `tab-realdata-hub` still needs to land the medium and large multiclass bundle
-  ownership and materialization flow
-- the multiclass medium and large control baselines are not yet frozen
-- the first medium and large benchmark runs have not executed yet
+- `tab-realdata-hub` now owns the medium and large multiclass bundle
+  materialization flow, and `tab-foundry` consumes the resulting manifest
+  parquet directly
+- the multiclass medium and large control baselines are frozen in the canonical
+  registry
+- the first medium and large benchmark packages have executed, with all rows
+  deferred under the short-run guardrails
 
 ## Exit Signals
 

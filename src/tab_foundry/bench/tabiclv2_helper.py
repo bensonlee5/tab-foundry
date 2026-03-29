@@ -61,6 +61,9 @@ def run_tabiclv2_helper(
         sys.path.insert(0, str(tabicl_root))
     if str(src_root) not in sys.path:
         sys.path.insert(0, str(src_root))
+    from tab_foundry.bench.helper_imports import prepend_optional_tab_realdata_hub_src
+
+    prepend_optional_tab_realdata_hub_src(sys.path, tab_foundry_src=src_root)
 
     try:
         from tabicl import TabICLClassifier, TabICLRegressor

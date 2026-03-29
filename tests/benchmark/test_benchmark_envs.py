@@ -14,8 +14,11 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
     nano_root = tmp_path / "nano"
     tabpfn_root = tmp_path / "tabpfn"
     tabicl_root = tmp_path / "tabicl"
-    for root in (nano_root, tabpfn_root, tabicl_root):
+    hub_root = tmp_path / "tab-realdata-hub"
+    for root in (nano_root, tabpfn_root, tabicl_root, hub_root):
         root.mkdir(parents=True)
+    (hub_root / "pyproject.toml").write_text("[project]\nname='tab-realdata-hub'\n", encoding="utf-8")
+    for root in (nano_root, tabpfn_root, tabicl_root):
         (root / ".venv" / "bin").mkdir(parents=True)
         (root / ".venv" / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
 
@@ -24,6 +27,7 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
     validated: list[tuple[Path, str]] = []
 
     monkeypatch.setattr(env_module, "_sync_repo", lambda root: synced.append(root))
+    monkeypatch.setattr(env_module, "_python_version_info", lambda _python_path: (3, 14))
     monkeypatch.setattr(
         env_module,
         "_install_python_package",
@@ -40,6 +44,7 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
             nanotabpfn_root=nano_root,
             tabpfn_root=tabpfn_root,
             tabicl_root=tabicl_root,
+            tab_realdata_hub_root=hub_root,
         )
     )
 
@@ -50,12 +55,74 @@ def test_bootstrap_benchmark_envs_creates_nanotabpfn_pyproject(
     assert installed == [
         (
             nano_root.resolve() / ".venv" / "bin" / "python",
-            env_module.TAB_REALDATA_HUB_INSTALL_SPEC,
+            str(hub_root.resolve()),
         ),
         (
             tabicl_root.resolve() / ".venv" / "bin" / "python",
-            env_module.TAB_REALDATA_HUB_INSTALL_SPEC,
+            str(hub_root.resolve()),
         ),
     ]
     assert len(validated) == 10
     assert summary["nanotabpfn_python"].endswith("/nano/.venv/bin/python")
+
+
+def test_tab_realdata_hub_install_spec_falls_back_without_local_checkout(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    missing_root = tmp_path / "missing-tab-realdata-hub"
+    monkeypatch.setattr(env_module, "_default_tab_realdata_hub_root", lambda: missing_root)
+
+    assert env_module._tab_realdata_hub_install_spec() == env_module.TAB_REALDATA_HUB_INSTALL_SPEC
+
+
+def test_bootstrap_benchmark_envs_uses_runtime_dependencies_for_py313_tabicl(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    nano_root = tmp_path / "nano"
+    tabpfn_root = tmp_path / "tabpfn"
+    tabicl_root = tmp_path / "tabicl"
+    hub_root = tmp_path / "tab-realdata-hub"
+    for root in (nano_root, tabpfn_root, tabicl_root, hub_root):
+        root.mkdir(parents=True)
+    (hub_root / "pyproject.toml").write_text("[project]\nname='tab-realdata-hub'\n", encoding="utf-8")
+    for root in (nano_root, tabpfn_root, tabicl_root):
+        (root / ".venv" / "bin").mkdir(parents=True)
+        (root / ".venv" / "bin" / "python").write_text("#!/bin/sh\n", encoding="utf-8")
+
+    installed: list[tuple[Path, str]] = []
+    validated: list[tuple[Path, str]] = []
+
+    monkeypatch.setattr(env_module, "_sync_repo", lambda _root: None)
+    monkeypatch.setattr(
+        env_module,
+        "_python_version_info",
+        lambda python_path: (3, 13) if python_path.parent.parent.parent == tabicl_root.resolve() else (3, 14),
+    )
+    monkeypatch.setattr(
+        env_module,
+        "_install_python_package",
+        lambda python_path, package_spec: installed.append((python_path, package_spec)),
+    )
+    monkeypatch.setattr(
+        env_module,
+        "_validate_import",
+        lambda python_path, module_name: validated.append((python_path, module_name)),
+    )
+
+    env_module.bootstrap_benchmark_envs(
+        env_module.BenchmarkEnvConfig(
+            nanotabpfn_root=nano_root,
+            tabpfn_root=tabpfn_root,
+            tabicl_root=tabicl_root,
+            tab_realdata_hub_root=hub_root,
+        )
+    )
+
+    tabicl_python = tabicl_root.resolve() / ".venv" / "bin" / "python"
+    assert installed == [
+        (nano_root.resolve() / ".venv" / "bin" / "python", str(hub_root.resolve())),
+        *((tabicl_python, dependency) for dependency in env_module.TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES),
+    ]
+    assert (tabicl_python, "tab_realdata_hub") not in validated

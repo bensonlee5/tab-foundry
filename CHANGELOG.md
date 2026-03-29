@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.3] - 2026-03-29
+
+### Changed
+
+- User-facing note: `tab-foundry bench env bootstrap` now prefers a local
+  sibling `tab-realdata-hub` checkout when one is available, so external
+  benchmark helper environments pick up the current manifest/runtime
+  dependencies needed for manifest-backed TF-RD-010 execution instead of
+  always installing the published `0.1.0` package.
+- User-facing note: dagzoo-backed corpus materialization now maps recipe-level
+  missingness overrides through `dagzoo generate --set dataset.*=...`, keeping
+  existing `reference/corpus_recipes/*.yaml` missingness contracts working
+  against the current dagzoo CLI after its dedicated missingness flags were
+  removed.
+
 ## [0.15.2] - 2026-03-29
 
 ### Changed

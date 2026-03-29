@@ -16,6 +16,7 @@ from tab_foundry.data.dagzoo_handoff import (
 )
 from tab_foundry.data.dagzoo_workflow import (
     DagzooGenerateManifestConfig,
+    build_dagzoo_generate_argv,
     run_dagzoo_generate_manifest,
 )
 from tab_realdata_hub.manifest import build_manifest
@@ -316,6 +317,50 @@ def test_run_dagzoo_generate_manifest_resolves_relative_paths_against_dagzoo_roo
     ]
     assert result.handoff.handoff_manifest_path == handoff_manifest_path.resolve()
     assert result.handoff.generated_dir == generated_dir.resolve()
+
+
+def test_build_dagzoo_generate_argv_maps_missingness_overrides_to_set_flags(tmp_path: Path) -> None:
+    dagzoo_root = tmp_path / "dagzoo"
+    config_path = dagzoo_root / "configs" / "default.yaml"
+    handoff_root = dagzoo_root / "handoffs" / "tab_foundry"
+
+    argv = build_dagzoo_generate_argv(
+        DagzooGenerateManifestConfig(
+            dagzoo_root=dagzoo_root,
+            dagzoo_config=config_path,
+            handoff_root=handoff_root,
+            missing_rate=0.25,
+            missing_mechanism="mar",
+            missing_mar_observed_fraction=0.6,
+            missing_mar_logit_scale=1.4,
+            missing_mnar_logit_scale=1.7,
+        )
+    )
+
+    assert argv == [
+        "uv",
+        "run",
+        "dagzoo",
+        "generate",
+        "--config",
+        str(config_path.resolve()),
+        "--handoff-root",
+        str(handoff_root.resolve()),
+        "--num-datasets",
+        "10",
+        "--hardware-policy",
+        "none",
+        "--set",
+        "dataset.missing_rate=0.25",
+        "--set",
+        "dataset.missing_mechanism=mar",
+        "--set",
+        "dataset.missing_mar_observed_fraction=0.6",
+        "--set",
+        "dataset.missing_mar_logit_scale=1.4",
+        "--set",
+        "dataset.missing_mnar_logit_scale=1.7",
+    ]
 
 
 def test_run_dagzoo_generate_manifest_rejects_missing_handoff_manifest(
