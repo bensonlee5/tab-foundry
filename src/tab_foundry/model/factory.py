@@ -97,6 +97,9 @@ def build_model_from_spec(spec: ModelBuildSpec) -> nn.Module:
             sandwich_pre_row_attention_layers=int(spec.sandwich_pre_row_attention_layers),
             sandwich_pre_column_attention_layers=int(spec.sandwich_pre_column_attention_layers),
             sandwich_pre_column_inducing_tokens=int(spec.sandwich_pre_column_inducing_tokens),
+            feature_type_conditioning=str(spec.feature_type_conditioning),
+            floating_likelihood=str(spec.floating_likelihood),
+            integer_likelihood=str(spec.integer_likelihood),
         )
 
     raise ValueError(f"Unsupported model arch: {spec.arch!r}")

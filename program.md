@@ -30,18 +30,21 @@ This is not the right page if you only want a general repo overview. Start with
 Optimize for attributable evidence against the selected sweep anchor, not for
 rapid base promotion.
 
-The primary score remains `final_log_loss` on the canonical benchmark bundle
-declared by the selected sweep metadata.
+The primary score is `final_bpc` when the selected sweep surface resolves a
+sandwich `cell_bpc` lane; otherwise it falls back to the task-family
+classification metric such as `final_log_loss`.
 
 When the benchmark family changes, switch the sweep target with it:
 
-- binary classification: `final_log_loss`
-- multiclass classification: `final_log_loss`
+- sandwich `cell_bpc` lane: `final_bpc`
+- classification fallback: `final_log_loss`
 
 Supporting metrics are:
 
-- binary classification: `final_brier_score`, `final_roc_auc`, `best_roc_auc`,
-  `final_minus_best`
+- sandwich `cell_bpc` lane: `final_bpf`, plus classification diagnostics when
+  those are also reported
+- binary classification fallback: `final_brier_score`, `final_roc_auc`,
+  `best_roc_auc`, `final_minus_best`
 - multiclass classification: `final_brier_score`, with ROC AUC retained only as
   a diagnostic when it is reported
 - training-time deltas versus the anchor
@@ -51,7 +54,8 @@ Supporting metrics are:
   `gradient_history.jsonl`, and `telemetry.json`
 
 `best_roc_auc` remains a tie-breaker and diagnostic for classification sweeps,
-not the main score.
+not the main score, and `final_log_loss` becomes a fallback rather than the
+primary benchmark score when `final_bpc` is available.
 
 ## Locked Anchor Surface
 
@@ -242,9 +246,10 @@ This pass is attribution-first. No row becomes the new base during the sweep.
 Use these decisions:
 
 - `keep`: the row is isolated, evidence is at least neutral or improved on the
-  task-family primary final metric (`final_log_loss` for the current
-  classification bundles), and the interpretation does not reveal unresolved
-  confounding severe enough to block the signal
+  task-family primary final metric (`final_bpc` when present, otherwise the
+  current classification fallback such as `final_log_loss`), and the
+  interpretation does not reveal unresolved confounding severe enough to block
+  the signal
 - `defer`: evidence is mixed, the row is not isolated enough yet, or the
   introduced degrees of freedom have not been checked adequately
 - `reject`: only allowed when the row is isolated, the adequacy plan was

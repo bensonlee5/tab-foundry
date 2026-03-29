@@ -41,6 +41,8 @@ from .dataset_common import (
 )
 from .metrics import (
     dataset_avg_pinball_loss_metrics,
+    dataset_bpc_metrics,
+    dataset_bpf_metrics,
     dataset_brier_score_metrics,
     dataset_crps_metrics,
     dataset_log_loss_metrics,
@@ -90,6 +92,8 @@ __all__ = [
     "curve_adjacent_ci_overlap_fraction",
     "curve_summary",
     "dataset_avg_pinball_loss_metrics",
+    "dataset_bpc_metrics",
+    "dataset_bpf_metrics",
     "dataset_brier_score_metrics",
     "dataset_crps_metrics",
     "dataset_log_loss_metrics",

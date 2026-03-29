@@ -45,12 +45,16 @@ class _TabFoundryMetricsPayload(_ControlBaselinePayloadModel):
     best_training_time: FiniteFloat
     final_step: FiniteFloat
     final_training_time: FiniteFloat
+    best_bpc: FiniteFloat | None = None
+    best_bpf: FiniteFloat | None = None
     best_roc_auc: FiniteFloat | None = None
     best_log_loss: FiniteFloat | None = None
     best_brier_score: FiniteFloat | None = None
     best_crps: FiniteFloat | None = None
     best_avg_pinball_loss: FiniteFloat | None = None
     best_picp_90: FiniteFloat | None = None
+    final_bpc: FiniteFloat | None = None
+    final_bpf: FiniteFloat | None = None
     final_roc_auc: FiniteFloat | None = None
     final_log_loss: FiniteFloat | None = None
     final_brier_score: FiniteFloat | None = None

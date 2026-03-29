@@ -22,6 +22,7 @@ from .instability import (
     reset_peak_device_memory_stats,
     telemetry_path,
 )
+from .loss_surface import configure_model_loss_surface, resolve_training_loss_surface
 from .optimizer import build_optimizer
 from .runtime import build_accelerator_from_runtime
 from .schedule import build_stage_configs
@@ -96,6 +97,11 @@ def train(cfg: DictConfig) -> TrainResult:
     if isinstance(raw_model_cfg, dict):
         model_cfg = {str(key): value for key, value in raw_model_cfg.items()}
     model_spec = model_build_spec_from_mappings(task=task, primary=model_cfg)
+    loss_surface = resolve_training_loss_surface(
+        cfg.get("training"),
+        model_spec=model_spec,
+        backend=TRAINING_BACKEND_MANIFEST,
+    )
 
     train_ds = build_task_dataset(
         cfg.data,
@@ -142,6 +148,7 @@ def train(cfg: DictConfig) -> TrainResult:
             task_batch_size=task_batch_size,
         )
     model = build_model_from_spec(model_spec)
+    configure_model_loss_surface(model, loss_surface=loss_surface)
     activation_checkpointing = _resolve_activation_checkpointing(cfg.runtime)
     if activation_checkpointing:
         enable_activation_checkpointing = getattr(model, "enable_activation_checkpointing", None)
@@ -232,6 +239,11 @@ def train(cfg: DictConfig) -> TrainResult:
     try:
         if accelerator.is_main_process:
             raw_cfg = cast(dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
+            raw_training_cfg = raw_cfg.get("training")
+            if not isinstance(raw_training_cfg, dict):
+                raw_training_cfg = {}
+                raw_cfg["training"] = raw_training_cfg
+            raw_training_cfg["loss_surface"] = loss_surface
             training_surface_payload = write_training_surface_record(
                 training_surface_path,
                 raw_cfg=raw_cfg,
@@ -340,6 +352,7 @@ def train(cfg: DictConfig) -> TrainResult:
             optimizer_requested_name=optimizer_requested_name,
             optimizer_resolved_name=optimizer_resolved_name,
             optimizer_fallback_reason=optimizer_fallback_reason,
+            loss_surface=loss_surface,
             state=state,
             train_start=train_start,
             success=True,
@@ -360,6 +373,7 @@ def train(cfg: DictConfig) -> TrainResult:
             optimizer_requested_name=optimizer_requested_name,
             optimizer_resolved_name=optimizer_resolved_name,
             optimizer_fallback_reason=optimizer_fallback_reason,
+            loss_surface=loss_surface,
             state=state,
             train_start=train_start,
             success=False,

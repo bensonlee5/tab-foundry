@@ -36,6 +36,7 @@ def finalize_training_run(
     optimizer_requested_name: str,
     optimizer_resolved_name: str,
     optimizer_fallback_reason: str | None,
+    loss_surface: str,
     state: TrainingLoopState,
     train_start: float,
     success: bool,
@@ -53,6 +54,7 @@ def finalize_training_run(
         )
         regime_budget = build_regime_budget_summary(
             task=task,
+            loss_surface=loss_surface,
             training_surface_record=training_surface_payload,
             global_step=state.global_step,
             tokens_seen=state.tokens_seen,

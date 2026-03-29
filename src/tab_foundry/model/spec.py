@@ -18,6 +18,9 @@ STAGED_MODEL_ARCH: Final = "tabfoundry_staged"
 SANDWICH_MODEL_ARCH: Final = "tabfoundry_sandwich"
 SUPPORTED_MODEL_ARCHES = (SIMPLE_MODEL_ARCH, STAGED_MODEL_ARCH, SANDWICH_MODEL_ARCH)
 SUPPORTED_MANY_CLASS_TRAIN_MODES = ("path_nll", "full_probs")
+SUPPORTED_FEATURE_TYPE_CONDITIONING = ("film", "additive_embedding")
+SUPPORTED_FLOATING_LIKELIHOODS = ("single_gaussian",)
+SUPPORTED_INTEGER_LIKELIHOODS = ("hybrid_mixture", "discrete")
 DEFAULT_MODEL_ARCH: Final = SANDWICH_MODEL_ARCH
 _GROUP_LINEAR_WEIGHT_KEY = "group_linear.weight"
 _GROUP_SHIFT_COUNT = 3
@@ -25,6 +28,7 @@ MAX_MODEL_STAGED_DROPOUT = 0.5
 MIN_MODEL_MANY_CLASS_BASE = 2
 _LINEAR_WEIGHT_TENSOR_RANK = 2
 _LEGACY_SANDWICH_FIELDS = ("sandwich_row_latents", "sandwich_col_latents")
+_LEGACY_SANDWICH_FEATURE_TYPE_EMBEDDING_KEY = "feature_type_embedding.weight"
 
 
 class ModelStage(StrEnum):
@@ -217,6 +221,9 @@ class _SandwichModelParams(_SpecModel):
     sandwich_pre_row_attention_layers: int = Field(default=1, ge=0)
     sandwich_pre_column_attention_layers: int = Field(default=1, ge=0)
     sandwich_pre_column_inducing_tokens: int = Field(default=16, gt=0)
+    feature_type_conditioning: str = "film"
+    floating_likelihood: str = "single_gaussian"
+    integer_likelihood: str = "hybrid_mixture"
 
     @field_validator("pre_encoder_clip", mode="before")
     @classmethod
@@ -227,6 +234,39 @@ class _SandwichModelParams(_SpecModel):
         if clip <= 0.0:
             raise ValueError("pre_encoder_clip must be > 0")
         return clip
+
+    @field_validator("feature_type_conditioning", mode="before")
+    @classmethod
+    def _validate_feature_type_conditioning(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_FEATURE_TYPE_CONDITIONING:
+            raise ValueError(
+                "feature_type_conditioning must be one of "
+                f"{SUPPORTED_FEATURE_TYPE_CONDITIONING}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("floating_likelihood", mode="before")
+    @classmethod
+    def _validate_floating_likelihood(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_FLOATING_LIKELIHOODS:
+            raise ValueError(
+                "floating_likelihood must be one of "
+                f"{SUPPORTED_FLOATING_LIKELIHOODS}, got {value!r}"
+            )
+        return normalized
+
+    @field_validator("integer_likelihood", mode="before")
+    @classmethod
+    def _validate_integer_likelihood(cls, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in SUPPORTED_INTEGER_LIKELIHOODS:
+            raise ValueError(
+                "integer_likelihood must be one of "
+                f"{SUPPORTED_INTEGER_LIKELIHOODS}, got {value!r}"
+            )
+        return normalized
 
 
 # ---------------------------------------------------------------------------
@@ -593,10 +633,24 @@ def checkpoint_model_build_spec_from_mappings(
         primary_map.get("feature_group_size") is not None
         or fallback_map.get("feature_group_size") is not None
     )
+    arch_value = _resolved_arch(
+        primary_map.get("arch") or fallback_map.get("arch") or DEFAULT_MODEL_ARCH
+    )
+    if (
+        arch_value == SANDWICH_MODEL_ARCH
+        and primary_map.get("feature_type_conditioning") is None
+        and fallback_map.get("feature_type_conditioning") is None
+    ):
+        primary_map = dict(primary_map)
+        primary_map["feature_type_conditioning"] = (
+            "additive_embedding"
+            if _LEGACY_SANDWICH_FEATURE_TYPE_EMBEDDING_KEY in (state_dict or {})
+            else "film"
+        )
     spec = model_build_spec_from_mappings(
         task=task,
         primary=primary_map,
-        fallback=fallback,
+        fallback=fallback_map,
     )
     _validate_checkpoint_feature_group_size(
         spec=spec,

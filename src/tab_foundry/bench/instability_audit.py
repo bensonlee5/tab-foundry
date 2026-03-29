@@ -106,6 +106,10 @@ def _run_entry(
         tab_foundry = comparison_summary.get("tab_foundry")
         if isinstance(tab_foundry, Mapping):
             benchmark_payload = {
+                "best_bpc": tab_foundry.get("best_bpc"),
+                "final_bpc": tab_foundry.get("final_bpc"),
+                "best_bpf": tab_foundry.get("best_bpf"),
+                "final_bpf": tab_foundry.get("final_bpf"),
                 "best_roc_auc": tab_foundry.get("best_roc_auc"),
                 "final_roc_auc": tab_foundry.get("final_roc_auc"),
                 "final_log_loss": tab_foundry.get("final_log_loss"),
@@ -114,6 +118,8 @@ def _run_entry(
                 "final_crps": tab_foundry.get("final_crps"),
                 "final_avg_pinball_loss": tab_foundry.get("final_avg_pinball_loss"),
                 "final_picp_90": tab_foundry.get("final_picp_90"),
+                "best_to_final_bpc_delta": tab_foundry.get("best_to_final_bpc_delta"),
+                "best_to_final_bpf_delta": tab_foundry.get("best_to_final_bpf_delta"),
                 "best_to_final_roc_auc_delta": tab_foundry.get("best_to_final_roc_auc_delta"),
                 "best_to_final_crps_delta": tab_foundry.get("best_to_final_crps_delta"),
             }
@@ -312,6 +318,10 @@ def _markdown_report(payload: Mapping[str, Any]) -> str:
         if isinstance(benchmark, Mapping):
             metric_parts: list[str] = []
             for label, key in (
+                ("best BPC", "best_bpc"),
+                ("final BPC", "final_bpc"),
+                ("best BPF", "best_bpf"),
+                ("final BPF", "final_bpf"),
                 ("best ROC AUC", "best_roc_auc"),
                 ("final ROC AUC", "final_roc_auc"),
                 ("final log loss", "final_log_loss"),
@@ -320,6 +330,8 @@ def _markdown_report(payload: Mapping[str, Any]) -> str:
                 ("final CRPS", "final_crps"),
                 ("final avg pinball loss", "final_avg_pinball_loss"),
                 ("final PICP 90", "final_picp_90"),
+                ("best-to-final BPC delta", "best_to_final_bpc_delta"),
+                ("best-to-final BPF delta", "best_to_final_bpf_delta"),
                 ("best-to-final ROC delta", "best_to_final_roc_auc_delta"),
                 ("best-to-final CRPS delta", "best_to_final_crps_delta"),
             ):

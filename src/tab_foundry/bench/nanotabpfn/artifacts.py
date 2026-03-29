@@ -18,6 +18,8 @@ from tab_foundry.device import resolve_device
 from .bundle import _CLASSIFICATION_TASK_TYPE
 from .dataset_common import BenchmarkDatasetEvaluationError
 from .metrics import (
+    dataset_bpc_metrics,
+    dataset_bpf_metrics,
     dataset_brier_score_metrics,
     dataset_log_loss_metrics,
     dataset_roc_auc_metrics,
@@ -185,5 +187,11 @@ def evaluate_tab_foundry_run(
         if "Brier Score" in metrics:
             record["brier_score"] = float(metrics["Brier Score"])
             record["dataset_brier_score"] = dataset_brier_score_metrics(metrics)
+        if "BPC" in metrics:
+            record["bpc"] = float(metrics["BPC"])
+            record["dataset_bpc"] = dataset_bpc_metrics(metrics)
+        if "BPF" in metrics:
+            record["bpf"] = float(metrics["BPF"])
+            record["dataset_bpf"] = dataset_bpf_metrics(metrics)
         curve_records.append(record)
     return curve_records

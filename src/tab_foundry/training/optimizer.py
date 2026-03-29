@@ -88,6 +88,55 @@ def _wrap_step_to_ignore_unused_closure(
     return optimizer
 
 
+def _wrap_muon_step(
+    optimizer: torch.optim.Optimizer,
+) -> torch.optim.Optimizer:
+    """Wrap Muon step() so inactive params are skipped and closure remains optional."""
+
+    step_sig = inspect.signature(type(optimizer).step)
+    accepts_closure = "closure" in step_sig.parameters
+    original_step = optimizer.step
+
+    def _step_with_optional_closure_and_active_params_only(
+        self: torch.optim.Optimizer,
+        closure: Any = None,
+    ) -> Any:
+        del self
+        original_group_params = [list(group["params"]) for group in optimizer.param_groups]
+        any_active = False
+        try:
+            for group, original_params in zip(
+                optimizer.param_groups,
+                original_group_params,
+                strict=True,
+            ):
+                active_params = [param for param in original_params if param.grad is not None]
+                group["params"] = active_params
+                any_active = any_active or bool(active_params)
+            if not any_active:
+                return None
+            if accepts_closure:
+                if closure is None:
+                    return original_step()
+                return original_step(closure)
+            del closure
+            return original_step()
+        finally:
+            for group, original_params in zip(
+                optimizer.param_groups,
+                original_group_params,
+                strict=True,
+            ):
+                group["params"] = original_params
+
+    setattr(
+        optimizer,
+        "step",
+        MethodType(_step_with_optional_closure_and_active_params_only, optimizer),
+    )
+    return optimizer
+
+
 def build_optimizer(
     model: nn.Module,
     *,
@@ -214,7 +263,7 @@ def build_optimizer(
             muon_opt = muon_cls(muon_params, lr=lr, weight_decay=weight_decay, **muon_kwargs)
         except Exception as exc:
             raise RuntimeError("Muon initialization failed for requested optimizer 'muon'.") from exc
-        muon_opt = _wrap_step_to_ignore_unused_closure(muon_opt)
+        muon_opt = _wrap_muon_step(muon_opt)
         optimizers.append(("muon", muon_opt))
         if adamw_tail_params:
             adamw_tail = torch.optim.AdamW(

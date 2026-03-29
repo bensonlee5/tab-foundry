@@ -77,8 +77,17 @@ def plot_comparison_curve(
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    metric_key = "log_loss" if task_type == _CLASSIFICATION_TASK_TYPE else "crps"
-    ylabel = "mean log loss" if task_type == _CLASSIFICATION_TASK_TYPE else "mean CRPS"
+    classification_metric_key = (
+        "bpc"
+        if any(record.get("bpc") is not None for record in tab_foundry_records)
+        else "log_loss"
+    )
+    metric_key = classification_metric_key if task_type == _CLASSIFICATION_TASK_TYPE else "crps"
+    ylabel = (
+        "mean bits per cell"
+        if metric_key == "bpc"
+        else ("mean log loss" if task_type == _CLASSIFICATION_TASK_TYPE else "mean CRPS")
+    )
     external_labels: list[str] = []
     if nanotabpfn_records:
         external_labels.append("nanoTabPFN")
@@ -136,6 +145,8 @@ def _metric_columns(frame: pd.DataFrame) -> list[str]:
     return [
         metric_key
         for metric_key in (
+            "bpc",
+            "bpf",
             "roc_auc",
             "log_loss",
             "brier_score",
@@ -284,6 +295,8 @@ def build_comparison_summary(
         final_record: Mapping[str, Any] | None,
     ) -> None:
         metric_record_keys = {
+            "bpc": "dataset_bpc",
+            "bpf": "dataset_bpf",
             "roc_auc": "dataset_roc_auc",
             "log_loss": "dataset_log_loss",
             "brier_score": "dataset_brier_score",
@@ -465,8 +478,8 @@ def build_comparison_summary(
             python=tabiclv2_python,
         )
     if task_type == _CLASSIFICATION_TASK_TYPE:
-        if tab_foundry_summary.get("final_log_loss") is None:
-            raise RuntimeError("tab-foundry benchmark produced no log-loss values")
+        if tab_foundry_summary.get("final_bpc") is None and tab_foundry_summary.get("final_log_loss") is None:
+            raise RuntimeError("tab-foundry benchmark produced no BPC or log-loss values")
         if nanotabpfn_records and cast(dict[str, Any], summary["nanotabpfn"]).get("final_log_loss") is None:
             raise RuntimeError("nanoTabPFN benchmark produced no log-loss values")
         if tabiclv2_records and cast(dict[str, Any], summary["tabiclv2"]).get("final_log_loss") is None:

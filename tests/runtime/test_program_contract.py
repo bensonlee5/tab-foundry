@@ -26,11 +26,11 @@ def test_program_contract_has_required_policy_sections() -> None:
         assert header in contents
 
     required_statements = [
-        "`final_log_loss`",
+        "`final_bpc`",
         "`final_brier_score`",
         "`final_roc_auc`",
-        "The primary score remains `final_log_loss` on the canonical benchmark bundle",
-        "- multiclass classification: `final_log_loss`",
+        "The primary score is `final_bpc` when the selected sweep surface resolves a",
+        "- sandwich `cell_bpc` lane: `final_bpc`",
         "The benchmark registry is the historical system of record.",
         "Underperformance alone is not enough for `reject`.",
         "This pass is attribution-first. No row becomes the new base during the sweep.",

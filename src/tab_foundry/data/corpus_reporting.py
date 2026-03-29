@@ -103,6 +103,10 @@ def corpus_results_payload(
                     else {
                         key: metrics.get(key)
                         for key in (
+                            "best_bpc",
+                            "final_bpc",
+                            "best_bpf",
+                            "final_bpf",
                             "best_roc_auc",
                             "final_roc_auc",
                             "best_log_loss",

@@ -31,10 +31,14 @@ def evaluate_classifier(
     if not allow_missing_values:
         _assert_finite_benchmark_datasets(datasets, context="benchmark evaluation inputs")
     metrics: dict[str, float] = {}
+    dataset_bpc_values: list[tuple[float, float]] = []
+    dataset_bpf_values: list[tuple[float, float]] = []
     for dataset_name, (x, y) in datasets.items():
         try:
             targets: list[np.ndarray] = []
             probability_matrices: list[np.ndarray] = []
+            bpc_fold_values: list[float] = []
+            bpf_fold_values: list[float] = []
             all_labels = np.asarray(sorted(int(label) for label in np.unique(y)), dtype=np.int64)
             for train_idx, test_idx in _CLASSIFICATION_SKF.split(x, y):
                 x_train, x_test = x[train_idx], x[test_idx]
@@ -48,6 +52,15 @@ def evaluate_classifier(
                         labels=all_labels,
                     )
                 )
+                cell_likelihood_metrics = getattr(classifier, "cell_likelihood_metrics", None)
+                if callable(cell_likelihood_metrics):
+                    fold_metrics = cell_likelihood_metrics(x_test)
+                    raw_bpc = fold_metrics.get("bpc")
+                    raw_bpf = fold_metrics.get("bpf")
+                    if raw_bpc is not None:
+                        bpc_fold_values.append(float(raw_bpc))
+                    if raw_bpf is not None:
+                        bpf_fold_values.append(float(raw_bpf))
 
             target_array = np.concatenate(targets, axis=0)
             probability_matrix = np.concatenate(probability_matrices, axis=0)
@@ -73,6 +86,14 @@ def evaluate_classifier(
             metrics[f"{dataset_name}/Brier Score"] = float(
                 _classification_brier_score(target_array, probability_matrix)
             )
+            if bpc_fold_values:
+                dataset_bpc = float(np.mean(bpc_fold_values))
+                metrics[f"{dataset_name}/BPC"] = dataset_bpc
+                dataset_bpc_values.append((float(x.shape[0] * x.shape[1]), dataset_bpc))
+            if bpf_fold_values:
+                dataset_bpf = float(np.mean(bpf_fold_values))
+                metrics[f"{dataset_name}/BPF"] = dataset_bpf
+                dataset_bpf_values.append((float(x.shape[1]), dataset_bpf))
         except Exception as exc:
             raise BenchmarkDatasetEvaluationError(str(dataset_name), exc) from exc
 
@@ -82,6 +103,16 @@ def evaluate_classifier(
     metrics["ROC AUC"] = float(np.mean(roc_auc_values))
     metrics["Log Loss"] = float(np.mean(log_loss_values))
     metrics["Brier Score"] = float(np.mean(brier_score_values))
+    if dataset_bpc_values:
+        total_weight = sum(weight for weight, _ in dataset_bpc_values)
+        metrics["BPC"] = float(
+            sum(weight * value for weight, value in dataset_bpc_values) / max(total_weight, 1.0)
+        )
+    if dataset_bpf_values:
+        total_weight = sum(weight for weight, _ in dataset_bpf_values)
+        metrics["BPF"] = float(
+            sum(weight * value for weight, value in dataset_bpf_values) / max(total_weight, 1.0)
+        )
     return metrics
 
 
@@ -315,6 +346,14 @@ def dataset_log_loss_metrics(metrics: Mapping[str, float]) -> dict[str, float]:
 
 def dataset_brier_score_metrics(metrics: Mapping[str, float]) -> dict[str, float]:
     return _dataset_metric_summary(metrics, metric_name="Brier Score")
+
+
+def dataset_bpc_metrics(metrics: Mapping[str, float]) -> dict[str, float]:
+    return _dataset_metric_summary(metrics, metric_name="BPC")
+
+
+def dataset_bpf_metrics(metrics: Mapping[str, float]) -> dict[str, float]:
+    return _dataset_metric_summary(metrics, metric_name="BPF")
 
 
 def dataset_crps_metrics(metrics: Mapping[str, float]) -> dict[str, float]:

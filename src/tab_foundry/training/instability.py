@@ -17,6 +17,7 @@ from tab_foundry.types import TaskBatch
 LOSS_EMA_ALPHA = 0.1
 TRAINING_TELEMETRY_SCHEMA = "tab-foundry-training-telemetry-v4"
 CLASSIFICATION_OBJECTIVE_METRIC = "final_log_loss_at_matched_regime_budget"
+CELL_BPC_OBJECTIVE_METRIC = "final_bpc_at_matched_regime_budget"
 _TASK_BATCH_NDIM = 3
 _WINDOW_EARLY = "early_1_25"
 _WINDOW_POST_WARMUP = "post_warmup_100"
@@ -150,11 +151,18 @@ def tensor_batch_token_count(x_batch: torch.Tensor) -> int:
     return int(x_batch.shape[0] * x_batch.shape[1] * x_batch.shape[2])
 
 
-def objective_metric_for_task(task: str | None) -> str | None:
+def objective_metric_for_task(
+    task: str | None,
+    *,
+    loss_surface: str | None = None,
+) -> str | None:
     """Return the default objective metric for one supported task."""
 
     normalized = "" if task is None else str(task).strip().lower()
+    normalized_loss_surface = "" if loss_surface is None else str(loss_surface).strip().lower()
     if normalized == "classification":
+        if normalized_loss_surface == "cell_bpc":
+            return CELL_BPC_OBJECTIVE_METRIC
         return CLASSIFICATION_OBJECTIVE_METRIC
     return None
 
@@ -994,6 +1002,7 @@ def build_runtime_summary(
 def build_regime_budget_summary(
     *,
     task: str | None,
+    loss_surface: str | None,
     training_surface_record: Mapping[str, Any] | None,
     global_step: int,
     tokens_seen: int,
@@ -1012,7 +1021,7 @@ def build_regime_budget_summary(
     elif isinstance(characteristics, Mapping) and characteristics.get("record_count") is not None:
         unique_task_budget = int(characteristics["record_count"])
     curriculum_id, curriculum_mix = _curriculum_summary(training_surface_record)
-    objective_metric = objective_metric_for_task(task)
+    objective_metric = objective_metric_for_task(task, loss_surface=loss_surface)
     tokens_per_step = None
     if int(global_step) > 0:
         tokens_per_step = float(tokens_seen) / float(global_step)

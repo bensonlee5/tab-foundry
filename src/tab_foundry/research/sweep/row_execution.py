@@ -459,8 +459,11 @@ def run_row(
         conclusion=conclusion,
     )
     tab_foundry_summary = cast(dict[str, Any], summary["tab_foundry"])
-    final_metric_label = "final_log_loss"
+    final_metric_label = "final_bpc"
     final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
+    if final_metric_value is None:
+        final_metric_label = "final_log_loss"
+        final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)
     if final_metric_value is None:
         final_metric_label = "final_crps"
         final_metric_value = optional_metric(tab_foundry_summary, final_metric_label)

@@ -257,8 +257,16 @@ def _regime_budget_from_artifacts(
     task = raw_cfg.get("task")
     objective_metric = payload.get("objective_metric")
     if objective_metric is None:
+        loss_surface = None
+        if isinstance(training_surface_record, Mapping):
+            raw_training = training_surface_record.get("training")
+            if isinstance(raw_training, Mapping):
+                raw_loss_surface = raw_training.get("loss_surface")
+                if isinstance(raw_loss_surface, str) and raw_loss_surface.strip():
+                    loss_surface = str(raw_loss_surface)
         payload["objective_metric"] = objective_metric_for_task(
-            None if task is None else str(task)
+            None if task is None else str(task),
+            loss_surface=loss_surface,
         )
 
     characteristics = _training_surface_characteristics(training_surface_record)

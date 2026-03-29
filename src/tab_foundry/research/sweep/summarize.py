@@ -80,6 +80,8 @@ def summarize_sweep(
                 "stability": _stability_verdict(row, metrics),
                 "final_roc_auc": _optional_float(metrics.get("final_roc_auc")),
                 "delta_final_roc_auc": _optional_float(metrics.get("delta_final_roc_auc")),
+                "final_bpc": _optional_float(metrics.get("final_bpc")),
+                "delta_final_bpc": _optional_float(metrics.get("delta_final_bpc")),
                 "final_log_loss": _optional_float(metrics.get("final_log_loss")),
                 "delta_final_log_loss": _optional_float(metrics.get("delta_final_log_loss")),
                 "clipped_step_fraction": _optional_float(metrics.get("clipped_step_fraction")),
@@ -114,8 +116,8 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
         "status",
         "decision",
         "stability",
+        "d_primary",
         "d_roc_auc",
-        "d_log_loss",
         "clip_frac",
         "upper_slope",
         "run_id",
@@ -129,8 +131,13 @@ def render_sweep_summary_table(payload: Mapping[str, Any]) -> str:
                 str(row["status"]),
                 str(row["decision"] or "n/a"),
                 str(row["stability"]),
+                _format_float(
+                    cast(float | None, row["delta_final_bpc"])
+                    if row.get("delta_final_bpc") is not None
+                    else cast(float | None, row["delta_final_log_loss"]),
+                    signed=True,
+                ),
                 _format_float(cast(float | None, row["delta_final_roc_auc"]), signed=True),
-                _format_float(cast(float | None, row["delta_final_log_loss"]), signed=True),
                 _format_float(cast(float | None, row["clipped_step_fraction"])),
                 _format_float(cast(float | None, row["upper_block_post_warmup_mean_slope"])),
                 str(row["run_id"] or "n/a"),

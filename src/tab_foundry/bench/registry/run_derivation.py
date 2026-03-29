@@ -168,6 +168,8 @@ def comparison_delta(
     )
     return {
         "reference_run_id": str(reference_run_id),
+        "final_bpc_delta": _metric_delta("final_bpc"),
+        "final_bpf_delta": _metric_delta("final_bpf"),
         "best_roc_auc_delta": _metric_delta("best_roc_auc"),
         "final_roc_auc_delta": _metric_delta("final_roc_auc"),
         "final_log_loss_delta": None

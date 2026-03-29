@@ -37,6 +37,28 @@ class SharedLinearFeatureEncoder(nn.Module):
         return self.linear(tokenized_x)
 
 
+class FeatureTypeFiLM(nn.Module):
+    """Feature-type FiLM modulation applied after the shared feature encoder."""
+
+    def __init__(self, num_feature_types: int, embedding_size: int) -> None:
+        super().__init__()
+        self.embedding_size = int(embedding_size)
+        self.params = nn.Embedding(int(num_feature_types), int(embedding_size) * 2)
+        nn.init.zeros_(self.params.weight)
+
+    def forward(
+        self,
+        hidden: torch.Tensor,
+        *,
+        feature_type_ids: torch.Tensor,
+    ) -> torch.Tensor:
+        film_params = self.params(feature_type_ids)
+        scale, shift = film_params.chunk(2, dim=-1)
+        scale = scale.unsqueeze(1).to(dtype=hidden.dtype)
+        shift = shift.unsqueeze(1).to(dtype=hidden.dtype)
+        return hidden * (1.0 + scale) + shift
+
+
 class LabelTokenTargetConditioner(nn.Module):
     """Train-label embeddings plus a learned test token."""
 
@@ -72,6 +94,7 @@ class DirectClassifierHead(nn.Module):
 
 __all__ = [
     "DirectClassifierHead",
+    "FeatureTypeFiLM",
     "LabelTokenTargetConditioner",
     "ScalarPerFeatureMissingnessTokenizer",
     "ScalarPerFeatureTokenizer",

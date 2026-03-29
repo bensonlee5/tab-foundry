@@ -256,3 +256,46 @@ class TabFoundryClassifier:
         if classes is None:
             raise RuntimeError("fit() must be called before predict()")
         return classes[np.asarray(probabilities.argmax(axis=1), dtype=np.int64)]
+
+    def cell_likelihood_metrics(self, x_test: np.ndarray) -> dict[str, float]:
+        if (
+            self._preprocessor_state is None
+            or self._raw_x_train is None
+            or self._raw_y_train is None
+        ):
+            raise RuntimeError("fit() must be called before cell_likelihood_metrics()")
+        forward_cell_likelihood = getattr(self.model, "forward_cell_likelihood", None)
+        if not callable(forward_cell_likelihood):
+            raise RuntimeError("checkpoint model does not expose forward_cell_likelihood()")
+
+        raw_x_test = np.asarray(x_test, dtype=np.float32)
+        processed = apply_fitted_preprocessor(
+            task="classification",
+            state=self._preprocessor_state,
+            x_train=self._raw_x_train,
+            y_train=self._raw_y_train,
+            x_test=raw_x_test,
+            y_test=None,
+            impute_missing=bool(
+                self.preprocessing_surface.impute_missing and not self._preserve_non_finite_inputs
+            ),
+        )
+        batch = TaskBatch(
+            x_train=torch.tensor(processed.x_train, dtype=torch.float32, device=self.device),
+            y_train=torch.tensor(processed.y_train, dtype=torch.int64, device=self.device),
+            x_test=torch.tensor(processed.x_test, dtype=torch.float32, device=self.device),
+            y_test=torch.zeros((processed.x_test.shape[0],), dtype=torch.int64, device=self.device),
+            metadata={
+                "dataset": "external_benchmark",
+                "feature_types": list(self._preprocessor_state.feature_types),
+            },
+            num_classes=int(processed.num_classes or 2),
+        )
+        with torch.no_grad():
+            output = forward_cell_likelihood(batch)
+        if output.bpc is None or output.bpf is None:
+            raise RuntimeError("checkpoint cell-likelihood output omitted bpc/bpf")
+        return {
+            "bpc": float(output.bpc.detach().item()),
+            "bpf": float(output.bpf.detach().item()),
+        }

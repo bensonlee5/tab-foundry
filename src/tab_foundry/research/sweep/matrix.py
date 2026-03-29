@@ -49,6 +49,8 @@ def _expected_completed_queue_metrics(run: Mapping[str, Any]) -> dict[str, float
         expected["max_grad_norm"] = max_grad_norm
 
     metric_suffixes = (
+        "bpc",
+        "bpf",
         "roc_auc",
         "log_loss",
         "brier_score",
@@ -71,10 +73,14 @@ def _expected_completed_queue_metrics(run: Mapping[str, Any]) -> dict[str, float
         if best_value is None or final_value is None:
             continue
         expected[f"final_minus_best_{suffix}"] = final_value - best_value
-    if "final_minus_best_roc_auc" in expected:
+    if "final_minus_best_bpc" in expected:
+        expected["drift"] = expected["final_minus_best_bpc"]
+    elif "final_minus_best_roc_auc" in expected:
         expected["drift"] = expected["final_minus_best_roc_auc"]
 
     comparison_keys = {
+        "final_bpc_delta": "delta_final_bpc",
+        "final_bpf_delta": "delta_final_bpf",
         "final_log_loss_delta": "delta_final_log_loss",
         "final_brier_score_delta": "delta_final_brier_score",
         "final_roc_auc_delta": "delta_final_roc_auc",
@@ -133,6 +139,14 @@ def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str
 
     metrics = cast(dict[str, Any], run["tab_foundry_metrics"])
     anchor_metrics = cast(dict[str, Any], anchor["tab_foundry_metrics"])
+    best_bpc = _optional_float(metrics.get("best_bpc"))
+    final_bpc = _optional_float(metrics.get("final_bpc"))
+    anchor_best_bpc = _optional_float(anchor_metrics.get("best_bpc"))
+    anchor_final_bpc = _optional_float(anchor_metrics.get("final_bpc"))
+    best_bpf = _optional_float(metrics.get("best_bpf"))
+    final_bpf = _optional_float(metrics.get("final_bpf"))
+    anchor_best_bpf = _optional_float(anchor_metrics.get("best_bpf"))
+    anchor_final_bpf = _optional_float(anchor_metrics.get("final_bpf"))
     best = _optional_float(metrics.get("best_roc_auc"))
     final = _optional_float(metrics.get("final_roc_auc"))
     final_log_loss = _optional_float(metrics.get("final_log_loss"))
@@ -151,12 +165,26 @@ def metric_summary(run: dict[str, Any], anchor: dict[str, Any]) -> dict[str, str
     anchor_final = _optional_float(anchor_metrics.get("final_roc_auc"))
     anchor_best_time = float(anchor_metrics["best_training_time"])
     anchor_final_time = float(anchor_metrics["final_training_time"])
-    drift = None if best is None or final is None else final - best
-    anchor_drift = None if anchor_best is None or anchor_final is None else anchor_final - anchor_best
+    drift = None if best_bpc is None or final_bpc is None else final_bpc - best_bpc
+    anchor_drift = (
+        None if anchor_best_bpc is None or anchor_final_bpc is None else anchor_final_bpc - anchor_best_bpc
+    )
+    if drift is None:
+        drift = None if best is None or final is None else final - best
+    if anchor_drift is None:
+        anchor_drift = None if anchor_best is None or anchor_final is None else anchor_final - anchor_best
     return {
+        "best_bpc": _format(best_bpc),
+        "final_bpc": _format(final_bpc),
+        "best_bpf": _format(best_bpf),
+        "final_bpf": _format(final_bpf),
         "best_roc_auc": _format(best),
         "final_roc_auc": _format(final),
         "final_minus_best": _format(drift, signed=True),
+        "delta_best_bpc": "n/a" if best_bpc is None or anchor_best_bpc is None else f"{best_bpc - anchor_best_bpc:+.4f}",
+        "delta_final_bpc": "n/a" if final_bpc is None or anchor_final_bpc is None else f"{final_bpc - anchor_final_bpc:+.4f}",
+        "delta_best_bpf": "n/a" if best_bpf is None or anchor_best_bpf is None else f"{best_bpf - anchor_best_bpf:+.4f}",
+        "delta_final_bpf": "n/a" if final_bpf is None or anchor_final_bpf is None else f"{final_bpf - anchor_final_bpf:+.4f}",
         "delta_best_roc_auc": "n/a" if best is None or anchor_best is None else f"{best - anchor_best:+.4f}",
         "delta_final_roc_auc": "n/a" if final is None or anchor_final is None else f"{final - anchor_final:+.4f}",
         "delta_drift": "n/a" if drift is None or anchor_drift is None else f"{drift - anchor_drift:+.4f}",
@@ -325,6 +353,8 @@ def render_system_delta_matrix(
     lines.append(f"- Comparison policy: `{queue['comparison_policy']}`")
     anchor_metric_parts: list[str] = []
     for label, key in (
+        ("final BPC", "final_bpc"),
+        ("final BPF", "final_bpf"),
         ("final log loss", "final_log_loss"),
         ("final Brier score", "final_brier_score"),
         ("best ROC AUC", "best_roc_auc"),
@@ -449,14 +479,25 @@ def render_system_delta_matrix(
                     lines.append(f"  - Final train-loss EMA: `{float(final_loss_ema):.4f}`")
             inline_metrics = queue_row.get("benchmark_metrics")
             if inline_metrics:
-                best = float(inline_metrics["best_roc_auc"])
-                step = inline_metrics.get("best_step", "?")
-                final = float(inline_metrics["final_roc_auc"])
-                drift = float(inline_metrics["drift"])
                 lines.append("- Benchmark metrics:")
-                lines.append(f"  - Best ROC AUC: `{best:.4f}` (step {step})")
-                lines.append(f"  - Final ROC AUC: `{final:.4f}`")
-                lines.append(f"  - Drift (final − best): `{drift:.4f}`")
+                if inline_metrics.get("best_bpc") is not None and inline_metrics.get("final_bpc") is not None:
+                    best_bpc = float(inline_metrics["best_bpc"])
+                    step = inline_metrics.get("best_step", "?")
+                    final_bpc = float(inline_metrics["final_bpc"])
+                    drift = float(inline_metrics["drift"])
+                    lines.append(f"  - Best BPC: `{best_bpc:.4f}` (step {step})")
+                    lines.append(f"  - Final BPC: `{final_bpc:.4f}`")
+                    if inline_metrics.get("final_bpf") is not None:
+                        lines.append(f"  - Final BPF: `{float(inline_metrics['final_bpf']):.4f}`")
+                    lines.append(f"  - Drift (final − best): `{drift:.4f}`")
+                else:
+                    best = float(inline_metrics["best_roc_auc"])
+                    step = inline_metrics.get("best_step", "?")
+                    final = float(inline_metrics["final_roc_auc"])
+                    drift = float(inline_metrics["drift"])
+                    lines.append(f"  - Best ROC AUC: `{best:.4f}` (step {step})")
+                    lines.append(f"  - Final ROC AUC: `{final:.4f}`")
+                    lines.append(f"  - Drift (final − best): `{drift:.4f}`")
                 primary_external_best = inline_metrics.get("primary_external_best")
                 if primary_external_best is not None:
                     primary_external_label = str(
@@ -477,6 +518,10 @@ def render_system_delta_matrix(
         else:
             metrics = metric_summary(run, anchor)
             metric_parts = [
+                f"final BPC `{metrics['final_bpc']}`",
+                f"delta final BPC `{metrics['delta_final_bpc']}`",
+                f"final BPF `{metrics['final_bpf']}`",
+                f"delta final BPF `{metrics['delta_final_bpf']}`",
                 f"final log loss `{metrics['final_log_loss']}`",
                 f"delta final log loss `{metrics['delta_final_log_loss']}`",
                 f"final Brier score `{metrics['final_brier_score']}`",

@@ -315,6 +315,7 @@ def test_build_training_telemetry_persists_runtime_and_regime_budget_metadata(
         ),
         regime_budget=build_regime_budget_summary(
             task="classification",
+            loss_surface="classification",
             training_surface_record=training_surface_record,
             global_step=75,
             tokens_seen=38400,

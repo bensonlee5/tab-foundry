@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-03-29
+
+### Changed
+
+- User-facing break: sandwich prior-training and benchmark-comparison flows now
+  resolve `training.loss_surface=cell_bpc` by default, making `final_bpc` the
+  primary sweep, registry, and telemetry objective when that lane is present.
+- User-facing note: `tabfoundry_sandwich` now conditions feature types with
+  FiLM after the shared feature encoder, persists
+  `model.feature_type_conditioning`, `model.floating_likelihood`, and
+  `model.integer_likelihood`, and keeps legacy additive feature-type checkpoints
+  loadable through checkpoint-spec inference.
+- User-facing note: sandwich cell-likelihood evaluation now reports `best_bpc`,
+  `final_bpc`, `best_bpf`, and `final_bpf`, with integer columns modeled by a
+  learned discrete/Gaussian hybrid likelihood using train-row support plus an
+  OOV bucket.
+- User-facing note: comparison summaries, result cards, system-delta matrices,
+  run-health excerpts, and corpus result payloads now surface BPC/BPF alongside
+  existing classification diagnostics instead of assuming log loss is always the
+  primary metric.
+
 ## [0.15.0] - 2026-03-28
 
 ### Changed
