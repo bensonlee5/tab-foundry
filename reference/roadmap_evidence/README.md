@@ -30,7 +30,7 @@ Conventions:
 1. [TF-RD-021A: Fixed-Latent Sandwich Candidate And NanoTabPFN Screen](tf_rd_021a_latent_bank_sandwich_prototype.md)
 1. [TF-RD-021B: Hybrid Full-Cell Sandwich Successor, Simplification, And Classification-First Scaling Prep](tf_rd_021b_hybrid_full_cell_sandwich_successor.md)
 1. [TF-RD-016: Architecture Surface Adequacy, Sandwich Simplification, And Selective Expansion](tf_rd_016_architecture_surface_adequacy.md)
-1. [TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Row-First Base](tf_rd_010_many_class_promotion.md)
+1. [TF-RD-010: Benchmark-Defined Multiclass Evolution On The Classification-First Sandwich Target](tf_rd_010_many_class_promotion.md)
 1. [TF-RD-009: Scaling-Law Design And Measurement On The Classification-First Sandwich Target](tf_rd_009_scaling_law_measurement.md)
 1. [TF-RD-014: Missingness Robustness On The Promoted Anchor](tf_rd_014_missingness_robustness.md)
 1. [TF-RD-017: Class-Imbalance Robustness On The Promoted Anchor](tf_rd_017_class_imbalance_robustness.md)
@@ -44,4 +44,5 @@ Notes:
   epic and continues forward.
 - Some note titles still mirror legacy roadmap labels for stable cross-links;
   the dependency text inside each note is authoritative about the carried
-  sandwich family and the current sandwich-first queue.
+  sandwich family, the benchmark-definition handoff, and the current
+  sandwich-first queue.

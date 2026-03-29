@@ -76,8 +76,8 @@ class LabelTokenTargetConditioner(nn.Module):
         return torch.cat([train_embed, test_embed], dim=1).unsqueeze(2)
 
 
-class DirectClassifierHead(nn.Module):
-    """Generic small-class MLP head."""
+class DirectMulticlassHead(nn.Module):
+    """Direct multiclass MLP head with fixed output width."""
 
     def __init__(self, embedding_size: int, hidden_size: int, output_width: int) -> None:
         super().__init__()
@@ -92,8 +92,13 @@ class DirectClassifierHead(nn.Module):
         return self.net(rows)
 
 
+class DirectClassifierHead(DirectMulticlassHead):
+    """Backward-compatible alias for staged surfaces that still use the old name."""
+
+
 __all__ = [
     "DirectClassifierHead",
+    "DirectMulticlassHead",
     "FeatureTypeFiLM",
     "LabelTokenTargetConditioner",
     "ScalarPerFeatureMissingnessTokenizer",

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.2] - 2026-03-29
+
+### Changed
+
+- User-facing note: `tabfoundry_sandwich` now supports the TF-RD-010 evolved
+  multiclass benchmark surface with a direct multiclass head, FiLM feature-type
+  conditioning, `many_class_base=10`, and
+  `sandwich_summary_tokens_per_axis=3`.
+- User-facing note: added the draft TF-RD-010 medium and large multiclass
+  benchmark packages, which keep `dagzoo` as the synthetic training owner and
+  `tab-realdata-hub` as the validation-bundle and manifest owner.
+
 ## [0.15.1] - 2026-03-29
 
 ### Changed

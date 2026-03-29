@@ -85,6 +85,7 @@ def _batched_feature_types() -> list[list[str]]:
 
 def _model(
     *,
+    many_class_base: int = 4,
     sandwich_ff_expansion: int = 2,
     sandwich_summary_tokens_per_axis: int = 4,
     sandwich_self_attention_per_cross: int = 4,
@@ -92,7 +93,7 @@ def _model(
 ) -> TabFoundrySandwichClassifier:
     return TabFoundrySandwichClassifier(
         d_icl=32,
-        many_class_base=4,
+        many_class_base=many_class_base,
         head_hidden_dim=64,
         sandwich_latents=12,
         sandwich_layers=2,
@@ -604,22 +605,38 @@ def test_tabfoundry_sandwich_rejects_missing_task_member_feature_types() -> None
 
 
 def test_tabfoundry_sandwich_rejects_true_many_class_batches() -> None:
-    model = TabFoundrySandwichClassifier(
-        d_icl=32,
-        many_class_base=3,
-        head_hidden_dim=64,
-        sandwich_latents=12,
-        sandwich_layers=1,
-        sandwich_heads=4,
-        sandwich_ff_expansion=2,
-        sandwich_summary_tokens_per_axis=4,
-        sandwich_self_attention_per_cross=4,
-        sandwich_pre_row_attention_layers=1,
-        sandwich_pre_column_attention_layers=1,
+    model = _model(many_class_base=3)
+
+    with pytest.raises(RuntimeError, match="direct multiclass head"):
+        _ = model(_batch(num_classes=5))
+
+
+def test_tabfoundry_sandwich_accepts_five_class_batches_on_evolved_surface() -> None:
+    model = _model(
+        many_class_base=10,
+        sandwich_summary_tokens_per_axis=3,
+        feature_type_conditioning="film",
     )
 
-    with pytest.raises(RuntimeError, match="small-class only"):
-        _ = model(_batch(num_classes=5))
+    output = model(_batch(num_classes=5))
+
+    assert output.logits is not None
+    assert output.num_classes == 5
+    assert tuple(output.logits.shape) == (2, 10)
+
+
+def test_tabfoundry_sandwich_accepts_ten_class_batches_on_evolved_surface() -> None:
+    model = _model(
+        many_class_base=10,
+        sandwich_summary_tokens_per_axis=3,
+        feature_type_conditioning="film",
+    )
+
+    output = model(_batch(num_classes=10))
+
+    assert output.logits is not None
+    assert output.num_classes == 10
+    assert tuple(output.logits.shape) == (2, 10)
 
 
 def test_tabfoundry_sandwich_feature_type_film_changes_encoded_cells() -> None:

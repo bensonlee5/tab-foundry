@@ -39,9 +39,9 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
   runtime and VRAM efficiency evidence plus the measured-policy pre-scaling
   handoff
 - [`TF-RD-016`](roadmap_evidence/tf_rd_016_architecture_surface_adequacy.md):
-  existing-surface adequacy and selective expansion evidence
+  architecture-surface closeout evidence and benchmark-evolution handoff
 - [`TF-RD-010`](roadmap_evidence/tf_rd_010_many_class_promotion.md):
-  first many-class plus missingness dagzoo gate evidence on the
+  benchmark-defined multiclass evolution evidence on the
   classification-first sandwich target
 - [`TF-RD-009`](roadmap_evidence/tf_rd_009_scaling_law_measurement.md):
   classification-first scaling-law design evidence and the runtime plus
@@ -374,17 +374,23 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
     under one harder dagzoo slice, one inherited runtime policy, and one
     matched regime-budget contract
 
-### TF-RD-010: First Many-Class + Missingness Dagzoo Gate On The Classification-First Sandwich Target
+### TF-RD-010: Benchmark-Defined Multiclass Evolution On The Classification-First Sandwich Target
 
 - External evidence:
   - label-conditioning work such as EquiTabPFN matters more after the backbone
     is coherent
 - Repo-local evidence:
-  - the staged family already includes `many_class`
-  - many-class should inherit the frozen sandwich dagzoo backbone rather than
-    become its own architecture lane
+  - `dagzoo` is now the explicit owner of the synthetic training fronts
+  - `tab-realdata-hub` issue `#1` is now the upstream owner of the medium and
+    large multiclass validation bundles and manifest materialization flow
+  - the evolved sandwich benchmark config fixes FiLM,
+    `sandwich_summary_tokens_per_axis=3`, `many_class_base=10`, and a direct
+    multiclass head
+  - TF-RD-010 now has explicit draft medium and large sweep contracts rather
+    than only a conceptual carried slice
 - Success signal:
-  - many-class is evaluated as an extension of the frozen sandwich parent
+  - multiclass is evaluated through a fixed dagzoo-to-hub benchmark contract on
+    the evolved sandwich family
 
 ### TF-RD-011: Repo-Wide Enablers And Contract Fidelity
 
