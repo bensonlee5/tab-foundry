@@ -104,11 +104,14 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
     ),
     PageSpec(
         source_rel="docs/development/synthetic-prior-mission.md",
-        route="development/dagzoo-sandwich-mathematical-formulation",
-        weight=25,
+        route="getting-started/problem-formulation",
+        weight=15,
         description="Mathematical formulation of the dagzoo prior-search problem and sandwich training objective.",
-        link_title="Dagzoo/Sandwich Math",
-        aliases=("/docs/development/dagzoo-sandwich-technical-formulation/",),
+        link_title="Problem Formulation",
+        aliases=(
+            "/docs/development/dagzoo-sandwich-mathematical-formulation/",
+            "/docs/development/dagzoo-sandwich-technical-formulation/",
+        ),
         extra_params={"katex": True},
     ),
     PageSpec(
@@ -264,6 +267,11 @@ def _rewrite_katex_math(content: str) -> str:
 
     content = re.sub(
         r"(?ms)^\$\$\s*\n(.*?)\n\$\$\s*$",
+        display_replacer,
+        content,
+    )
+    content = re.sub(
+        r"(?m)^\$\$\s*(.+?)\s*\$\$\s*$",
         display_replacer,
         content,
     )

@@ -1,4 +1,4 @@
-# Dagzoo/Sandwich Mathematical Formulation
+# Problem Formulation
 
 Use this page when you want the mathematical statement of the active
 `dagzoo`/`tabfoundry_sandwich` problem, rather than the software workflow that
