@@ -12,7 +12,7 @@ This file is rendered from `reference/system_delta_sweeps/tf_rd_010_classificati
 ## Locked Surface
 
 - Anchor run id: `sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`
-- Benchmark manifest root: `data/manifests/bench`
+- Benchmark manifest root: local benchmark-manifest output root
 - Benchmark manifest id: `nanotabpfn_openml_classification_medium_v1`
 - Control baseline id: `cls_benchmark_linear_multiclass_medium_v1`
 - External benchmarks: `none`
@@ -31,7 +31,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 | benchmark ownership | Not applicable. | `dagzoo` owns the synthetic training fronts while `tab-realdata-hub` owns the real-data validation manifests. | This sweep defines the repo-to-repo contract for the first benchmark-evolution lane. |
 | classification head | Label-conditioning choices should stay modular so target handling can evolve after the backbone stabilizes. | Direct multiclass head with `many_class_base=10`. | Treat this as a bounded head/output evolution, not a staged hierarchical many-class port. |
 | summary bandwidth | Historical TF-RD-021B evidence used `sandwich_summary_tokens_per_axis=4`. | The evolved benchmark surface uses `sandwich_summary_tokens_per_axis=3`. | The new benchmark package should evaluate the evolved contract directly rather than replaying the historical four-token anchor. |
-| validation surface | Not applicable. | Hub-backed medium classification manifest under `data/manifests/bench`, using the legacy local id `nanotabpfn_openml_classification_medium_v1`, materialized from `openml_classification_medium_v1.json`. | Keep the smaller hub-backed classification validation rung fixed while the synthetic training front changes across rows. |
+| validation surface | Not applicable. | Hub-backed medium classification manifest under the local benchmark-manifest output root, using the legacy local id `nanotabpfn_openml_classification_medium_v1`, materialized from `openml_classification_medium_v1.json`. | Keep the smaller hub-backed classification validation rung fixed while the synthetic training front changes across rows. |
 
 ## Queue Summary
 
