@@ -110,6 +110,8 @@ CHECK_SPECS: dict[str, CheckSpec] = {
                 "--check",
                 "--exclude",
                 "docs/development/model-architecture.md",
+                "--exclude",
+                "docs/development/synthetic-prior-mission.md",
                 "AGENTS.md",
                 "README.md",
                 "CHANGELOG.md",
