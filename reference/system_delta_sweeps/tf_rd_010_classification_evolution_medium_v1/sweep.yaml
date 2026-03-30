@@ -1,7 +1,7 @@
 schema: tab-foundry-system-delta-sweep-v1
 sweep_id: tf_rd_010_classification_evolution_medium_v1
 parent_sweep_id: tf_rd_021b_sandwich_feature_removal_v1
-status: draft
+status: ready
 complexity_level: classification_md
 anchor_run_id: null
 benchmark_manifest_path: data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet
@@ -16,46 +16,67 @@ upstream_reference:
   model_source: https://arxiv.org/abs/2502.06684
 anchor_surface:
   notes:
-  - "This draft TF-RD-010 medium sweep is the first benchmark-definition package after TF-RD-016 closes via issue `#178`."
-  - "Treat TF-RD-021B as historical context only; this package defines a modest sandwich architecture evolution rather than a frozen four-token carry-forward."
-  - "`dagzoo` owns the synthetic training corpora for every row in this sweep."
-  - "`tab-realdata-hub` issue `bensonlee5/tab-realdata-hub#1` owns the medium and large multiclass validation bundles plus their materialized manifest parquet outputs."
-  - "The evolved sandwich contract is FiLM-conditioned, uses `sandwich_summary_tokens_per_axis=3`, `many_class_base=10`, and a direct multiclass head."
-  - "Rank rows by `final_bpc_at_matched_regime_budget`, treating BPC as the normalized log-loss view while still reporting raw log loss, calibration, runtime, and stability guardrails."
-  - "The medium rung is the clean no-missing multiclass benchmark surface; class imbalance remains covered through bundle minority-floor policy and explicit reporting rather than a separate TF-RD-010 skew ladder."
-  - "Do not execute this sweep until the hub-backed validation manifest and the multiclass medium control baseline are both frozen."
+  - This TF-RD-010 medium sweep remains the active benchmark-definition package,
+    but its previously recorded execution was invalidated by later training and
+    sandwich correctness fixes; the trusted rerun now flows through issues `#202`,
+    `#205`, and `#204`.
+  - Treat issues `#52`, `#99`, `#197`, `#199`, and `#200` as historical setup
+    context only rather than active execution evidence.
+  - Treat TF-RD-021B as historical context only; this package defines a modest sandwich
+    architecture evolution rather than a frozen four-token carry-forward.
+  - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
+  - 'The active TF-RD-010 synthetic corpora are explicit balanced DAGZoo grids: `144` tasks per front, capped at `<=1024` total rows per dataset, with row totals `128/256/512/1024`, feature counts `6/10/14/20`, and class counts covering every integer from `2` through `10`.'
+  - '`tab-realdata-hub` issue `bensonlee5/tab-realdata-hub#1` owns the medium and
+    large classification validation bundles plus their materialized manifest parquet
+    outputs from `openml_classification_medium_v1.json` and `openml_classification_large_v1.json`.'
+  - The evolved sandwich contract is FiLM-conditioned, uses `sandwich_summary_tokens_per_axis=3`,
+    `many_class_base=10`, and a direct multiclass head.
+  - Rank rows by `final_bpc_at_matched_regime_budget`, treating BPC as the normalized
+    log-loss view while still reporting raw log loss, calibration, runtime, and stability
+    guardrails.
+  - The medium validation rung follows the upstream hub bundle policy `min_classes=2`,
+    `max_classes=10`, and `max_missing_pct=20.0`; the local manifest path and
+    `cls_benchmark_linear_multiclass_medium_v1` baseline id remain historical TF-RD-010
+    identifiers for that broader classification pool.
+  - 'Trusted reruns now follow the repo-default synthetic one-epoch policy for corpus-backed rows: one pass over corpus manifest records/tasks at `prior_dump_batch_size=64`, with the concrete runtime budget derived from the corpus task count rather than a fixed 400-step contract.'
+  - The prior 400-step medium executions remain historical artifacts only and are
+    no longer canonical promotion or defer evidence.
+  - Keep the benchmark contract fixed while the successor rerun re-establishes
+    trusted medium evidence on the corrected sandwich and training surface.
   dimension_table:
   - dimension: benchmark ownership
     upstream: Not applicable.
-    anchor: "`dagzoo` owns the synthetic training fronts while `tab-realdata-hub` owns the real-data validation manifests."
-    interpretation: This sweep defines the repo-to-repo contract for the first benchmark-evolution lane.
+    anchor: '`dagzoo` owns the synthetic training fronts while `tab-realdata-hub`
+      owns the real-data validation manifests.'
+    interpretation: This sweep defines the repo-to-repo contract for the first benchmark-evolution
+      lane.
   - dimension: classification head
-    upstream: Label-conditioning choices should stay modular so target handling can evolve after the backbone stabilizes.
-    anchor: "Direct multiclass head with `many_class_base=10`."
-    interpretation: Treat this as a bounded head/output evolution, not a staged hierarchical many-class port.
+    upstream: Label-conditioning choices should stay modular so target handling can
+      evolve after the backbone stabilizes.
+    anchor: Direct multiclass head with `many_class_base=10`.
+    interpretation: Treat this as a bounded head/output evolution, not a staged hierarchical
+      many-class port.
   - dimension: summary bandwidth
     upstream: Historical TF-RD-021B evidence used `sandwich_summary_tokens_per_axis=4`.
-    anchor: "The evolved benchmark surface uses `sandwich_summary_tokens_per_axis=3`."
-    interpretation: The new benchmark package should evaluate the evolved contract directly rather than replaying the historical four-token anchor.
+    anchor: The evolved benchmark surface uses `sandwich_summary_tokens_per_axis=3`.
+    interpretation: The new benchmark package should evaluate the evolved contract
+      directly rather than replaying the historical four-token anchor.
   - dimension: validation surface
     upstream: Not applicable.
-    anchor: "Hub-backed medium multiclass manifest at `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`."
-    interpretation: Keep the no-missing medium rung fixed while the synthetic training front changes across rows.
+    anchor: Hub-backed medium classification manifest at `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`, materialized from `openml_classification_medium_v1.json`.
+    interpretation: Keep the smaller hub-backed classification validation rung fixed
+      while the synthetic training front reruns on the corrected sandwich and training
+      surface.
 anchor_context:
   run_id: null
   experiment: cls_benchmark_sandwich_classification_evolution_v1
   config_profile: cls_benchmark_sandwich_classification_evolution_v1
   model:
     arch: tabfoundry_sandwich
-    benchmark_profile: sandwich_classification_evolution_v1
+    benchmark_profile: null
     stage: null
     stage_label: null
-    module_selection:
-      feature_encoder: shared
-      feature_type_conditioning: film
-      head: direct_multiclass
-      target_conditioner: label_token
-      tokenizer: scalar_per_feature_missingness
+    module_selection: null
   surface_labels:
     data: tf_rd_010_dagzoo_medium_control
     model: tabfoundry_sandwich

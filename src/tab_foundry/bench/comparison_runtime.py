@@ -88,6 +88,12 @@ def _tabiclv2_python(root: Path) -> Path:
     return root.expanduser().resolve() / ".venv" / "bin" / "python"
 
 
+def _resolved_tab_realdata_hub_root(config: BenchmarkComparisonConfig) -> Path | None:
+    if config.tab_realdata_hub_root is None:
+        return None
+    return config.tab_realdata_hub_root.expanduser().resolve()
+
+
 def _resolve_primary_external_benchmark(
     requested_external_benchmarks: Sequence[str],
     *,
@@ -134,6 +140,11 @@ def _nanotabpfn_helper_command(
         "--lr",
         str(float(config.nanotabpfn_lr)),
     ]
+    resolved_tab_realdata_hub_root = _resolved_tab_realdata_hub_root(config)
+    if resolved_tab_realdata_hub_root is not None:
+        command.extend(
+            ["--tab-realdata-hub-root", str(resolved_tab_realdata_hub_root)]
+        )
     if allow_missing_values:
         command.append("--allow-missing-values")
     return command
@@ -216,6 +227,7 @@ def _nanotabpfn_execution_metadata(
     nanotabpfn_root: Path | None,
     nanotabpfn_python: Path | None,
     prior_dump: Path | None,
+    tab_realdata_hub_root: Path | None,
     steps: int,
     eval_every: int,
     seeds: int,
@@ -233,6 +245,11 @@ def _nanotabpfn_execution_metadata(
         "resolved_device": str(resolved_device),
         "benchmark_host_fingerprint": str(host_fingerprint),
         "prior_dump_path": None if prior_dump is None else str(prior_dump.expanduser().resolve()),
+        "tab_realdata_hub_root": (
+            None
+            if tab_realdata_hub_root is None
+            else str(tab_realdata_hub_root.expanduser().resolve())
+        ),
         "steps": int(steps),
         "eval_every": int(eval_every),
         "batch_size": int(batch_size),
@@ -262,6 +279,7 @@ def _fresh_nanotabpfn_execution_metadata(
         nanotabpfn_root=nanotabpfn_root,
         nanotabpfn_python=nanotabpfn_python,
         prior_dump=prior_dump,
+        tab_realdata_hub_root=_resolved_tab_realdata_hub_root(config),
         steps=int(config.nanotabpfn_steps),
         eval_every=int(config.nanotabpfn_eval_every),
         seeds=int(config.nanotabpfn_seeds),
@@ -296,6 +314,11 @@ def _tabiclv2_helper_command(
         "--device",
         str(config.device),
     ]
+    resolved_tab_realdata_hub_root = _resolved_tab_realdata_hub_root(config)
+    if resolved_tab_realdata_hub_root is not None:
+        command.extend(
+            ["--tab-realdata-hub-root", str(resolved_tab_realdata_hub_root)]
+        )
     if allow_missing_values:
         command.append("--allow-missing-values")
     return command
@@ -309,6 +332,7 @@ def _tabiclv2_execution_metadata(
     tabicl_root: Path,
     tabicl_python: Path,
     checkpoint_version: str,
+    tab_realdata_hub_root: Path | None,
 ) -> dict[str, Any]:
     return {
         "root": str(tabicl_root.expanduser().resolve()),
@@ -317,6 +341,11 @@ def _tabiclv2_execution_metadata(
         "device": str(requested_device),
         "resolved_device": str(resolved_device),
         "benchmark_host_fingerprint": str(host_fingerprint),
+        "tab_realdata_hub_root": (
+            None
+            if tab_realdata_hub_root is None
+            else str(tab_realdata_hub_root.expanduser().resolve())
+        ),
     }
 
 
@@ -372,6 +401,7 @@ def _reused_nanotabpfn_execution_metadata(
         nanotabpfn_root=nanotabpfn_root,
         nanotabpfn_python=nanotabpfn_python,
         prior_dump=prior_dump,
+        tab_realdata_hub_root=_optional_reuse_metadata_path(metadata, "tab_realdata_hub_root"),
         steps=int(steps),
         eval_every=int(eval_every),
         seeds=int(seeds),
@@ -676,6 +706,7 @@ def run_nanotabpfn_benchmark(config: BenchmarkComparisonConfig) -> dict[str, Any
                         task_type=task_type,
                         config=config,
                     ),
+                    tab_realdata_hub_root=_resolved_tab_realdata_hub_root(config),
                 )
             )
     if nanotabpfn_error is not None:

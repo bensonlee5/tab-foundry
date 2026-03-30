@@ -65,6 +65,11 @@ def configure_parser(parser: argparse.ArgumentParser) -> None:
         help="Local TabICLv2 checkout used when tabiclv2 is selected",
     )
     parser.add_argument(
+        "--tab-realdata-hub-root",
+        default=None,
+        help="Explicit local tab-realdata-hub checkout used by external benchmark helpers",
+    )
+    parser.add_argument(
         "--tabicl-classifier-checkpoint-version",
         default=DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION,
         help="TabICLv2 classifier checkpoint version used when tabiclv2 is selected",
@@ -156,6 +161,11 @@ def run_from_args(args: argparse.Namespace) -> int:
                 context="CLI external benchmarks",
             ),
             tabicl_root=Path(str(args.tabicl_root)),
+            tab_realdata_hub_root=(
+                Path(str(args.tab_realdata_hub_root))
+                if args.tab_realdata_hub_root
+                else None
+            ),
             tabicl_classifier_checkpoint_version=str(args.tabicl_classifier_checkpoint_version),
             tabicl_regressor_checkpoint_version=str(args.tabicl_regressor_checkpoint_version),
         )

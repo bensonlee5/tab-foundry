@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from typing import Any
 
+import numpy as np
 import tab_foundry.bench.iris as iris_module
 
 
@@ -55,3 +57,36 @@ def test_iris_main_prints_ranked_summary(
     assert lines[3].startswith("RF")
     assert lines[4].startswith("tab_foundry")
     assert lines[5].startswith("LogReg")
+
+
+def test_evaluate_iris_checkpoint_sets_floating_feature_types_for_sandwich(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    recorded: dict[str, Any] = {"feature_types": None, "fit_shape": None, "predict_shape": None}
+
+    class _FakeClassifier:
+        def __init__(self, checkpoint_path: Path, *, device: str = "cpu") -> None:
+            recorded["checkpoint"] = checkpoint_path
+            recorded["device"] = device
+
+        def set_benchmark_feature_types(self, feature_types: list[str] | None) -> None:
+            recorded["feature_types"] = feature_types
+
+        def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_FakeClassifier":
+            recorded["fit_shape"] = (x_train.shape, y_train.shape)
+            return self
+
+        def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+            recorded["predict_shape"] = x_test.shape
+            positive = np.linspace(0.2, 0.8, num=x_test.shape[0], dtype=np.float32)
+            return np.column_stack([1.0 - positive, positive]).astype(np.float32, copy=False)
+
+    monkeypatch.setattr(iris_module, "TabFoundryClassifier", _FakeClassifier)
+    summary = iris_module.evaluate_iris_checkpoint(tmp_path / "model.pt", device="cpu", seeds=2)
+
+    assert summary.checkpoint == (tmp_path / "model.pt").resolve()
+    assert recorded["feature_types"] == ["floating"] * 4
+    assert recorded["fit_shape"] is not None
+    assert recorded["predict_shape"] is not None
+    assert len(summary.results["tab_foundry"]) == 2

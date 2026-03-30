@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- User-facing note: standard manifest-backed training now saves eval-mode
+  checkpoints when optimizers expose `train()` / `eval()` state, keeping
+  `schedulefree_adamw` snapshot, latest, and fallback-best checkpoints aligned
+  with the parameter view used for validation and later benchmark comparison.
+- User-facing note: sandwich training telemetry is now loss-surface-aware.
+  `classification` runs continue to report `direct_head` gradients and
+  feature/head balance, while `cell_bpc` runs now report only the active
+  cell-likelihood modules instead of surfacing inactive direct-head metrics.
+- User-facing note: prior-dump training now accepts `runtime.grad_clip <= 0`
+  as the explicit no-clipping setting, matching the standard trainer contract.
+- User-facing note: prior-dump training now rejects mixed `num_features`
+  batches and mixed `single_eval_pos` batches instead of silently padding or
+  reusing the first split boundary across the batch.
+- User-facing note: sandwich `cell_bpc` gradient telemetry now reports only
+  the modules exercised by the cell-likelihood forward path, removing inactive
+  summary/perceiver/readout modules from those charts.
+- User-facing note: benchmark helpers no longer auto-shadow a sibling
+  `tab-realdata-hub` checkout. `tab-foundry bench compare` and
+  `tab-foundry bench env bootstrap` now accept `--tab-realdata-hub-root` as
+  the explicit opt-in for local helper imports and bootstrap installs.
+- User-facing note: `tab-foundry bench env bootstrap` now fails early for
+  Python 3.13 TabICLv2 environments unless `--tab-realdata-hub-root` is
+  supplied, and uses that explicit checkout only to install the hub runtime
+  dependencies needed for helper-side `src/` injection.
+- User-facing note: `tab-foundry` and benchmark env bootstrap now pin the
+  published `tab-realdata-hub==0.1.1` release instead of `0.1.0`.
+- User-facing note: sandwich `cell_bpc` now excludes non-finite target cells
+  from BPC/BPF aggregation, restores configured input normalization on the
+  cell-likelihood lane, and surfaces valid-cell and valid-feature counts so
+  benchmark BPC/BPF weighting tracks only the finite cells actually scored.
+- User-facing note: synthetic system-delta rows can now declare a one-epoch
+  corpus-task budget, which resolves `runtime.max_steps` from synthetic corpus
+  task count and `prior_dump_batch_size`; TF-RD-010 now uses balanced 144-task
+  DAGZoo fronts capped at `<=1024` rows per dataset and reruns under that
+  single-epoch policy instead of the old fixed 400-step budget.
+
+## [0.15.3] - 2026-03-29
+
+### Changed
+
+- User-facing note: `tab-foundry bench env bootstrap` now prefers a local
+  sibling `tab-realdata-hub` checkout when one is available, so external
+  benchmark helper environments pick up the current manifest/runtime
+  dependencies needed for manifest-backed TF-RD-010 execution instead of
+  always installing the published `0.1.0` package.
+- User-facing note: dagzoo-backed corpus materialization now maps recipe-level
+  missingness overrides through `dagzoo generate --set dataset.*=...`, keeping
+  existing `reference/corpus_recipes/*.yaml` missingness contracts working
+  against the current dagzoo CLI after its dedicated missingness flags were
+  removed.
+
 ## [0.15.2] - 2026-03-29
 
 ### Changed

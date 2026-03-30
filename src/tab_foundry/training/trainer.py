@@ -15,7 +15,7 @@ from tab_foundry.model.spec import model_build_spec_from_mappings
 from tab_foundry.task_batching import move_batch, resolve_task_batch_size
 from tab_foundry.types import TrainResult
 
-from .artifacts import assert_clean_training_output, save_checkpoint
+from .artifacts import assert_clean_training_output, save_checkpoint, save_eval_mode_checkpoint
 from .instability import (
     gradient_history_path,
     normalize_grad_norm_value,
@@ -31,7 +31,7 @@ from .trainer_finalize import finalize_training_run
 from .trainer_guards import _accelerator_num_processes
 from .trainer_loop import TrainingLoopState, run_training_loop
 from .trainer_metrics import _compute_loss_and_metrics, _evaluate_loader, _expected_metric_keys
-from .trainer_optimizer import _optimizer_lr_scales
+from .trainer_optimizer import _optimizer_lr_scales, _set_optimizer_training_mode
 from .trainer_runtime_config import (
     _checkpoint_every,
     _resolve_activation_checkpointing,
@@ -333,11 +333,15 @@ def train(cfg: DictConfig) -> TrainResult:
         if state.best_checkpoint is None and state.latest_checkpoint is not None:
             state.best_checkpoint = output_dir / "checkpoints" / "best.pt"
             if accelerator.is_main_process:
-                save_checkpoint(
-                    state.best_checkpoint,
-                    model_state=accelerator.get_state_dict(model),
+                save_eval_mode_checkpoint(
+                    prepared_opts,
+                    path=state.best_checkpoint,
+                    model_state_factory=lambda: accelerator.get_state_dict(model),
                     global_step=state.global_step,
                     cfg=cfg,
+                    restore_training=False,
+                    set_optimizer_training_mode_fn=_set_optimizer_training_mode,
+                    save_checkpoint_fn=save_checkpoint,
                 )
 
         result, _wall_elapsed_seconds, _task_batching_summary = finalize_training_run(

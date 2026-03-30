@@ -12,7 +12,7 @@ from tab_foundry.cli.dev import diff_config_payloads, forward_check, resolve_con
 from tab_foundry.export.contracts import SCHEMA_VERSION_V2, SCHEMA_VERSION_V3
 from tab_foundry.export.inspection import export_check
 
-from tests.export import exporter_cases
+from tests.support import exporter_cases
 
 
 _SMALL_STAGED_OVERRIDES = [
@@ -51,6 +51,17 @@ def test_resolve_config_payload_omits_legacy_prior_for_manifest_experiment() -> 
 
     assert payload["training"]["backend"] == "manifest"
     assert "legacy_prior" not in payload["training"]
+
+
+def test_resolve_config_payload_reports_resolved_sandwich_contract() -> None:
+    payload = resolve_config_payload(
+        ["experiment=cls_benchmark_sandwich_classification_evolution_v1"]
+    )
+
+    assert payload["model"]["arch"] == "tabfoundry_sandwich"
+    assert payload["model"]["architecture"]["feature_type_encoding"] == "film"
+    assert payload["model"]["architecture"]["floating_likelihood"] == "single_gaussian"
+    assert payload["model"]["architecture"]["integer_likelihood"] == "hybrid_mixture"
 
 
 def test_resolve_config_payload_omits_backend_for_unsupported_data_source() -> None:

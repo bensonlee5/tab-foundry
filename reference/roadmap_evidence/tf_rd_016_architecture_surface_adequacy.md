@@ -63,8 +63,8 @@ This is the canonical long-form evidence note for
 
 - TF-RD-016 itself is closed, but the benchmark program it hands off still
   depends on:
-  - `tab-realdata-hub` medium and large multiclass bundle ownership
-  - frozen multiclass control baselines
+  - `tab-realdata-hub` medium and large classification bundle ownership
+  - frozen legacy TF-RD-010 control baselines
   - first executed medium and large benchmark runs
 
 ## Exit Signals

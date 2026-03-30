@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tab-foundry"
-version = "0.15.2"
+version = "0.15.3"
 description = "Tabular foundation model that generates its own training data via dagzoo, trains on it, and predicts on new tasks"
 readme = "README.md"
 license = "Apache-2.0"
@@ -34,7 +34,7 @@ dependencies = [
   "PyYAML>=6.0",
   "safetensors>=0.4",
   "schedulefree>=1.4",
-  "tab-realdata-hub==0.1.0",
+  "tab-realdata-hub==0.1.1",
   "torch>=2.8",
   "torchview>=0.2.7",
   "wandb>=0.20",
@@ -94,6 +94,9 @@ default-groups = ["dev"]
 testpaths = ["tests"]
 markers = [
   "slow: long-running benchmark coverage",
+  "research: research sweep contracts and research-engine tests",
+  "gpu: tests that require CUDA or other accelerator-specific hardware",
+  "integration: subprocess, smoke, or repo-tooling integration coverage",
 ]
 addopts = "-n auto --maxprocesses 8"
 

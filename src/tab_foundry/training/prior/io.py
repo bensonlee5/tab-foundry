@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import torch
 
-from tab_foundry.feature_types import DEFAULT_FEATURE_TYPE
-
 
 def _stack_feature_types(
     tasks,
     *,
     feature_count: int,
-    allow_padding: bool = False,
 ) -> list[list[str]] | None:
     resolved: list[list[str]] = []
     missing_indices: list[int] = []
@@ -27,15 +24,10 @@ def _stack_feature_types(
             )
         feature_types = [str(value).strip() for value in raw_feature_types]
         if len(feature_types) != int(feature_count):
-            if allow_padding and len(feature_types) < int(feature_count):
-                feature_types = feature_types + [DEFAULT_FEATURE_TYPE] * (
-                    int(feature_count) - len(feature_types)
-                )
-            else:
-                raise RuntimeError(
-                    "prior-dump task feature_types length must match the task feature count, "
-                    f"got task[{index}]={len(feature_types)} expected={int(feature_count)}"
-                )
+            raise RuntimeError(
+                "prior-dump task feature_types length must match the task feature count, "
+                f"got task[{index}]={len(feature_types)} expected={int(feature_count)}"
+            )
         resolved.append(feature_types)
     if missing_indices:
         if resolved:
@@ -57,11 +49,7 @@ def stack_prior_step(
         raise RuntimeError(f"prior dump step {prior_step.step_index} produced no tasks")
     if prior_step.x_batch is not None and prior_step.y_batch is not None:
         feature_count = int(prior_step.x_batch.shape[2])
-        feature_types_batch = _stack_feature_types(
-            tasks,
-            feature_count=feature_count,
-            allow_padding=True,
-        )
+        feature_types_batch = _stack_feature_types(tasks, feature_count=feature_count)
         x_batch = prior_step.x_batch.to(device=device, dtype=torch.float32)
         y_batch = prior_step.y_batch.to(device=device, dtype=torch.float32)
         return (
@@ -101,25 +89,3 @@ def stack_prior_step(
         dim=0,
     ).to(device=device, dtype=torch.float32)
     return x_batch, y_train_batch, y_all_batch, feature_types_batch
-
-
-def save_eval_mode_checkpoint(
-    prepared_opts: list[tuple[str, torch.optim.Optimizer]],
-    *,
-    path,
-    model: torch.nn.Module,
-    global_step: int,
-    cfg,
-    restore_training: bool,
-    set_optimizer_training_mode_fn,
-    save_checkpoint_fn,
-) -> None:
-    set_optimizer_training_mode_fn(prepared_opts, training=False)
-    save_checkpoint_fn(
-        path,
-        model_state=model.state_dict(),
-        global_step=global_step,
-        cfg=cfg,
-    )
-    if restore_training:
-        set_optimizer_training_mode_fn(prepared_opts, training=True)

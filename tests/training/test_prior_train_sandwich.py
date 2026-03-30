@@ -115,8 +115,41 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     assert result.global_step == 2
     assert (tmp_path / "train_out" / "checkpoints" / "latest.pt").exists()
     telemetry = json.loads((tmp_path / "train_out" / "telemetry.json").read_text(encoding="utf-8"))
+    gradient_history = [
+        json.loads(line)
+        for line in (tmp_path / "train_out" / "gradient_history.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    ]
     assert telemetry["success"] is True
     assert telemetry["artifacts"]["gradient_history_jsonl"].endswith("gradient_history.jsonl")
+    module_names = set(gradient_history[0]["module_grad_norms"])
+    assert {
+        "feature_encoder",
+        "y_conditioner",
+        "y_role_embedding",
+        "token_type_embedding",
+        "pre_row_attention_blocks.0",
+        "pre_column_attention_blocks.0",
+        "cell_decoder_blocks.0",
+        "cell_decoder_blocks.1",
+        "gaussian_head",
+        "discrete_query",
+        "discrete_oov",
+        "integer_gate",
+    }.issubset(module_names)
+    assert {
+        "row_summary_builder",
+        "column_summary_builder",
+        "perceiver_stages.0",
+        "perceiver_stages.1",
+        "latent_readout",
+        "cell_readout",
+        "test_row_pool",
+        "direct_head",
+    }.isdisjoint(module_names)
+    assert "feature_encoder_vs_direct_head" not in telemetry["diagnostics"]["module_balance"]
     assert telemetry["runtime_summary"].keys() == {
         "peak_vram_allocated",
         "peak_vram_reserved",
@@ -214,7 +247,9 @@ def test_train_tabfoundry_sandwich_prior_materializes_feature_types_for_legacy_d
 
     assert result.global_step == 1
     telemetry = json.loads(
-        (tmp_path / "train_out_missing_feature_types" / "telemetry.json").read_text(encoding="utf-8")
+        (tmp_path / "train_out_missing_feature_types" / "telemetry.json").read_text(
+            encoding="utf-8"
+        )
     )
     assert telemetry["success"] is True
     with h5py.File(path, "r") as handle:
@@ -227,3 +262,110 @@ def test_train_tabfoundry_sandwich_prior_materializes_feature_types_for_legacy_d
         for row in materialized.tolist()
     ]
     assert decoded == [["floating", "floating"]]
+
+
+def test_train_tabfoundry_sandwich_prior_handles_synthetic_missingness_without_nan_skip(
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_sandwich_missingness.h5",
+        x=np.asarray(
+            [
+                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
+                [[2.0, 1.0], [4.0, 3.0], [6.0, 5.0], [8.0, 7.0]],
+            ],
+            dtype=np.float32,
+        ),
+        y=np.asarray(
+            [
+                [0, 1, 0, 1],
+                [1, 0, 1, 0],
+            ],
+            dtype=np.int64,
+        ),
+        num_features=np.asarray([2, 2], dtype=np.int64),
+        num_datapoints=np.asarray([4, 4], dtype=np.int64),
+        single_eval_pos=np.asarray([2, 2], dtype=np.int64),
+        feature_types=np.asarray(
+            [
+                ["floating", "integer"],
+                ["bool", "string_binary"],
+            ],
+            dtype=object,
+        ),
+    )
+    cfg = OmegaConf.create(
+        {
+            "task": "classification",
+            "model": {
+                "arch": "tabfoundry_sandwich",
+                "d_icl": 32,
+                "input_normalization": "train_zscore_clip",
+                "many_class_base": 2,
+                "head_hidden_dim": 64,
+                "sandwich_latents": 12,
+                "sandwich_layers": 2,
+                "sandwich_heads": 4,
+                "sandwich_ff_expansion": 2,
+            },
+            "training": {
+                "overrides": {
+                    "prior_missingness": {
+                        "enabled": True,
+                        "min_rate": 0.25,
+                        "max_rate": 0.25,
+                    }
+                }
+            },
+            "runtime": {
+                "seed": 1,
+                "output_dir": str(tmp_path / "train_out_missingness"),
+                "device": "cpu",
+                "mixed_precision": "no",
+                "grad_clip": 1.0,
+                "max_steps": 1,
+                "eval_every": 1,
+                "checkpoint_every": 1,
+            },
+            "optimizer": {
+                "name": "schedulefree_adamw",
+                "require_requested": True,
+                "weight_decay": 0.0,
+                "min_lr": 4.0e-3,
+                "betas": [0.9, 0.95],
+                "muon_per_parameter_lr": False,
+                "muon_lr_scale_base": 0.2,
+                "muon_partition_non2d": True,
+            },
+            "logging": {
+                "history_jsonl_path": str(
+                    tmp_path / "train_out_missingness" / "train_history.jsonl"
+                ),
+            },
+        }
+    )
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=2,
+    )
+
+    history = [
+        json.loads(line)
+        for line in (tmp_path / "train_out_missingness" / "train_history.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    ]
+    telemetry = json.loads(
+        (tmp_path / "train_out_missingness" / "telemetry.json").read_text(encoding="utf-8")
+    )
+
+    assert result.global_step == 1
+    assert result.metrics["nan_skip_count"] == 0.0
+    assert len(history) == 1
+    assert np.isfinite(float(history[0]["train_loss"]))
+    assert telemetry["missingness"]["synthetic_prior"]["enabled"] is True
+    assert telemetry["missingness"]["synthetic_prior"]["affected_batch_count"] == 1
+    assert telemetry["missingness"]["synthetic_prior"]["masked_feature_count"] > 0

@@ -49,6 +49,38 @@ def _batch(
     )
 
 
+def _finite_batch(
+    *,
+    num_classes: int = 3,
+    feature_types: list[str] | None = None,
+) -> TaskBatch:
+    metadata = {
+        "source": "unit_test",
+        "feature_types": list(feature_types or _DEFAULT_FEATURE_TYPES),
+    }
+    return TaskBatch(
+        x_train=torch.tensor(
+            [
+                [1.0, 2.0, 0.5, 4.0],
+                [2.0, 1.0, 3.0, 0.0],
+                [0.5, -1.0, 2.0, 1.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_train=torch.tensor([0, 1, 2], dtype=torch.int64),
+        x_test=torch.tensor(
+            [
+                [1.5, 2.5, 0.0, -1.0],
+                [0.0, -0.5, 1.5, 2.0],
+            ],
+            dtype=torch.float32,
+        ),
+        y_test=torch.tensor([1, 0], dtype=torch.int64),
+        metadata=metadata,
+        num_classes=num_classes,
+    )
+
+
 def _batched_inputs() -> tuple[torch.Tensor, torch.Tensor, int]:
     x_all = torch.tensor(
         [
@@ -90,9 +122,11 @@ def _model(
     sandwich_summary_tokens_per_axis: int = 4,
     sandwich_self_attention_per_cross: int = 4,
     feature_type_conditioning: str = "film",
+    input_normalization: str = "train_zscore_clip",
 ) -> TabFoundrySandwichClassifier:
     return TabFoundrySandwichClassifier(
         d_icl=32,
+        input_normalization=input_normalization,
         many_class_base=many_class_base,
         head_hidden_dim=64,
         sandwich_latents=12,
@@ -224,8 +258,7 @@ def test_tabfoundry_sandwich_pools_test_readout_facets_with_learned_query() -> N
     feature_type_ids = model._feature_type_ids_from_metadata(
         {
             "task_members": [
-                {"feature_types": feature_types}
-                for feature_types in _batched_feature_types()
+                {"feature_types": feature_types} for feature_types in _batched_feature_types()
             ]
         },
         batch_size=int(x_all.shape[0]),
@@ -376,8 +409,7 @@ def test_tabfoundry_sandwich_runs_repeated_cross_then_self_stages() -> None:
     original_cross_block = model._cross_block
     original_self_block = model._self_block
     stage_reads = {
-        id(stage.input_read): f"cross_{index}"
-        for index, stage in enumerate(model.perceiver_stages)
+        id(stage.input_read): f"cross_{index}" for index, stage in enumerate(model.perceiver_stages)
     }
     stage_latent_blocks = {
         id(latent_block): f"self_{index}_{self_index}"
@@ -430,8 +462,7 @@ def test_tabfoundry_sandwich_uses_full_cell_context_only_on_stage_zero() -> None
     observed_context_lengths: list[int] = []
     original_cross_block = model._cross_block
     stage_reads = {
-        id(stage.input_read): index
-        for index, stage in enumerate(model.perceiver_stages)
+        id(stage.input_read): index for index, stage in enumerate(model.perceiver_stages)
     }
 
     def _recording_cross_block(block, query: torch.Tensor, key_value: torch.Tensor) -> torch.Tensor:
@@ -693,6 +724,13 @@ def test_tabfoundry_sandwich_forward_cell_likelihood_emits_typed_payloads() -> N
     assert output.floating_predictions is not None
     assert output.integer_predictions is not None
     assert output.categorical_predictions is not None
+    assert torch.isfinite(output.bpc)
+    assert torch.isfinite(output.bpf)
+    assert int(torch.isnan(output.per_cell_bits).sum().item()) == 1
+    assert output.aux_metrics is not None
+    assert output.aux_metrics["bpc_cell_count"] == pytest.approx(19.0)
+    assert output.aux_metrics["bpf_feature_count"] == pytest.approx(4.0)
+    assert output.aux_metrics["excluded_non_finite_cell_count"] == pytest.approx(1.0)
     assert len(output.floating_predictions) == 1
     assert len(output.integer_predictions) == 1
     assert len(output.categorical_predictions) == 2
@@ -700,6 +738,38 @@ def test_tabfoundry_sandwich_forward_cell_likelihood_emits_typed_payloads() -> N
     assert integer_prediction.feature_index == 1
     assert tuple(integer_prediction.discrete_logits.shape) == (5, 4)
     assert tuple(integer_prediction.support_values.shape) == (3,)
+
+
+def test_tabfoundry_sandwich_forward_cell_likelihood_rejects_all_non_finite_targets() -> None:
+    model = _model()
+    batch = TaskBatch(
+        x_train=torch.full((3, 2), float("nan"), dtype=torch.float32),
+        y_train=torch.tensor([0, 1, 0], dtype=torch.int64),
+        x_test=torch.full((2, 2), float("nan"), dtype=torch.float32),
+        y_test=torch.tensor([1, 0], dtype=torch.int64),
+        metadata={"source": "unit_test", "feature_types": ["floating", "floating"]},
+        num_classes=2,
+    )
+
+    with pytest.raises(RuntimeError, match="at least one finite target cell"):
+        _ = model.forward_cell_likelihood(batch)
+
+
+def test_tabfoundry_sandwich_cell_bpc_honors_input_normalization() -> None:
+    base_model = _model(input_normalization="none")
+    normalized_model = _model(input_normalization="train_zscore_clip")
+    normalized_model.load_state_dict(base_model.state_dict())
+    batch = _finite_batch()
+
+    base_output = base_model.forward_cell_likelihood(batch)
+    normalized_output = normalized_model.forward_cell_likelihood(batch)
+
+    assert base_output.bpc is not None
+    assert normalized_output.bpc is not None
+    assert not torch.allclose(base_output.per_cell_bits, normalized_output.per_cell_bits)
+    assert float(base_output.bpc.detach().item()) != pytest.approx(
+        float(normalized_output.bpc.detach().item())
+    )
 
 
 def test_tabfoundry_sandwich_forward_dispatches_to_cell_bpc_surface() -> None:

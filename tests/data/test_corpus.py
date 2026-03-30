@@ -38,7 +38,7 @@ from tab_realdata_hub.manifest import build_manifest
 from tab_foundry.data.surface import resolve_data_surface
 from tab_foundry.hashing import sha256_path
 
-from . import manifest_and_dataset_cases as cases
+from tests.support import manifest_and_dataset_cases as cases
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

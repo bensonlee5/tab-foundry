@@ -55,6 +55,44 @@ _TOP_LEVEL_GRADIENT_MODULES = (
     "direct_head",
     "decoder",
 )
+_SANDWICH_CLASSIFICATION_GRADIENT_MODULES = (
+    "tokenizer",
+    "feature_encoder",
+    "feature_type_film",
+    "feature_type_embedding",
+    "row_summary_builder",
+    "column_summary_builder",
+    "y_conditioner",
+    "y_role_embedding",
+    "token_type_embedding",
+    "latent_readout",
+    "cell_readout",
+    "test_row_pool",
+    "direct_head",
+)
+_SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS = (
+    "pre_row_attention_blocks",
+    "pre_column_attention_blocks",
+    "perceiver_stages",
+)
+_SANDWICH_CELL_BPC_GRADIENT_MODULES = (
+    "tokenizer",
+    "feature_encoder",
+    "feature_type_film",
+    "feature_type_embedding",
+    "y_conditioner",
+    "y_role_embedding",
+    "token_type_embedding",
+    "gaussian_head",
+    "discrete_query",
+    "discrete_oov",
+    "integer_gate",
+)
+_SANDWICH_CELL_BPC_GRADIENT_MODULE_LISTS = (
+    "pre_row_attention_blocks",
+    "pre_column_attention_blocks",
+    "cell_decoder_blocks",
+)
 _GLOBAL_GRAD_NORM_KINDS = ("finite", "nan", "pos_inf", "neg_inf")
 
 
@@ -200,18 +238,52 @@ def normalize_grad_norm_value(value: object, *, fallback: float) -> float:
     return float(fallback)
 
 
+def _append_named_module(modules: dict[str, nn.Module], model: nn.Module, *, name: str) -> None:
+    raw = getattr(model, name, None)
+    if isinstance(raw, nn.Module):
+        modules[name] = raw
+
+
+def _append_module_list(
+    modules: dict[str, nn.Module],
+    model: nn.Module,
+    *,
+    name: str,
+) -> None:
+    raw = getattr(model, name, None)
+    if not isinstance(raw, nn.ModuleList):
+        return
+    for index, block in enumerate(raw):
+        modules[f"{name}.{index}"] = block
+
+
+def _sandwich_gradient_module_map(model: nn.Module) -> dict[str, nn.Module]:
+    modules: dict[str, nn.Module] = {}
+    loss_surface = str(getattr(model, "loss_surface", "classification")).strip().lower()
+    if loss_surface == "cell_bpc":
+        for name in _SANDWICH_CELL_BPC_GRADIENT_MODULES:
+            _append_named_module(modules, model, name=name)
+        for name in _SANDWICH_CELL_BPC_GRADIENT_MODULE_LISTS:
+            _append_module_list(modules, model, name=name)
+        return modules
+
+    for name in _SANDWICH_CLASSIFICATION_GRADIENT_MODULES:
+        _append_named_module(modules, model, name=name)
+    for name in _SANDWICH_CLASSIFICATION_GRADIENT_MODULE_LISTS:
+        _append_module_list(modules, model, name=name)
+    return modules
+
+
 def gradient_module_map(model: nn.Module) -> dict[str, nn.Module]:
     """Resolve the stable module names used in per-step gradient telemetry."""
 
+    if str(getattr(model, "arch", "")).strip().lower() == "tabfoundry_sandwich":
+        return _sandwich_gradient_module_map(model)
+
     modules: dict[str, nn.Module] = {}
     for name in _TOP_LEVEL_GRADIENT_MODULES:
-        raw = getattr(model, name, None)
-        if isinstance(raw, nn.Module):
-            modules[name] = raw
-    raw_blocks = getattr(model, "transformer_blocks", None)
-    if isinstance(raw_blocks, nn.ModuleList):
-        for index, block in enumerate(raw_blocks):
-            modules[f"transformer_blocks.{index}"] = block
+        _append_named_module(modules, model, name=name)
+    _append_module_list(modules, model, name="transformer_blocks")
     return modules
 
 
@@ -465,7 +537,7 @@ def _module_balance_summary(
     records: Sequence[Mapping[str, Any]],
     *,
     warmup_end_step: int,
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     windows = _windowed_gradient_records(records, warmup_end_step=warmup_end_step)
     window_summaries: dict[str, Any] = {}
     for window_name, window_records in windows.items():
@@ -495,6 +567,11 @@ def _module_balance_summary(
             "feature_encoder_to_direct_head_mean_ratio": _ratio_or_none(feature_mean, head_mean),
             "direct_head_to_feature_encoder_mean_ratio": _ratio_or_none(head_mean, feature_mean),
         }
+    if not any(
+        int(window_summary["paired_record_count"]) > 0
+        for window_summary in window_summaries.values()
+    ):
+        return None
     return {
         "warmup_end_step": int(warmup_end_step),
         "windows": window_summaries,
@@ -692,6 +769,14 @@ def diagnostics_summary(
     clipped_step_count = sum(1 for record in ordered if bool(record.get("grad_clip_triggered", False)))
     warmup_end_step = _warmup_end_step(training_surface_record)
     window_records = _windowed_gradient_records(ordered, warmup_end_step=warmup_end_step)
+    module_balance: dict[str, Any] = {}
+    feature_encoder_vs_direct_head = _module_balance_summary(
+        ordered,
+        warmup_end_step=warmup_end_step,
+    )
+    if feature_encoder_vs_direct_head is not None:
+        module_balance["feature_encoder_vs_direct_head"] = feature_encoder_vs_direct_head
+
     return {
         "windowing": {
             "warmup_end_step": int(warmup_end_step),
@@ -711,12 +796,7 @@ def diagnostics_summary(
             ordered,
             warmup_end_step=warmup_end_step,
         ),
-        "module_balance": {
-            "feature_encoder_vs_direct_head": _module_balance_summary(
-                ordered,
-                warmup_end_step=warmup_end_step,
-            )
-        },
+        "module_balance": module_balance,
         "activation_windows": _activation_summary(
             ordered,
             warmup_end_step=warmup_end_step,

@@ -23,7 +23,7 @@ from tab_foundry.training.batching import (
 )
 from tab_foundry.types import TaskBatch
 
-from tests.data.manifest_and_dataset_cases import _classification_metadata, _write_packed_shard
+from tests.support.manifest_and_dataset_cases import _classification_metadata, _write_packed_shard
 
 
 def _sample_batch() -> TaskBatch:

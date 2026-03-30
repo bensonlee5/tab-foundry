@@ -53,11 +53,13 @@ def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:
     reference_root = tmp_path / 'reference'
     sweeps_root = reference_root / 'system_delta_sweeps'
     source_sweeps_root = REPO_ROOT / 'reference' / 'system_delta_sweeps'
+    source_corpus_recipes_root = REPO_ROOT / 'reference' / 'corpus_recipes'
     sweeps_root.mkdir(parents=True, exist_ok=True)
     (reference_root / 'system_delta_catalog.yaml').write_text(
         (REPO_ROOT / 'reference' / 'system_delta_catalog.yaml').read_text(encoding='utf-8'),
         encoding='utf-8',
     )
+    shutil.copytree(source_corpus_recipes_root, reference_root / 'corpus_recipes', dirs_exist_ok=True)
     (sweeps_root / 'index.yaml').write_text(
         (source_sweeps_root / 'index.yaml').read_text(encoding='utf-8'),
         encoding='utf-8',

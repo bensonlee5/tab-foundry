@@ -8,7 +8,12 @@ import numpy as np
 from sklearn.metrics import log_loss, roc_auc_score
 from sklearn.model_selection import KFold, StratifiedKFold
 
-from .dataset_common import BenchmarkDatasetEvaluationError, _assert_finite_benchmark_datasets
+from .dataset_common import (
+    BenchmarkDataset,
+    BenchmarkDatasetEvaluationError,
+    _assert_finite_benchmark_datasets,
+    unpack_benchmark_dataset,
+)
 
 
 _LOG_LOSS_EPS = 1.0e-15
@@ -22,7 +27,7 @@ _REGRESSION_KF = KFold(n_splits=5, shuffle=True, random_state=0)
 
 def evaluate_classifier(
     classifier: Any,
-    datasets: Mapping[str, tuple[np.ndarray, np.ndarray]],
+    datasets: Mapping[str, BenchmarkDataset],
     *,
     allow_missing_values: bool = False,
 ) -> dict[str, float]:
@@ -33,13 +38,17 @@ def evaluate_classifier(
     metrics: dict[str, float] = {}
     dataset_bpc_values: list[tuple[float, float]] = []
     dataset_bpf_values: list[tuple[float, float]] = []
-    for dataset_name, (x, y) in datasets.items():
+    for dataset_name, dataset in datasets.items():
         try:
+            x, y, feature_types = unpack_benchmark_dataset(dataset_name, dataset)
             targets: list[np.ndarray] = []
             probability_matrices: list[np.ndarray] = []
-            bpc_fold_values: list[float] = []
-            bpf_fold_values: list[float] = []
+            bpc_fold_values: list[tuple[float, float]] = []
+            bpf_fold_values: list[tuple[float, float]] = []
             all_labels = np.asarray(sorted(int(label) for label in np.unique(y)), dtype=np.int64)
+            set_benchmark_feature_types = getattr(classifier, "set_benchmark_feature_types", None)
+            if callable(set_benchmark_feature_types):
+                set_benchmark_feature_types(feature_types)
             for train_idx, test_idx in _CLASSIFICATION_SKF.split(x, y):
                 x_train, x_test = x[train_idx], x[test_idx]
                 y_train, y_test = y[train_idx], y[test_idx]
@@ -58,9 +67,27 @@ def evaluate_classifier(
                     raw_bpc = fold_metrics.get("bpc")
                     raw_bpf = fold_metrics.get("bpf")
                     if raw_bpc is not None:
-                        bpc_fold_values.append(float(raw_bpc))
+                        bpc_fold_values.append(
+                            (
+                                _resolve_cell_likelihood_weight(
+                                    fold_metrics,
+                                    key="bpc_cell_count",
+                                    fallback=float(x_test.shape[0] * x_test.shape[1]),
+                                ),
+                                float(raw_bpc),
+                            )
+                        )
                     if raw_bpf is not None:
-                        bpf_fold_values.append(float(raw_bpf))
+                        bpf_fold_values.append(
+                            (
+                                _resolve_cell_likelihood_weight(
+                                    fold_metrics,
+                                    key="bpf_feature_count",
+                                    fallback=float(x_test.shape[1]),
+                                ),
+                                float(raw_bpf),
+                            )
+                        )
 
             target_array = np.concatenate(targets, axis=0)
             probability_matrix = np.concatenate(probability_matrices, axis=0)
@@ -69,9 +96,7 @@ def evaluate_classifier(
                 context=f"benchmark classifier outputs dataset={dataset_name!r}",
             )
             roc_auc_probabilities: np.ndarray = (
-                probability_matrix[:, 1]
-                if probability_matrix.shape[1] == 2
-                else probability_matrix
+                probability_matrix[:, 1] if probability_matrix.shape[1] == 2 else probability_matrix
             )
             metrics[f"{dataset_name}/ROC AUC"] = float(
                 roc_auc_score(target_array, roc_auc_probabilities, multi_class="ovr")
@@ -87,13 +112,21 @@ def evaluate_classifier(
                 _classification_brier_score(target_array, probability_matrix)
             )
             if bpc_fold_values:
-                dataset_bpc = float(np.mean(bpc_fold_values))
+                dataset_bpc_weight = sum(weight for weight, _ in bpc_fold_values)
+                dataset_bpc = float(
+                    sum(weight * value for weight, value in bpc_fold_values)
+                    / max(dataset_bpc_weight, 1.0)
+                )
                 metrics[f"{dataset_name}/BPC"] = dataset_bpc
-                dataset_bpc_values.append((float(x.shape[0] * x.shape[1]), dataset_bpc))
+                dataset_bpc_values.append((float(dataset_bpc_weight), dataset_bpc))
             if bpf_fold_values:
-                dataset_bpf = float(np.mean(bpf_fold_values))
+                dataset_bpf_weight = sum(weight for weight, _ in bpf_fold_values)
+                dataset_bpf = float(
+                    sum(weight * value for weight, value in bpf_fold_values)
+                    / max(dataset_bpf_weight, 1.0)
+                )
                 metrics[f"{dataset_name}/BPF"] = dataset_bpf
-                dataset_bpf_values.append((float(x.shape[1]), dataset_bpf))
+                dataset_bpf_values.append((float(dataset_bpf_weight), dataset_bpf))
         except Exception as exc:
             raise BenchmarkDatasetEvaluationError(str(dataset_name), exc) from exc
 
@@ -116,9 +149,24 @@ def evaluate_classifier(
     return metrics
 
 
+def _resolve_cell_likelihood_weight(
+    metrics: Mapping[str, Any],
+    *,
+    key: str,
+    fallback: float,
+) -> float:
+    raw_weight = metrics.get(key)
+    if raw_weight is None:
+        return float(fallback)
+    weight = float(raw_weight)
+    if not np.isfinite(weight) or weight <= 0.0:
+        raise RuntimeError(f"cell_likelihood_metrics[{key!r}] must be finite and > 0")
+    return weight
+
+
 def evaluate_regressor(
     regressor: Any,
-    datasets: Mapping[str, tuple[np.ndarray, np.ndarray]],
+    datasets: Mapping[str, BenchmarkDataset],
     *,
     allow_missing_values: bool = False,
 ) -> dict[str, float]:
@@ -127,8 +175,9 @@ def evaluate_regressor(
     if not allow_missing_values:
         _assert_finite_benchmark_datasets(datasets, context="benchmark evaluation inputs")
     metrics: dict[str, float] = {}
-    for dataset_name, (x, y) in datasets.items():
+    for dataset_name, dataset in datasets.items():
         try:
+            x, y, _feature_types = unpack_benchmark_dataset(dataset_name, dataset)
             targets: list[np.ndarray] = []
             quantile_predictions: list[np.ndarray] = []
             quantile_levels: np.ndarray | None = None
@@ -232,9 +281,7 @@ def _aligned_classification_probabilities(
             "expose classes_/_classes or return the full probability matrix"
         )
     if normalized.shape[1] != classifier_classes.size:
-        raise RuntimeError(
-            "predict_proba output width does not match classifier classes metadata"
-        )
+        raise RuntimeError("predict_proba output width does not match classifier classes metadata")
     if normalized.shape[1] == labels.size and np.array_equal(classifier_classes, labels):
         return normalized
     label_to_index = {int(label): index for index, label in enumerate(labels.tolist())}
@@ -316,8 +363,12 @@ def _prediction_interval_coverage_probability(
     lower_quantile: float,
     upper_quantile: float,
 ) -> float:
-    lower_index = int(np.argmin(np.abs(np.asarray(quantile_levels, dtype=np.float64) - float(lower_quantile))))
-    upper_index = int(np.argmin(np.abs(np.asarray(quantile_levels, dtype=np.float64) - float(upper_quantile))))
+    lower_index = int(
+        np.argmin(np.abs(np.asarray(quantile_levels, dtype=np.float64) - float(lower_quantile)))
+    )
+    upper_index = int(
+        np.argmin(np.abs(np.asarray(quantile_levels, dtype=np.float64) - float(upper_quantile)))
+    )
     if lower_index >= upper_index:
         raise RuntimeError("prediction interval quantile indices must be strictly ordered")
     target_array = np.asarray(targets, dtype=np.float64)

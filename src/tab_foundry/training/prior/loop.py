@@ -515,8 +515,11 @@ def run_prior_training(
 
             pre_clip_module_grad_norms = deps.module_grad_norms(model)
             local_grad_norm = deps.total_grad_norm(model.parameters())
-            clipped = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-            local_grad_norm = deps.normalize_grad_norm_value(clipped, fallback=local_grad_norm)
+            clipped_grad_norm = local_grad_norm
+            if grad_clip > 0:
+                clipped = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+                clipped_grad_norm = deps.normalize_grad_norm_value(clipped, fallback=local_grad_norm)
+            local_grad_norm = float(clipped_grad_norm)
             global_grad_norm_kind = _global_grad_norm_kind(float(local_grad_norm))
             if global_grad_norm_kind != "finite":
                 nan_skip_count += 1
@@ -564,7 +567,7 @@ def run_prior_training(
                 gradient_records.append(gradient_payload)
                 deps.append_jsonl_record(gradient_path, gradient_payload)
                 continue
-            grad_clip_triggered = bool(local_grad_norm > grad_clip)
+            grad_clip_triggered = bool(grad_clip > 0 and local_grad_norm > grad_clip)
             if grad_clip_triggered:
                 clipped_step_count += 1
 

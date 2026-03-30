@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 from omegaconf import DictConfig, OmegaConf
 import torch
@@ -373,3 +373,29 @@ def save_checkpoint(
         ),
         path,
     )
+
+
+def save_eval_mode_checkpoint(
+    prepared_opts: Sequence[tuple[str, torch.optim.Optimizer]],
+    *,
+    path: Path,
+    model_state_factory: Callable[[], Mapping[str, Any]],
+    global_step: int,
+    cfg: DictConfig,
+    restore_training: bool,
+    set_optimizer_training_mode_fn: Callable[..., None],
+    save_checkpoint_fn: Callable[..., None] = save_checkpoint,
+) -> None:
+    """Save a checkpoint while optimizers are in eval mode."""
+
+    set_optimizer_training_mode_fn(prepared_opts, training=False)
+    try:
+        save_checkpoint_fn(
+            path,
+            model_state=model_state_factory(),
+            global_step=global_step,
+            cfg=cfg,
+        )
+    finally:
+        if restore_training:
+            set_optimizer_training_mode_fn(prepared_opts, training=True)

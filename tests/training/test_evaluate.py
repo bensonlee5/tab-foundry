@@ -7,7 +7,7 @@ import pytest
 import torch
 
 import tab_foundry.training.evaluate as evaluate_module
-from tests.training.task_batching_cases import write_task_batch_manifest_from_specs
+from tests.support.task_batching import write_task_batch_manifest_from_specs
 
 
 def test_evaluate_checkpoint_uses_explicit_weights_only_false(

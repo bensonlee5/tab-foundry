@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 
+from tab_foundry.bench.helper_imports import resolve_tab_realdata_hub_root
+
 
 NANOTABPFN_PYPROJECT = """[project]
 name = "nanotabpfn-local"
@@ -34,7 +36,14 @@ experiment = [
 package = false
 """
 
-TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub==0.1.0"
+TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub==0.1.1"
+TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES = (
+    "numpy>=2.1",
+    "openml>=0.15",
+    "pandas>=2.2",
+    "pyarrow>=23.0",
+    "scikit-learn>=1.6",
+)
 
 
 @dataclass(slots=True)
@@ -44,6 +53,7 @@ class BenchmarkEnvConfig:
     nanotabpfn_root: Path = Path("~/dev/nanoTabPFN")
     tabpfn_root: Path = Path("~/dev/TabPFN")
     tabicl_root: Path = Path("~/dev/tabicl")
+    tab_realdata_hub_root: Path | None = None
 
 
 def ensure_nanotabpfn_pyproject(root: Path) -> Path:
@@ -88,8 +98,32 @@ def _install_python_package(python_path: Path, package_spec: str) -> None:
     )
 
 
-def _tab_realdata_hub_install_spec() -> str:
+def _python_version_info(python_path: Path) -> tuple[int, int]:
+    completed = subprocess.run(
+        [
+            str(python_path),
+            "-c",
+            "import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    raw = completed.stdout.strip()
+    major_str, minor_str = raw.split(".", maxsplit=1)
+    return int(major_str), int(minor_str)
+
+
+def _tab_realdata_hub_install_spec(root: Path | None = None) -> str:
+    resolved_root = resolve_tab_realdata_hub_root(tab_realdata_hub_root=root)
+    if resolved_root is not None:
+        return str(resolved_root)
     return TAB_REALDATA_HUB_INSTALL_SPEC
+
+
+def _install_tab_realdata_hub_runtime_dependencies(python_path: Path) -> None:
+    for dependency in TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES:
+        _install_python_package(python_path, dependency)
 
 
 def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
@@ -115,10 +149,25 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     nanotabpfn_python = nanotabpfn_root / ".venv" / "bin" / "python"
     tabpfn_python = tabpfn_root / ".venv" / "bin" / "python"
     tabicl_python = tabicl_root / ".venv" / "bin" / "python"
-    tab_realdata_hub_spec = _tab_realdata_hub_install_spec()
+    resolved_tab_realdata_hub_root = resolve_tab_realdata_hub_root(
+        tab_realdata_hub_root=config.tab_realdata_hub_root,
+    )
+    tab_realdata_hub_spec = _tab_realdata_hub_install_spec(resolved_tab_realdata_hub_root)
+    tabicl_python_version = _python_version_info(tabicl_python)
+    tabicl_requires_runtime_dependency_bootstrap = tabicl_python_version < (3, 14)
+    if tabicl_requires_runtime_dependency_bootstrap and resolved_tab_realdata_hub_root is None:
+        raise RuntimeError(
+            "tabicl benchmark env uses Python "
+            f"{tabicl_python_version[0]}.{tabicl_python_version[1]}, but the published "
+            "tab-realdata-hub package requires Python >=3.14; pass "
+            "--tab-realdata-hub-root to bootstrap against a local checkout"
+        )
 
     _install_python_package(nanotabpfn_python, tab_realdata_hub_spec)
-    _install_python_package(tabicl_python, tab_realdata_hub_spec)
+    if tabicl_requires_runtime_dependency_bootstrap:
+        _install_tab_realdata_hub_runtime_dependencies(tabicl_python)
+    else:
+        _install_python_package(tabicl_python, tab_realdata_hub_spec)
 
     _validate_import(nanotabpfn_python, "h5py")
     _validate_import(nanotabpfn_python, "pyarrow")
@@ -128,7 +177,8 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     _validate_import(nanotabpfn_python, "tab_realdata_hub")
     _validate_import(tabpfn_python, "tabpfn")
     _validate_import(tabicl_python, "pyarrow")
-    _validate_import(tabicl_python, "tab_realdata_hub")
+    if not tabicl_requires_runtime_dependency_bootstrap:
+        _validate_import(tabicl_python, "tab_realdata_hub")
     _validate_import(tabicl_python, "tabicl")
 
     return {

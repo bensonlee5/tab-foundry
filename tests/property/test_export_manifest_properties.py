@@ -4,10 +4,12 @@ import copy
 import json
 from pathlib import Path
 
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 import pytest
 
+from tests.support.hypothesis_profiles import HYPOTHESIS_CI
+from tests.support.hypothesis_profiles import HYPOTHESIS_EXTENDED
 from tab_foundry.export.contracts import (
     canonicalize_v3_manifest_payload,
     compute_v3_manifest_sha256,
@@ -50,7 +52,7 @@ def _manifest_ordering_case(draw: st.DrawFn) -> tuple[dict[str, object], dict[st
     return payload, payload_variant
 
 
-@settings(deadline=None, max_examples=30)
+@HYPOTHESIS_EXTENDED
 @given(case=_manifest_ordering_case())
 def test_canonicalize_v3_manifest_payload_is_stable_across_dict_order(
     case: tuple[dict[str, object], dict[str, object]],
@@ -61,7 +63,7 @@ def test_canonicalize_v3_manifest_payload_is_stable_across_dict_order(
     assert compute_v3_manifest_sha256(original) == compute_v3_manifest_sha256(reordered)
 
 
-@settings(deadline=None, max_examples=20)
+@HYPOTHESIS_CI
 @given(manifest_sha256=st.text(alphabet="0123456789abcdef", min_size=64, max_size=64))
 def test_manifest_sha_ignores_only_manifest_sha256_field(manifest_sha256: str) -> None:
     payload = _load_manifest_v3_fixture()
@@ -71,7 +73,7 @@ def test_manifest_sha_ignores_only_manifest_sha256_field(manifest_sha256: str) -
     assert compute_v3_manifest_sha256(payload) == original_sha
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(
     mutation=st.sampled_from(
         [
@@ -100,7 +102,7 @@ def test_manifest_sha_changes_when_semantic_fields_change(
     assert compute_v3_manifest_sha256(payload) != original_sha
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(
     mutation=st.sampled_from(
         [
@@ -252,7 +254,7 @@ def test_validate_preprocessor_state_dict_rejects_nonfinite_all_nan_fill(
         )
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(task=st.sampled_from(("regression", "REGRESSION")))
 def test_validate_preprocessor_state_dict_rejects_unsupported_task(task: str) -> None:
     payload: dict[str, object] = {

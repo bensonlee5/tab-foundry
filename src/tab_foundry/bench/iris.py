@@ -39,6 +39,7 @@ def evaluate_iris_checkpoint(
     iris = load_iris()
     x = iris.data[iris.target != 0]
     y = iris.target[iris.target != 0] - 1
+    classifier.set_benchmark_feature_types(["floating"] * x.shape[1])
 
     results: dict[str, list[float]] = {
         "tab_foundry": [],
