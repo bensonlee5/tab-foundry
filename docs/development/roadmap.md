@@ -300,10 +300,10 @@ Legacy wording note:
   - the synthetic TF-RD-010 corpora and upstream hub bundles now align on
     `min_classes=2`, `max_classes=10`; the upstream hub bundles also fix
     `max_missing_pct=20.0`
-  - the repo now has materialized validation manifests at
-    `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`
-    and
-    `data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet`
+  - the repo now has materialized validation manifests under
+    `data/manifests/bench`, with the legacy local output roots
+    `nanotabpfn_openml_classification_medium_v1` and
+    `nanotabpfn_openml_classification_large_v1`
 - Completed outcomes:
   - `dagzoo` now owns the explicit TF-RD-010 control, MCAR, MAR, and MNAR
     corpora through `tf_rd_010_dagzoo_medium_control_v1`,

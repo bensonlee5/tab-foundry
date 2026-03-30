@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- User-facing note: standard manifest-backed training now saves eval-mode
+  checkpoints when optimizers expose `train()` / `eval()` state, keeping
+  `schedulefree_adamw` snapshot, latest, and fallback-best checkpoints aligned
+  with the parameter view used for validation and later benchmark comparison.
+- User-facing note: sandwich training telemetry is now loss-surface-aware.
+  `classification` runs continue to report `direct_head` gradients and
+  feature/head balance, while `cell_bpc` runs now report only the active
+  cell-likelihood modules instead of surfacing inactive direct-head metrics.
+- User-facing note: prior-dump training now accepts `runtime.grad_clip <= 0`
+  as the explicit no-clipping setting, matching the standard trainer contract.
+
 ## [0.15.3] - 2026-03-29
 
 ### Changed

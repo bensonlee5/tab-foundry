@@ -32,6 +32,7 @@ _export(
         "test_train_tabfoundry_simple_prior_skip_policy_preserves_successful_step_budget",
         "test_train_tabfoundry_simple_prior_skips_non_finite_loss_steps",
         "test_train_tabfoundry_simple_prior_accepts_plain_adamw",
+        "test_train_tabfoundry_simple_prior_allows_zero_grad_clip",
         "test_evaluate_tab_foundry_run_supports_runs_without_best_checkpoint",
         "test_tabfoundry_staged_nano_exact_matches_simple_prior_batch_loss",
     ]

@@ -17,6 +17,7 @@ from torch.utils.data import Dataset
 import tab_foundry.training.evaluate as evaluate_module
 import tab_foundry.training.distributed as distributed_module
 import tab_foundry.training.trainer as trainer_module
+import tab_foundry.training.trainer_loop as trainer_loop_module
 import tab_foundry.training.trainer_metrics as trainer_metrics_module
 from tab_foundry.model.outputs import ClassificationOutput
 from tab_foundry.training.optimizer import OptimizerSelection
@@ -548,6 +549,18 @@ class _CountingOptimizer:
         return self._optimizer.step(closure)
 
 
+class _ModeTrackingOptimizer(_CountingOptimizer):
+    def __init__(self, optimizer: torch.optim.Optimizer) -> None:
+        super().__init__(optimizer)
+        self.events: list[str] = []
+
+    def train(self) -> None:
+        self.events.append("train")
+
+    def eval(self) -> None:
+        self.events.append("eval")
+
+
 class _UnevenActivationTraceClassifier(nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -828,11 +841,18 @@ def test_train_smoke_runs_end_to_end_with_tabfoundry_sandwich(
     training_surface_record = json.loads(
         (result.output_dir / "training_surface_record.json").read_text(encoding="utf-8")
     )
+    gradient_history = [
+        json.loads(line)
+        for line in (result.output_dir / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    telemetry = json.loads((result.output_dir / "telemetry.json").read_text(encoding="utf-8"))
 
     assert result.global_step == 1
     assert result.best_checkpoint is not None
     assert result.best_checkpoint.exists()
     assert training_surface_record["model"]["arch"] == "tabfoundry_sandwich"
+    assert training_surface_record["training"]["loss_surface"] == "classification"
     assert training_surface_record["model"]["architecture"]["latents"] == 12
     assert (
         training_surface_record["model"]["architecture"]["initial_input_tokens"]
@@ -846,6 +866,20 @@ def test_train_smoke_runs_end_to_end_with_tabfoundry_sandwich(
         training_surface_record["model"]["architecture"]["label_injection"]
         == "fused_into_row_summaries_and_feature_cells"
     )
+    module_names = set(gradient_history[0]["module_grad_norms"])
+    assert {
+        "feature_encoder",
+        "row_summary_builder",
+        "column_summary_builder",
+        "perceiver_stages.0",
+        "perceiver_stages.1",
+        "latent_readout",
+        "cell_readout",
+        "test_row_pool",
+        "direct_head",
+    }.issubset(module_names)
+    assert "gaussian_head" not in module_names
+    assert "feature_encoder_vs_direct_head" in telemetry["diagnostics"]["module_balance"]
 
 
 def test_train_activation_checkpointing_enables_supported_model(
@@ -915,6 +949,124 @@ def test_train_smoke_writes_step_snapshots(monkeypatch: pytest.MonkeyPatch, tmp_
     snapshots = sorted(checkpoint_dir.glob("step_*.pt"))
     assert [path.name for path in snapshots] == ["step_000001.pt", "step_000002.pt"]
     assert all(path.exists() for path in snapshots)
+
+
+def test_train_smoke_saves_in_loop_checkpoints_in_eval_mode(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    mode_tracking_optimizer: _ModeTrackingOptimizer | None = None
+    save_events: list[tuple[str, str | None]] = []
+    original_save_checkpoint = trainer_loop_module.save_checkpoint
+
+    def _build_mode_tracking_optimizer(model, **_kwargs):
+        nonlocal mode_tracking_optimizer
+        base_optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
+        mode_tracking_optimizer = _ModeTrackingOptimizer(base_optimizer)
+        return OptimizerSelection(
+            optimizers=[("schedulefree_adamw", mode_tracking_optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        )
+
+    def _record_save(path: Path, *, model_state, global_step: int, cfg) -> None:
+        _ = (model_state, global_step, cfg)
+        mode = None if mode_tracking_optimizer is None or not mode_tracking_optimizer.events else mode_tracking_optimizer.events[-1]
+        save_events.append((path.name, mode))
+        original_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
+
+    monkeypatch.setattr(trainer_module, "build_optimizer", _build_mode_tracking_optimizer)
+    monkeypatch.setattr(trainer_loop_module, "save_checkpoint", _record_save)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.schedule.stages = [{"name": "stage1", "steps": 1, "lr_max": 1.0e-3}]
+    cfg.runtime.checkpoint_every = 1
+
+    result = trainer_module.train(cfg)
+
+    assert result.global_step == 1
+    assert mode_tracking_optimizer is not None
+    assert save_events == [
+        ("best.pt", "eval"),
+        ("step_000001.pt", "eval"),
+        ("latest_stage1.pt", "eval"),
+        ("latest.pt", "eval"),
+    ]
+    assert mode_tracking_optimizer.events == [
+        "train",
+        "eval",
+        "eval",
+        "train",
+        "eval",
+        "train",
+        "eval",
+        "train",
+        "eval",
+        "train",
+    ]
+
+
+def test_train_smoke_saves_fallback_best_checkpoint_in_eval_mode(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _install_classification_fakes(monkeypatch)
+    mode_tracking_optimizer: _ModeTrackingOptimizer | None = None
+    save_events: list[tuple[str, str | None]] = []
+    original_loop_save_checkpoint = trainer_loop_module.save_checkpoint
+    original_trainer_save_checkpoint = trainer_module.save_checkpoint
+
+    def _build_mode_tracking_optimizer(model, **_kwargs):
+        nonlocal mode_tracking_optimizer
+        base_optimizer = torch.optim.AdamW(model.parameters(), lr=1.0e-3)
+        mode_tracking_optimizer = _ModeTrackingOptimizer(base_optimizer)
+        return OptimizerSelection(
+            optimizers=[("schedulefree_adamw", mode_tracking_optimizer)],
+            requested_name="schedulefree_adamw",
+            resolved_name="schedulefree_adamw",
+            fallback_reason=None,
+        )
+
+    def _record_loop_save(path: Path, *, model_state, global_step: int, cfg) -> None:
+        _ = (model_state, global_step, cfg)
+        mode = None if mode_tracking_optimizer is None or not mode_tracking_optimizer.events else mode_tracking_optimizer.events[-1]
+        save_events.append((path.name, mode))
+        original_loop_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
+
+    def _record_trainer_save(path: Path, *, model_state, global_step: int, cfg) -> None:
+        _ = (model_state, global_step, cfg)
+        mode = None if mode_tracking_optimizer is None or not mode_tracking_optimizer.events else mode_tracking_optimizer.events[-1]
+        save_events.append((path.name, mode))
+        original_trainer_save_checkpoint(path, model_state=model_state, global_step=global_step, cfg=cfg)
+
+    monkeypatch.setattr(trainer_module, "build_optimizer", _build_mode_tracking_optimizer)
+    monkeypatch.setattr(trainer_loop_module, "save_checkpoint", _record_loop_save)
+    monkeypatch.setattr(trainer_module, "save_checkpoint", _record_trainer_save)
+
+    cfg = _classification_cfg(tmp_path)
+    cfg.schedule.stages = [{"name": "stage1", "steps": 1, "lr_max": 1.0e-3}]
+    cfg.runtime.val_batches = 0
+    cfg.runtime.checkpoint_every = None
+
+    result = trainer_module.train(cfg)
+
+    assert result.global_step == 1
+    assert mode_tracking_optimizer is not None
+    assert save_events == [
+        ("latest_stage1.pt", "eval"),
+        ("latest.pt", "eval"),
+        ("best.pt", "eval"),
+    ]
+    assert mode_tracking_optimizer.events == [
+        "train",
+        "eval",
+        "train",
+        "eval",
+        "train",
+        "eval",
+    ]
 
 
 def test_evaluate_checkpoint_smoke(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

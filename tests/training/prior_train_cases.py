@@ -24,6 +24,7 @@ from tab_foundry.training.prior_dump import (
 )
 from tab_foundry.model.architectures.tabfoundry_staged.model import TabFoundryStagedClassifier
 from tab_foundry.model.architectures.tabfoundry_simple import TabFoundrySimpleClassifier
+from tab_foundry.model.outputs import CellLikelihoodOutput
 from tab_foundry.training.losses import classification_loss
 from tab_foundry.training.optimizer import OptimizerSelection
 
@@ -447,7 +448,11 @@ class _FeatureTypeCapturingSandwichModel(_ConstantLogitModel):
     def __init__(self) -> None:
         super().__init__()
         self.arch = "tabfoundry_sandwich"
+        self.loss_surface = "classification"
         self.seen_feature_types: list[list[list[str]]] = []
+
+    def set_loss_surface(self, loss_surface: str) -> None:
+        self.loss_surface = str(loss_surface)
 
     def forward_batched(
         self,
@@ -462,6 +467,26 @@ class _FeatureTypeCapturingSandwichModel(_ConstantLogitModel):
             x_all=x_all,
             y_train=y_train,
             train_test_split_index=train_test_split_index,
+        )
+
+    def forward_batched_cell_likelihood(
+        self,
+        *,
+        x_all: torch.Tensor,
+        y_train: torch.Tensor,
+        train_test_split_index: int,
+        feature_types: list[list[str]],
+    ) -> CellLikelihoodOutput:
+        _ = (y_train, train_test_split_index)
+        self.seen_feature_types.append([list(task_feature_types) for task_feature_types in feature_types])
+        n_tasks = int(x_all.shape[0])
+        n_test = int(x_all.shape[1]) - train_test_split_index
+        n_features = int(x_all.shape[2])
+        per_cell_bits = self.bias.sum().view(1, 1, 1).expand(n_tasks, n_test, n_features)
+        return CellLikelihoodOutput(
+            per_cell_bits=per_cell_bits,
+            bpc=per_cell_bits.mean(),
+            bpf=per_cell_bits.sum(dim=-1).mean(),
         )
 
 
@@ -2642,6 +2667,55 @@ def test_train_tabfoundry_simple_prior_accepts_plain_adamw(
 
     assert result.global_step == 1
     assert optimizer.step_count == 1
+
+
+def test_train_tabfoundry_simple_prior_allows_zero_grad_clip(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    path = _write_prior_dump(
+        tmp_path / "prior_zero_grad_clip.h5",
+        x=np.asarray([[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]], dtype=np.float32),
+        y=np.asarray([[0, 1, 0]], dtype=np.int64),
+        num_features=np.asarray([2], dtype=np.int64),
+        num_datapoints=np.asarray([3], dtype=np.int64),
+        single_eval_pos=np.asarray([2], dtype=np.int64),
+    )
+    optimizer = _CountingOptimizer()
+    monkeypatch.setattr(prior_train_module, "build_model_from_spec", lambda _spec: _ConstantLogitModel())
+    monkeypatch.setattr(
+        prior_train_module,
+        "build_optimizer",
+        lambda *args, **kwargs: OptimizerSelection(
+            optimizers=[("adamw", optimizer)],
+            requested_name="adamw",
+            resolved_name="adamw",
+            fallback_reason=None,
+        ),
+    )
+    cfg = _prior_cfg(tmp_path, max_steps=1)
+    cfg.optimizer.name = "adamw"
+    cfg.runtime.grad_clip = 0.0
+
+    result = prior_train_module.train_tabfoundry_simple_prior(
+        cfg,
+        prior_dump_path=path,
+        batch_size=1,
+    )
+
+    gradient_history = [
+        json.loads(line)
+        for line in (tmp_path / "train_out" / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    assert result.global_step == 1
+    assert optimizer.step_count == 1
+    assert len(gradient_history) == 1
+    assert gradient_history[0]["grad_clip_threshold"] == pytest.approx(0.0)
+    assert gradient_history[0]["grad_clip_triggered"] is False
+    assert gradient_history[0]["global_grad_norm"] is not None
+    assert gradient_history[0]["global_grad_norm"] > 0.0
 
 
 def test_resolve_prior_training_device_name_falls_back_for_multilayer_row_cls_on_mps(

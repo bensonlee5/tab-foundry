@@ -115,8 +115,32 @@ def test_train_tabfoundry_sandwich_prior_smoke(tmp_path: Path) -> None:
     assert result.global_step == 2
     assert (tmp_path / "train_out" / "checkpoints" / "latest.pt").exists()
     telemetry = json.loads((tmp_path / "train_out" / "telemetry.json").read_text(encoding="utf-8"))
+    gradient_history = [
+        json.loads(line)
+        for line in (tmp_path / "train_out" / "gradient_history.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     assert telemetry["success"] is True
     assert telemetry["artifacts"]["gradient_history_jsonl"].endswith("gradient_history.jsonl")
+    module_names = set(gradient_history[0]["module_grad_norms"])
+    assert {
+        "feature_encoder",
+        "row_summary_builder",
+        "column_summary_builder",
+        "perceiver_stages.0",
+        "perceiver_stages.1",
+        "cell_decoder_blocks.0",
+        "cell_decoder_blocks.1",
+        "gaussian_head",
+        "discrete_query",
+        "discrete_oov",
+        "integer_gate",
+        "latent_readout",
+        "cell_readout",
+        "test_row_pool",
+    }.issubset(module_names)
+    assert "direct_head" not in module_names
+    assert "feature_encoder_vs_direct_head" not in telemetry["diagnostics"]["module_balance"]
     assert telemetry["runtime_summary"].keys() == {
         "peak_vram_allocated",
         "peak_vram_reserved",

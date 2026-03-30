@@ -18,7 +18,6 @@ from tab_foundry.training.prior.config import (
     _validate_prior_training_model_spec,
     DEFAULT_BATCH_SIZE as _CONFIG_DEFAULT_BATCH_SIZE,
 )
-from tab_foundry.training.prior.io import save_eval_mode_checkpoint as _save_eval_mode_checkpoint_impl
 from tab_foundry.training.prior.io import stack_prior_step as _stack_prior_step
 from tab_foundry.training.prior.loop import PriorTrainingDeps, run_prior_training
 from tab_foundry.training.prior.settings import PriorMissingnessConfig, PriorRuntimeConfig
@@ -45,6 +44,7 @@ from tab_foundry.training.artifacts import (
     history_path_from_cfg,
     history_record,
     save_checkpoint,
+    save_eval_mode_checkpoint as _shared_save_eval_mode_checkpoint,
 )
 from tab_foundry.training.instability import (
     build_regime_budget_summary,
@@ -109,10 +109,10 @@ def _save_eval_mode_checkpoint(
     cfg: DictConfig,
     restore_training: bool,
 ) -> None:
-    _save_eval_mode_checkpoint_impl(
+    _shared_save_eval_mode_checkpoint(
         prepared_opts,
         path=path,
-        model=model,
+        model_state_factory=model.state_dict,
         global_step=global_step,
         cfg=cfg,
         restore_training=restore_training,
@@ -207,8 +207,6 @@ def train_tabfoundry_simple_prior(
     checkpoint_every = int(runtime_config.checkpoint_every)
     grad_clip = float(cfg.runtime.grad_clip)
     trace_activations = bool(runtime_config.trace_activations)
-    if grad_clip <= 0:
-        raise ValueError(f"runtime.grad_clip must be > 0 for prior-dump training, got {grad_clip}")
 
     prior_batch_config = _resolve_prior_dump_batch_config(cfg, batch_size_override=batch_size)
     lr_min = _resolve_lr(cfg) * prior_batch_config.effective_lr_scale_factor

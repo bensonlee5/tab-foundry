@@ -21,6 +21,7 @@ from .artifacts import (
     gradient_history_record,
     history_record,
     save_checkpoint,
+    save_eval_mode_checkpoint,
     stage_latest_checkpoint_path,
 )
 from .distributed import _reduction_float_dtype, _reduce_any_flag, _reduce_keyed_weighted_scalars
@@ -519,22 +520,30 @@ def run_training_loop(
                     state.best_val_step = float(state.global_step)
                     state.best_checkpoint = output_dir / "checkpoints" / "best.pt"
                     if accelerator.is_main_process:
-                        save_checkpoint(
-                            state.best_checkpoint,
-                            model_state=accelerator.get_state_dict(model),
+                        save_eval_mode_checkpoint(
+                            prepared_opts,
+                            path=state.best_checkpoint,
+                            model_state_factory=lambda: accelerator.get_state_dict(model),
                             global_step=state.global_step,
                             cfg=cfg,
+                            restore_training=False,
+                            set_optimizer_training_mode_fn=_set_optimizer_training_mode,
+                            save_checkpoint_fn=save_checkpoint,
                         )
                 _set_optimizer_training_mode(prepared_opts, training=True)
 
             if checkpoint_every is not None and state.global_step % checkpoint_every == 0:
                 snapshot_checkpoint = output_dir / "checkpoints" / f"step_{state.global_step:06d}.pt"
                 if accelerator.is_main_process:
-                    save_checkpoint(
-                        snapshot_checkpoint,
-                        model_state=accelerator.get_state_dict(model),
+                    save_eval_mode_checkpoint(
+                        prepared_opts,
+                        path=snapshot_checkpoint,
+                        model_state_factory=lambda: accelerator.get_state_dict(model),
                         global_step=state.global_step,
                         cfg=cfg,
+                        restore_training=True,
+                        set_optimizer_training_mode_fn=_set_optimizer_training_mode,
+                        save_checkpoint_fn=save_checkpoint,
                     )
                     state.checkpoint_snapshots.append(
                         {
@@ -623,17 +632,25 @@ def run_training_loop(
         state.latest_checkpoint = stage_latest_checkpoint_path(output_dir, stage_name=stage.name)
         compatibility_latest_checkpoint = canonical_latest_checkpoint_path(output_dir)
         if accelerator.is_main_process:
-            save_checkpoint(
-                state.latest_checkpoint,
-                model_state=accelerator.get_state_dict(model),
+            save_eval_mode_checkpoint(
+                prepared_opts,
+                path=state.latest_checkpoint,
+                model_state_factory=lambda: accelerator.get_state_dict(model),
                 global_step=state.global_step,
                 cfg=cfg,
+                restore_training=True,
+                set_optimizer_training_mode_fn=_set_optimizer_training_mode,
+                save_checkpoint_fn=save_checkpoint,
             )
-            save_checkpoint(
-                compatibility_latest_checkpoint,
-                model_state=accelerator.get_state_dict(model),
+            save_eval_mode_checkpoint(
+                prepared_opts,
+                path=compatibility_latest_checkpoint,
+                model_state_factory=lambda: accelerator.get_state_dict(model),
                 global_step=state.global_step,
                 cfg=cfg,
+                restore_training=True,
+                set_optimizer_training_mode_fn=_set_optimizer_training_mode,
+                save_checkpoint_fn=save_checkpoint,
             )
         if state.stop_requested:
             break

@@ -55,10 +55,10 @@ This is the canonical long-form evidence note for
 - `tab-foundry` benchmark execution already expects materialized manifest
   parquet for validation surfaces, which makes the hub-owned manifest contract
   the right long-term boundary
-- medium and large validation manifests now exist at
-  `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`
-  and
-  `data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet`
+- medium and large validation manifests now live under
+  `data/manifests/bench`, with the legacy local output roots
+  `nanotabpfn_openml_classification_medium_v1` and
+  `nanotabpfn_openml_classification_large_v1`
 - those manifests are materialized from
   `tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json`
   and

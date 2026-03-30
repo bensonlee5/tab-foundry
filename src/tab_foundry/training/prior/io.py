@@ -101,25 +101,3 @@ def stack_prior_step(
         dim=0,
     ).to(device=device, dtype=torch.float32)
     return x_batch, y_train_batch, y_all_batch, feature_types_batch
-
-
-def save_eval_mode_checkpoint(
-    prepared_opts: list[tuple[str, torch.optim.Optimizer]],
-    *,
-    path,
-    model: torch.nn.Module,
-    global_step: int,
-    cfg,
-    restore_training: bool,
-    set_optimizer_training_mode_fn,
-    save_checkpoint_fn,
-) -> None:
-    set_optimizer_training_mode_fn(prepared_opts, training=False)
-    save_checkpoint_fn(
-        path,
-        model_state=model.state_dict(),
-        global_step=global_step,
-        cfg=cfg,
-    )
-    if restore_training:
-        set_optimizer_training_mode_fn(prepared_opts, training=True)

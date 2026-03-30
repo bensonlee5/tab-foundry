@@ -198,6 +198,33 @@ def test_build_training_telemetry_handles_missing_context_stage_metrics(tmp_path
     )
 
 
+def test_build_training_telemetry_omits_direct_head_balance_when_head_is_inactive(
+    tmp_path: Path,
+) -> None:
+    telemetry = build_training_telemetry(
+        run_dir=tmp_path,
+        success=True,
+        artifacts={},
+        checkpoint_snapshots=[],
+        history_records=[{"step": 1, "train_loss": 1.0, "train_loss_delta": None}],
+        gradient_records=[
+            {
+                "step": 1,
+                "global_grad_norm": 0.5,
+                "grad_clip_triggered": False,
+                "module_grad_norms": {
+                    "feature_encoder": 0.25,
+                    "gaussian_head": 0.4,
+                    "cell_decoder_blocks.0": 0.6,
+                },
+            }
+        ],
+    )
+
+    assert telemetry["diagnostics"]["module_balance"] == {}
+    assert telemetry["gradient_summary"]["modules"]["gaussian_head"]["final_grad_norm"] == 0.4
+
+
 def test_build_training_telemetry_tracks_non_finite_global_grad_norm_kinds(tmp_path: Path) -> None:
     telemetry = build_training_telemetry(
         run_dir=tmp_path,
