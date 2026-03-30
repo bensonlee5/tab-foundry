@@ -175,6 +175,9 @@ reference family. For the full architecture reference, see
 
 - [Published docs site](https://bensonlee5.github.io/tab-foundry/) for the
   fastest route to workflows, architecture, and research context
+- [Dagzoo/sandwich mathematical formulation](docs/development/synthetic-prior-mission.md)
+  for the mathematical statement of the `dagzoo` prior and sandwich training
+  objectives
 - [Roadmap](docs/development/roadmap.md) for what's active, planned, and
   completed
 - [Architecture reference](docs/development/model-architecture.md) for the full

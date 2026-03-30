@@ -30,7 +30,7 @@ repos:
     pass_filenames: true
   - id: mdformat
     name: mdformat
-    entry: python3 scripts/audit/pre_commit_exec.py mdformat --exclude docs/development/model-architecture.md AGENTS.md README.md docs reference CHANGELOG.md
+    entry: python3 scripts/audit/pre_commit_exec.py mdformat --exclude docs/development/model-architecture.md --exclude docs/development/synthetic-prior-mission.md AGENTS.md README.md docs reference CHANGELOG.md
     language: system
     types: [markdown]
     files: ^(AGENTS\.md|README\.md|docs/|reference/|CHANGELOG\.md$)

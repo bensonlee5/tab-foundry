@@ -18,6 +18,7 @@ The repo-wide plan is now sandwich-first:
 
 Use these alongside this roadmap:
 
+- dagzoo/sandwich mathematical formulation: `docs/development/synthetic-prior-mission.md`
 - design decisions and repo structure: `docs/development/design-decisions.md`
 - codebase navigation: `docs/development/codebase-navigation.md`
 - dataset curation and license gate: `docs/development/dataset-curation.md`

@@ -103,6 +103,15 @@ PAGE_SPECS: tuple[PageSpec, ...] = (
         extra_params={"mermaid": True, "katex": True},
     ),
     PageSpec(
+        source_rel="docs/development/synthetic-prior-mission.md",
+        route="development/dagzoo-sandwich-mathematical-formulation",
+        weight=25,
+        description="Mathematical formulation of the dagzoo prior-search problem and sandwich training objective.",
+        link_title="Dagzoo/Sandwich Math",
+        aliases=("/docs/development/dagzoo-sandwich-technical-formulation/",),
+        extra_params={"katex": True},
+    ),
+    PageSpec(
         source_rel="docs/development/design-decisions.md",
         route="development/design-decisions",
         weight=30,
@@ -254,6 +263,11 @@ def _rewrite_katex_math(content: str) -> str:
         return f'\n<div class="math-display">\n{body}\n</div>\n\n'
 
     content = re.sub(
+        r"(?ms)^\$\$\s*\n(.*?)\n\$\$\s*$",
+        display_replacer,
+        content,
+    )
+    content = re.sub(
         r"(?ms)^\\\[\s*\n(.*?)\n\\\]\s*$",
         display_replacer,
         content,
@@ -263,8 +277,13 @@ def _rewrite_katex_math(content: str) -> str:
         body = escape_inline_math(match.group(1))
         return f'<span class="math-inline">{body}</span>'
 
-    return re.sub(
+    content = re.sub(
         r"\\\((.+?)\\\)",
+        inline_replacer,
+        content,
+    )
+    return re.sub(
+        r"(?<!\\)(?<!\$)\$(?!\$)(.+?)(?<!\\)\$(?!\$)",
         inline_replacer,
         content,
     )
