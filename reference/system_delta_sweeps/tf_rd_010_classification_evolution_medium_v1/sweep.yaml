@@ -23,15 +23,17 @@ anchor_surface:
     architecture evolution rather than a frozen four-token carry-forward.
   - '`dagzoo` owns the synthetic training corpora for every row in this sweep.'
   - '`tab-realdata-hub` issue `bensonlee5/tab-realdata-hub#1` owns the medium and
-    large multiclass validation bundles plus their materialized manifest parquet outputs.'
+    large classification validation bundles plus their materialized manifest parquet
+    outputs from `openml_classification_medium_v1.json` and `openml_classification_large_v1.json`.'
   - The evolved sandwich contract is FiLM-conditioned, uses `sandwich_summary_tokens_per_axis=3`,
     `many_class_base=10`, and a direct multiclass head.
   - Rank rows by `final_bpc_at_matched_regime_budget`, treating BPC as the normalized
     log-loss view while still reporting raw log loss, calibration, runtime, and stability
     guardrails.
-  - The medium rung is the clean no-missing multiclass benchmark surface; class imbalance
-    remains covered through bundle minority-floor policy and explicit reporting rather
-    than a separate TF-RD-010 skew ladder.
+  - The medium validation rung follows the upstream hub bundle policy `min_classes=2`,
+    `max_classes=10`, and `max_missing_pct=20.0`; the local manifest path and
+    `cls_benchmark_linear_multiclass_medium_v1` baseline id remain historical TF-RD-010
+    identifiers for that broader classification pool.
   - All four completed rows deferred at the 400-step short-run budget; MCAR improved
     final BPC relative to the control anchor but degraded final log loss and final
     ROC AUC, and every row failed the sweep stability guardrail.
@@ -58,9 +60,9 @@ anchor_surface:
       directly rather than replaying the historical four-token anchor.
   - dimension: validation surface
     upstream: Not applicable.
-    anchor: Hub-backed medium multiclass manifest at `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`.
-    interpretation: Keep the no-missing medium rung fixed while the synthetic training
-      front changes across rows.
+    anchor: Hub-backed medium classification manifest at `data/manifests/bench/nanotabpfn_openml_classification_medium_v1/manifest.parquet`, materialized from `openml_classification_medium_v1.json`.
+    interpretation: Keep the smaller hub-backed classification validation rung fixed
+      while the synthetic training front changes across rows.
 anchor_context:
   run_id: sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1
   experiment: cls_benchmark_sandwich_classification_evolution_v1

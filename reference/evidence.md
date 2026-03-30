@@ -382,15 +382,15 @@ evidence for TF-RD-018 and later research-oriented epics now lives under
 - Repo-local evidence:
   - `dagzoo` is now the explicit owner of the synthetic training fronts
   - `tab-realdata-hub` issue `#1` is now the upstream owner of the medium and
-    large multiclass validation bundles and manifest materialization flow
+    large classification validation bundles and manifest materialization flow
   - the evolved sandwich benchmark config fixes FiLM,
     `sandwich_summary_tokens_per_axis=3`, `many_class_base=10`, and a direct
     multiclass head
   - TF-RD-010 now has explicit draft medium and large sweep contracts rather
     than only a conceptual carried slice
 - Success signal:
-  - multiclass is evaluated through a fixed dagzoo-to-hub benchmark contract on
-    the evolved sandwich family
+  - the classification benchmark contract is evaluated through a fixed
+    dagzoo-to-hub linkage on the evolved sandwich family
 
 ### TF-RD-011: Repo-Wide Enablers And Contract Fidelity
 

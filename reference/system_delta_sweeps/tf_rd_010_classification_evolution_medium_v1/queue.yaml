@@ -4,13 +4,13 @@ rows:
 - order: 1
   delta_ref: delta_data_manifest_root_tf_rd_010_dagzoo_medium_control
   status: completed
-  rationale: Establish the clean multiclass dagzoo control front before reading any
-    missingness harder-front effect on the new medium benchmark rung.
-  hypothesis: The evolved sandwich family should first be judged on a clean multiclass
-    dagzoo control corpus against the no-missing medium hub manifest.
+  rationale: Establish the TF-RD-010 classification control front before reading any
+    missingness harder-front effect on the smaller medium benchmark rung.
+  hypothesis: The evolved sandwich family should first be judged on the TF-RD-010
+    control corpus (`n_classes_min=2`) against the medium hub manifest.
   anchor_delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train
     on `tf_rd_010_dagzoo_medium_control_v1` while validating on the hub-owned medium
-    multiclass manifest.
+    classification manifest.
   model:
     arch: tabfoundry_sandwich
     d_icl: 60
@@ -48,10 +48,10 @@ rows:
           lr_schedule: cosine
           warmup_ratio: 0.05
   parameter_adequacy_plan:
-  - Confirm `tab-realdata-hub#1` has materialized the no-missing medium multiclass
-    manifest before execution.
-  - Freeze the multiclass medium control baseline before treating any row outcome
-    as a promotion or defer decision.
+  - Confirm `tab-realdata-hub#1` has materialized the medium classification manifest
+    from `openml_classification_medium_v1.json` before execution.
+  - Freeze the legacy `cls_benchmark_linear_multiclass_medium_v1` control baseline
+    before treating any row outcome as a promotion or defer decision.
   - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration,
     runtime, and stability as guardrails.
   next_action: Completed as the locked medium control anchor; keep this row as the
@@ -60,8 +60,8 @@ rows:
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
-  - This row is the clean multiclass reference for missingness and class-imbalance
-    reporting on the medium rung.
+  - This row is the fixed TF-RD-010 medium reference for missingness and class-imbalance
+    reporting on the medium validation pool.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
@@ -96,7 +96,7 @@ rows:
   delta_ref: delta_data_manifest_root_tf_rd_010_missingness_mcar
   status: completed
   rationale: Test whether moderate MCAR exposure improves robustness before structured
-    missingness is considered on the medium multiclass rung.
+    missingness is considered on the medium validation pool.
   hypothesis: MCAR may improve BPC/log-loss behavior on the evolved sandwich family
     without adding the stronger structure of MAR or MNAR.
   anchor_delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed
@@ -141,15 +141,16 @@ rows:
   - Compare directly against the clean control row before preferring missingness exposure.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated
     skew ladder to TF-RD-017.
-  - Use the large allow-missing rung later as the main transfer check for any kept
-    missingness front.
+  - Use the larger hub-backed validation rung later as the main transfer check
+    for any kept missingness front.
   next_action: Completed as mixed negative evidence; despite the lower final BPC,
     this row failed stability guardrails and degraded final ROC AUC, so keep the
     clean control anchor and do not promote MCAR from this short-run pass.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
-  - The medium rung stays no-missing even though the training front injects MCAR.
+  - 'The medium validation pool follows the same hub bundle policy as the large
+    rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
@@ -235,15 +236,16 @@ rows:
     structured missingness.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated
     skew ladder to TF-RD-017.
-  - Use the large allow-missing rung later as the main transfer check for any kept
-    missingness front.
+  - Use the larger hub-backed validation rung later as the main transfer check
+    for any kept missingness front.
   next_action: Completed as negative evidence; this row worsened both final BPC and
     final ROC AUC versus the control anchor, so keep the clean control anchor and
     do not promote MAR on the medium rung.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
-  - The medium rung stays no-missing even though the training front injects MAR.
+  - 'The medium validation pool follows the same hub bundle policy as the large
+    rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.
@@ -328,15 +330,16 @@ rows:
     the strongest self-masking option.
   - Keep class-imbalance reporting explicit on the medium rung, but defer any dedicated
     skew ladder to TF-RD-017.
-  - Use the large allow-missing rung later as the main transfer check for any kept
-    missingness front.
+  - Use the larger hub-backed validation rung later as the main transfer check
+    for any kept missingness front.
   next_action: Completed as negative evidence; this row had the worst medium-rung
     BPC outcome and nonzero drift, so keep the clean control anchor and do not
     promote MNAR on the medium rung.
   notes:
   - '`dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation
     manifest.'
-  - The medium rung stays no-missing even though the training front injects MNAR.
+  - 'The medium validation pool follows the same hub bundle policy as the large
+    rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`.'
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret
     this row in the full sweep context.

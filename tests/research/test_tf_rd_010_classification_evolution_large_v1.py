@@ -65,10 +65,11 @@ def test_tf_rd_010_classification_evolution_large_v1_records_the_completed_large
     notes = sweep["anchor_surface"]["notes"]
     assert isinstance(notes, list)
     assert any("tab-realdata-hub" in note for note in notes)
-    assert any("allow-missing multiclass benchmark surface" in note for note in notes)
+    assert any("min_classes=2" in note for note in notes)
+    assert any("max_missing_pct=20.0" in note for note in notes)
     assert any("sandwich_summary_tokens_per_axis=3" in note for note in notes)
     assert any("final_bpc_at_matched_regime_budget" in note for note in notes)
-    assert any("class imbalance" in note.lower() for note in notes)
+    assert any("broader classification pool" in note.lower() for note in notes)
     assert any("All four completed rows deferred" in note for note in notes)
     assert any("stability guardrail" in note for note in notes)
 
@@ -122,10 +123,21 @@ def test_tf_rd_010_classification_evolution_large_v1_matrix_links_dagzoo_and_hub
     assert "dagzoo" in matrix
     assert "sandwich_summary_tokens_per_axis=3" in matrix
     assert "direct multiclass head" in matrix
-    assert "allow-missing" in matrix
+    assert "min_classes=2" in matrix
+    assert "max_missing_pct=20.0" in matrix
+    assert "larger task set" in matrix
     assert "Completed as the locked large control anchor" in matrix
     assert "Completed as mixed negative evidence" in matrix
     assert "stability=fail" in matrix
+
+
+def test_tf_rd_010_large_registry_uses_renamed_hub_bundle() -> None:
+    registry_text = (
+        REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+    ).read_text(encoding="utf-8")
+
+    assert "openml_classification_large_v1.json" in registry_text
+    assert "nanotabpfn_openml_classification_large_v1.json" not in registry_text
 
 
 def test_tf_rd_010_classification_evolution_large_v1_inspection_resolves_sandwich_row() -> None:

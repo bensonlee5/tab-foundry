@@ -12679,8 +12679,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_large",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_large_v1.json",
+        "name": "openml_classification_large",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_large_v1.json",
         "task_count": 3,
         "task_ids": [
           363685,
@@ -12928,8 +12928,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_large",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_large_v1.json",
+        "name": "openml_classification_large",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_large_v1.json",
         "task_count": 3,
         "task_ids": [
           363685,
@@ -13203,8 +13203,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_large",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_large_v1.json",
+        "name": "openml_classification_large",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_large_v1.json",
         "task_count": 3,
         "task_ids": [
           363685,
@@ -13478,8 +13478,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_large_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_large",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_large_v1.json",
+        "name": "openml_classification_large",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_large_v1.json",
         "task_count": 3,
         "task_ids": [
           363685,
@@ -13753,8 +13753,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_dagzoo_medium_control/sd_tf_rd_010_classification_evolution_medium_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -14001,8 +14001,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mcar/sd_tf_rd_010_classification_evolution_medium_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -14275,8 +14275,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mar/sd_tf_rd_010_classification_evolution_medium_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,
@@ -14549,8 +14549,8 @@
         "training_surface_record_path": "outputs/staged_ladder/research/tf_rd_010_classification_evolution_medium_v1/delta_data_manifest_root_tf_rd_010_missingness_mnar/sd_tf_rd_010_classification_evolution_medium_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1/train/training_surface_record.json"
       },
       "benchmark_bundle": {
-        "name": "nanotabpfn_openml_classification_medium",
-        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/nanotabpfn_openml_classification_medium_v1.json",
+        "name": "openml_classification_medium",
+        "source_path": "/Users/bensonlee/dev/tab-realdata-hub/src/tab_realdata_hub/bench/openml_classification_medium_v1.json",
         "task_count": 2,
         "task_ids": [
           363685,

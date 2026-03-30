@@ -30,16 +30,16 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 | benchmark ownership | Not applicable. | `dagzoo` owns the synthetic training fronts while `tab-realdata-hub` owns the real-data validation manifests. | This sweep defines the harder validation rung for the repo-to-repo benchmark contract. |
 | classification head | Label-conditioning choices should stay modular so target handling can evolve after the backbone stabilizes. | Direct multiclass head with `many_class_base=10`. | Treat this as a bounded head/output evolution, not a staged hierarchical many-class port. |
 | summary bandwidth | Historical TF-RD-021B evidence used `sandwich_summary_tokens_per_axis=4`. | The evolved benchmark surface uses `sandwich_summary_tokens_per_axis=3`. | The new benchmark package should evaluate the evolved contract directly rather than replaying the historical four-token anchor. |
-| validation surface | Not applicable. | Hub-backed large multiclass manifest at `data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet`. | Keep the allow-missing large rung fixed while the synthetic training front changes across rows. |
+| validation surface | Not applicable. | Hub-backed large classification manifest at `data/manifests/bench/nanotabpfn_openml_classification_large_v1/manifest.parquet`, materialized from `openml_classification_large_v1.json`. | Keep the larger hub-backed classification validation rung fixed while the synthetic training front changes across rows. |
 
 ## Queue Summary
 
 | Order | Delta | Family | Binary | Status | Recipe alias | Effective change | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo multiclass control corpus while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Completed as the locked large control anchor; keep this row as the fixed TF-RD-010 reference and move any improvement attempts to TF-RD-021 or later higher-budget follow-up instead of reopening baseline definition. |
-| 2 | `delta_data_manifest_root_tf_rd_010_missingness_mcar` | missingness | no | completed | none | Point training at the TF-RD-010 MCAR multiclass corpus while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Completed as mixed negative evidence; although final BPC improved sharply versus the control anchor, this row failed stability guardrails and degraded final ROC AUC, so keep the clean control anchor and do not promote MCAR from this short-run pass. |
-| 3 | `delta_data_manifest_root_tf_rd_010_missingness_mar` | missingness | no | completed | none | Point training at the TF-RD-010 MAR multiclass corpus while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Completed as mixed negative evidence; although final BPC improved versus the control anchor, this row failed stability guardrails and degraded final ROC AUC, so keep the clean control anchor and do not promote MAR on the large rung. |
-| 4 | `delta_data_manifest_root_tf_rd_010_missingness_mnar` | missingness | no | completed | none | Point training at the TF-RD-010 MNAR multiclass corpus while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Completed as negative evidence; this row produced the worst large-rung BPC outcome and the largest drift signal, so keep the clean control anchor and do not promote MNAR on the large rung. |
+| 1 | `delta_data_manifest_root_tf_rd_010_dagzoo_medium_control` | provenance | no | completed | none | Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests. | Completed as the locked large control anchor; keep this row as the fixed TF-RD-010 reference and move any improvement attempts to TF-RD-021 or later higher-budget follow-up instead of reopening baseline definition. |
+| 2 | `delta_data_manifest_root_tf_rd_010_missingness_mcar` | missingness | no | completed | none | Point training at the TF-RD-010 MCAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Completed as mixed negative evidence; although final BPC improved sharply versus the control anchor, this row failed stability guardrails and degraded final ROC AUC, so keep the clean control anchor and do not promote MCAR from this short-run pass. |
+| 3 | `delta_data_manifest_root_tf_rd_010_missingness_mar` | missingness | no | completed | none | Point training at the TF-RD-010 MAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Completed as mixed negative evidence; although final BPC improved versus the control anchor, this row failed stability guardrails and degraded final ROC AUC, so keep the clean control anchor and do not promote MAR on the large rung. |
+| 4 | `delta_data_manifest_root_tf_rd_010_missingness_mnar` | missingness | no | completed | none | Point training at the TF-RD-010 MNAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed. | Completed as negative evidence; this row produced the worst large-rung BPC outcome and the largest drift signal, so keep the clean control anchor and do not promote MNAR on the large rung. |
 
 ## Detailed Rows
 
@@ -49,20 +49,20 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
-- Description: Point training at the TF-RD-010 dagzoo multiclass control corpus while the evolved sandwich benchmark contract is defined against hub-owned validation manifests.
-- Rationale: Establish the clean multiclass dagzoo control front before reading any missingness harder-front effect on the large allow-missing benchmark rung.
-- Hypothesis: The evolved sandwich family should first be judged on a clean multiclass dagzoo control corpus against the harder allow-missing large hub manifest.
+- Description: Point training at the TF-RD-010 dagzoo classification control corpus (`n_classes_min=2`, `n_classes_max=10`) while the evolved sandwich benchmark contract is defined against hub-owned validation manifests.
+- Rationale: Establish the TF-RD-010 classification control front before reading any missingness harder-front effect on the larger benchmark rung.
+- Hypothesis: The evolved sandwich family should first be judged on the TF-RD-010 control corpus (`n_classes_min=2`) against the larger hub validation manifest.
 - Upstream delta: Not applicable; this is a repo-local synthetic training-front contract tied to the first benchmark-evolution lane.
-- Anchor delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v1` while validating on the hub-owned large multiclass manifest.
-- Expected effect: Establish the clean multiclass dagzoo control corpus that both the medium and large TF-RD-010 validation rungs will compare against.
+- Anchor delta: Use the evolved FiLM plus 3-summary-token sandwich contract and train on `tf_rd_010_dagzoo_medium_control_v1` while validating on the hub-owned large classification manifest.
+- Expected effect: Establish the TF-RD-010 classification control corpus that both the medium and large validation rungs will compare against.
 - Effective labels: model=`cls_benchmark_sandwich_classification_evolution_v1`, data=`tf_rd_010_dagzoo_medium_control`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_dagzoo_medium_control_v1'}`
 - Parameter adequacy plan:
-  - Confirm `tab-realdata-hub#1` has materialized the allow-missing large multiclass manifest before execution.
-  - Freeze the multiclass large control baseline before treating any row outcome as a promotion or defer decision.
+  - Confirm `tab-realdata-hub#1` has materialized the large classification manifest from `openml_classification_large_v1.json` before execution.
+  - Freeze the legacy `cls_benchmark_linear_multiclass_large_v1` control baseline before treating any row outcome as a promotion or defer decision.
   - Rank by `final_bpc_at_matched_regime_budget`, then inspect raw log loss, calibration, runtime, and stability as guardrails.
 - Adequacy knobs to dimension explicitly:
-  - explicit dagzoo provenance for the multiclass control corpus
+  - explicit dagzoo provenance for the classification control corpus
   - medium and large real-data validation separation via `tab-realdata-hub` manifests
   - class-count coverage, feature-count coverage, missingness policy, and minority-class floor on the validation side
 - Execution policy: `benchmark_full`
@@ -70,7 +70,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Decision: `defer`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
-  - This row is the clean multiclass reference for missingness transfer and class-imbalance reporting on the large rung.
+  - This row is the fixed TF-RD-010 large reference for missingness transfer and class-imbalance reporting on the large validation pool.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v1_01_delta_data_manifest_root_tf_rd_010_dagzoo_medium_control_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   - Sweep summary marked this row `stability=fail` at the 400-step short-run budget; treat it as the fixed short-screen anchor rather than promotion evidence.
@@ -84,9 +84,9 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
-- Description: Point training at the TF-RD-010 MCAR multiclass corpus while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
-- Rationale: Test whether moderate MCAR exposure improves robustness on the harder allow-missing large benchmark rung before structured missingness is considered.
-- Hypothesis: MCAR may improve BPC/log-loss behavior on the evolved sandwich family under allow-missing validation without adding the stronger structure of MAR or MNAR.
+- Description: Point training at the TF-RD-010 MCAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
+- Rationale: Test whether moderate MCAR exposure improves robustness on the larger benchmark rung before structured missingness is considered.
+- Hypothesis: MCAR may improve BPC/log-loss behavior on the evolved sandwich family under the larger hub validation pool without adding the stronger structure of MAR or MNAR.
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mcar_v1`.
 - Expected effect: Moderate MCAR should test whether the evolved sandwich target benefits from missingness exposure before any larger benchmark-front escalation.
@@ -94,7 +94,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mcar_v1'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control row before preferring missingness exposure.
-  - Treat the large allow-missing rung as the primary benchmark context for missingness transfer.
+  - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
 - Adequacy knobs to dimension explicitly:
   - explicit MCAR provenance in the dagzoo training front
@@ -105,7 +105,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Decision: `defer`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
-  - The large rung is explicitly allow-missing, so this row reads the cleanest first transfer case for synthetic MCAR training.
+  - The large validation pool follows the same hub bundle policy as the medium rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering the larger task set.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v1_02_delta_data_manifest_root_tf_rd_010_missingness_mcar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   - Sweep summary marked this row `stability=fail` at the 400-step short-run budget; the better BPC read did not clear the promotion guardrails.
@@ -119,17 +119,17 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
-- Description: Point training at the TF-RD-010 MAR multiclass corpus while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
-- Rationale: Add a structured missingness row so TF-RD-010 can distinguish random masking from observed-feature-linked masking under the harder allow-missing benchmark contract.
-- Hypothesis: MAR may provide a clearer harder front than MCAR while remaining more interpretable than MNAR on the large rung.
+- Description: Point training at the TF-RD-010 MAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
+- Rationale: Add a structured missingness row so TF-RD-010 can distinguish random masking from observed-feature-linked masking under the larger benchmark contract.
+- Hypothesis: MAR may provide a clearer harder front than MCAR while remaining more interpretable than MNAR on the large validation pool.
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mar_v1`.
-- Expected effect: Structured MAR may provide a harder but still interpretable missingness front for the first multiclass benchmark program.
+- Expected effect: Structured MAR may provide a harder but still interpretable missingness front for the first TF-RD-010 classification benchmark program.
 - Effective labels: model=`cls_benchmark_sandwich_classification_evolution_v1`, data=`tf_rd_010_missingness_mar`, preprocessing=`runtime_default`, training=`prior_cosine_warmup`
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mar_v1'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control plus MCAR and MNAR before preferring structured missingness.
-  - Treat the large allow-missing rung as the primary benchmark context for missingness transfer.
+  - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
 - Adequacy knobs to dimension explicitly:
   - explicit MAR provenance in the dagzoo training front
@@ -140,7 +140,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Decision: `defer`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
-  - The large rung is explicitly allow-missing, so this row reads structured observed-feature missingness transfer directly.
+  - The large validation pool follows the same hub bundle policy as the medium rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering the larger task set.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v1_03_delta_data_manifest_root_tf_rd_010_missingness_mar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   - Sweep summary marked this row `stability=fail` at the 400-step short-run budget.
@@ -154,8 +154,8 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Status: `completed`
 - Binary applicable: `False`
 - Recipe alias: `none`
-- Description: Point training at the TF-RD-010 MNAR multiclass corpus while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
-- Rationale: Keep one strongest missingness row in the first draft package so TF-RD-010 can compare MCAR, MAR, and MNAR under the same allow-missing benchmark contract.
+- Description: Point training at the TF-RD-010 MNAR classification corpus (`n_classes_min=2`, `n_classes_max=10`) while keeping the evolved sandwich architecture and hub-backed validation contract fixed.
+- Rationale: Keep one strongest missingness row in the first draft package so TF-RD-010 can compare MCAR, MAR, and MNAR under the same larger benchmark contract.
 - Hypothesis: MNAR may be the hardest missingness front, but it may also be the least interpretable candidate for the first evolved benchmark package.
 - Upstream delta: Not applicable; this is a repo-local synthetic missingness front for the benchmark-evolution lane.
 - Anchor delta: Keep the evolved FiLM plus 3-summary-token sandwich contract fixed and replace the control corpus with `tf_rd_010_missingness_mnar_v1`.
@@ -164,7 +164,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Data overrides: `{'source': 'manifest', 'corpus_ref': 'tf_rd_010_missingness_mnar_v1'}`
 - Parameter adequacy plan:
   - Compare directly against the clean control plus MCAR and MAR before preferring the strongest self-masking option.
-  - Treat the large allow-missing rung as the primary benchmark context for missingness transfer.
+  - Treat the larger hub-backed validation rung as the primary benchmark context for missingness transfer.
   - Keep class-imbalance reporting explicit on the large rung, but defer any dedicated skew ladder to TF-RD-017.
 - Adequacy knobs to dimension explicitly:
   - explicit MNAR provenance in the dagzoo training front
@@ -175,7 +175,7 @@ Upstream reference: `EquiTabPFN` from `https://arxiv.org/abs/2502.06684`.
 - Decision: `defer`
 - Notes:
   - `dagzoo` owns this synthetic training front; `tab-realdata-hub` owns the validation manifest.
-  - The large rung is explicitly allow-missing, so this row reads the strongest self-masking missingness transfer directly.
+  - The large validation pool follows the same hub bundle policy as the medium rung: `min_classes=2`, `max_classes=10`, and `max_missing_pct=20.0`, while offering the larger task set.
   - Canonical rerun registered as `sd_tf_rd_010_classification_evolution_large_v1_04_delta_data_manifest_root_tf_rd_010_missingness_mnar_v1`.
   - Canonical benchmark comparison recorded against the locked sweep anchor; interpret this row in the full sweep context.
   - Sweep summary marked this row `stability=fail` at the 400-step short-run budget.

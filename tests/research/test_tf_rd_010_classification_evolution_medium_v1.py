@@ -21,6 +21,12 @@ EXPECTED_ROWS = [
     "delta_data_manifest_root_tf_rd_010_missingness_mar",
     "delta_data_manifest_root_tf_rd_010_missingness_mnar",
 ]
+TF_RD_010_RECIPE_PATHS = [
+    REPO_ROOT / "reference" / "corpus_recipes" / "tf_rd_010_dagzoo_medium_control_v1.yaml",
+    REPO_ROOT / "reference" / "corpus_recipes" / "tf_rd_010_missingness_mcar_v1.yaml",
+    REPO_ROOT / "reference" / "corpus_recipes" / "tf_rd_010_missingness_mar_v1.yaml",
+    REPO_ROOT / "reference" / "corpus_recipes" / "tf_rd_010_missingness_mnar_v1.yaml",
+]
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -68,8 +74,9 @@ def test_tf_rd_010_classification_evolution_medium_v1_records_the_completed_medi
     assert any("tab-realdata-hub" in note for note in notes)
     assert any("sandwich_summary_tokens_per_axis=3" in note for note in notes)
     assert any("final_bpc_at_matched_regime_budget" in note for note in notes)
-    assert any("class imbalance" in note.lower() for note in notes)
-    assert any("medium rung is the clean no-missing multiclass benchmark surface" in note for note in notes)
+    assert any("broader classification pool" in note.lower() for note in notes)
+    assert any("min_classes=2" in note for note in notes)
+    assert any("max_missing_pct=20.0" in note for note in notes)
     assert any("All four completed rows deferred" in note for note in notes)
     assert any("stability guardrail" in note for note in notes)
 
@@ -115,6 +122,19 @@ def test_tf_rd_010_classification_evolution_medium_v1_records_the_completed_medi
     assert [row["delta_id"] for row in materialized["rows"]] == EXPECTED_ROWS
     assert all(row["model"].get("stage_label") is None for row in materialized["rows"])
 
+    for recipe_path in TF_RD_010_RECIPE_PATHS:
+        recipe = _load_yaml(recipe_path)
+        invocations = recipe["invocations"]
+        assert isinstance(invocations, list)
+        assert all(
+            invocation["config_overrides"]["dataset"]["n_classes_min"] == 2
+            for invocation in invocations
+        )
+        assert all(
+            invocation["config_overrides"]["dataset"]["n_classes_max"] == 10
+            for invocation in invocations
+        )
+
 
 def test_tf_rd_010_classification_evolution_medium_v1_matrix_links_dagzoo_and_hub() -> None:
     matrix = (
@@ -129,9 +149,20 @@ def test_tf_rd_010_classification_evolution_medium_v1_matrix_links_dagzoo_and_hu
     assert "dagzoo" in matrix
     assert "sandwich_summary_tokens_per_axis=3" in matrix
     assert "direct multiclass head" in matrix
+    assert "min_classes=2" in matrix
+    assert "max_missing_pct=20.0" in matrix
     assert "Completed as the locked medium control anchor" in matrix
     assert "Completed as mixed negative evidence" in matrix
     assert "stability=fail" in matrix
+
+
+def test_tf_rd_010_medium_registry_uses_renamed_hub_bundle() -> None:
+    registry_text = (
+        REPO_ROOT / "src" / "tab_foundry" / "bench" / "benchmark_run_registry_v1.json"
+    ).read_text(encoding="utf-8")
+
+    assert "openml_classification_medium_v1.json" in registry_text
+    assert "nanotabpfn_openml_classification_medium_v1.json" not in registry_text
 
 
 def test_tf_rd_010_classification_evolution_medium_v1_inspection_resolves_sandwich_row() -> None:
