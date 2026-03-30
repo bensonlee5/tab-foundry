@@ -4,6 +4,10 @@ import pytest
 import torch
 
 from tab_foundry.model.architectures.tabfoundry_sandwich import TabFoundrySandwichClassifier
+from tab_foundry.model.architectures.tabfoundry_sandwich import blocks as sandwich_blocks
+from tab_foundry.model.architectures.tabfoundry_sandwich import cell_likelihood as sandwich_cell_likelihood
+from tab_foundry.model.architectures.tabfoundry_sandwich import classification_flow as sandwich_classification_flow
+from tab_foundry.model.architectures.tabfoundry_sandwich import feature_flow as sandwich_feature_flow
 from tab_foundry.model.architectures.tabfoundry_sandwich import model as sandwich_model
 from tab_foundry.model.outputs import (
     CellLikelihoodOutput,
@@ -142,6 +146,117 @@ def _model(
     )
 
 
+def _raw_state(
+    model: TabFoundrySandwichClassifier,
+    batch: TaskBatch,
+):
+    x_all, y_train, y_test, train_test_split_index = model._prepare_task_inputs(batch)
+    feature_type_ids = sandwich_feature_flow.feature_type_ids_from_metadata(
+        batch.metadata,
+        batch_size=int(x_all.shape[0]),
+        num_features=int(x_all.shape[2]),
+        device=x_all.device,
+    )
+    return sandwich_feature_flow.build_raw_input_state(
+        x_all=x_all,
+        y_train=y_train,
+        y_test=y_test,
+        train_test_split_index=train_test_split_index,
+        num_classes=model._task_num_classes(batch),
+        feature_type_ids=feature_type_ids,
+    )
+
+
+def _cross_block_state_dict_keys(prefix: str) -> list[str]:
+    return [
+        f"{prefix}.attn.in_proj_bias",
+        f"{prefix}.attn.in_proj_weight",
+        f"{prefix}.attn.out_proj.bias",
+        f"{prefix}.attn.out_proj.weight",
+        f"{prefix}.ff.0.bias",
+        f"{prefix}.ff.0.weight",
+        f"{prefix}.ff.2.bias",
+        f"{prefix}.ff.2.weight",
+        f"{prefix}.ff_norm.bias",
+        f"{prefix}.ff_norm.weight",
+        f"{prefix}.kv_norm.bias",
+        f"{prefix}.kv_norm.weight",
+        f"{prefix}.query_norm.bias",
+        f"{prefix}.query_norm.weight",
+    ]
+
+
+def _self_block_state_dict_keys(prefix: str) -> list[str]:
+    return [
+        f"{prefix}.attn.in_proj_bias",
+        f"{prefix}.attn.in_proj_weight",
+        f"{prefix}.attn.out_proj.bias",
+        f"{prefix}.attn.out_proj.weight",
+        f"{prefix}.attn_norm.bias",
+        f"{prefix}.attn_norm.weight",
+        f"{prefix}.ff.0.bias",
+        f"{prefix}.ff.0.weight",
+        f"{prefix}.ff.2.bias",
+        f"{prefix}.ff.2.weight",
+        f"{prefix}.ff_norm.bias",
+        f"{prefix}.ff_norm.weight",
+    ]
+
+
+def _expected_sandwich_state_dict_keys() -> list[str]:
+    expected = [
+        "cell_bos",
+        "column_summary_query",
+        "direct_head.net.0.bias",
+        "direct_head.net.0.weight",
+        "direct_head.net.2.bias",
+        "direct_head.net.2.weight",
+        "discrete_oov.bias",
+        "discrete_oov.weight",
+        "discrete_query.bias",
+        "discrete_query.weight",
+        "feature_encoder.linear.weight",
+        "feature_type_film.params.weight",
+        "gaussian_head.0.bias",
+        "gaussian_head.0.weight",
+        "gaussian_head.2.bias",
+        "gaussian_head.2.weight",
+        "integer_gate.0.bias",
+        "integer_gate.0.weight",
+        "integer_gate.2.bias",
+        "integer_gate.2.weight",
+        "latent_seed",
+        "pre_column_attention_blocks.0.inducing_seed",
+        "row_summary_query",
+        "test_row_pool_query",
+        "token_type_embedding.weight",
+        "y_conditioner.embedding.weight",
+        "y_conditioner.test_token",
+        "y_role_embedding.weight",
+    ]
+    for index in range(2):
+        expected.extend(_self_block_state_dict_keys(f"cell_decoder_blocks.{index}"))
+        expected.extend(_cross_block_state_dict_keys(f"perceiver_stages.{index}.input_read"))
+        for self_index in range(4):
+            expected.extend(
+                _self_block_state_dict_keys(f"perceiver_stages.{index}.self_blocks.{self_index}")
+            )
+    expected.extend(_cross_block_state_dict_keys("cell_readout"))
+    expected.extend(_cross_block_state_dict_keys("column_summary_builder"))
+    expected.extend(_cross_block_state_dict_keys("latent_readout"))
+    expected.extend(_self_block_state_dict_keys("pre_column_attention_blocks.0.inducing_self"))
+    expected.extend(
+        _cross_block_state_dict_keys("pre_column_attention_blocks.0.rows_from_inducing")
+    )
+    expected.extend(
+        _cross_block_state_dict_keys("pre_column_attention_blocks.0.rows_to_inducing")
+    )
+    expected.extend(_self_block_state_dict_keys("pre_row_attention_blocks.0"))
+    expected.extend(_cross_block_state_dict_keys("row_summary_builder"))
+    expected.extend(_cross_block_state_dict_keys("test_row_pool"))
+    return sorted(expected)
+
+
 def test_tabfoundry_sandwich_forward_shapes() -> None:
     output = _model()(_batch())
 
@@ -176,50 +291,43 @@ def test_tabfoundry_sandwich_accepts_zero_self_attention_per_cross() -> None:
 
 def test_tabfoundry_sandwich_uses_hybrid_full_cell_and_summary_inputs() -> None:
     model = _model()
-    batch = _batch()
-    x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
-    feature_type_ids = model._feature_type_ids_from_metadata(
-        batch.metadata,
-        batch_size=int(x_all.shape[0]),
-        num_features=int(x_all.shape[2]),
-        device=x_all.device,
+    raw_state = _raw_state(model, _batch())
+    feature_state = sandwich_feature_flow.build_feature_state(model, raw_state)
+    classification_state = sandwich_classification_flow.build_classification_state(
+        model,
+        feature_state,
     )
-    feature_cells = model._feature_cells(
-        x_all,
-        train_test_split_index=train_test_split_index,
-        feature_type_ids=feature_type_ids,
+    initial_input = torch.cat(
+        [classification_state.full_cell_stream, classification_state.summary_input],
+        dim=1,
     )
-    full_cell_stream = model._full_cell_tokens(feature_cells, y_train=y_train)
-    summary_input, row_tokens = model._summary_input_tokens(feature_cells, y_train=y_train)
-    initial_input = torch.cat([full_cell_stream, summary_input], dim=1)
 
-    assert tuple(full_cell_stream.shape) == (1, 20, 32)
-    assert tuple(summary_input.shape) == (1, 36, 32)
+    assert tuple(classification_state.full_cell_stream.shape) == (1, 20, 32)
+    assert tuple(classification_state.summary_input.shape) == (1, 36, 32)
     assert tuple(initial_input.shape) == (1, 56, 32)
-    assert tuple(row_tokens.shape) == (1, 20, 32)
+    assert tuple(classification_state.row_tokens.shape) == (1, 20, 32)
     assert tuple(model.latent_seed.shape) == (1, 12, 32)
-    assert tuple(y_train.shape) == (1, 3)
-    assert torch.allclose(summary_input[:, :20, :], row_tokens)
+    assert tuple(raw_state.y_train.shape) == (1, 3)
+    assert torch.allclose(
+        classification_state.summary_input[:, :20, :],
+        classification_state.row_tokens,
+    )
 
 
 def test_tabfoundry_sandwich_fuses_label_query_state_into_row_summaries() -> None:
     model = _model()
-    batch = _batch()
-    x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
-    feature_type_ids = model._feature_type_ids_from_metadata(
-        batch.metadata,
-        batch_size=int(x_all.shape[0]),
-        num_features=int(x_all.shape[2]),
-        device=x_all.device,
-    )
-    feature_cells = model._feature_cells(
-        x_all,
-        train_test_split_index=train_test_split_index,
-        feature_type_ids=feature_type_ids,
-    )
+    raw_state = _raw_state(model, _batch())
+    feature_state = sandwich_feature_flow.build_feature_state(model, raw_state)
 
-    raw_row_summaries = model._row_summary_bytes(feature_cells)
-    row_tokens = model._row_summary_tokens(feature_cells=feature_cells, y_train=y_train)
+    raw_row_summaries = sandwich_classification_flow.row_summary_bytes(
+        model,
+        feature_state.feature_cells,
+    )
+    row_tokens = sandwich_classification_flow.row_summary_tokens(
+        model,
+        feature_cells=feature_state.feature_cells,
+        y_train=raw_state.y_train,
+    )
 
     assert tuple(raw_row_summaries.shape) == (1, 5, 4, 32)
     assert tuple(row_tokens.shape) == (1, 20, 32)
@@ -228,23 +336,16 @@ def test_tabfoundry_sandwich_fuses_label_query_state_into_row_summaries() -> Non
 
 def test_tabfoundry_sandwich_broadcasts_row_conditioning_into_full_cell_stream() -> None:
     model = _model()
-    batch = _batch()
-    x_all, y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
-    feature_type_ids = model._feature_type_ids_from_metadata(
-        batch.metadata,
-        batch_size=int(x_all.shape[0]),
-        num_features=int(x_all.shape[2]),
-        device=x_all.device,
-    )
-    feature_cells = model._feature_cells(
-        x_all,
-        train_test_split_index=train_test_split_index,
-        feature_type_ids=feature_type_ids,
-    )
+    raw_state = _raw_state(model, _batch())
+    feature_state = sandwich_feature_flow.build_feature_state(model, raw_state)
 
-    full_cell_stream = model._full_cell_tokens(feature_cells, y_train=y_train)
-    full_cell_tokens = full_cell_stream.reshape_as(feature_cells)
-    conditioning_delta = full_cell_tokens - feature_cells
+    full_cell_stream = sandwich_classification_flow.full_cell_tokens(
+        model,
+        feature_state.feature_cells,
+        y_train=raw_state.y_train,
+    )
+    full_cell_token_grid = full_cell_stream.reshape_as(feature_state.feature_cells)
+    conditioning_delta = full_cell_token_grid - feature_state.feature_cells
 
     assert tuple(full_cell_stream.shape) == (1, 20, 32)
     torch.testing.assert_close(conditioning_delta[:, 0, 0, :], conditioning_delta[:, 0, 1, :])
@@ -255,7 +356,7 @@ def test_tabfoundry_sandwich_broadcasts_row_conditioning_into_full_cell_stream()
 def test_tabfoundry_sandwich_pools_test_readout_facets_with_learned_query() -> None:
     model = _model()
     x_all, y_train, train_test_split_index = _batched_inputs()
-    feature_type_ids = model._feature_type_ids_from_metadata(
+    feature_type_ids = sandwich_feature_flow.feature_type_ids_from_metadata(
         {
             "task_members": [
                 {"feature_types": feature_types} for feature_types in _batched_feature_types()
@@ -265,24 +366,33 @@ def test_tabfoundry_sandwich_pools_test_readout_facets_with_learned_query() -> N
         num_features=int(x_all.shape[2]),
         device=x_all.device,
     )
-    feature_cells = model._feature_cells(
-        x_all,
+    raw_state = sandwich_feature_flow.build_raw_input_state(
+        x_all=x_all,
+        y_train=y_train,
+        y_test=None,
         train_test_split_index=train_test_split_index,
+        num_classes=3,
         feature_type_ids=feature_type_ids,
     )
-    full_cell_stream = model._full_cell_tokens(feature_cells, y_train=y_train)
-    summary_input, row_tokens = model._summary_input_tokens(feature_cells, y_train=y_train)
-    initial_input = torch.cat([full_cell_stream, summary_input], dim=1)
+    feature_state = sandwich_feature_flow.build_feature_state(model, raw_state)
+    classification_state = sandwich_classification_flow.build_classification_state(
+        model,
+        feature_state,
+    )
+    initial_input = torch.cat(
+        [classification_state.full_cell_stream, classification_state.summary_input],
+        dim=1,
+    )
     latents = model.latent_seed.expand(int(x_all.shape[0]), -1, -1)
     for index, stage in enumerate(model.perceiver_stages):
-        key_value = initial_input if index == 0 else summary_input
+        key_value = initial_input if index == 0 else classification_state.summary_input
         latents = model._cross_block(stage.input_read, latents, key_value)
         for self_block in stage.self_blocks:
             latents = model._self_block(self_block, latents)
     batch_size = int(x_all.shape[0])
-    num_rows = int(feature_cells.shape[1])
+    num_rows = int(feature_state.feature_cells.shape[1])
     num_test_rows = num_rows - train_test_split_index
-    row_token_grid = row_tokens.reshape(
+    row_token_grid = classification_state.row_tokens.reshape(
         batch_size,
         num_rows,
         model.summary_tokens_per_axis,
@@ -294,7 +404,11 @@ def test_tabfoundry_sandwich_pools_test_readout_facets_with_learned_query() -> N
         model.d_icl,
     )
     latent_readout = model._cross_block(model.latent_readout, test_queries, latents)
-    cell_readout = model._cross_block(model.cell_readout, latent_readout, full_cell_stream)
+    cell_readout = model._cross_block(
+        model.cell_readout,
+        latent_readout,
+        classification_state.full_cell_stream,
+    )
     latent_readout_rows = latent_readout.reshape(
         batch_size,
         num_test_rows,
@@ -332,14 +446,7 @@ def test_tabfoundry_sandwich_pre_column_isab_uses_inducing_bottleneck() -> None:
         sandwich_pre_column_attention_layers=1,
         sandwich_pre_column_inducing_tokens=3,
     )
-    batch = _batch()
-    x_all, _y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
-    feature_type_ids = model._feature_type_ids_from_metadata(
-        batch.metadata,
-        batch_size=int(x_all.shape[0]),
-        num_features=int(x_all.shape[2]),
-        device=x_all.device,
-    )
+    raw_state = _raw_state(model, _batch())
     isab_block = model.pre_column_attention_blocks[0]
     events: list[tuple[str, tuple[int, ...], tuple[int, ...] | None]] = []
     original_cross_block = model._cross_block
@@ -360,10 +467,11 @@ def test_tabfoundry_sandwich_pre_column_isab_uses_inducing_bottleneck() -> None:
     model._cross_block = _recording_cross_block  # type: ignore[method-assign]
     model._self_block = _recording_self_block  # type: ignore[method-assign]
 
-    feature_cells = model._feature_cells(
-        x_all,
-        train_test_split_index=train_test_split_index,
-        feature_type_ids=feature_type_ids,
+    feature_cells = sandwich_feature_flow.feature_cells(
+        model,
+        raw_state.x_all,
+        train_test_split_index=raw_state.train_test_split_index,
+        feature_type_ids=raw_state.feature_type_ids,
     )
 
     assert tuple(feature_cells.shape) == (1, 5, 4, 32)
@@ -392,6 +500,7 @@ def test_tabfoundry_sandwich_initializes_latent_seed_with_truncated_normal(
         return original_init(tensor, mean=mean, std=std, a=a, b=b)
 
     monkeypatch.setattr(sandwich_model, "_init_truncated_normal_", _recording_init)
+    monkeypatch.setattr(sandwich_blocks, "_init_truncated_normal_", _recording_init)
 
     model = _model()
 
@@ -401,6 +510,18 @@ def test_tabfoundry_sandwich_initializes_latent_seed_with_truncated_normal(
     ]
     assert tuple(model.latent_seed.shape) == (1, 12, 32)
     assert torch.isfinite(model.latent_seed).all()
+
+
+def test_tabfoundry_sandwich_preserves_representative_state_dict_keys_and_strict_load() -> None:
+    reference = _model()
+    checkpointed = _model()
+
+    expected_keys = _expected_sandwich_state_dict_keys()
+    observed_keys = sorted(reference.state_dict().keys())
+
+    assert observed_keys == expected_keys
+    checkpointed.load_state_dict(reference.state_dict(), strict=True)
+    assert sorted(checkpointed.state_dict().keys()) == expected_keys
 
 
 def test_tabfoundry_sandwich_runs_repeated_cross_then_self_stages() -> None:
@@ -681,28 +802,30 @@ def test_tabfoundry_sandwich_feature_type_film_changes_encoded_cells() -> None:
         params[2, 32 + 2] = 0.75
         params[3, 32 + 3] = -1.0
     batch = _batch()
-    x_all, _y_train, _y_test, train_test_split_index = model._prepare_task_inputs(batch)
-    default_ids = model._feature_type_ids_from_metadata(
+    raw_state = _raw_state(model, batch)
+    default_ids = sandwich_feature_flow.feature_type_ids_from_metadata(
         batch.metadata,
-        batch_size=int(x_all.shape[0]),
-        num_features=int(x_all.shape[2]),
-        device=x_all.device,
+        batch_size=int(raw_state.x_all.shape[0]),
+        num_features=int(raw_state.x_all.shape[2]),
+        device=raw_state.x_all.device,
     )
-    secondary_ids = model._feature_type_ids_from_metadata(
+    secondary_ids = sandwich_feature_flow.feature_type_ids_from_metadata(
         {"feature_types": list(_SECONDARY_FEATURE_TYPES)},
-        batch_size=int(x_all.shape[0]),
-        num_features=int(x_all.shape[2]),
-        device=x_all.device,
+        batch_size=int(raw_state.x_all.shape[0]),
+        num_features=int(raw_state.x_all.shape[2]),
+        device=raw_state.x_all.device,
     )
 
-    default_cells = model._feature_cells(
-        x_all,
-        train_test_split_index=train_test_split_index,
+    default_cells = sandwich_feature_flow.feature_cells(
+        model,
+        raw_state.x_all,
+        train_test_split_index=raw_state.train_test_split_index,
         feature_type_ids=default_ids,
     )
-    secondary_cells = model._feature_cells(
-        x_all,
-        train_test_split_index=train_test_split_index,
+    secondary_cells = sandwich_feature_flow.feature_cells(
+        model,
+        raw_state.x_all,
+        train_test_split_index=raw_state.train_test_split_index,
         feature_type_ids=secondary_ids,
     )
 
@@ -711,8 +834,10 @@ def test_tabfoundry_sandwich_feature_type_film_changes_encoded_cells() -> None:
 
 def test_tabfoundry_sandwich_forward_cell_likelihood_emits_typed_payloads() -> None:
     model = _model()
+    raw_state = _raw_state(model, _batch())
+    feature_state = sandwich_feature_flow.build_feature_state(model, raw_state)
 
-    output = model.forward_cell_likelihood(_batch())
+    output = sandwich_cell_likelihood.forward_cell_likelihood(model, feature_state)
 
     assert validate_cell_likelihood_output_contract(
         output,

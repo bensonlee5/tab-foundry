@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-import math
-
 import torch
 from torch import nn
-from torch.utils.checkpoint import checkpoint as activation_checkpoint
 
 from tab_foundry.input_normalization import SUPPORTED_INPUT_NORMALIZATION_MODES
 from tab_foundry.model.outputs import (
@@ -22,6 +18,8 @@ from tab_foundry.model.spec import (
 )
 from tab_foundry.types import TaskBatch
 
+from .. import shared_forward as _shared_forward
+from .. import shared_hooks as _shared_hooks
 from . import direct_head as _direct_head
 from . import forward_common as _forward_common
 from . import many_class as _many_class
@@ -191,68 +189,36 @@ class TabFoundryStagedClassifier(nn.Module):
         self._activation_trace: dict[str, tuple[float, int]] | None = None
 
     def enable_activation_checkpointing(self) -> None:
-        self._activation_checkpointing_enabled = True
+        _shared_hooks.enable_activation_checkpointing(self)
 
     def disable_activation_checkpointing(self) -> None:
-        self._activation_checkpointing_enabled = False
+        _shared_hooks.disable_activation_checkpointing(self)
 
     def _apply_activation_checkpoint(
         self,
-        function: Callable[..., torch.Tensor],
+        function,
         *args: torch.Tensor,
     ) -> torch.Tensor:
-        if not self._activation_checkpointing_enabled or not self.training:
-            return function(*args)
-        if not any(isinstance(arg, torch.Tensor) and arg.requires_grad for arg in args):
-            return function(*args)
-        return activation_checkpoint(function, *args, use_reentrant=False)
+        return _shared_hooks.apply_activation_checkpoint(self, function, *args)
 
     def enable_activation_trace(self) -> None:
-        self._activation_trace = {}
+        _shared_hooks.enable_activation_trace(self)
 
     def disable_activation_trace(self) -> None:
-        self._activation_trace = None
+        _shared_hooks.disable_activation_trace(self)
 
     def trace_activation(self, name: str, tensor: torch.Tensor) -> None:
-        if self._activation_trace is None:
-            return
-        trace_tensor = tensor.detach().to(torch.float32)
-        trace_sum_sq = float(trace_tensor.square().sum().item())
-        trace_count = int(trace_tensor.numel())
-        total_sum_sq, total_count = self._activation_trace.get(name, (0.0, 0))
-        self._activation_trace[name] = (
-            total_sum_sq + trace_sum_sq,
-            total_count + trace_count,
-        )
+        _shared_hooks.trace_activation(self, name, tensor)
 
     def flush_activation_trace_stats(self) -> dict[str, tuple[float, int]] | None:
-        if self._activation_trace is None:
-            return None
-        snapshot = {
-            name: (float(total_sum_sq), int(total_count))
-            for name, (total_sum_sq, total_count) in self._activation_trace.items()
-            if total_count > 0
-        }
-        self._activation_trace = {}
-        return snapshot
+        return _shared_hooks.flush_activation_trace_stats(self)
 
     def flush_activation_trace(self) -> dict[str, float] | None:
-        snapshot = self.flush_activation_trace_stats()
-        if snapshot is None:
-            return None
-        return {
-            name: float(math.sqrt(total_sum_sq / float(total_count)))
-            for name, (total_sum_sq, total_count) in snapshot.items()
-            if total_count > 0
-        }
+        return _shared_hooks.flush_activation_trace(self)
 
     @staticmethod
     def _task_num_classes(batch: TaskBatch) -> int:
-        if batch.num_classes is not None:
-            return int(batch.num_classes)
-        if batch.y_train.numel() == 0:
-            raise RuntimeError("tabfoundry_staged requires at least one training label")
-        return int(batch.y_train.max().item()) + 1
+        return _shared_forward.task_num_classes(batch, arch_name="tabfoundry_staged")
 
     @staticmethod
     def _prepare_task_inputs(batch: TaskBatch) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
