@@ -12,7 +12,7 @@ from tab_foundry.cli.dev import diff_config_payloads, forward_check, resolve_con
 from tab_foundry.export.contracts import SCHEMA_VERSION_V2, SCHEMA_VERSION_V3
 from tab_foundry.export.inspection import export_check
 
-from tests.export import exporter_cases
+from tests.support import exporter_cases
 
 
 _SMALL_STAGED_OVERRIDES = [

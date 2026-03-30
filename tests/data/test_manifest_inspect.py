@@ -5,7 +5,7 @@ from pathlib import Path
 from tab_foundry.cli.data_inspect import manifest_inspect_payload
 from tab_realdata_hub.manifest import build_manifest
 
-from . import manifest_and_dataset_cases as cases
+from tests.support import manifest_and_dataset_cases as cases
 
 
 def test_manifest_inspect_reports_summary_and_persisted_metadata(tmp_path: Path) -> None:

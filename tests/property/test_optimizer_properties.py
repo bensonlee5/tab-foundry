@@ -3,12 +3,15 @@ from __future__ import annotations
 import math
 import builtins
 
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 import pytest
 import torch
 from torch import nn
 
+from tests.support.hypothesis_profiles import HYPOTHESIS_CI
+from tests.support.hypothesis_profiles import HYPOTHESIS_EXTENDED
+from tests.support.hypothesis_profiles import HYPOTHESIS_TINY
 from tab_foundry.training.optimizer import (
     _build_muon_params,
     _muon_lr_for_param,
@@ -17,7 +20,7 @@ from tab_foundry.training.optimizer import (
 )
 
 
-@settings(deadline=None, max_examples=35)
+@HYPOTHESIS_EXTENDED
 @given(
     n=st.integers(min_value=1, max_value=64),
     m=st.integers(min_value=1, max_value=64),
@@ -48,7 +51,7 @@ def test_muon_lr_scaling_is_base_for_vectors_and_monotonic_for_larger_matrices(
     assert large_lr >= small_lr
 
 
-@settings(deadline=None, max_examples=30)
+@HYPOTHESIS_EXTENDED
 @given(
     matrix_rows=st.integers(min_value=1, max_value=16),
     matrix_cols=st.integers(min_value=1, max_value=16),
@@ -91,7 +94,7 @@ def test_build_muon_params_preserves_param_identity_and_count(
     assert grouped[1]["lr"] == pytest.approx(base_lr)
 
 
-@settings(deadline=None, max_examples=25)
+@HYPOTHESIS_CI
 @given(
     vocab=st.integers(min_value=2, max_value=32),
     embed_dim=st.integers(min_value=1, max_value=16),
@@ -125,7 +128,7 @@ def test_partition_muon_params_is_lossless_and_disjoint(
     assert id(model.embed.weight) not in muon_ids
 
 
-@settings(deadline=None, max_examples=10)
+@HYPOTHESIS_TINY
 @given(requested=st.sampled_from(("muon", "schedulefree_adamw")))
 def test_build_optimizer_fallback_metadata_is_coherent_when_optional_optimizer_is_unavailable(
     requested: str,
