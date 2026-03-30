@@ -7,8 +7,6 @@ import platform
 from pathlib import Path
 from typing import Any, Mapping
 
-import numpy as np
-
 from tab_foundry.bench.artifacts import (
     checkpoint_snapshots_from_history,
     resolve_train_elapsed_seconds,
@@ -16,7 +14,7 @@ from tab_foundry.bench.artifacts import (
 from tab_foundry.device import resolve_device
 
 from .bundle import _CLASSIFICATION_TASK_TYPE
-from .dataset_common import BenchmarkDatasetEvaluationError
+from .dataset_common import BenchmarkDataset, BenchmarkDatasetEvaluationError
 from .metrics import (
     dataset_bpc_metrics,
     dataset_bpf_metrics,
@@ -117,7 +115,7 @@ def collect_checkpoint_snapshots(run_dir: Path) -> list[dict[str, Any]]:
 def evaluate_tab_foundry_run(
     run_dir: Path,
     *,
-    datasets: Mapping[str, tuple[np.ndarray, np.ndarray]],
+    datasets: Mapping[str, BenchmarkDataset],
     task_type: str,
     device: str,
     allow_checkpoint_failures: bool = False,

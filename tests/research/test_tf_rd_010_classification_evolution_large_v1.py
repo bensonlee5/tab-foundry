@@ -151,3 +151,6 @@ def test_tf_rd_010_classification_evolution_large_v1_inspection_resolves_sandwic
     resolved_model = payload["target"]["resolved"]["model"]
     assert resolved_model["arch"] == "tabfoundry_sandwich"
     assert resolved_model.get("stage_label") is None
+    assert resolved_model["architecture"]["feature_type_encoding"] == "film"
+    assert resolved_model["architecture"]["floating_likelihood"] == "single_gaussian"
+    assert resolved_model["architecture"]["integer_likelihood"] == "hybrid_mixture"

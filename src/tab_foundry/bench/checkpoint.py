@@ -19,6 +19,7 @@ from tab_foundry.model.factory import build_model_from_spec
 from tab_foundry.model.outputs import ClassificationOutput, validate_classification_output_contract
 from tab_foundry.model.spec import (
     ModelBuildSpec,
+    SANDWICH_MODEL_ARCH,
     checkpoint_model_build_spec_from_mappings,
 )
 from tab_foundry.model.architectures.tabfoundry_staged.resolved import (
@@ -98,7 +99,9 @@ def load_checkpoint_classifier_model(
     model, spec = load_checkpoint_model(checkpoint_path, device=device, cfg=cfg)
     task = str(getattr(spec, "task", "classification")).strip().lower()
     if task != "classification":
-        raise RuntimeError(f"Checkpoint classifier requires classification checkpoint, got {task!r}")
+        raise RuntimeError(
+            f"Checkpoint classifier requires classification checkpoint, got {task!r}"
+        )
     return model, spec
 
 
@@ -132,14 +135,20 @@ def _checkpoint_preprocessing_surface(checkpoint_path: Path) -> Any:
     )
 
 
-def _staged_checkpoint_uses_missingness_token(spec: Any) -> bool:
-    if str(getattr(spec, "arch", "")).strip().lower() != "tabfoundry_staged":
+def _checkpoint_preserves_non_finite_benchmark_inputs(spec: Any) -> bool:
+    arch = str(getattr(spec, "arch", "")).strip().lower()
+    if arch == SANDWICH_MODEL_ARCH:
+        return True
+    if arch != "tabfoundry_staged":
         return False
     if not isinstance(spec, ModelBuildSpec):
         raw_overrides = getattr(spec, "module_overrides", None)
         if isinstance(raw_overrides, Mapping):
             tokenizer = raw_overrides.get("tokenizer")
-            if isinstance(tokenizer, str) and tokenizer.strip().lower() == "scalar_per_feature_nan_mask":
+            if (
+                isinstance(tokenizer, str)
+                and tokenizer.strip().lower() == "scalar_per_feature_nan_mask"
+            ):
                 return True
         return False
     return resolve_staged_surface(spec).tokenizer == "scalar_per_feature_nan_mask"
@@ -156,11 +165,24 @@ class TabFoundryClassifier:
             device=self.device,
         )
         self.preprocessing_surface = _checkpoint_preprocessing_surface(self.checkpoint_path)
-        self._preserve_non_finite_inputs = _staged_checkpoint_uses_missingness_token(self.model_spec)
+        self._preserve_non_finite_inputs = _checkpoint_preserves_non_finite_benchmark_inputs(
+            self.model_spec
+        )
+        self._benchmark_feature_types: list[str] | None = None
         self._classes: np.ndarray | None = None
         self._preprocessor_state: FittedPreprocessorState | None = None
         self._raw_x_train: np.ndarray | None = None
         self._raw_y_train: np.ndarray | None = None
+
+    def set_benchmark_feature_types(self, feature_types: list[str] | None) -> None:
+        if feature_types is None:
+            self._benchmark_feature_types = None
+            return
+        if not isinstance(feature_types, list) or not all(
+            isinstance(value, str) for value in feature_types
+        ):
+            raise RuntimeError("benchmark feature_types must be a list of strings")
+        self._benchmark_feature_types = list(feature_types)
 
     def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "TabFoundryClassifier":
         raw_x_train = np.asarray(x_train, dtype=np.float32)
@@ -168,6 +190,14 @@ class TabFoundryClassifier:
         classes = np.unique(raw_y_train)
         if classes.size < 2:
             raise RuntimeError("benchmark classifier requires at least 2 classes in fit()")
+        if (
+            str(getattr(self.model_spec, "arch", "")).strip().lower() == SANDWICH_MODEL_ARCH
+            and self._benchmark_feature_types is None
+        ):
+            raise RuntimeError(
+                "tabfoundry_sandwich benchmark evaluation requires explicit "
+                "feature_types for each dataset"
+            )
         self._classes = classes
         self._raw_x_train = raw_x_train
         self._raw_y_train = raw_y_train
@@ -178,6 +208,7 @@ class TabFoundryClassifier:
             all_nan_fill=float(self.preprocessing_surface.all_nan_fill),
             label_mapping=str(self.preprocessing_surface.label_mapping),
             unseen_test_label_policy=str(self.preprocessing_surface.unseen_test_label_policy),
+            feature_types=self._benchmark_feature_types,
         )
         return self
 
@@ -212,7 +243,11 @@ class TabFoundryClassifier:
             internal_normalization = staged_surface_uses_internal_benchmark_normalization(
                 self.model_spec,
             )
-        if internal_normalization or normalization_mode == "none":
+        if (
+            internal_normalization
+            or normalization_mode == "none"
+            or self._preserve_non_finite_inputs
+        ):
             x_train_norm, x_test_norm = processed.x_train, processed.x_test
         else:
             x_train_norm, x_test_norm = normalize_train_test_arrays(
@@ -247,7 +282,9 @@ class TabFoundryClassifier:
             elif output.class_probs is not None:
                 probs = output.class_probs
             else:
-                raise RuntimeError("checkpoint output does not expose logits or class probabilities")
+                raise RuntimeError(
+                    "checkpoint output does not expose logits or class probabilities"
+                )
         return probs.cpu().numpy()
 
     def predict(self, x_test: np.ndarray) -> np.ndarray:
@@ -295,7 +332,17 @@ class TabFoundryClassifier:
             output = forward_cell_likelihood(batch)
         if output.bpc is None or output.bpf is None:
             raise RuntimeError("checkpoint cell-likelihood output omitted bpc/bpf")
-        return {
+        metrics = {
             "bpc": float(output.bpc.detach().item()),
             "bpf": float(output.bpf.detach().item()),
         }
+        if output.aux_metrics is not None:
+            for key in (
+                "bpc_cell_count",
+                "bpf_feature_count",
+                "excluded_non_finite_cell_count",
+            ):
+                raw_value = output.aux_metrics.get(key)
+                if raw_value is not None:
+                    metrics[key] = float(raw_value)
+        return metrics

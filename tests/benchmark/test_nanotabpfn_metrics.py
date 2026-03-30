@@ -21,7 +21,9 @@ TABICLV2_HELPER_SCRIPT_PATH = REPO_ROOT / "scripts" / "bench" / "tabiclv2_helper
 
 
 def _load_tabiclv2_helper_script():
-    spec = importlib.util.spec_from_file_location("bench_tabiclv2_helper_script", TABICLV2_HELPER_SCRIPT_PATH)
+    spec = importlib.util.spec_from_file_location(
+        "bench_tabiclv2_helper_script", TABICLV2_HELPER_SCRIPT_PATH
+    )
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -63,6 +65,25 @@ def _write_helper_manifest(tmp_path: Path) -> Path:
     return manifest_path
 
 
+def test_dataset_cache_roundtrip_preserves_feature_types(tmp_path: Path) -> None:
+    cache_path = tmp_path / "datasets.npz"
+    datasets = {
+        "toy": (
+            np.asarray([[0.0, 1.0], [1.0, 0.0]], dtype=np.float32),
+            np.asarray([0, 1], dtype=np.int64),
+            ["floating", "integer"],
+        )
+    }
+
+    benchmark_module.save_dataset_cache(cache_path, datasets)
+    restored = benchmark_module.load_dataset_cache(cache_path)
+
+    assert list(restored) == ["toy"]
+    assert np.allclose(restored["toy"][0], datasets["toy"][0])
+    assert np.array_equal(restored["toy"][1], datasets["toy"][1])
+    assert restored["toy"][2] == datasets["toy"][2]
+
+
 class _PerfectClassifier:
     def fit(self, x_train: np.ndarray, y_train: np.ndarray) -> "_PerfectClassifier":
         self.classes_ = np.unique(np.asarray(y_train, dtype=np.int64))
@@ -87,7 +108,38 @@ class _NaNIgnoringClassifier:
         _ = x_test
         if int(self.classes_.size) != 2:
             raise RuntimeError("test helper expects a binary dataset")
-        return np.repeat(np.asarray([[0.5, 0.5]], dtype=np.float64), repeats=x_test.shape[0], axis=0)
+        return np.repeat(
+            np.asarray([[0.5, 0.5]], dtype=np.float64), repeats=x_test.shape[0], axis=0
+        )
+
+
+class _CountAwareCellLikelihoodClassifier:
+    def fit(
+        self, x_train: np.ndarray, y_train: np.ndarray
+    ) -> "_CountAwareCellLikelihoodClassifier":
+        _ = x_train
+        self.classes_ = np.unique(np.asarray(y_train, dtype=np.int64))
+        return self
+
+    def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
+        _ = x_test
+        if int(self.classes_.size) != 2:
+            raise RuntimeError("test helper expects a binary dataset")
+        return np.repeat(
+            np.asarray([[0.5, 0.5]], dtype=np.float64), repeats=x_test.shape[0], axis=0
+        )
+
+    def cell_likelihood_metrics(self, x_test: np.ndarray) -> dict[str, float]:
+        finite_mask = np.isfinite(x_test)
+        valid_cell_count = float(finite_mask.sum())
+        valid_feature_count = float(np.isfinite(x_test).any(axis=0).sum())
+        has_missing_feature = bool(np.all(~finite_mask[:, 0]))
+        return {
+            "bpc": 10.0 if has_missing_feature else 0.0,
+            "bpf": 8.0 if has_missing_feature else 0.0,
+            "bpc_cell_count": valid_cell_count,
+            "bpf_feature_count": valid_feature_count,
+        }
 
 
 class _PerfectRegressor:
@@ -123,7 +175,10 @@ class _FakeTabICLRegressor:
 def test_evaluate_classifier_reports_brier_for_binary_and_multiclass() -> None:
     binary_datasets = {
         "binary": (
-            np.asarray([[0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0]], dtype=np.float32),
+            np.asarray(
+                [[0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0], [0.0], [1.0]],
+                dtype=np.float32,
+            ),
             np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
         )
     }
@@ -133,7 +188,23 @@ def test_evaluate_classifier_reports_brier_for_binary_and_multiclass() -> None:
     assert binary_metrics["Brier Score"] < 1.0e-10
 
     multiclass_x = np.asarray(
-        [[0.0], [1.0], [2.0], [0.0], [1.0], [2.0], [0.0], [1.0], [2.0], [0.0], [1.0], [2.0], [0.0], [1.0], [2.0]],
+        [
+            [0.0],
+            [1.0],
+            [2.0],
+            [0.0],
+            [1.0],
+            [2.0],
+            [0.0],
+            [1.0],
+            [2.0],
+            [0.0],
+            [1.0],
+            [2.0],
+            [0.0],
+            [1.0],
+            [2.0],
+        ],
         dtype=np.float32,
     )
     multiclass_y = np.asarray([0, 1, 2] * 5, dtype=np.int64)
@@ -169,6 +240,62 @@ def test_evaluate_classifier_allows_missing_inputs_when_enabled() -> None:
     assert metrics["ROC AUC"] == pytest.approx(0.5)
     assert metrics["Log Loss"] == pytest.approx(np.log(2.0))
     assert metrics["Brier Score"] == pytest.approx(0.5)
+
+
+def test_evaluate_classifier_weights_bpc_and_bpf_by_returned_valid_counts() -> None:
+    datasets = {
+        "sparse": (
+            np.asarray(
+                [
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                    [np.nan, 0.0],
+                    [np.nan, 1.0],
+                ],
+                dtype=np.float32,
+            ),
+            np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
+            ["floating", "floating"],
+        ),
+        "dense": (
+            np.asarray(
+                [
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                    [0.0, 0.0],
+                    [1.0, 1.0],
+                ],
+                dtype=np.float32,
+            ),
+            np.asarray([0, 1, 0, 1, 0, 1, 0, 1, 0, 1], dtype=np.int64),
+            ["floating", "floating"],
+        ),
+    }
+
+    metrics = benchmark_module.evaluate_classifier(
+        _CountAwareCellLikelihoodClassifier(),
+        datasets,
+        allow_missing_values=True,
+    )
+
+    assert metrics["sparse/BPC"] == pytest.approx(10.0)
+    assert metrics["dense/BPC"] == pytest.approx(0.0)
+    assert metrics["BPC"] == pytest.approx(10.0 / 3.0)
+    assert metrics["sparse/BPF"] == pytest.approx(8.0)
+    assert metrics["dense/BPF"] == pytest.approx(0.0)
+    assert metrics["BPF"] == pytest.approx(8.0 / 3.0)
 
 
 def test_classification_brier_score_matches_expected_binary_value() -> None:
@@ -217,7 +344,9 @@ def test_evaluate_regressor_reports_crps_pinball_and_picp() -> None:
 def test_tabiclv2_quantile_regressor_adapter_returns_quantiles_and_levels() -> None:
     adapter = tabiclv2_helper_module.TabICLv2QuantileRegressorAdapter(_FakeTabICLRegressor())
 
-    _ = adapter.fit(np.asarray([[0.0], [1.0]], dtype=np.float32), np.asarray([0.0, 1.0], dtype=np.float32))
+    _ = adapter.fit(
+        np.asarray([[0.0], [1.0]], dtype=np.float32), np.asarray([0.0, 1.0], dtype=np.float32)
+    )
     quantiles, levels = adapter.predict_quantiles(np.asarray([[2.0], [3.0]], dtype=np.float32))
 
     assert levels.tolist() == pytest.approx(
@@ -246,7 +375,9 @@ def test_tabiclv2_helper_main_runs_without_openml_or_pandas_imports(
         def predict_proba(self, x_test: np.ndarray) -> np.ndarray:
             labels = np.asarray(x_test[:, 0], dtype=np.int64)
             probabilities = np.zeros((labels.shape[0], int(self.classes_.size)), dtype=np.float64)
-            class_to_index = {int(label): index for index, label in enumerate(self.classes_.tolist())}
+            class_to_index = {
+                int(label): index for index, label in enumerate(self.classes_.tolist())
+            }
             for row_index, label in enumerate(labels.tolist()):
                 probabilities[row_index, class_to_index[int(label)]] = 1.0
             return probabilities
@@ -362,9 +493,7 @@ def test_build_comparison_summary_supports_regression_without_nanotabpfn(tmp_pat
             },
         ],
         nanotabpfn_records=[],
-        benchmark_tasks=[
-            {"task_id": 1, "dataset_name": "toy", "n_rows": 16, "n_features": 4}
-        ],
+        benchmark_tasks=[{"task_id": 1, "dataset_name": "toy", "n_rows": 16, "n_features": 4}],
         benchmark_bundle={
             "name": "toy_regression",
             "version": 1,
@@ -375,9 +504,7 @@ def test_build_comparison_summary_supports_regression_without_nanotabpfn(tmp_pat
                 "max_missing_pct": 0.0,
             },
             "task_ids": [1],
-            "tasks": [
-                {"task_id": 1, "dataset_name": "toy", "n_rows": 16, "n_features": 4}
-            ],
+            "tasks": [{"task_id": 1, "dataset_name": "toy", "n_rows": 16, "n_features": 4}],
         },
         benchmark_bundle_path=tmp_path / "bundle.json",
         benchmark_manifest_path=tmp_path / "bundle.json",

@@ -13,8 +13,9 @@ from tab_realdata_hub.openml import (
     prepare_task as _prepare_openml_task,
     read_required_quality as read_required_openml_quality,
 )
+from tab_foundry.data.dataset import load_manifest_record_metadata
 
-from .dataset_common import _assert_finite_benchmark_datasets
+from .dataset_common import BenchmarkDataset, _assert_finite_benchmark_datasets
 
 __all__ = [
     "PreparedOpenMLBenchmarkTask",
@@ -127,7 +128,7 @@ def load_benchmark_manifest_datasets(
     *,
     benchmark_manifest_path: Path,
     allow_missing_values: bool | None = None,
-) -> tuple[dict[str, tuple[np.ndarray, np.ndarray]], list[dict[str, Any]], dict[str, Any]]:
+) -> tuple[dict[str, BenchmarkDataset], list[dict[str, Any]], dict[str, Any]]:
     """Load a manifest-backed benchmark surface."""
 
     resolved_manifest_path = benchmark_manifest_path.expanduser().resolve()
@@ -155,7 +156,37 @@ def load_benchmark_manifest_datasets(
             f"expected={bool(allow_missing_values)}, actual={surface_allow_missing_values}, "
             f"path={benchmark_manifest_path}"
         )
-    datasets = loaded.datasets
+    datasets: dict[str, BenchmarkDataset] = {}
+    for task_record in task_records:
+        dataset_name = str(task_record["dataset_name"])
+        if dataset_name not in loaded.datasets:
+            raise RuntimeError(
+                "manifest-backed benchmark surface task record is missing a loaded dataset: "
+                f"dataset={dataset_name!r}"
+            )
+        x, y = loaded.datasets[dataset_name]
+        manifest_record = task_record.get("manifest_record")
+        if not isinstance(manifest_record, Mapping):
+            raise RuntimeError(
+                "manifest-backed benchmark task record omitted manifest_record payload: "
+                f"dataset={dataset_name!r}"
+            )
+        _metadata, feature_types = load_manifest_record_metadata(
+            resolved_manifest_path,
+            record=manifest_record,
+            expected_feature_count=int(np.asarray(x).shape[1]),
+            require_feature_types=False,
+        )
+        dataset_x = np.asarray(x, dtype=np.float32)
+        dataset_y = np.asarray(y)
+        if feature_types is None:
+            datasets[dataset_name] = (dataset_x, dataset_y)
+        else:
+            datasets[dataset_name] = (
+                dataset_x,
+                dataset_y,
+                feature_types,
+            )
     if not surface_allow_missing_values:
         _assert_finite_benchmark_datasets(
             datasets,

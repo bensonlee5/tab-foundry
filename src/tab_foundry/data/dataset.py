@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 import pyarrow.parquet as pq
@@ -139,6 +139,73 @@ def _read_ndjson_record_by_offset(
     return payload
 
 
+def load_manifest_record_metadata(
+    manifest_path: Path,
+    *,
+    record: Mapping[str, Any],
+    expected_feature_count: int | None = None,
+    require_feature_types: bool = True,
+) -> tuple[dict[str, Any], list[str] | None]:
+    """Load one packed-manifest metadata payload plus validated feature types."""
+
+    required_keys = {
+        "dataset_index",
+        "metadata_path",
+        "metadata_offset_bytes",
+        "metadata_size_bytes",
+        "metadata_sha256",
+    }
+    missing = sorted(required_keys - set(record))
+    if missing:
+        raise RuntimeError(
+            "manifest record is missing required packed-contract fields: "
+            f"missing={missing}"
+        )
+
+    dataset_index = int(record["dataset_index"])
+    metadata_path = _resolve_record_path(manifest_path, str(record["metadata_path"]))
+    metadata_offset_bytes = int(record["metadata_offset_bytes"])
+    metadata_size_bytes = int(record["metadata_size_bytes"])
+    metadata_sha256 = str(record["metadata_sha256"])
+    metadata_record = _read_ndjson_record_by_offset(
+        metadata_path,
+        offset_bytes=metadata_offset_bytes,
+        size_bytes=metadata_size_bytes,
+        expected_sha256=metadata_sha256,
+    )
+    metadata_dataset_index = int(metadata_record.get("dataset_index", -1))
+    if metadata_dataset_index != dataset_index:
+        raise RuntimeError(
+            "metadata dataset_index mismatch for manifest record: "
+            f"manifest={dataset_index}, metadata={metadata_dataset_index}, path={metadata_path}"
+        )
+    metadata = metadata_record.get("metadata")
+    if not isinstance(metadata, dict):
+        raise RuntimeError(
+            f"metadata record missing object payload at key 'metadata': path={metadata_path}"
+        )
+    raw_feature_types = metadata_record.get("feature_types", metadata.get("feature_types"))
+    if raw_feature_types is None:
+        if require_feature_types:
+            raise RuntimeError(
+                "manifest-backed task dataset requires explicit feature_types metadata: "
+                f"dataset_index={dataset_index}, path={metadata_path}"
+            )
+        return metadata, None
+    try:
+        feature_types = normalize_feature_types(
+            raw_feature_types,
+            expected_count=expected_feature_count,
+            context="metadata_record.feature_types",
+        )
+    except ValueError as exc:
+        raise RuntimeError(
+            "invalid manifest-backed feature_types metadata: "
+            f"dataset_index={dataset_index}, path={metadata_path}: {exc}"
+        ) from exc
+    return metadata, feature_types
+
+
 def _subsample_rows(
     x: np.ndarray,
     y: np.ndarray,
@@ -255,47 +322,18 @@ def _load_manifest_task_record(
     dataset_index = int(record["dataset_index"])
     train_path = _resolve_record_path(manifest_path, str(record["train_path"]))
     test_path = _resolve_record_path(manifest_path, str(record["test_path"]))
-    metadata_path = _resolve_record_path(manifest_path, str(record["metadata_path"]))
-    metadata_offset_bytes = int(record["metadata_offset_bytes"])
-    metadata_size_bytes = int(record["metadata_size_bytes"])
-    metadata_sha256 = str(record["metadata_sha256"])
-
     x_train, y_train = _read_packed_split(train_path, dataset_index=dataset_index)
     x_test, y_test = _read_packed_split(test_path, dataset_index=dataset_index)
-    metadata_record = _read_ndjson_record_by_offset(
-        metadata_path,
-        offset_bytes=metadata_offset_bytes,
-        size_bytes=metadata_size_bytes,
-        expected_sha256=metadata_sha256,
+    metadata, feature_types = load_manifest_record_metadata(
+        manifest_path,
+        record=record,
+        expected_feature_count=int(x_train.shape[1]),
     )
-    metadata_dataset_index = int(metadata_record.get("dataset_index", -1))
-    if metadata_dataset_index != dataset_index:
-        raise RuntimeError(
-            "metadata dataset_index mismatch for manifest record: "
-            f"manifest={dataset_index}, metadata={metadata_dataset_index}, path={metadata_path}"
-        )
-    metadata = metadata_record.get("metadata")
-    if not isinstance(metadata, dict):
-        raise RuntimeError(
-            f"metadata record missing object payload at key 'metadata': path={metadata_path}"
-        )
-    raw_feature_types = metadata_record.get("feature_types", metadata.get("feature_types"))
-    if raw_feature_types is None:
+    if feature_types is None:
         raise RuntimeError(
             "manifest-backed task dataset requires explicit feature_types metadata: "
-            f"dataset_index={dataset_index}, path={metadata_path}"
+            f"{_record_identity_text(record)}"
         )
-    try:
-        feature_types = normalize_feature_types(
-            raw_feature_types,
-            expected_count=int(x_train.shape[1]),
-            context="metadata_record.feature_types",
-        )
-    except ValueError as exc:
-        raise RuntimeError(
-            "invalid manifest-backed feature_types metadata: "
-            f"dataset_index={dataset_index}, path={metadata_path}: {exc}"
-        ) from exc
 
     expected_n_train = int(record.get("n_train", -1))
     expected_n_test = int(record.get("n_test", -1))

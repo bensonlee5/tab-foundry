@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dependencies needed for helper-side `src/` injection.
 - User-facing note: `tab-foundry` and benchmark env bootstrap now pin the
   published `tab-realdata-hub==0.1.1` release instead of `0.1.0`.
+- User-facing note: sandwich `cell_bpc` now excludes non-finite target cells
+  from BPC/BPF aggregation, restores configured input normalization on the
+  cell-likelihood lane, and surfaces valid-cell and valid-feature counts so
+  benchmark BPC/BPF weighting tracks only the finite cells actually scored.
 
 ## [0.15.3] - 2026-03-29
 

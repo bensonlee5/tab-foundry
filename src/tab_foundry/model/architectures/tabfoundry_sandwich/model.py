@@ -276,10 +276,10 @@ class TabFoundrySandwichClassifier(nn.Module):
         self.self_attention_per_cross = int(self.model_spec.sandwich_self_attention_per_cross)
         self.pre_row_attention_layers = int(self.model_spec.sandwich_pre_row_attention_layers)
         self.pre_column_attention_layers = int(self.model_spec.sandwich_pre_column_attention_layers)
-        self.pre_column_inducing_tokens = int(
-            self.model_spec.sandwich_pre_column_inducing_tokens
+        self.pre_column_inducing_tokens = int(self.model_spec.sandwich_pre_column_inducing_tokens)
+        self.feature_type_conditioning = (
+            str(self.model_spec.feature_type_conditioning).strip().lower()
         )
-        self.feature_type_conditioning = str(self.model_spec.feature_type_conditioning).strip().lower()
         self.floating_likelihood = str(self.model_spec.floating_likelihood).strip().lower()
         self.integer_likelihood = str(self.model_spec.integer_likelihood).strip().lower()
         if self.norm_type != "layernorm":
@@ -480,7 +480,9 @@ class TabFoundrySandwichClassifier(nn.Module):
         return int(batch.y_train.max().item()) + 1
 
     @staticmethod
-    def _prepare_task_inputs(batch: TaskBatch) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+    def _prepare_task_inputs(
+        batch: TaskBatch,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
         if batch.x_train.ndim == _UNBATCHED_TASK_RANK:
             train_test_split_index = int(batch.x_train.shape[0])
             if train_test_split_index <= 0:
@@ -502,7 +504,9 @@ class TabFoundrySandwichClassifier(nn.Module):
                 f"y_test={tuple(int(dim) for dim in batch.y_test.shape)}"
             )
         if int(batch.x_train.shape[0]) != int(batch.x_test.shape[0]):
-            raise RuntimeError("tabfoundry_sandwich batched train/test tensors must share a batch dimension")
+            raise RuntimeError(
+                "tabfoundry_sandwich batched train/test tensors must share a batch dimension"
+            )
         train_test_split_index = int(batch.x_train.shape[1])
         if train_test_split_index <= 0:
             raise RuntimeError("tabfoundry_sandwich requires at least one training row")
@@ -598,7 +602,9 @@ class TabFoundrySandwichClassifier(nn.Module):
         device: torch.device,
     ) -> torch.Tensor:
         if feature_types is None:
-            raise ValueError("tabfoundry_sandwich forward_batched() requires explicit feature_types")
+            raise ValueError(
+                "tabfoundry_sandwich forward_batched() requires explicit feature_types"
+            )
         if not feature_types or isinstance(feature_types[0], str):
             if batch_size != 1:
                 raise ValueError(
@@ -898,8 +904,8 @@ class TabFoundrySandwichClassifier(nn.Module):
     ) -> torch.Tensor:
         row_summaries = self._row_summary_bytes(feature_cells)
         num_rows = int(feature_cells.shape[1])
-        conditioned = self.y_conditioner(y_train, num_rows=num_rows).squeeze(2).to(
-            dtype=row_summaries.dtype
+        conditioned = (
+            self.y_conditioner(y_train, num_rows=num_rows).squeeze(2).to(dtype=row_summaries.dtype)
         )
         row_pos = self._fourier_positions(
             num_positions=num_rows,
@@ -958,8 +964,8 @@ class TabFoundrySandwichClassifier(nn.Module):
             int(feature_cells.shape[2]),
             int(feature_cells.shape[3]),
         )
-        conditioned = self.y_conditioner(y_train, num_rows=num_rows).squeeze(2).to(
-            dtype=feature_cells.dtype
+        conditioned = (
+            self.y_conditioner(y_train, num_rows=num_rows).squeeze(2).to(dtype=feature_cells.dtype)
         )
         role_ids = self._role_ids(
             batch_size=batch_size,
@@ -1124,8 +1130,23 @@ class TabFoundrySandwichClassifier(nn.Module):
         log_variance = params[:, 1].clamp(min=-10.0, max=10.0)
         return mean, log_variance
 
-    def _feature_mean_bits(self, per_cell_bits: torch.Tensor) -> torch.Tensor:
-        return per_cell_bits.mean(dim=1)
+    def _feature_mean_bits(self, per_cell_bits: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        finite_mask = torch.isfinite(per_cell_bits)
+        feature_counts = finite_mask.sum(dim=1)
+        feature_sums = torch.where(finite_mask, per_cell_bits, torch.zeros_like(per_cell_bits)).sum(
+            dim=1
+        )
+        feature_mean_bits = torch.full(
+            (int(per_cell_bits.shape[0]), int(per_cell_bits.shape[2])),
+            float("nan"),
+            device=per_cell_bits.device,
+            dtype=per_cell_bits.dtype,
+        )
+        valid_feature_mask = feature_counts > 0
+        feature_mean_bits[valid_feature_mask] = feature_sums[valid_feature_mask] / feature_counts[
+            valid_feature_mask
+        ].to(dtype=per_cell_bits.dtype)
+        return feature_mean_bits, valid_feature_mask
 
     def _forward_cell_likelihood_batched(
         self,
@@ -1140,15 +1161,15 @@ class TabFoundrySandwichClassifier(nn.Module):
             x_all,
             train_test_split_index=train_test_split_index,
             feature_type_ids=feature_type_ids,
-            apply_input_normalization=False,
         )
         decoder_hidden = self._cell_decoder_hidden(feature_cells=feature_cells, y_train=y_train)
         batch_size = int(x_all.shape[0])
         num_rows = int(x_all.shape[1])
         num_features = int(x_all.shape[2])
         targets = x_all.to(torch.float32)
-        per_cell_bits = torch.zeros(
+        per_cell_bits = torch.full(
             (batch_size, num_rows, num_features),
+            float("nan"),
             device=x_all.device,
             dtype=torch.float32,
         )
@@ -1157,9 +1178,18 @@ class TabFoundrySandwichClassifier(nn.Module):
         integer_predictions: list[IntegerHybridCellPrediction] = []
         for task_index in range(batch_size):
             for feature_index in range(num_features):
-                feature_type = FEATURE_TYPE_VOCAB[int(feature_type_ids[task_index, feature_index].item())]
+                feature_type = FEATURE_TYPE_VOCAB[
+                    int(feature_type_ids[task_index, feature_index].item())
+                ]
                 feature_hidden = decoder_hidden[task_index, :, feature_index, :]
                 feature_targets = targets[task_index, :, feature_index]
+                valid_target_mask = torch.isfinite(feature_targets)
+                sanitized_targets = torch.where(
+                    valid_target_mask,
+                    feature_targets,
+                    torch.zeros_like(feature_targets),
+                )
+                excluded_bits = torch.full_like(feature_targets, float("nan"))
                 train_values = targets[task_index, :train_test_split_index, feature_index]
                 support_values = self._support_values_for_feature(
                     train_values,
@@ -1172,10 +1202,14 @@ class TabFoundrySandwichClassifier(nn.Module):
                 )
                 if feature_type == FEATURE_TYPE_FLOATING:
                     mean, log_variance = self._gaussian_params(feature_hidden)
-                    per_cell_bits[task_index, :, feature_index] = gaussian_nll_bits(
-                        mean,
-                        log_variance,
-                        feature_targets,
+                    per_cell_bits[task_index, :, feature_index] = torch.where(
+                        valid_target_mask,
+                        gaussian_nll_bits(
+                            mean,
+                            log_variance,
+                            sanitized_targets,
+                        ),
+                        excluded_bits,
                     )
                     floating_predictions.append(
                         FloatingCellPrediction(
@@ -1186,7 +1220,10 @@ class TabFoundrySandwichClassifier(nn.Module):
                         )
                     )
                     continue
-                if feature_type == FEATURE_TYPE_INTEGER and self.integer_likelihood == "hybrid_mixture":
+                if (
+                    feature_type == FEATURE_TYPE_INTEGER
+                    and self.integer_likelihood == "hybrid_mixture"
+                ):
                     gate_logit = self._integer_gate_logit(
                         support_embeddings,
                         device=feature_hidden.device,
@@ -1202,11 +1239,15 @@ class TabFoundrySandwichClassifier(nn.Module):
                     )
                     discrete_bits = cross_entropy_bits(discrete_logits, target_indices)
                     mean, log_variance = self._gaussian_params(feature_hidden)
-                    continuous_bits = gaussian_nll_bits(mean, log_variance, feature_targets)
-                    per_cell_bits[task_index, :, feature_index] = mixture_bits(
-                        gate_logit=gate_logit,
-                        discrete_bits=discrete_bits,
-                        continuous_bits=continuous_bits,
+                    continuous_bits = gaussian_nll_bits(mean, log_variance, sanitized_targets)
+                    per_cell_bits[task_index, :, feature_index] = torch.where(
+                        valid_target_mask,
+                        mixture_bits(
+                            gate_logit=gate_logit,
+                            discrete_bits=discrete_bits,
+                            continuous_bits=continuous_bits,
+                        ),
+                        excluded_bits,
                     )
                     integer_predictions.append(
                         IntegerHybridCellPrediction(
@@ -1228,9 +1269,13 @@ class TabFoundrySandwichClassifier(nn.Module):
                     feature_targets,
                     support_values=support_values,
                 )
-                per_cell_bits[task_index, :, feature_index] = cross_entropy_bits(
-                    discrete_logits,
-                    target_indices,
+                per_cell_bits[task_index, :, feature_index] = torch.where(
+                    valid_target_mask,
+                    cross_entropy_bits(
+                        discrete_logits,
+                        target_indices,
+                    ),
+                    excluded_bits,
                 )
                 categorical_predictions.append(
                     CategoricalCellPrediction(
@@ -1242,9 +1287,27 @@ class TabFoundrySandwichClassifier(nn.Module):
                     )
                 )
 
-        feature_mean_bits = self._feature_mean_bits(per_cell_bits)
-        bpc = per_cell_bits.mean()
-        bpf = feature_mean_bits.mean()
+        finite_cell_mask = torch.isfinite(per_cell_bits)
+        bpc_cell_count = int(finite_cell_mask.sum().item())
+        if bpc_cell_count <= 0:
+            raise RuntimeError(
+                "tabfoundry_sandwich cell_bpc requires at least one finite target cell "
+                "after excluding non-finite values"
+            )
+        feature_mean_bits, valid_feature_mask = self._feature_mean_bits(per_cell_bits)
+        bpf_feature_count = int(valid_feature_mask.sum().item())
+        if bpf_feature_count <= 0:
+            raise RuntimeError(
+                "tabfoundry_sandwich cell_bpc requires at least one feature with a finite "
+                "target cell after excluding non-finite values"
+            )
+        bpc = torch.where(
+            finite_cell_mask, per_cell_bits, torch.zeros_like(per_cell_bits)
+        ).sum() / finite_cell_mask.sum().to(dtype=per_cell_bits.dtype)
+        bpf = torch.where(
+            valid_feature_mask, feature_mean_bits, torch.zeros_like(feature_mean_bits)
+        ).sum() / valid_feature_mask.sum().to(dtype=feature_mean_bits.dtype)
+        excluded_non_finite_cell_count = int((~torch.isfinite(targets)).sum().item())
         return CellLikelihoodOutput(
             per_cell_bits=per_cell_bits,
             bpc=bpc,
@@ -1255,6 +1318,9 @@ class TabFoundrySandwichClassifier(nn.Module):
             aux_metrics={
                 "bpc": float(bpc.detach().item()),
                 "bpf": float(bpf.detach().item()),
+                "bpc_cell_count": float(bpc_cell_count),
+                "bpf_feature_count": float(bpf_feature_count),
+                "excluded_non_finite_cell_count": float(excluded_non_finite_cell_count),
             },
         )
 

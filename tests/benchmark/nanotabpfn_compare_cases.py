@@ -111,6 +111,7 @@ def test_load_benchmark_manifest_datasets_allows_missing_when_manifest_provenanc
                 "y_train": y_train,
                 "x_test": x_test,
                 "y_test": y_test,
+                "feature_types": ["floating"] * int(x_train.shape[1]),
                 "metadata": {
                     **data_cases._classification_metadata(
                         n_features=x_train.shape[1],
@@ -146,6 +147,7 @@ def test_load_benchmark_manifest_datasets_allows_missing_when_manifest_provenanc
 
     assert list(datasets) == ["missing_case"]
     assert not np.isfinite(datasets["missing_case"][0]).all()
+    assert datasets["missing_case"][2] == ["floating"] * int(x_train.shape[1])
     assert task_records[0]["dataset_name"] == "missing_case"
     assert benchmark_surface["allow_missing_values"] is True
     assert benchmark_surface["benchmark_bundle"]["allow_missing_values"] is True
