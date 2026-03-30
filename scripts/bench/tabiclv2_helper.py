@@ -32,6 +32,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint-version", required=True, help="TabICLv2 checkpoint version")
     parser.add_argument("--device", default="auto", help="Device override")
     parser.add_argument(
+        "--tab-realdata-hub-root",
+        default=None,
+        help="Explicit local tab-realdata-hub checkout used by helper imports",
+    )
+    parser.add_argument(
         "--allow-missing-values",
         action="store_true",
         help="Permit missing-valued benchmark inputs when the bundle explicitly allows them",
@@ -49,6 +54,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         checkpoint_version=str(args.checkpoint_version),
         device=str(args.device),
         allow_missing_values=bool(args.allow_missing_values),
+        tab_realdata_hub_root=(
+            Path(str(args.tab_realdata_hub_root))
+            if args.tab_realdata_hub_root
+            else None
+        ),
     )
 
 

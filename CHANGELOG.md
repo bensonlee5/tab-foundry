@@ -20,6 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - User-facing note: prior-dump training now accepts `runtime.grad_clip <= 0`
   as the explicit no-clipping setting, matching the standard trainer contract.
 
+## [0.15.4] - 2026-03-30
+
+### Changed
+
+- User-facing note: benchmark helpers no longer auto-shadow a sibling
+  `tab-realdata-hub` checkout. `tab-foundry bench compare` and
+  `tab-foundry bench env bootstrap` now accept `--tab-realdata-hub-root` as
+  the explicit opt-in for local helper imports and bootstrap installs.
+- User-facing note: `tab-foundry bench env bootstrap` now fails early for
+  Python 3.13 TabICLv2 environments unless `--tab-realdata-hub-root` is
+  supplied, and uses that explicit checkout only to install the hub runtime
+  dependencies needed for helper-side `src/` injection.
+- User-facing note: `tab-foundry` and benchmark env bootstrap now pin the
+  published `tab-realdata-hub==0.1.1` release instead of `0.1.0`.
+
 ## [0.15.3] - 2026-03-29
 
 ### Changed

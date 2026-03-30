@@ -40,5 +40,6 @@ class BenchmarkComparisonConfig:
     reuse_nanotabpfn_error: Mapping[str, Any] | None = None
     reuse_nanotabpfn_metadata: Mapping[str, Any] | None = None
     tabicl_root: Path = Path("~/dev/tabicl")
+    tab_realdata_hub_root: Path | None = None
     tabicl_classifier_checkpoint_version: str = DEFAULT_TABICL_CLASSIFIER_CHECKPOINT_VERSION
     tabicl_regressor_checkpoint_version: str = DEFAULT_TABICL_REGRESSOR_CHECKPOINT_VERSION

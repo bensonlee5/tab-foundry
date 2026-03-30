@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import subprocess
 
-from tab_foundry.repo_paths import repo_root
+from tab_foundry.bench.helper_imports import resolve_tab_realdata_hub_root
 
 
 NANOTABPFN_PYPROJECT = """[project]
@@ -36,7 +36,7 @@ experiment = [
 package = false
 """
 
-TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub==0.1.0"
+TAB_REALDATA_HUB_INSTALL_SPEC = "tab-realdata-hub==0.1.1"
 TAB_REALDATA_HUB_RUNTIME_DEPENDENCIES = (
     "numpy>=2.1",
     "openml>=0.15",
@@ -114,21 +114,9 @@ def _python_version_info(python_path: Path) -> tuple[int, int]:
     return int(major_str), int(minor_str)
 
 
-def _default_tab_realdata_hub_root() -> Path | None:
-    sibling_root = (repo_root().parent / "tab-realdata-hub").resolve()
-    if (sibling_root / "pyproject.toml").exists():
-        return sibling_root
-    home_root = Path("~/dev/tab-realdata-hub").expanduser().resolve()
-    if (home_root / "pyproject.toml").exists():
-        return home_root
-    return None
-
-
 def _tab_realdata_hub_install_spec(root: Path | None = None) -> str:
-    resolved_root = (
-        _default_tab_realdata_hub_root() if root is None else root.expanduser().resolve()
-    )
-    if resolved_root is not None and (resolved_root / "pyproject.toml").exists():
+    resolved_root = resolve_tab_realdata_hub_root(tab_realdata_hub_root=root)
+    if resolved_root is not None:
         return str(resolved_root)
     return TAB_REALDATA_HUB_INSTALL_SPEC
 
@@ -161,14 +149,22 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     nanotabpfn_python = nanotabpfn_root / ".venv" / "bin" / "python"
     tabpfn_python = tabpfn_root / ".venv" / "bin" / "python"
     tabicl_python = tabicl_root / ".venv" / "bin" / "python"
-    tab_realdata_hub_spec = _tab_realdata_hub_install_spec(config.tab_realdata_hub_root)
-    tabicl_python_version = _python_version_info(tabicl_python)
-    tabicl_supports_tab_realdata_hub_install = not (
-        Path(tab_realdata_hub_spec).exists() and tabicl_python_version < (3, 14)
+    resolved_tab_realdata_hub_root = resolve_tab_realdata_hub_root(
+        tab_realdata_hub_root=config.tab_realdata_hub_root,
     )
+    tab_realdata_hub_spec = _tab_realdata_hub_install_spec(resolved_tab_realdata_hub_root)
+    tabicl_python_version = _python_version_info(tabicl_python)
+    tabicl_requires_runtime_dependency_bootstrap = tabicl_python_version < (3, 14)
+    if tabicl_requires_runtime_dependency_bootstrap and resolved_tab_realdata_hub_root is None:
+        raise RuntimeError(
+            "tabicl benchmark env uses Python "
+            f"{tabicl_python_version[0]}.{tabicl_python_version[1]}, but the published "
+            "tab-realdata-hub package requires Python >=3.14; pass "
+            "--tab-realdata-hub-root to bootstrap against a local checkout"
+        )
 
     _install_python_package(nanotabpfn_python, tab_realdata_hub_spec)
-    if not tabicl_supports_tab_realdata_hub_install:
+    if tabicl_requires_runtime_dependency_bootstrap:
         _install_tab_realdata_hub_runtime_dependencies(tabicl_python)
     else:
         _install_python_package(tabicl_python, tab_realdata_hub_spec)
@@ -181,7 +177,7 @@ def bootstrap_benchmark_envs(config: BenchmarkEnvConfig) -> dict[str, str]:
     _validate_import(nanotabpfn_python, "tab_realdata_hub")
     _validate_import(tabpfn_python, "tabpfn")
     _validate_import(tabicl_python, "pyarrow")
-    if tabicl_supports_tab_realdata_hub_install:
+    if not tabicl_requires_runtime_dependency_bootstrap:
         _validate_import(tabicl_python, "tab_realdata_hub")
     _validate_import(tabicl_python, "tabicl")
 

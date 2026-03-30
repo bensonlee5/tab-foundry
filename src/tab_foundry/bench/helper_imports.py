@@ -5,20 +5,48 @@ from __future__ import annotations
 from pathlib import Path
 
 
-def optional_tab_realdata_hub_src_roots(*, tab_foundry_src: Path) -> tuple[Path, ...]:
-    """Return sibling tab-realdata-hub src roots that should shadow installed packages."""
+def resolve_tab_realdata_hub_root(*, tab_realdata_hub_root: Path | None) -> Path | None:
+    """Resolve and validate an explicit tab-realdata-hub checkout root."""
 
-    resolved_tab_foundry_src = tab_foundry_src.expanduser().resolve()
-    candidate = resolved_tab_foundry_src.parent.parent / "tab-realdata-hub" / "src"
-    if candidate.exists():
-        return (candidate,)
-    return ()
+    if tab_realdata_hub_root is None:
+        return None
+    resolved_root = tab_realdata_hub_root.expanduser().resolve()
+    pyproject_path = resolved_root / "pyproject.toml"
+    package_root = resolved_root / "src" / "tab_realdata_hub"
+    if not pyproject_path.exists():
+        raise RuntimeError(
+            "tab-realdata-hub root must contain pyproject.toml: "
+            f"{resolved_root}"
+        )
+    if not package_root.is_dir():
+        raise RuntimeError(
+            "tab-realdata-hub root must contain src/tab_realdata_hub: "
+            f"{resolved_root}"
+        )
+    return resolved_root
 
 
-def prepend_optional_tab_realdata_hub_src(sys_path: list[str], *, tab_foundry_src: Path) -> None:
-    """Prepend sibling tab-realdata-hub src roots to ``sys.path`` when they exist."""
+def resolve_tab_realdata_hub_src_root(*, tab_realdata_hub_root: Path | None) -> Path | None:
+    """Return the validated tab-realdata-hub ``src`` root for explicit helper overrides."""
 
-    for candidate in reversed(optional_tab_realdata_hub_src_roots(tab_foundry_src=tab_foundry_src)):
-        candidate_str = str(candidate)
-        if candidate_str not in sys_path:
-            sys_path.insert(0, candidate_str)
+    resolved_root = resolve_tab_realdata_hub_root(tab_realdata_hub_root=tab_realdata_hub_root)
+    if resolved_root is None:
+        return None
+    return resolved_root / "src"
+
+
+def prepend_explicit_tab_realdata_hub_src(
+    sys_path: list[str],
+    *,
+    tab_realdata_hub_root: Path | None,
+) -> None:
+    """Prepend an explicit tab-realdata-hub checkout to ``sys.path`` when configured."""
+
+    resolved_src_root = resolve_tab_realdata_hub_src_root(
+        tab_realdata_hub_root=tab_realdata_hub_root,
+    )
+    if resolved_src_root is None:
+        return
+    resolved_src_root_str = str(resolved_src_root)
+    if resolved_src_root_str not in sys_path:
+        sys_path.insert(0, resolved_src_root_str)

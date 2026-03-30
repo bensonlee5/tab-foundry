@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 import subprocess
 
 import pytest
@@ -57,14 +58,25 @@ def test_nested_cli_bench_compare_delegates_to_compare_main(
 
     def _fake_compare(args):
         captured["tab_foundry_run_dir"] = str(args.tab_foundry_run_dir)
+        captured["tab_realdata_hub_root"] = str(args.tab_realdata_hub_root)
         return 0
 
     monkeypatch.setattr(compare_cli_module, "run_from_args", _fake_compare)
 
-    exit_code = cli_module.main(["bench", "compare", "--tab-foundry-run-dir", "/tmp/run"])
+    exit_code = cli_module.main(
+        [
+            "bench",
+            "compare",
+            "--tab-foundry-run-dir",
+            "/tmp/run",
+            "--tab-realdata-hub-root",
+            "/tmp/tab-realdata-hub",
+        ]
+    )
 
     assert exit_code == 0
     assert captured["tab_foundry_run_dir"] == "/tmp/run"
+    assert captured["tab_realdata_hub_root"] == "/tmp/tab-realdata-hub"
 
 
 def test_nested_cli_bench_tune_dispatches_to_handler(
@@ -102,6 +114,7 @@ def test_nested_cli_bench_env_bootstrap_dispatches_to_handler(
     def _fake_env_bootstrap(args):
         captured["nanotabpfn_root"] = str(args.nanotabpfn_root)
         captured["tabicl_root"] = str(args.tabicl_root)
+        captured["tab_realdata_hub_root"] = str(args.tab_realdata_hub_root)
         return 0
 
     monkeypatch.setattr(env_bootstrap_cli_module, "run_from_args", _fake_env_bootstrap)
@@ -115,11 +128,72 @@ def test_nested_cli_bench_env_bootstrap_dispatches_to_handler(
             "/tmp/nano",
             "--tabicl-root",
             "/tmp/tabicl",
+            "--tab-realdata-hub-root",
+            "/tmp/tab-realdata-hub",
         ]
     )
 
     assert exit_code == 0
-    assert captured == {"nanotabpfn_root": "/tmp/nano", "tabicl_root": "/tmp/tabicl"}
+    assert captured == {
+        "nanotabpfn_root": "/tmp/nano",
+        "tabicl_root": "/tmp/tabicl",
+        "tab_realdata_hub_root": "/tmp/tab-realdata-hub",
+    }
+
+
+def test_bench_compare_run_from_args_forwards_tab_realdata_hub_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+    hub_root = tmp_path / "tab-realdata-hub"
+
+    monkeypatch.setattr(
+        compare_cli_module,
+        "run_nanotabpfn_benchmark",
+        lambda config: captured.update({"config": config})
+        or {"dataset_count": 0, "tab_foundry": {}, "artifacts": {}},
+    )
+
+    exit_code = compare_cli_module.run_from_args(
+        compare_cli_module.build_parser().parse_args(
+            [
+                "--tab-foundry-run-dir",
+                str(tmp_path / "run"),
+                "--tab-realdata-hub-root",
+                str(hub_root),
+            ]
+        )
+    )
+
+    assert exit_code == 0
+    assert captured["config"].tab_realdata_hub_root == hub_root
+
+
+def test_bench_env_bootstrap_run_from_args_forwards_tab_realdata_hub_root(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+    hub_root = tmp_path / "tab-realdata-hub"
+
+    monkeypatch.setattr(
+        env_bootstrap_cli_module,
+        "bootstrap_benchmark_envs",
+        lambda config: captured.update({"config": config}) or {"tabicl_python": "/tmp/python"},
+    )
+
+    exit_code = env_bootstrap_cli_module.run_from_args(
+        env_bootstrap_cli_module.build_parser().parse_args(
+            [
+                "--tab-realdata-hub-root",
+                str(hub_root),
+            ]
+        )
+    )
+
+    assert exit_code == 0
+    assert captured["config"].tab_realdata_hub_root == hub_root
 
 
 def test_nested_cli_bench_bundle_build_openml_dispatches_to_handler(

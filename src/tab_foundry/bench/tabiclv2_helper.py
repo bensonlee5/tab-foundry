@@ -51,6 +51,7 @@ def run_tabiclv2_helper(
     checkpoint_version: str,
     device: str = "auto",
     allow_missing_values: bool = False,
+    tab_realdata_hub_root: Path | None = None,
     helper_root: Path | None = None,
 ) -> int:
     """Evaluate TabICLv2 on a manifest-backed benchmark surface."""
@@ -61,9 +62,12 @@ def run_tabiclv2_helper(
         sys.path.insert(0, str(tabicl_root))
     if str(src_root) not in sys.path:
         sys.path.insert(0, str(src_root))
-    from tab_foundry.bench.helper_imports import prepend_optional_tab_realdata_hub_src
+    from tab_foundry.bench.helper_imports import prepend_explicit_tab_realdata_hub_src
 
-    prepend_optional_tab_realdata_hub_src(sys.path, tab_foundry_src=src_root)
+    prepend_explicit_tab_realdata_hub_src(
+        sys.path,
+        tab_realdata_hub_root=tab_realdata_hub_root,
+    )
 
     try:
         from tabicl import TabICLClassifier, TabICLRegressor

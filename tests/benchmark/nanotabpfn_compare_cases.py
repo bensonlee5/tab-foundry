@@ -650,7 +650,7 @@ def test_run_nanotabpfn_benchmark_orchestrates_external_helper(
     assert Path(captured["cmd"][0]) == nanotab_python.resolve()
     assert Path(captured["cmd"][1]) == REPO_ROOT / "scripts" / "bench" / "nanotabpfn_helper.py"
     assert captured["cmd"][captured["cmd"].index("--tab-foundry-src") + 1] == str(REPO_ROOT / "src")
-    assert "--tab-realdata-hub-src" not in captured["cmd"]
+    assert "--tab-realdata-hub-root" not in captured["cmd"]
     assert captured["cmd"][captured["cmd"].index("--eval-every") + 1] == str(
         compare_module.DEFAULT_NANOTABPFN_EVAL_EVERY
     )
@@ -762,6 +762,8 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     (tabicl_root / ".venv" / "bin").mkdir(parents=True)
     tabicl_python = tabicl_root / ".venv" / "bin" / "python"
     tabicl_python.write_text("#!/bin/sh\n", encoding="utf-8")
+    hub_root = tmp_path / "tab-realdata-hub"
+    hub_root.mkdir()
     out_root = tmp_path / "benchmark_out"
     source_bundle_path = _write_benchmark_bundle(
         tmp_path / "source_bundle.json",
@@ -778,6 +780,7 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     benchmark_bundle = json.loads(source_bundle_path.read_text(encoding="utf-8"))
     captured_posthoc: dict[str, Any] = {}
     helper_calls: list[tuple[str, Path]] = []
+    helper_commands: dict[str, list[str]] = {}
 
     monkeypatch.setattr(compare_module, "default_benchmark_manifest_path", lambda: source_bundle_path)
     monkeypatch.setattr(
@@ -891,6 +894,7 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     def _fake_run(cmd: list[str], *, cwd: Path, check: bool) -> subprocess.CompletedProcess[str]:
         script_name = Path(cmd[1]).name
         helper_calls.append((script_name, cwd))
+        helper_commands[script_name] = list(cmd)
         out_path = Path(cmd[cmd.index("--out-path") + 1])
         if script_name == "nanotabpfn_helper.py":
             payload = {
@@ -938,6 +942,7 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
                 compare_module.EXTERNAL_BENCHMARK_TABICLV2,
             ),
             tabicl_root=tabicl_root,
+            tab_realdata_hub_root=hub_root,
             tabicl_classifier_checkpoint_version="classifier.ckpt",
         )
     )
@@ -946,6 +951,12 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
         ("nanotabpfn_helper.py", nanotab_root.resolve()),
         ("tabiclv2_helper.py", tabicl_root.resolve()),
     ]
+    assert helper_commands["nanotabpfn_helper.py"][
+        helper_commands["nanotabpfn_helper.py"].index("--tab-realdata-hub-root") + 1
+    ] == str(hub_root.resolve())
+    assert helper_commands["tabiclv2_helper.py"][
+        helper_commands["tabiclv2_helper.py"].index("--tab-realdata-hub-root") + 1
+    ] == str(hub_root.resolve())
     assert summary["tabiclv2"]["final_roc_auc"] == pytest.approx(0.84)
     assert summary["tabiclv2"]["final_log_loss"] == pytest.approx(0.39)
     assert summary["tabiclv2"]["final_brier_score"] == pytest.approx(0.11)
@@ -955,6 +966,8 @@ def test_run_nanotabpfn_benchmark_optionally_runs_tabiclv2(
     assert summary["tabiclv2"]["device"] == "auto"
     assert summary["tabiclv2"]["resolved_device"] == "cuda"
     assert summary["tabiclv2"]["benchmark_host_fingerprint"] == "host-a"
+    assert summary["tabiclv2"]["tab_realdata_hub_root"] == str(hub_root.resolve())
+    assert summary["nanotabpfn"]["tab_realdata_hub_root"] == str(hub_root.resolve())
     assert summary["external_benchmarks"] == [
         compare_module.EXTERNAL_BENCHMARK_NANOTABPFN,
         compare_module.EXTERNAL_BENCHMARK_TABICLV2,

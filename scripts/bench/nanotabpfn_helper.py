@@ -31,6 +31,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--batch-size", type=int, default=32, help="Prior batch size")
     parser.add_argument("--lr", type=float, default=4.0e-3, help="Learning rate")
     parser.add_argument(
+        "--tab-realdata-hub-root",
+        default=None,
+        help="Explicit local tab-realdata-hub checkout used by helper imports",
+    )
+    parser.add_argument(
         "--allow-missing-values",
         action="store_true",
         help="Permit missing-valued benchmark inputs when the bundle explicitly allows them",
@@ -52,6 +57,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         batch_size=int(args.batch_size),
         lr=float(args.lr),
         allow_missing_values=bool(args.allow_missing_values),
+        tab_realdata_hub_root=(
+            Path(str(args.tab_realdata_hub_root))
+            if args.tab_realdata_hub_root
+            else None
+        ),
     )
 
 

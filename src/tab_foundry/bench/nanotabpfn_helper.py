@@ -22,6 +22,7 @@ def run_nanotabpfn_helper(
     batch_size: int = 32,
     lr: float = 4.0e-3,
     allow_missing_values: bool = False,
+    tab_realdata_hub_root: Path | None = None,
     helper_root: Path | None = None,
 ) -> int:
     """Train and evaluate nanoTabPFN on a manifest-backed benchmark surface."""
@@ -32,9 +33,12 @@ def run_nanotabpfn_helper(
         sys.path.insert(0, str(nanotabpfn_root))
     if str(src_root) not in sys.path:
         sys.path.insert(0, str(src_root))
-    from tab_foundry.bench.helper_imports import prepend_optional_tab_realdata_hub_src
+    from tab_foundry.bench.helper_imports import prepend_explicit_tab_realdata_hub_src
 
-    prepend_optional_tab_realdata_hub_src(sys.path, tab_foundry_src=src_root)
+    prepend_explicit_tab_realdata_hub_src(
+        sys.path,
+        tab_realdata_hub_root=tab_realdata_hub_root,
+    )
 
     from model import NanoTabPFNModel  # type: ignore[attr-defined]
     try:
