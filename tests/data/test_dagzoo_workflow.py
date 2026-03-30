@@ -21,7 +21,7 @@ from tab_foundry.data.dagzoo_workflow import (
 )
 from tab_realdata_hub.manifest import build_manifest
 
-from . import manifest_and_dataset_cases as cases
+from tests.support import manifest_and_dataset_cases as cases
 
 
 _TEST_GENERATE_RUN_ID = "1" * 32

@@ -94,6 +94,9 @@ default-groups = ["dev"]
 testpaths = ["tests"]
 markers = [
   "slow: long-running benchmark coverage",
+  "research: research sweep contracts and research-engine tests",
+  "gpu: tests that require CUDA or other accelerator-specific hardware",
+  "integration: subprocess, smoke, or repo-tooling integration coverage",
 ]
 addopts = "-n auto --maxprocesses 8"
 

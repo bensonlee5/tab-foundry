@@ -24,12 +24,12 @@ from tab_foundry.training.optimizer import OptimizerSelection
 from tab_foundry.training.schedule import build_stage_configs
 from tab_foundry.types import TaskBatch
 
-from tests.data.manifest_and_dataset_cases import (
+from tests.support.manifest_and_dataset_cases import (
     _classification_arrays,
     _classification_metadata,
     _write_packed_shard,
 )
-from tests.training.task_batching_cases import write_task_batch_manifest_from_specs
+from tests.support.task_batching import write_task_batch_manifest_from_specs
 
 
 class _FakeAccelerator:

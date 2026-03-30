@@ -14,7 +14,7 @@ from tab_foundry.bench.artifacts import load_jsonl
 import tab_foundry.bench.nanotabpfn as benchmark_module
 import tab_foundry.bench.nanotabpfn.metrics as benchmark_metrics_module
 import tab_foundry.bench.tabiclv2_helper as tabiclv2_helper_module
-from tests.data import manifest_and_dataset_cases as manifest_cases
+from tests.support import manifest_and_dataset_cases as manifest_cases
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TABICLV2_HELPER_SCRIPT_PATH = REPO_ROOT / "scripts" / "bench" / "tabiclv2_helper.py"
