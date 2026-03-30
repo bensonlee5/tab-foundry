@@ -81,13 +81,19 @@ This is the canonical long-form evidence note for
 - Prior TF-RD-021B evidence is historical context only; the active target is an
   evolved sandwich classification surface
 - The benchmark program should make the repo-to-repo linkage explicit:
-  - `dagzoo` defines synthetic training fronts with `n_classes_min=2` and
-    `n_classes_max=10`
+  - `dagzoo` defines synthetic training fronts with balanced explicit coverage:
+    row totals `128/256/512/1024`, feature counts `6/10/14/20`, and class
+    counts covering every integer `2..10`, with every synthetic dataset capped
+    at `<=1024` total rows
   - `tab-realdata-hub` defines medium and large real-data validation bundles
     plus materialized manifests, with `min_classes=2`, `max_classes=10`, and
     `max_missing_pct=20.0`
   - `tab-foundry` consumes those manifests and ranks rows by
     `final_bpc_at_matched_regime_budget`
+- Trusted reruns now use one synthetic corpus pass only:
+  `prior_dump_batch_size=64`, budgeted over corpus manifest records/tasks, with
+  the concrete runtime step count derived from the corpus task count instead of
+  a fixed 400-step contract
 - BPC is the normalized log-loss view for the first expanded classification regime;
   raw log loss, calibration, runtime, and stability remain supporting guardrails
 - The benchmark contract remains valid, but the previously recorded medium and
@@ -118,10 +124,12 @@ This is the canonical long-form evidence note for
 
 - the trusted TF-RD-010 medium rerun under
   [#205](https://github.com/bensonlee5/tab-foundry/issues/205) still needs to
-  re-establish canonical medium-rung evidence
+  re-establish canonical medium-rung evidence on the refactored sandwich
+  surface and the single-epoch synthetic contract
 - the trusted TF-RD-010 large rerun under
   [#203](https://github.com/bensonlee5/tab-foundry/issues/203) still needs to
-  re-establish canonical large-rung evidence
+  re-establish canonical large-rung evidence on the refactored sandwich
+  surface and the single-epoch synthetic contract
 - the sandwich refactor follow-up under
   [#204](https://github.com/bensonlee5/tab-foundry/issues/204) lands before any
   new TF-RD-010 rerun is recorded as canonical evidence

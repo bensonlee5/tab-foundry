@@ -4,6 +4,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import shutil
+from types import SimpleNamespace
 
 from omegaconf import OmegaConf
 import pytest
@@ -41,8 +42,11 @@ REGISTRY_PATH = default_benchmark_run_registry_path()
 def _copy_reference_workspace(tmp_path: Path) -> tuple[Path, Path]:
     reference_root = tmp_path / "reference"
     sweeps_root = reference_root / "system_delta_sweeps"
+    corpus_recipes_root = reference_root / "corpus_recipes"
     source_sweeps_root = REPO_ROOT / "reference" / "system_delta_sweeps"
+    source_corpus_recipes_root = REPO_ROOT / "reference" / "corpus_recipes"
     sweeps_root.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(source_corpus_recipes_root, corpus_recipes_root, dirs_exist_ok=True)
     (reference_root / "system_delta_catalog.yaml").write_text(
         (REPO_ROOT / "reference" / "system_delta_catalog.yaml").read_text(encoding="utf-8"),
         encoding="utf-8",
@@ -566,7 +570,14 @@ def test_create_sweep_supports_explicit_delta_ref_order(tmp_path: Path) -> None:
     ]
     shared_row = next(row for row in created_queue["rows"] if row["delta_ref"] == "delta_shared_feature_norm")
     assert shared_row["training"] == {
+        "prior_dump_batch_size": 64,
         "surface_label": "prior_constant_lr_trace_activations",
+        "synthetic_epoch_budget": {
+            "allow_partial_final_batch": True,
+            "budget_unit": "corpus_manifest_records",
+            "epochs": 1,
+            "prior_dump_batch_size": 64,
+        },
         "overrides": {"runtime": {"trace_activations": True}},
     }
 
@@ -813,6 +824,110 @@ def test_create_sweep_bootstraps_tf_rd_018_corrected_baseline_on_corpus_surface(
     assert materialized_row["training"]["surface_label"] == "linear_warmup_decay"
     assert materialized_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400
     assert materialized_row["training"]["overrides"]["optimizer"]["min_lr"] == 0.0004
+
+
+def test_create_sweep_defaults_single_epoch_budget_for_new_synthetic_rows_without_manual_steps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+    catalog_path = reference_root / "system_delta_catalog.yaml"
+    catalog_payload = OmegaConf.to_container(OmegaConf.load(catalog_path), resolve=True)
+    assert isinstance(catalog_payload, dict)
+    deltas = catalog_payload["deltas"]
+    assert isinstance(deltas, dict)
+    deltas["delta_synthetic_default_policy"] = {
+        "dimension_family": "training",
+        "family": "training",
+        "binary_applicable": False,
+        "description": "Synthetic default policy scaffold test.",
+        "upstream_delta": "Not applicable.",
+        "expected_effect": "Default one-epoch synthetic budget.",
+        "default_effective_surface": {
+            "data": {
+                "surface_label": "synthetic_test",
+                "source": "manifest",
+                "corpus_ref": "tf_rd_010_dagzoo_medium_control_v1",
+            },
+            "preprocessing": {"surface_label": "runtime_default"},
+            "training": {
+                "surface_label": "prior_cosine_warmup",
+                "overrides": {
+                    "schedule": {
+                        "stages": [
+                            {
+                                "name": "prior_dump",
+                                "lr_max": 0.004,
+                                "lr_schedule": "cosine",
+                                "warmup_ratio": 0.05,
+                            }
+                        ]
+                    }
+                },
+            },
+        },
+        "parameter_adequacy_policy": {"default_plan": []},
+    }
+    catalog_path.write_text(OmegaConf.to_yaml(OmegaConf.create(catalog_payload), resolve=True), encoding="utf-8")
+
+    monkeypatch.setattr(
+        materialize_module,
+        "load_corpus_record",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("no local corpus")),
+    )
+    monkeypatch.setattr(
+        materialize_module,
+        "load_corpus_recipe",
+        lambda *args, **kwargs: SimpleNamespace(
+            invocations=(SimpleNamespace(num_datasets=80), SimpleNamespace(num_datasets=64))
+        ),
+    )
+
+    _ = create_sweep(
+        sweep_id="synthetic_epoch_budget_clone",
+        anchor_run_id="01_nano_exact_md_prior_parity_fix_binary_medium_v1",
+        parent_sweep_id=None,
+        complexity_level="binary_md",
+        benchmark_manifest_path="src/tab_foundry/bench/nanotabpfn_openml_binary_medium_v1.json",
+        control_baseline_id="cls_benchmark_linear_v2",
+        training_experiment="cls_benchmark_staged_prior",
+        training_config_profile="cls_benchmark_staged_prior",
+        surface_role="hybrid_diagnostic",
+        delta_refs=["delta_synthetic_default_policy"],
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=catalog_path,
+        registry_path=REGISTRY_PATH,
+        sweeps_root=sweeps_root,
+    )
+
+    created_queue = load_system_delta_queue_instance(
+        "synthetic_epoch_budget_clone",
+        index_path=sweeps_root / "index.yaml",
+        sweeps_root=sweeps_root,
+    )
+    created_row = created_queue["rows"][0]
+    assert created_row["training"]["prior_dump_batch_size"] == 64
+    assert created_row["training"]["synthetic_epoch_budget"] == {
+        "epochs": 1,
+        "budget_unit": "corpus_manifest_records",
+        "prior_dump_batch_size": 64,
+        "allow_partial_final_batch": True,
+    }
+    assert "max_steps" not in created_row["training"]["overrides"].get("runtime", {})
+    assert "steps" not in created_row["training"]["overrides"]["schedule"]["stages"][0]
+
+    materialized = load_system_delta_queue(
+        sweep_id="synthetic_epoch_budget_clone",
+        index_path=sweeps_root / "index.yaml",
+        catalog_path=catalog_path,
+        sweeps_root=sweeps_root,
+    )
+    materialized_row = materialized["rows"][0]
+    assert materialized_row["training"]["overrides"]["runtime"]["max_steps"] == 3
+    assert materialized_row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 3
+    assert materialized_row["training"]["synthetic_epoch_budget"]["resolved_task_count"] == 144
+    assert materialized_row["training"]["synthetic_epoch_budget"]["resolved_max_steps"] == 3
+    assert materialized_row["training"]["synthetic_epoch_budget"]["resolution_source"] == "recipe_definition"
 
 
 def test_create_sweep_keeps_generic_linear_warmup_decay_on_prior_surface(
@@ -1295,6 +1410,41 @@ def test_load_materialized_system_delta_queue_rejects_non_string_notes(tmp_path:
 
     with pytest.raises(RuntimeError, match="notes\\[0\\] must be a non-empty string"):
         _ = load_system_delta_queue(path=queue_path)
+
+
+def test_load_system_delta_queue_rejects_conflicting_synthetic_epoch_budget_steps(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    reference_root, sweeps_root = _copy_reference_workspace(tmp_path)
+    queue_path = sweeps_root / "tf_rd_010_classification_evolution_medium_v1" / "queue.yaml"
+    queue_payload = OmegaConf.to_container(OmegaConf.load(queue_path), resolve=True)
+    assert isinstance(queue_payload, dict)
+    rows = queue_payload["rows"]
+    assert isinstance(rows, list)
+    rows[0]["training"]["overrides"]["runtime"] = {"max_steps": 7}
+    queue_path.write_text(OmegaConf.to_yaml(OmegaConf.create(queue_payload), resolve=True), encoding="utf-8")
+
+    monkeypatch.setattr(
+        materialize_module,
+        "load_corpus_record",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("no local corpus")),
+    )
+    monkeypatch.setattr(
+        materialize_module,
+        "load_corpus_recipe",
+        lambda *args, **kwargs: SimpleNamespace(
+            invocations=(SimpleNamespace(num_datasets=80), SimpleNamespace(num_datasets=64))
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="resolved max_steps=3 but runtime.max_steps=7"):
+        _ = load_system_delta_queue(
+            sweep_id="tf_rd_010_classification_evolution_medium_v1",
+            index_path=sweeps_root / "index.yaml",
+            catalog_path=reference_root / "system_delta_catalog.yaml",
+            sweeps_root=sweeps_root,
+        )
 
 
 def test_system_delta_queue_validation_passes_when_no_rows_are_completed() -> None:

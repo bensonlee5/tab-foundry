@@ -42,6 +42,7 @@ from .paths_io import (
 
 DEFAULT_SWEEP_STATUS = "draft"
 _STAGED_ONLY_MODEL_KEYS = ("arch", "stage", "stage_label", "module_overrides")
+_DEFAULT_SYNTHETIC_EPOCH_BATCH_SIZE = 64
 
 
 def _require_non_empty_string(value: str | None, *, context: str) -> str:
@@ -64,6 +65,54 @@ def _sanitize_model_payload_for_training_experiment(
     for key in _STAGED_ONLY_MODEL_KEYS:
         sanitized.pop(key, None)
     return sanitized
+
+
+def _effective_queue_corpus_ref(data_payload: Mapping[str, Any]) -> str | None:
+    surface_overrides = data_payload.get("surface_overrides")
+    if isinstance(surface_overrides, Mapping):
+        nested_corpus_ref = surface_overrides.get("corpus_ref")
+        if isinstance(nested_corpus_ref, str) and nested_corpus_ref.strip():
+            return nested_corpus_ref.strip()
+    corpus_ref = data_payload.get("corpus_ref")
+    if isinstance(corpus_ref, str) and corpus_ref.strip():
+        return corpus_ref.strip()
+    return None
+
+
+def _has_manual_step_budget(training_payload: Mapping[str, Any]) -> bool:
+    overrides = training_payload.get("overrides")
+    if not isinstance(overrides, Mapping):
+        return False
+    runtime = overrides.get("runtime")
+    if isinstance(runtime, Mapping) and runtime.get("max_steps") is not None:
+        return True
+    schedule = overrides.get("schedule")
+    if not isinstance(schedule, Mapping):
+        return False
+    stages = schedule.get("stages")
+    if not isinstance(stages, list) or not stages:
+        return False
+    first_stage = stages[0]
+    return isinstance(first_stage, Mapping) and first_stage.get("steps") is not None
+
+
+def _apply_default_synthetic_epoch_budget(row_payload: dict[str, Any]) -> dict[str, Any]:
+    data_payload = cast(Mapping[str, Any], row_payload.get("data", {}))
+    training_payload = cast(dict[str, Any], row_payload.get("training", {}))
+    if _effective_queue_corpus_ref(data_payload) is None:
+        return row_payload
+    if training_payload.get("synthetic_epoch_budget") is not None:
+        return row_payload
+    if _has_manual_step_budget(training_payload):
+        return row_payload
+    training_payload.setdefault("prior_dump_batch_size", _DEFAULT_SYNTHETIC_EPOCH_BATCH_SIZE)
+    training_payload["synthetic_epoch_budget"] = {
+        "epochs": 1,
+        "budget_unit": "corpus_manifest_records",
+        "prior_dump_batch_size": int(training_payload["prior_dump_batch_size"]),
+        "allow_partial_final_batch": True,
+    }
+    return row_payload
 
 
 def instantiate_queue_row(
@@ -89,7 +138,8 @@ def instantiate_queue_row(
         training_experiment=training_experiment,
     )
     parameter_policy = cast(dict[str, Any], delta_entry.get("parameter_adequacy_policy", {}))
-    return {
+    return _apply_default_synthetic_epoch_budget(
+        {
         "order": int(order),
         "delta_ref": str(delta_id),
         "status": status,
@@ -119,7 +169,8 @@ def instantiate_queue_row(
         "confounders": [],
         "next_action": str(next_action_override or delta_entry.get("default_next_action", "")),
         "notes": [],
-    }
+        }
+    )
 
 
 def create_sweep(

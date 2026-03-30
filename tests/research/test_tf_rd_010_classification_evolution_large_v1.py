@@ -71,6 +71,9 @@ def test_tf_rd_010_classification_evolution_large_v1_records_the_reset_large_con
     assert any("broader classification pool" in note.lower() for note in notes)
     assert any("no longer canonical" in note.lower() for note in notes)
     assert any("trusted large evidence" in note.lower() for note in notes)
+    assert any("144` tasks per front" in note or "144 tasks per front" in note for note in notes)
+    assert any("<=1024" in note for note in notes)
+    assert any("one pass over corpus manifest records/tasks" in note for note in notes)
 
     anchor_model = sweep["anchor_context"]["model"]
     assert anchor_model["arch"] == "tabfoundry_sandwich"
@@ -92,8 +95,16 @@ def test_tf_rd_010_classification_evolution_large_v1_records_the_reset_large_con
     assert all(row["model"]["sandwich_summary_tokens_per_axis"] == 3 for row in rows)
     assert all(row["model"]["many_class_base"] == 10 for row in rows)
     assert all(row["training"]["surface_label"] == "prior_cosine_warmup" for row in rows)
-    assert all(row["training"]["overrides"]["runtime"]["max_steps"] == 400 for row in rows)
-    assert all(row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 400 for row in rows)
+    assert all(row["training"]["prior_dump_batch_size"] == 64 for row in rows)
+    assert all(row["training"]["synthetic_epoch_budget"]["epochs"] == 1 for row in rows)
+    assert all(
+        row["training"]["synthetic_epoch_budget"]["budget_unit"] == "corpus_manifest_records"
+        for row in rows
+    )
+    assert all(row["training"]["synthetic_epoch_budget"]["prior_dump_batch_size"] == 64 for row in rows)
+    assert all(row["training"]["synthetic_epoch_budget"]["allow_partial_final_batch"] is True for row in rows)
+    assert all("max_steps" not in row["training"]["overrides"].get("runtime", {}) for row in rows)
+    assert all("steps" not in row["training"]["overrides"]["schedule"]["stages"][0] for row in rows)
     assert all(row["data"]["train_row_cap"] == 64 for row in rows)
     assert all(row["data"]["test_row_cap"] == 32 for row in rows)
     assert all("benchmark_metrics" not in row for row in rows)
@@ -110,6 +121,14 @@ def test_tf_rd_010_classification_evolution_large_v1_records_the_reset_large_con
     assert materialized["control_baseline_id"] == "cls_benchmark_linear_multiclass_large_v1"
     assert [row["delta_id"] for row in materialized["rows"]] == EXPECTED_ROWS
     assert all(row["model"].get("stage_label") is None for row in materialized["rows"])
+    assert all(row["training"]["overrides"]["runtime"]["max_steps"] == 3 for row in materialized["rows"])
+    assert all(row["training"]["overrides"]["schedule"]["stages"][0]["steps"] == 3 for row in materialized["rows"])
+    assert all(row["training"]["synthetic_epoch_budget"]["resolved_task_count"] == 144 for row in materialized["rows"])
+    assert all(row["training"]["synthetic_epoch_budget"]["resolved_max_steps"] == 3 for row in materialized["rows"])
+    assert all(
+        row["training"]["synthetic_epoch_budget"]["resolution_source"] in {"recipe_definition", "local_corpus_record"}
+        for row in materialized["rows"]
+    )
 
 
 def test_tf_rd_010_classification_evolution_large_v1_matrix_links_dagzoo_and_hub() -> None:
@@ -131,6 +150,10 @@ def test_tf_rd_010_classification_evolution_large_v1_matrix_links_dagzoo_and_hub
     assert "Anchor run id: `null`" in matrix
     assert "pending trusted rerun" in matrix
     assert "issue `#203`" in matrix
+    assert "144-task" in matrix
+    assert "1024" in matrix
+    assert "single synthetic epoch" in matrix
+    assert "`3` optimizer steps" in matrix
 
 
 def test_tf_rd_010_classification_evolution_large_v1_inspection_resolves_sandwich_row() -> None:

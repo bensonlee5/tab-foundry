@@ -39,6 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from BPC/BPF aggregation, restores configured input normalization on the
   cell-likelihood lane, and surfaces valid-cell and valid-feature counts so
   benchmark BPC/BPF weighting tracks only the finite cells actually scored.
+- User-facing note: synthetic system-delta rows can now declare a one-epoch
+  corpus-task budget, which resolves `runtime.max_steps` from synthetic corpus
+  task count and `prior_dump_batch_size`; TF-RD-010 now uses balanced 144-task
+  DAGZoo fronts capped at `<=1024` rows per dataset and reruns under that
+  single-epoch policy instead of the old fixed 400-step budget.
 
 ## [0.15.3] - 2026-03-29
 

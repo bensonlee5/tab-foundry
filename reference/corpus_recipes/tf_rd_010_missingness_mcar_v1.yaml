@@ -1,7 +1,7 @@
 schema: tab-foundry-corpus-recipe-v1
 recipe_id: tf_rd_010_missingness_mcar_v1
 kind: dagzoo_multi_invocation_manifest
-description: TF-RD-010 classification MCAR missingness front (`n_classes_min=2`, `n_classes_max=10`) for the evolved sandwich benchmark package.
+description: TF-RD-010 balanced MCAR front capped at 1024 rows per dataset with explicit row, feature, and class ladders.
 surface_label: tf_rd_010_missingness_mcar
 manifest:
   train_ratio: 0.9
@@ -13,40 +13,3605 @@ provenance_labels:
   comparator_role: tf_rd_010_candidate
   benchmark_family: tf_rd_010
   downstream_issue: 99
+  task_grid: balanced_rows_features_classes_v1
   missingness_mechanism: mcar
 invocations:
-  - invocation_id: benchmark_cpu
-    base_config_ref: configs/benchmark_cpu.yaml
-    config_overrides:
-      dataset:
-        n_classes_min: 2
-        n_classes_max: 10
-    num_datasets: 8
-    seed: 1
-    device: cpu
-    hardware_policy: none
-    missing_rate: 0.25
-    missing_mechanism: mcar
-  - invocation_id: default_medium
+  - invocation_id: r0128_f06_c02
     base_config_ref: configs/default.yaml
     config_overrides:
       dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 6
+        n_features_max: 6
         n_classes_min: 2
-        n_classes_max: 10
-    num_datasets: 28
-    seed: 1
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 10602
     device: cpu
     hardware_policy: none
     missing_rate: 0.25
     missing_mechanism: mcar
-  - invocation_id: large_shape
-    base_config_ref: configs/benchmark_cuda_h100_large_shape.yaml
+  - invocation_id: r0128_f06_c03
+    base_config_ref: configs/default.yaml
     config_overrides:
       dataset:
-        n_classes_min: 2
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 10603
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f06_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 10604
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f06_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 10605
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f06_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 10606
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f06_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 10607
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f06_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 10608
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f06_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 10609
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f06_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 10
         n_classes_max: 10
-    num_datasets: 4
-    seed: 1
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 10610
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f10_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11002
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f10_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11003
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f10_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11004
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f10_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11005
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f10_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11006
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f10_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11007
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f10_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11008
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f10_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11009
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f10_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11010
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f14_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11402
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f14_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11403
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f14_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11404
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f14_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11405
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f14_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11406
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f14_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11407
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f14_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11408
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f14_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11409
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f14_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 11410
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f20_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 12002
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f20_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 12003
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f20_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 12004
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f20_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 12005
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f20_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 12006
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f20_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 12007
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f20_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 12008
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f20_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 12009
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0128_f20_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 96
+        n_test: 32
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 12010
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f06_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 20602
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f06_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 20603
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f06_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 20604
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f06_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 20605
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f06_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 20606
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f06_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 20607
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f06_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 20608
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f06_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 20609
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f06_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 20610
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f10_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21002
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f10_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21003
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f10_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21004
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f10_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21005
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f10_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21006
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f10_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21007
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f10_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21008
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f10_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21009
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f10_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21010
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f14_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21402
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f14_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21403
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f14_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21404
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f14_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21405
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f14_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21406
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f14_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21407
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f14_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21408
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f14_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21409
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f14_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 21410
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f20_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 22002
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f20_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 22003
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f20_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 22004
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f20_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 22005
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f20_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 22006
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f20_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 22007
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f20_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 22008
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f20_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 22009
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0256_f20_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 192
+        n_test: 64
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 22010
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f06_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 30602
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f06_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 30603
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f06_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 30604
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f06_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 30605
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f06_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 30606
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f06_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 30607
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f06_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 30608
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f06_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 30609
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f06_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 30610
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f10_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31002
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f10_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31003
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f10_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31004
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f10_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31005
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f10_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31006
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f10_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31007
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f10_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31008
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f10_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31009
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f10_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31010
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f14_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31402
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f14_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31403
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f14_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31404
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f14_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31405
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f14_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31406
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f14_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31407
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f14_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31408
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f14_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31409
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f14_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 31410
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f20_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 32002
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f20_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 32003
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f20_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 32004
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f20_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 32005
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f20_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 32006
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f20_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 32007
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f20_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 32008
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f20_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 32009
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r0512_f20_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 384
+        n_test: 128
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 32010
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f06_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 40602
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f06_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 40603
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f06_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 40604
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f06_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 40605
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f06_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 40606
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f06_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 40607
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f06_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 40608
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f06_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 40609
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f06_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 6
+        n_features_max: 6
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 12
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 40610
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f10_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41002
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f10_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41003
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f10_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41004
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f10_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41005
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f10_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41006
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f10_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41007
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f10_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41008
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f10_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41009
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f10_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 10
+        n_features_max: 10
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41010
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f14_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41402
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f14_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41403
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f14_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41404
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f14_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41405
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f14_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41406
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f14_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41407
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f14_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41408
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f14_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41409
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f14_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 14
+        n_features_max: 14
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 4
+        n_nodes_max: 28
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 41410
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f20_c02
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 2
+        n_classes_max: 2
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 42002
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f20_c03
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 3
+        n_classes_max: 3
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 42003
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f20_c04
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 4
+        n_classes_max: 4
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 42004
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f20_c05
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 5
+        n_classes_max: 5
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 42005
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f20_c06
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 6
+        n_classes_max: 6
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 42006
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f20_c07
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 7
+        n_classes_max: 7
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 42007
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f20_c08
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 8
+        n_classes_max: 8
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 42008
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f20_c09
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 9
+        n_classes_max: 9
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 42009
+    device: cpu
+    hardware_policy: none
+    missing_rate: 0.25
+    missing_mechanism: mcar
+  - invocation_id: r1024_f20_c10
+    base_config_ref: configs/default.yaml
+    config_overrides:
+      dataset:
+        task: classification
+        n_train: 768
+        n_test: 256
+        n_features_min: 20
+        n_features_max: 20
+        n_classes_min: 10
+        n_classes_max: 10
+        categorical_ratio_min: 0.0
+        categorical_ratio_max: 1.0
+        max_categorical_cardinality: 12
+      graph:
+        n_nodes_min: 2
+        n_nodes_max: 20
+      filter:
+        max_attempts: 256
+    num_datasets: 1
+    seed: 42010
     device: cpu
     hardware_policy: none
     missing_rate: 0.25
