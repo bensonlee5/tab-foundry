@@ -2,47 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 import torch
 
-from tab_foundry.input_normalization import InputNormalizationMode, normalize_train_test_tensors
 from tab_foundry.model.components.non_finite import clip_finite_values
 from tab_foundry.types import TaskBatch
 
+from .. import shared_forward as _shared_forward
 from .states import CellTableState, HeadOutputState, RawInputState, RowState
 
 
 def prepare_task_inputs(batch: TaskBatch) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
-    if batch.x_train.ndim == 2:
-        train_test_split_index = int(batch.x_train.shape[0])
-        if train_test_split_index <= 0:
-            raise RuntimeError("tabfoundry_staged requires at least one training row")
-        x_all = torch.cat([batch.x_train, batch.x_test], dim=0).to(torch.float32).unsqueeze(0)
-        y_train = batch.y_train.to(torch.int64).unsqueeze(0)
-        y_test = batch.y_test.to(torch.int64).unsqueeze(0)
-        return x_all, y_train, y_test, train_test_split_index
-    if batch.x_train.ndim != 3 or batch.x_test.ndim != 3:
-        raise RuntimeError(
-            "tabfoundry_staged task batching requires x_train/x_test rank 2 or 3, "
-            f"got x_train={tuple(int(dim) for dim in batch.x_train.shape)}, "
-            f"x_test={tuple(int(dim) for dim in batch.x_test.shape)}"
-        )
-    if batch.y_train.ndim != 2 or batch.y_test.ndim != 2:
-        raise RuntimeError(
-            "tabfoundry_staged task batching requires y_train/y_test rank 2 when batching, "
-            f"got y_train={tuple(int(dim) for dim in batch.y_train.shape)}, "
-            f"y_test={tuple(int(dim) for dim in batch.y_test.shape)}"
-        )
-    if int(batch.x_train.shape[0]) != int(batch.x_test.shape[0]):
-        raise RuntimeError("tabfoundry_staged batched train/test tensors must share a batch dimension")
-    train_test_split_index = int(batch.x_train.shape[1])
-    if train_test_split_index <= 0:
-        raise RuntimeError("tabfoundry_staged requires at least one training row")
-    x_all = torch.cat([batch.x_train, batch.x_test], dim=1).to(torch.float32)
-    y_train = batch.y_train.to(torch.int64)
-    y_test = batch.y_test.to(torch.int64)
-    return x_all, y_train, y_test, train_test_split_index
+    return _shared_forward.prepare_task_inputs(batch, arch_name="tabfoundry_staged")
 
 
 def validate_batched_inputs(
@@ -50,19 +22,7 @@ def validate_batched_inputs(
     y_train: torch.Tensor,
     train_test_split_index: int,
 ) -> None:
-    if x_all.ndim != 3:
-        raise ValueError(f"x_all must have shape [B, R, C], got {tuple(x_all.shape)}")
-    if y_train.ndim != 2:
-        raise ValueError(f"y_train must have shape [B, R_train], got {tuple(y_train.shape)}")
-    if int(x_all.shape[0]) != int(y_train.shape[0]):
-        raise ValueError("x_all and y_train must have matching batch dimensions")
-    if train_test_split_index <= 0 or train_test_split_index >= int(x_all.shape[1]):
-        raise ValueError(
-            "train_test_split_index must satisfy 0 < split < num_rows, got "
-            f"split={train_test_split_index}, num_rows={x_all.shape[1]}"
-        )
-    if int(y_train.shape[1]) != train_test_split_index:
-        raise ValueError("y_train length must match train_test_split_index")
+    _shared_forward.validate_batched_inputs(x_all, y_train, train_test_split_index)
 
 
 def normalize_x_all(
@@ -70,15 +30,12 @@ def normalize_x_all(
 ) -> torch.Tensor:
     if model.surface.normalization_mode != "shared":
         return x_all
-    x_train = x_all[:, :train_test_split_index, :]
-    x_test = x_all[:, train_test_split_index:, :]
-    train_norm, test_norm = normalize_train_test_tensors(
-        x_train,
-        x_test,
-        mode=cast(InputNormalizationMode, model.input_normalization),
+    return _shared_forward.normalize_x_all(
+        x_all,
+        train_test_split_index=train_test_split_index,
+        input_normalization=model.input_normalization,
         preserve_non_finite=model.surface.tokenizer == "scalar_per_feature_nan_mask",
     )
-    return torch.cat([train_norm, test_norm], dim=1)
 
 
 def build_raw_input_state(

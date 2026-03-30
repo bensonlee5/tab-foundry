@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.4] - 2026-03-30
+
 ### Changed
 
+- Internal note: refactored `tabfoundry_sandwich` into shared and family-local
+  helper modules so the classification and `cell_bpc` paths are easier to
+  maintain and test while preserving the existing public API, checkpoint keys,
+  and telemetry boundaries.
 - User-facing note: standard manifest-backed training now saves eval-mode
   checkpoints when optimizers expose `train()` / `eval()` state, keeping
   `schedulefree_adamw` snapshot, latest, and fallback-best checkpoints aligned

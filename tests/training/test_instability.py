@@ -257,7 +257,7 @@ class _TinySandwichTelemetryModel(nn.Module):
 def test_gradient_module_map_tracks_only_active_cell_bpc_sandwich_modules() -> None:
     modules = gradient_module_map(_TinySandwichTelemetryModel(loss_surface="cell_bpc"))
 
-    assert {
+    assert set(modules) == {
         "tokenizer",
         "feature_encoder",
         "feature_type_film",
@@ -271,16 +271,7 @@ def test_gradient_module_map_tracks_only_active_cell_bpc_sandwich_modules() -> N
         "discrete_query",
         "discrete_oov",
         "integer_gate",
-    }.issubset(modules)
-    assert {
-        "row_summary_builder",
-        "column_summary_builder",
-        "perceiver_stages.0",
-        "latent_readout",
-        "cell_readout",
-        "test_row_pool",
-        "direct_head",
-    }.isdisjoint(modules)
+    }
 
 
 def test_build_training_telemetry_tracks_non_finite_global_grad_norm_kinds(tmp_path: Path) -> None:
